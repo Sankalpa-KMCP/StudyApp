@@ -12,6 +12,10 @@ export interface TaskItem {
   categoryId?: number
   estimatedPomodoros: number
   actualPomodoros: number
+  repetitionCount?: number
+  easinessFactor?: number
+  intervalDays?: number
+  nextReviewDate?: string
 }
 
 export interface HistoryEntry {
@@ -30,7 +34,7 @@ export interface DailyLog {
   mood?: string
 }
 
-export type SettingsKey = 'dailyGoalMinutes' | 'soundEnabled' | 'targetSessionsPerCycle' | 'longBreakDurationMinutes' | 'ambientTrack' | 'ambientVolume'
+export type SettingsKey = 'dailyGoalMinutes' | 'soundEnabled' | 'targetSessionsPerCycle' | 'longBreakDurationMinutes' | 'ambientTrack' | 'ambientVolume' | 'ambientVolume_rain' | 'ambientVolume_cafe' | 'ambientVolume_whiteNoise'
 
 export interface SettingsRow {
   key: SettingsKey
