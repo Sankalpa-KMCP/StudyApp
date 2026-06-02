@@ -73,13 +73,13 @@ const tooltipStyle = {
 
 function MicroCard({ icon, label, value, badge, iconBg, badgeBg, badgeText }: MicroCardItem) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border-card bg-surface p-4">
+    <div className="flex items-center justify-between rounded-xl border border-slate-800/60 bg-[#0F172A]/70 backdrop-blur-md p-4">
       <div className="flex items-center gap-3">
         <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconBg}`}>
           {icon}
         </div>
         <div>
-          <p className="text-xs text-text-muted">{label}</p>
+          <p className="text-xs text-slate-400">{label}</p>
           <p className="text-base font-semibold text-text-primary">{value}</p>
         </div>
       </div>
@@ -583,7 +583,7 @@ function App() {
       <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="flex flex-col items-center gap-4">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-blue border-t-transparent" />
-          <p className="text-sm text-text-muted">Loading dashboard...</p>
+          <p className="text-sm text-slate-400">Loading dashboard...</p>
         </div>
       </div>
     )
@@ -592,17 +592,17 @@ function App() {
   return (
     <div className="min-h-screen bg-surface font-sans text-text-primary antialiased">
       <div className="w-full max-w-[1650px] min-h-screen mx-auto p-4 md:p-6 lg:p-8 flex flex-col justify-between">
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 items-start w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
 
           {/* COLUMN 1: Focus Core Command Center */}
           <div className="flex flex-col gap-6">
 
           {/* CARD 1: Today's Progress */}
-          <div className="relative overflow-hidden rounded-xl border border-slate-800/60 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5">
+          <div className="relative overflow-hidden flex flex-col h-full rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5">
             <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-purple-500/40 via-blue-500/40 to-transparent" />
             <div className="mb-5 flex items-center gap-2">
               <Target className="h-5 w-5 text-accent-blue" />
-              <h2 className="text-lg font-semibold">Today's Progress</h2>
+              <h2 className="text-sm font-semibold tracking-wide text-slate-200">Today's Progress</h2>
               <div className="ml-auto flex items-center gap-2 group relative">
                 <span className="rounded-md bg-accent-purple/15 px-2 py-0.5 text-xs font-bold text-accent-purple">
                   Lv. {level}
@@ -620,7 +620,7 @@ function App() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-8">
+            <div className="flex flex-1 gap-8">
               {/* Left - Circular Ring + Stats */}
               <div className="flex w-44 shrink-0 flex-col items-center">
                 <div className="relative flex h-36 w-36 items-center justify-center">
@@ -647,7 +647,7 @@ function App() {
                   </svg>
                   <div className="text-center">
                     <p className="text-2xl font-bold text-text-primary">{formatMinutes(todayStudyMinutes)}</p>
-                    <p className="text-xs text-text-muted">of {Math.round(dailyGoalMinutes / 60)}h goal</p>
+                    <p className="text-xs text-slate-400">of {Math.round(dailyGoalMinutes / 60)}h goal</p>
                   </div>
                 </div>
                 <p className="mt-3 text-xs font-medium text-text-secondary">Study time</p>
@@ -658,14 +658,14 @@ function App() {
                     { label: 'Progress', value: `${progressPercent}%`, valueClass: 'text-accent-green' },
                   ].map((row) => (
                     <div key={row.label} className="flex items-center justify-between border-b border-border-subtle pb-1 last:border-0">
-                      <span className="text-xs text-text-muted">{row.label}</span>
+                      <span className="text-xs text-slate-400">{row.label}</span>
                       <span className={`text-xs font-semibold ${row.valueClass}`}>{row.value}</span>
                     </div>
                   ))}
                 </div>
               </div>
               {/* Right - Micro Cards */}
-              <div className="flex flex-1 flex-col justify-center gap-3">
+              <div className="flex flex-1 flex-col h-full gap-3">
                 <MicroCard
                   icon={<Brain className="h-5 w-5 text-accent-purple" />}
                   label="Focus score"
@@ -685,13 +685,13 @@ function App() {
                   badgeText={sessionsRemaining === 0 ? 'text-accent-blue' : 'text-accent-green'}
                 />
                 <MicroCard
-                  icon={<Zap className={`h-5 w-5 ${currentStreak > 0 ? 'text-accent-amber' : 'text-text-muted'}`} />}
+                  icon={<Zap className={`h-5 w-5 ${currentStreak > 0 ? 'text-accent-amber' : 'text-slate-400'}`} />}
                   label="Streak"
                   value={`${currentStreak} days`}
                   badge={currentStreak > 0 ? { text: 'Active', dot: true } : { text: 'Inactive' }}
                   iconBg={currentStreak > 0 ? 'bg-accent-amber/10' : 'bg-text-muted/10'}
                   badgeBg={currentStreak > 0 ? 'bg-accent-amber/10' : 'bg-text-muted/10'}
-                  badgeText={currentStreak > 0 ? 'text-accent-amber' : 'text-text-muted'}
+                  badgeText={currentStreak > 0 ? 'text-accent-amber' : 'text-slate-400'}
                 />
                 {/* Timer Controls */}
                 <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 transition-all ${
@@ -704,8 +704,8 @@ function App() {
                       onClick={() => handleModeSwitch('study')}
                       className={`px-2.5 py-1 text-xs font-medium transition-all ${
                         timerMode === 'study'
-                          ? 'bg-accent-blue/15 text-accent-blue'
-                          : 'text-text-muted hover:bg-surface hover:text-text-primary'
+                          ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                          : 'text-slate-400 hover:bg-surface hover:text-text-primary'
                       }`}
                     >
                       Study
@@ -714,8 +714,8 @@ function App() {
                       onClick={() => handleModeSwitch('break')}
                       className={`px-2.5 py-1 text-xs font-medium transition-all ${
                         timerMode === 'break'
-                          ? isLongBreak ? 'bg-accent-green/15 text-accent-green' : 'bg-accent-amber/15 text-accent-amber'
-                          : 'text-text-muted hover:bg-surface hover:text-text-primary'
+                          ? isLongBreak ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          : 'text-slate-400 hover:bg-surface hover:text-text-primary'
                       }`}
                     >
                       {isLongBreak && timerMode === 'break' ? 'Long Break' : 'Break'}
@@ -764,7 +764,7 @@ function App() {
                   {(isTimerActive || secondsElapsed > 0) && (
                     <button
                       onClick={completeSession}
-                      className="flex items-center gap-1 rounded-md bg-accent-green/10 px-2 py-1 text-xs font-medium text-accent-green transition-all hover:bg-accent-green/20"
+                      className="flex items-center gap-1 rounded-md bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-1 text-xs font-medium transition-all hover:bg-green-500/20"
                     >
                       <Check className="h-3 w-3" />
                       Complete
@@ -776,22 +776,22 @@ function App() {
                   if (!activeTask || activeTask.completed) return null
                   return (
                     <div className="mt-2 flex items-center gap-2 rounded-lg border border-accent-blue/20 bg-accent-blue/5 px-3 py-1.5 transition-all">
-                      <span className="text-xs text-text-muted">Target:</span>
+                      <span className="text-xs text-slate-400">Target:</span>
                       <span className="truncate text-xs font-medium text-accent-blue">{activeTask.text}</span>
-                      <span className="ml-auto whitespace-nowrap text-[11px] text-text-muted">
+                      <span className="ml-auto whitespace-nowrap text-[11px] text-slate-400">
                         🍅 {activeTask.actualPomodoros ?? 0}/{activeTask.estimatedPomodoros ?? 1}
                       </span>
                     </div>
                   )
                 })()}
                 {/* Task Planner */}
-                <div className="space-y-2">
+                <div className="flex flex-col flex-1 min-h-[200px] space-y-2">
                   <div className="flex items-center gap-2">
                     <input
                       data-task-input
                       type="text"
                       placeholder="Add a task..."
-                      className="flex-1 rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary placeholder:text-text-muted outline-none focus:border-accent-blue/50"
+                      className="flex-1 rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-400 outline-none focus:border-accent-blue/50"
                       onKeyDown={(e) => { if (e.key === 'Enter') { const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-pomodoros]'); handleAddTask((e.target as HTMLInputElement).value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); (e.target as HTMLInputElement).value = '' } }}
                     />
                     <select
@@ -820,9 +820,9 @@ function App() {
                       <Plus className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <div className="max-h-28 space-y-0.5 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto min-h-[100px] space-y-0.5">
                     {sessionTasks.length === 0 ? (
-                      <p className="py-3 text-center text-xs italic text-text-muted">
+                      <p className="py-3 text-center text-xs italic text-slate-400">
                         No focus tasks planned for today. Add an objective above to get started!
                       </p>
                     ) : (
@@ -847,10 +847,10 @@ function App() {
                           {task.categoryId !== undefined && categoriesMap.has(task.categoryId) && (
                             <div className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: categoriesMap.get(task.categoryId)!.color }} />
                           )}
-                          <span className={`flex-1 truncate text-xs ${task.completed ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+                          <span className={`flex-1 truncate text-xs ${task.completed ? 'text-slate-400 line-through' : 'text-text-primary'}`}>
                             {task.text}
                           </span>
-                          <span className="shrink-0 text-[11px] text-text-muted">
+                          <span className="shrink-0 text-[11px] text-slate-400">
                             🍅 {task.actualPomodoros ?? 0}/{task.estimatedPomodoros ?? 1}
                           </span>
                         </div>
@@ -874,7 +874,7 @@ function App() {
                           className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-all ${
                             ambientTrack === t.id
                               ? t.activeClass
-                              : 'text-text-muted hover:bg-surface hover:text-text-primary'
+                              : 'text-slate-400 hover:bg-surface hover:text-text-primary'
                           }`}
                         >
                           <t.icon className="h-3 w-3" />
@@ -909,10 +909,10 @@ function App() {
         <div className="flex flex-col gap-6">
 
           {/* CARD 2: Weekly Rhythm */}
-          <div className="rounded-xl border border-slate-800/60 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5">
+          <div className="rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5">
             <div className="mb-5 flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-accent-blue" />
-              <h2 className="text-lg font-semibold">Weekly Rhythm</h2>
+              <h2 className="text-sm font-semibold tracking-wide text-slate-200">Weekly Rhythm</h2>
             </div>
             {/* Top Metrics Row */}
             <div className="mb-6 grid grid-cols-4 gap-4">
@@ -927,7 +927,7 @@ function App() {
                     {m.icon}
                   </div>
                   <div>
-                    <p className="text-[11px] text-text-muted">{m.label}</p>
+                    <p className="text-[11px] text-slate-400">{m.label}</p>
                     <p className="text-sm font-semibold">{m.value}</p>
                   </div>
                 </div>
@@ -959,7 +959,7 @@ function App() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex h-[180px] items-center justify-center">
-                    <p className="text-xs text-text-muted">No study data available for this week yet.</p>
+                    <p className="text-xs text-slate-400">No study data available for this week yet.</p>
                   </div>
                 )}
               </div>
@@ -987,14 +987,14 @@ function App() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex h-[180px] items-center justify-center">
-                    <p className="text-xs text-text-muted">No study data available for this week yet.</p>
+                    <p className="text-xs text-slate-400">No study data available for this week yet.</p>
                   </div>
                 )}
               </div>
             </div>
             {/* Productivity Insights */}
-            <div className="mt-5 border-t border-border-subtle pt-5">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-text-secondary">Productivity Insights</p>
+            <div className="rounded-xl border border-slate-800/40 bg-[#0F172A]/50 p-4">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Productivity Insights</p>
               <div className="grid grid-cols-4 gap-4">
                 {[
                   { label: 'TOP SUBJECT', value: topSubject, icon: <Award className="h-3.5 w-3.5 text-accent-purple" />, valueClass: 'text-accent-purple' },
@@ -1002,10 +1002,10 @@ function App() {
                   { label: 'COMPLETION', value: `${completionRate}%`, icon: <CheckCircle className="h-3.5 w-3.5 text-accent-green" />, valueClass: 'text-accent-green' },
                   { label: 'PEAK DAY', value: peakDay, icon: <Calendar className="h-3.5 w-3.5 text-accent-amber" />, valueClass: 'text-accent-amber' },
                 ].map(m => (
-                  <div key={m.label} className="rounded-lg border border-border-subtle bg-surface/40 p-3">
+                  <div key={m.label} className="rounded-lg border border-slate-800/60 bg-[#0F172A]/70 backdrop-blur-md p-3">
                     <div className="mb-2 flex items-center gap-2">
                       {m.icon}
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted">{m.label}</span>
+                      <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">{m.label}</span>
                     </div>
                     <p className={`text-sm font-bold ${m.valueClass}`}>{m.value}</p>
                   </div>
@@ -1015,27 +1015,27 @@ function App() {
           </div>
 
           {/* CARD 3: This Month */}
-          <div className="rounded-xl border border-slate-800/60 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5">
+          <div className="rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5">
             <div className="mb-5 flex items-center gap-2">
               <Flame className="h-5 w-5 text-accent-amber" />
-              <h2 className="text-lg font-semibold">This Month</h2>
+              <h2 className="text-sm font-semibold tracking-wide text-slate-200">This Month</h2>
               <div className="ml-auto flex items-center gap-2">
                 <button
                   onClick={() => setIsHotkeyHudOpen(true)}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-all hover:bg-surface hover:text-text-primary"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-all hover:bg-surface hover:text-text-primary"
                   title="Keyboard shortcuts"
                 >
                   <Keyboard className="h-4 w-4" />
                 </button>
                 <button
                   onClick={resetData}
-                  className="text-[11px] font-medium text-text-muted transition-all hover:text-accent-blue hover:underline"
+                  className="text-[11px] font-medium text-slate-400 transition-all hover:text-accent-blue hover:underline"
                 >
                   Reset Data
                 </button>
                 <button
                   onClick={() => setIsSettingsOpen(true)}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-all hover:bg-surface hover:text-text-primary"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-all hover:bg-surface hover:text-text-primary"
                 >
                   <Settings className="h-4 w-4" />
                 </button>
@@ -1048,7 +1048,7 @@ function App() {
                     <Clock className="h-5 w-5 text-accent-blue" />
                   </div>
                   <div>
-                    <p className="text-xs text-text-muted">Total Hours</p>
+                    <p className="text-xs text-slate-400">Total Hours</p>
                     <p className="text-xl font-bold">{totalMonthHours.toFixed(1)}h</p>
                   </div>
                 </div>
@@ -1060,7 +1060,7 @@ function App() {
                     <BookOpen className="h-5 w-5 text-accent-purple" />
                   </div>
                   <div>
-                    <p className="text-xs text-text-muted">Sessions</p>
+                    <p className="text-xs text-slate-400">Sessions</p>
                     <p className="text-xl font-bold">{totalMonthSessions}</p>
                   </div>
                 </div>
@@ -1079,7 +1079,7 @@ function App() {
                     <Target className="h-5 w-5 text-accent-green" />
                   </div>
                   <div>
-                    <p className="text-xs text-text-muted">Avg / Day</p>
+                    <p className="text-xs text-slate-400">Avg / Day</p>
                     <p className="text-xl font-bold">{(totalDaysInMonth > 0 ? (totalMonthHours / totalDaysInMonth).toFixed(1) : '0.0')}h</p>
                   </div>
                 </div>
@@ -1115,14 +1115,14 @@ function App() {
                       <div key={i} className="flex items-center gap-2 text-xs">
                         <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
                         <span className="text-text-primary">{item.name}</span>
-                        <span className="text-text-muted">{item.hours}h</span>
-                        <span className="text-text-muted">({item.percentage}%)</span>
+                        <span className="text-slate-400">{item.hours}h</span>
+                        <span className="text-slate-400">({item.percentage}%)</span>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
-                <p className="py-4 text-center text-xs italic text-text-muted">
+                <p className="py-4 text-center text-xs italic text-slate-400">
                   No category distributions recorded yet. Start a session to see your subject breakdown!
                 </p>
               )}
@@ -1134,14 +1134,14 @@ function App() {
         <div className="flex flex-col gap-6">
 
           {/* CARD 4: Monthly Overview */}
-          <div className="flex flex-col rounded-xl border border-slate-800/60 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5">
+          <div className="flex flex-col rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5">
             {/* Month Header */}
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-accent-blue" />
-                <h2 className="text-lg font-semibold">{monthNames[currentMonth]} {currentYear}</h2>
+                <h2 className="text-sm font-semibold tracking-wide text-slate-200">{monthNames[currentMonth]} {currentYear}</h2>
               </div>
-              <div className="flex items-center gap-1 text-text-muted">
+              <div className="flex items-center gap-1 text-slate-400">
                 <button onClick={goPrevMonth} className="flex h-7 w-7 items-center justify-center rounded-md text-sm transition-colors hover:bg-surface hover:text-text-primary">‹</button>
                 <span className="text-xs font-medium">{monthNames[currentMonth]} {currentYear}</span>
                 <button onClick={goNextMonth} className="flex h-7 w-7 items-center justify-center rounded-md text-sm transition-colors hover:bg-surface hover:text-text-primary">›</button>
@@ -1160,7 +1160,7 @@ function App() {
             {/* Day Labels */}
             <div className="mb-1.5 grid grid-cols-7 gap-1">
               {dayNames.map((d) => (
-                <div key={d} className="py-1 text-center text-[11px] font-medium text-text-muted">{d}</div>
+                <div key={d} className="py-1 text-center text-[11px] font-medium text-slate-400">{d}</div>
               ))}
             </div>
             {/* Calendar Grid */}
@@ -1187,7 +1187,7 @@ function App() {
               })}
             </div>
             {/* Heatmap Legend */}
-            <div className="mb-5 flex items-center justify-between text-[11px] text-text-muted">
+            <div className="mb-5 flex items-center justify-between text-[11px] text-slate-400">
               <div className="flex items-center gap-3">
                 {[
                   { label: '0-1h', color: intensityColors[0] },
@@ -1225,19 +1225,19 @@ function App() {
               </div>
               <div className="mb-3 grid grid-cols-3 gap-4">
                 <div>
-                  <p className="mb-0.5 text-xs text-text-muted">Study{calendarCategoryFilter !== 'all' ? ` (${categories.find(c => c.id === calendarCategoryFilter)?.name ?? 'Unknown'})` : ''}</p>
+                  <p className="mb-0.5 text-xs text-slate-400">Study{calendarCategoryFilter !== 'all' ? ` (${categories.find(c => c.id === calendarCategoryFilter)?.name ?? 'Unknown'})` : ''}</p>
                   <p className="text-lg font-bold text-accent-blue">{liveDay.studyTime}</p>
                 </div>
                 <div>
-                  <p className="mb-0.5 text-xs text-text-muted">Breaks</p>
+                  <p className="mb-0.5 text-xs text-slate-400">Breaks</p>
                   <p className="text-lg font-bold text-accent-amber">{liveDay.breakTime}</p>
                 </div>
                 <div>
-                  <p className="mb-0.5 text-xs text-text-muted">Focus ratio</p>
+                  <p className="mb-0.5 text-xs text-slate-400">Focus ratio</p>
                   <p className="text-lg font-bold text-accent-green">{liveDay.focusRatio}</p>
                 </div>
               </div>
-              <p className="border-t border-border-card pt-3 text-xs text-text-muted">
+              <p className="border-t border-border-card pt-3 text-xs text-slate-400">
                 {liveDay.sessionsCompleted} sessions completed · score {liveDay.focusScore}
               </p>
               {/* Mood Selector */}
@@ -1253,8 +1253,8 @@ function App() {
                     onClick={() => handleMoodSelect(m.value)}
                     className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-all ${
                       draftMood === m.value
-                        ? 'border-accent-blue bg-accent-blue/10 text-accent-blue'
-                        : 'border-border-subtle bg-surface/50 text-text-muted hover:border-accent-blue/30 hover:text-text-primary'
+                        ? 'border-blue-500/20 bg-blue-500/10 text-blue-400'
+                        : 'border-border-subtle bg-surface/50 text-slate-400 hover:border-blue-500/30 hover:text-text-primary'
                     }`}
                   >
                     <span>{m.emoji}</span>
@@ -1268,7 +1268,7 @@ function App() {
                 onChange={e => handleNotesChange(e.target.value)}
                 placeholder="Write a brief reflection on your focus, hurdles, or wins for this day..."
                 rows={3}
-                className="mt-3 w-full resize-none rounded-lg border border-border-subtle bg-surface/50 px-3 py-2 text-xs text-text-primary placeholder:text-text-muted outline-none focus:border-accent-blue/50"
+                className="mt-3 w-full resize-none rounded-lg border border-border-subtle bg-surface/50 px-3 py-2 text-xs text-text-primary placeholder:text-slate-400 outline-none focus:border-accent-blue/50"
               />
             </div>
           </div>
@@ -1281,22 +1281,22 @@ function App() {
           <div className="relative w-full max-w-md rounded-xl border border-slate-800/60 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold">Settings</h3>
-              <button onClick={() => setIsSettingsOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface hover:text-text-primary">
+              <button onClick={() => setIsSettingsOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-surface hover:text-text-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>
             <div className="mb-6">
               <p className="mb-1 text-sm font-medium text-text-primary">Daily Goal</p>
-              <p className="mb-3 text-xs text-text-muted">{Math.round(dailyGoalMinutes / 60)} hours</p>
+              <p className="mb-3 text-xs text-slate-400">{Math.round(dailyGoalMinutes / 60)} hours</p>
               <input type="range" min="120" max="720" step="60" value={dailyGoalMinutes} onChange={e => updateSetting('dailyGoalMinutes', Number(e.target.value))} className="w-full accent-[#3B82F6]" />
-              <div className="mt-1 flex justify-between text-[11px] text-text-muted">
+              <div className="mt-1 flex justify-between text-[11px] text-slate-400">
                 <span>2h</span><span>12h</span>
               </div>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border-subtle bg-surface/50 px-4 py-3">
               <div>
                 <p className="text-sm font-medium text-text-primary">Sound Effects</p>
-                <p className="text-xs text-text-muted">Play chime on session events</p>
+                <p className="text-xs text-slate-400">Play chime on session events</p>
               </div>
               <button onClick={() => updateSetting('soundEnabled', !soundEnabled)} className={`relative h-6 w-11 rounded-full transition-colors ${soundEnabled ? 'bg-accent-blue' : 'bg-border-subtle'}`}>
                 <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -1304,24 +1304,24 @@ function App() {
             </div>
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
-              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-text-muted">POMODORO CYCLE</span></div>
+              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-slate-400">POMODORO CYCLE</span></div>
             </div>
             <div className="mb-3">
               <p className="mb-1 text-sm font-medium text-text-primary">Sessions per Cycle</p>
-              <p className="mb-2 text-xs text-text-muted">{targetSessionsPerCycle} sessions → Long Break</p>
+              <p className="mb-2 text-xs text-slate-400">{targetSessionsPerCycle} sessions → Long Break</p>
               <input type="range" min="2" max="6" step="1" value={targetSessionsPerCycle} onChange={e => updateSetting('targetSessionsPerCycle', Number(e.target.value))} className="w-full accent-[#3B82F6]" />
-              <div className="mt-1 flex justify-between text-[11px] text-text-muted"><span>2</span><span>6</span></div>
+              <div className="mt-1 flex justify-between text-[11px] text-slate-400"><span>2</span><span>6</span></div>
             </div>
             <div className="mb-6">
               <p className="mb-1 text-sm font-medium text-text-primary">Long Break Duration</p>
-              <p className="mb-2 text-xs text-text-muted">{longBreakDurationMinutes} minutes</p>
+              <p className="mb-2 text-xs text-slate-400">{longBreakDurationMinutes} minutes</p>
               <input type="range" min="10" max="30" step="5" value={longBreakDurationMinutes} onChange={e => updateSetting('longBreakDurationMinutes', Number(e.target.value))} className="w-full accent-[#3B82F6]" />
-              <div className="mt-1 flex justify-between text-[11px] text-text-muted"><span>10m</span><span>30m</span></div>
+              <div className="mt-1 flex justify-between text-[11px] text-slate-400"><span>10m</span><span>30m</span></div>
             </div>
             <input type="file" accept=".json" ref={fileInputRef} className="hidden" onChange={e => { const file = e.target.files?.[0]; if (file) { const r = new FileReader(); r.onload = () => importUserData(r.result as string); r.readAsText(file) }; e.target.value = '' }} />
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
-              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-text-muted">DATA MANAGEMENT</span></div>
+              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-slate-400">DATA MANAGEMENT</span></div>
             </div>
             <div className="mb-6 flex gap-3">
               <button onClick={exportUserData} className="flex-1 rounded-lg border border-accent-blue/30 bg-accent-blue/5 px-3 py-2 text-xs font-medium text-accent-blue transition-all hover:bg-accent-blue/10">Export Backup</button>
@@ -1329,7 +1329,7 @@ function App() {
             </div>
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
-              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-text-muted">MANAGE SUBJECT CATEGORIES</span></div>
+              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-slate-400">MANAGE SUBJECT CATEGORIES</span></div>
             </div>
             <div className="mb-6">
               <div className="flex items-center gap-2">
@@ -1344,7 +1344,7 @@ function App() {
                     }
                   }}
                   placeholder="e.g. Science, History..."
-                  className="flex-1 rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary placeholder:text-text-muted outline-none focus:border-accent-blue/50"
+                  className="flex-1 rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-400 outline-none focus:border-accent-blue/50"
                 />
                 <input
                   type="color"
@@ -1365,7 +1365,7 @@ function App() {
               </div>
               <div className="mt-3 max-h-24 space-y-1 overflow-y-auto">
                 {categories.length === 0 ? (
-                  <p className="py-2 text-center text-[11px] italic text-text-muted">No categories yet.</p>
+                  <p className="py-2 text-center text-[11px] italic text-slate-400">No categories yet.</p>
                 ) : (
                   categories.map(cat => (
                     <div key={cat.id} className="flex items-center gap-2 rounded-md bg-surface/50 px-3 py-1.5">
@@ -1373,7 +1373,7 @@ function App() {
                       <span className="flex-1 text-xs text-text-primary">{cat.name}</span>
                       <button
                         onClick={() => deleteCategory(cat.id!)}
-                        className="flex h-5 w-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+                        className="flex h-5 w-5 items-center justify-center rounded text-slate-400 transition-colors hover:bg-red-500/10 hover:text-red-400"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -1384,11 +1384,11 @@ function App() {
             </div>
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
-              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-text-muted">RECENT ACTIVITY LOG</span></div>
+              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-slate-400">RECENT ACTIVITY LOG</span></div>
             </div>
             <div className="max-h-28 space-y-1 overflow-y-auto">
               {sessionHistory.length === 0 ? (
-                <p className="py-2 text-center text-xs italic text-text-muted">No recent sessions completed today.</p>
+                <p className="py-2 text-center text-xs italic text-slate-400">No recent sessions completed today.</p>
               ) : (
                 sessionHistory.slice(0, 5).map(entry => (
                   <div key={entry.id} className="flex items-center justify-between rounded-md bg-surface/50 px-3 py-1.5">
@@ -1396,7 +1396,7 @@ function App() {
                       <div className={`h-2 w-2 rounded-full ${entry.type === 'study' ? 'bg-accent-blue' : 'bg-accent-amber'}`} />
                       <span className="text-xs text-text-primary">{entry.type === 'study' ? 'Study' : 'Break'}</span>
                     </div>
-                    <span className="text-[11px] text-text-muted">{entry.timestamp} · {entry.durationMinutes}m</span>
+                    <span className="text-[11px] text-slate-400">{entry.timestamp} · {entry.durationMinutes}m</span>
                   </div>
                 ))
               )}
@@ -1410,7 +1410,7 @@ function App() {
           <div className="relative w-full max-w-sm rounded-xl border border-slate-800/60 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold">Keyboard Shortcuts</h3>
-              <button onClick={() => setIsHotkeyHudOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface hover:text-text-primary">
+              <button onClick={() => setIsHotkeyHudOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-surface hover:text-text-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -1428,7 +1428,7 @@ function App() {
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-center text-[11px] text-text-muted">Shortcuts are disabled while typing in input fields.</p>
+            <p className="mt-4 text-center text-[11px] text-slate-400">Shortcuts are disabled while typing in input fields.</p>
           </div>
         </div>
       )}
