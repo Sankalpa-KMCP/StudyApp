@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Brain, BookOpen, Zap, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -11,25 +12,67 @@ const weeklyData = [
   { day: 'Sun', hours: 9.6, focus: 88 },
 ]
 
-const dayHeaders = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-
-const calendarDays: (number | null)[] = [
-  null, null, null, null, 1, 2, 3,
-  4, 5, 6, 7, 8, 9, 10,
-  11, 12, 13, 14, 15, 16, 17,
-  18, 19, 20, 21, 22, 23, 24,
-  25, 26, 27, 28, 29, 30, 31,
-]
-
-const heatmap: Record<number, number> = {
-  1: 1, 2: 2, 3: 3, 4: 0, 5: 2, 6: 1, 7: 0,
-  8: 3, 9: 4, 10: 3, 11: 2, 12: 1, 13: 0, 14: 1,
-  15: 4, 16: 3, 17: 2, 18: 4, 19: 3, 20: 2, 21: 1,
-  22: 4, 23: 3, 24: 4, 25: 3, 26: 2, 27: 4, 28: 4,
-  29: 3, 30: 2, 31: 3,
+interface DayData {
+  date: number
+  dayName: string
+  studyTime: string
+  breakTime: string
+  focusRatio: string
+  sessionsCompleted: string
+  focusScore: string
+  intensity: 0 | 1 | 2 | 3
 }
 
-const heatColors = ['bg-heat-0', 'bg-heat-1', 'bg-heat-2', 'bg-heat-3', 'bg-heat-4']
+const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+
+function getDayName(date: number): string {
+  return dayNames[(5 + date - 1) % 7]
+}
+
+const mayData: DayData[] = [
+  { date: 1, dayName: getDayName(1), studyTime: '8h 30m', breakTime: '1h 15m', focusRatio: '91%', sessionsCompleted: '16 of 17', focusScore: '93%', intensity: 3 },
+  { date: 2, dayName: getDayName(2), studyTime: '7h 45m', breakTime: '0h 50m', focusRatio: '87%', sessionsCompleted: '14 of 16', focusScore: '89%', intensity: 2 },
+  { date: 3, dayName: getDayName(3), studyTime: '9h 15m', breakTime: '1h 10m', focusRatio: '94%', sessionsCompleted: '17 of 17', focusScore: '96%', intensity: 3 },
+  { date: 4, dayName: getDayName(4), studyTime: '6h 30m', breakTime: '0h 45m', focusRatio: '82%', sessionsCompleted: '12 of 15', focusScore: '84%', intensity: 1 },
+  { date: 5, dayName: getDayName(5), studyTime: '8h 00m', breakTime: '1h 00m', focusRatio: '90%', sessionsCompleted: '15 of 16', focusScore: '91%', intensity: 2 },
+  { date: 6, dayName: getDayName(6), studyTime: '8h 45m', breakTime: '1h 05m', focusRatio: '93%', sessionsCompleted: '16 of 17', focusScore: '94%', intensity: 3 },
+  { date: 7, dayName: getDayName(7), studyTime: '5h 15m', breakTime: '0h 35m', focusRatio: '78%', sessionsCompleted: '10 of 14', focusScore: '80%', intensity: 0 },
+  { date: 8, dayName: getDayName(8), studyTime: '9h 00m', breakTime: '1h 20m', focusRatio: '92%', sessionsCompleted: '17 of 17', focusScore: '95%', intensity: 3 },
+  { date: 9, dayName: getDayName(9), studyTime: '7h 30m', breakTime: '0h 55m', focusRatio: '86%', sessionsCompleted: '14 of 16', focusScore: '88%', intensity: 2 },
+  { date: 10, dayName: getDayName(10), studyTime: '8h 15m', breakTime: '1h 10m', focusRatio: '89%', sessionsCompleted: '15 of 16', focusScore: '92%', intensity: 2 },
+  { date: 11, dayName: getDayName(11), studyTime: '9h 30m', breakTime: '1h 25m', focusRatio: '95%', sessionsCompleted: '17 of 17', focusScore: '97%', intensity: 3 },
+  { date: 12, dayName: getDayName(12), studyTime: '6h 45m', breakTime: '0h 50m', focusRatio: '83%', sessionsCompleted: '12 of 15', focusScore: '85%', intensity: 1 },
+  { date: 13, dayName: getDayName(13), studyTime: '7h 00m', breakTime: '0h 45m', focusRatio: '84%', sessionsCompleted: '13 of 16', focusScore: '86%', intensity: 1 },
+  { date: 14, dayName: getDayName(14), studyTime: '4h 30m', breakTime: '0h 30m', focusRatio: '75%', sessionsCompleted: '9 of 13', focusScore: '77%', intensity: 0 },
+  { date: 15, dayName: getDayName(15), studyTime: '8h 50m', breakTime: '1h 15m', focusRatio: '94%', sessionsCompleted: '16 of 17', focusScore: '95%', intensity: 3 },
+  { date: 16, dayName: getDayName(16), studyTime: '7h 15m', breakTime: '1h 00m', focusRatio: '85%', sessionsCompleted: '13 of 15', focusScore: '88%', intensity: 2 },
+  { date: 17, dayName: getDayName(17), studyTime: '8h 40m', breakTime: '1h 05m', focusRatio: '91%', sessionsCompleted: '15 of 16', focusScore: '93%', intensity: 3 },
+  { date: 18, dayName: getDayName(18), studyTime: '9h 10m', breakTime: '1h 30m', focusRatio: '96%', sessionsCompleted: '17 of 17', focusScore: '97%', intensity: 3 },
+  { date: 19, dayName: getDayName(19), studyTime: '6h 00m', breakTime: '0h 40m', focusRatio: '80%', sessionsCompleted: '11 of 15', focusScore: '82%', intensity: 1 },
+  { date: 20, dayName: getDayName(20), studyTime: '8h 20m', breakTime: '1h 10m', focusRatio: '90%', sessionsCompleted: '15 of 16', focusScore: '92%', intensity: 2 },
+  { date: 21, dayName: getDayName(21), studyTime: '7h 50m', breakTime: '0h 55m', focusRatio: '88%', sessionsCompleted: '14 of 16', focusScore: '90%', intensity: 2 },
+  { date: 22, dayName: getDayName(22), studyTime: '9h 05m', breakTime: '1h 20m', focusRatio: '93%', sessionsCompleted: '16 of 17', focusScore: '96%', intensity: 3 },
+  { date: 23, dayName: getDayName(23), studyTime: '8h 10m', breakTime: '1h 05m', focusRatio: '89%', sessionsCompleted: '15 of 17', focusScore: '91%', intensity: 3 },
+  { date: 24, dayName: getDayName(24), studyTime: '7h 30m', breakTime: '0h 50m', focusRatio: '86%', sessionsCompleted: '13 of 15', focusScore: '88%', intensity: 2 },
+  { date: 25, dayName: getDayName(25), studyTime: '8h 45m', breakTime: '1h 15m', focusRatio: '92%', sessionsCompleted: '16 of 17', focusScore: '94%', intensity: 3 },
+  { date: 26, dayName: getDayName(26), studyTime: '9h 20m', breakTime: '1h 25m', focusRatio: '95%', sessionsCompleted: '17 of 17', focusScore: '97%', intensity: 3 },
+  { date: 27, dayName: getDayName(27), studyTime: '6h 50m', breakTime: '0h 45m', focusRatio: '84%', sessionsCompleted: '12 of 15', focusScore: '86%', intensity: 1 },
+  { date: 28, dayName: getDayName(28), studyTime: '8h 35m', breakTime: '1h 10m', focusRatio: '91%', sessionsCompleted: '15 of 16', focusScore: '93%', intensity: 3 },
+  { date: 29, dayName: getDayName(29), studyTime: '7h 20m', breakTime: '0h 55m', focusRatio: '85%', sessionsCompleted: '13 of 16', focusScore: '87%', intensity: 2 },
+  { date: 30, dayName: getDayName(30), studyTime: '8h 00m', breakTime: '1h 00m', focusRatio: '88%', sessionsCompleted: '14 of 16', focusScore: '90%', intensity: 2 },
+  { date: 31, dayName: getDayName(31), studyTime: '8h 45m', breakTime: '1h 02m', focusRatio: '89%', sessionsCompleted: '16 of 17', focusScore: '94%', intensity: 3 },
+]
+
+const gridCells: (number | null)[] = [
+  null, null, null, null, null, 1, 2,
+  3, 4, 5, 6, 7, 8, 9,
+  10, 11, 12, 13, 14, 15, 16,
+  17, 18, 19, 20, 21, 22, 23,
+  24, 25, 26, 27, 28, 29, 30,
+  31, null, null, null, null, null, null,
+]
+
+const intensityColors = ['bg-intensity-0', 'bg-intensity-1', 'bg-intensity-2', 'bg-intensity-3']
 
 interface MicroCardItem {
   icon: React.ReactNode
@@ -69,6 +112,8 @@ function MicroCard({ icon, label, value, badge, iconBg, badgeBg, badgeText }: Mi
 }
 
 function App() {
+  const [selectedDay, setSelectedDay] = useState(31)
+  const day = mayData[selectedDay - 1]
   return (
     <div className="min-h-screen bg-surface p-6 font-sans text-text-primary antialiased">
       <div className="mx-auto grid max-w-[1440px] grid-cols-12 gap-6">
@@ -292,59 +337,96 @@ function App() {
 
           {/* CARD 4: Monthly Overview */}
           <div className="flex h-full flex-col rounded-2xl border border-border-card bg-surface-card p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-accent-blue" />
-              <h2 className="text-lg font-semibold">May 2026</h2>
+            {/* Month Header */}
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-accent-blue" />
+                <h2 className="text-lg font-semibold">May 2026</h2>
+              </div>
+              <div className="flex items-center gap-1 text-text-muted">
+                <button className="flex h-7 w-7 items-center justify-center rounded-md text-sm transition-colors hover:bg-surface hover:text-text-primary">‹</button>
+                <span className="text-xs font-medium">May 2026</span>
+                <button className="flex h-7 w-7 items-center justify-center rounded-md text-sm transition-colors hover:bg-surface hover:text-text-primary">›</button>
+              </div>
+            </div>
+            {/* Day Labels */}
+            <div className="mb-1.5 grid grid-cols-7 gap-1">
+              {dayNames.map((d) => (
+                <div key={d} className="py-1 text-center text-[11px] font-medium text-text-muted">{d}</div>
+              ))}
             </div>
             {/* Calendar Grid */}
-            <div className="mb-6">
-              <div className="mb-1 grid grid-cols-7 gap-1">
-                {dayHeaders.map((d) => (
-                  <div key={d} className="py-1 text-center text-xs font-medium text-text-muted">{d}</div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {calendarDays.map((day, i) => (
-                  <div
+            <div className="mb-5 grid grid-cols-7 gap-1.5">
+              {gridCells.map((cell, i) => {
+                const dayData = cell ? mayData[cell - 1] : null
+                return cell ? (
+                  <button
                     key={i}
-                    className={`aspect-square rounded-md flex items-center justify-center text-xs ${
-                      day === 31
-                        ? 'ring-2 ring-accent-blue bg-accent-blue/20 text-text-primary font-semibold'
-                        : day
-                          ? `${heatColors[heatmap[day] ?? 0]} text-text-secondary`
-                          : 'bg-transparent'
+                    onClick={() => setSelectedDay(cell)}
+                    className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-all duration-150 ${
+                      cell === selectedDay
+                        ? 'ring-2 ring-accent-blue shadow-lg shadow-accent-blue/20 bg-accent-blue/20 text-text-primary'
+                        : `${intensityColors[dayData!.intensity]} text-text-secondary hover:ring-1 hover:ring-accent-blue/40`
                     }`}
                   >
-                    {day ?? ''}
+                    {cell}
+                  </button>
+                ) : (
+                  <div key={i} className="aspect-square" />
+                )
+              })}
+            </div>
+            {/* Heatmap Legend */}
+            <div className="mb-5 flex items-center justify-between text-[11px] text-text-muted">
+              <div className="flex items-center gap-3">
+                {[
+                  { label: '0-1h', color: intensityColors[0] },
+                  { label: '1-2h', color: intensityColors[1] },
+                  { label: '2-3h', color: intensityColors[2] },
+                  { label: '3+h', color: intensityColors[3] },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-1">
+                    <div className={`h-2.5 w-2.5 rounded-sm ${item.color}`} />
+                    <span>{item.label}</span>
                   </div>
                 ))}
               </div>
-            </div>
-            {/* Heatmap Legend */}
-            <div className="mb-6 flex items-center justify-end gap-2 text-[11px] text-text-muted">
-              <span>Less</span>
-              {heatColors.map((c, i) => (
-                <div key={i} className={`h-3 w-3 rounded-sm ${c}`} />
-              ))}
-              <span>More</span>
+              <div className="flex items-center gap-1.5">
+                <span>Low</span>
+                {[0.3, 0.5, 0.75, 1].map((opacity, i) => (
+                  <div key={i} className="h-2 w-2 rounded-full bg-accent-blue" style={{ opacity }} />
+                ))}
+                <span>High</span>
+              </div>
             </div>
             {/* Selected Day Panel */}
             <div className="mt-auto rounded-xl border border-border-card bg-surface p-5">
-              <p className="mb-3 text-sm font-medium text-accent-blue">SELECTED DAY: Sun, 31 May</p>
+              <div className="mb-4 flex items-start justify-between">
+                <div>
+                  <p className="text-[11px] font-medium tracking-wider text-accent-blue">SELECTED DAY</p>
+                  <p className="text-sm font-semibold text-text-primary">{day.dayName}, {day.date} May</p>
+                </div>
+                <div className="flex items-center gap-1.5 rounded-full bg-accent-green/10 px-3 py-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent-green animate-pulse-soft" />
+                  <span className="text-xs font-medium text-accent-green">Active</span>
+                </div>
+              </div>
               <div className="mb-3 grid grid-cols-3 gap-4">
-                {[
-                  { label: 'Study', value: '8h 45m', accent: 'text-accent-blue' },
-                  { label: 'Breaks', value: '1h 2m', accent: 'text-accent-amber' },
-                  { label: 'Focus ratio', value: '89%', accent: 'text-accent-green' },
-                ].map((s) => (
-                  <div key={s.label}>
-                    <p className="text-xs text-text-muted">{s.label}</p>
-                    <p className={`text-lg font-bold ${s.accent}`}>{s.value}</p>
-                  </div>
-                ))}
+                <div>
+                  <p className="mb-0.5 text-xs text-text-muted">Study</p>
+                  <p className="text-lg font-bold text-accent-blue">{day.studyTime}</p>
+                </div>
+                <div>
+                  <p className="mb-0.5 text-xs text-text-muted">Breaks</p>
+                  <p className="text-lg font-bold text-accent-amber">{day.breakTime}</p>
+                </div>
+                <div>
+                  <p className="mb-0.5 text-xs text-text-muted">Focus ratio</p>
+                  <p className="text-lg font-bold text-accent-green">{day.focusRatio}</p>
+                </div>
               </div>
               <p className="border-t border-border-card pt-3 text-xs text-text-muted">
-                16 of 17 sessions completed · score 94%
+                {day.sessionsCompleted} sessions completed · score {day.focusScore}
               </p>
             </div>
           </div>

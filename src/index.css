@@ -13,11 +13,10 @@
   --color-text-muted: #64748B;
   --color-border-card: rgba(255, 255, 255, 0.06);
   --color-border-subtle: rgba(255, 255, 255, 0.04);
-  --color-heat-0: #1E293B;
-  --color-heat-1: #1D4ED8;
-  --color-heat-2: #2563EB;
-  --color-heat-3: #3B82F6;
-  --color-heat-4: #60A5FA;
+  --color-intensity-0: #1E293B;
+  --color-intensity-1: #1D4ED8;
+  --color-intensity-2: #2563EB;
+  --color-intensity-3: #3B82F6;
 }
 
 body {
