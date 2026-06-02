@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Brain, BookOpen, Zap, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee, Play, Pause, Check, CheckCircle, Plus, Settings, X } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { useTasks, useHistory, useSettings, useTodayLog, useMonthLogs, useCategories, useCategoryBreakdown, useStreak, useXpLevel, useProductivityInsights } from './db/hooks'
+import { useTasks, useHistory, useSettings, useTodayLog, useMonthLogs, useCategories, useCategoryBreakdown, useStreak, useXpLevel, useProductivityInsights, updateDailyReflection } from './db/hooks'
 import { db } from './db/db'
 
 let audioCtx: AudioContext | null = null
@@ -94,12 +94,12 @@ function MicroCard({ icon, label, value, badge, iconBg, badgeBg, badgeText }: Mi
 function App() {
   const { tasks: sessionTasks, addTask, toggleTask, isLoading: tasksLoading } = useTasks()
   const { history: sessionHistory, addEntry: addHistoryEntry, isLoading: historyLoading } = useHistory()
-  const { dailyGoalMinutes, soundEnabled, updateSetting, isLoading: settingsLoading } = useSettings()
+  const { dailyGoalMinutes, soundEnabled, updateSetting, targetSessionsPerCycle, longBreakDurationMinutes, isLoading: settingsLoading } = useSettings()
   const { studyMinutes: todayStudyMinutes, breakMinutes: todayBreakMinutes, incrementStudy, incrementBreak, isLoading: todayLogLoading } = useTodayLog()
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear())
   const { monthLogs, totalMonthHours, isLoading: monthLogsLoading } = useMonthLogs(currentMonth, currentYear)
-  const { categories, isLoading: categoriesLoading } = useCategories()
+  const { categories, isLoading: categoriesLoading, addCategory, deleteCategory } = useCategories()
   const { breakdown: categoryBreakdown, isLoading: breakdownLoading } = useCategoryBreakdown()
   const { currentStreak, isLoading: streakLoading } = useStreak()
   const { level, currentLevelXP, xpProgressPercent, isLoading: xpLoading } = useXpLevel()
@@ -110,7 +110,11 @@ function App() {
   const [secondsElapsed, setSecondsElapsed] = useState(0)
   const [isTimerActive, setIsTimerActive] = useState(false)
   const [timerMode, setTimerMode] = useState<'study' | 'break'>('study')
+  const [completedSessionsInCycle, setCompletedSessionsInCycle] = useState(0)
+  const [isLongBreak, setIsLongBreak] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const completingRef = useRef(false)
   const incStudyRef = useRef(incrementStudy)
@@ -129,6 +133,23 @@ function App() {
   const isLiveMonth = currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear()
 
   const monthLogMap = new Map(monthLogs.map(l => [parseInt(l.dateString.split('-')[2]), l]))
+
+  const selectedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`
+  const selectedDayLog = monthLogMap.get(selectedDay)
+  const [draftNotes, setDraftNotes] = useState('')
+  const [draftMood, setDraftMood] = useState('')
+  const notesRef = useRef('')
+  const moodRef = useRef('')
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  useEffect(() => {
+    const dbNotes = selectedDayLog?.notes ?? ''
+    const dbMood = selectedDayLog?.mood ?? ''
+    setDraftNotes(dbNotes)
+    setDraftMood(dbMood)
+    notesRef.current = dbNotes
+    moodRef.current = dbMood
+  }, [selectedDay, currentMonth, currentYear])
 
   const categoriesMap = new Map<number, { name: string; color: string }>()
   for (const c of categories) {
@@ -237,10 +258,27 @@ function App() {
     }
     playAlertSound(soundEnabled)
     completingRef.current = false
+
+    if (mode === 'study') {
+      const nextCount = completedSessionsInCycle + 1
+      if (nextCount >= targetSessionsPerCycle) {
+        setCompletedSessionsInCycle(0)
+        setIsLongBreak(true)
+        setTimerMode('break')
+        setTimeout(() => playAlertSound(soundEnabled), 400)
+      } else {
+        setCompletedSessionsInCycle(nextCount)
+        setIsLongBreak(false)
+        setTimerMode('break')
+      }
+    } else {
+      setTimerMode('study')
+    }
   }
 
   function handleModeSwitch(mode: 'study' | 'break') {
     if (mode === timerMode) return
+    if (mode === 'study') setIsLongBreak(false)
     if (isTimerActive) setIsTimerActive(false)
     setTimerMode(mode)
     playAlertSound(soundEnabled)
@@ -256,6 +294,23 @@ function App() {
     const task = sessionTasks.find(t => t.id === id)
     if (task && !task.completed) playAlertSound(soundEnabled)
     toggleTask(id)
+  }
+
+  function handleNotesChange(value: string) {
+    setDraftNotes(value)
+    notesRef.current = value
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      updateDailyReflection(selectedDateStr, notesRef.current, moodRef.current)
+    }, 500)
+  }
+
+  function handleMoodSelect(mood: string) {
+    const newMood = mood === draftMood ? '' : mood
+    setDraftMood(newMood)
+    moodRef.current = newMood
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    updateDailyReflection(selectedDateStr, notesRef.current, newMood)
   }
 
   function goPrevMonth() {
@@ -299,6 +354,8 @@ function App() {
     await db.settings.bulkAdd([
       { key: 'dailyGoalMinutes', value: 480 },
       { key: 'soundEnabled', value: true },
+      { key: 'targetSessionsPerCycle', value: 4 },
+      { key: 'longBreakDurationMinutes', value: 15 },
     ])
     await db.categories.bulkAdd([
       { name: 'General', color: '#64748B' },
@@ -309,6 +366,8 @@ function App() {
     setIsTimerActive(false)
     setTimerMode('study')
     setTimerCategoryId(undefined)
+    setCompletedSessionsInCycle(0)
+    setIsLongBreak(false)
   }
 
   async function exportUserData() {
@@ -470,7 +529,11 @@ function App() {
                   badgeText={currentStreak > 0 ? 'text-accent-amber' : 'text-text-muted'}
                 />
                 {/* Timer Controls */}
-                <div className="flex items-center gap-2 rounded-lg border border-border-subtle bg-surface/50 px-3 py-2">
+                <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 transition-all ${
+                  isLongBreak && timerMode === 'break'
+                    ? 'border-accent-green/50 bg-accent-green/5'
+                    : 'border-border-subtle bg-surface/50'
+                }`}>
                   <div className="flex overflow-hidden rounded-md border border-border-subtle">
                     <button
                       onClick={() => handleModeSwitch('study')}
@@ -486,11 +549,11 @@ function App() {
                       onClick={() => handleModeSwitch('break')}
                       className={`px-2.5 py-1 text-xs font-medium transition-all ${
                         timerMode === 'break'
-                          ? 'bg-accent-amber/15 text-accent-amber'
+                          ? isLongBreak ? 'bg-accent-green/15 text-accent-green' : 'bg-accent-amber/15 text-accent-amber'
                           : 'text-text-muted hover:bg-surface hover:text-text-primary'
                       }`}
                     >
-                      Break
+                      {isLongBreak && timerMode === 'break' ? 'Long Break' : 'Break'}
                     </button>
                   </div>
                   {timerMode === 'study' && (
@@ -509,9 +572,24 @@ function App() {
                     </>
                   )}
                   {timerMode !== 'study' && <div className="h-5 w-px bg-border-subtle" />}
-                  <span className="min-w-[40px] text-xs font-medium text-text-secondary tabular-nums">
+                  <span className={`min-w-[40px] text-xs font-medium tabular-nums ${
+                    isLongBreak && timerMode === 'break' ? 'text-accent-green' : 'text-text-secondary'
+                  }`}>
                     {String(Math.floor(secondsElapsed / 60)).padStart(2, '0')}:{String(secondsElapsed % 60).padStart(2, '0')}
                   </span>
+                  {/* Cycle progress pips */}
+                  <div className="flex items-center gap-1" title={`${completedSessionsInCycle} of ${targetSessionsPerCycle} sessions in current cycle`}>
+                    {Array.from({ length: targetSessionsPerCycle }, (_, i) => (
+                      <span
+                        key={i}
+                        className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                          i < completedSessionsInCycle
+                            ? 'bg-accent-blue shadow-sm shadow-accent-blue/40'
+                            : 'bg-border-subtle'
+                        }`}
+                      />
+                    ))}
+                  </div>
                   <button
                     onClick={() => setIsTimerActive(a => !a)}
                     className="flex h-7 w-7 items-center justify-center rounded-md bg-accent-blue/10 text-accent-blue transition-all hover:bg-accent-blue/20 hover:shadow-md hover:shadow-accent-blue/20"
@@ -898,6 +976,36 @@ function App() {
               <p className="border-t border-border-card pt-3 text-xs text-text-muted">
                 {liveDay.sessionsCompleted} sessions completed · score {liveDay.focusScore}
               </p>
+              {/* Mood Selector */}
+              <div className="mt-4 flex gap-2">
+                {[
+                  { label: 'Focused', emoji: '🧠', value: 'focused' },
+                  { label: 'Energetic', emoji: '⚡', value: 'energetic' },
+                  { label: 'Tired', emoji: '🥱', value: 'tired' },
+                  { label: 'Distracted', emoji: '🌪️', value: 'distracted' },
+                ].map(m => (
+                  <button
+                    key={m.value}
+                    onClick={() => handleMoodSelect(m.value)}
+                    className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-all ${
+                      draftMood === m.value
+                        ? 'border-accent-blue bg-accent-blue/10 text-accent-blue'
+                        : 'border-border-subtle bg-surface/50 text-text-muted hover:border-accent-blue/30 hover:text-text-primary'
+                    }`}
+                  >
+                    <span>{m.emoji}</span>
+                    <span>{m.label}</span>
+                  </button>
+                ))}
+              </div>
+              {/* Reflection Textarea */}
+              <textarea
+                value={draftNotes}
+                onChange={e => handleNotesChange(e.target.value)}
+                placeholder="Write a brief reflection on your focus, hurdles, or wins for this day..."
+                rows={3}
+                className="mt-3 w-full resize-none rounded-lg border border-border-subtle bg-surface/50 px-3 py-2 text-xs text-text-primary placeholder:text-text-muted outline-none focus:border-accent-blue/50"
+              />
             </div>
           </div>
         </div>
@@ -930,6 +1038,22 @@ function App() {
                 <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
             </div>
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
+              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-text-muted">POMODORO CYCLE</span></div>
+            </div>
+            <div className="mb-3">
+              <p className="mb-1 text-sm font-medium text-text-primary">Sessions per Cycle</p>
+              <p className="mb-2 text-xs text-text-muted">{targetSessionsPerCycle} sessions → Long Break</p>
+              <input type="range" min="2" max="6" step="1" value={targetSessionsPerCycle} onChange={e => updateSetting('targetSessionsPerCycle', Number(e.target.value))} className="w-full accent-[#3B82F6]" />
+              <div className="mt-1 flex justify-between text-[11px] text-text-muted"><span>2</span><span>6</span></div>
+            </div>
+            <div className="mb-6">
+              <p className="mb-1 text-sm font-medium text-text-primary">Long Break Duration</p>
+              <p className="mb-2 text-xs text-text-muted">{longBreakDurationMinutes} minutes</p>
+              <input type="range" min="10" max="30" step="5" value={longBreakDurationMinutes} onChange={e => updateSetting('longBreakDurationMinutes', Number(e.target.value))} className="w-full accent-[#3B82F6]" />
+              <div className="mt-1 flex justify-between text-[11px] text-text-muted"><span>10m</span><span>30m</span></div>
+            </div>
             <input type="file" accept=".json" ref={fileInputRef} className="hidden" onChange={e => { const file = e.target.files?.[0]; if (file) { const r = new FileReader(); r.onload = () => importUserData(r.result as string); r.readAsText(file) }; e.target.value = '' }} />
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
@@ -938,6 +1062,61 @@ function App() {
             <div className="mb-6 flex gap-3">
               <button onClick={exportUserData} className="flex-1 rounded-lg border border-accent-blue/30 bg-accent-blue/5 px-3 py-2 text-xs font-medium text-accent-blue transition-all hover:bg-accent-blue/10">Export Backup</button>
               <button onClick={() => fileInputRef.current?.click()} className="flex-1 rounded-lg border border-accent-purple/30 bg-accent-purple/5 px-3 py-2 text-xs font-medium text-accent-purple transition-all hover:bg-accent-purple/10">Import Backup</button>
+            </div>
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
+              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-text-muted">MANAGE SUBJECT CATEGORIES</span></div>
+            </div>
+            <div className="mb-6">
+              <div className="flex items-center gap-2">
+                <input
+                  value={newCategoryName}
+                  onChange={e => setNewCategoryName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      if (!newCategoryName.trim()) return;
+                      addCategory(newCategoryName.trim(), newCategoryColor);
+                      setNewCategoryName('');
+                    }
+                  }}
+                  placeholder="e.g. Science, History..."
+                  className="flex-1 rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary placeholder:text-text-muted outline-none focus:border-accent-blue/50"
+                />
+                <input
+                  type="color"
+                  value={newCategoryColor}
+                  onChange={e => setNewCategoryColor(e.target.value)}
+                  className="h-8 w-8 cursor-pointer rounded-md border border-border-subtle bg-surface p-0.5"
+                />
+                <button
+                  onClick={() => {
+                    if (!newCategoryName.trim()) return;
+                    addCategory(newCategoryName.trim(), newCategoryColor);
+                    setNewCategoryName('');
+                  }}
+                  className="rounded-lg bg-accent-blue/10 px-3 py-1.5 text-xs font-medium text-accent-blue transition-all hover:bg-accent-blue/20"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="mt-3 max-h-24 space-y-1 overflow-y-auto">
+                {categories.length === 0 ? (
+                  <p className="py-2 text-center text-[11px] italic text-text-muted">No categories yet.</p>
+                ) : (
+                  categories.map(cat => (
+                    <div key={cat.id} className="flex items-center gap-2 rounded-md bg-surface/50 px-3 py-1.5">
+                      <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: cat.color }} />
+                      <span className="flex-1 text-xs text-text-primary">{cat.name}</span>
+                      <button
+                        onClick={() => deleteCategory(cat.id!)}
+                        className="flex h-5 w-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>

@@ -24,9 +24,11 @@ export interface DailyLog {
   dateString: string
   studyMinutes: number
   breakMinutes: number
+  notes?: string
+  mood?: string
 }
 
-export type SettingsKey = 'dailyGoalMinutes' | 'soundEnabled'
+export type SettingsKey = 'dailyGoalMinutes' | 'soundEnabled' | 'targetSessionsPerCycle' | 'longBreakDurationMinutes'
 
 export interface SettingsRow {
   key: SettingsKey

@@ -123,6 +123,8 @@ export function useSettings() {
 
   const dailyGoalMinutes = (rows?.find(r => r.key === 'dailyGoalMinutes')?.value as number) ?? 480
   const soundEnabled = (rows?.find(r => r.key === 'soundEnabled')?.value as boolean) ?? true
+  const targetSessionsPerCycle = (rows?.find(r => r.key === 'targetSessionsPerCycle')?.value as number) ?? 4
+  const longBreakDurationMinutes = (rows?.find(r => r.key === 'longBreakDurationMinutes')?.value as number) ?? 15
 
   const updateSetting = async (key: SettingsKey, value: number | boolean) => {
     await db.settings.put({ key, value })
@@ -131,6 +133,8 @@ export function useSettings() {
   return {
     dailyGoalMinutes,
     soundEnabled,
+    targetSessionsPerCycle,
+    longBreakDurationMinutes,
     updateSetting,
     isLoading: rows === undefined,
   }
@@ -177,6 +181,15 @@ function getLocalDateString(date: Date = new Date()): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+export async function updateDailyReflection(dateString: string, notes: string, mood: string) {
+  const existing = await db.daily_logs.get(dateString)
+  if (existing) {
+    await db.daily_logs.update(dateString, { notes, mood })
+  } else {
+    await db.daily_logs.add({ dateString, studyMinutes: 0, breakMinutes: 0, notes, mood })
+  }
 }
 
 export function useStreak() {
