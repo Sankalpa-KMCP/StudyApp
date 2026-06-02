@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Brain, BookOpen, Zap, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee, Play, Pause, Check, Plus, Settings, X } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -48,7 +48,23 @@ interface TaskItem {
   completed: boolean
 }
 
+interface HistoryEntry {
+  id: number
+  timestamp: string
+  type: 'study' | 'break'
+  durationMinutes: number
+}
+
 function loadTasks(key: string, fallback: TaskItem[]): TaskItem[] {
+  try {
+    const v = localStorage.getItem(key)
+    return v !== null ? JSON.parse(v) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function loadHistory(key: string, fallback: HistoryEntry[]): HistoryEntry[] {
   try {
     const v = localStorage.getItem(key)
     return v !== null ? JSON.parse(v) : fallback
@@ -227,6 +243,8 @@ function App() {
   const [dailyGoalMinutes, setDailyGoalMinutes] = useState(() => loadNum('study_app_goal_minutes', 480))
   const [soundEnabled, setSoundEnabled] = useState(() => loadBool('study_app_sound_enabled', true))
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [sessionHistory, setSessionHistory] = useState<HistoryEntry[]>(() => loadHistory('study_app_history', []))
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay()
   const totalDaysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
@@ -270,8 +288,13 @@ function App() {
   ]
 
   function completeSession() {
+    const elapsed = secondsElapsed
+    const mode = timerMode
     setIsTimerActive(false)
     setSecondsElapsed(0)
+    const now = new Date()
+    const timestamp = `${monthNames[now.getMonth()]} ${now.getDate()}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    setSessionHistory(prev => [{ id: Date.now(), timestamp, type: mode, durationMinutes: Math.floor(elapsed / 60) }, ...prev])
     const firstUncompleted = sessionTasks.find(t => !t.completed)
     if (firstUncompleted) {
       toggleTask(firstUncompleted.id)
@@ -315,8 +338,44 @@ function App() {
     else { setCurrentMonth(m => m + 1) }
   }
 
+  function exportUserData() {
+    const data = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      todayStudyMinutes,
+      todayBreakMinutes,
+      totalMonthHours,
+      sessionTasks,
+      sessionHistory,
+      dailyGoalMinutes,
+      soundEnabled,
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'study-dashboard-backup.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function importUserData(fileString: string) {
+    try {
+      const data = JSON.parse(fileString)
+      if (!data || typeof data !== 'object') return
+      if (typeof data.todayStudyMinutes === 'number') setTodayStudyMinutes(data.todayStudyMinutes)
+      if (typeof data.todayBreakMinutes === 'number') setTodayBreakMinutes(data.todayBreakMinutes)
+      if (typeof data.totalMonthHours === 'number') setTotalMonthHours(data.totalMonthHours)
+      if (typeof data.dailyGoalMinutes === 'number') setDailyGoalMinutes(data.dailyGoalMinutes)
+      if (typeof data.soundEnabled === 'boolean') setSoundEnabled(data.soundEnabled)
+      if (Array.isArray(data.sessionTasks)) setSessionTasks(data.sessionTasks)
+      if (Array.isArray(data.sessionHistory)) setSessionHistory(data.sessionHistory)
+      playAlertSound(soundEnabled)
+    } catch { /* malformed */ }
+  }
+
   function resetData() {
-    const keys = ['study_app_minutes', 'study_app_month_hours', 'study_app_break_minutes', 'study_app_tasks', 'study_app_goal_minutes', 'study_app_sound_enabled']
+    const keys = ['study_app_minutes', 'study_app_month_hours', 'study_app_break_minutes', 'study_app_tasks', 'study_app_goal_minutes', 'study_app_sound_enabled', 'study_app_history']
     keys.forEach(k => localStorage.removeItem(k))
     setTodayStudyMinutes(525)
     setTodayBreakMinutes(62)
@@ -324,6 +383,7 @@ function App() {
     setDailyGoalMinutes(480)
     setSoundEnabled(true)
     setSessionTasks(defaultTasks)
+    setSessionHistory([])
     setSecondsElapsed(0)
     setIsTimerActive(false)
     setTimerMode('study')
@@ -355,7 +415,8 @@ function App() {
     localStorage.setItem('study_app_tasks', JSON.stringify(sessionTasks))
     localStorage.setItem('study_app_goal_minutes', JSON.stringify(dailyGoalMinutes))
     localStorage.setItem('study_app_sound_enabled', JSON.stringify(soundEnabled))
-  }, [todayStudyMinutes, totalMonthHours, todayBreakMinutes, sessionTasks, dailyGoalMinutes, soundEnabled])
+    localStorage.setItem('study_app_history', JSON.stringify(sessionHistory))
+  }, [todayStudyMinutes, totalMonthHours, todayBreakMinutes, sessionTasks, dailyGoalMinutes, soundEnabled, sessionHistory])
 
   useEffect(() => {
     if (selectedDay > totalDaysInMonth) setSelectedDay(totalDaysInMonth)
@@ -803,6 +864,34 @@ function App() {
               <button onClick={() => setSoundEnabled(s => !s)} className={`relative h-6 w-11 rounded-full transition-colors ${soundEnabled ? 'bg-accent-blue' : 'bg-border-subtle'}`}>
                 <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
+            </div>
+            <input type="file" accept=".json" ref={fileInputRef} className="hidden" onChange={e => { const file = e.target.files?.[0]; if (file) { const r = new FileReader(); r.onload = () => importUserData(r.result as string); r.readAsText(file) }; e.target.value = '' }} />
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
+              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-text-muted">DATA MANAGEMENT</span></div>
+            </div>
+            <div className="mb-6 flex gap-3">
+              <button onClick={exportUserData} className="flex-1 rounded-lg border border-accent-blue/30 bg-accent-blue/5 px-3 py-2 text-xs font-medium text-accent-blue transition-all hover:bg-accent-blue/10">Export Backup</button>
+              <button onClick={() => fileInputRef.current?.click()} className="flex-1 rounded-lg border border-accent-purple/30 bg-accent-purple/5 px-3 py-2 text-xs font-medium text-accent-purple transition-all hover:bg-accent-purple/10">Import Backup</button>
+            </div>
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
+              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-text-muted">RECENT ACTIVITY LOG</span></div>
+            </div>
+            <div className="max-h-28 space-y-1 overflow-y-auto">
+              {sessionHistory.length === 0 ? (
+                <p className="py-2 text-center text-xs italic text-text-muted">No recent sessions completed today.</p>
+              ) : (
+                sessionHistory.slice(0, 5).map(entry => (
+                  <div key={entry.id} className="flex items-center justify-between rounded-md bg-surface/50 px-3 py-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className={`h-2 w-2 rounded-full ${entry.type === 'study' ? 'bg-accent-blue' : 'bg-accent-amber'}`} />
+                      <span className="text-xs text-text-primary">{entry.type === 'study' ? 'Study' : 'Break'}</span>
+                    </div>
+                    <span className="text-[11px] text-text-muted">{entry.timestamp} · {entry.durationMinutes}m</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
