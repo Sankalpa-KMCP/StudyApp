@@ -15,7 +15,17 @@ declare module 'lucide-react' {
   export const Play: Icon
   export const Pause: Icon
   export const Check: Icon
+export const CheckCircle: Icon
 export const Plus: Icon
 export const Settings: Icon
 export const X: Icon
+export const CloudRain: Icon
+export const Radio: Icon
+export const Keyboard: Icon
+export const ArrowLeft: Icon
+export const Trash2: Icon
+export const Sliders: Icon
+export const Volume2: Icon
+export const Database: Icon
+export const Sparkles: Icon
 }

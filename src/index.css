@@ -33,3 +33,8 @@ body {
 .animate-pulse-soft {
   animation: pulse-soft 2s ease-in-out infinite;
 }
+
+.dynamic-card {
+  background-color: rgba(var(--surface-card-rgb), var(--card-opacity)) !important;
+  backdrop-filter: blur(var(--backdrop-blur)) !important;
+}
