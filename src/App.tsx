@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Brain, BookOpen, Zap, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee, Play, Pause, Check, CheckCircle, Plus, Settings, X, CloudRain, Radio, Keyboard, ArrowLeft, Trash2, Sliders, Volume2, Database, Sparkles } from 'lucide-react'
+import { Brain, BookOpen, Zap, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee, Play, Pause, Check, CheckCircle, Plus, Settings, X, CloudRain, Radio, Keyboard, ArrowLeft, Trash2, Sliders, Volume2, Database, Sparkles, ChevronLeft } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useTasks, useHistory, useSettings, useTodayLog, useCategories, updateDailyReflection, calculateStreak, calculateXpLevel, calculateProductivityInsights, calculateCategoryBreakdown, calculateMonthLogs, calculateCalendarHeatmapData, calculateSM2 } from './db/hooks'
@@ -55,25 +55,102 @@ const THEME_PROFILES: Record<string, {
 
 let audioCtx: AudioContext | null = null
 
-function playAlertSound(enabled: boolean) {
+function playTibetanBowl(enabled: boolean) {
   if (!enabled) return
   try {
-    if (!audioCtx) audioCtx = new AudioContext()
-    const osc = audioCtx.createOscillator()
-    const gain = audioCtx.createGain()
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime)
-    osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.3)
-    gain.gain.setValueAtTime(0.3, audioCtx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3)
-    osc.connect(gain)
-    gain.connect(audioCtx.destination)
-    osc.start()
-    osc.stop(audioCtx.currentTime + 0.3)
+    if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const ctx = audioCtx
+    if (ctx.state === 'suspended') {
+      ctx.resume()
+    }
+    const now = ctx.currentTime
+    const f0 = 180
+    const frequencies = [f0, f0 * 2.76, f0 * 5.4, f0 * 8.93]
+    const releaseTime = 4.5
+
+    const masterGain = ctx.createGain()
+    masterGain.gain.setValueAtTime(0.25, now)
+    masterGain.gain.exponentialRampToValueAtTime(0.0001, now + releaseTime)
+    masterGain.connect(ctx.destination)
+
+    frequencies.forEach((freq, idx) => {
+      const osc = ctx.createOscillator()
+      const oscGain = ctx.createGain()
+      
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(freq, now)
+      
+      const volume = idx === 0 ? 0.35 : idx === 1 ? 0.28 : idx === 2 ? 0.22 : 0.15
+      oscGain.gain.setValueAtTime(volume, now)
+      
+      osc.connect(oscGain)
+      oscGain.connect(masterGain)
+      
+      osc.start(now)
+      osc.stop(now + releaseTime)
+    })
   } catch {
     /* audio unavailable */
   }
 }
+
+function playTactileThock() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const ctx = audioCtx
+    if (ctx.state === 'suspended') {
+      ctx.resume()
+    }
+    const now = ctx.currentTime
+    const duration = 0.005
+    const sampleRate = ctx.sampleRate
+    const bufferSize = Math.max(1, Math.floor(sampleRate * duration))
+    const buffer = ctx.createBuffer(1, bufferSize, sampleRate)
+    const data = buffer.getChannelData(0)
+    
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1
+      b0 = 0.99886 * b0 + white * 0.0555179
+      b1 = 0.99332 * b1 + white * 0.0750759
+      b2 = 0.96900 * b2 + white * 0.1538520
+      b3 = 0.86650 * b3 + white * 0.3104856
+      b4 = 0.55000 * b4 + white * 0.5329522
+      b5 = -0.7616 * b5 - white * 0.0168980
+      const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362
+      b6 = white * 0.115926
+      data[i] = pink * 0.11
+    }
+    
+    const noiseNode = ctx.createBufferSource()
+    noiseNode.buffer = buffer
+    
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.frequency.setValueAtTime(380, now)
+    filter.Q.setValueAtTime(6.0, now)
+    
+    const gainNode = ctx.createGain()
+    gainNode.gain.setValueAtTime(0.4, now)
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration)
+    
+    noiseNode.connect(filter)
+    filter.connect(gainNode)
+    gainNode.connect(ctx.destination)
+    
+    noiseNode.start(now)
+    noiseNode.onended = () => {
+      try {
+        noiseNode.disconnect()
+        filter.disconnect()
+        gainNode.disconnect()
+      } catch {}
+    }
+  } catch {
+    /* audio unavailable */
+  }
+}
+
 
 interface DayData {
   date: number
@@ -141,7 +218,7 @@ function MicroCard({ icon, label, value, badge, iconBg, badgeBg, badgeText }: Mi
 }
 
 function App() {
-  const { tasks: sessionTasks, addTask, toggleTask, incrementTaskPomodoro, isLoading: tasksLoading } = useTasks()
+  const { tasks: sessionTasks, addTask, toggleTask, incrementTaskCycle, isLoading: tasksLoading } = useTasks()
   const { history: sessionHistory, addEntry: addHistoryEntry, isLoading: historyLoading } = useHistory()
   const {
     dailyGoalMinutes,
@@ -157,6 +234,10 @@ function App() {
     backdropBlur,
     audio_presets,
     shortBreakDurationMinutes,
+    ambient_alphaWaves,
+    tactile_feedback,
+    developer_font,
+    enforce_lockout,
     isLoading: settingsLoading
   } = useSettings()
   const { studyMinutes: todayStudyMinutes, breakMinutes: todayBreakMinutes, incrementStudy, incrementBreak, isLoading: todayLogLoading } = useTodayLog()
@@ -208,6 +289,17 @@ function App() {
   const [timerMode, setTimerMode] = useState<'study' | 'break'>('study')
   const [completedSessionsInCycle, setCompletedSessionsInCycle] = useState(0)
   const [isLongBreak, setIsLongBreak] = useState(false)
+
+  const targetSeconds = useMemo(() => {
+    if (timerMode === 'study') {
+      return 25 * 60 // 25 minutes for study
+    } else {
+      const dur = isLongBreak ? longBreakDurationMinutes : shortBreakDurationMinutes
+      return dur * 60
+    }
+  }, [timerMode, isLongBreak, longBreakDurationMinutes, shortBreakDurationMinutes])
+
+  const remainingSeconds = Math.max(0, targetSeconds - secondsElapsed)
   const [isHotkeyHudOpen, setIsHotkeyHudOpen] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
@@ -216,6 +308,7 @@ function App() {
   const [localVolumeRain, setLocalVolumeRain] = useState(0.5)
   const [localVolumeCafe, setLocalVolumeCafe] = useState(0.5)
   const [localVolumeWhiteNoise, setLocalVolumeWhiteNoise] = useState(0.5)
+  const [localAlphaWaves, setLocalAlphaWaves] = useState(false)
 
   // Zen Mode, Active View Router & Backups Drag/Drop
   const [isZenMode, setIsZenMode] = useState(false)
@@ -224,8 +317,24 @@ function App() {
   const [isDragging, setIsDragging] = useState(false)
 
   const [activeTaskId, setActiveTaskId] = useState<number | null>(null)
-  const [taskPomodoroCount, setTaskPomodoroCount] = useState(1)
+  const [taskCycleCount, setTaskCycleCount] = useState(1)
+  const [localTactileFeedback, setLocalTactileFeedback] = useState(false)
+  const [activeToast, setActiveToast] = useState<{ key: string; message: string; id: number } | null>(null)
+  const [localDeveloperFont, setLocalDeveloperFont] = useState('JetBrains Mono')
+  const [localEnforceLockout, setLocalEnforceLockout] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const volRainRef = useRef(localVolumeRain)
+  const volCafeRef = useRef(localVolumeCafe)
+  const volWhiteNoiseRef = useRef(localVolumeWhiteNoise)
+  const alphaWavesRef = useRef(localAlphaWaves)
+  const waveAmplitudeRef = useRef(0)
+
+  volRainRef.current = localVolumeRain
+  volCafeRef.current = localVolumeCafe
+  volWhiteNoiseRef.current = localVolumeWhiteNoise
+  alphaWavesRef.current = localAlphaWaves
+
   const completingRef = useRef(false)
   const incStudyRef = useRef(incrementStudy)
   const incBreakRef = useRef(incrementBreak)
@@ -240,7 +349,8 @@ function App() {
   }>({
     rain: { source: null, gainNode: null, stop: null },
     cafe: { source: null, gainNode: null, stop: null },
-    whiteNoise: { source: null, gainNode: null, stop: null }
+    whiteNoise: { source: null, gainNode: null, stop: null },
+    alphaWaves: { source: null, gainNode: null, stop: null }
   })
 
   incStudyRef.current = incrementStudy
@@ -314,14 +424,31 @@ function App() {
   const totalSessionsTarget = sessionTasks.length
   const sessionsRemaining = Math.max(totalSessionsTarget - todaySessionsDone, 0)
 
-  const monthlyHistoryEntries = sessionHistory.filter(e => {
-    const parts = e.timestamp.split(' ')
-    if (parts.length < 3) return false
-    const entryMonth = monthNames.indexOf(parts[0])
-    const entryYear = parseInt(parts[2]) || new Date().getFullYear()
-    return entryMonth === currentMonth && entryYear === currentYear
-  })
+  const monthlyHistoryEntries = useMemo(() => {
+    return sessionHistory
+      .filter(e => {
+        const parts = e.timestamp.split(' ')
+        if (parts.length < 3) return false
+        const entryMonth = monthNames.indexOf(parts[0])
+        const entryYear = parseInt(parts[2]) || new Date().getFullYear()
+        return entryMonth === currentMonth && entryYear === currentYear
+      })
+      .sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
+  }, [sessionHistory, currentMonth, currentYear])
   const totalMonthSessions = monthlyHistoryEntries.length + todaySessionsDone
+
+  const selectedDayHistory = useMemo(() => {
+    return sessionHistory
+      .filter(e => {
+        const parts = e.timestamp.split(' ')
+        if (parts.length < 2) return false
+        const entryMonth = monthNames.indexOf(parts[0])
+        const entryDay = parseInt(parts[1])
+        return entryMonth === currentMonth && entryDay === selectedDay
+      })
+      .sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
+  }, [sessionHistory, currentMonth, selectedDay])
+
 
   const isLastDay = selectedDay === totalDaysInMonth
   const liveDay = isLiveMonth && isLastDay
@@ -387,7 +514,7 @@ function App() {
       const justAdded = allTasks[0]
       if (justAdded?.id !== undefined) await toggleTask(justAdded.id)
     }
-    playAlertSound(soundEnabled)
+    playTibetanBowl(soundEnabled)
     if (mode === 'study') {
       const studySessionCount = parseInt(localStorage.getItem('completed_study_sessions_count') || '0') + 1
       localStorage.setItem('completed_study_sessions_count', String(studySessionCount))
@@ -395,7 +522,7 @@ function App() {
         await createDatabaseSnapshot()
       }
       if (activeTaskId !== null) {
-        await incrementTaskPomodoro(activeTaskId)
+        await incrementTaskCycle(activeTaskId)
       }
     }
     completingRef.current = false
@@ -406,7 +533,7 @@ function App() {
         setCompletedSessionsInCycle(0)
         setIsLongBreak(true)
         setTimerMode('break')
-        setTimeout(() => playAlertSound(soundEnabled), 400)
+        setTimeout(() => playTibetanBowl(soundEnabled), 400)
       } else {
         setCompletedSessionsInCycle(nextCount)
         setIsLongBreak(false)
@@ -424,20 +551,20 @@ function App() {
     if (isTimerActive) setIsTimerActive(false)
     setSecondsElapsed(0)
     setTimerMode(mode)
-    playAlertSound(soundEnabled)
+    playTibetanBowl(soundEnabled)
   }
 
-  function handleAddTask(text: string, categoryId?: number, estimatedPomodoros?: number) {
+  function handleAddTask(text: string, categoryId?: number, estimatedCycles?: number) {
     const trimmed = text.trim()
     if (!trimmed) return
-    addTask(trimmed, categoryId, estimatedPomodoros ?? taskPomodoroCount)
+    addTask(trimmed, categoryId, estimatedCycles ?? taskCycleCount)
   }
 
   async function handleToggleTask(id: number) {
     const task = sessionTasks.find(t => t.id === id)
     if (task) {
       if (!task.completed) {
-        playAlertSound(soundEnabled)
+        playTibetanBowl(soundEnabled)
         await toggleTask(id)
       } else {
         await db.tasks.update(id, { completed: false, nextReviewDate: undefined })
@@ -494,6 +621,177 @@ function App() {
     }, 1000)
     return () => clearInterval(id)
   }, [isTimerActive, timerMode])
+
+  // Auto-complete focus/break cycle when seconds elapsed reaches target seconds
+  useEffect(() => {
+    if (isTimerActive && secondsElapsed >= targetSeconds) {
+      completeSessionRef.current()
+    }
+  }, [secondsElapsed, targetSeconds, isTimerActive])
+
+  // Zen V3 Particle Engine: Runs inside requestAnimationFrame, scales speed and connection alpha with aggregate ambient volumes
+  useEffect(() => {
+    if (!isZenMode) return
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    let animationFrameId: number
+    let width = canvas.width = window.innerWidth
+    let height = canvas.height = window.innerHeight
+
+    const handleResize = () => {
+      if (!canvas) return
+      width = canvas.width = window.innerWidth
+      height = canvas.height = window.innerHeight
+    }
+    window.addEventListener('resize', handleResize)
+
+    // Setup 60 particles
+    const particleCount = 60
+    interface Particle {
+      x: number
+      y: number
+      vx: number
+      vy: number
+      radius: number
+      originalVx: number
+      originalVy: number
+    }
+    const particles: Particle[] = []
+
+    for (let i = 0; i < particleCount; i++) {
+      const x = Math.random() * width
+      const y = Math.random() * height
+      const angle = Math.random() * Math.PI * 2
+      const speed = Math.random() * 0.4 + 0.15
+      const vx = Math.cos(angle) * speed
+      const vy = Math.sin(angle) * speed
+      particles.push({
+        x,
+        y,
+        vx,
+        vy,
+        radius: Math.random() * 1.8 + 0.8,
+        originalVx: vx,
+        originalVy: vy
+      })
+    }
+
+    const animate = () => {
+      ctx.clearRect(0, 0, width, height)
+
+      // Query volume refs dynamically
+      const volRain = volRainRef.current
+      const volCafe = volCafeRef.current
+      const volWhiteNoise = volWhiteNoiseRef.current
+      const alphaWaves = alphaWavesRef.current ? 0.35 : 0
+      const aggregateVol = volRain + volCafe + volWhiteNoise + alphaWaves
+
+      const isMuted = aggregateVol <= 0.01
+
+      // Speeds scale directly with sound volume levels
+      const speedFactor = isMuted ? 0 : Math.min(2.5, aggregateVol * 1.3)
+      const maxDistance = isMuted ? 40 : 100 + Math.min(50, aggregateVol * 30)
+      const maxLineAlpha = isMuted ? 0 : Math.min(0.20, aggregateVol * 0.12)
+
+      particles.forEach(p => {
+        if (isMuted) {
+          // Collapse to static central cluster when muted
+          const targetX = width / 2
+          const targetY = height / 2
+          p.x += (targetX - p.x) * 0.015
+          p.y += (targetY - p.y) * 0.015
+        } else {
+          p.x += p.originalVx * speedFactor
+          p.y += p.originalVy * speedFactor
+
+          // Wrap around or bounce within edges
+          if (p.x < 0) { p.x = 0; p.originalVx *= -1 }
+          else if (p.x > width) { p.x = width; p.originalVx *= -1 }
+
+          if (p.y < 0) { p.y = 0; p.originalVy *= -1 }
+          else if (p.y > height) { p.y = height; p.originalVy *= -1 }
+        }
+
+        // Draw node
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
+        ctx.fillStyle = isMuted
+          ? 'rgba(71, 85, 105, 0.3)'
+          : `rgba(99, 102, 241, ${0.35 + Math.min(0.35, aggregateVol * 0.15)})`
+        ctx.fill()
+      })
+
+      // Draw connection lines if not muted
+      if (!isMuted) {
+        for (let i = 0; i < particleCount; i++) {
+          for (let j = i + 1; j < particleCount; j++) {
+            const p1 = particles[i]
+            const p2 = particles[j]
+            const dx = p1.x - p2.x
+            const dy = p1.y - p2.y
+            const dist = Math.sqrt(dx * dx + dy * dy)
+
+            if (dist < maxDistance) {
+              const alpha = (1 - dist / maxDistance) * maxLineAlpha
+              ctx.beginPath()
+              ctx.moveTo(p1.x, p1.y)
+              ctx.lineTo(p2.x, p2.y)
+              ctx.strokeStyle = `rgba(99, 102, 241, ${alpha})`
+              ctx.lineWidth = 0.75
+              ctx.stroke()
+            }
+          }
+        }
+      }
+
+      // --- Audio-Reactive Sine Wave Ribbon ---
+      const waveBaseY = height - 2
+      const targetAmp = isMuted ? 0 : Math.min(40, aggregateVol * 30)
+      waveAmplitudeRef.current += (targetAmp - waveAmplitudeRef.current) * 0.035
+
+      if (waveAmplitudeRef.current > 0.5) {
+        const waveTime = performance.now() * 0.001
+        const layers = [
+          { freq: 0.008, speed: 0.8, phase: 0,          color: 'rgba(168, 85, 247, 0.2)',  lineW: 2.0 },
+          { freq: 0.012, speed: 1.2, phase: Math.PI / 3, color: 'rgba(59, 130, 246, 0.1)',  lineW: 1.5 },
+          { freq: 0.006, speed: -0.6, phase: Math.PI / 1.5, color: 'rgba(139, 92, 246, 0.15)', lineW: 1.0 },
+        ]
+        layers.forEach(l => {
+          ctx.beginPath()
+          ctx.moveTo(0, waveBaseY)
+          const freq = l.freq * (1 + aggregateVol * 0.3)
+          const amp = waveAmplitudeRef.current * (1 - layers.indexOf(l) * 0.15)
+          for (let x = 0; x <= width; x += 3) {
+            ctx.lineTo(x, waveBaseY + Math.sin(x * freq + waveTime * l.speed + l.phase) * amp)
+          }
+          ctx.strokeStyle = l.color
+          ctx.lineWidth = l.lineW
+          ctx.stroke()
+        })
+      } else {
+        ctx.beginPath()
+        ctx.moveTo(0, waveBaseY)
+        ctx.lineTo(width, waveBaseY)
+        ctx.strokeStyle = 'rgba(71, 85, 105, 0.15)'
+        ctx.lineWidth = 0.5
+        ctx.stroke()
+      }
+
+      animationFrameId = requestAnimationFrame(animate)
+    }
+
+    animate()
+
+    return () => {
+      cancelAnimationFrame(animationFrameId)
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [isZenMode])
 
   // active recall helper
   async function submitRecallGrade(task: TaskItem, q: number) {
@@ -660,6 +958,91 @@ function App() {
     if (ambientVolume_whiteNoise !== undefined) setLocalVolumeWhiteNoise(ambientVolume_whiteNoise)
   }, [ambientVolume_whiteNoise])
 
+  useEffect(() => {
+    if (ambient_alphaWaves !== undefined) setLocalAlphaWaves(ambient_alphaWaves)
+  }, [ambient_alphaWaves])
+
+  useEffect(() => {
+    if (tactile_feedback !== undefined) setLocalTactileFeedback(tactile_feedback)
+  }, [tactile_feedback])
+
+  useEffect(() => {
+    if (developer_font !== undefined) setLocalDeveloperFont(developer_font)
+  }, [developer_font])
+
+  useEffect(() => {
+    if (enforce_lockout !== undefined) setLocalEnforceLockout(enforce_lockout)
+  }, [enforce_lockout])
+
+  // Tab Destruction Protection: sessionStorage backing shadow state
+  useEffect(() => {
+    if (!isDataReady) return
+    const shadow = {
+      mode: timerMode,
+      secondsElapsed,
+      isTimerActive,
+      categoryId: timerCategoryId,
+      timestamp: Date.now()
+    }
+    sessionStorage.setItem('active_session_shadow', JSON.stringify(shadow))
+  }, [timerMode, secondsElapsed, isTimerActive, timerCategoryId, isDataReady])
+
+  // Boot restore logic for interrupted active session
+  useEffect(() => {
+    if (!isDataReady) return
+    const shadowStr = sessionStorage.getItem('active_session_shadow')
+    if (shadowStr) {
+      try {
+        const shadow = JSON.parse(shadowStr)
+        if (shadow && shadow.isTimerActive && shadow.secondsElapsed >= 60) {
+          const runRestore = async () => {
+            const elapsedMin = Math.floor(shadow.secondsElapsed / 60)
+            const now = new Date()
+            const timestamp = `${monthNames[now.getMonth()]} ${now.getDate()}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+            
+            // 1. Add entry to Dexie history
+            await addHistoryEntry({
+              timestamp,
+              type: shadow.mode,
+              durationMinutes: elapsedMin,
+              categoryId: shadow.mode === 'study' ? shadow.categoryId : undefined,
+            })
+            
+            // 2. Increment daily log minutes
+            const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+            const existing = await db.daily_logs.get(current)
+            if (shadow.mode === 'study') {
+              if (existing) {
+                await db.daily_logs.update(current, { studyMinutes: existing.studyMinutes + elapsedMin })
+              } else {
+                await db.daily_logs.add({ dateString: current, studyMinutes: elapsedMin, breakMinutes: 0 })
+              }
+            } else {
+              if (existing) {
+                await db.daily_logs.update(current, { breakMinutes: existing.breakMinutes + elapsedMin })
+              } else {
+                await db.daily_logs.add({ dateString: current, studyMinutes: 0, breakMinutes: elapsedMin })
+              }
+            }
+            
+            // 3. Trigger HUD toast notification
+            setActiveToast({
+              key: 'RESTORE',
+              message: `RECOVERED ${elapsedMin}M INTERRUPTED ${shadow.mode.toUpperCase()}`,
+              id: Date.now()
+            })
+          }
+          runRestore()
+        }
+      } catch (err) {
+        console.error('Failed to restore shadow session:', err)
+      } finally {
+        sessionStorage.removeItem('active_session_shadow')
+      }
+    }
+  }, [isDataReady])
+
+
 
   function createAmbientTrack(ctx: AudioContext, track: string): { output: AudioNode; stop: () => void } | null {
     if (track === 'white-noise') {
@@ -702,10 +1085,60 @@ function App() {
       lfo.start()
       src.connect(filter)
       filter.connect(ampGain)
+
+      // Transient Rain Clicks: Dynamic procedural scheduler for micro noise bursts (striking glass pane)
+      let rainClickInterval: any = null
+      const scheduleRainClick = (time: number) => {
+        try {
+          const clickBuf = ctx.createBuffer(1, ctx.sampleRate * 0.02, ctx.sampleRate)
+          const clickData = clickBuf.getChannelData(0)
+          for (let i = 0; i < clickData.length; i++) {
+            clickData[i] = Math.random() * 2 - 1
+          }
+          const clickNode = ctx.createBufferSource()
+          clickNode.buffer = clickBuf
+          
+          const clickFilter = ctx.createBiquadFilter()
+          clickFilter.type = 'bandpass'
+          clickFilter.frequency.setValueAtTime(1400 + Math.random() * 800, time)
+          clickFilter.Q.setValueAtTime(4, time)
+          
+          const clickGain = ctx.createGain()
+          clickGain.gain.setValueAtTime(0, time)
+          clickGain.gain.linearRampToValueAtTime(0.06 + Math.random() * 0.06, time + 0.001) // Instant attack (0.001s)
+          clickGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.02) // Exponential decay down to 0 inside 0.02s
+          
+          clickNode.connect(clickFilter)
+          clickFilter.connect(clickGain)
+          clickGain.connect(ampGain) // Connected to rain's ampGain so volume scales with rain slider
+          
+          clickNode.start(time)
+          clickNode.onended = () => {
+            try {
+              clickNode.disconnect()
+              clickFilter.disconnect()
+              clickGain.disconnect()
+            } catch {}
+          }
+        } catch {}
+      }
+
+      const runScheduler = () => {
+        const nextDelay = 40 + Math.random() * 120
+        rainClickInterval = setTimeout(() => {
+          if (ctx.state !== 'closed') {
+            scheduleRainClick(ctx.currentTime)
+            runScheduler()
+          }
+        }, nextDelay)
+      }
+      runScheduler()
+
       return {
         output: ampGain,
         stop: () => {
           try {
+            clearTimeout(rainClickInterval)
             src.stop()
             lfo.stop()
             src.disconnect()
@@ -746,6 +1179,49 @@ function App() {
         }
       }
     }
+    if (track === 'alphaWaves') {
+      const oscL = ctx.createOscillator()
+      const oscR = ctx.createOscillator()
+      
+      oscL.type = 'sine'
+      oscL.frequency.setValueAtTime(100, ctx.currentTime)
+      
+      oscR.type = 'sine'
+      oscR.frequency.setValueAtTime(110, ctx.currentTime)
+      
+      const pannerL = ctx.createStereoPanner()
+      pannerL.pan.setValueAtTime(-1, ctx.currentTime)
+      
+      const pannerR = ctx.createStereoPanner()
+      pannerR.pan.setValueAtTime(1, ctx.currentTime)
+      
+      const gainNode = ctx.createGain()
+      gainNode.gain.setValueAtTime(0.25, ctx.currentTime) // Delicate main gain node
+      
+      oscL.connect(pannerL)
+      pannerL.connect(gainNode)
+      
+      oscR.connect(pannerR)
+      pannerR.connect(gainNode)
+      
+      oscL.start()
+      oscR.start()
+      
+      return {
+        output: gainNode,
+        stop: () => {
+          try {
+            oscL.stop()
+            oscR.stop()
+            oscL.disconnect()
+            oscR.disconnect()
+            pannerL.disconnect()
+            pannerR.disconnect()
+            gainNode.disconnect()
+          } catch {}
+        }
+      }
+    }
     return null
   }
 
@@ -756,7 +1232,8 @@ function App() {
       const tracks = [
         { id: 'rain', vol: localVolumeRain },
         { id: 'cafe', vol: localVolumeCafe },
-        { id: 'whiteNoise', vol: localVolumeWhiteNoise }
+        { id: 'whiteNoise', vol: localVolumeWhiteNoise },
+        { id: 'alphaWaves', vol: localAlphaWaves ? 0.35 : 0 }
       ]
 
       const anyActive = isStudyActive && tracks.some(t => t.vol > 0)
@@ -831,7 +1308,7 @@ function App() {
   useEffect(() => {
     updateAudioMixer()
     return () => {
-      const tracks = ['rain', 'cafe', 'whiteNoise']
+      const tracks = ['rain', 'cafe', 'whiteNoise', 'alphaWaves']
       tracks.forEach(id => {
         const ch = channelsRef.current[id]
         if (ch && ch.stop) {
@@ -843,8 +1320,41 @@ function App() {
         audioCtxRef.current = null
       }
     }
-  }, [timerMode, isTimerActive, localVolumeRain, localVolumeCafe, localVolumeWhiteNoise])
+  }, [timerMode, isTimerActive, localVolumeRain, localVolumeCafe, localVolumeWhiteNoise, localAlphaWaves])
 
+
+  // Tactile Mechanical Thock Keystroke & Click Captures
+  useEffect(() => {
+    const handleKeystroke = () => {
+      if (localTactileFeedback) {
+        playTactileThock()
+      }
+    }
+    window.addEventListener('keydown', handleKeystroke, true)
+    return () => window.removeEventListener('keydown', handleKeystroke, true)
+  }, [localTactileFeedback])
+
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      if (!localTactileFeedback) return
+      const target = e.target as HTMLElement
+      const isInteractive = target.closest('button') || target.closest('a') || target.tagName === 'INPUT' || target.tagName === 'SELECT'
+      if (isInteractive) {
+        playTactileThock()
+      }
+    }
+    window.addEventListener('click', handleGlobalClick)
+    return () => window.removeEventListener('click', handleGlobalClick)
+  }, [localTactileFeedback])
+
+  // HUD Toast Auto-Dismiss
+  useEffect(() => {
+    if (!activeToast) return
+    const timer = setTimeout(() => {
+      setActiveToast(null)
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [activeToast])
 
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {
@@ -857,22 +1367,49 @@ function App() {
       switch (key) {
         case ' ':
           e.preventDefault()
-          setIsTimerActive(a => !a)
+          setIsTimerActive(active => {
+            const nextActive = !active
+            setActiveToast({
+              key: 'SPACE',
+              message: nextActive ? 'FOCUS ENGINE ACTIVE' : 'FOCUS ENGINE PAUSED',
+              id: Date.now()
+            })
+            return nextActive
+          })
           break
         case 's':
           handleModeSwitchRef.current('study')
+          setActiveToast({ key: 'S', message: 'SWITCHED TO DEEP WORK', id: Date.now() })
           break
         case 'b':
           handleModeSwitchRef.current('break')
+          setActiveToast({ key: 'B', message: 'SWITCHED TO BREAK MODE', id: Date.now() })
           break
         case 'c':
           completeSessionRef.current()
+          setActiveToast({ key: 'C', message: 'FOCUS BLOCK COMPLETED', id: Date.now() })
           break
         case 'z':
-          setIsZenMode(z => !z)
+          setIsZenMode(zen => {
+            const nextZen = !zen
+            setActiveToast({
+              key: 'Z',
+              message: nextZen ? 'ENTERED ZEN SANCTUARY' : 'EXITED ZEN SANCTUARY',
+              id: Date.now()
+            })
+            return nextZen
+          })
           break
         case '?':
-          setIsHotkeyHudOpen(o => !o)
+          setIsHotkeyHudOpen(o => {
+            const nextOpen = !o
+            setActiveToast({
+              key: '?',
+              message: nextOpen ? 'OPENED SHORTCUT PANEL' : 'CLOSED SHORTCUT PANEL',
+              id: Date.now()
+            })
+            return nextOpen
+          })
           break
       }
     }
@@ -881,8 +1418,9 @@ function App() {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
   }, [activeView, isHotkeyHudOpen])
 
+
   async function resetData() {
-    const tracks = ['rain', 'cafe', 'whiteNoise']
+    const tracks = ['rain', 'cafe', 'whiteNoise', 'alphaWaves']
     tracks.forEach(id => {
       const ch = channelsRef.current[id]
       if (ch && ch.stop) {
@@ -909,6 +1447,7 @@ function App() {
       { key: 'ambientVolume_rain', value: 0.5 },
       { key: 'ambientVolume_cafe', value: 0.5 },
       { key: 'ambientVolume_whiteNoise', value: 0.5 },
+      { key: 'ambient_alphaWaves', value: false },
     ])
     await db.categories.bulkAdd([
       { name: 'General', color: '#64748B' },
@@ -924,6 +1463,7 @@ function App() {
     setLocalVolumeRain(0.5)
     setLocalVolumeCafe(0.5)
     setLocalVolumeWhiteNoise(0.5)
+    setLocalAlphaWaves(false)
     setActiveTaskId(null)
   }
 
@@ -962,11 +1502,14 @@ function App() {
     '--surface-card-rgb': activeThemeVars.surfaceCardRgb,
     '--card-opacity': cardOpacity,
     '--backdrop-blur': `${backdropBlur}px`,
+    '--font-family-override': localDeveloperFont === 'Inter' ? "'Inter', system-ui, sans-serif" : `'${localDeveloperFont}', monospace`,
   } as React.CSSProperties
 
   return (
-    <div className="min-h-screen bg-surface font-sans text-text-primary antialiased" style={inlineStyles}>
-      <div className="w-full max-w-[1650px] min-h-screen mx-auto p-4 md:p-6 lg:p-8 flex flex-col justify-between">
+    <div className="min-h-screen bg-surface font-sans text-text-primary antialiased relative" style={inlineStyles}>
+      <div className={`w-full max-w-[1650px] min-h-screen mx-auto p-4 md:p-6 lg:p-8 flex flex-col justify-between transition-all duration-700 ${
+        isZenMode ? 'opacity-10 blur-md pointer-events-none scale-95' : ''
+      }`}>
         {activeView === 'dashboard' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
 
@@ -1029,12 +1572,13 @@ function App() {
                         <circle cx="60" cy="60" r="50" fill="none" stroke="#1E293B" strokeWidth="8" />
                         <circle
                           cx="60" cy="60" r="50"
-                          fill="none" stroke="#3B82F6"
+                          fill="none" stroke="var(--color-accent-blue)"
                           strokeWidth="8"
                           strokeLinecap="round"
                           strokeDasharray="314.16"
                           strokeDashoffset={String(314.16 * (1 - progress))}
                           filter="url(#glow)"
+                          style={{ transition: 'stroke-dashoffset 1s linear' }}
                         />
                       </svg>
                       <div className="text-center">
@@ -1139,7 +1683,7 @@ function App() {
                     <span className={`min-w-[45px] text-sm font-semibold tabular-nums ${
                       isLongBreak && timerMode === 'break' ? 'text-accent-green' : 'text-accent-blue'
                     }`}>
-                      {String(Math.floor(secondsElapsed / 60)).padStart(2, '0')}:{String(secondsElapsed % 60).padStart(2, '0')}
+                      {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
                     </span>
                     {/* Cycle progress pips */}
                     {!isZenMode && (
@@ -1179,8 +1723,9 @@ function App() {
                       <div className="mt-2 flex items-center gap-2 rounded-lg border border-accent-blue/20 bg-accent-blue/5 px-3 py-1.5 transition-all">
                         <span className="text-xs text-slate-400">Target:</span>
                         <span className="truncate text-xs font-medium text-accent-blue">{activeTask.text}</span>
-                        <span className="ml-auto whitespace-nowrap text-[11px] text-slate-400">
-                          🍅 {activeTask.actualPomodoros ?? 0}/{activeTask.estimatedPomodoros ?? 1}
+                        <span className="ml-auto whitespace-nowrap text-[11px] text-slate-400 flex items-center gap-1">
+                          <Target className="h-3 w-3 text-accent-blue" />
+                          <span>{activeTask.actualCycles ?? 0}/{activeTask.estimatedCycles ?? 1}</span>
                         </span>
                       </div>
                     )
@@ -1194,11 +1739,11 @@ function App() {
                           type="text"
                           placeholder="Add a task..."
                           className="flex-1 rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-950/70 focus:bg-slate-950 focus:border-accent-blue/50 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all duration-200"
-                          onKeyDown={(e) => { if (e.key === 'Enter') { const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-pomodoros]'); handleAddTask((e.target as HTMLInputElement).value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); (e.target as HTMLInputElement).value = '' } }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); handleAddTask((e.target as HTMLInputElement).value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); (e.target as HTMLInputElement).value = '' } }}
                         />
                         <select
                           data-task-category
-                          className="w-24 rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-950/70 focus:bg-slate-950 focus:border-accent-blue/50 px-1.5 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
+                          className="w-24 rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-950/70 focus:bg-[#0B0F19] focus:border-accent-blue/50 px-1.5 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
                         >
                           <option value="" className="bg-[#0B0F19]">No category</option>
                           {categories.map(cat => (
@@ -1206,17 +1751,17 @@ function App() {
                           ))}
                         </select>
                         <select
-                          data-task-pomodoros
-                          value={taskPomodoroCount}
-                          onChange={e => setTaskPomodoroCount(Number(e.target.value))}
-                          className="w-14 rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-950/70 focus:bg-slate-950 focus:border-accent-blue/50 px-1 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
+                          data-task-cycles
+                          value={taskCycleCount}
+                          onChange={e => setTaskCycleCount(Number(e.target.value))}
+                          className="w-14 rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-950/70 focus:bg-[#0B0F19] focus:border-accent-blue/50 px-1 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
                         >
                           {[1,2,3,4,5,6,7,8].map(n => (
-                            <option key={n} value={n} className="bg-[#0B0F19]">🍅 {n}</option>
+                            <option key={n} value={n} className="bg-[#0B0F19]">🎯 {n}</option>
                           ))}
                         </select>
                         <button
-                          onClick={() => { const input = document.querySelector<HTMLInputElement>('[data-task-input]'); const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-pomodoros]'); if (input) { handleAddTask(input.value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); input.value = '' } }}
+                          onClick={() => { const input = document.querySelector<HTMLInputElement>('[data-task-input]'); const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); if (input) { handleAddTask(input.value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); input.value = '' } }}
                           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 transition-all active:scale-95 cursor-pointer"
                         >
                           <Plus className="h-3.5 w-3.5" />
@@ -1239,7 +1784,7 @@ function App() {
                               <div
                                 key={task.id}
                                 onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
-                                className={`flex flex-col gap-1 rounded-md px-2 py-1.5 transition-colors cursor-pointer ${
+                                className={`flex flex-col gap-1 rounded-md px-2 py-1.5 transition-colors cursor-pointer animate-slide-in-up ${
                                   activeTaskId === task.id
                                     ? 'bg-accent-blue/10 ring-1 ring-accent-blue/30'
                                     : 'hover:bg-surface/50'
@@ -1260,8 +1805,9 @@ function App() {
                                   <span className={`flex-1 truncate text-xs ${task.completed ? 'text-slate-400 line-through' : 'text-text-primary'}`}>
                                     {task.text}
                                   </span>
-                                  <span className="shrink-0 text-[11px] text-slate-400">
-                                    🍅 {task.actualPomodoros ?? 0}/{task.estimatedPomodoros ?? 1}
+                                  <span className="shrink-0 text-[11px] text-slate-400 flex items-center gap-1">
+                                    <Target className="h-3 w-3 text-accent-blue" />
+                                    <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1}</span>
                                   </span>
                                 </div>
 
@@ -1330,6 +1876,50 @@ function App() {
                             </div>
                           )
                         })}
+
+                        {/* Alpha Waves (10Hz Binaural Beat) */}
+                        <div className="flex items-center justify-between bg-slate-950/30 border border-slate-800/40 rounded-lg px-3 py-1.5 hover:bg-slate-950/50 transition-all duration-200 mt-1">
+                          <div className="flex items-center gap-3">
+                            <Brain className="h-3.5 w-3.5 text-accent-purple shrink-0" />
+                            <span className="text-xs font-medium text-slate-300">Alpha Waves (10Hz)</span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const nextVal = !localAlphaWaves
+                              setLocalAlphaWaves(nextVal)
+                              updateSetting('ambient_alphaWaves', nextVal)
+                            }}
+                            className={`relative h-5 w-9 shrink-0 rounded-full transition-all cursor-pointer ${
+                              localAlphaWaves ? 'bg-accent-purple animate-pulse-soft' : 'bg-slate-800'
+                            }`}
+                          >
+                            <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+                              localAlphaWaves ? 'translate-x-4' : 'translate-x-0'
+                            }`} />
+                          </button>
+                        </div>
+
+                        {/* Tactile Keyboard Click Feedback */}
+                        <div className="flex items-center justify-between bg-slate-950/30 border border-slate-800/40 rounded-lg px-3 py-1.5 hover:bg-slate-950/50 transition-all duration-200 mt-1">
+                          <div className="flex items-center gap-3">
+                            <Keyboard className="h-3.5 w-3.5 text-accent-blue shrink-0" />
+                            <span className="text-xs font-medium text-slate-300">Tactile Thocks</span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const nextVal = !localTactileFeedback
+                              setLocalTactileFeedback(nextVal)
+                              updateSetting('tactile_feedback', nextVal)
+                            }}
+                            className={`relative h-5 w-9 shrink-0 rounded-full transition-all cursor-pointer ${
+                              localTactileFeedback ? 'bg-accent-blue' : 'bg-slate-800'
+                            }`}
+                          >
+                            <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+                              localTactileFeedback ? 'translate-x-4' : 'translate-x-0'
+                            }`} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1358,7 +1948,7 @@ function App() {
                 { label: 'Active days', value: `${new Set(monthLogs.filter(l => l.studyMinutes > 0).map(l => l.dateString)).size}/${totalDaysInMonth}`, icon: <Calendar className="h-3.5 w-3.5 text-accent-green" /> },
                 { label: 'Best day', value: '--', icon: <Award className="h-3.5 w-3.5 text-accent-purple" /> },
               ].map((m) => (
-                <div key={m.label} className="flex items-center gap-2.5 rounded-lg border border-border-subtle bg-surface/50 px-3 py-2.5">
+                <div key={m.label} className="flex items-center gap-2.5 rounded-lg border border-border-subtle bg-surface/50 px-3 py-2.5 animate-slide-in-up">
                   <div className="flex h-7 w-7 items-center justify-center rounded-md bg-surface">
                     {m.icon}
                   </div>
@@ -1703,6 +2293,64 @@ function App() {
                 rows={3}
                 className="mt-3 w-full resize-none rounded-lg border border-border-subtle bg-surface/50 px-3 py-2 text-xs text-text-primary placeholder:text-slate-400 outline-none focus:border-accent-blue/50"
               />
+
+              {/* Daily Focus Horizon */}
+              <div className="mt-4 border-t border-slate-800/40 pt-4">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">Daily Focus Horizon</p>
+                <div className="relative w-full bg-slate-950/60 border border-slate-800/80 rounded-lg p-3">
+                  {/* Timeline Bar */}
+                  <div className="relative h-4 w-full bg-slate-900/60 rounded-md border border-slate-800 overflow-hidden shadow-inner">
+                    {/* Time ticks / grid */}
+                    <div className="absolute inset-0 flex justify-between pointer-events-none text-[8px] text-slate-600 font-mono">
+                      <div className="h-full border-r border-slate-800/30" style={{ left: '25%' }} />
+                      <div className="h-full border-r border-slate-800/30" style={{ left: '50%' }} />
+                      <div className="h-full border-r border-slate-800/30" style={{ left: '75%' }} />
+                    </div>
+
+                    {/* Mapped study and break sessions */}
+                    {selectedDayHistory.map((entry, idx) => {
+                      const parts = entry.timestamp.split(' ')
+                      if (parts.length < 3) return null
+                      const timePart = parts[2]
+                      const [hours, minutes] = timePart.split(':').map(Number)
+                      if (isNaN(hours) || isNaN(minutes)) return null
+                      
+                      const endMinute = hours * 60 + minutes
+                      const startMinute = Math.max(0, endMinute - entry.durationMinutes)
+                      
+                      const startPercent = (startMinute / 1440) * 100
+                      const widthPercent = ((endMinute - startMinute) / 1440) * 100
+                      
+                      const isStudy = entry.type === 'study'
+                      const titleText = `${isStudy ? 'Deep Work Cycle' : 'Break Time'}: ${entry.durationMinutes}m (ending at ${timePart})`
+                      
+                      return (
+                        <div
+                          key={idx}
+                          title={titleText}
+                          className={`absolute top-0 h-full rounded-sm transition-all hover:scale-y-110 cursor-pointer ${
+                            isStudy
+                              ? 'bg-gradient-to-r from-accent-blue to-accent-purple shadow-[0_0_6px_rgba(59,130,246,0.35)] z-10'
+                              : 'bg-slate-700/80'
+                          }`}
+                          style={{
+                            left: `${startPercent}%`,
+                            width: `${widthPercent}%`,
+                          }}
+                        />
+                      )
+                    })}
+                  </div>
+                  {/* Timeline labels */}
+                  <div className="flex justify-between text-[8px] text-slate-500 font-mono mt-1 px-1 select-none">
+                    <span>00:00</span>
+                    <span>06:00</span>
+                    <span>12:00</span>
+                    <span>18:00</span>
+                    <span>24:00</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1865,6 +2513,31 @@ function App() {
                         </div>
                       </div>
                     </div>
+                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Typography Calibration</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-300 mb-2">Developer Font Family</label>
+                          <select
+                            value={localDeveloperFont}
+                            onChange={e => {
+                              const val = e.target.value
+                              setLocalDeveloperFont(val)
+                              updateSetting('developer_font', val)
+                            }}
+                            className="w-full rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2 text-xs text-text-primary outline-none focus:border-accent-blue/50 cursor-pointer transition-all"
+                          >
+                            <option value="JetBrains Mono">JetBrains Mono (Console default)</option>
+                            <option value="Fira Code">Fira Code (Ligature ready)</option>
+                            <option value="SF Mono">SF Mono (System premium)</option>
+                            <option value="Inter">Inter (Sans-serif modern)</option>
+                          </select>
+                          <p className="mt-1.5 text-[10px] text-slate-500 font-semibold">
+                            Applies immediately to all user interface panels and timer text overlays.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="xl:col-span-1">
@@ -1972,6 +2645,56 @@ function App() {
                             </div>
                           )
                         })}
+
+                        {/* Deep Focus Alpha Waves (10Hz Beat) */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/30 border border-slate-800/40 rounded-xl px-4 py-3 hover:bg-slate-950/50 transition-all duration-200">
+                          <div className="flex items-center gap-3">
+                            <Brain className="h-4 w-4 text-accent-purple shrink-0" />
+                            <div>
+                              <span className="text-xs font-semibold text-slate-300 block">Deep Focus Alpha Waves</span>
+                              <span className="text-[10px] text-slate-500 font-medium">Binaural 10Hz brainwave beat (100Hz Left / 110Hz Right)</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const nextVal = !localAlphaWaves
+                              setLocalAlphaWaves(nextVal)
+                              updateSetting('ambient_alphaWaves', nextVal)
+                            }}
+                            className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${
+                              localAlphaWaves ? 'bg-accent-purple animate-pulse-soft' : 'bg-slate-800'
+                            }`}
+                          >
+                            <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                              localAlphaWaves ? 'translate-x-5' : 'translate-x-0'
+                            }`} />
+                          </button>
+                        </div>
+
+                        {/* Tactile Keyboard Click Feedback */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/30 border border-slate-800/40 rounded-xl px-4 py-3 hover:bg-slate-950/50 transition-all duration-200">
+                          <div className="flex items-center gap-3">
+                            <Keyboard className="h-4 w-4 text-accent-blue shrink-0" />
+                            <div>
+                              <span className="text-xs font-semibold text-slate-300 block">Tactile Thocks</span>
+                              <span className="text-[10px] text-slate-500 font-medium">Synthesizes a mechanical keyboard brown switch thock on keystrokes and controls</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const nextVal = !localTactileFeedback
+                              setLocalTactileFeedback(nextVal)
+                              updateSetting('tactile_feedback', nextVal)
+                            }}
+                            className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${
+                              localTactileFeedback ? 'bg-accent-blue' : 'bg-slate-800'
+                            }`}
+                          >
+                            <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                              localTactileFeedback ? 'translate-x-5' : 'translate-x-0'
+                            }`} />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -1986,6 +2709,24 @@ function App() {
                           className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${soundEnabled ? 'bg-accent-blue' : 'bg-slate-800'}`}
                         >
                           <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-1">Enforce Session Boundary</h3>
+                          <p className="text-xs text-slate-400">Hides the exit navigation controls inside Zen Mode while the study session is active</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const nextVal = !localEnforceLockout
+                            setLocalEnforceLockout(nextVal)
+                            updateSetting('enforce_lockout', nextVal)
+                          }}
+                          className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${localEnforceLockout ? 'bg-accent-purple animate-pulse-soft' : 'bg-slate-800'}`}
+                        >
+                          <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${localEnforceLockout ? 'translate-x-5' : 'translate-x-0'}`} />
                         </button>
                       </div>
                     </div>
@@ -2012,7 +2753,8 @@ function App() {
                                   volumes: {
                                     rain: localVolumeRain,
                                     cafe: localVolumeCafe,
-                                    whiteNoise: localVolumeWhiteNoise
+                                    whiteNoise: localVolumeWhiteNoise,
+                                    alphaWaves: localAlphaWaves
                                   }
                                 }
                                 updateSetting('audio_presets', [...audio_presets, newPreset])
@@ -2031,7 +2773,8 @@ function App() {
                                 volumes: {
                                     rain: localVolumeRain,
                                     cafe: localVolumeCafe,
-                                    whiteNoise: localVolumeWhiteNoise
+                                    whiteNoise: localVolumeWhiteNoise,
+                                    alphaWaves: localAlphaWaves
                                 }
                               }
                               updateSetting('audio_presets', [...audio_presets, newPreset])
@@ -2071,13 +2814,18 @@ function App() {
                                       setLocalVolumeWhiteNoise(vols.whiteNoise)
                                       updateSetting('ambientVolume_whiteNoise', vols.whiteNoise)
                                     }
+                                    if (vols.alphaWaves !== undefined) {
+                                      setLocalAlphaWaves(vols.alphaWaves)
+                                      updateSetting('ambient_alphaWaves', vols.alphaWaves)
+                                    }
                                   }}
                                 >
                                   <p className="text-xs font-semibold text-slate-200">{preset.name}</p>
                                   <p className="text-[10px] text-slate-500 mt-0.5 font-medium font-mono">
                                     🌧️ {Math.round((preset.volumes?.rain ?? 0) * 100)}% · 
                                     ☕ {Math.round((preset.volumes?.cafe ?? 0) * 100)}% · 
-                                    📻 {Math.round((preset.volumes?.whiteNoise ?? 0) * 100)}%
+                                    📻 {Math.round((preset.volumes?.whiteNoise ?? 0) * 100)}% · 
+                                    🧠 Alpha: {preset.volumes?.alphaWaves ? 'On' : 'Off'}
                                   </p>
                                 </div>
                                 <button
@@ -2343,7 +3091,10 @@ function App() {
                         {sessionHistory.length === 0 ? (
                           <p className="text-xs italic text-slate-500 text-center py-6">No study sessions recorded today.</p>
                         ) : (
-                          sessionHistory.slice(0, 10).map(entry => (
+                          [...sessionHistory]
+                            .sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
+                            .slice(0, 10)
+                            .map(entry => (
                             <div key={entry.id} className="flex flex-col gap-1 rounded-lg bg-slate-950/30 border border-slate-850 p-2.5">
                               <div className="flex items-center gap-2">
                                 <span className={`h-2 w-2 rounded-full ${entry.type === 'study' ? 'bg-accent-blue' : 'bg-accent-amber'}`} />
@@ -2363,6 +3114,73 @@ function App() {
           </div>
         )}
       </div>
+
+      {/* Zen Mode Cinematic Sanctuary Overlay */}
+      {isZenMode && (
+        <div className="fixed inset-0 z-50 bg-[#020408] flex flex-col items-center justify-center overflow-hidden transition-opacity duration-1000 animate-fade-in animate-hrv-pacer">
+          {/* Radial focal glow background pulse */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-accent-blue/10 via-accent-purple/10 to-accent-blue/10 blur-3xl opacity-20 animate-zen-breath" />
+          </div>
+
+          {/* HTML5 Canvas Ambient Particle Background */}
+          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0" />
+
+          {/* Centerpiece Layout */}
+          <div className="relative z-10 flex flex-col items-center text-center space-y-8 select-none max-w-md px-6 animate-slide-in-up">
+            {/* Cinematic countdown clock */}
+            <div className="text-center">
+              <p className="text-[11rem] md:text-[14rem] font-extralight tracking-tighter text-white/95 font-mono leading-none select-none drop-shadow-[0_4px_24px_rgba(255,255,255,0.03)]">
+                {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
+              </p>
+              <p className="text-xs text-slate-400 mt-3 uppercase tracking-wider font-semibold">
+                {timerMode === 'study' ? 'Deep Study' : 'Resting'}
+              </p>
+            </div>
+
+            {/* Focus Anchor Text */}
+            <div className="mt-10 space-y-1">
+              {(() => {
+                const activeTask = sessionTasks.find(t => t.id === activeTaskId)
+                return (
+                  <p className="text-lg font-bold text-slate-200 tracking-widest uppercase drop-shadow-[0_0_8px_rgba(59,130,246,0.35)] font-sans">
+                    {activeTask ? activeTask.text : 'Radiant Silence'}
+                  </p>
+                )
+              })()}
+            </div>
+
+            {/* Play/Pause controls */}
+            <div className="flex items-center gap-4 pt-4">
+              <button
+                onClick={() => setIsTimerActive(!isTimerActive)}
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 border border-slate-800 text-accent-blue transition-all hover:bg-slate-800 hover:scale-105 active:scale-95 cursor-pointer"
+                title={isTimerActive ? "Pause session" : "Start session"}
+              >
+                {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+              </button>
+              <button
+                onClick={completeSession}
+                className="flex items-center gap-2 rounded-full bg-accent-green/15 text-accent-green border border-accent-green/30 px-6 py-3 text-xs font-bold transition-all hover:bg-accent-green/25 active:scale-95 cursor-pointer"
+              >
+                <Check className="h-4 w-4" />
+                Complete Focus
+              </button>
+            </div>
+          </div>
+
+          {/* Minimal exit chevron */}
+          {!(localEnforceLockout && isTimerActive && timerMode === 'study') && (
+            <button
+              onClick={() => setIsZenMode(false)}
+              className="absolute top-8 left-8 flex h-10 w-10 items-center justify-center rounded-full bg-slate-950/40 border border-slate-800 hover:bg-slate-900 hover:text-text-primary text-slate-400 transition-colors cursor-pointer"
+              title="Exit Sanctuary"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      )}
       {isHotkeyHudOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setIsHotkeyHudOpen(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -2389,6 +3207,13 @@ function App() {
             </div>
             <p className="mt-4 text-center text-[11px] text-slate-400">Shortcuts are disabled while typing in input fields.</p>
           </div>
+        </div>
+      )}
+
+      {activeToast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-[#020617]/90 backdrop-blur-xl border border-slate-700/50 rounded-full px-4 py-1.5 shadow-2xl text-[11px] font-mono tracking-wider text-slate-200 animate-slide-down">
+          <kbd className="bg-slate-800 text-slate-400 border border-slate-700 rounded px-1.5 py-0.5 text-[9px] font-sans">{activeToast.key}</kbd>
+          <span>{activeToast.message}</span>
         </div>
       )}
     </div>

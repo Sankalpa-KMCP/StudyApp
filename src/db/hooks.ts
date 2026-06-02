@@ -22,8 +22,8 @@ export function useTasks() {
     checkAndSurface()
   }, [tasks])
 
-  const addTask = async (text: string, categoryId?: number, estimatedPomodoros: number = 1) => {
-    await db.tasks.add({ text, completed: false, createdAt: Date.now(), categoryId, estimatedPomodoros, actualPomodoros: 0 })
+  const addTask = async (text: string, categoryId?: number, estimatedCycles: number = 1) => {
+    await db.tasks.add({ text, completed: false, createdAt: Date.now(), categoryId, estimatedCycles, actualCycles: 0 } as any)
   }
 
   const toggleTask = async (id: number) => {
@@ -33,21 +33,29 @@ export function useTasks() {
     }
   }
 
-  const incrementTaskPomodoro = async (id: number) => {
+  const incrementTaskCycle = async (id: number) => {
     const task = await db.tasks.get(id)
     if (task) {
-      await db.tasks.update(id, { actualPomodoros: (task.actualPomodoros ?? 0) + 1 })
+      const currentActual = task.actualCycles ?? (task as any).actualPomodoros ?? 0
+      await db.tasks.update(id, { actualCycles: currentActual + 1 })
     }
   }
 
+  const mappedTasks = (tasks ?? []).map(task => ({
+    ...task,
+    estimatedCycles: task.estimatedCycles ?? (task as any).estimatedPomodoros ?? 1,
+    actualCycles: task.actualCycles ?? (task as any).actualPomodoros ?? 0,
+  }))
+
   return {
-    tasks: tasks ?? [],
+    tasks: mappedTasks,
     addTask,
     toggleTask,
-    incrementTaskPomodoro,
+    incrementTaskCycle,
     isLoading: tasks === undefined,
   }
 }
+
 
 export function useCategories() {
   const categories = useLiveQuery(() => db.categories.toArray())
@@ -162,6 +170,10 @@ export function useSettings() {
   const backdropBlur = (rows?.find(r => r.key === 'backdropBlur')?.value as number) ?? 8
   const audio_presets = (rows?.find(r => r.key === 'audio_presets')?.value as any[]) ?? []
   const shortBreakDurationMinutes = (rows?.find(r => r.key === 'shortBreakDurationMinutes')?.value as number) ?? 5
+  const ambient_alphaWaves = (rows?.find(r => r.key === 'ambient_alphaWaves')?.value as boolean) ?? false
+  const tactile_feedback = (rows?.find(r => r.key === 'tactile_feedback')?.value as boolean) ?? false
+  const developer_font = (rows?.find(r => r.key === 'developer_font')?.value as string) ?? 'JetBrains Mono'
+  const enforce_lockout = (rows?.find(r => r.key === 'enforce_lockout')?.value as boolean) ?? false
 
   const updateSetting = async (key: SettingsKey, value: any) => {
     await db.settings.put({ key, value })
@@ -182,6 +194,10 @@ export function useSettings() {
     backdropBlur,
     audio_presets,
     shortBreakDurationMinutes,
+    ambient_alphaWaves,
+    tactile_feedback,
+    developer_font,
+    enforce_lockout,
     updateSetting,
     isLoading: rows === undefined,
   }

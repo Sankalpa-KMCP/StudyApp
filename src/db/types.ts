@@ -10,8 +10,8 @@ export interface TaskItem {
   completed: boolean
   createdAt: number
   categoryId?: number
-  estimatedPomodoros: number
-  actualPomodoros: number
+  estimatedCycles: number
+  actualCycles: number
   repetitionCount?: number
   easinessFactor?: number
   intervalDays?: number
@@ -34,9 +34,10 @@ export interface DailyLog {
   mood?: string
 }
 
-export type SettingsKey = 'dailyGoalMinutes' | 'soundEnabled' | 'targetSessionsPerCycle' | 'longBreakDurationMinutes' | 'ambientTrack' | 'ambientVolume' | 'ambientVolume_rain' | 'ambientVolume_cafe' | 'ambientVolume_whiteNoise' | 'theme' | 'cardOpacity' | 'backdropBlur' | 'audio_presets' | 'shortBreakDurationMinutes'
+export type SettingsKey = 'dailyGoalMinutes' | 'soundEnabled' | 'targetSessionsPerCycle' | 'longBreakDurationMinutes' | 'ambientTrack' | 'ambientVolume' | 'ambientVolume_rain' | 'ambientVolume_cafe' | 'ambientVolume_whiteNoise' | 'theme' | 'cardOpacity' | 'backdropBlur' | 'audio_presets' | 'shortBreakDurationMinutes' | 'ambient_alphaWaves' | 'tactile_feedback' | 'developer_font' | 'enforce_lockout'
 
 export interface SettingsRow {
   key: SettingsKey
   value: any
 }
+

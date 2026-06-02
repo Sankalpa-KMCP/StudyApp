@@ -27,5 +27,7 @@ export const Trash2: Icon
 export const Sliders: Icon
 export const Volume2: Icon
 export const Database: Icon
-export const Sparkles: Icon
+  export const Sparkles: Icon
+  export const ChevronLeft: Icon
+  export const ChevronDown: Icon
 }
