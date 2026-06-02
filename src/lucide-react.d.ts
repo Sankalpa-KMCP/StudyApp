@@ -15,4 +15,5 @@ declare module 'lucide-react' {
   export const Play: Icon
   export const Pause: Icon
   export const Check: Icon
+export const Plus: Icon
 }

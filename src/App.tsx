@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Brain, BookOpen, Zap, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee, Play, Pause, Check } from 'lucide-react'
+import { Brain, BookOpen, Zap, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee, Play, Pause, Check, Plus } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 function loadNum(key: string, fallback: number): number {
@@ -10,6 +10,64 @@ function loadNum(key: string, fallback: number): number {
     return fallback
   }
 }
+
+let audioCtx: AudioContext | null = null
+
+function playAlertSound() {
+  try {
+    if (!audioCtx) audioCtx = new AudioContext()
+    const osc = audioCtx.createOscillator()
+    const gain = audioCtx.createGain()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime)
+    osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.3)
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3)
+    osc.connect(gain)
+    gain.connect(audioCtx.destination)
+    osc.start()
+    osc.stop(audioCtx.currentTime + 0.3)
+  } catch {
+    /* audio unavailable */
+  }
+}
+
+interface TaskItem {
+  id: number
+  text: string
+  completed: boolean
+}
+
+function loadTasks(key: string, fallback: TaskItem[]): TaskItem[] {
+  try {
+    const v = localStorage.getItem(key)
+    return v !== null ? JSON.parse(v) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+const defaultTasks: TaskItem[] = [
+  { id: 1, text: 'Session 1: Read Documentation', completed: true },
+  { id: 2, text: 'Session 2: Set up environment', completed: true },
+  { id: 3, text: 'Session 3: Data structures review', completed: true },
+  { id: 4, text: 'Session 4: Algorithm practice', completed: true },
+  { id: 5, text: 'Session 5: System design notes', completed: true },
+  { id: 6, text: 'Session 6: Code review session', completed: true },
+  { id: 7, text: 'Session 7: API integration', completed: true },
+  { id: 8, text: 'Session 8: Database modeling', completed: true },
+  { id: 9, text: 'Session 9: Testing & QA', completed: true },
+  { id: 10, text: 'Session 10: Performance tuning', completed: true },
+  { id: 11, text: 'Session 11: Security audit', completed: true },
+  { id: 12, text: 'Session 12: Deployment prep', completed: true },
+  { id: 13, text: 'Session 13: Team sync notes', completed: true },
+  { id: 14, text: 'Session 14: Bug fixes', completed: true },
+  { id: 15, text: 'Session 15: Feature implementation', completed: true },
+  { id: 16, text: 'Session 16: Documentation update', completed: true },
+  { id: 17, text: 'Session 17: Wrap up code execution', completed: false },
+]
+
+const MOCK_SESSIONS_1_30 = 429
 
 interface DayData {
   date: number
@@ -127,21 +185,28 @@ function App() {
   const [selectedDay, setSelectedDay] = useState(31)
 
   const [todayStudyMinutes, setTodayStudyMinutes] = useState(() => loadNum('study_app_minutes', 525))
-  const [todaySessionsDone, setTodaySessionsDone] = useState(() => loadNum('study_app_sessions', 16))
   const [totalMonthHours, setTotalMonthHours] = useState(() => loadNum('study_app_month_hours', 246.8))
-  const [totalMonthSessions, setTotalMonthSessions] = useState(() => loadNum('study_app_month_sessions', 484))
+  const [todayBreakMinutes, setTodayBreakMinutes] = useState(() => loadNum('study_app_break_minutes', 62))
+  const [timerMode, setTimerMode] = useState<'study' | 'break'>('study')
+  const [sessionTasks, setSessionTasks] = useState<TaskItem[]>(() => loadTasks('study_app_tasks', defaultTasks))
 
   const [secondsElapsed, setSecondsElapsed] = useState(0)
   const [isTimerActive, setIsTimerActive] = useState(false)
 
   const progress = Math.min(todayStudyMinutes / 480, 1)
   const progressPercent = Math.round((todayStudyMinutes / 480) * 100)
+  const totalWeeklyBreakHours = parseFloat(((358 + todayBreakMinutes) / 60).toFixed(1))
+  const todaySessionsDone = sessionTasks.filter(t => t.completed).length
+  const totalSessionsTarget = sessionTasks.length
+  const sessionsRemaining = Math.max(totalSessionsTarget - todaySessionsDone, 0)
+  const totalMonthSessions = MOCK_SESSIONS_1_30 + todaySessionsDone
 
   const day = selectedDay === 31
     ? {
         ...mayData[30],
         studyTime: formatMinutes(todayStudyMinutes),
-        sessionsCompleted: `${todaySessionsDone} of 17`,
+        breakTime: formatMinutes(todayBreakMinutes),
+        sessionsCompleted: `${todaySessionsDone} of ${totalSessionsTarget}`,
         focusScore: `${Math.min(Math.round((todayStudyMinutes / 480) * 100), 100)}%`,
         intensity: getIntensity(todayStudyMinutes),
       }
@@ -162,19 +227,49 @@ function App() {
   function completeSession() {
     setIsTimerActive(false)
     setSecondsElapsed(0)
-    setTodaySessionsDone(s => Math.min(s + 1, 17))
-    setTotalMonthSessions(s => s + 1)
+    const firstUncompleted = sessionTasks.find(t => !t.completed)
+    if (firstUncompleted) {
+      toggleTask(firstUncompleted.id)
+    } else {
+      const newId = Math.max(...sessionTasks.map(t => t.id), 0) + 1
+      setSessionTasks(prev => [{ id: newId, text: `Session ${newId}`, completed: true }, ...prev])
+      playAlertSound()
+    }
+  }
+
+  function handleModeSwitch(mode: 'study' | 'break') {
+    if (mode === timerMode) return
+    if (isTimerActive) setIsTimerActive(false)
+    setTimerMode(mode)
+    playAlertSound()
+  }
+
+  function addTask(text: string) {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    const newId = Math.max(...sessionTasks.map(t => t.id), 0) + 1
+    setSessionTasks(prev => [{ id: newId, text: trimmed, completed: false }, ...prev])
+  }
+
+  function toggleTask(id: number) {
+    setSessionTasks(prev => {
+      const task = prev.find(t => t.id === id)
+      if (!task) return prev
+      if (!task.completed) playAlertSound()
+      return prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t)
+    })
   }
 
   function resetData() {
-    const keys = ['study_app_minutes', 'study_app_sessions', 'study_app_month_hours', 'study_app_month_sessions']
+    const keys = ['study_app_minutes', 'study_app_month_hours', 'study_app_break_minutes', 'study_app_tasks']
     keys.forEach(k => localStorage.removeItem(k))
     setTodayStudyMinutes(525)
-    setTodaySessionsDone(16)
+    setTodayBreakMinutes(62)
     setTotalMonthHours(246.8)
-    setTotalMonthSessions(484)
+    setSessionTasks(defaultTasks)
     setSecondsElapsed(0)
     setIsTimerActive(false)
+    setTimerMode('study')
   }
 
   useEffect(() => {
@@ -183,23 +278,25 @@ function App() {
       setSecondsElapsed(s => {
         const ns = s + 1
         if (ns % 60 === 0) {
-          setTodayStudyMinutes(m => m + 1)
-          setTotalMonthHours(h => parseFloat((h + 0.01667).toFixed(4)))
+          if (timerMode === 'study') {
+            setTodayStudyMinutes(m => m + 1)
+            setTotalMonthHours(h => parseFloat((h + 0.01667).toFixed(4)))
+          } else {
+            setTodayBreakMinutes(m => m + 1)
+          }
         }
         return ns
       })
     }, 1000)
     return () => clearInterval(id)
-  }, [isTimerActive])
+  }, [isTimerActive, timerMode])
 
   useEffect(() => {
     localStorage.setItem('study_app_minutes', JSON.stringify(todayStudyMinutes))
-    localStorage.setItem('study_app_sessions', JSON.stringify(todaySessionsDone))
     localStorage.setItem('study_app_month_hours', JSON.stringify(totalMonthHours))
-    localStorage.setItem('study_app_month_sessions', JSON.stringify(totalMonthSessions))
-  }, [todayStudyMinutes, todaySessionsDone, totalMonthHours, totalMonthSessions])
-
-  const sessionsRemaining = Math.max(17 - todaySessionsDone, 0)
+    localStorage.setItem('study_app_break_minutes', JSON.stringify(todayBreakMinutes))
+    localStorage.setItem('study_app_tasks', JSON.stringify(sessionTasks))
+  }, [todayStudyMinutes, totalMonthHours, todayBreakMinutes, sessionTasks])
 
   return (
     <div className="min-h-screen bg-surface p-6 font-sans text-text-primary antialiased">
@@ -248,7 +345,7 @@ function App() {
                 <div className="mt-3 flex w-full flex-col gap-1.5">
                   {[
                     { label: 'Focus', value: formatMinutes(todayStudyMinutes), valueClass: 'text-text-primary' },
-                    { label: 'Break', value: '1h 2m', valueClass: 'text-text-primary' },
+                    { label: 'Break', value: formatMinutes(todayBreakMinutes), valueClass: 'text-text-primary' },
                     { label: 'Progress', value: `${progressPercent}%`, valueClass: 'text-accent-green' },
                   ].map((row) => (
                     <div key={row.label} className="flex items-center justify-between border-b border-border-subtle pb-1 last:border-0">
@@ -272,11 +369,11 @@ function App() {
                 <MicroCard
                   icon={<BookOpen className="h-5 w-5 text-accent-green" />}
                   label="Sessions done"
-                  value={`${todaySessionsDone} of 17`}
-                  badge={{ text: todaySessionsDone >= 17 ? 'Completed!' : `${sessionsRemaining} left` }}
+                  value={`${todaySessionsDone} of ${totalSessionsTarget}`}
+                  badge={{ text: sessionsRemaining > 0 ? `${sessionsRemaining} left` : 'Completed!' }}
                   iconBg="bg-accent-green/10"
-                  badgeBg={todaySessionsDone >= 17 ? 'bg-accent-blue/10' : 'bg-accent-green/10'}
-                  badgeText={todaySessionsDone >= 17 ? 'text-accent-blue' : 'text-accent-green'}
+                  badgeBg={sessionsRemaining === 0 ? 'bg-accent-blue/10' : 'bg-accent-green/10'}
+                  badgeText={sessionsRemaining === 0 ? 'text-accent-blue' : 'text-accent-green'}
                 />
                 <MicroCard
                   icon={<Zap className="h-5 w-5 text-accent-amber" />}
@@ -289,6 +386,29 @@ function App() {
                 />
                 {/* Timer Controls */}
                 <div className="flex items-center gap-2 rounded-lg border border-border-subtle bg-surface/50 px-3 py-2">
+                  <div className="flex overflow-hidden rounded-md border border-border-subtle">
+                    <button
+                      onClick={() => handleModeSwitch('study')}
+                      className={`px-2.5 py-1 text-xs font-medium transition-all ${
+                        timerMode === 'study'
+                          ? 'bg-accent-blue/15 text-accent-blue'
+                          : 'text-text-muted hover:bg-surface hover:text-text-primary'
+                      }`}
+                    >
+                      Study
+                    </button>
+                    <button
+                      onClick={() => handleModeSwitch('break')}
+                      className={`px-2.5 py-1 text-xs font-medium transition-all ${
+                        timerMode === 'break'
+                          ? 'bg-accent-amber/15 text-accent-amber'
+                          : 'text-text-muted hover:bg-surface hover:text-text-primary'
+                      }`}
+                    >
+                      Break
+                    </button>
+                  </div>
+                  <div className="h-5 w-px bg-border-subtle" />
                   <span className="min-w-[40px] text-xs font-medium text-text-secondary tabular-nums">
                     {String(Math.floor(secondsElapsed / 60)).padStart(2, '0')}:{String(secondsElapsed % 60).padStart(2, '0')}
                   </span>
@@ -308,6 +428,41 @@ function App() {
                     </button>
                   )}
                 </div>
+                {/* Task Planner */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      data-task-input
+                      type="text"
+                      placeholder="Add a task..."
+                      className="flex-1 rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary placeholder:text-text-muted outline-none focus:border-accent-blue/50"
+                      onKeyDown={(e) => { if (e.key === 'Enter') { addTask((e.target as HTMLInputElement).value); (e.target as HTMLInputElement).value = '' } }}
+                    />
+                    <button
+                      onClick={() => { const input = document.querySelector<HTMLInputElement>('[data-task-input]'); if (input) { addTask(input.value); input.value = '' } }}
+                      className="flex h-7 w-7 items-center justify-center rounded-md bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="max-h-28 space-y-0.5 overflow-y-auto">
+                    {sessionTasks.map(task => (
+                      <div key={task.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-surface/50">
+                        <div
+                          onClick={() => toggleTask(task.id)}
+                          className={`flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border ${
+                            task.completed ? 'border-accent-blue bg-accent-blue/20' : 'border-border-subtle bg-surface'
+                          }`}
+                        >
+                          {task.completed && <Check className="h-3 w-3 text-accent-blue" />}
+                        </div>
+                        <span className={`truncate text-xs ${task.completed ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+                          {task.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -322,7 +477,7 @@ function App() {
             <div className="mb-6 grid grid-cols-4 gap-4">
               {[
                 { label: 'Study time', value: '59.3h', icon: <Clock className="h-3.5 w-3.5 text-accent-blue" /> },
-                { label: 'Break time', value: '7h', icon: <Coffee className="h-3.5 w-3.5 text-accent-amber" /> },
+                { label: 'Break time', value: `${totalWeeklyBreakHours}h`, icon: <Coffee className="h-3.5 w-3.5 text-accent-amber" /> },
                 { label: 'Active days', value: '7/7', icon: <Calendar className="h-3.5 w-3.5 text-accent-green" /> },
                 { label: 'Best day', value: 'Thu', icon: <Award className="h-3.5 w-3.5 text-accent-purple" /> },
               ].map((m) => (
