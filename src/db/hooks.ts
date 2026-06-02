@@ -157,7 +157,13 @@ export function useSettings() {
   const ambientVolume_cafe = (rows?.find(r => r.key === 'ambientVolume_cafe')?.value as number) ?? 0.5
   const ambientVolume_whiteNoise = (rows?.find(r => r.key === 'ambientVolume_whiteNoise')?.value as number) ?? 0.5
 
-  const updateSetting = async (key: SettingsKey, value: number | boolean | string) => {
+  const theme = (rows?.find(r => r.key === 'theme')?.value as string) ?? 'midnight-slate'
+  const cardOpacity = (rows?.find(r => r.key === 'cardOpacity')?.value as number) ?? 0.70
+  const backdropBlur = (rows?.find(r => r.key === 'backdropBlur')?.value as number) ?? 8
+  const audio_presets = (rows?.find(r => r.key === 'audio_presets')?.value as any[]) ?? []
+  const shortBreakDurationMinutes = (rows?.find(r => r.key === 'shortBreakDurationMinutes')?.value as number) ?? 5
+
+  const updateSetting = async (key: SettingsKey, value: any) => {
     await db.settings.put({ key, value })
   }
 
@@ -171,6 +177,11 @@ export function useSettings() {
     ambientVolume_rain,
     ambientVolume_cafe,
     ambientVolume_whiteNoise,
+    theme,
+    cardOpacity,
+    backdropBlur,
+    audio_presets,
+    shortBreakDurationMinutes,
     updateSetting,
     isLoading: rows === undefined,
   }

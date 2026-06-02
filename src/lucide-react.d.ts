@@ -22,4 +22,10 @@ export const X: Icon
 export const CloudRain: Icon
 export const Radio: Icon
 export const Keyboard: Icon
+export const ArrowLeft: Icon
+export const Trash2: Icon
+export const Sliders: Icon
+export const Volume2: Icon
+export const Database: Icon
+export const Sparkles: Icon
 }

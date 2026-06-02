@@ -1,10 +1,57 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Brain, BookOpen, Zap, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee, Play, Pause, Check, CheckCircle, Plus, Settings, X, CloudRain, Radio, Keyboard } from 'lucide-react'
+import { Brain, BookOpen, Zap, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee, Play, Pause, Check, CheckCircle, Plus, Settings, X, CloudRain, Radio, Keyboard, ArrowLeft, Trash2, Sliders, Volume2, Database, Sparkles } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useTasks, useHistory, useSettings, useTodayLog, useCategories, updateDailyReflection, calculateStreak, calculateXpLevel, calculateProductivityInsights, calculateCategoryBreakdown, calculateMonthLogs, calculateCalendarHeatmapData, calculateSM2 } from './db/hooks'
 import { db } from './db/db'
 import type { TaskItem, SettingsKey } from './db/types'
+
+const THEME_PROFILES: Record<string, {
+  surface: string
+  surfaceCard: string
+  surfaceCardRgb: string
+  accentBlue: string
+  accentPurple: string
+  accentGreen: string
+  accentAmber: string
+}> = {
+  'midnight-slate': {
+    surface: '#0B0F19',
+    surfaceCard: '#131926',
+    surfaceCardRgb: '19, 25, 38',
+    accentBlue: '#3B82F6',
+    accentPurple: '#8B5CF6',
+    accentGreen: '#10B981',
+    accentAmber: '#F59E0B',
+  },
+  'cyber-amethyst': {
+    surface: '#12071F',
+    surfaceCard: '#1C0D2E',
+    surfaceCardRgb: '28, 13, 46',
+    accentBlue: '#C084FC',
+    accentPurple: '#A855F7',
+    accentGreen: '#F472B6',
+    accentAmber: '#FB7185',
+  },
+  'deep-forest': {
+    surface: '#050F0B',
+    surfaceCard: '#0C1C16',
+    surfaceCardRgb: '12, 28, 22',
+    accentBlue: '#10B981',
+    accentPurple: '#34D399',
+    accentGreen: '#059669',
+    accentAmber: '#F59E0B',
+  },
+  'ocean-trench': {
+    surface: '#000000',
+    surfaceCard: '#0A0F1D',
+    surfaceCardRgb: '10, 15, 29',
+    accentBlue: '#06B6D4',
+    accentPurple: '#0891B2',
+    accentGreen: '#22D3EE',
+    accentAmber: '#E0F2FE',
+  }
+}
 
 let audioCtx: AudioContext | null = null
 
@@ -105,6 +152,11 @@ function App() {
     ambientVolume_rain,
     ambientVolume_cafe,
     ambientVolume_whiteNoise,
+    theme,
+    cardOpacity,
+    backdropBlur,
+    audio_presets,
+    shortBreakDurationMinutes,
     isLoading: settingsLoading
   } = useSettings()
   const { studyMinutes: todayStudyMinutes, breakMinutes: todayBreakMinutes, incrementStudy, incrementBreak, isLoading: todayLogLoading } = useTodayLog()
@@ -156,7 +208,6 @@ function App() {
   const [timerMode, setTimerMode] = useState<'study' | 'break'>('study')
   const [completedSessionsInCycle, setCompletedSessionsInCycle] = useState(0)
   const [isLongBreak, setIsLongBreak] = useState(false)
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isHotkeyHudOpen, setIsHotkeyHudOpen] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
@@ -166,8 +217,10 @@ function App() {
   const [localVolumeCafe, setLocalVolumeCafe] = useState(0.5)
   const [localVolumeWhiteNoise, setLocalVolumeWhiteNoise] = useState(0.5)
 
-  // Zen Mode & Backups Drag/Drop
+  // Zen Mode, Active View Router & Backups Drag/Drop
   const [isZenMode, setIsZenMode] = useState(false)
+  const [activeView, setActiveView] = useState<'dashboard' | 'settings'>('dashboard')
+  const [settingsTab, setSettingsTab] = useState<'visual' | 'audio' | 'metrics' | 'vault'>('visual')
   const [isDragging, setIsDragging] = useState(false)
 
   const [activeTaskId, setActiveTaskId] = useState<number | null>(null)
@@ -795,7 +848,7 @@ function App() {
 
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {
-      if (isSettingsOpen || isHotkeyHudOpen) return
+      if (activeView === 'settings' || isHotkeyHudOpen) return
       if (completingRef.current) return
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
@@ -826,7 +879,7 @@ function App() {
 
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [isSettingsOpen, isHotkeyHudOpen])
+  }, [activeView, isHotkeyHudOpen])
 
   async function resetData() {
     const tracks = ['rain', 'cafe', 'whiteNoise']
@@ -897,10 +950,25 @@ function App() {
     )
   }
 
+  const activeThemeVars = THEME_PROFILES[theme] || THEME_PROFILES['midnight-slate']
+
+  const inlineStyles = {
+    '--color-surface': activeThemeVars.surface,
+    '--color-surface-card': activeThemeVars.surfaceCard,
+    '--color-accent-blue': activeThemeVars.accentBlue,
+    '--color-accent-purple': activeThemeVars.accentPurple,
+    '--color-accent-green': activeThemeVars.accentGreen,
+    '--color-accent-amber': activeThemeVars.accentAmber,
+    '--surface-card-rgb': activeThemeVars.surfaceCardRgb,
+    '--card-opacity': cardOpacity,
+    '--backdrop-blur': `${backdropBlur}px`,
+  } as React.CSSProperties
+
   return (
-    <div className="min-h-screen bg-surface font-sans text-text-primary antialiased">
+    <div className="min-h-screen bg-surface font-sans text-text-primary antialiased" style={inlineStyles}>
       <div className="w-full max-w-[1650px] min-h-screen mx-auto p-4 md:p-6 lg:p-8 flex flex-col justify-between">
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
+        {activeView === 'dashboard' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
 
           {/* COLUMN 1: Focus Core Command Center */}
           <div className={`h-full flex flex-col transition-all duration-500 ${
@@ -908,7 +976,7 @@ function App() {
           }`}>
 
             {/* CARD 1: Today's Progress */}
-            <div className="relative overflow-hidden flex flex-col h-full rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5">
+            <div className="relative overflow-hidden flex flex-col h-full rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 dynamic-card shadow-xl p-5">
               <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-purple-500/40 via-blue-500/40 to-transparent" />
               <div className="mb-5 flex items-center gap-2">
                 <Target className="h-5 w-5 text-accent-blue" />
@@ -1277,7 +1345,7 @@ function App() {
         }`}>
 
           {/* CARD 2: Weekly Rhythm */}
-          <div className="rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5">
+          <div className="rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 dynamic-card shadow-xl p-5">
             <div className="mb-5 flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-accent-blue" />
               <h2 className="text-sm font-semibold tracking-wide text-slate-200">Weekly Rhythm</h2>
@@ -1370,7 +1438,7 @@ function App() {
                   { label: 'COMPLETION', value: `${completionRate}%`, icon: <CheckCircle className="h-3.5 w-3.5 text-accent-green" />, valueClass: 'text-accent-green' },
                   { label: 'PEAK DAY', value: peakDay, icon: <Calendar className="h-3.5 w-3.5 text-accent-amber" />, valueClass: 'text-accent-amber' },
                 ].map(m => (
-                  <div key={m.label} className="rounded-lg border border-slate-800/60 bg-[#0F172A]/70 backdrop-blur-md p-3">
+                  <div key={m.label} className="rounded-lg border border-slate-800/60 dynamic-card p-3">
                     <div className="mb-2 flex items-center gap-2">
                       {m.icon}
                       <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">{m.label}</span>
@@ -1383,7 +1451,7 @@ function App() {
           </div>
 
           {/* CARD 3: This Month */}
-          <div className="rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5">
+          <div className="rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 dynamic-card shadow-xl p-5">
             <div className="mb-5 flex items-center gap-2">
               <Flame className="h-5 w-5 text-accent-amber" />
               <h2 className="text-sm font-semibold tracking-wide text-slate-200">This Month</h2>
@@ -1396,14 +1464,9 @@ function App() {
                   <Keyboard className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={resetData}
-                  className="text-[11px] font-medium text-slate-400 transition-all hover:text-accent-blue hover:underline"
-                >
-                  Reset Data
-                </button>
-                <button
-                  onClick={() => setIsSettingsOpen(true)}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-all hover:bg-surface hover:text-text-primary"
+                  onClick={() => setActiveView('settings')}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-all hover:bg-surface hover:text-text-primary cursor-pointer"
+                  title="Open configuration deck"
                 >
                   <Settings className="h-4 w-4" />
                 </button>
@@ -1495,37 +1558,6 @@ function App() {
                 </p>
               )}
             </div>
-            {/* Backup & Import Vault Zone */}
-            <div className="mt-6 border-t border-slate-800/60 pt-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-slate-300">Vault backups (.studybackup)</span>
-                <button
-                  onClick={exportStudyBackup}
-                  className="px-2.5 py-1 text-[11px] font-semibold rounded bg-accent-blue/15 hover:bg-accent-blue/25 text-accent-blue border border-accent-blue/20 transition-all cursor-pointer"
-                >
-                  Export Vault
-                </button>
-              </div>
-              <div
-                onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={handleFileDrop}
-                className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-4 text-center transition-all cursor-pointer ${
-                  isDragging
-                    ? 'border-accent-purple bg-accent-purple/5'
-                    : 'border-slate-800 bg-slate-950/20 hover:bg-slate-950/40 hover:border-slate-700/60'
-                }`}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <span className="text-xl mb-1">📥</span>
-                <p className="text-[11px] font-semibold text-slate-300">
-                  Drag & drop .studybackup file here
-                </p>
-                <p className="text-[9px] text-slate-500 mt-0.5">
-                  or click to browse from device
-                </p>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -1535,7 +1567,7 @@ function App() {
         }`}>
 
           {/* CARD 4: Monthly Overview */}
-          <div className="flex flex-col rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5">
+          <div className="flex flex-col rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 dynamic-card shadow-xl p-5">
             {/* Month Header */}
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1675,150 +1707,662 @@ function App() {
           </div>
         </div>
       </div>
-    </div>
-    {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setIsSettingsOpen(false)}>
-          <div className="absolute inset-0 bg-black/50" />
-          <div className="relative w-full max-w-md rounded-xl border border-slate-800/60 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Settings</h3>
-              <button onClick={() => setIsSettingsOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-surface hover:text-text-primary">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mb-6">
-              <p className="mb-1 text-sm font-medium text-text-primary">Daily Goal</p>
-              <p className="mb-3 text-xs text-slate-400">{Math.round(dailyGoalMinutes / 60)} hours</p>
-              <input type="range" min="120" max="720" step="60" value={dailyGoalMinutes} onChange={e => updateSetting('dailyGoalMinutes', Number(e.target.value))} className="w-full accent-[#3B82F6]" />
-              <div className="mt-1 flex justify-between text-[11px] text-slate-400">
-                <span>2h</span><span>12h</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-border-subtle bg-surface/50 px-4 py-3">
-              <div>
-                <p className="text-sm font-medium text-text-primary">Sound Effects</p>
-                <p className="text-xs text-slate-400">Play chime on session events</p>
-              </div>
-              <button onClick={() => updateSetting('soundEnabled', !soundEnabled)} className={`relative h-6 w-11 rounded-full transition-colors ${soundEnabled ? 'bg-accent-blue' : 'bg-border-subtle'}`}>
-                <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-              </button>
-            </div>
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
-              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-slate-400">POMODORO CYCLE</span></div>
-            </div>
-            <div className="mb-3">
-              <p className="mb-1 text-sm font-medium text-text-primary">Sessions per Cycle</p>
-              <p className="mb-2 text-xs text-slate-400">{targetSessionsPerCycle} sessions → Long Break</p>
-              <input type="range" min="2" max="6" step="1" value={targetSessionsPerCycle} onChange={e => updateSetting('targetSessionsPerCycle', Number(e.target.value))} className="w-full accent-[#3B82F6]" />
-              <div className="mt-1 flex justify-between text-[11px] text-slate-400"><span>2</span><span>6</span></div>
-            </div>
-            <div className="mb-6">
-              <p className="mb-1 text-sm font-medium text-text-primary">Long Break Duration</p>
-              <p className="mb-2 text-xs text-slate-400">{longBreakDurationMinutes} minutes</p>
-              <input type="range" min="10" max="30" step="5" value={longBreakDurationMinutes} onChange={e => updateSetting('longBreakDurationMinutes', Number(e.target.value))} className="w-full accent-[#3B82F6]" />
-              <div className="mt-1 flex justify-between text-[11px] text-slate-400"><span>10m</span><span>30m</span></div>
-            </div>
-            <input
-               type="file"
-               accept=".studybackup,.json"
-               ref={fileInputRef}
-               className="hidden"
-               onChange={e => {
-                 const file = e.target.files?.[0]
-                 if (file) {
-                   const r = new FileReader()
-                   r.onload = () => importStudyBackup(r.result as string)
-                   r.readAsText(file)
-                 }
-                 e.target.value = ''
-               }}
-             />
-             <div className="relative my-4">
-               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
-               <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-slate-400">DATA MANAGEMENT</span></div>
-             </div>
-             <div className="mb-6 flex gap-3">
-               <button onClick={exportStudyBackup} className="flex-1 rounded-lg border border-accent-blue/30 bg-accent-blue/5 px-3 py-2 text-xs font-medium text-accent-blue transition-all hover:bg-accent-blue/10">Export Backup</button>
-               <button onClick={() => fileInputRef.current?.click()} className="flex-1 rounded-lg border border-accent-purple/30 bg-accent-purple/5 px-3 py-2 text-xs font-medium text-accent-purple transition-all hover:bg-accent-purple/10">Import Backup</button>
-             </div>
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
-              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-slate-400">MANAGE SUBJECT CATEGORIES</span></div>
-            </div>
-            <div className="mb-6">
-              <div className="flex items-center gap-2">
-                <input
-                  value={newCategoryName}
-                  onChange={e => setNewCategoryName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                      if (!newCategoryName.trim()) return;
-                      addCategory(newCategoryName.trim(), newCategoryColor);
-                      setNewCategoryName('');
-                    }
-                  }}
-                  placeholder="e.g. Science, History..."
-                  className="flex-1 rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-400 outline-none focus:border-accent-blue/50"
-                />
-                <input
-                  type="color"
-                  value={newCategoryColor}
-                  onChange={e => setNewCategoryColor(e.target.value)}
-                  className="h-8 w-8 cursor-pointer rounded-md border border-border-subtle bg-surface p-0.5"
-                />
+    ) : (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 w-full flex-1">
+            {/* Sidebar Pane (Col-span 1) */}
+            <div className="md:col-span-1 rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5 flex flex-col justify-between">
+              <div className="space-y-6">
                 <button
-                  onClick={() => {
-                    if (!newCategoryName.trim()) return;
-                    addCategory(newCategoryName.trim(), newCategoryColor);
-                    setNewCategoryName('');
-                  }}
-                  className="rounded-lg bg-accent-blue/10 px-3 py-1.5 text-xs font-medium text-accent-blue transition-all hover:bg-accent-blue/20"
+                  onClick={() => setActiveView('dashboard')}
+                  className="flex items-center gap-2 text-xs font-semibold text-slate-450 hover:text-text-primary transition-colors cursor-pointer"
                 >
-                  Add
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Back to Dashboard</span>
                 </button>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-200">Control Deck</h2>
+                  <p className="text-xs text-slate-500 mt-1">Config and customization</p>
+                </div>
+                <nav className="flex flex-col gap-2 mt-4">
+                  <button
+                    onClick={() => setSettingsTab('visual')}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      settingsTab === 'visual'
+                        ? 'bg-accent-blue/15 text-accent-blue border border-accent-blue/20'
+                        : 'text-slate-400 hover:bg-slate-950/20 hover:text-text-primary border border-transparent'
+                    }`}
+                  >
+                    <Sliders className="h-4 w-4" />
+                    <span>Visual Theme</span>
+                  </button>
+                  <button
+                    onClick={() => setSettingsTab('audio')}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      settingsTab === 'audio'
+                        ? 'bg-accent-blue/15 text-accent-blue border border-accent-blue/20'
+                        : 'text-slate-400 hover:bg-slate-950/20 hover:text-text-primary border border-transparent'
+                    }`}
+                  >
+                    <Volume2 className="h-4 w-4" />
+                    <span>Audio Soundscape</span>
+                  </button>
+                  <button
+                    onClick={() => setSettingsTab('metrics')}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      settingsTab === 'metrics'
+                        ? 'bg-accent-blue/15 text-accent-blue border border-accent-blue/20'
+                        : 'text-slate-400 hover:bg-slate-950/20 hover:text-text-primary border border-transparent'
+                    }`}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>Focus & Categories</span>
+                  </button>
+                  <button
+                    onClick={() => setSettingsTab('vault')}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      settingsTab === 'vault'
+                        ? 'bg-accent-blue/15 text-accent-blue border border-accent-blue/20'
+                        : 'text-slate-400 hover:bg-slate-950/20 hover:text-text-primary border border-transparent'
+                    }`}
+                  >
+                    <Database className="h-4 w-4" />
+                    <span>Vault Backup</span>
+                  </button>
+                </nav>
               </div>
-              <div className="mt-3 max-h-24 space-y-1 overflow-y-auto">
-                {categories.length === 0 ? (
-                  <p className="py-2 text-center text-[11px] italic text-slate-400">No categories yet.</p>
-                ) : (
-                  categories.map(cat => (
-                    <div key={cat.id} className="flex items-center gap-2 rounded-md bg-surface/50 px-3 py-1.5">
-                      <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: cat.color }} />
-                      <span className="flex-1 text-xs text-text-primary">{cat.name}</span>
+              <div className="border-t border-slate-800/60 pt-4 mt-6">
+                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                  <span>Phase 24 Engine</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Configuration Workspace (Col-span 3) */}
+            <div className="md:col-span-3 flex flex-col gap-6">
+              {settingsTab === 'visual' && (
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                  <div className="xl:col-span-2 flex flex-col gap-6">
+                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Select Theme Profile</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {Object.entries(THEME_PROFILES).map(([key, profile]) => {
+                          const isSelected = theme === key
+                          const displayName = key.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                          return (
+                            <button
+                              key={key}
+                              onClick={() => updateSetting('theme', key)}
+                              className={`relative flex flex-col text-left p-4 rounded-xl border transition-all cursor-pointer group ${
+                                isSelected
+                                  ? 'border-accent-blue bg-accent-blue/10 shadow-lg shadow-accent-blue/10'
+                                  : 'border-slate-800/80 bg-slate-950/20 hover:border-slate-700 hover:bg-slate-950/40'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-3 w-full">
+                                <span className="text-xs font-bold text-slate-200">{displayName}</span>
+                                {isSelected && (
+                                  <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-accent-blue text-slate-950">
+                                    <Check className="h-3 w-3 stroke-[3]" />
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex gap-2.5">
+                                <span className="h-4.5 w-4.5 rounded-full border border-slate-800" style={{ backgroundColor: profile.surface }} title="Background" />
+                                <span className="h-4.5 w-4.5 rounded-full border border-slate-800" style={{ backgroundColor: profile.surfaceCard }} title="Cards" />
+                                <div className="h-4 w-px bg-slate-800" />
+                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentBlue }} title="Primary Blue Accent" />
+                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentPurple }} title="Purple Accent" />
+                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentGreen }} title="Green Accent" />
+                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentAmber }} title="Amber Accent" />
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-5">Translucency & Frosting</h3>
+                      <div className="space-y-6">
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-semibold text-slate-300">Card Opacity</span>
+                            <span className="text-xs font-bold text-accent-blue">{Math.round(cardOpacity * 100)}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0.20"
+                            max="0.90"
+                            step="0.05"
+                            value={cardOpacity}
+                            onChange={e => updateSetting('cardOpacity', parseFloat(e.target.value))}
+                            className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-slate-800 outline-none"
+                          />
+                          <div className="mt-1 flex justify-between text-[10px] text-slate-500 font-semibold">
+                            <span>20% (Max Glass)</span>
+                            <span>90% (Max Solid)</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs font-semibold text-slate-300">Backdrop Frosting Blur</span>
+                            <span className="text-xs font-bold text-accent-blue">{backdropBlur}px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="4"
+                            max="24"
+                            step="1"
+                            value={backdropBlur}
+                            onChange={e => updateSetting('backdropBlur', parseInt(e.target.value))}
+                            className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-slate-800 outline-none"
+                          />
+                          <div className="mt-1 flex justify-between text-[10px] text-slate-500 font-semibold">
+                            <span>4px (Sharp)</span>
+                            <span>24px (Muted Frost)</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="xl:col-span-1">
+                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5 flex flex-col h-full">
+                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Sandbox Preview</h3>
+                      <div className="flex-1 flex flex-col items-center justify-center p-4 rounded-xl border border-slate-800 bg-[#0B0F19] relative overflow-hidden min-h-[280px] w-full">
+                        <div className="absolute top-1/4 left-1/4 h-28 w-28 rounded-full bg-accent-blue/30 blur-2xl animate-pulse-soft" />
+                        <div className="absolute bottom-1/4 right-1/4 h-24 w-24 rounded-full bg-accent-purple/35 blur-2xl" />
+                        <div className="absolute top-1/2 right-1/3 h-16 w-16 rounded-full bg-accent-amber/20 blur-xl" />
+
+                        <div className="relative w-full max-w-[240px] space-y-3.5 z-10">
+                          <div className="flex items-center justify-between px-1">
+                            <span className="h-3 w-16 rounded bg-slate-700/65" />
+                            <div className="flex gap-1">
+                              <span className="h-3.5 w-3.5 rounded-full bg-accent-blue/20 flex items-center justify-center"><span className="h-1.5 w-1.5 rounded-full bg-accent-blue" /></span>
+                              <span className="h-3.5 w-3.5 rounded-full bg-accent-purple/20 flex items-center justify-center"><span className="h-1.5 w-1.5 rounded-full bg-accent-purple" /></span>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="rounded-lg border border-slate-800/60 dynamic-card p-2.5 space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="h-2 w-8 rounded bg-slate-700/65" />
+                                <span className="h-2.5 w-2.5 rounded bg-accent-blue/20" />
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="relative h-7 w-7 rounded-full border-2 border-slate-800 flex items-center justify-center">
+                                  <div className="h-4.5 w-4.5 rounded-full border-2 border-accent-blue border-r-transparent animate-spin-slow" />
+                                  <span className="absolute text-[8px] font-bold text-accent-blue scale-90">65</span>
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                  <span className="h-1.5 w-full rounded bg-slate-700/65 block" />
+                                  <span className="h-1 w-6 rounded bg-slate-700/65 block" />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="rounded-lg border border-slate-800/60 dynamic-card p-2.5 space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="h-2 w-10 rounded bg-slate-700/65" />
+                                <span className="h-2.5 w-2.5 rounded bg-accent-purple/20" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-1">
+                                  <span className="h-2.5 w-2.5 rounded border border-accent-blue/50 flex items-center justify-center bg-accent-blue/10"><Check className="h-2.5 w-2.5 text-accent-blue" /></span>
+                                  <span className="h-1.5 w-12 rounded bg-slate-700/40" />
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="h-2.5 w-2.5 rounded border border-slate-700" />
+                                  <span className="h-1.5 w-10 rounded bg-slate-700/40" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="rounded-lg border border-slate-800/60 dynamic-card p-2.5 space-y-2">
+                            <span className="h-2 w-12 rounded bg-slate-700/65 block" />
+                            <div className="h-8 flex items-end gap-1.5 px-1 bg-slate-950/20 rounded border border-slate-900/50 p-1">
+                              {[30, 45, 60, 40, 75, 90, 50].map((h, idx) => (
+                                <div key={idx} className="flex-1 bg-gradient-to-t from-accent-blue to-accent-purple rounded-t-sm" style={{ height: `${h}%` }} />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-semibold mt-3 text-center">
+                        Glow spheres preview glassmorphism depth. Adjust opacity and blur to check transparency blending.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {settingsTab === 'audio' && (
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                  <div className="xl:col-span-2 flex flex-col gap-6">
+                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-5">Ambient Soundscapes Mixer</h3>
+                      <div className="flex flex-col gap-4">
+                        {[
+                          { id: 'ambientVolume_rain', label: 'Rain soundscape', icon: CloudRain, val: localVolumeRain, colorClass: 'accent-accent-blue', setVal: setLocalVolumeRain },
+                          { id: 'ambientVolume_cafe', label: 'Cafe ambiance', icon: Coffee, val: localVolumeCafe, colorClass: 'accent-accent-amber', setVal: setLocalVolumeCafe },
+                          { id: 'ambientVolume_whiteNoise', label: 'White Noise floor', icon: Radio, val: localVolumeWhiteNoise, colorClass: 'accent-accent-purple', setVal: setLocalVolumeWhiteNoise },
+                        ].map(ch => {
+                          const Icon = ch.icon
+                          return (
+                            <div key={ch.id} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-slate-950/30 border border-slate-800/40 rounded-xl px-4 py-3 hover:bg-slate-950/50 transition-all duration-200">
+                              <div className="flex items-center gap-3 w-36 shrink-0">
+                                <Icon className="h-4 w-4 text-slate-400" />
+                                <span className="text-xs font-semibold text-slate-300">{ch.label}</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={ch.val}
+                                onChange={e => {
+                                  const v = parseFloat(e.target.value)
+                                  ch.setVal(v)
+                                  updateSetting(ch.id as SettingsKey, v)
+                                }}
+                                className={`flex-1 h-1.5 rounded-full cursor-pointer bg-slate-800 outline-none ${ch.colorClass}`}
+                              />
+                              <span className="text-xs font-bold text-slate-400 w-10 text-right tabular-nums">
+                                {Math.round(ch.val * 100)}%
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-1">Sound Effects</h3>
+                          <p className="text-xs text-slate-400">Play responsive chime when study or break timer cycles complete</p>
+                        </div>
+                        <button
+                          onClick={() => updateSetting('soundEnabled', !soundEnabled)}
+                          className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${soundEnabled ? 'bg-accent-blue' : 'bg-slate-800'}`}
+                        >
+                          <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="xl:col-span-1 flex flex-col gap-6">
+                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Preset Snapshots</h3>
+                      <div className="space-y-3.5 mb-5 border-b border-slate-800/40 pb-5">
+                        <p className="text-xs text-slate-400">Save your current environmental volume balance as a preset snapshot.</p>
+                        <div className="flex flex-col gap-2">
+                          <input
+                            id="preset-name-input"
+                            type="text"
+                            placeholder="Preset Name (e.g. Rain Cafe)"
+                            className="rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-950/70 focus:bg-slate-950 focus:border-accent-blue/50 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all duration-200"
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                const val = (e.target as HTMLInputElement).value?.trim()
+                                if (!val) return
+                                const newPreset = {
+                                  id: Date.now(),
+                                  name: val,
+                                  volumes: {
+                                    rain: localVolumeRain,
+                                    cafe: localVolumeCafe,
+                                    whiteNoise: localVolumeWhiteNoise
+                                  }
+                                }
+                                updateSetting('audio_presets', [...audio_presets, newPreset])
+                                ;(e.target as HTMLInputElement).value = ''
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={() => {
+                              const el = document.getElementById('preset-name-input') as HTMLInputElement
+                              const val = el?.value?.trim()
+                              if (!val) return
+                              const newPreset = {
+                                id: Date.now(),
+                                name: val,
+                                volumes: {
+                                    rain: localVolumeRain,
+                                    cafe: localVolumeCafe,
+                                    whiteNoise: localVolumeWhiteNoise
+                                }
+                              }
+                              updateSetting('audio_presets', [...audio_presets, newPreset])
+                              if (el) el.value = ''
+                            }}
+                            className="w-full rounded-lg bg-accent-blue/15 text-accent-blue border border-accent-blue/20 px-3 py-1.5 text-xs font-semibold hover:bg-accent-blue/25 active:scale-95 transition-all cursor-pointer text-center"
+                          >
+                            Save Balance Preset
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Saved Presets</p>
+                        {audio_presets.length === 0 ? (
+                          <p className="text-xs italic text-slate-500 py-2">No audio presets saved yet.</p>
+                        ) : (
+                          <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                            {audio_presets.map((preset: any) => (
+                              <div
+                                key={preset.id}
+                                className="flex items-center justify-between rounded-lg bg-slate-950/30 hover:bg-slate-950/50 border border-slate-800/40 p-2.5 group hover:border-slate-700/50 transition-all"
+                              >
+                                <div
+                                  className="flex-1 cursor-pointer"
+                                  onClick={() => {
+                                    const vols = preset.volumes || {}
+                                    if (vols.rain !== undefined) {
+                                      setLocalVolumeRain(vols.rain)
+                                      updateSetting('ambientVolume_rain', vols.rain)
+                                    }
+                                    if (vols.cafe !== undefined) {
+                                      setLocalVolumeCafe(vols.cafe)
+                                      updateSetting('ambientVolume_cafe', vols.cafe)
+                                    }
+                                    if (vols.whiteNoise !== undefined) {
+                                      setLocalVolumeWhiteNoise(vols.whiteNoise)
+                                      updateSetting('ambientVolume_whiteNoise', vols.whiteNoise)
+                                    }
+                                  }}
+                                >
+                                  <p className="text-xs font-semibold text-slate-200">{preset.name}</p>
+                                  <p className="text-[10px] text-slate-500 mt-0.5 font-medium font-mono">
+                                    🌧️ {Math.round((preset.volumes?.rain ?? 0) * 100)}% · 
+                                    ☕ {Math.round((preset.volumes?.cafe ?? 0) * 100)}% · 
+                                    📻 {Math.round((preset.volumes?.whiteNoise ?? 0) * 100)}%
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    const filtered = audio_presets.filter((p: any) => p.id !== preset.id)
+                                    updateSetting('audio_presets', filtered)
+                                  }}
+                                  className="p-1 rounded text-slate-550 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {settingsTab === 'metrics' && (
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                  <div className="xl:col-span-2 flex flex-col gap-6">
+                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-5">Target Focus Metrics</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="flex flex-col justify-between bg-slate-950/30 border border-slate-800/40 rounded-xl p-4">
+                          <div>
+                            <p className="text-xs font-semibold text-slate-300">Daily Study Goal</p>
+                            <p className="text-[10px] text-slate-505 mt-0.5 font-medium">Target study minutes per day</p>
+                          </div>
+                          <div className="flex items-center justify-between mt-4">
+                            <button
+                              onClick={() => updateSetting('dailyGoalMinutes', Math.max(120, dailyGoalMinutes - 60))}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-350 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
+                            >
+                              -
+                            </button>
+                            <span className="text-xs font-bold text-slate-200">{Math.round(dailyGoalMinutes / 60)} hours</span>
+                            <button
+                              onClick={() => updateSetting('dailyGoalMinutes', Math.min(720, dailyGoalMinutes + 60))}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-350 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col justify-between bg-slate-950/30 border border-slate-800/40 rounded-xl p-4">
+                          <div>
+                            <p className="text-xs font-semibold text-slate-300">Sessions per Cycle</p>
+                            <p className="text-[10px] text-slate-505 mt-0.5 font-medium">Study intervals before long breaks</p>
+                          </div>
+                          <div className="flex items-center justify-between mt-4">
+                            <button
+                              onClick={() => updateSetting('targetSessionsPerCycle', Math.max(2, targetSessionsPerCycle - 1))}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-350 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
+                            >
+                              -
+                            </button>
+                            <span className="text-xs font-bold text-slate-200">{targetSessionsPerCycle} sessions</span>
+                            <button
+                              onClick={() => updateSetting('targetSessionsPerCycle', Math.min(6, targetSessionsPerCycle + 1))}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-350 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col justify-between bg-slate-950/30 border border-slate-800/40 rounded-xl p-4">
+                          <div>
+                            <p className="text-xs font-semibold text-slate-300">Short Break Duration</p>
+                            <p className="text-[10px] text-slate-505 mt-0.5 font-medium">Breather length between cycles</p>
+                          </div>
+                          <div className="flex items-center justify-between mt-4">
+                            <button
+                              onClick={() => updateSetting('shortBreakDurationMinutes', Math.max(3, shortBreakDurationMinutes - 1))}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-300 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold"
+                            >
+                              -
+                            </button>
+                            <span className="text-xs font-bold text-slate-200">{shortBreakDurationMinutes} minutes</span>
+                            <button
+                              onClick={() => updateSetting('shortBreakDurationMinutes', Math.min(15, shortBreakDurationMinutes + 1))}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-300 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col justify-between bg-slate-950/30 border border-slate-800/40 rounded-xl p-4">
+                          <div>
+                            <p className="text-xs font-semibold text-slate-300">Long Break Duration</p>
+                            <p className="text-[10px] text-slate-505 mt-0.5 font-medium">Cooldown limit after target cycles</p>
+                          </div>
+                          <div className="flex items-center justify-between mt-4">
+                            <button
+                              onClick={() => updateSetting('longBreakDurationMinutes', Math.max(10, longBreakDurationMinutes - 5))}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-300 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
+                            >
+                              -
+                            </button>
+                            <span className="text-xs font-bold text-slate-200">{longBreakDurationMinutes} minutes</span>
+                            <button
+                              onClick={() => updateSetting('longBreakDurationMinutes', Math.min(30, longBreakDurationMinutes + 5))}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-300 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="xl:col-span-1">
+                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5 flex flex-col h-full">
+                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Subject Categories</h3>
+                      <div className="flex gap-2 mb-4">
+                        <input
+                          value={newCategoryName}
+                          onChange={e => setNewCategoryName(e.target.value)}
+                          type="text"
+                          placeholder="New Subject (e.g. Science)"
+                          className="flex-1 rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-950/70 focus:bg-slate-950 focus:border-accent-blue/50 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-550 outline-none transition-all duration-200"
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              const val = newCategoryName.trim()
+                              if (!val) return
+                              addCategory(val, newCategoryColor)
+                              setNewCategoryName('')
+                            }
+                          }}
+                        />
+                        <input
+                          type="color"
+                          value={newCategoryColor}
+                          onChange={e => setNewCategoryColor(e.target.value)}
+                          className="h-8 w-8 cursor-pointer rounded-lg border border-slate-800 bg-slate-950/50 p-0.5"
+                        />
+                        <button
+                          onClick={() => {
+                            const val = newCategoryName.trim()
+                            if (!val) return
+                            addCategory(val, newCategoryColor)
+                            setNewCategoryName('')
+                          }}
+                          className="rounded-lg bg-accent-blue/10 border border-accent-blue/20 text-accent-blue px-3 py-1.5 text-xs font-semibold hover:bg-accent-blue/20 transition-all cursor-pointer"
+                        >
+                          Add
+                        </button>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto max-h-[300px] pr-1 space-y-1.5">
+                        {categories.length === 0 ? (
+                          <p className="text-xs italic text-slate-500 text-center py-4">No categories configured yet.</p>
+                        ) : (
+                          categories.map(cat => (
+                            <div key={cat.id} className="flex items-center gap-2 rounded-lg bg-slate-950/30 border border-slate-850 px-3 py-2">
+                              <span className="h-3 w-3 shrink-0 rounded-full border border-slate-850" style={{ backgroundColor: cat.color }} />
+                              <span className="flex-1 text-xs font-semibold text-slate-200">{cat.name}</span>
+                              <button
+                                onClick={() => deleteCategory(cat.id!)}
+                                className="flex h-5 w-5 items-center justify-center rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {settingsTab === 'vault' && (
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                  <div className="xl:col-span-2 flex flex-col gap-6">
+                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-3">Backup & Import Vault</h3>
+                      <p className="text-xs text-slate-400 mb-5 leading-relaxed">
+                        All focus data is stored local-only on your device. Export a `.studybackup` container to secure your data or migrate configuration tables.
+                      </p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="rounded-xl border border-slate-800 bg-slate-950/30 p-5 flex flex-col justify-between hover:border-slate-700/60 transition-all">
+                          <div>
+                            <p className="text-xs font-semibold text-slate-300">Export Study Vault</p>
+                            <p className="text-[10px] text-slate-500 mt-1 leading-normal font-medium">Constructs a JSON-based database bundle and triggers downloading.</p>
+                          </div>
+                          <button
+                            onClick={exportStudyBackup}
+                            className="w-full mt-5 rounded-lg bg-accent-blue/15 text-accent-blue border border-accent-blue/20 py-2 text-xs font-semibold hover:bg-accent-blue/25 active:scale-95 transition-all cursor-pointer text-center"
+                          >
+                            Export Backup
+                          </button>
+                        </div>
+
+                        <div
+                          onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
+                          onDragLeave={() => setIsDragging(false)}
+                          onDrop={handleFileDrop}
+                          onClick={() => fileInputRef.current?.click()}
+                          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-5 text-center transition-all cursor-pointer ${
+                            isDragging
+                              ? 'border-accent-purple bg-accent-purple/10'
+                              : 'border-slate-800 bg-slate-950/20 hover:bg-slate-950/40 hover:border-slate-700/60'
+                          }`}
+                        >
+                          <span className="text-2xl mb-1.5">📥</span>
+                          <p className="text-xs font-semibold text-slate-300">
+                            Drag & drop .studybackup here
+                          </p>
+                          <p className="text-[10px] text-slate-500 mt-1 leading-normal font-medium">
+                            or browse local file storage
+                          </p>
+                        </div>
+                      </div>
+
+                      <input
+                        type="file"
+                        accept=".studybackup,.json"
+                        ref={fileInputRef}
+                        className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const r = new FileReader()
+                            r.onload = () => importStudyBackup(r.result as string)
+                            r.readAsText(file)
+                          }
+                          e.target.value = ''
+                        }}
+                      />
+                    </div>
+
+                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 shadow-xl p-5">
+                      <h3 className="text-xs font-bold text-red-400 tracking-wider uppercase mb-2">Destructive Database Sweep</h3>
+                      <p className="text-xs text-red-300/80 mb-5 leading-relaxed">
+                        Resetting is destructive and permanently sweeps out study logs, focus categories, tasks, and settings. This cannot be undone. We advise saving a backup first.
+                      </p>
                       <button
-                        onClick={() => deleteCategory(cat.id!)}
-                        className="flex h-5 w-5 items-center justify-center rounded text-slate-400 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                        onClick={() => {
+                          if (confirm("DANGER: This will permanently reset all study logs, categories, and configs. Proceed?")) {
+                            resetData()
+                          }
+                        }}
+                        className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/20 active:scale-95 transition-all cursor-pointer"
                       >
-                        <X className="h-3 w-3" />
+                        Clear & Reset All Data
                       </button>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle" /></div>
-              <div className="relative flex justify-center"><span className="bg-surface-card px-2 text-[11px] font-medium tracking-wider text-slate-400">RECENT ACTIVITY LOG</span></div>
-            </div>
-            <div className="max-h-28 space-y-1 overflow-y-auto">
-              {sessionHistory.length === 0 ? (
-                <p className="py-2 text-center text-xs italic text-slate-400">No recent sessions completed today.</p>
-              ) : (
-                sessionHistory.slice(0, 5).map(entry => (
-                  <div key={entry.id} className="flex items-center justify-between rounded-md bg-surface/50 px-3 py-1.5">
-                    <div className="flex items-center gap-2">
-                      <div className={`h-2 w-2 rounded-full ${entry.type === 'study' ? 'bg-accent-blue' : 'bg-accent-amber'}`} />
-                      <span className="text-xs text-text-primary">{entry.type === 'study' ? 'Study' : 'Break'}</span>
-                    </div>
-                    <span className="text-[11px] text-slate-400">{entry.timestamp} · {entry.durationMinutes}m</span>
                   </div>
-                ))
+
+                  <div className="xl:col-span-1">
+                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5 flex flex-col h-full">
+                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Recent Sessions</h3>
+                      <div className="flex-1 overflow-y-auto max-h-[360px] pr-1 space-y-2">
+                        {sessionHistory.length === 0 ? (
+                          <p className="text-xs italic text-slate-500 text-center py-6">No study sessions recorded today.</p>
+                        ) : (
+                          sessionHistory.slice(0, 10).map(entry => (
+                            <div key={entry.id} className="flex flex-col gap-1 rounded-lg bg-slate-950/30 border border-slate-850 p-2.5">
+                              <div className="flex items-center gap-2">
+                                <span className={`h-2 w-2 rounded-full ${entry.type === 'study' ? 'bg-accent-blue' : 'bg-accent-amber'}`} />
+                                <span className="text-xs font-semibold text-slate-200">{entry.type === 'study' ? 'Study session' : 'Break time'}</span>
+                                <span className="ml-auto text-[10px] text-slate-500 font-semibold">{entry.durationMinutes}m</span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 font-semibold mt-1">🕒 {entry.timestamp}</p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
       {isHotkeyHudOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setIsHotkeyHudOpen(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
