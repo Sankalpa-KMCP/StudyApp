@@ -316,11 +316,13 @@ function App() {
   }
 
   function resetData() {
-    const keys = ['study_app_minutes', 'study_app_month_hours', 'study_app_break_minutes', 'study_app_tasks']
+    const keys = ['study_app_minutes', 'study_app_month_hours', 'study_app_break_minutes', 'study_app_tasks', 'study_app_goal_minutes', 'study_app_sound_enabled']
     keys.forEach(k => localStorage.removeItem(k))
     setTodayStudyMinutes(525)
     setTodayBreakMinutes(62)
     setTotalMonthHours(246.8)
+    setDailyGoalMinutes(480)
+    setSoundEnabled(true)
     setSessionTasks(defaultTasks)
     setSecondsElapsed(0)
     setIsTimerActive(false)
@@ -399,7 +401,7 @@ function App() {
                   </svg>
                   <div className="text-center">
                     <p className="text-2xl font-bold text-text-primary">{formatMinutes(todayStudyMinutes)}</p>
-                    <p className="text-xs text-text-muted">of 8h goal</p>
+                    <p className="text-xs text-text-muted">of {Math.round(dailyGoalMinutes / 60)}h goal</p>
                   </div>
                 </div>
                 <p className="mt-3 text-xs font-medium text-text-secondary">Study time</p>
@@ -607,12 +609,20 @@ function App() {
             <div className="mb-5 flex items-center gap-2">
               <Flame className="h-5 w-5 text-accent-amber" />
               <h2 className="text-lg font-semibold">This Month</h2>
-              <button
-                onClick={resetData}
-                className="ml-auto text-[11px] font-medium text-text-muted transition-all hover:text-accent-blue hover:underline"
-              >
-                Reset Data
-              </button>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={resetData}
+                  className="text-[11px] font-medium text-text-muted transition-all hover:text-accent-blue hover:underline"
+                >
+                  Reset Data
+                </button>
+                <button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-all hover:bg-surface hover:text-text-primary"
+                >
+                  <Settings className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-3 divide-x divide-border-card">
               <div className="flex flex-col items-center px-4 first:pl-0">
@@ -767,6 +777,36 @@ function App() {
         </div>
 
       </div>
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setIsSettingsOpen(false)}>
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="relative w-full max-w-md rounded-2xl border border-border-card bg-surface-card p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Settings</h3>
+              <button onClick={() => setIsSettingsOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface hover:text-text-primary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mb-6">
+              <p className="mb-1 text-sm font-medium text-text-primary">Daily Goal</p>
+              <p className="mb-3 text-xs text-text-muted">{Math.round(dailyGoalMinutes / 60)} hours</p>
+              <input type="range" min="120" max="720" step="60" value={dailyGoalMinutes} onChange={e => setDailyGoalMinutes(Number(e.target.value))} className="w-full accent-[#3B82F6]" />
+              <div className="mt-1 flex justify-between text-[11px] text-text-muted">
+                <span>2h</span><span>12h</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border-subtle bg-surface/50 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-text-primary">Sound Effects</p>
+                <p className="text-xs text-text-muted">Play chime on session events</p>
+              </div>
+              <button onClick={() => setSoundEnabled(s => !s)} className={`relative h-6 w-11 rounded-full transition-colors ${soundEnabled ? 'bg-accent-blue' : 'bg-border-subtle'}`}>
+                <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
