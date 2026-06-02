@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Brain, BookOpen, Zap, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee, Play, Pause, Check, CheckCircle, Plus, Settings, X, CloudRain, Radio } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { useTasks, useHistory, useSettings, useTodayLog, useMonthLogs, useCategories, useCategoryBreakdown, useStreak, useXpLevel, useProductivityInsights, updateDailyReflection } from './db/hooks'
+import { useTasks, useHistory, useSettings, useTodayLog, useMonthLogs, useCategories, useCategoryBreakdown, useStreak, useXpLevel, useProductivityInsights, useCalendarHeatmapData, updateDailyReflection } from './db/hooks'
 import { db } from './db/db'
 
 let audioCtx: AudioContext | null = null
@@ -104,6 +104,8 @@ function App() {
   const { currentStreak, isLoading: streakLoading } = useStreak()
   const { level, currentLevelXP, xpProgressPercent, isLoading: xpLoading } = useXpLevel()
   const { topSubject, avgMin, completionRate, peakDay, isLoading: insightsLoading } = useProductivityInsights()
+  const [calendarCategoryFilter, setCalendarCategoryFilter] = useState<'all' | number>('all')
+  const { dayMinutesMap: categoryDayMinutes } = useCalendarHeatmapData(currentMonth, currentYear, calendarCategoryFilter)
   const [timerCategoryId, setTimerCategoryId] = useState<number | undefined>(undefined)
 
   const [selectedDay, setSelectedDay] = useState(() => new Date().getDate())
@@ -164,7 +166,9 @@ function App() {
     const date = i + 1
     const startDay = new Date(currentYear, currentMonth, date).getDay()
     const log = monthLogMap.get(date)
-    const studyMin = log?.studyMinutes ?? 0
+    const studyMin = categoryDayMinutes !== null
+      ? (categoryDayMinutes.get(date) ?? 0)
+      : (log?.studyMinutes ?? 0)
     const breakMin = log?.breakMinutes ?? 0
     const total = studyMin + breakMin
     const focusRatio = total > 0 ? Math.round((studyMin / total) * 100) : 0
@@ -1091,6 +1095,16 @@ function App() {
                 <button onClick={goPrevMonth} className="flex h-7 w-7 items-center justify-center rounded-md text-sm transition-colors hover:bg-surface hover:text-text-primary">‹</button>
                 <span className="text-xs font-medium">{monthNames[currentMonth]} {currentYear}</span>
                 <button onClick={goNextMonth} className="flex h-7 w-7 items-center justify-center rounded-md text-sm transition-colors hover:bg-surface hover:text-text-primary">›</button>
+                <select
+                  value={calendarCategoryFilter === 'all' ? 'all' : String(calendarCategoryFilter)}
+                  onChange={e => setCalendarCategoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                  className="ml-1 rounded-md border border-border-subtle bg-surface px-2 py-1 text-xs text-text-secondary outline-none"
+                >
+                  <option value="all">All Subjects</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
             {/* Day Labels */}
@@ -1161,7 +1175,7 @@ function App() {
               </div>
               <div className="mb-3 grid grid-cols-3 gap-4">
                 <div>
-                  <p className="mb-0.5 text-xs text-text-muted">Study</p>
+                  <p className="mb-0.5 text-xs text-text-muted">Study{calendarCategoryFilter !== 'all' ? ` (${categories.find(c => c.id === calendarCategoryFilter)?.name ?? 'Unknown'})` : ''}</p>
                   <p className="text-lg font-bold text-accent-blue">{liveDay.studyTime}</p>
                 </div>
                 <div>

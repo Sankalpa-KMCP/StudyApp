@@ -334,3 +334,26 @@ export function useMonthLogs(month: number, year: number) {
     isLoading: logs === undefined,
   }
 }
+
+export function useCalendarHeatmapData(month: number, _year: number, filterCategoryId: number | 'all') {
+  const allHistory = useLiveQuery(() => db.history.toArray())
+  const monthNamesLocal = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+  if (allHistory === undefined || filterCategoryId === 'all') {
+    return { dayMinutesMap: null as Map<number, number> | null, isLoading: allHistory === undefined }
+  }
+
+  const dayMinutes = new Map<number, number>()
+  for (const entry of allHistory) {
+    if (entry.type !== 'study' || entry.categoryId !== filterCategoryId) continue
+    const parts = entry.timestamp.split(' ')
+    if (parts.length < 2) continue
+    const entryMonth = monthNamesLocal.indexOf(parts[0])
+    if (entryMonth !== month) continue
+    const dayNum = parseInt(parts[1])
+    if (isNaN(dayNum)) continue
+    dayMinutes.set(dayNum, (dayMinutes.get(dayNum) ?? 0) + entry.durationMinutes)
+  }
+
+  return { dayMinutesMap: dayMinutes, isLoading: false }
+}
