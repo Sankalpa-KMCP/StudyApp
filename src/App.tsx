@@ -189,9 +189,12 @@ const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 const tooltipStyle = {
-  background: '#131926',
-  border: '1px solid rgba(255,255,255,0.06)',
-  borderRadius: '8px',
+  backgroundColor: 'rgba(8, 10, 15, 0.85)',
+  backdropFilter: 'blur(16px)',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  borderRadius: '12px',
+  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.08)',
+  color: '#e1ded7',
   outline: 'none',
 }
 
