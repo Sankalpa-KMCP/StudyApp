@@ -41,8 +41,28 @@ export function useTasks() {
     actualCycles: task.actualCycles ?? (task as TaskItem & { actualPomodoros?: number }).actualPomodoros ?? 0,
   }))
 
+  const sortedTasks = [...mappedTasks].sort((a, b) => {
+    // 1. Uncompleted tasks first
+    if (a.completed !== b.completed) {
+      return a.completed ? 1 : -1
+    }
+    // 2. Priority weight (high -> medium -> low)
+    const getPriorityWeight = (priority?: 'low' | 'medium' | 'high') => {
+      if (priority === 'high') return 0
+      if (priority === 'low') return 2
+      return 1 // 'medium' or default
+    }
+    const weightA = getPriorityWeight(a.priority)
+    const weightB = getPriorityWeight(b.priority)
+    if (weightA !== weightB) {
+      return weightA - weightB
+    }
+    // 3. Creation date descending (newest first)
+    return (b.createdAt || 0) - (a.createdAt || 0)
+  })
+
   return {
-    tasks: mappedTasks,
+    tasks: sortedTasks,
     addTask,
     toggleTask,
     incrementTaskCycle,
