@@ -1476,7 +1476,7 @@ function App() {
     '--surface-card-rgb': activeThemeVars.surfaceCardRgb,
     '--card-opacity': cardOpacity,
     '--backdrop-blur': `${backdropBlur}px`,
-    '--font-family-override': localDeveloperFont === 'Inter' ? "'Inter', system-ui, sans-serif" : `'${localDeveloperFont}', monospace`,
+    '--font-family-override': ['Inter', 'Outfit'].includes(localDeveloperFont) ? `'${localDeveloperFont}', 'Plus Jakarta Sans', system-ui, sans-serif` : `'${localDeveloperFont}', monospace`,
   } as React.CSSProperties
 
   return (
@@ -2663,6 +2663,7 @@ function App() {
                             }}
                             className="w-full rounded-xl border border-white/5 bg-[#0c0f17] px-3.5 py-2.5 text-xs text-text-primary outline-none focus:border-accent-blue/40 cursor-pointer"
                           >
+                            <option value="Outfit">Outfit (Geometric display)</option>
                             <option value="Inter">Inter (Sans-serif display)</option>
                             <option value="JetBrains Mono">JetBrains Mono (Console default)</option>
                             <option value="Fira Code">Fira Code (Ligature style)</option>

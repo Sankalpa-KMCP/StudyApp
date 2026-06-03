@@ -20,11 +20,24 @@
   --color-intensity-3: #3b82f6;
 }
 
+:root {
+  --font-monospace: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  --font-sans-geom: 'Outfit', 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+.font-mono-console {
+  font-family: var(--font-monospace) !important;
+}
+
+.font-sans-geometric {
+  font-family: var(--font-sans-geom) !important;
+}
+
 body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-family: var(--font-family-override, 'Outfit', 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif);
+  font-family: var(--font-family-override, var(--font-sans-geom));
   background-color: var(--color-surface);
   color: var(--color-text-primary);
 }
