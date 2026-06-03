@@ -226,6 +226,27 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
             </button>
           </div>
 
+          {/* Predefined Color Swatches */}
+          <div className="flex items-center gap-2.5 mb-4.5 px-2 select-none">
+            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Swatches:</span>
+            <div className="flex flex-wrap gap-2">
+              {['#3B82F6', '#8B5CF6', '#EC4899', '#EF4444', '#F59E0B', '#10B981', '#64748B'].map(color => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setNewCategoryColor(color)}
+                  className={`h-5.5 w-5.5 rounded-full border cursor-pointer transition-all duration-200 hover:scale-110 ${
+                    newCategoryColor.toLowerCase() === color.toLowerCase()
+                      ? 'border-white scale-105 shadow-md shadow-white/10'
+                      : 'border-white/10 hover:border-white/30'
+                  }`}
+                  style={{ backgroundColor: color }}
+                  title={color}
+                />
+              ))}
+            </div>
+          </div>
+
           <div className="flex-1 overflow-y-auto max-h-[260px] custom-scrollbar space-y-2 pr-1">
             {categories.length === 0 ? (
               <p className="text-xs italic text-white/30 text-center py-4">No categories configured yet.</p>
