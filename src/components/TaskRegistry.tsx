@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Plus, Check, Target, Sparkles, AlertCircle } from 'lucide-react'
+import { Plus, Check, Target, AlertCircle } from 'lucide-react'
 import type { TaskItem, CategoryItem } from '../db/types'
 
 interface TaskRegistryProps {
@@ -78,26 +78,26 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
 
   return (
     <div className="flex flex-col gap-6 h-full w-full">
-      <div className="border border-white/[0.08] bg-gradient-to-br from-white/[0.02] to-white/[0.005] dynamic-card p-5 md:p-6 flex flex-col h-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_24px_48px_rgba(0,0,0,0.4)]">
+      <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-5 md:p-6 flex flex-col h-full shadow-2xl backdrop-blur-3xl">
         
         {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 border-b border-white/[0.06] pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 border-b border-white/5 pb-4">
           <div className="select-none">
-            <span className="font-mono text-[9px] font-black uppercase tracking-widest text-white/50">02 / ACTIVE REGISTRY</span>
-            <p className="text-sm font-bold text-white mt-1">Study Objectives</p>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-white/40">02 / Study Objectives</span>
+            <p className="text-sm font-bold text-white mt-1">Focus Registry</p>
           </div>
           
           {timerMode === 'study' && (
             <div className="flex items-center gap-2.5">
-              <span className="text-[8.5px] font-black text-white/40 uppercase font-mono tracking-widest select-none">Focus Focus:</span>
+              <span className="text-[9px] font-bold text-white/40 uppercase tracking-wide select-none">Subject Focus:</span>
               <select
                 value={timerCategoryId ?? ''}
                 onChange={e => setTimerCategoryId(e.target.value ? Number(e.target.value) : undefined)}
-                className="rounded-xl border border-white/10 bg-black/40 hover:bg-black/60 px-3.5 py-2 text-xs font-semibold text-white outline-none focus:border-white/20 cursor-pointer transition-all"
+                className="rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer hover:bg-white/10 transition-colors"
               >
-                <option value="" className="bg-[#0b0c10] text-white/60">General / None</option>
+                <option value="" className="bg-[#11131e] text-white/40">General / None</option>
                 {categories.map(cat => (
-                  <option key={cat.id} value={cat.id} className="bg-[#0b0c10] text-white">{cat.name}</option>
+                  <option key={cat.id} value={cat.id} className="bg-[#11131e] text-white">{cat.name}</option>
                 ))}
               </select>
             </div>
@@ -106,122 +106,108 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
 
         {/* Active Task Target Indicator */}
         {activeTask && (
-          <div className="mb-5 flex items-center gap-3.5 rounded-2xl border border-accent-blue/30 bg-accent-blue/5 p-4 shadow-[0_0_20px_rgba(6,182,212,0.08)] animate-slide-in-up">
-            <div className="relative flex h-3 w-3 shrink-0 items-center justify-center">
-              <div className="absolute h-full w-full rounded-full bg-accent-blue animate-ping opacity-75" />
-              <div className="h-2 w-2 rounded-full bg-accent-blue shadow-[0_0_8px_var(--color-accent-blue)]" />
-            </div>
+          <div className="mb-5 flex items-center gap-3.5 rounded-[20px] border border-white/5 bg-black/20 p-4 shadow-md animate-slide-in-up">
+            <div className="h-2 w-2 rounded-full bg-accent-blue" />
             <div className="flex-1 min-w-0">
-              <p className="text-[8px] uppercase font-mono font-black tracking-widest text-slate-500">Current Active Target</p>
-              <p className="truncate text-xs font-extrabold text-accent-blue mt-1 whitespace-pre-wrap">{activeTask.text}</p>
+              <p className="text-[9px] uppercase font-bold text-white/40">Active Target</p>
+              <p className="truncate text-xs font-bold text-white mt-0.5 whitespace-pre-wrap">{activeTask.text}</p>
             </div>
-            <span className="whitespace-nowrap text-xs font-mono font-black text-white/95 flex items-center gap-2 bg-accent-blue/15 px-3.5 py-2 rounded-xl border border-accent-blue/20 shadow-[0_2px_12px_rgba(0,0,0,0.3)]">
-              <Target className="h-4 w-4 text-accent-blue stroke-[2.5]" />
-              <span>{activeTask.actualCycles ?? 0}/{activeTask.estimatedCycles ?? 1} Cycles</span>
+            <span className="whitespace-nowrap text-xs font-mono font-bold text-white/75 flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full border border-white/5">
+              <Target className="h-3.5 w-3.5 text-white/40" />
+              <span>{activeTask.actualCycles ?? 0}/{activeTask.estimatedCycles ?? 1}</span>
             </span>
           </div>
         )}
 
         {/* Add Task Input Form */}
-        <div className="flex flex-wrap items-center gap-2.5 mb-5 bg-black/25 border border-white/5 p-2.5 rounded-2xl shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
+        <div className="flex flex-wrap items-center gap-2 mb-5 bg-black/20 border border-white/5 p-2 rounded-[20px]">
           <input
             type="text"
             value={taskText}
             onChange={e => setTaskText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Create focus objective..."
-            className="flex-1 min-w-[200px] rounded-xl bg-white/[0.02] border border-white/5 focus:bg-white/[0.05] focus:border-white/15 px-3.5 py-2.5 text-xs text-white placeholder:text-white/20 outline-none transition-all duration-300 font-semibold"
+            placeholder="Create focus target..."
+            className="flex-1 min-w-[200px] rounded-lg bg-transparent px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none font-semibold"
           />
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <select
               value={taskCategory}
               onChange={e => setTaskCategory(e.target.value)}
-              className="w-24 rounded-xl bg-white/5 border border-white/5 px-2.5 py-2.5 text-xs text-white outline-none cursor-pointer hover:bg-white/10 hover:border-white/10 transition-all font-semibold"
+              className="rounded-full bg-white/5 border border-white/10 px-3.5 py-2 text-[10px] text-white/80 outline-none cursor-pointer hover:bg-white/10 transition-colors font-semibold"
             >
-              <option value="" className="bg-[#0b0c10] text-white/60">No Category</option>
+              <option value="" className="bg-[#11131e] text-white/40">No Subject</option>
               {categories.map(cat => (
-                <option key={cat.id} value={cat.id} className="bg-[#0b0c10] text-white">{cat.name}</option>
+                <option key={cat.id} value={cat.id} className="bg-[#11131e] text-white">{cat.name}</option>
               ))}
             </select>
             
             <select
               value={taskPriority}
               onChange={e => setTaskPriority(e.target.value as any)}
-              className="w-22 rounded-xl bg-white/5 border border-white/5 px-2.5 py-2.5 text-xs text-white outline-none cursor-pointer hover:bg-white/10 hover:border-white/10 transition-all font-semibold"
+              className="rounded-full bg-white/5 border border-white/10 px-3.5 py-2 text-[10px] text-white/80 outline-none cursor-pointer hover:bg-white/10 transition-colors font-semibold"
             >
-              <option value="medium" className="bg-[#0b0c10] text-amber-400">Medium</option>
-              <option value="high" className="bg-[#0b0c10] text-red-400">High</option>
-              <option value="low" className="bg-[#0b0c10] text-blue-400">Low</option>
+              <option value="medium" className="bg-[#11131e] text-accent-amber">Medium</option>
+              <option value="high" className="bg-[#11131e] text-red-400 font-semibold">High</option>
+              <option value="low" className="bg-[#11131e] text-accent-blue">Low</option>
             </select>
             
             <select
               value={taskCycleCount}
               onChange={e => setTaskCycleCount(Number(e.target.value))}
-              className="w-18 rounded-xl bg-white/5 border border-white/5 px-2.5 py-2.5 text-xs text-white outline-none cursor-pointer hover:bg-white/10 hover:border-white/10 transition-all font-bold"
+              className="rounded-full bg-white/5 border border-white/10 px-3.5 py-2 text-[10px] text-white/80 outline-none cursor-pointer hover:bg-white/10 transition-colors font-bold"
             >
               {[1,2,3,4,5,6,7,8].map(n => (
-                <option key={n} value={n} className="bg-[#0b0c10]">🎯 {n}</option>
+                <option key={n} value={n} className="bg-[#11131e]">🎯 {n}</option>
               ))}
             </select>
             
             <button
               onClick={submitNewTask}
-              className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/15 hover:border-white/20 transition-all cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] active:scale-90"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-blue hover:bg-accent-blue/90 text-white transition-all ios-active-scale cursor-pointer shadow-md shadow-accent-blue/15"
             >
-              <Plus className="h-5 w-5 stroke-[2.5]" />
+              <Plus className="h-4.5 w-4.5" />
             </button>
           </div>
         </div>
 
         {/* Due for Review Spaced Repetition Queue */}
         {reviewQueueList.length > 0 && (
-          <div className="mb-6 p-4 rounded-2xl bg-amber-500/[0.01] border border-amber-500/15 flex flex-col gap-3 shadow-[0_4px_24px_rgba(245,158,11,0.03)] animate-slide-in-up">
-            <div className="flex items-center justify-between border-b border-amber-500/15 pb-2.5">
-              <div className="flex items-center gap-2 select-none">
-                <Sparkles className="h-4 w-4 text-amber-400 animate-pulse" />
-                <span className="text-[9.5px] font-mono font-black text-amber-300 uppercase tracking-widest">Active Recall due list</span>
-              </div>
-              <span className="text-[8.5px] font-mono font-black text-amber-400 bg-amber-500/20 border border-amber-500/30 px-2.5 py-0.5 rounded-full select-none shadow-[0_2px_8px_rgba(0,0,0,0.2)]">
-                {reviewQueueList.length} Due Tasks
+          <div className="mb-6 p-4 rounded-[20px] bg-black/20 border border-white/5 flex flex-col gap-3 shadow-md animate-slide-in-up">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <span className="text-[9.5px] font-bold text-white/40 uppercase tracking-wider">Spaced Repetition Review</span>
+              <span className="text-[8.5px] font-bold text-accent-amber bg-accent-amber/10 border border-accent-amber/20 px-2.5 py-0.5 rounded-full select-none">
+                {reviewQueueList.length} Due
               </span>
             </div>
             
-            <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto custom-scrollbar pr-1">
+            <div className="flex flex-col gap-1 max-h-[185px] overflow-y-auto custom-scrollbar pr-1">
               {reviewQueueList.map(task => (
-                <div key={task.id} className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white/[0.01] hover:bg-white/[0.025] border border-white/5 p-3 rounded-xl transition-all duration-300">
+                <div key={task.id} className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2 border-b border-white/5 last:border-b-0 hover:bg-white/[0.03] px-1 rounded-xl transition-colors duration-200">
                   <div className="flex items-center gap-2.5 min-w-0">
                     {task.categoryId !== undefined && categoriesMap.has(task.categoryId) && (
                       <span 
-                        className="shrink-0 text-[8px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-lg border" 
+                        className="shrink-0 text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border" 
                         style={{ 
-                          backgroundColor: `${categoriesMap.get(task.categoryId)!.color}15`, 
-                          borderColor: `${categoriesMap.get(task.categoryId)!.color}30`,
+                          backgroundColor: `${categoriesMap.get(task.categoryId)!.color}10`, 
+                          borderColor: `${categoriesMap.get(task.categoryId)!.color}20`,
                           color: categoriesMap.get(task.categoryId)!.color
                         }}
                       >
                         {categoriesMap.get(task.categoryId)!.name}
                       </span>
                     )}
-                    <span className="text-xs text-white/95 font-semibold truncate select-none">{task.text}</span>
+                    <span className="text-xs text-white/90 font-semibold truncate select-none">{task.text}</span>
                   </div>
 
                   {/* Recall score grading buttons */}
                   <div className="flex items-center gap-1 shrink-0">
-                    <span className="text-[8px] text-white/40 font-mono font-black uppercase tracking-widest mr-1.5 hidden sm:inline select-none">Recall grade:</span>
+                    <span className="text-[8px] text-white/40 font-bold uppercase tracking-wider mr-1.5 hidden sm:inline select-none">Recall:</span>
                     {[0, 1, 2, 3, 4, 5].map(q => (
                       <button
                         key={q}
                         onClick={() => submitRecallGrade(task, q)}
-                        className="h-6 w-6 rounded-lg text-[10px] font-bold font-mono bg-white/5 hover:bg-amber-500/20 text-white/70 hover:text-white border border-white/10 hover:border-amber-500/35 transition-all cursor-pointer flex items-center justify-center active:scale-85"
-                        title={
-                          q === 0 ? "Forgot completely (Blackout)" :
-                          q === 1 ? "Incorrect: recognized but failed recall" :
-                          q === 2 ? "Incorrect: remembered with hints" :
-                          q === 3 ? "Correct: recalled with difficulty" :
-                          q === 4 ? "Correct: recalled easily" :
-                          "Perfect: immediate recall"
-                        }
+                        className="h-6 w-6 rounded-full text-[9px] font-bold font-mono bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 transition-all ios-active-scale cursor-pointer flex items-center justify-center"
                       >
                         {q}
                       </button>
@@ -233,92 +219,93 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           </div>
         )}
 
-        {/* Active Objectives Scroll List */}
-        <div className="flex-1 overflow-y-auto max-h-[350px] custom-scrollbar flex flex-col gap-2.5 pr-1">
+        {/* Active Objectives Scroll List (Clean borderless table items) */}
+        <div className="flex-1 overflow-y-auto max-h-[350px] custom-scrollbar flex flex-col pr-1">
           {activeTasksList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/5 rounded-2xl bg-black/15 text-center my-2 select-none animate-fade-in">
-              <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.02] border border-white/5 mb-4 shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
-                <AlertCircle className="h-6 w-6 text-white/20" />
+            <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 rounded-[24px] bg-black/20 text-center my-2 select-none animate-fade-in">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-white/5 mb-3 text-white/40">
+                <AlertCircle className="h-5 w-5" />
               </div>
-              <p className="text-xs font-black text-slate-300 tracking-wide">
+              <p className="text-xs font-bold text-white/60">
                 Objectives list is clear
               </p>
-              <p className="text-[8.5px] text-slate-500 max-w-[200px] mt-2 uppercase font-mono tracking-widest">
+              <p className="text-[8.5px] text-white/30 uppercase tracking-wider mt-1.5 font-bold">
                 Define targets to begin focus tracking
               </p>
             </div>
           ) : (
-            activeTasksList.map(task => {
-              const isActive = activeTaskId === task.id
-              const cat = task.categoryId !== undefined ? categoriesMap.get(task.categoryId) : undefined
-              return (
-                <div
-                  key={task.id}
-                  onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
-                  className={`flex flex-col gap-2 rounded-2xl px-4 py-3.5 transition-all duration-300 ease-out cursor-pointer border ${
-                    isActive
-                      ? 'bg-white/[0.07] border-white/20 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.4)] scale-[1.005]'
-                      : 'bg-white/[0.015] border-white/5 hover:bg-white/[0.035] hover:border-white/12'
-                  }`}
-                  style={isActive && cat ? { borderColor: `${cat.color}45`, boxShadow: `0 0 20px ${cat.color}08` } : {}}
-                >
-                  <div className="flex items-center gap-3.5 w-full">
-                    
-                    {/* Checkbox */}
-                    <div
-                      onClick={e => { e.stopPropagation(); toggleTask(task.id!) }}
-                      className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-all duration-300 ease-out bg-white/5 hover:scale-110 active:scale-90 ${
-                        task.completed 
-                          ? 'border-accent-green bg-accent-green/20 text-accent-green shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                          : 'border-white/10 hover:border-white/20 hover:bg-white/10'
-                      }`}
-                    >
-                      {task.completed && <Check className="h-3.5 w-3.5 stroke-[3]" />}
-                    </div>
-                    
-                    {/* Subject tag */}
-                    {cat && (
-                      <span 
-                        className="shrink-0 text-[8px] font-mono font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border text-white/90" 
-                        style={{ 
-                          backgroundColor: `${cat.color}15`, 
-                          borderColor: `${cat.color}30`,
-                          color: cat.color
-                        }}
+            <div className="flex flex-col">
+              {activeTasksList.map(task => {
+                const isActive = activeTaskId === task.id
+                const cat = task.categoryId !== undefined ? categoriesMap.get(task.categoryId) : undefined
+                return (
+                  <div
+                    key={task.id}
+                    onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
+                    className={`flex items-center justify-between gap-3.5 py-3.5 border-b border-white/5 last:border-b-0 px-3.5 rounded-2xl transition-colors duration-200 cursor-pointer ${
+                      isActive
+                        ? 'bg-white/10'
+                        : 'hover:bg-white/[0.03]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 w-full min-w-0">
+                      
+                      {/* Checkbox */}
+                      <div
+                        onClick={e => { e.stopPropagation(); toggleTask(task.id!) }}
+                        className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-all duration-250 ease-out ios-active-scale ${
+                          task.completed 
+                            ? 'border-accent-green bg-accent-green text-white shadow-sm'
+                            : 'border-white/20 hover:border-accent-blue hover:bg-white/5'
+                        }`}
                       >
-                        {cat.name}
-                      </span>
-                    )}
+                        {task.completed && <Check className="h-3 w-3 stroke-[2.5]" />}
+                      </div>
+                      
+                      {/* Subject tag */}
+                      {cat && (
+                        <span 
+                          className="shrink-0 text-[8px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border" 
+                          style={{ 
+                            backgroundColor: 'transparent', 
+                            borderColor: cat.color,
+                            color: cat.color
+                          }}
+                        >
+                          {cat.name}
+                        </span>
+                      )}
 
-                    {/* Priority Indicator Tag */}
-                    {task.priority && (
-                      <span className={`shrink-0 text-[8px] font-mono font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border ${
-                        task.priority === 'high' 
-                          ? 'bg-red-500/10 text-red-400 border-red-500/25 shadow-[0_0_8px_rgba(239,68,68,0.15)]' 
-                          : task.priority === 'low' 
-                          ? 'bg-blue-500/10 text-blue-400 border-blue-500/25' 
-                          : 'bg-white/5 text-white/50 border-white/10'
+                      {/* Priority Indicator Tag */}
+                      {task.priority && (
+                        <span className={`shrink-0 text-[8px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                          task.priority === 'high' 
+                            ? 'bg-red-500/10 text-red-400 border-red-500/20' 
+                            : task.priority === 'low' 
+                            ? 'bg-accent-blue/10 text-accent-blue border-accent-blue/20' 
+                            : 'bg-transparent text-white/40 border-white/10'
+                        }`}>
+                          {task.priority}
+                        </span>
+                      )}
+
+                      {/* Task Content text */}
+                      <span className={`flex-1 truncate text-xs font-semibold select-none transition-colors ${
+                        isActive ? 'text-white' : 'text-white/80'
                       }`}>
-                        {task.priority}
+                        {task.text}
                       </span>
-                    )}
-
-                    {/* Task Content text */}
-                    <span className={`flex-1 truncate text-xs font-bold select-none transition-colors leading-none ${
-                      isActive ? 'text-white' : 'text-white/80'
-                    }`}>
-                      {task.text}
-                    </span>
+                    </div>
 
                     {/* Cycles metrics */}
-                    <span className="shrink-0 text-[9px] font-mono font-bold text-white/60 flex items-center gap-1.5 bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/10 shadow-[0_2px_6px_rgba(0,0,0,0.15)]">
-                      <Target className="h-3.5 w-3.5 text-white/40" />
-                      <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1} cycles</span>
+                    <span className="shrink-0 text-[9px] font-mono font-bold text-white/60 flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+                      <Target className="h-3.5 w-3.5 text-white/30" />
+                      <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1}</span>
                     </span>
                   </div>
-                </div>
-              )
-            })
+                )
+              })}
+            </div>
           )}
         </div>
         

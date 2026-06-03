@@ -107,12 +107,12 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
   const currentCard = studyQueue[currentQueueIndex]
 
   const grades = [
-    { value: 0, label: 'Forgot', desc: 'Blackout', color: 'hover:bg-red-500/20 border-red-500/30 text-red-400' },
-    { value: 1, label: 'Incorrect', desc: 'Wrong', color: 'hover:bg-orange-500/20 border-orange-500/30 text-orange-400' },
-    { value: 2, label: 'Hard', desc: 'Barely', color: 'hover:bg-amber-500/20 border-amber-500/30 text-amber-300' },
-    { value: 3, label: 'Good', desc: 'Effort', color: 'hover:bg-green-500/20 border-green-500/30 text-green-400' },
-    { value: 4, label: 'Easy', desc: 'Correct', color: 'hover:bg-blue-500/20 border-blue-500/30 text-blue-400' },
-    { value: 5, label: 'Perfect', desc: 'Instant', color: 'hover:bg-purple-500/20 border-purple-500/30 text-purple-400' },
+    { value: 0, label: 'Forgot', desc: 'Blackout', color: 'text-red-400' },
+    { value: 1, label: 'Incorrect', desc: 'Wrong', color: 'text-orange-400' },
+    { value: 2, label: 'Hard', desc: 'Barely', color: 'text-amber-300' },
+    { value: 3, label: 'Good', desc: 'Effort', color: 'text-green-400' },
+    { value: 4, label: 'Easy', desc: 'Correct', color: 'text-blue-400' },
+    { value: 5, label: 'Perfect', desc: 'Instant', color: 'text-purple-400' },
   ]
 
   return (
@@ -124,7 +124,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
             <Layers className="h-5 w-5 text-accent-blue" />
             Active Recall Deck
           </h2>
-          <p className="text-xs text-slate-400 mt-1 select-none">
+          <p className="text-xs text-white/50 mt-1 select-none">
             Utilize the SuperMemo-2 scheduler to systematically optimize cognitive retention.
           </p>
         </div>
@@ -133,9 +133,9 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             onClick={() => setActiveCategoryFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+            className={`px-4.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ios-active-scale ${
               activeCategoryFilter === 'all'
-                ? 'bg-white/10 text-white border-white/20'
+                ? 'bg-white/10 text-white border-white/10'
                 : 'bg-white/[0.02] text-white/60 border-white/5 hover:text-white'
             }`}
           >
@@ -145,9 +145,9 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
             <button
               key={cat.id}
               onClick={() => cat.id !== undefined && setActiveCategoryFilter(cat.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-4.5 py-1.5 rounded-full text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ios-active-scale ${
                 activeCategoryFilter === cat.id
-                  ? 'text-white border-white/20'
+                  ? 'text-white border-white/10'
                   : 'bg-white/[0.02] text-white/60 border-white/5 hover:text-white'
               }`}
               style={activeCategoryFilter === cat.id ? { backgroundColor: `${cat.color}25`, borderColor: cat.color } : {}}
@@ -162,18 +162,18 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
       {/* Metrics Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="dynamic-card p-4 flex flex-col justify-between">
-          <span className="text-[9px] font-mono tracking-widest text-white/50 uppercase">Total Flashcards</span>
+          <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase">Total Flashcards</span>
           <span className="text-2xl font-bold text-white mt-2 font-mono">{stats.total}</span>
         </div>
         <div className="dynamic-card p-4 flex flex-col justify-between">
-          <span className="text-[9px] font-mono tracking-widest text-white/50 uppercase">Due For Review</span>
+          <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase">Due For Review</span>
           <span className={`text-2xl font-bold mt-2 font-mono ${stats.due > 0 ? 'text-accent-amber' : 'text-accent-green'}`}>
             {stats.due}
           </span>
         </div>
         <div className="dynamic-card p-4 flex flex-col justify-between">
-          <span className="text-[9px] font-mono tracking-widest text-white/50 uppercase">Average Recall Grade</span>
-          <span className="text-2xl font-bold text-white mt-2 font-mono">{stats.avgGrade} <span className="text-xs text-white/40">/ 5.0</span></span>
+          <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase">Average Recall Grade</span>
+          <span className="text-2xl font-bold text-white mt-2 font-mono">{stats.avgGrade} <span className="text-xs text-white/30">/ 5.0</span></span>
         </div>
       </div>
 
@@ -186,37 +186,37 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
             <h3 className="text-sm font-semibold mb-4 text-white">Create New Flashcard</h3>
             <form onSubmit={handleAddCard} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-mono uppercase text-white/50 mb-1.5 select-none">Question / Term</label>
+                <label className="block text-[10px] font-bold uppercase text-white/45 mb-1.5 select-none">Question / Term</label>
                 <textarea
                   required
                   rows={2}
                   value={newQuestion}
                   onChange={e => setNewQuestion(e.target.value)}
                   placeholder="Enter front side question..."
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs text-white placeholder-white/20 outline-none transition-all focus:border-white/20 focus:bg-white/[0.05]"
+                  className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-2.5 text-xs text-white placeholder-white/25 outline-none transition-all focus:bg-white/8 focus:border-accent-blue/30"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono uppercase text-white/50 mb-1.5 select-none">Answer / Definition</label>
+                <label className="block text-[10px] font-bold uppercase text-white/45 mb-1.5 select-none">Answer / Definition</label>
                 <textarea
                   required
                   rows={3}
                   value={newAnswer}
                   onChange={e => setNewAnswer(e.target.value)}
                   placeholder="Enter back side answer detail..."
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs text-white placeholder-white/20 outline-none transition-all focus:border-white/20 focus:bg-white/[0.05]"
+                  className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-2.5 text-xs text-white placeholder-white/25 outline-none transition-all focus:bg-white/8 focus:border-accent-blue/30"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono uppercase text-white/50 mb-1.5 select-none">Deck Category</label>
+                <label className="block text-[10px] font-bold uppercase text-white/45 mb-1.5 select-none">Deck Category</label>
                 <select
                   value={newCategoryId ?? ''}
                   onChange={e => setNewCategoryId(e.target.value ? parseInt(e.target.value) : undefined)}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs text-white outline-none transition-all focus:border-white/20 focus:bg-white/[0.05]"
+                  className="w-full rounded-full border border-white/8 bg-white/4 px-4 py-2.5 text-xs text-white outline-none transition-all focus:bg-white/8 focus:border-accent-blue/30 cursor-pointer"
                 >
-                  <option value="" className="bg-[#0b0c10] text-white/65">Uncategorized</option>
+                  <option value="" className="bg-[#0b0c10] text-white/45">Uncategorized</option>
                   {categories.map(c => (
                     <option key={c.id} value={c.id} className="bg-[#0b0c10] text-white">
                       {c.name}
@@ -227,7 +227,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl text-xs font-semibold bg-white/10 border border-white/10 text-white hover:bg-white/15 transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-full text-xs font-semibold bg-white/5 border border-white/8 text-white hover:bg-white/10 transition-all ios-active-scale cursor-pointer flex items-center justify-center gap-2"
               >
                 <Plus className="h-4 w-4" />
                 Add to Deck
@@ -238,16 +238,16 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
           {/* Practice Action Panel */}
           <div className="dynamic-card p-5 space-y-3">
             <h3 className="text-sm font-semibold text-white">Study Decks</h3>
-            <p className="text-[11px] text-slate-400 select-none leading-relaxed">
+            <p className="text-[11px] text-white/40 select-none leading-relaxed">
               Reviewing cards periodically trains active recall. Shuffle is active by default.
             </p>
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
                 onClick={() => startStudy(true)}
                 disabled={stats.due === 0}
-                className={`py-3 rounded-xl text-xs font-semibold border flex flex-col items-center justify-center gap-1 transition-all ${
+                className={`py-3.5 rounded-[20px] text-xs font-semibold border flex flex-col items-center justify-center gap-1 transition-all ios-active-scale ${
                   stats.due > 0
-                    ? 'bg-accent-blue/15 text-accent-blue border-accent-blue/30 hover:bg-accent-blue/25 cursor-pointer shadow-[0_0_15px_rgba(var(--color-accent-blue-rgb),0.1)]'
+                    ? 'bg-accent-blue/15 text-accent-blue border-accent-blue/20 hover:bg-accent-blue/20 cursor-pointer'
                     : 'bg-white/[0.02] text-white/30 border-white/5 cursor-not-allowed'
                 }`}
               >
@@ -257,7 +257,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
               <button
                 onClick={() => startStudy(false)}
                 disabled={stats.total === 0}
-                className={`py-3 rounded-xl text-xs font-semibold border flex flex-col items-center justify-center gap-1 transition-all ${
+                className={`py-3.5 rounded-[20px] text-xs font-semibold border flex flex-col items-center justify-center gap-1 transition-all ios-active-scale ${
                   stats.total > 0
                     ? 'bg-white/5 text-white border-white/10 hover:bg-white/10 cursor-pointer'
                     : 'bg-white/[0.02] text-white/30 border-white/5 cursor-not-allowed'
@@ -276,9 +276,9 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
           
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3">
             {filteredCards.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-8 border border-dashed border-white/5 rounded-2xl bg-white/[0.01]">
-                <Layers className="h-8 w-8 text-white/20 mb-3 animate-pulse" />
-                <p className="text-xs text-white/40 select-none">No cards created yet in this deck.</p>
+              <div className="h-full flex flex-col items-center justify-center text-center p-8 border border-dashed border-white/10 rounded-[24px] bg-white/2">
+                <Layers className="h-8 w-8 text-white/20 mb-3" />
+                <p className="text-xs text-white/30 select-none">No cards created yet in this deck.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -288,14 +288,14 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
                   return (
                     <div
                       key={card.id}
-                      className="group p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all flex flex-col justify-between gap-3 relative"
+                      className="group p-4.5 rounded-[22px] border border-white/8 bg-white/4 hover:bg-white/8 transition-all flex flex-col justify-between gap-3 relative shadow-sm"
                     >
                       {/* Top Header info */}
                       <div className="flex items-start justify-between gap-4">
                         <div className="space-y-1">
                           <span
-                            className="inline-block text-[8px] font-bold tracking-wider font-mono uppercase px-2 py-0.5 rounded"
-                            style={cat ? { backgroundColor: `${cat.color}18`, color: cat.color } : { backgroundColor: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}
+                            className="inline-block text-[8px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full border"
+                            style={cat ? { backgroundColor: 'transparent', borderColor: cat.color, color: cat.color } : { backgroundColor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', borderColor: 'rgba(255,255,255,0.08)' }}
                           >
                             {cat ? cat.name : 'Uncategorized'}
                           </span>
@@ -305,7 +305,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
                         </div>
                         <button
                           onClick={() => card.id !== undefined && deleteFlashcard(card.id)}
-                          className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white/5 cursor-pointer"
+                          className="text-white/40 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-white/5 cursor-pointer"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -315,16 +315,16 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
                       <div className="h-px bg-white/5" />
 
                       {/* Answer Preview */}
-                      <p className="text-[10px] text-slate-400 leading-normal line-clamp-2 italic">
+                      <p className="text-[10px] text-white/50 leading-normal line-clamp-2 italic">
                         {card.answer}
                       </p>
 
                       {/* Spaced repetition status footer */}
-                      <div className="flex items-center justify-between text-[8px] font-mono text-slate-500 mt-1 select-none">
+                      <div className="flex items-center justify-between text-[8px] font-mono text-white/40 mt-1 select-none">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           Next: {card.nextReviewDate ? (
-                            <span className={isCardDue ? 'text-accent-amber font-bold' : 'text-slate-400'}>
+                            <span className={isCardDue ? 'text-accent-amber font-bold' : 'text-white/45'}>
                               {card.nextReviewDate} {isCardDue && '(Due)'}
                             </span>
                           ) : (
@@ -347,48 +347,32 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
 
       {/* Fullscreen Immersive Study Session Modal */}
       {isStudying && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-[#05060b]/80 backdrop-blur-2xl transition-all duration-500">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 backdrop-blur-3xl transition-all duration-500" style={{ background: 'radial-gradient(circle at 50% 0%, #17122b 0%, #080611 60%, #020105 100%)' }}>
           
-          {/* Dynamic Ambient Background backplate glow matching card category */}
-          {(() => {
-            const currentCardCat = currentCard?.categoryId !== undefined ? categoriesMap.get(currentCard.categoryId) : undefined
-            const glowColor = currentCardCat?.color ?? '#c5a880'
-            return (
-              <div
-                className="absolute h-96 w-96 rounded-full blur-[140px] opacity-15 pointer-events-none transition-all duration-1000 ease-in-out"
-                style={{
-                  backgroundColor: glowColor,
-                  transform: 'translate(-50%, -50%)',
-                  left: '50%',
-                  top: '55%'
-                }}
-              />
-            )
-          })()}
-
           <div className="relative w-full max-w-lg flex flex-col items-center gap-6 z-10">
             
             {/* Modal Exit Trigger */}
             <button
               onClick={() => setIsStudying(false)}
-              className="absolute top-0 right-0 p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full cursor-pointer transition-colors"
+              className="absolute -top-12 right-0 md:top-0 md:-right-12 h-10 w-10 flex items-center justify-center rounded-full bg-white/5 border border-white/8 text-white/70 hover:text-white hover:bg-white/10 cursor-pointer transition-all ios-active-scale shadow-md"
+              title="Close Study Mode"
             >
               <X className="h-5 w-5" />
             </button>
 
             {/* Title / Progress */}
             {!sessionCompleted && (
-              <div className="text-center w-full max-w-md select-none">
-                <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase">
+              <div className="text-center w-full max-w-md select-none animate-fade-in">
+                <span className="text-[9px] font-bold tracking-widest text-white/40 uppercase">
                   Active Recall Practice
                 </span>
                 <h3 className="text-sm font-bold text-white mt-1">
                   Card {currentQueueIndex + 1} of {studyQueue.length}
                 </h3>
                 {/* Progress bar */}
-                <div className="h-1.5 w-full bg-white/5 border border-white/5 p-[1px] rounded-full overflow-hidden mt-3">
+                <div className="h-1.5 w-full bg-white/5 border border-white/8 rounded-full overflow-hidden mt-3">
                   <div
-                    className="h-full bg-gradient-to-r from-accent-blue to-accent-purple transition-all duration-300 shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+                    className="h-full bg-accent-blue transition-all duration-300"
                     style={{ width: `${((currentQueueIndex) / studyQueue.length) * 100}%` }}
                   />
                 </div>
@@ -397,64 +381,61 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
 
             {/* Immersive Study Container */}
             {sessionCompleted ? (
-              <div className="w-full max-w-md p-6 rounded-2xl border border-white/15 bg-white/5 backdrop-blur-2xl shadow-2xl flex flex-col items-center justify-center text-center animate-slide-in-up">
-                <div className="h-12 w-12 rounded-2xl bg-accent-green/20 border border-accent-green/30 flex items-center justify-center mb-4 text-accent-green animate-pulse-soft">
+              <div className="w-full max-w-md p-7 rounded-[32px] border border-white/10 bg-[#161620]/45 shadow-[0_24px_60px_rgba(0,0,0,0.4)] backdrop-blur-3xl flex flex-col items-center justify-center text-center animate-slide-in-up">
+                <div className="h-12 w-12 rounded-full bg-accent-green/10 border border-accent-green/20 flex items-center justify-center mb-4 text-accent-green">
                   <Sparkles className="h-6 w-6 text-accent-green" />
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2 uppercase tracking-wide text-gradient-green">Review Complete!</h3>
-                <p className="text-xs text-slate-400 mb-6 max-w-xs select-none">
+                <h3 className="text-lg font-bold text-white mb-2 uppercase tracking-wide">Review Complete!</h3>
+                <p className="text-xs text-white/50 mb-6 max-w-xs select-none">
                   Excellent work. You completed reviews for {cardsGradedCount} flashcards. Spaced repetition dates have been rescheduled.
                 </p>
                 <button
                   onClick={() => setIsStudying(false)}
-                  className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-white/10 border border-white/10 hover:bg-white/15 transition-all text-white cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+                  className="px-6 py-3 rounded-full text-xs font-semibold bg-accent-blue text-white hover:bg-accent-blue/90 border border-white/10 transition-all cursor-pointer shadow-md ios-active-scale"
                 >
                   Return to Dashboard
                 </button>
               </div>
             ) : (
-              <div className="w-full flex flex-col items-center gap-6">
+              <div className="w-full flex flex-col items-center gap-6 animate-slide-in-up">
                 
-                {/* Flippable Card Container */}
-                <div className="w-full aspect-[4/3] max-w-md perspective-1000">
+                {/* Simplified Card Panel */}
+                <div className="w-full aspect-[4/3] max-w-md">
                   <div
                     onClick={() => setIsFlipped(f => !f)}
-                    className={`relative w-full h-full flashcard-inner cursor-pointer select-none rounded-2xl ${
-                      isFlipped ? 'rotate-y-180' : ''
-                    }`}
+                    className="w-full h-full cursor-pointer select-none rounded-[28px] border border-white/8 bg-[#161620]/45 backdrop-blur-2xl hover:bg-white/5 hover:border-white/15 transition-all flex flex-col items-center justify-center p-6 text-center shadow-[0_24px_50px_rgba(0,0,0,0.35)] relative ios-active-scale"
                   >
-                    {/* FRONT */}
-                    <div className="absolute inset-0 backface-hidden glass-tier-2 border border-white/10 flex flex-col items-center justify-center p-6 text-center select-none shadow-[0_24px_48px_rgba(0,0,0,0.5)]">
-                      <span className="text-[9px] font-mono tracking-widest text-slate-400 uppercase absolute top-5 select-none">
-                        Question Prompt
-                      </span>
-                      <p className="text-base md:text-lg font-bold text-white px-4 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">
-                        {currentCard.question}
-                      </p>
-                      <span className="text-[9px] font-mono text-slate-500 absolute bottom-5 animate-pulse uppercase select-none tracking-widest font-bold">
-                        Click card to flip
-                      </span>
-                    </div>
-
-                    {/* BACK */}
-                    <div className="absolute inset-0 backface-hidden rotate-y-180 glass-tier-2 border border-white/15 flex flex-col items-center justify-center p-6 text-center select-none bg-white/[0.04] shadow-[0_24px_48px_rgba(0,0,0,0.5)]">
-                      <span className="text-[9px] font-mono tracking-widest text-accent-amber uppercase absolute top-5 select-none font-bold">
-                        Definition Answer
-                      </span>
-                      <p className="text-base md:text-lg font-extrabold text-accent-amber px-4 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">
-                        {currentCard.answer}
-                      </p>
-                      <span className="text-[9px] font-mono text-slate-500 absolute bottom-5 uppercase select-none tracking-widest">
-                        Click card to flip back
-                      </span>
-                    </div>
-
+                    {!isFlipped ? (
+                      <>
+                        <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase absolute top-5 select-none font-semibold">
+                          Question Prompt
+                        </span>
+                        <p className="text-base md:text-lg font-bold text-white px-4 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">
+                          {currentCard.question}
+                        </p>
+                        <span className="text-[9px] font-mono text-white/30 absolute bottom-5 uppercase select-none tracking-widest font-bold">
+                          Click to reveal answer
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-[9px] font-mono tracking-widest text-accent-blue uppercase absolute top-5 select-none font-bold">
+                          Definition Answer
+                        </span>
+                        <p className="text-base md:text-lg font-bold text-white px-4 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">
+                          {currentCard.answer}
+                        </p>
+                        <span className="text-[9px] font-mono text-white/30 absolute bottom-5 uppercase select-none tracking-widest font-bold">
+                          Click to show question
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 {/* SM-2 Recall Grading Deck */}
                 <div className={`w-full max-w-md transition-all duration-300 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                  <p className="text-[10px] font-mono text-center text-white/50 mb-3 select-none uppercase tracking-wider font-bold">
+                  <p className="text-[10px] font-mono text-center text-white/40 mb-3 select-none uppercase tracking-wider font-bold">
                     Rate retrieval strength (SM-2):
                   </p>
                   <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
@@ -462,7 +443,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
                       <button
                         key={grade.value}
                         onClick={() => handleGrade(grade.value)}
-                        className={`p-3 rounded-2xl border bg-black/40 flex flex-col items-center justify-center gap-0.5 transition-all duration-300 group cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.2)] hover:-translate-y-1 ${grade.color}`}
+                        className={`p-3 rounded-[20px] border border-white/8 bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1 transition-all duration-200 ios-active-scale cursor-pointer ${grade.color}`}
                       >
                         <span className="text-sm font-bold font-mono">{grade.value}</span>
                         <span className="text-[8px] font-bold tracking-tight uppercase leading-tight font-mono">{grade.label}</span>

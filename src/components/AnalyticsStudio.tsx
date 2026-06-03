@@ -81,12 +81,12 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
         ].map(item => {
           const Icon = item.icon
           return (
-            <div key={item.label} className="border border-white/[0.06] dynamic-card p-5 flex items-center justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+            <div key={item.label} className="border border-white/5 bg-white/[0.02] dynamic-card p-5 flex items-center justify-between shadow-2xl">
               <div>
-                <p className="text-[10px] text-white/60 font-semibold uppercase tracking-wider">{item.label}</p>
-                <p className="text-xl font-semibold text-white mt-1 font-mono">{item.value}</p>
+                <p className="text-[10px] text-white/50 font-semibold uppercase tracking-wider">{item.label}</p>
+                <p className="text-xl font-bold text-white mt-1 font-mono">{item.value}</p>
               </div>
-              <div className="h-11 w-11 rounded-xl flex items-center justify-center border border-white/10 bg-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+              <div className="h-11 w-11 rounded-full flex items-center justify-center border border-white/10 bg-white/5 shadow-inner">
                 <Icon className="h-5 w-5 text-white" />
               </div>
             </div>
@@ -96,7 +96,7 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
 
       {/* Recharts Performance Trends */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 border border-white/[0.06] dynamic-card p-6">
+        <div className="lg:col-span-8 border border-white/5 bg-white/[0.02] dynamic-card p-6">
           <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Weekly Performance Trends</h3>
           {hasChartData ? (
             <div className="h-[220px]">
@@ -109,8 +109,8 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" horizontal={true} vertical={false} />
-                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} />
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 600 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 600 }} />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Area type="monotone" dataKey="hours" stroke={activeThemeVars.accentBlue} strokeWidth={2.5} fill="url(#trendsGrad)" dot={false} />
                 </AreaChart>
@@ -118,14 +118,14 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
             </div>
           ) : (
             <div className="flex h-[220px] items-center justify-center">
-              <p className="text-xs text-slate-500 italic">No study hours logged for this period.</p>
+              <p className="text-xs text-white/40 italic">No study hours logged for this period.</p>
             </div>
           )}
         </div>
 
-        <div className="lg:col-span-4 border border-white/[0.06] dynamic-card p-6 flex flex-col justify-between">
+        <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6 flex flex-col justify-between">
           <div>
-            <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-5">Daily Efficiency Index</h3>
+            <h3 className="text-xs font-bold text-white/70 tracking-wider uppercase mb-5">Daily Efficiency Index</h3>
             {hasChartData ? (
               <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -137,7 +137,7 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" horizontal={true} vertical={false} />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 600 }} />
                     <YAxis hide />
                     <Tooltip contentStyle={tooltipStyle} formatter={(val) => [`${val}%`, 'Efficiency']} />
                     <Bar dataKey="focus" fill="url(#effGrad)" radius={[4, 4, 0, 0]} maxBarSize={16} />
@@ -146,7 +146,7 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
               </div>
             ) : (
               <div className="flex h-[200px] items-center justify-center">
-                <p className="text-xs text-slate-500 italic">No activity indexes logged.</p>
+                <p className="text-xs text-white/40 italic">No activity indexes logged.</p>
               </div>
             )}
           </div>
@@ -154,31 +154,31 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
       </div>
 
       {/* Spaced Repetition Retention Telemetry Chart */}
-      <div className="border border-white/[0.06] dynamic-card p-6">
+      <div className="border border-white/5 bg-white/[0.02] dynamic-card p-6">
         <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Retention Telemetry (SM-2 Active Recall)</h3>
         {hasRetentionData ? (
           <div className="h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={retentionData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" horizontal={true} vertical={false} />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} />
-                <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 600 }} />
+                <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 600 }} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(val) => [`${val} / 5`, 'Avg Recall Score']} />
                 <Line type="monotone" dataKey="avgGrade" stroke="var(--color-accent-amber)" strokeWidth={2.5} activeDot={{ r: 6 }} dot={{ strokeWidth: 2, r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="flex h-[180px] items-center justify-center flex-col gap-2 border border-dashed border-white/5 rounded-2xl bg-black/10">
+          <div className="flex h-[180px] items-center justify-center flex-col gap-2 border border-dashed border-white/10 rounded-[24px] bg-black/20">
             <span className="text-2xl">📈</span>
-            <p className="text-xs text-slate-500 italic">Complete active recall reviews to display retention metrics.</p>
+            <p className="text-xs text-white/40 italic">Complete active recall reviews to display retention metrics.</p>
           </div>
         )}
       </div>
 
       {/* Subject Breakdown & Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-6 border border-white/[0.06] dynamic-card p-6">
+        <div className="lg:col-span-6 border border-white/5 bg-white/[0.02] dynamic-card p-6">
           <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Subject Distribution</h3>
           {categoryBreakdown.length > 0 ? (
             <div className="flex items-center gap-8 justify-around">
@@ -207,38 +207,38 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
                 {categoryBreakdown.map((item, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs font-semibold">
                     <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-text-primary flex-1 truncate">{item.name}</span>
-                    <span className="text-slate-400 font-mono">{item.hours}h</span>
-                    <span className="text-slate-500 font-mono text-[10px]">({item.percentage}%)</span>
+                    <span className="text-white/90 flex-1 truncate">{item.name}</span>
+                    <span className="text-white/60 font-mono">{item.hours}h</span>
+                    <span className="text-white/40 font-mono text-[10px]">({item.percentage}%)</span>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <p className="py-12 text-center text-xs italic text-slate-500">
+            <p className="py-12 text-center text-xs italic text-white/30">
               Configure categories and complete focus blocks to display breakdowns.
             </p>
           )}
         </div>
 
-        <div className="lg:col-span-6 border border-white/[0.06] dynamic-card p-6">
+        <div className="lg:col-span-6 border border-white/5 bg-white/[0.02] dynamic-card p-6">
           <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Productivity Metrics</h3>
           <div className="grid grid-cols-2 gap-4">
             {[
-              { label: 'TOP SUBJECT', value: topSubject || 'No logs', icon: Award, color: 'text-accent-purple', bg: 'bg-accent-purple/5' },
-              { label: 'AVG SESSION LENGTH', value: `${avgMin} min`, icon: Clock, color: 'text-accent-blue', bg: 'bg-accent-blue/5' },
-              { label: 'COMPLETION RATIO', value: `${completionRate}%`, icon: CheckCircle, color: 'text-accent-green', bg: 'bg-accent-green/5' },
-              { label: 'PEAK WORKDAY', value: peakDay || 'No logs', icon: Calendar, color: 'text-accent-amber', bg: 'bg-accent-amber/5' },
+              { label: 'TOP SUBJECT', value: topSubject || 'No logs', icon: Award, color: 'text-accent-purple', bg: 'bg-accent-purple/10' },
+              { label: 'AVG SESSION LENGTH', value: `${avgMin} min`, icon: Clock, color: 'text-accent-blue', bg: 'bg-accent-blue/10' },
+              { label: 'COMPLETION RATIO', value: `${completionRate}%`, icon: CheckCircle, color: 'text-accent-green', bg: 'bg-accent-green/10' },
+              { label: 'PEAK WORKDAY', value: peakDay || 'No logs', icon: Calendar, color: 'text-accent-amber', bg: 'bg-accent-amber/10' },
             ].map(insight => {
               const Icon = insight.icon
               return (
-                <div key={insight.label} className="rounded-xl border border-white/5 bg-[#0c0f17]/40 p-4 hover:border-white/10 transition-all flex items-center gap-4">
-                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${insight.bg}`}>
+                <div key={insight.label} className="rounded-2xl border border-white/5 bg-black/20 p-4 hover:border-white/10 transition-all flex items-center gap-4">
+                  <div className={`h-9 w-9 rounded-full flex items-center justify-center ${insight.bg}`}>
                     <Icon className={`h-4.5 w-4.5 ${insight.color}`} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[9px] font-bold tracking-wider text-slate-450 uppercase">{insight.label}</p>
-                    <p className="text-sm font-extrabold text-text-primary truncate mt-0.5">{insight.value}</p>
+                    <p className="text-[9px] font-bold tracking-wider text-white/40 uppercase">{insight.label}</p>
+                    <p className="text-sm font-extrabold text-white truncate mt-0.5">{insight.value}</p>
                   </div>
                 </div>
               )

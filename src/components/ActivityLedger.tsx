@@ -91,12 +91,12 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
               <span className="text-sm font-bold text-slate-200">{monthNames[currentMonth]} {currentYear}</span>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={goPrevMonth} className="h-7 w-7 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-bold transition-all flex items-center justify-center cursor-pointer">‹</button>
-              <button onClick={goNextMonth} className="h-7 w-7 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-bold transition-all flex items-center justify-center cursor-pointer">›</button>
+              <button onClick={goPrevMonth} className="h-7 w-7 rounded-full border border-white/8 bg-white/5 hover:bg-white/10 text-sm transition-all flex items-center justify-center cursor-pointer active:scale-90 ios-active-scale">‹</button>
+              <button onClick={goNextMonth} className="h-7 w-7 rounded-full border border-white/8 bg-white/5 hover:bg-white/10 text-sm transition-all flex items-center justify-center cursor-pointer active:scale-90 ios-active-scale">›</button>
               <select
                 value={calendarCategoryFilter === 'all' ? 'all' : String(calendarCategoryFilter)}
                 onChange={e => setCalendarCategoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                className="rounded-xl border border-white/5 bg-black/25 px-2.5 py-1 text-xs text-text-secondary outline-none cursor-pointer"
+                className="rounded-full border border-white/8 bg-white/5 hover:bg-white/10 px-3.5 py-1 text-xs text-text-secondary outline-none cursor-pointer transition-all active:scale-95 ios-active-scale"
               >
                 <option value="all" className="bg-surface">All Subjects</option>
                 {categories.map(cat => (
@@ -109,7 +109,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
           {/* Day Label Grids */}
           <div className="grid grid-cols-7 gap-1 mb-2 text-center">
             {dayNames.map(d => (
-              <div key={d} className="text-[9px] font-bold text-slate-550 uppercase tracking-widest">{d}</div>
+              <div key={d} className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{d}</div>
             ))}
           </div>
 
@@ -136,7 +136,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                   <button
                     key={i}
                     onClick={() => setSelectedDay(cell)}
-                    className={`group relative aspect-square rounded-[10px] flex items-center justify-center text-xs font-bold transition-all duration-300 ease-out cursor-pointer ${
+                    className={`group relative aspect-square rounded-[10px] flex items-center justify-center text-xs font-bold transition-all duration-300 ease-out cursor-pointer ios-active-scale active:scale-95 ${
                       cell === selectedDay
                         ? 'ring-2 ring-accent-blue text-text-primary scale-110 z-10 shadow-md shadow-accent-blue/15'
                         : 'hover:scale-105 hover:z-10 hover:ring-1 hover:ring-white/20'
@@ -147,7 +147,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                     
                     {/* iOS 26 Glassmorphic Tooltip */}
                     {dayData && (
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-36 bg-black/80 backdrop-blur-md border border-white/10 p-2.5 rounded-xl text-[9px] font-mono text-left pointer-events-none z-30 shadow-[0_8px_24px_rgba(0,0,0,0.5)] leading-normal animate-slide-in-up">
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-36 bg-[#161620]/90 backdrop-blur-xl border border-white/10 p-2.5 rounded-[16px] text-[9px] font-mono text-left pointer-events-none z-30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] leading-normal animate-slide-in-up">
                         <div className="font-bold text-white mb-1 border-b border-white/10 pb-0.5">
                           {monthNames[currentMonth]} {cell}, {currentYear}
                         </div>
@@ -165,7 +165,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
           </div>
 
           {/* Legend scale */}
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[9px] text-slate-555 border-t border-white/5 pt-4">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[9px] text-slate-400 border-t border-white/5 pt-4">
             <div className="flex items-center gap-3">
               {(() => {
                 const accentBlueRgb = hexToRgb(activeThemeVars.accentBlue) || { r: 56, g: 189, b: 248 }
@@ -221,23 +221,23 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
 
           {/* Day summary numbers */}
           <div className="grid grid-cols-3 gap-4 mb-4">
-            <div className="bg-white/[0.01] p-3 rounded-xl border border-white/5">
-              <span className="text-[9px] font-bold text-slate-505 uppercase block">Study block</span>
+            <div className="bg-white/4 p-3.5 rounded-[20px] border border-white/8">
+              <span className="text-[9px] font-bold text-white/50 uppercase tracking-wide block">Study block</span>
               <span className="text-base font-extrabold text-accent-blue mt-0.5 font-mono">{liveDay.studyTime}</span>
             </div>
-            <div className="bg-white/[0.01] p-3 rounded-xl border border-white/5">
-              <span className="text-[9px] font-bold text-slate-505 uppercase block">Break cooldown</span>
+            <div className="bg-white/4 p-3.5 rounded-[20px] border border-white/8">
+              <span className="text-[9px] font-bold text-white/50 uppercase tracking-wide block">Break cooldown</span>
               <span className="text-base font-extrabold text-accent-amber mt-0.5 font-mono">{liveDay.breakTime}</span>
             </div>
-            <div className="bg-white/[0.01] p-3 rounded-xl border border-white/5">
-              <span className="text-[9px] font-bold text-slate-505 uppercase block">Efficiency score</span>
+            <div className="bg-white/4 p-3.5 rounded-[20px] border border-white/8">
+              <span className="text-[9px] font-bold text-white/50 uppercase tracking-wide block">Efficiency score</span>
               <span className="text-base font-extrabold text-accent-green mt-0.5 font-mono">{liveDay.focusScore}</span>
             </div>
           </div>
 
           {/* Mood calibration deck */}
-          <div className="mb-4">
-            <p className="text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-2">Track Mood</p>
+          <div className="mb-5">
+            <p className="text-[10px] font-semibold text-white/55 uppercase tracking-wider mb-2.5">Track Mood</p>
             <div className="flex flex-wrap gap-2">
               {[
                 { label: 'Focused', emoji: '🧠', value: 'focused' },
@@ -250,10 +250,10 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                   <button
                     key={m.value}
                     onClick={() => handleMoodSelect(m.value)}
-                    className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer ios-active-scale ${
                       isSelected
-                        ? 'border-accent-blue/30 bg-accent-blue/15 text-accent-blue shadow-md'
-                        : 'border-white/5 bg-[#0c0f17]/40 text-slate-455 hover:border-white/10 hover:text-text-primary'
+                        ? 'border-accent-blue/30 bg-accent-blue/15 text-accent-blue shadow-sm'
+                        : 'border-white/8 bg-white/4 text-text-secondary hover:border-white/15 hover:text-text-primary hover:bg-white/8'
                     }`}
                   >
                     <span>{m.emoji}</span>
@@ -265,26 +265,26 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
           </div>
 
           {/* Text reflection input */}
-          <div className="mb-4">
-            <p className="text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-2">Reflection log</p>
+          <div className="mb-5">
+            <p className="text-[10px] font-semibold text-white/55 uppercase tracking-wider mb-2.5">Reflection log</p>
             <textarea
               value={draftNotes}
               onChange={e => handleNotesChange(e.target.value)}
               placeholder="How did you perform? Note down any wins, hurdles, or focal points for today..."
               rows={3}
-              className="w-full resize-none rounded-xl border border-white/5 bg-[#0c0f17]/40 focus:bg-black/20 focus:border-accent-blue/40 px-3.5 py-3 text-xs text-text-primary placeholder:text-slate-550 outline-none transition-all duration-200"
+              className="w-full resize-none rounded-2xl border border-white/8 bg-white/4 focus:bg-white/8 focus:border-accent-blue/40 px-4 py-3 text-xs text-text-primary placeholder:text-white/35 outline-none transition-all duration-200"
             />
           </div>
 
           {/* Visual 24h study timeline */}
-          <div className="border-t border-white/5 pt-4">
-            <p className="text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-2.5">Focus Horizon Timeline (24h)</p>
-            <div className="relative w-full bg-black/10 border border-white/5 rounded-2xl p-4">
-              <div className="relative h-6 w-full bg-black/30 rounded-xl border border-white/5 overflow-hidden">
-                <div className="absolute inset-0 flex justify-between pointer-events-none text-[8px] text-slate-700 font-mono">
-                  <div className="h-full border-r border-white/5" style={{ left: '25%' }} />
-                  <div className="h-full border-r border-white/5" style={{ left: '50%' }} />
-                  <div className="h-full border-r border-white/5" style={{ left: '75%' }} />
+          <div className="border-t border-white/8 pt-5">
+            <p className="text-[10px] font-semibold text-white/55 uppercase tracking-wider mb-3">Focus Horizon Timeline (24h)</p>
+            <div className="relative w-full bg-white/4 border border-white/8 rounded-2xl p-4.5">
+              <div className="relative h-6 w-full bg-white/5 rounded-full border border-white/8 overflow-hidden">
+                <div className="absolute inset-0 flex justify-between pointer-events-none text-[8px] text-white/20 font-mono">
+                  <div className="h-full border-r border-white/8" style={{ left: '25%' }} />
+                  <div className="h-full border-r border-white/8" style={{ left: '50%' }} />
+                  <div className="h-full border-r border-white/8" style={{ left: '75%' }} />
                 </div>
 
                 {selectedDayHistory.map((entry, idx) => {
@@ -304,18 +304,18 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                     <div
                       key={idx}
                       title={`${isStudy ? 'Focus block' : 'Break time'}: ${entry.durationMinutes}m (ending ${timePart})`}
-                      className="absolute top-0 h-full rounded-md transition-all hover:scale-y-110 cursor-pointer"
+                      className="absolute top-0.5 bottom-0.5 rounded-full transition-all hover:scale-y-110 cursor-pointer"
                       style={{
                         left: `${startPercent}%`,
                         width: `${widthPercent}%`,
                         backgroundColor: isStudy ? activeThemeVars.accentBlue : activeThemeVars.accentAmber,
-                        boxShadow: `0 0 6px ${isStudy ? activeThemeVars.accentBlue : activeThemeVars.accentAmber}50`
+                        boxShadow: `0 0 8px ${isStudy ? activeThemeVars.accentBlue : activeThemeVars.accentAmber}50`
                       }}
                     />
                   )
                 })}
               </div>
-              <div className="flex justify-between text-[8px] text-slate-555 font-mono mt-1.5 px-1 select-none">
+              <div className="flex justify-between text-[8px] text-white/40 font-mono mt-2 px-1.5 select-none font-bold">
                 <span>00:00</span>
                 <span>06:00</span>
                 <span>12:00</span>
