@@ -1567,7 +1567,7 @@ function App() {
                     key={tab.id}
                     disabled={isLocked}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`nav-tab shrink-0 w-full rounded-xl transition-all duration-300 ease-out ${isActive ? 'bg-white/10 text-white font-medium border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' : 'text-white/60 hover:bg-white/5 hover:text-white'} ${isLocked ? 'opacity-30 cursor-not-allowed hover:bg-transparent' : 'cursor-pointer'}`}
+                    className={`nav-tab shrink-0 md:w-full w-auto rounded-xl transition-all duration-300 ease-out ${isActive ? 'bg-white/10 text-white font-medium border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' : 'text-white/60 hover:bg-white/5 hover:text-white'} ${isLocked ? 'opacity-30 cursor-not-allowed hover:bg-transparent' : 'cursor-pointer'}`}
                     title={isLocked ? "Focus Lockout Active" : undefined}
                   >
                     <Icon className="h-4 w-4" />
