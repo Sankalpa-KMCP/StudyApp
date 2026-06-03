@@ -14,6 +14,7 @@ interface FocusSanctuaryProps {
   handleModeSwitch: (mode: 'study' | 'break') => void
   completeSession: () => void
   extendSession: () => void
+  skipBreak: () => void
   breathTime: number
   setIsZenMode: (zen: boolean) => void
   soundEnabled: boolean
@@ -42,6 +43,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   handleModeSwitch,
   completeSession,
   extendSession,
+  skipBreak,
   breathTime,
   setIsZenMode
 }) => {
@@ -111,6 +113,15 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
 
             {/* Dial Interaction Controls */}
             <div className="flex items-center gap-3 mt-7 select-none">
+              {timerMode === 'break' && (
+                <button
+                  onClick={skipBreak}
+                  className="px-4 py-2.5 rounded-full text-xs font-bold border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all ios-active-scale cursor-pointer"
+                >
+                  Skip Break
+                </button>
+              )}
+
               <button
                 onClick={() => handleModeSwitch(timerMode === 'study' ? 'break' : 'study')}
                 className="px-4 py-2.5 rounded-full text-xs font-bold border border-white/10 bg-white/5 hover:bg-white/10 text-white/90 transition-all ios-active-scale cursor-pointer"

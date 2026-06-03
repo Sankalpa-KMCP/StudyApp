@@ -479,6 +479,16 @@ function App() {
     pushToast('TIMER', 'ADDED 5 MINUTES TO CURRENT TIMER')
   }
 
+  function skipBreak() {
+    if (timerMode !== 'break') return
+    setSecondsElapsed(0)
+    setExtendedMinutes(0)
+    setTimerMode('study')
+    setIsTimerActive(true)
+    playChime()
+    pushToast('TIMER', 'BREAK SKIPPED - STUDY BLOCK STARTED')
+  }
+
   function handleAddTask(text: string, categoryId?: number, estimatedCycles?: number, priority?: 'low' | 'medium' | 'high', isStudySubject?: boolean) {
     const trimmed = text.trim()
     if (!trimmed) return
@@ -1226,6 +1236,7 @@ function App() {
                       handleModeSwitch={handleModeSwitch}
                       completeSession={completeSession}
                       extendSession={extendSession}
+                      skipBreak={skipBreak}
                       breathTime={breathTime}
                       setIsZenMode={setIsZenMode}
                       soundEnabled={soundEnabled}
