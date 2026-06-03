@@ -138,8 +138,53 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
     return `${errorRate}% Dev (${totalActual > totalEstimated ? 'Under' : 'Over'})`
   }, [tasks])
 
+  // Calculate monthly mood distribution metrics
+  const moodDistribution = useMemo(() => {
+    const counts: Record<string, number> = {
+      focused: 0,
+      energetic: 0,
+      tired: 0,
+      distracted: 0,
+    }
+    let totalLogged = 0
+
+    monthLogs.forEach(log => {
+      if (log.mood && counts[log.mood] !== undefined) {
+        counts[log.mood]++
+        totalLogged++
+      }
+    })
+
+    const colors: Record<string, string> = {
+      focused: activeThemeVars?.accentBlue ?? '#3b82f6',
+      energetic: activeThemeVars?.accentGreen ?? '#10b981',
+      tired: activeThemeVars?.accentAmber ?? '#f59e0b',
+      distracted: '#ef4444', // red
+    }
+
+    const emojis: Record<string, string> = {
+      focused: '🧠',
+      energetic: '⚡',
+      tired: '🥱',
+      distracted: '🌪',
+    }
+
+    return Object.keys(counts).map(key => {
+      const count = counts[key]
+      const percentage = totalLogged > 0 ? Math.round((count / totalLogged) * 100) : 0
+      return {
+        name: key.charAt(0).toUpperCase() + key.slice(1),
+        value: count,
+        percentage,
+        color: colors[key],
+        emoji: emojis[key],
+      }
+    })
+  }, [monthLogs, activeThemeVars])
+
   return (
     <div className="flex flex-col gap-6 w-full flex-1 animate-fade-in">
+      {moodDistribution && null}
       
       {/* Summary Metrics Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
