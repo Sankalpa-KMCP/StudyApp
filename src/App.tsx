@@ -1676,14 +1676,14 @@ function App() {
                         <div className="flex items-center gap-3 mt-6">
                           <button
                             onClick={() => handleModeSwitch(timerMode === 'study' ? 'break' : 'study')}
-                            className="px-3.5 py-1.5 rounded-none text-xs font-medium border border-[#262930] bg-[#16181d] hover:bg-[#1c1f26] text-[#e1ded7] transition-all cursor-pointer"
+                            className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-white/10 bg-white/5 hover:bg-white/10 text-white/80 transition-all duration-300 ease-out cursor-pointer"
                           >
                             Switch to {timerMode === 'study' ? 'Break' : 'Study'}
                           </button>
                           
                           <button
                             onClick={() => { if (!completingRef.current) setIsTimerActive(a => !a) }}
-                            className="flex h-9 w-9 items-center justify-center rounded-none bg-[#c5a880]/15 text-[#c5a880] hover:bg-[#c5a880] hover:text-[#111215] transition-all active:scale-95 cursor-pointer"
+                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white border border-white/20 hover:bg-white/15 transition-all duration-300 ease-out active:scale-95 cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
                           >
                             {isTimerActive ? <Pause className="h-4.5 w-4.5" /> : <Play className="h-4.5 w-4.5" />}
                           </button>
@@ -1691,7 +1691,7 @@ function App() {
                           {(isTimerActive || secondsElapsed > 0) && (
                             <button
                               onClick={completeSession}
-                              className="flex items-center gap-1.5 rounded-none bg-[#c5a880] text-[#111215] px-3.5 py-1.5 text-xs font-medium transition-all hover:bg-[#c5a880]/90 active:scale-95 cursor-pointer"
+                              className="flex items-center gap-1.5 rounded-xl bg-white/20 text-white border border-white/30 px-3.5 py-1.5 text-xs font-medium transition-all duration-300 ease-out hover:bg-white/25 active:scale-95 cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
                             >
                               <Check className="h-3.5 w-3.5 stroke-[2.5]" />
                               <span>Complete</span>
@@ -1719,19 +1719,19 @@ function App() {
 
                       {/* Ambient Controls */}
                       <div className="mt-5 space-y-3">
-                        <p className="text-[10px] font-bold text-slate-450 tracking-wider uppercase">Background Ambience</p>
+                        <p className="text-[10px] font-semibold text-white/60 tracking-wider uppercase">Background Ambience</p>
                         <div className="flex flex-col gap-2">
                           {[
-                            { id: 'ambientVolume_rain', label: 'Rain', icon: CloudRain, val: localVolumeRain, colorClass: 'accent-accent-blue', setVal: setLocalVolumeRain, colorName: 'blue' },
-                            { id: 'ambientVolume_cafe', label: 'Cafe Ambiance', icon: Coffee, val: localVolumeCafe, colorClass: 'accent-accent-amber', setVal: setLocalVolumeCafe, colorName: 'amber' },
-                            { id: 'ambientVolume_whiteNoise', label: 'White Noise', icon: Radio, val: localVolumeWhiteNoise, colorClass: 'accent-accent-purple', setVal: setLocalVolumeWhiteNoise, colorName: 'purple' },
-                            { id: 'ambient_alphaWaves', label: 'Alpha Waves', icon: Brain, val: localAlphaWaves, colorClass: 'accent-accent-purple', setVal: setLocalAlphaWaves, colorName: 'purple' },
+                            { id: 'ambientVolume_rain', label: 'Rain', icon: CloudRain, val: localVolumeRain, setVal: setLocalVolumeRain },
+                            { id: 'ambientVolume_cafe', label: 'Cafe Ambiance', icon: Coffee, val: localVolumeCafe, setVal: setLocalVolumeCafe },
+                            { id: 'ambientVolume_whiteNoise', label: 'White Noise', icon: Radio, val: localVolumeWhiteNoise, setVal: setLocalVolumeWhiteNoise },
+                            { id: 'ambient_alphaWaves', label: 'Alpha Waves', icon: Brain, val: localAlphaWaves, setVal: setLocalAlphaWaves },
                           ].map(ch => {
                             const Icon = ch.icon
                             return (
-                              <div key={ch.id} className="flex items-center gap-3 bg-[#0c0f17]/45 border border-white/5 rounded-xl px-3 py-2 transition-all">
-                                <Icon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                                <span className="text-xs font-semibold text-slate-350 w-24 shrink-0">{ch.label}</span>
+                              <div key={ch.id} className="flex items-center gap-3 bg-white/[0.02] border border-white/[0.04] rounded-xl px-3 py-2 transition-all duration-300 ease-out">
+                                <Icon className="h-3.5 w-3.5 text-white/60 shrink-0" />
+                                <span className="text-xs font-medium text-white/80 w-24 shrink-0">{ch.label}</span>
                                 <input
                                   type="range"
                                   min="0"
@@ -1743,10 +1743,9 @@ function App() {
                                     ch.setVal(v)
                                     updateSetting(ch.id as SettingsKey, v)
                                   }}
-                                  className={`flex-1 h-1.5 rounded-full cursor-pointer bg-white/5 outline-none ${ch.colorClass}`}
-                                  style={{ '--color-accent-blue': `var(--color-accent-${ch.colorName})` } as React.CSSProperties}
+                                  className="flex-1 h-1 rounded-full cursor-pointer bg-white/10 outline-none accent-white"
                                 />
-                                <span className="text-[10px] font-bold text-slate-500 w-7 text-right font-mono">
+                                <span className="text-[10px] font-semibold text-white/60 w-7 text-right font-mono">
                                   {Math.round(ch.val * 100)}%
                                 </span>
                               </div>
@@ -1821,17 +1820,17 @@ function App() {
                       })()}
 
                       {/* Add Task Input Form */}
-                      <div className="flex flex-wrap items-center gap-2 mb-4 bg-white/[0.01] border border-white/5 p-2 rounded-xl">
+                      <div className="flex flex-wrap items-center gap-2 mb-4 bg-white/[0.01] border border-white/[0.04] p-2 rounded-2xl">
                         <input
                           data-task-input
                           type="text"
                           placeholder="What is your next study objective?"
-                          className="flex-1 rounded-xl bg-black/20 focus:bg-black/35 px-3.5 py-2 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all"
+                          className="flex-1 rounded-xl bg-white/5 border border-white/5 focus:bg-white/10 px-3.5 py-2 text-xs text-white placeholder:text-white/40 outline-none transition-all duration-300"
                           onKeyDown={(e) => { if (e.key === 'Enter') { const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); handleAddTask((e.target as HTMLInputElement).value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); (e.target as HTMLInputElement).value = '' } }}
                         />
                         <select
                           data-task-category
-                          className="w-28 rounded-xl bg-black/20 px-2 py-2 text-xs text-text-primary outline-none cursor-pointer"
+                          className="w-28 rounded-xl bg-white/5 border border-white/5 px-2 py-2 text-xs text-white outline-none cursor-pointer hover:bg-white/10 transition-all duration-300"
                         >
                           <option value="" className="bg-surface">No subject</option>
                           {categories.map(cat => (
@@ -1842,7 +1841,7 @@ function App() {
                           data-task-cycles
                           value={taskCycleCount}
                           onChange={e => setTaskCycleCount(Number(e.target.value))}
-                          className="w-16 rounded-xl bg-black/20 px-2 py-2 text-xs text-text-primary outline-none cursor-pointer"
+                          className="w-16 rounded-xl bg-white/5 border border-white/5 px-2 py-2 text-xs text-white outline-none cursor-pointer hover:bg-white/10 transition-all duration-300"
                         >
                           {[1,2,3,4,5,6,7,8].map(n => (
                             <option key={n} value={n} className="bg-surface">🎯 {n}</option>
@@ -1850,7 +1849,7 @@ function App() {
                         </select>
                         <button
                           onClick={() => { const input = document.querySelector<HTMLInputElement>('[data-task-input]'); const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); if (input) { handleAddTask(input.value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); input.value = '' } }}
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent-blue/15 text-accent-blue hover:bg-accent-blue hover:text-slate-950 transition-all active:scale-95 cursor-pointer"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white border border-white/20 hover:bg-white/15 transition-all duration-300 ease-out cursor-pointer"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -1873,17 +1872,17 @@ function App() {
                             <div
                               key={task.id}
                               onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
-                              className={`flex flex-col gap-2 rounded-xl px-4 py-3 transition-all cursor-pointer border border-transparent ${
+                              className={`flex flex-col gap-2 rounded-xl px-4 py-3 transition-all duration-300 ease-out cursor-pointer border ${
                                 activeTaskId === task.id
-                                  ? 'bg-accent-blue/5 border-accent-blue/20 shadow-md shadow-accent-blue/5'
-                                  : 'bg-[#0c0f17]/25 hover:bg-[#0c0f17]/40 hover:border-white/5'
+                                  ? 'bg-white/10 border-white/20 shadow-md shadow-white/5'
+                                  : 'bg-white/[0.02] border-white/[0.04] hover:bg-white/[0.05] hover:border-white/10'
                               }`}
                             >
                               <div className="flex items-center gap-3 w-full">
                                 <div
                                   onClick={e => { e.stopPropagation(); handleToggleTask(task.id!) }}
-                                  className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-all ${
-                                    task.completed ? 'border-accent-blue bg-accent-blue/20 text-accent-blue' : 'border-white/10 bg-black/20 hover:border-white/20'
+                                  className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-all duration-300 ease-out ${
+                                    task.completed ? 'border-white/30 bg-white/20 text-white' : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
                                   }`}
                                 >
                                   {task.completed && <Check className="h-3.5 w-3.5 stroke-[2.5]" />}
@@ -1893,12 +1892,12 @@ function App() {
                                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: categoriesMap.get(task.categoryId)!.color }} />
                                 )}
 
-                                <span className={`flex-1 truncate text-xs font-semibold ${task.completed ? 'text-slate-550 line-through' : 'text-text-primary'}`}>
+                                <span className={`flex-1 truncate text-xs font-semibold ${task.completed ? 'text-white/40 line-through' : 'text-white'}`}>
                                   {task.text}
                                 </span>
 
-                                <span className="shrink-0 text-[10px] font-mono font-semibold text-slate-400 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
-                                  <Target className="h-3 w-3 text-accent-blue" />
+                                <span className="shrink-0 text-[10px] font-mono font-semibold text-white/60 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
+                                  <Target className="h-3 w-3 text-white" />
                                   <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1} Cycles</span>
                                 </span>
                               </div>
@@ -1912,7 +1911,7 @@ function App() {
                                       <button
                                         key={q}
                                         onClick={(e) => { e.stopPropagation(); submitRecallGrade(task, q) }}
-                                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono bg-white/5 hover:bg-accent-purple hover:text-slate-950 border border-white/5 hover:border-accent-purple text-slate-350 transition-all cursor-pointer"
+                                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 transition-all duration-300 ease-out cursor-pointer"
                                         title={
                                           q === 0 ? "Complete blackout" :
                                           q === 1 ? "Incorrect but remembered" :
@@ -2346,10 +2345,9 @@ function App() {
                   
                   {/* Left settings pane - Grid 8 */}
                   <div className="xl:col-span-8 flex flex-col gap-6">
-                    
-                    {/* Visual Themes profile */}
-                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
-                      <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-4">Workspace Theme Profiles</h3>
+                     {/* Visual Themes profile */}
+                    <div className="border border-white/[0.06] dynamic-card p-6">
+                      <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-4">Workspace Theme Profiles</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {Object.entries(THEME_PROFILES).map(([key, profile]) => {
                           const isSelected = theme === key
@@ -2358,21 +2356,21 @@ function App() {
                             <button
                               key={key}
                               onClick={() => updateSetting('theme', key)}
-                              className={`relative flex flex-col text-left p-4 rounded-xl border transition-all cursor-pointer group ${
+                              className={`relative flex flex-col text-left p-4 rounded-xl border transition-all duration-300 ease-out cursor-pointer group ${
                                 isSelected
-                                  ? 'border-accent-blue bg-accent-blue/5 shadow-md'
-                                  : 'border-white/5 bg-[#0c0f17]/40 hover:border-white/10 hover:bg-[#0c0f17]/65'
+                                  ? 'border-white/20 bg-white/10 text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]'
+                                  : 'border-white/5 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.05]'
                               }`}
                             >
                               <div className="flex items-center justify-between mb-3 w-full">
-                                <span className="text-xs font-bold text-slate-200">{displayName}</span>
+                                <span className="text-xs font-bold text-white/90">{displayName}</span>
                                 {isSelected && (
-                                  <span className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-accent-blue text-slate-950">
+                                  <span className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-white text-slate-950 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
                                     <Check className="h-3.5 w-3.5 stroke-[3]" />
                                   </span>
                                 )}
                               </div>
-                              <div className="flex gap-2 text-slate-400">
+                              <div className="flex gap-2 text-white/40">
                                 <span className="h-4.5 w-4.5 rounded-full border border-white/5" style={{ backgroundColor: profile.surface }} title="Background" />
                                 <span className="h-4.5 w-4.5 rounded-full border border-white/5" style={{ backgroundColor: profile.surfaceCard }} title="Cards" />
                                 <div className="h-4 w-px bg-white/10" />
@@ -2385,16 +2383,16 @@ function App() {
                           )
                         })}
                       </div>
-                    </div>
+                    </div>               
 
                     {/* Translucency sliders */}
-                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
-                      <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-5">Translucency & Backdrop Blur Frosting</h3>
+                    <div className="border border-white/[0.06] dynamic-card p-6">
+                      <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Translucency & Backdrop Blur Frosting</h3>
                       <div className="space-y-6">
                         <div>
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-semibold text-slate-350">Card Backdrop Opacity</span>
-                            <span className="text-xs font-bold text-accent-blue">{Math.round(cardOpacity * 100)}%</span>
+                            <span className="text-xs font-semibold text-white/80">Card Backdrop Opacity</span>
+                            <span className="text-xs font-bold text-white">{Math.round(cardOpacity * 100)}%</span>
                           </div>
                           <input
                             type="range"
