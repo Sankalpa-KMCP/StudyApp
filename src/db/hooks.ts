@@ -137,6 +137,10 @@ export function useCategoryBreakdown() {
 export function useHistory() {
   const history = useLiveQuery(() => db.history.orderBy('id').reverse().toArray())
 
+  /**
+   * Writes a finished focus cycle or break session entry to local IndexedDB.
+   * Supports custom telemetry ratings and optional sessionNotes string.
+   */
   const addEntry = async (entry: Omit<HistoryEntry, 'id'>) => {
     await db.history.add(entry)
   }
