@@ -22,8 +22,8 @@ export function useTasks() {
     checkAndSurface()
   }, [tasks])
 
-  const addTask = async (text: string, categoryId?: number, estimatedCycles: number = 1) => {
-    await db.tasks.add({ text, completed: false, createdAt: Date.now(), categoryId, estimatedCycles, actualCycles: 0 } as any)
+  const addTask = async (text: string, categoryId?: number, estimatedCycles: number = 1, priority?: 'low' | 'medium' | 'high') => {
+    await db.tasks.add({ text, completed: false, createdAt: Date.now(), categoryId, estimatedCycles, actualCycles: 0, priority } as any)
   }
 
   const toggleTask = async (id: number) => {

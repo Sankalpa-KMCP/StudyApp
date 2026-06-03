@@ -548,10 +548,10 @@ function App() {
     playTibetanBowl(soundEnabled)
   }
 
-  function handleAddTask(text: string, categoryId?: number, estimatedCycles?: number) {
+  function handleAddTask(text: string, categoryId?: number, estimatedCycles?: number, priority?: 'low' | 'medium' | 'high') {
     const trimmed = text.trim()
     if (!trimmed) return
-    addTask(trimmed, categoryId, estimatedCycles ?? taskCycleCount)
+    addTask(trimmed, categoryId, estimatedCycles ?? taskCycleCount, priority)
   }
 
   async function handleToggleTask(id: number) {
@@ -1895,17 +1895,33 @@ function App() {
                           data-task-input
                           type="text"
                           placeholder="What is your next study objective?"
-                          className="flex-1 rounded-xl bg-white/5 border border-white/5 focus:bg-white/10 px-3.5 py-2 text-xs text-white placeholder:text-white/40 outline-none transition-all duration-300"
-                          onKeyDown={(e) => { if (e.key === 'Enter') { const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); handleAddTask((e.target as HTMLInputElement).value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); (e.target as HTMLInputElement).value = '' } }}
+                          className="flex-1 rounded-xl bg-white/5 border border-white/5 focus:bg-white/10 px-3.5 py-2 text-xs text-white placeholder:text-white/40 outline-none transition-all duration-300 min-w-[160px]"
+                          onKeyDown={(e) => { 
+                            if (e.key === 'Enter') { 
+                              const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); 
+                              const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); 
+                              const prio = document.querySelector<HTMLSelectElement>('[data-task-priority]');
+                              handleAddTask((e.target as HTMLInputElement).value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined, prio?.value as any); 
+                              (e.target as HTMLInputElement).value = '' 
+                            } 
+                          }}
                         />
                         <select
                           data-task-category
                           className="w-28 rounded-xl bg-white/5 border border-white/5 px-2 py-2 text-xs text-white outline-none cursor-pointer hover:bg-white/10 transition-all duration-300"
                         >
-                          <option value="" className="bg-surface">No subject</option>
+                          <option value="" className="bg-[#12141c]">No subject</option>
                           {categories.map(cat => (
-                            <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
+                            <option key={cat.id} value={cat.id} className="bg-[#12141c]">{cat.name}</option>
                           ))}
+                        </select>
+                        <select
+                          data-task-priority
+                          className="w-20 rounded-xl bg-white/5 border border-white/5 px-2 py-2 text-xs text-white outline-none cursor-pointer hover:bg-white/10 transition-all duration-300"
+                        >
+                          <option value="medium" className="bg-[#12141c]">Medium</option>
+                          <option value="high" className="bg-[#12141c]">High</option>
+                          <option value="low" className="bg-[#12141c]">Low</option>
                         </select>
                         <select
                           data-task-cycles
@@ -1914,11 +1930,20 @@ function App() {
                           className="w-16 rounded-xl bg-white/5 border border-white/5 px-2 py-2 text-xs text-white outline-none cursor-pointer hover:bg-white/10 transition-all duration-300"
                         >
                           {[1,2,3,4,5,6,7,8].map(n => (
-                            <option key={n} value={n} className="bg-surface">🎯 {n}</option>
+                            <option key={n} value={n} className="bg-[#12141c]">🎯 {n}</option>
                           ))}
                         </select>
                         <button
-                          onClick={() => { const input = document.querySelector<HTMLInputElement>('[data-task-input]'); const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); if (input) { handleAddTask(input.value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); input.value = '' } }}
+                          onClick={() => { 
+                            const input = document.querySelector<HTMLInputElement>('[data-task-input]'); 
+                            const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); 
+                            const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); 
+                            const prio = document.querySelector<HTMLSelectElement>('[data-task-priority]');
+                            if (input) { 
+                              handleAddTask(input.value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined, prio?.value as any); 
+                              input.value = '' 
+                            } 
+                          }}
                           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white border border-white/20 hover:bg-white/15 transition-all duration-300 ease-out cursor-pointer"
                         >
                           <Plus className="h-4 w-4" />
@@ -1959,7 +1984,27 @@ function App() {
                                 </div>
                                 
                                 {task.categoryId !== undefined && categoriesMap.has(task.categoryId) && (
-                                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: categoriesMap.get(task.categoryId)!.color }} />
+                                  <span 
+                                    className="shrink-0 text-[8px] font-bold px-2 py-0.5 rounded-lg border text-white/90" 
+                                    style={{ 
+                                      backgroundColor: `${categoriesMap.get(task.categoryId)!.color}20`, 
+                                      borderColor: `${categoriesMap.get(task.categoryId)!.color}40` 
+                                    }}
+                                  >
+                                    {categoriesMap.get(task.categoryId)!.name}
+                                  </span>
+                                )}
+
+                                {task.priority && (
+                                  <span className={`shrink-0 text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg border ${
+                                    task.priority === 'high' 
+                                      ? 'bg-red-500/10 text-red-400 border-red-500/20' 
+                                      : task.priority === 'low' 
+                                      ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
+                                      : 'bg-white/5 text-white/60 border-white/10'
+                                  }`}>
+                                    {task.priority}
+                                  </span>
                                 )}
 
                                 <span className={`flex-1 truncate text-xs font-semibold ${task.completed ? 'text-white/40 line-through' : 'text-white'}`}>

@@ -16,6 +16,7 @@ export interface TaskItem {
   easinessFactor?: number
   intervalDays?: number
   nextReviewDate?: string
+  priority?: 'low' | 'medium' | 'high'
 }
 
 export interface HistoryEntry {
