@@ -61,16 +61,16 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
         <div className="flex items-center gap-4 pt-4">
           <button
             onClick={() => setIsTimerActive(!isTimerActive)}
-            className="flex h-12 w-12 items-center justify-center rounded-sm bg-accent-blue text-slate-950 border border-accent-blue hover:bg-accent-blue/90 active:scale-95 cursor-pointer animate-fade-in"
+            className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 text-white border border-white/20 hover:bg-white/15 active:scale-95 cursor-pointer transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]"
             title={isTimerActive ? "Pause session" : "Start session"}
           >
             {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </button>
           <button
             onClick={completeSession}
-            className="flex items-center gap-2 rounded-sm bg-accent-blue text-slate-950 border border-accent-blue px-6 py-3 text-xs font-bold hover:bg-accent-blue/90 active:scale-95 cursor-pointer"
+            className="flex items-center gap-2 rounded-xl bg-accent-blue text-slate-950 border border-accent-blue px-6 py-3 text-xs font-black uppercase tracking-wider hover:bg-accent-blue/90 active:scale-95 cursor-pointer transition-all duration-300 shadow-[0_4px_14px_rgba(6,182,212,0.3)]"
           >
-            <Check className="h-4 w-4" />
+            <Check className="h-4 w-4 stroke-[3]" />
             Complete Focus
           </button>
         </div>
@@ -80,7 +80,7 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
       {!(localEnforceLockout && isTimerActive && timerMode === 'study') && (
         <button
           onClick={() => setIsZenMode(false)}
-          className="absolute top-8 left-8 flex h-10 w-10 items-center justify-center rounded-sm bg-[#0c0f17] border border-[#1b2333] hover:bg-[#0c0f17] text-[#64748b] transition-colors cursor-pointer"
+          className="absolute top-8 left-8 flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all duration-300 cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.2)]"
           title="Exit Sanctuary"
         >
           <ChevronLeft className="h-5 w-5" />

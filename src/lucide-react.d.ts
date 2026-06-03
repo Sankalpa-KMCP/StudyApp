@@ -36,5 +36,7 @@ export const Database: Icon
   export const Search: Icon
   export const Save: Icon
   export const FileText: Icon
+  export const Heart: Icon
+  export const AlertCircle: Icon
 }
 
