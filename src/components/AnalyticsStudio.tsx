@@ -184,7 +184,6 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
 
   return (
     <div className="flex flex-col gap-6 w-full flex-1 animate-fade-in">
-      {moodDistribution && null}
       
       {/* Summary Metrics Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -338,13 +337,13 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
         </div>
       </div>
 
-      {/* Subject Breakdown & Insights */}
+      {/* Subject Breakdown, Mood Distribution & Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-6 border border-white/5 bg-white/[0.02] dynamic-card p-6">
+        <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6">
           <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Subject Distribution</h3>
           {categoryBreakdown.length > 0 ? (
             <div className="flex items-center gap-8 justify-around">
-              <div className="w-32 h-32 shrink-0">
+              <div className="w-24 h-24 shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -353,8 +352,8 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      innerRadius={32}
-                      outerRadius={48}
+                      innerRadius={20}
+                      outerRadius={36}
                       paddingAngle={4}
                       stroke="none"
                     >
@@ -365,27 +364,72 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex flex-col gap-2.5 flex-1 max-w-[220px]">
+              <div className="flex flex-col gap-2 flex-1 max-w-[150px]">
                 {categoryBreakdown.map((item, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs font-semibold">
-                    <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                  <div key={i} className="flex items-center gap-1.5 text-[10px] font-semibold">
+                    <div className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
                     <span className="text-white/90 flex-1 truncate">{item.name}</span>
                     <span className="text-white/60 font-mono">{item.hours}h</span>
-                    <span className="text-white/40 font-mono text-[10px]">({item.percentage}%)</span>
+                    <span className="text-white/40 font-mono text-[9px]">({item.percentage}%)</span>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
             <p className="py-12 text-center text-xs italic text-white/30">
-              Configure categories and complete focus blocks to display breakdowns.
+              Configure categories and complete focus blocks.
             </p>
           )}
         </div>
 
-        <div className="lg:col-span-6 border border-white/5 bg-white/[0.02] dynamic-card p-6">
+        <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6">
+          <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Mood Distribution</h3>
+          {moodDistribution.some(m => m.value > 0) ? (
+            <div className="flex items-center gap-8 justify-around">
+              <div className="w-24 h-24 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={moodDistribution}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={20}
+                      outerRadius={36}
+                      paddingAngle={4}
+                      stroke="none"
+                    >
+                      {moodDistribution.map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-col gap-1.5 flex-1 max-w-[150px]">
+                {moodDistribution.map((item, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-[10px] font-semibold">
+                    <span className="text-xs shrink-0">{item.emoji}</span>
+                    <span className="text-white/90 flex-1 truncate">{item.name}</span>
+                    <span className="text-white/60 font-mono">{item.value}d</span>
+                    <span className="text-white/40 font-mono text-[9px]">({item.percentage}%)</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-24 items-center justify-center text-center">
+              <p className="text-xs italic text-white/30">
+                Log mood in the activity tab to see distribution.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6">
           <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Productivity Metrics</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-2.5">
             {[
               { label: 'TOP SUBJECT', value: topSubject || 'No logs', icon: Award, color: 'text-accent-purple', bg: 'bg-accent-purple/10' },
               { label: 'AVG SESSION LENGTH', value: `${avgMin} min`, icon: Clock, color: 'text-accent-blue', bg: 'bg-accent-blue/10' },
@@ -395,13 +439,13 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
             ].map(insight => {
               const Icon = insight.icon
               return (
-                <div key={insight.label} className="rounded-2xl border border-white/5 bg-black/20 p-4 hover:border-white/10 transition-all flex items-center gap-4">
-                  <div className={`h-9 w-9 rounded-full flex items-center justify-center ${insight.bg}`}>
-                    <Icon className={`h-4.5 w-4.5 ${insight.color}`} />
+                <div key={insight.label} className="rounded-xl border border-white/5 bg-black/20 p-2.5 hover:border-white/10 transition-all flex items-center gap-3">
+                  <div className={`h-7.5 w-7.5 rounded-full flex items-center justify-center shrink-0 ${insight.bg}`}>
+                    <Icon className={`h-3.5 w-3.5 ${insight.color}`} />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1 flex justify-between items-center">
                     <p className="text-[9px] font-bold tracking-wider text-white/40 uppercase">{insight.label}</p>
-                    <p className="text-sm font-extrabold text-white truncate mt-0.5">{insight.value}</p>
+                    <p className="text-xs font-extrabold text-white truncate">{insight.value}</p>
                   </div>
                 </div>
               )
