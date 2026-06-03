@@ -29,7 +29,8 @@ jobs:
       - name: Install dependencies
         run: |
           rm -rf node_modules
-          npm ci --no-audit --no-fund
+          npm install --no-audit --no-fund 2>&1 | tee npm-install.log
+          test -d node_modules/vite
 
       - name: Production build
         run: npm run build
