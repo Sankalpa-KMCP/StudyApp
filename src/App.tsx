@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Brain, BookOpen, Zap, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee, Play, Pause, Check, CheckCircle, Plus, Settings, X, CloudRain, Radio, Keyboard, ArrowLeft, Trash2, Sliders, Volume2, Database, Sparkles, ChevronLeft } from 'lucide-react'
+import { Brain, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee, Play, Pause, Check, CheckCircle, Plus, Settings, X, CloudRain, Radio, Keyboard, Trash2, Sparkles, ChevronLeft } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useTasks, useHistory, useSettings, useTodayLog, useCategories, updateDailyReflection, calculateStreak, calculateXpLevel, calculateProductivityInsights, calculateCategoryBreakdown, calculateMonthLogs, calculateCalendarHeatmapData, calculateSM2 } from './db/hooks'
@@ -188,16 +188,6 @@ function getIntensity(minutes: number): 0 | 1 | 2 | 3 {
 const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-interface MicroCardItem {
-  icon: React.ReactNode
-  label: string
-  value: string
-  badge: { text: string; dot?: boolean }
-  iconBg: string
-  badgeBg: string
-  badgeText: string
-}
-
 const tooltipStyle = {
   background: '#131926',
   border: '1px solid rgba(255,255,255,0.06)',
@@ -205,25 +195,6 @@ const tooltipStyle = {
   outline: 'none',
 }
 
-function MicroCard({ icon, label, value, badge, iconBg, badgeBg, badgeText }: MicroCardItem) {
-  return (
-    <div className="flex items-center justify-between rounded-sm border border-[#1b2333] bg-[#0c0f17] hover:border-[#1b2333] p-4 transition-all duration-300 hover:scale-[1.01] group cursor-default">
-      <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-sm transition-transform duration-300 group-hover:scale-105 ${iconBg}`}>
-          {icon}
-        </div>
-        <div>
-          <p className="text-xs text-slate-400">{label}</p>
-          <p className="text-base font-semibold text-text-primary">{value}</p>
-        </div>
-      </div>
-      <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 transition-all duration-300 ${badgeBg}`}>
-        {badge.dot && <span className="h-1.5 w-1.5 rounded-full bg-accent-amber animate-pulse-soft" />}
-        <span className={`text-xs font-medium ${badgeText}`}>{badge.text}</span>
-      </div>
-    </div>
-  )
-}
 
 function App() {
   const { tasks: sessionTasks, addTask, toggleTask, incrementTaskCycle, isLoading: tasksLoading } = useTasks()
@@ -320,7 +291,6 @@ function App() {
   // Zen Mode, Active View Router & Backups Drag/Drop
   const [isZenMode, setIsZenMode] = useState(false)
   const [activeTab, setActiveTab] = useState<'focus' | 'analytics' | 'journal' | 'settings'>('focus')
-  const [settingsTab, setSettingsTab] = useState<'visual' | 'audio' | 'metrics' | 'vault'>('visual')
   const [isDragging, setIsDragging] = useState(false)
 
   const [activeTaskId, setActiveTaskId] = useState<number | null>(null)
@@ -429,20 +399,6 @@ function App() {
   const totalWeeklyBreakHours = parseFloat((todayBreakMinutes / 60).toFixed(1))
   const todaySessionsDone = sessionTasks.filter(t => t.completed).length
   const totalSessionsTarget = sessionTasks.length
-  const sessionsRemaining = Math.max(totalSessionsTarget - todaySessionsDone, 0)
-
-  const monthlyHistoryEntries = useMemo(() => {
-    return sessionHistory
-      .filter(e => {
-        const parts = e.timestamp.split(' ')
-        if (parts.length < 3) return false
-        const entryMonth = monthNames.indexOf(parts[0])
-        const entryYear = parseInt(parts[2]) || new Date().getFullYear()
-        return entryMonth === currentMonth && entryYear === currentYear
-      })
-      .sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
-  }, [sessionHistory, currentMonth, currentYear])
-  const totalMonthSessions = monthlyHistoryEntries.length + todaySessionsDone
 
   const selectedDayHistory = useMemo(() => {
     return sessionHistory
@@ -468,8 +424,6 @@ function App() {
         intensity: getIntensity(todayStudyMinutes),
       }
     : activeMonthData[selectedDay - 1]
-
-  const chartFocus = dailyGoalMinutes > 0 ? Math.min(Math.round((todayStudyMinutes / dailyGoalMinutes) * 100), 100) : 0
 
   const today = new Date()
   const dayOfWeek = today.getDay()
@@ -1518,293 +1472,310 @@ function App() {
   } as React.CSSProperties
 
   return (
-    <div className="min-h-screen bg-surface font-sans text-text-primary antialiased relative" style={inlineStyles}>
-      <div className={`w-full max-w-[1650px] min-h-screen mx-auto p-4 md:p-6 lg:p-8 flex flex-col justify-between transition-all duration-700 ${
-        isZenMode ? 'opacity-10 blur-md pointer-events-none scale-95' : ''
-      }`}>
-        {/* Modern Top Header / Navigation */}
-        {!isZenMode && (
-          <header className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 mb-6 border-b border-white/5 animate-fade-in">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-accent-blue to-accent-purple shadow-lg shadow-accent-blue/20">
-                <Brain className="h-5.5 w-5.5 text-slate-950 stroke-[2.5]" />
+    <div className="min-h-screen bg-surface font-sans text-text-primary antialiased relative flex flex-col md:flex-row" style={inlineStyles}>
+      
+      {/* Collapsible/Floating Glassmorphic Sidebar */}
+      {!isZenMode && (
+        <aside className="w-full md:w-64 shrink-0 bg-black/20 border-b md:border-b-0 md:border-r border-white/5 p-4 md:p-6 flex flex-col justify-between gap-6 transition-all duration-300 z-20">
+          <div className="flex flex-col gap-6">
+            
+            {/* Branding Logo */}
+            <div className="flex items-center gap-3 px-1">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-accent-blue to-accent-purple shadow-lg shadow-accent-blue/20">
+                <Brain className="h-5 w-5 text-slate-950 stroke-[2.5]" />
               </div>
               <div>
-                <h1 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-text-primary via-slate-200 to-accent-blue bg-clip-text text-transparent">Aether Study</h1>
-                <p className="text-[10px] text-slate-400 font-semibold tracking-wider font-mono">FOCUS SYSTEM ACTIVE</p>
+                <h1 className="text-base font-bold tracking-tight bg-gradient-to-r from-text-primary to-accent-blue bg-clip-text text-transparent">Aether</h1>
+                <p className="text-[9px] text-slate-450 font-bold tracking-widest font-mono uppercase">Study Sanctuary</p>
               </div>
             </div>
 
-            {/* Header Right - User Profile / Stats */}
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-3 bg-white/5 border border-white/5 rounded-2xl px-4 py-2 hover:border-white/10 transition-all duration-300">
+            {/* Streak & Progression Panel */}
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-3 shadow-sm">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Flame className="h-4 w-4 text-orange-500 animate-pulse-soft" />
                   <span className="text-xs font-bold font-mono text-orange-400">{currentStreak} Day Streak</span>
                 </div>
-                <div className="h-4 w-px bg-white/10" />
-                <div className="flex items-center gap-2">
-                  <span className="rounded-lg bg-accent-purple/20 border border-accent-purple/35 px-2 py-0.5 text-[10px] font-extrabold text-accent-purple font-mono tracking-wider">
-                    LV. {level}
-                  </span>
-                  <div className="w-16">
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full bg-accent-purple transition-all duration-300 shadow-[0_0_8px_var(--color-accent-purple)]"
-                        style={{ width: `${xpProgressPercent}%` }}
-                      />
-                    </div>
-                  </div>
+                <span className="rounded-lg bg-accent-purple/20 border border-accent-purple/30 px-2 py-0.5 text-[9px] font-extrabold text-accent-purple font-mono tracking-wider">
+                  LV. {level}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[9px] text-slate-400 font-semibold">
+                  <span>Level Progress</span>
+                  <span>{xpProgressPercent}%</span>
+                </div>
+                <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-accent-purple transition-all duration-300 shadow-[0_0_8px_var(--color-accent-purple)]"
+                    style={{ width: `${xpProgressPercent}%` }}
+                  />
                 </div>
               </div>
+            </div>
 
-              {/* View switchers */}
-              <div className="flex items-center gap-1 rounded-xl bg-white/5 border border-white/5 p-1">
-                <button
-                  onClick={() => setActiveView('dashboard')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
-                    activeView === 'dashboard'
-                      ? 'bg-accent-blue text-slate-950 font-extrabold shadow-md shadow-accent-blue/20'
-                      : 'text-slate-400 hover:text-text-primary'
-                  }`}
-                >
-                  Dashboard
-                </button>
-                <button
-                  onClick={() => setActiveView('settings')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
-                    activeView === 'settings'
-                      ? 'bg-accent-blue text-slate-950 font-extrabold shadow-md shadow-accent-blue/20'
-                      : 'text-slate-400 hover:text-text-primary'
-                  }`}
-                >
-                  Settings
-                </button>
+            {/* Navigation Tabs */}
+            <nav className="flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none">
+              {[
+                { id: 'focus', label: 'Focus Sanctuary', icon: Clock },
+                { id: 'analytics', label: 'Analytics Studio', icon: BarChart3 },
+                { id: 'journal', label: 'Activity Ledger', icon: Calendar },
+                { id: 'settings', label: 'Control Deck', icon: Settings },
+              ].map(tab => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`nav-tab shrink-0 w-full ${isActive ? 'active' : ''} cursor-pointer`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+
+          {/* Sidebar Footer / Keyboard trigger */}
+          <div className="hidden md:flex flex-col gap-3 border-t border-white/5 pt-4">
+            <button
+              onClick={() => setIsHotkeyHudOpen(true)}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-450 hover:bg-white/5 hover:text-text-primary transition-all cursor-pointer"
+            >
+              <Keyboard className="h-4 w-4" />
+              <span>Keyboard Shortcuts</span>
+            </button>
+            <p className="text-[10px] text-slate-555 font-semibold uppercase tracking-wider text-center">
+              Aether Engine v1.0
+            </p>
+          </div>
+        </aside>
+      )}
+
+      {/* Main Workspace Frame */}
+      <main className="flex-1 flex flex-col min-w-0">
+        
+        {/* Mobile top-bar */}
+        {!isZenMode && (
+          <header className="flex md:hidden items-center justify-between px-4 py-3 border-b border-white/5 bg-black/10">
+            <div className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-accent-blue" />
+              <span className="font-bold text-sm bg-gradient-to-r from-text-primary to-accent-blue bg-clip-text text-transparent">Aether</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <Flame className="h-3.5 w-3.5 text-orange-500" />
+                <span className="text-xs font-mono font-bold text-orange-400">{currentStreak}d</span>
               </div>
+              <button
+                onClick={() => setIsHotkeyHudOpen(true)}
+                className="p-1 rounded-lg hover:bg-white/5 text-slate-400"
+              >
+                <Keyboard className="h-4 w-4" />
+              </button>
             </div>
           </header>
         )}
 
-        {activeView === 'dashboard' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full flex-1 animate-fade-in">
-
-          {/* COLUMN 1: Focus Core Command Center */}
-          <div className={`h-full flex flex-col transition-all duration-500 ${
-            isZenMode ? 'mx-auto max-w-2xl w-full flex-1 scale-[1.02]' : ''
-          }`}>
-
-            {/* CARD 1: Today's Progress */}
-            <div className="relative overflow-hidden flex flex-col h-full rounded-2xl border border-white/5 transition-all duration-300 dynamic-card p-5">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-mono tracking-widest text-accent-blue/90 uppercase bg-accent-blue/10 px-2.5 py-0.5 rounded-full border border-accent-blue/20">Chronos // focus</span>
-                <button
-                  onClick={() => setIsZenMode(z => !z)}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
-                    isZenMode
-                      ? 'border-accent-purple/40 bg-accent-purple/20 text-accent-purple shadow-md'
-                      : 'border-white/5 bg-white/5 text-slate-400 hover:text-slate-200 hover:border-white/10 hover:bg-white/10'
-                  }`}
-                  title="Press 'Z' to toggle Zen Mode"
-                >
-                  <Sparkles className="h-3 w-3" />
-                  {isZenMode ? 'Exit Zen' : 'Zen Sanctuary (Z)'}
-                </button>
-              </div>
-
-              <div className="mb-5 flex items-center gap-2">
-                <Target className="h-5 w-5 text-accent-blue" />
-                <h2 className="text-sm font-semibold tracking-wide text-slate-200">Focus Operations</h2>
-              </div>
-
-              <div className="flex flex-col lg:flex-row xl:flex-col gap-6 flex-1 min-h-0">
-                {/* Left - Circular Ring + Stats */}
-                <div className="flex flex-row lg:flex-col xl:flex-row items-center justify-around gap-4 shrink-0 w-full lg:w-44 xl:w-full border-b border-white/5 pb-5 lg:border-b-0 lg:pb-0 xl:border-b xl:pb-5">
-                  <div className="flex flex-col items-center">
-                    <div className="relative flex h-36 w-36 items-center justify-center">
-                      <svg className="absolute h-full w-full -rotate-90" viewBox="0 0 120 120">
-                        <defs>
-                          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                            <feGaussianBlur stdDeviation="4" result="blur" />
-                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                          </filter>
-                        </defs>
-                        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="6" />
-                        <circle
-                          cx="60" cy="60" r="50"
-                          fill="none" stroke="var(--color-accent-blue)"
-                          strokeWidth="7"
-                          strokeLinecap="round"
-                          strokeDasharray="314.16"
-                          strokeDashoffset={String(314.16 * (1 - progress))}
-                          filter="url(#glow)"
-                          style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }}
-                        />
-                      </svg>
-                      <div className="text-center">
-                        <p className="text-2xl font-black text-text-primary font-mono tracking-tight">{formatMinutes(todayStudyMinutes)}</p>
-                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">of {Math.round(dailyGoalMinutes / 60)}h goal</p>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-xs font-bold tracking-wide text-text-secondary uppercase">Focus Time</p>
-                  </div>
-                  <div className="flex flex-col gap-1.5 flex-1 max-w-[200px] w-full">
-                    {[
-                      { label: 'Work Duration', value: formatMinutes(todayStudyMinutes), valueClass: 'text-text-primary font-mono' },
-                      { label: 'Break Cooldown', value: formatMinutes(todayBreakMinutes), valueClass: 'text-text-primary font-mono' },
-                      { label: 'Daily Completion', value: `${progressPercent}%`, valueClass: 'text-accent-green font-bold font-mono' },
-                    ].map((row) => (
-                      <div key={row.label} className="flex items-center justify-between border-b border-white/5 pb-1 last:border-0">
-                        <span className="text-xs text-slate-450 font-medium">{row.label}</span>
-                        <span className={`text-xs font-semibold ${row.valueClass}`}>{row.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {/* Right - Micro Cards */}
-                <div className="flex flex-1 flex-col gap-3 min-h-0 w-full">
-                  {!isZenMode && (
-                    <>
-                      <MicroCard
-                        icon={<Brain className="h-5 w-5 text-accent-purple" />}
-                        label="Focus Efficiency"
-                        value={`${chartFocus}%`}
-                        badge={{ text: '+0% avg' }}
-                        iconBg="bg-accent-purple/10"
-                        badgeBg="bg-accent-purple/10"
-                        badgeText="text-accent-purple"
-                      />
-                      <MicroCard
-                        icon={<BookOpen className="h-5 w-5 text-accent-green" />}
-                        label="Focus Cycles"
-                        value={`${todaySessionsDone} of ${totalSessionsTarget}`}
-                        badge={{ text: sessionsRemaining > 0 ? `${sessionsRemaining} left` : 'Finished' }}
-                        iconBg="bg-accent-green/10"
-                        badgeBg={sessionsRemaining === 0 ? 'bg-accent-blue/10' : 'bg-accent-green/10'}
-                        badgeText={sessionsRemaining === 0 ? 'text-accent-blue' : 'text-accent-green'}
-                      />
-                      <MicroCard
-                        icon={<Zap className={`h-5 w-5 ${currentStreak > 0 ? 'text-accent-amber' : 'text-slate-400'}`} />}
-                        label="Streak Engine"
-                        value={`${currentStreak} days`}
-                        badge={currentStreak > 0 ? { text: 'Active', dot: true } : { text: 'Cooldown' }}
-                        iconBg={currentStreak > 0 ? 'bg-accent-amber/10' : 'bg-white/5'}
-                        badgeBg={currentStreak > 0 ? 'bg-accent-amber/10' : 'bg-white/5'}
-                        badgeText={currentStreak > 0 ? 'text-accent-amber' : 'text-slate-400'}
-                      />
-                    </>
-                  )}
-                  {/* Timer Controls */}
-                  <div className={`flex flex-wrap items-center gap-3 rounded-2xl border px-3 py-2 transition-all duration-300 ${
-                    isLongBreak && timerMode === 'break'
-                      ? 'border-accent-green/30 bg-accent-green/5'
-                      : 'border-white/5 bg-white/5 hover:border-white/10'
-                  }`}>
-                    <div className="flex overflow-hidden rounded-xl border border-white/5 bg-black/20 p-0.5">
-                      <button
-                        onClick={() => handleModeSwitch('study')}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          timerMode === 'study'
-                            ? 'bg-accent-blue text-slate-950 font-extrabold shadow-sm shadow-accent-blue/15'
-                            : 'text-slate-400 hover:text-text-primary'
-                        }`}
-                      >
-                        Study
-                      </button>
-                      <button
-                        onClick={() => handleModeSwitch('break')}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          timerMode === 'break'
-                            ? isLongBreak
-                              ? 'bg-accent-green text-slate-950 font-extrabold shadow-sm shadow-accent-green/15'
-                              : 'bg-accent-amber text-slate-950 font-extrabold shadow-sm shadow-accent-amber/15'
-                            : 'text-slate-400 hover:text-text-primary'
-                        }`}
-                      >
-                        {isLongBreak && timerMode === 'break' ? 'Long Break' : 'Break'}
-                      </button>
-                    </div>
-                    {timerMode === 'study' && !isZenMode && (
-                      <>
-                        <select
-                          value={timerCategoryId ?? ''}
-                          onChange={e => setTimerCategoryId(e.target.value ? Number(e.target.value) : undefined)}
-                          className="rounded-xl border border-white/5 bg-black/25 px-2 py-1 text-xs text-text-primary outline-none focus:border-accent-blue/50 cursor-pointer transition-all"
+        <div className={`flex-1 p-4 md:p-6 lg:p-8 flex flex-col transition-all duration-700 ${
+          isZenMode ? 'opacity-0 scale-95 pointer-events-none' : ''
+        }`}>
+          {!isZenMode && (
+            <div className="flex-1 flex flex-col min-h-0">
+              
+              {/* TAB 1: FOCUS SANCTUARY */}
+              {activeTab === 'focus' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-1 items-start animate-fade-in">
+                  
+                  {/* Left block (Clock & Soundscapes) - Grid 5 */}
+                  <div className="lg:col-span-5 flex flex-col gap-6">
+                    <div className="relative overflow-hidden flex flex-col rounded-2xl border border-white/5 dynamic-card p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <span className="text-[9px] font-mono tracking-widest text-accent-blue/90 uppercase bg-accent-blue/10 px-2.5 py-0.5 rounded-full border border-accent-blue/20">Focus Session</span>
+                        <button
+                          onClick={() => setIsZenMode(true)}
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-bold border border-accent-purple/30 bg-accent-purple/10 text-accent-purple hover:bg-accent-purple/20 transition-all cursor-pointer"
                         >
-                          <option value="" className="bg-surface">Subject</option>
-                          {categories.map(cat => (
-                            <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
-                          ))}
-                        </select>
-                        <div className="h-5 w-px bg-white/10" />
-                      </>
-                    )}
-                    {timerMode !== 'study' && !isZenMode && <div className="h-5 w-px bg-white/10" />}
-                    <span className={`min-w-[45px] text-sm font-black font-mono tracking-tight tabular-nums ${
-                      isLongBreak && timerMode === 'break' ? 'text-accent-green' : 'text-accent-blue'
-                    }`}>
-                      {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
-                    </span>
-                    {/* Cycle progress pips */}
-                    {!isZenMode && (
-                      <div className="flex items-center gap-1.5" title={`${completedSessionsInCycle} of ${targetSessionsPerCycle} sessions in current cycle`}>
-                        {Array.from({ length: targetSessionsPerCycle }, (_, i) => (
-                          <span
-                            key={i}
-                            className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
-                              i < completedSessionsInCycle
-                                ? 'bg-accent-blue scale-125 shadow-[0_0_4px_var(--color-accent-blue)]'
-                                : 'bg-white/10'
-                            }`}
-                          />
-                        ))}
+                          <Sparkles className="h-3 w-3" />
+                          <span>Sanctuary Mode (Z)</span>
+                        </button>
                       </div>
-                    )}
-                    <button
-                      onClick={() => { if (!completingRef.current) setIsTimerActive(a => !a) }}
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-blue/15 text-accent-blue transition-all hover:bg-accent-blue hover:text-slate-950 active:scale-95 cursor-pointer"
-                    >
-                      {isTimerActive ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                    </button>
-                    {(isTimerActive || secondsElapsed > 0) && (
-                      <button
-                        onClick={completeSession}
-                        className="flex items-center gap-1 rounded-lg bg-accent-green/15 text-accent-green border border-accent-green/20 px-2.5 py-1 text-xs font-bold transition-all hover:bg-accent-green hover:text-slate-950 active:scale-95 cursor-pointer"
-                      >
-                        <Check className="h-3 w-3 stroke-[2.5]" />
-                        Complete
-                      </button>
-                    )}
+
+                      {/* Timer Dial Display */}
+                      <div className="flex flex-col items-center py-4 border-b border-white/5">
+                        <div className="relative flex h-44 w-44 items-center justify-center">
+                          <svg className="absolute h-full w-full -rotate-90" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="4" />
+                            <circle
+                              cx="60" cy="60" r="52"
+                              fill="none" stroke="var(--color-accent-blue)"
+                              strokeWidth="5"
+                              strokeLinecap="round"
+                              strokeDasharray="326.7"
+                              strokeDashoffset={String(326.7 * (1 - progress))}
+                              style={{
+                                stroke: timerMode === 'study' ? 'var(--color-accent-blue)' : isLongBreak ? 'var(--color-accent-green)' : 'var(--color-accent-amber)',
+                                transition: 'stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.3s',
+                                filter: `drop-shadow(0 0 8px ${timerMode === 'study' ? 'var(--color-accent-blue)' : isLongBreak ? 'var(--color-accent-green)' : 'var(--color-accent-amber)'}40)`
+                              }}
+                            />
+                          </svg>
+                          <div className="text-center z-10">
+                            <p className="text-4xl font-extrabold text-text-primary font-mono tracking-tight tabular-nums select-none">
+                              {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
+                            </p>
+                            <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider mt-1 select-none">
+                              {timerMode === 'study' ? 'Study Block' : isLongBreak ? 'Long Break' : 'Short Break'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Quick Controls */}
+                        <div className="flex items-center gap-3 mt-6">
+                          <button
+                            onClick={() => handleModeSwitch(timerMode === 'study' ? 'break' : 'study')}
+                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold border border-white/5 bg-white/5 hover:bg-white/10 text-slate-355 hover:text-text-primary transition-all cursor-pointer"
+                          >
+                            Switch to {timerMode === 'study' ? 'Break' : 'Study'}
+                          </button>
+                          
+                          <button
+                            onClick={() => { if (!completingRef.current) setIsTimerActive(a => !a) }}
+                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-blue/15 text-accent-blue hover:bg-accent-blue hover:text-slate-950 transition-all active:scale-95 cursor-pointer"
+                          >
+                            {isTimerActive ? <Pause className="h-4.5 w-4.5" /> : <Play className="h-4.5 w-4.5" />}
+                          </button>
+
+                          {(isTimerActive || secondsElapsed > 0) && (
+                            <button
+                              onClick={completeSession}
+                              className="flex items-center gap-1.5 rounded-xl bg-accent-green/15 text-accent-green border border-accent-green/20 px-3.5 py-1.5 text-xs font-bold transition-all hover:bg-accent-green hover:text-slate-950 active:scale-95 cursor-pointer"
+                            >
+                              <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                              <span>Complete</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Progress Tracker */}
+                        <div className="flex items-center gap-2 mt-4 text-[10px] text-slate-400 font-semibold bg-white/[0.02] border border-white/5 px-3 py-1 rounded-full">
+                          <span>Cycle:</span>
+                          <div className="flex items-center gap-1" title={`${completedSessionsInCycle} of ${targetSessionsPerCycle} completed`}>
+                            {Array.from({ length: targetSessionsPerCycle }, (_, i) => (
+                              <span
+                                key={i}
+                                className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
+                                  i < completedSessionsInCycle
+                                    ? 'bg-accent-blue scale-125 shadow-[0_0_4px_var(--color-accent-blue)]'
+                                    : 'bg-white/10'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Ambient Controls */}
+                      <div className="mt-5 space-y-3">
+                        <p className="text-[10px] font-bold text-slate-450 tracking-wider uppercase">Background Ambience</p>
+                        <div className="flex flex-col gap-2">
+                          {[
+                            { id: 'ambientVolume_rain', label: 'Rain', icon: CloudRain, val: localVolumeRain, colorClass: 'accent-accent-blue', setVal: setLocalVolumeRain, colorName: 'blue' },
+                            { id: 'ambientVolume_cafe', label: 'Cafe Ambiance', icon: Coffee, val: localVolumeCafe, colorClass: 'accent-accent-amber', setVal: setLocalVolumeCafe, colorName: 'amber' },
+                            { id: 'ambientVolume_whiteNoise', label: 'White Noise', icon: Radio, val: localVolumeWhiteNoise, colorClass: 'accent-accent-purple', setVal: setLocalVolumeWhiteNoise, colorName: 'purple' },
+                          ].map(ch => {
+                            const Icon = ch.icon
+                            return (
+                              <div key={ch.id} className="flex items-center gap-3 bg-[#0c0f17]/45 border border-white/5 rounded-xl px-3 py-2 transition-all">
+                                <Icon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                <span className="text-xs font-semibold text-slate-350 w-24 shrink-0">{ch.label}</span>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="1"
+                                  step="0.05"
+                                  value={ch.val}
+                                  onChange={e => {
+                                    const v = parseFloat(e.target.value)
+                                    ch.setVal(v)
+                                    updateSetting(ch.id as SettingsKey, v)
+                                  }}
+                                  className={`flex-1 h-1.5 rounded-full cursor-pointer bg-white/5 outline-none ${ch.colorClass}`}
+                                  style={{ '--color-accent-blue': `var(--color-accent-${ch.colorName})` } as React.CSSProperties}
+                                />
+                                <span className="text-[10px] font-bold text-slate-500 w-7 text-right font-mono">
+                                  {Math.round(ch.val * 100)}%
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  {activeTaskId !== null && (() => {
-                    const activeTask = sessionTasks.find(t => t.id === activeTaskId)
-                    if (!activeTask || activeTask.completed) return null
-                    return (
-                      <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-accent-blue/20 bg-accent-blue/5 px-3 py-2 transition-all animate-slide-in-up">
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Target Focus:</span>
-                        <span className="truncate text-xs font-bold text-accent-blue">{activeTask.text}</span>
-                        <span className="ml-auto whitespace-nowrap text-[11px] font-mono font-bold text-slate-400 flex items-center gap-1 bg-accent-blue/10 px-2 py-0.5 rounded-md border border-accent-blue/10">
-                          <Target className="h-3 w-3 text-accent-blue" />
-                          <span>{activeTask.actualCycles ?? 0}/{activeTask.estimatedCycles ?? 1}</span>
-                        </span>
+
+                  {/* Right block (Task Objectives) - Grid 7 */}
+                  <div className="lg:col-span-7 flex flex-col gap-6 h-full">
+                    <div className="rounded-2xl border border-white/5 dynamic-card p-6 flex flex-col h-full">
+                      <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+                        <div>
+                          <h2 className="text-sm font-bold text-slate-200 tracking-wide">Focus Objectives</h2>
+                          <p className="text-[10px] text-slate-555 font-semibold mt-0.5">Define and check target objectives</p>
+                        </div>
+                        
+                        {timerMode === 'study' && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-slate-450 uppercase font-mono">Active Subject:</span>
+                            <select
+                              value={timerCategoryId ?? ''}
+                              onChange={e => setTimerCategoryId(e.target.value ? Number(e.target.value) : undefined)}
+                              className="rounded-xl border border-white/5 bg-black/20 px-2.5 py-1 text-xs text-text-primary outline-none focus:border-accent-blue/40 cursor-pointer"
+                            >
+                              <option value="" className="bg-surface">General</option>
+                              {categories.map(cat => (
+                                <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                       </div>
-                    )
-                  })()}
-                  {/* Task Planner - Hide in Zen Mode */}
-                  {!isZenMode && (
-                    <div className="flex flex-col flex-1 min-h-[220px] space-y-2.5 mt-2">
-                      <div className="flex flex-wrap items-center gap-2">
+
+                      {/* Active Task Target Indicator */}
+                      {activeTaskId !== null && (() => {
+                        const activeTask = sessionTasks.find(t => t.id === activeTaskId)
+                        if (!activeTask || activeTask.completed) return null
+                        return (
+                          <div className="mb-4 flex items-center gap-3 rounded-xl border border-accent-blue/20 bg-accent-blue/5 px-4 py-3 animate-slide-in-up">
+                            <div className="h-2 w-2 rounded-full bg-accent-blue animate-ping" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[9px] uppercase font-bold tracking-wider text-slate-450">Active Target Focus</p>
+                              <p className="truncate text-xs font-bold text-accent-blue mt-0.5">{activeTask.text}</p>
+                            </div>
+                            <span className="whitespace-nowrap text-xs font-mono font-bold text-slate-450 flex items-center gap-1.5 bg-accent-blue/10 px-2.5 py-1 rounded-lg border border-accent-blue/10">
+                              <Target className="h-3.5 w-3.5 text-accent-blue" />
+                              <span>{activeTask.actualCycles ?? 0}/{activeTask.estimatedCycles ?? 1} Cycles</span>
+                            </span>
+                          </div>
+                        )
+                      })()}
+
+                      {/* Add Task Input Form */}
+                      <div className="flex flex-wrap items-center gap-2 mb-4 bg-white/[0.01] border border-white/5 p-2 rounded-xl">
                         <input
                           data-task-input
                           type="text"
-                          placeholder="Add a target objective..."
-                          className="flex-1 rounded-xl border border-white/5 bg-black/20 focus:bg-black/45 focus:border-accent-blue/40 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all duration-200"
+                          placeholder="What is your next study objective?"
+                          className="flex-1 rounded-xl bg-black/20 focus:bg-black/35 px-3.5 py-2 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all"
                           onKeyDown={(e) => { if (e.key === 'Enter') { const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); handleAddTask((e.target as HTMLInputElement).value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); (e.target as HTMLInputElement).value = '' } }}
                         />
                         <select
                           data-task-category
-                          className="w-24 rounded-xl border border-white/5 bg-black/20 focus:bg-[#07090e] focus:border-accent-blue/40 px-1.5 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
+                          className="w-28 rounded-xl bg-black/20 px-2 py-2 text-xs text-text-primary outline-none cursor-pointer"
                         >
-                          <option value="" className="bg-surface">No category</option>
+                          <option value="" className="bg-surface">No subject</option>
                           {categories.map(cat => (
                             <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
                           ))}
@@ -1813,7 +1784,7 @@ function App() {
                           data-task-cycles
                           value={taskCycleCount}
                           onChange={e => setTaskCycleCount(Number(e.target.value))}
-                          className="w-14 rounded-xl border border-white/5 bg-black/20 focus:bg-[#07090e] focus:border-accent-blue/40 px-1 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
+                          className="w-16 rounded-xl bg-black/20 px-2 py-2 text-xs text-text-primary outline-none cursor-pointer"
                         >
                           {[1,2,3,4,5,6,7,8].map(n => (
                             <option key={n} value={n} className="bg-surface">🎯 {n}</option>
@@ -1821,721 +1792,506 @@ function App() {
                         </select>
                         <button
                           onClick={() => { const input = document.querySelector<HTMLInputElement>('[data-task-input]'); const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); if (input) { handleAddTask(input.value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); input.value = '' } }}
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-blue/15 text-accent-blue hover:bg-accent-blue hover:text-slate-950 transition-all active:scale-95 cursor-pointer"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent-blue/15 text-accent-blue hover:bg-accent-blue hover:text-slate-950 transition-all active:scale-95 cursor-pointer"
                         >
-                          <Plus className="h-3.5 w-3.5" />
+                          <Plus className="h-4 w-4" />
                         </button>
                       </div>
-                      <div className="flex-1 overflow-y-auto min-h-[120px] flex flex-col">
+
+                      {/* Objectives Scroll List */}
+                      <div className="flex-1 overflow-y-auto max-h-[360px] custom-scrollbar flex flex-col gap-1.5 pr-1">
                         {activeTasksList.length === 0 ? (
-                          <div className="flex flex-1 flex-col items-center justify-center h-full min-h-[220px] border border-dashed border-white/5 bg-black/10 rounded-2xl p-6 my-2 text-center transition-all duration-300">
-                            <span className="text-3xl mb-3 animate-pulse-soft">🎯</span>
-                            <p className="text-xs font-bold text-slate-200 max-w-[220px] leading-relaxed">
-                              No focus tasks planned for today.
+                          <div className="flex flex-col items-center justify-center py-12 border border-dashed border-white/5 rounded-2xl bg-black/10 text-center my-2">
+                            <span className="text-4xl mb-3 animate-pulse-soft">🎯</span>
+                            <p className="text-xs font-bold text-slate-350 max-w-[200px] leading-relaxed">
+                              No study objectives set for today.
                             </p>
-                            <p className="text-[11px] text-slate-550 max-w-[200px] mt-1.5 leading-normal">
-                              Add an objective above to lock in your active target focus!
+                            <p className="text-[10px] text-slate-550 max-w-[180px] mt-1.5">
+                              Input an objective above to plan your focus session.
                             </p>
                           </div>
                         ) : (
-                          <div className="space-y-1 my-1">
-                            {activeTasksList.map(task => (
-                              <div
-                                key={task.id}
-                                onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
-                                className={`flex flex-col gap-1 rounded-xl px-3 py-2 transition-all cursor-pointer border border-transparent animate-slide-in-up ${
-                                  activeTaskId === task.id
-                                    ? 'bg-accent-blue/10 border-accent-blue/25 shadow-md shadow-accent-blue/5'
-                                    : 'hover:bg-white/5 hover:border-white/5'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2.5 w-full">
-                                  <div
-                                    onClick={e => { e.stopPropagation(); handleToggleTask(task.id!) }}
-                                    className={`flex h-4.5 w-4.5 shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-all ${
-                                      task.completed ? 'border-accent-blue bg-accent-blue/20 text-accent-blue' : 'border-white/10 bg-black/20 hover:border-white/20'
-                                    }`}
-                                  >
-                                    {task.completed && <Check className="h-3 w-3 stroke-[2.5]" />}
-                                  </div>
-                                  {task.categoryId !== undefined && categoriesMap.has(task.categoryId) && (
-                                    <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: categoriesMap.get(task.categoryId)!.color }} />
-                                  )}
-                                  <span className={`flex-1 truncate text-xs font-semibold ${task.completed ? 'text-slate-450 line-through' : 'text-text-primary'}`}>
-                                    {task.text}
-                                  </span>
-                                  <span className="shrink-0 text-[11px] font-mono font-semibold text-slate-400 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
-                                    <Target className="h-3 w-3 text-accent-blue" />
-                                    <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1}</span>
-                                  </span>
+                          activeTasksList.map(task => (
+                            <div
+                              key={task.id}
+                              onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
+                              className={`flex flex-col gap-2 rounded-xl px-4 py-3 transition-all cursor-pointer border border-transparent ${
+                                activeTaskId === task.id
+                                  ? 'bg-accent-blue/5 border-accent-blue/20 shadow-md shadow-accent-blue/5'
+                                  : 'bg-[#0c0f17]/25 hover:bg-[#0c0f17]/40 hover:border-white/5'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 w-full">
+                                <div
+                                  onClick={e => { e.stopPropagation(); handleToggleTask(task.id!) }}
+                                  className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-all ${
+                                    task.completed ? 'border-accent-blue bg-accent-blue/20 text-accent-blue' : 'border-white/10 bg-black/20 hover:border-white/20'
+                                  }`}
+                                >
+                                  {task.completed && <Check className="h-3.5 w-3.5 stroke-[2.5]" />}
                                 </div>
-
-                                {task.completed && (
-                                  <div className="mt-2 flex flex-col gap-1.5 pl-6 border-l border-white/10" onClick={e => e.stopPropagation()}>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rate your Active Recall (SM-2)</p>
-                                    <div className="flex gap-1.5">
-                                      {[0, 1, 2, 3, 4, 5].map(q => (
-                                        <button
-                                          key={q}
-                                          onClick={(e) => { e.stopPropagation(); submitRecallGrade(task, q) }}
-                                          className="px-2 py-0.5 rounded-md text-[10px] font-extrabold font-mono bg-white/5 hover:bg-accent-purple hover:text-slate-950 border border-white/5 hover:border-accent-purple text-slate-300 transition-all cursor-pointer"
-                                          title={
-                                            q === 0 ? "Complete Blackout" :
-                                            q === 1 ? "Incorrect but remembered" :
-                                            q === 2 ? "Incorrect, easy to recall after looking" :
-                                            q === 3 ? "Correct with serious effort" :
-                                            q === 4 ? "Correct after hesitation" :
-                                            "Perfect response"
-                                          }
-                                        >
-                                          {q}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
+                                
+                                {task.categoryId !== undefined && categoriesMap.has(task.categoryId) && (
+                                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: categoriesMap.get(task.categoryId)!.color }} />
                                 )}
+
+                                <span className={`flex-1 truncate text-xs font-semibold ${task.completed ? 'text-slate-550 line-through' : 'text-text-primary'}`}>
+                                  {task.text}
+                                </span>
+
+                                <span className="shrink-0 text-[10px] font-mono font-semibold text-slate-400 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
+                                  <Target className="h-3 w-3 text-accent-blue" />
+                                  <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1} Cycles</span>
+                                </span>
                               </div>
-                            ))}
+
+                              {/* SM-2 Recall Rating Panel */}
+                              {task.completed && (
+                                <div className="mt-2 pl-8 border-l-2 border-white/5 flex flex-col gap-2 py-1.5" onClick={e => e.stopPropagation()}>
+                                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Rate Active Recall (SM-2 Algorithm)</p>
+                                  <div className="flex gap-1.5">
+                                    {[0, 1, 2, 3, 4, 5].map(q => (
+                                      <button
+                                        key={q}
+                                        onClick={(e) => { e.stopPropagation(); submitRecallGrade(task, q) }}
+                                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono bg-white/5 hover:bg-accent-purple hover:text-slate-950 border border-white/5 hover:border-accent-purple text-slate-350 transition-all cursor-pointer"
+                                        title={
+                                          q === 0 ? "Complete blackout" :
+                                          q === 1 ? "Incorrect but remembered" :
+                                          q === 2 ? "Incorrect; easy to recall after checking" :
+                                          q === 3 ? "Correct with serious effort" :
+                                          q === 4 ? "Correct after hesitation" :
+                                          "Perfect recall"
+                                        }
+                                      >
+                                        {q}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: ANALYTICS STUDIO */}
+              {activeTab === 'analytics' && (
+                <div className="flex flex-col gap-6 w-full flex-1 animate-fade-in">
+                  
+                  {/* Summary Metrics Row */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                      { label: 'Monthly Study Time', value: `${totalMonthHours.toFixed(1)}h`, icon: Clock, iconColor: 'text-accent-blue', bg: 'bg-accent-blue/5' },
+                      { label: 'Weekly Break Cooldown', value: `${totalWeeklyBreakHours}h`, icon: Coffee, iconColor: 'text-accent-amber', bg: 'bg-accent-amber/5' },
+                      { label: 'Active Study Days', value: `${new Set(monthLogs.filter(l => l.studyMinutes > 0).map(l => l.dateString)).size} / ${totalDaysInMonth}`, icon: Calendar, iconColor: 'text-accent-green', bg: 'bg-accent-green/5' },
+                      { label: 'Streak Status', value: `${currentStreak} Days`, icon: Flame, iconColor: 'text-orange-500', bg: 'bg-orange-500/5' },
+                    ].map(item => {
+                      const Icon = item.icon
+                      return (
+                        <div key={item.label} className="rounded-2xl border border-white/5 bg-black/20 p-5 flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] text-slate-455 font-bold uppercase tracking-wider">{item.label}</p>
+                            <p className="text-xl font-extrabold text-text-primary mt-1 font-mono">{item.value}</p>
+                          </div>
+                          <div className={`h-11 w-11 rounded-xl flex items-center justify-center border border-white/5 ${item.bg}`}>
+                            <Icon className={`h-5 w-5 ${item.iconColor}`} />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Recharts Performance Trends */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div className="lg:col-span-8 rounded-2xl border border-white/5 dynamic-card p-6">
+                      <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-5">Weekly Performance Trends</h3>
+                      {hasChartData ? (
+                        <div className="h-[220px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                              <defs>
+                                <linearGradient id="trendsGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor={activeThemeVars.accentBlue} stopOpacity={0.3} />
+                                  <stop offset="100%" stopColor={activeThemeVars.accentBlue} stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" horizontal={true} vertical={false} />
+                              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} />
+                              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} />
+                              <Tooltip contentStyle={tooltipStyle} />
+                              <Area type="monotone" dataKey="hours" stroke={activeThemeVars.accentBlue} strokeWidth={2.5} fill="url(#trendsGrad)" dot={false} />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div className="flex h-[220px] items-center justify-center">
+                          <p className="text-xs text-slate-500 italic">No study hours logged for this period.</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="lg:col-span-4 rounded-2xl border border-white/5 dynamic-card p-6 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-5">Daily Efficiency Index</h3>
+                        {hasChartData ? (
+                          <div className="h-[200px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                                <defs>
+                                  <linearGradient id="effGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor={activeThemeVars.accentBlue} />
+                                    <stop offset="100%" stopColor={activeThemeVars.accentPurple} />
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" horizontal={true} vertical={false} />
+                                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} />
+                                <YAxis hide />
+                                <Tooltip contentStyle={tooltipStyle} formatter={(val) => [`${val}%`, 'Efficiency']} />
+                                <Bar dataKey="focus" fill="url(#effGrad)" radius={[4, 4, 0, 0]} maxBarSize={16} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        ) : (
+                          <div className="flex h-[200px] items-center justify-center">
+                            <p className="text-xs text-slate-500 italic">No activity indexes logged.</p>
                           </div>
                         )}
                       </div>
                     </div>
-                  )}
-                  {/* Ambient Soundscape Mixer - Hide in Zen Mode */}
-                  {!isZenMode && (
-                    <div className="mt-4 border-t border-[#1b2333]/50 pt-3">
-                      <p className="text-[11px] font-semibold text-slate-400 mb-2.5 tracking-wider uppercase">Ambient Soundscapes Mixer</p>
-                      <div className="flex flex-col gap-2">
+                  </div>
+
+                  {/* Subject Breakdown & Insights */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div className="lg:col-span-6 rounded-2xl border border-white/5 dynamic-card p-6">
+                      <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-5">Subject Distribution</h3>
+                      {categoryBreakdown.length > 0 ? (
+                        <div className="flex items-center gap-8 justify-around">
+                          <div className="w-32 h-32 shrink-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={categoryBreakdown}
+                                  dataKey="hours"
+                                  nameKey="name"
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={32}
+                                  outerRadius={48}
+                                  paddingAngle={4}
+                                  stroke="none"
+                                >
+                                  {categoryBreakdown.map((entry, index) => (
+                                    <Cell key={index} fill={entry.color} />
+                                  ))}
+                                </Pie>
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                          <div className="flex flex-col gap-2.5 flex-1 max-w-[220px]">
+                            {categoryBreakdown.map((item, i) => (
+                              <div key={i} className="flex items-center gap-2 text-xs font-semibold">
+                                <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                                <span className="text-text-primary flex-1 truncate">{item.name}</span>
+                                <span className="text-slate-400 font-mono">{item.hours}h</span>
+                                <span className="text-slate-500 font-mono text-[10px]">({item.percentage}%)</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="py-12 text-center text-xs italic text-slate-500">
+                          Configure categories and complete focus blocks to display breakdowns.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="lg:col-span-6 rounded-2xl border border-white/5 dynamic-card p-6">
+                      <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-5">Productivity Metrics</h3>
+                      <div className="grid grid-cols-2 gap-4">
                         {[
-                          { id: 'ambientVolume_rain', label: 'Rain', icon: CloudRain, val: localVolumeRain, colorClass: 'accent-accent-blue', setVal: setLocalVolumeRain },
-                          { id: 'ambientVolume_cafe', label: 'Cafe', icon: Coffee, val: localVolumeCafe, colorClass: 'accent-accent-amber', setVal: setLocalVolumeCafe },
-                          { id: 'ambientVolume_whiteNoise', label: 'White Noise', icon: Radio, val: localVolumeWhiteNoise, colorClass: 'accent-accent-purple', setVal: setLocalVolumeWhiteNoise },
-                        ].map(ch => {
-                          const Icon = ch.icon
+                          { label: 'TOP SUBJECT', value: topSubject || 'No logs', icon: Award, color: 'text-accent-purple', bg: 'bg-accent-purple/5' },
+                          { label: 'AVG SESSION LENGTH', value: `${avgMin} min`, icon: Clock, color: 'text-accent-blue', bg: 'bg-accent-blue/5' },
+                          { label: 'COMPLETION RATIO', value: `${completionRate}%`, icon: CheckCircle, color: 'text-accent-green', bg: 'bg-accent-green/5' },
+                          { label: 'PEAK WORKDAY', value: peakDay || 'No logs', icon: Calendar, color: 'text-accent-amber', bg: 'bg-accent-amber/5' },
+                        ].map(insight => {
+                          const Icon = insight.icon
                           return (
-                            <div key={ch.id} className="flex items-center gap-3 bg-[#0c0f17] border border-[#1b2333] rounded-sm px-3 py-1.5 transition-all duration-200">
-                              <Icon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                              <span className="text-xs font-medium text-slate-300 w-20 shrink-0">{ch.label}</span>
-                              <input
-                                type="range"
-                                min="0"
-                                max="1"
-                                step="0.05"
-                                value={ch.val}
-                                onChange={e => {
-                                  const v = parseFloat(e.target.value)
-                                  ch.setVal(v)
-                                  updateSetting(ch.id as SettingsKey, v)
-                                }}
-                                className={`flex-1 h-1.5 rounded-full cursor-pointer bg-[#1b2333] outline-none ${ch.colorClass}`}
-                                style={{
-                                  '--color-accent-blue': `var(--color-accent-${
-                                    ch.id === 'ambientVolume_rain'
-                                      ? 'blue'
-                                      : ch.id === 'ambientVolume_cafe'
-                                      ? 'amber'
-                                      : 'purple'
-                                  })`
-                                } as React.CSSProperties}
-                              />
-                              <span className="text-[10px] font-semibold text-slate-500 w-6 text-right tabular-nums">
-                                {Math.round(ch.val * 100)}%
-                              </span>
+                            <div key={insight.label} className="rounded-xl border border-white/5 bg-[#0c0f17]/40 p-4 hover:border-white/10 transition-all flex items-center gap-4">
+                              <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${insight.bg}`}>
+                                <Icon className={`h-4.5 w-4.5 ${insight.color}`} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[9px] font-bold tracking-wider text-slate-450 uppercase">{insight.label}</p>
+                                <p className="text-sm font-extrabold text-text-primary truncate mt-0.5">{insight.value}</p>
+                              </div>
                             </div>
                           )
                         })}
-
-                        {/* Alpha Waves (10Hz Binaural Beat) */}
-                        <div className="flex items-center justify-between bg-[#0c0f17] border border-[#1b2333] rounded-sm px-3 py-1.5 transition-all duration-200 mt-1">
-                          <div className="flex items-center gap-3">
-                            <Brain className="h-3.5 w-3.5 text-accent-purple shrink-0" />
-                            <span className="text-xs font-medium text-slate-300">Alpha Waves (10Hz)</span>
-                          </div>
-                          <button
-                            onClick={() => {
-                              const nextVal = !localAlphaWaves
-                              setLocalAlphaWaves(nextVal)
-                              updateSetting('ambient_alphaWaves', nextVal)
-                            }}
-                            className={`relative h-5 w-9 shrink-0 rounded-full transition-all cursor-pointer ${
-                              localAlphaWaves ? 'bg-accent-purple animate-pulse-soft' : 'bg-[#1b2333]'
-                            }`}
-                          >
-                            <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
-                              localAlphaWaves ? 'translate-x-4' : 'translate-x-0'
-                            }`} />
-                          </button>
-                        </div>
-
-                        {/* Tactile Keyboard Click Feedback */}
-                        <div className="flex items-center justify-between bg-[#0c0f17] border border-[#1b2333] rounded-sm px-3 py-1.5 transition-all duration-200 mt-1">
-                          <div className="flex items-center gap-3">
-                            <Keyboard className="h-3.5 w-3.5 text-accent-blue shrink-0" />
-                            <span className="text-xs font-medium text-slate-300">Tactile Thocks</span>
-                          </div>
-                          <button
-                            onClick={() => {
-                              const nextVal = !localTactileFeedback
-                              setLocalTactileFeedback(nextVal)
-                              updateSetting('tactile_feedback', nextVal)
-                            }}
-                            className={`relative h-5 w-9 shrink-0 rounded-full transition-all cursor-pointer ${
-                              localTactileFeedback ? 'bg-accent-blue' : 'bg-[#1b2333]'
-                            }`}
-                          >
-                            <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
-                              localTactileFeedback ? 'translate-x-4' : 'translate-x-0'
-                            }`} />
-                          </button>
-                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-
-        {/* COLUMN 2: Analytical Intelligence Hub */}
-        <div className={`flex flex-col gap-6 h-full transition-all duration-500 ${
-          isZenMode ? 'opacity-0 scale-95 pointer-events-none w-0 h-0 overflow-hidden absolute' : ''
-        }`}>
-
-          {/* CARD 2: Weekly Rhythm */}
-          <div className="rounded-2xl border border-white/5 transition-all duration-300 dynamic-card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-mono tracking-widest text-accent-purple/90 uppercase bg-accent-purple/10 px-2.5 py-0.5 rounded-full border border-accent-purple/20">Rhythm // analytics</span>
-            </div>
-            <div className="mb-5 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-accent-purple" />
-              <h2 className="text-sm font-semibold tracking-wide text-slate-200">Weekly Performance</h2>
-            </div>
-            {/* Top Metrics Row */}
-            <div className="mb-6 grid grid-cols-4 gap-3">
-              {[
-                { label: 'Study time', value: `${totalMonthHours.toFixed(1)}h`, icon: <Clock className="h-3.5 w-3.5 text-accent-blue" /> },
-                { label: 'Break time', value: `${totalWeeklyBreakHours}h`, icon: <Coffee className="h-3.5 w-3.5 text-accent-amber" /> },
-                { label: 'Active days', value: `${new Set(monthLogs.filter(l => l.studyMinutes > 0).map(l => l.dateString)).size}/${totalDaysInMonth}`, icon: <Calendar className="h-3.5 w-3.5 text-accent-green" /> },
-                { label: 'Best day', value: '--', icon: <Award className="h-3.5 w-3.5 text-accent-purple" /> },
-              ].map((m) => (
-                <div key={m.label} className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-black/20 px-3 py-2.5 hover:bg-black/35 hover:border-white/10 transition-all duration-300">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 border border-white/5">
-                    {m.icon}
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{m.label}</p>
-                    <p className="text-xs font-bold font-mono text-text-primary mt-0.5">{m.value}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-            {/* Charts */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-xl border border-white/5 bg-black/20 p-4">
-                <p className="mb-3 text-xs font-bold tracking-wide uppercase text-text-secondary">Focus Hours trend</p>
-                {hasChartData ? (
-                  <ResponsiveContainer width="100%" height={180}>
-                    <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={activeThemeVars.accentBlue} stopOpacity={0.35} />
-                          <stop offset="100%" stopColor={activeThemeVars.accentBlue} stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" horizontal={true} vertical={false} />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} domain={[0, 12]} />
-                      <Tooltip
-                        contentStyle={tooltipStyle}
-                        labelStyle={{ color: '#94A3B8', fontSize: 11, fontWeight: 700 }}
-                        itemStyle={{ color: '#F8FAFC', fontSize: 12 }}
-                      />
-                      <Area type="monotone" dataKey="hours" stroke={activeThemeVars.accentBlue} strokeWidth={2} fill="url(#areaGradient)" dot={false} activeDot={{ r: 4, fill: activeThemeVars.accentBlue }} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex h-[180px] items-center justify-center">
-                    <p className="text-xs text-slate-500 italic">No study data available for this week yet.</p>
-                  </div>
-                )}
-              </div>
-              <div className="rounded-xl border border-white/5 bg-black/20 p-4">
-                <p className="mb-3 text-xs font-bold tracking-wide uppercase text-text-secondary">Daily efficiency index</p>
-                {hasChartData ? (
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={activeThemeVars.accentBlue} />
-                          <stop offset="100%" stopColor={activeThemeVars.accentPurple} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" horizontal={true} vertical={false} />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} tickFormatter={(v: string) => v.charAt(0)} />
-                      <YAxis hide />
-                      <Tooltip
-                        contentStyle={tooltipStyle}
-                        labelStyle={{ color: '#94A3B8', fontSize: 11, fontWeight: 700 }}
-                        formatter={(value) => [`${value}%`, 'Focus']}
-                      />
-                      <Bar dataKey="focus" fill="url(#barGradient)" radius={[4, 4, 0, 0]} maxBarSize={20} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex h-[180px] items-center justify-center">
-                    <p className="text-xs text-slate-500 italic">No study data available for this week yet.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            {/* Productivity Insights */}
-            <div className="rounded-xl border border-white/5 bg-black/20 p-4 mt-4">
-              <p className="mb-3.5 text-xs font-bold uppercase tracking-wider text-slate-400">Productivity Analytics</p>
-              <div className="grid grid-cols-4 gap-3">
-                {[
-                  { label: 'TOP SUBJECT', value: topSubject, icon: <Award className="h-3.5 w-3.5 text-accent-purple" />, valueClass: 'text-accent-purple' },
-                  { label: 'AVG SESSION', value: `${avgMin} min`, icon: <Clock className="h-3.5 w-3.5 text-accent-blue" />, valueClass: 'text-accent-blue' },
-                  { label: 'COMPLETION', value: `${completionRate}%`, icon: <CheckCircle className="h-3.5 w-3.5 text-accent-green" />, valueClass: 'text-accent-green' },
-                  { label: 'PEAK DAY', value: peakDay, icon: <Calendar className="h-3.5 w-3.5 text-accent-amber" />, valueClass: 'text-accent-amber' },
-                ].map(m => (
-                  <div key={m.label} className="rounded-xl border border-white/5 bg-white/5 p-3 hover:border-white/10 hover:bg-white/10 transition-all duration-300 shadow-sm">
-                    <div className="mb-2 flex items-center gap-1.5">
-                      {m.icon}
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{m.label}</span>
-                    </div>
-                    <p className={`text-xs font-black truncate uppercase tracking-tight ${m.valueClass}`}>{m.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* CARD 3: This Month */}
-          <div className="rounded-2xl border border-white/5 transition-all duration-300 dynamic-card p-5">
-            <div className="mb-5 flex items-center gap-2">
-              <Flame className="h-5 w-5 text-accent-amber" />
-              <h2 className="text-sm font-semibold tracking-wide text-slate-200">Session Totals (Current Month)</h2>
-              <div className="ml-auto flex items-center gap-2">
-                <button
-                  onClick={() => setIsHotkeyHudOpen(true)}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-450 transition-all hover:bg-white/5 hover:text-text-primary"
-                  title="Keyboard shortcuts"
-                >
-                  <Keyboard className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setActiveView('settings')}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-450 transition-all hover:bg-white/5 hover:text-text-primary cursor-pointer"
-                  title="Open configuration deck"
-                >
-                  <Settings className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 divide-x divide-white/5">
-              <div className="flex flex-col items-center px-4 first:pl-0">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/5">
-                    <Clock className="h-5 w-5 text-accent-blue" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-450 font-semibold uppercase tracking-wider">Total Hours</p>
-                    <p className="text-lg font-black font-mono mt-0.5 text-text-primary">{totalMonthHours.toFixed(1)}h</p>
-                  </div>
-                </div>
-                <div className="mt-3.5 h-1 w-full max-w-[200px] rounded-full bg-accent-blue/20 overflow-hidden">
-                  <div className="h-full bg-accent-blue rounded-full" style={{ width: `${Math.min(100, totalMonthHours * 2.5)}%` }} />
-                </div>
-              </div>
-              <div className="flex flex-col items-center px-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/5">
-                    <BookOpen className="h-5 w-5 text-accent-purple" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-455 font-semibold uppercase tracking-wider">Sessions</p>
-                    <p className="text-lg font-black font-mono mt-0.5 text-text-primary">{totalMonthSessions}</p>
-                  </div>
-                </div>
-                <div className="mt-4 flex gap-1">
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`h-1 w-1.5 rounded-sm transition-all duration-300 ${i < Math.min(totalMonthSessions, 10) && totalMonthSessions > 0 ? 'bg-accent-purple shadow-[0_0_4px_var(--color-accent-purple)]' : 'bg-white/10'}`}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-col items-center px-4 last:pr-0">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/5">
-                    <Target className="h-5 w-5 text-accent-green" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-450 font-semibold uppercase tracking-wider">Avg / Day</p>
-                    <p className="text-lg font-black font-mono mt-0.5 text-text-primary">{(totalDaysInMonth > 0 ? (totalMonthHours / totalDaysInMonth).toFixed(1) : '0.0')}h</p>
-                  </div>
-                </div>
-                <div className="mt-3.5 h-1 w-full max-w-[200px] rounded-full bg-accent-green/20 overflow-hidden">
-                  <div className="h-full bg-accent-green rounded-full" style={{ width: `${Math.min(100, (totalMonthHours / (totalDaysInMonth || 1)) * 25)}%` }} />
-                </div>
-              </div>
-            </div>
-            {/* Category Breakdown */}
-            <div className="mt-6 border-t border-white/5 pt-5">
-              <p className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Category breakdown</p>
-              {categoryBreakdown.length > 0 ? (
-                <div className="flex items-center gap-6">
-                  <div className="w-[120px] h-[120px] shrink-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={categoryBreakdown}
-                          dataKey="hours"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={28}
-                          outerRadius={45}
-                          paddingAngle={3}
-                          stroke="none"
-                        >
-                          {categoryBreakdown.map((entry, index) => (
-                            <Cell key={index} fill={entry.color} />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex flex-col gap-2 flex-1">
-                    {categoryBreakdown.map((item, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs font-semibold">
-                        <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                        <span className="text-text-primary flex-1">{item.name}</span>
-                        <span className="text-slate-400 font-mono">{item.hours}h</span>
-                        <span className="text-slate-500 font-mono">({item.percentage}%)</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <p className="py-4 text-center text-xs italic text-slate-500">
-                  No category distributions recorded yet. Start a session to see your subject breakdown!
-                </p>
               )}
-            </div>
-          </div>
-        </div>
 
-        {/* COLUMN 3: Historical Ledger & Reflection Space */}
-        <div className={`flex flex-col gap-6 transition-all duration-500 ${
-          isZenMode ? 'opacity-0 scale-95 pointer-events-none w-0 h-0 overflow-hidden absolute' : ''
-        }`}>
+              {/* TAB 3: ACTIVITY LEDGER */}
+              {activeTab === 'journal' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-1 items-start animate-fade-in">
+                  
+                  {/* Left Block (Calendar & Heatmap) - Grid 5 */}
+                  <div className="lg:col-span-5 flex flex-col gap-6">
+                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
+                      <div className="flex items-center justify-between mb-5">
+                        <span className="text-[9px] font-mono tracking-widest text-accent-amber/90 uppercase bg-accent-amber/10 px-2.5 py-0.5 rounded-full border border-accent-amber/20">Activity Ledger</span>
+                      </div>
+                      
+                      {/* Calendar Navigation header */}
+                      <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-5 w-5 text-accent-blue" />
+                          <span className="text-sm font-bold text-slate-200">{monthNames[currentMonth]} {currentYear}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={goPrevMonth} className="h-7 w-7 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-bold transition-all flex items-center justify-center cursor-pointer">‹</button>
+                          <button onClick={goNextMonth} className="h-7 w-7 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-bold transition-all flex items-center justify-center cursor-pointer">›</button>
+                          <select
+                            value={calendarCategoryFilter === 'all' ? 'all' : String(calendarCategoryFilter)}
+                            onChange={e => setCalendarCategoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                            className="rounded-xl border border-white/5 bg-black/25 px-2.5 py-1 text-xs text-text-secondary outline-none cursor-pointer"
+                          >
+                            <option value="all" className="bg-surface">All Subjects</option>
+                            {categories.map(cat => (
+                              <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
 
-          {/* CARD 4: Monthly Overview */}
-          <div className="flex flex-col rounded-2xl border border-white/5 transition-all duration-300 dynamic-card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] font-mono tracking-widest text-accent-amber/90 uppercase bg-accent-amber/10 px-2.5 py-0.5 rounded-full border border-accent-amber/20">Ledger // archive</span>
-            </div>
-            {/* Month Header */}
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-accent-blue" />
-                <h2 className="text-sm font-semibold tracking-wide text-slate-200">{monthNames[currentMonth]} {currentYear}</h2>
-              </div>
-              <div className="flex items-center gap-1.5 text-slate-400">
-                <button onClick={goPrevMonth} className="flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-colors hover:bg-white/5 hover:text-text-primary cursor-pointer">‹</button>
-                <span className="text-xs font-bold">{monthNames[currentMonth]} {currentYear}</span>
-                <button onClick={goNextMonth} className="flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-colors hover:bg-white/5 hover:text-text-primary cursor-pointer">›</button>
-                <select
-                  value={calendarCategoryFilter === 'all' ? 'all' : String(calendarCategoryFilter)}
-                  onChange={e => setCalendarCategoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                  className="ml-1 rounded-xl border border-white/5 bg-black/25 px-2.5 py-1 text-xs text-text-secondary outline-none cursor-pointer"
-                >
-                  <option value="all" className="bg-surface">All Subjects</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            {/* Day Labels */}
-            <div className="mb-2 grid grid-cols-7 gap-1">
-              {dayNames.map((d) => (
-                <div key={d} className="py-0.5 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">{d}</div>
-              ))}
-            </div>
-            {/* Calendar Grid */}
-            <div className="mb-5 grid grid-cols-7 gap-1.5">
-              {(() => {
-                const accentBlueRgb = hexToRgb(activeThemeVars.accentBlue) || { r: 56, g: 189, b: 248 }
-                const accentBlueRgbStr = `${accentBlueRgb.r}, ${accentBlueRgb.g}, ${accentBlueRgb.b}`
+                      {/* Day Label Grids */}
+                      <div className="grid grid-cols-7 gap-1 mb-2 text-center">
+                        {dayNames.map(d => (
+                          <div key={d} className="text-[9px] font-bold text-slate-550 uppercase tracking-widest">{d}</div>
+                        ))}
+                      </div>
 
-                const getIntensityStyle = (intensity: 0 | 1 | 2 | 3) => {
-                  if (intensity === 0) return { backgroundColor: 'rgba(255, 255, 255, 0.04)' }
-                  const opacity = intensity === 1 ? '0.25' : intensity === 2 ? '0.6' : '1.0'
-                  return {
-                    backgroundColor: `rgba(${accentBlueRgbStr}, ${opacity})`,
-                    color: intensity === 3 ? '#080b11' : '#ffffff'
-                  }
-                }
+                      {/* Heatmap Matrix grid */}
+                      <div className="grid grid-cols-7 gap-2">
+                        {(() => {
+                          const accentBlueRgb = hexToRgb(activeThemeVars.accentBlue) || { r: 56, g: 189, b: 248 }
+                          const accentBlueRgbStr = `${accentBlueRgb.r}, ${accentBlueRgb.g}, ${accentBlueRgb.b}`
 
-                return dynamicGridCells.map((cell, i) => {
-                  const dayData = cell ? activeMonthData[cell - 1] : null
-                  const isLiveDay = isLiveMonth && cell === totalDaysInMonth
-                  const intensity = isLiveDay ? getIntensity(todayStudyMinutes) : (dayData?.intensity ?? 0)
-                  return cell ? (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedDay(cell)}
-                      className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all duration-150 cursor-pointer ${
-                        cell === selectedDay
-                          ? 'ring-2 ring-accent-blue text-text-primary scale-110 z-10 shadow-md shadow-accent-blue/15'
-                          : 'hover:ring-1 hover:ring-accent-blue/40'
-                      }`}
-                      style={cell === selectedDay ? { backgroundColor: activeThemeVars.accentBlue, color: '#080b11' } : getIntensityStyle(intensity)}
-                    >
-                      {cell}
-                    </button>
-                  ) : (
-                    <div key={i} className="aspect-square" />
-                  )
-                })
-              })()}
-            </div>
-            {/* Heatmap Legend */}
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 text-[10px] text-slate-400 border-b border-white/5 pb-4">
-              <div className="flex items-center gap-3">
-                {(() => {
-                  const accentBlueRgb = hexToRgb(activeThemeVars.accentBlue) || { r: 56, g: 189, b: 248 }
-                  const accentBlueRgbStr = `${accentBlueRgb.r}, ${accentBlueRgb.g}, ${accentBlueRgb.b}`
+                          const getIntensityStyle = (intensity: 0 | 1 | 2 | 3) => {
+                            if (intensity === 0) return { backgroundColor: 'rgba(255, 255, 255, 0.03)' }
+                            const opacity = intensity === 1 ? '0.25' : intensity === 2 ? '0.6' : '1.0'
+                            return {
+                              backgroundColor: `rgba(${accentBlueRgbStr}, ${opacity})`,
+                              color: intensity === 3 ? '#080b11' : '#ffffff'
+                            }
+                          }
 
-                  const getIntensityStyle = (intensity: 0 | 1 | 2 | 3) => {
-                    if (intensity === 0) return { backgroundColor: 'rgba(255, 255, 255, 0.04)' }
-                    const opacity = intensity === 1 ? '0.25' : intensity === 2 ? '0.6' : '1.0'
-                    return { backgroundColor: `rgba(${accentBlueRgbStr}, ${opacity})` }
-                  }
+                          return dynamicGridCells.map((cell, i) => {
+                            const dayData = cell ? activeMonthData[cell - 1] : null
+                            const isLiveDay = isLiveMonth && cell === totalDaysInMonth
+                            const intensity = isLiveDay ? getIntensity(todayStudyMinutes) : (dayData?.intensity ?? 0)
+                            return cell ? (
+                              <button
+                                key={i}
+                                onClick={() => setSelectedDay(cell)}
+                                className={`aspect-square rounded-xl flex items-center justify-center text-xs font-bold transition-all cursor-pointer ${
+                                  cell === selectedDay
+                                    ? 'ring-2 ring-accent-blue text-text-primary scale-110 z-10 shadow-md shadow-accent-blue/15'
+                                    : 'hover:ring-1 hover:ring-accent-blue/30'
+                                }`}
+                                style={cell === selectedDay ? { backgroundColor: activeThemeVars.accentBlue, color: '#080b11' } : getIntensityStyle(intensity)}
+                              >
+                                {cell}
+                              </button>
+                            ) : (
+                              <div key={i} className="aspect-square" />
+                            )
+                          })
+                        })()}
+                      </div>
 
-                  return [
-                    { label: '0-1h', intensity: 0 },
-                    { label: '1-2h', intensity: 1 },
-                    { label: '2-3h', intensity: 2 },
-                    { label: '3+h', intensity: 3 },
-                  ].map((item) => (
-                    <div key={item.label} className="flex items-center gap-1.5 font-semibold">
-                      <div className="h-3 w-3 rounded-md border border-white/5" style={getIntensityStyle(item.intensity as 0|1|2|3)} />
-                      <span>{item.label}</span>
+                      {/* Legend scale */}
+                      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[9px] text-slate-550 border-t border-white/5 pt-4">
+                        <div className="flex items-center gap-3">
+                          {(() => {
+                            const accentBlueRgb = hexToRgb(activeThemeVars.accentBlue) || { r: 56, g: 189, b: 248 }
+                            const accentBlueRgbStr = `${accentBlueRgb.r}, ${accentBlueRgb.g}, ${accentBlueRgb.b}`
+
+                            const getIntensityStyle = (intensity: 0 | 1 | 2 | 3) => {
+                              if (intensity === 0) return { backgroundColor: 'rgba(255, 255, 255, 0.03)' }
+                              const opacity = intensity === 1 ? '0.25' : intensity === 2 ? '0.6' : '1.0'
+                              return { backgroundColor: `rgba(${accentBlueRgbStr}, ${opacity})` }
+                            }
+
+                            return [
+                              { label: '0-1h', intensity: 0 },
+                              { label: '1-2h', intensity: 1 },
+                              { label: '2-3h', intensity: 2 },
+                              { label: '3+h', intensity: 3 },
+                            ].map(item => (
+                              <div key={item.label} className="flex items-center gap-1 font-bold">
+                                <div className="h-2.5 w-2.5 rounded-md border border-white/5" style={getIntensityStyle(item.intensity as any)} />
+                                <span>{item.label}</span>
+                              </div>
+                            ))
+                          })()}
+                        </div>
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <span>Low</span>
+                          {[0.3, 0.6, 1].map((opacity, i) => (
+                            <div key={i} className="h-2 w-2 rounded-full" style={{ backgroundColor: activeThemeVars.accentBlue, opacity }} />
+                          ))}
+                          <span>High</span>
+                        </div>
+                      </div>
                     </div>
-                  ))
-                })()}
-              </div>
-              <div className="flex items-center gap-1.5 font-semibold">
-                <span>Low</span>
-                {[0.3, 0.5, 0.75, 1].map((opacity, i) => (
-                  <div key={i} className="h-2 w-2 rounded-full" style={{ backgroundColor: activeThemeVars.accentBlue, opacity }} />
-                ))}
-                <span>High</span>
-              </div>
-            </div>
-            {/* Selected Day Panel */}
-            <div className="mt-auto rounded-2xl border border-white/5 bg-black/20 p-5">
-              <div className="mb-4 flex items-start justify-between">
-                <div>
-                  <p className="text-[9px] font-bold tracking-wider text-accent-blue uppercase">Selected Day Logs</p>
-                  <p className="text-sm font-extrabold text-text-primary mt-0.5">{liveDay.dayName}, {selectedDay} {monthNames[currentMonth]}</p>
-                </div>
-                {isLiveMonth && selectedDay === totalDaysInMonth && (
-                  <div className="flex items-center gap-1.5 rounded-full bg-accent-green/10 border border-accent-green/20 px-3 py-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-accent-green animate-pulse-soft" />
-                    <span className="text-[10px] font-bold text-accent-green uppercase tracking-wide">Active</span>
                   </div>
-                )}
-              </div>
-              <div className="mb-3 grid grid-cols-3 gap-4">
-                <div>
-                  <p className="mb-0.5 text-[10px] font-semibold text-slate-450 uppercase">Study{calendarCategoryFilter !== 'all' ? ` (${categories.find(c => c.id === calendarCategoryFilter)?.name ?? 'Unknown'})` : ''}</p>
-                  <p className="text-base font-bold font-mono text-accent-blue">{liveDay.studyTime}</p>
-                </div>
-                <div>
-                  <p className="mb-0.5 text-[10px] font-semibold text-slate-450 uppercase">Breaks</p>
-                  <p className="text-base font-bold font-mono text-accent-amber">{liveDay.breakTime}</p>
-                </div>
-                <div>
-                  <p className="mb-0.5 text-[10px] font-semibold text-slate-450 uppercase">Focus ratio</p>
-                  <p className="text-base font-bold font-mono text-accent-green">{liveDay.focusRatio}</p>
-                </div>
-              </div>
-              <p className="border-t border-white/5 pt-3 text-xs font-semibold text-slate-400">
-                {liveDay.sessionsCompleted} sessions completed · score {liveDay.focusScore}
-              </p>
-              {/* Mood Selector */}
-              <div className="mt-4 flex flex-wrap gap-2">
-                {[
-                  { label: 'Focused', emoji: '🧠', value: 'focused' },
-                  { label: 'Energetic', emoji: '⚡', value: 'energetic' },
-                  { label: 'Tired', emoji: '🥱', value: 'tired' },
-                  { label: 'Distracted', emoji: '🌪', value: 'distracted' },
-                ].map(m => (
-                  <button
-                    key={m.value}
-                    onClick={() => handleMoodSelect(m.value)}
-                    className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                      draftMood === m.value
-                        ? 'border-accent-blue/30 bg-accent-blue/15 text-accent-blue shadow-md'
-                        : 'border-white/5 bg-black/20 text-slate-400 hover:border-white/10 hover:text-text-primary'
-                    }`}
-                  >
-                    <span>{m.emoji}</span>
-                    <span>{m.label}</span>
-                  </button>
-                ))}
-              </div>
-              {/* Reflection Textarea */}
-              <textarea
-                value={draftNotes}
-                onChange={e => handleNotesChange(e.target.value)}
-                placeholder="Write a brief reflection on your focus, hurdles, or wins for this day..."
-                rows={3}
-                className="mt-3 w-full resize-none rounded-xl border border-white/5 bg-black/20 focus:bg-black/45 focus:border-accent-blue/40 px-3 py-2.5 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all duration-200"
-              />
 
-              {/* Daily Focus Horizon */}
-              <div className="mt-4 border-t border-white/5 pt-4">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">Daily Focus Horizon</p>
-                <div className="relative w-full bg-black/10 border border-white/5 rounded-2xl p-4">
-                  {/* Timeline Bar */}
-                  <div className="relative h-5 w-full bg-black/30 rounded-xl border border-white/5 overflow-hidden">
-                    {/* Time ticks / grid */}
-                    <div className="absolute inset-0 flex justify-between pointer-events-none text-[8px] text-slate-600 font-mono">
-                      <div className="h-full border-r border-white/5" style={{ left: '25%' }} />
-                      <div className="h-full border-r border-white/5" style={{ left: '50%' }} />
-                      <div className="h-full border-r border-white/5" style={{ left: '75%' }} />
-                    </div>
+                  {/* Right Block (Reflection notes & Focus timeline) - Grid 7 */}
+                  <div className="lg:col-span-7 flex flex-col gap-6">
+                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
+                      <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+                        <div>
+                          <p className="text-[9px] font-bold text-accent-blue uppercase tracking-widest">Day Journal reflections</p>
+                          <h3 className="text-sm font-bold text-text-primary mt-0.5">
+                            {liveDay.dayName}, {selectedDay} {monthNames[currentMonth]} {currentYear}
+                          </h3>
+                        </div>
+                        {isLiveMonth && selectedDay === totalDaysInMonth && (
+                          <span className="flex items-center gap-1 bg-accent-green/10 border border-accent-green/20 rounded-full px-2.5 py-0.5 text-[9px] font-bold text-accent-green uppercase">
+                            <span className="h-1 w-1 bg-accent-green rounded-full animate-ping" />
+                            <span>Today</span>
+                          </span>
+                        )}
+                      </div>
 
-                    {/* Mapped study and break sessions */}
-                    {selectedDayHistory.map((entry, idx) => {
-                      const parts = entry.timestamp.split(' ')
-                      if (parts.length < 3) return null
-                      const timePart = parts[2]
-                      const [hours, minutes] = timePart.split(':').map(Number)
-                      if (isNaN(hours) || isNaN(minutes)) return null
-                      
-                      const endMinute = hours * 60 + minutes
-                      const startMinute = Math.max(0, endMinute - entry.durationMinutes)
-                      
-                      const startPercent = (startMinute / 1440) * 100
-                      const widthPercent = ((endMinute - startMinute) / 1440) * 100
-                      
-                      const isStudy = entry.type === 'study'
-                      const titleText = `${isStudy ? 'Deep Work Cycle' : 'Break Time'}: ${entry.durationMinutes}m (ending at ${timePart})`
-                      
-                      return (
-                        <div
-                          key={idx}
-                          title={titleText}
-                          className="absolute top-0 h-full rounded-md transition-all hover:scale-y-110 cursor-pointer z-10"
-                          style={{
-                            left: `${startPercent}%`,
-                            width: `${widthPercent}%`,
-                            backgroundColor: isStudy ? activeThemeVars.accentBlue : activeThemeVars.accentAmber,
-                            boxShadow: `0 0 6px ${isStudy ? activeThemeVars.accentBlue : activeThemeVars.accentAmber}60`
-                          }}
+                      {/* Day summary numbers */}
+                      <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div className="bg-white/[0.01] p-3 rounded-xl border border-white/5">
+                          <span className="text-[9px] font-bold text-slate-505 uppercase block">Study block</span>
+                          <span className="text-base font-extrabold text-accent-blue mt-0.5 font-mono">{liveDay.studyTime}</span>
+                        </div>
+                        <div className="bg-white/[0.01] p-3 rounded-xl border border-white/5">
+                          <span className="text-[9px] font-bold text-slate-505 uppercase block">Break cooldown</span>
+                          <span className="text-base font-extrabold text-accent-amber mt-0.5 font-mono">{liveDay.breakTime}</span>
+                        </div>
+                        <div className="bg-white/[0.01] p-3 rounded-xl border border-white/5">
+                          <span className="text-[9px] font-bold text-slate-505 uppercase block">Efficiency score</span>
+                          <span className="text-base font-extrabold text-accent-green mt-0.5 font-mono">{liveDay.focusScore}</span>
+                        </div>
+                      </div>
+
+                      {/* Mood calibration deck */}
+                      <div className="mb-4">
+                        <p className="text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-2">Track Mood</p>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { label: 'Focused', emoji: '🧠', value: 'focused' },
+                            { label: 'Energetic', emoji: '⚡', value: 'energetic' },
+                            { label: 'Tired', emoji: '🥱', value: 'tired' },
+                            { label: 'Distracted', emoji: '🌪', value: 'distracted' },
+                          ].map(m => {
+                            const isSelected = draftMood === m.value
+                            return (
+                              <button
+                                key={m.value}
+                                onClick={() => handleMoodSelect(m.value)}
+                                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'border-accent-blue/30 bg-accent-blue/15 text-accent-blue shadow-md'
+                                    : 'border-white/5 bg-[#0c0f17]/40 text-slate-455 hover:border-white/10 hover:text-text-primary'
+                                }`}
+                              >
+                                <span>{m.emoji}</span>
+                                <span>{m.label}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Text reflection input */}
+                      <div className="mb-4">
+                        <p className="text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-2">Reflection log</p>
+                        <textarea
+                          value={draftNotes}
+                          onChange={e => handleNotesChange(e.target.value)}
+                          placeholder="How did you perform? Note down any wins, hurdles, or focal points for today..."
+                          rows={3}
+                          className="w-full resize-none rounded-xl border border-white/5 bg-[#0c0f17]/40 focus:bg-black/20 focus:border-accent-blue/40 px-3.5 py-3 text-xs text-text-primary placeholder:text-slate-550 outline-none transition-all duration-200"
                         />
-                      )
-                    })}
-                  </div>
-                  {/* Timeline labels */}
-                  <div className="flex justify-between text-[8px] text-slate-500 font-mono mt-1.5 px-1 select-none">
-                    <span>00:00</span>
-                    <span>06:00</span>
-                    <span>12:00</span>
-                    <span>18:00</span>
-                    <span>24:00</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    ) : (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 w-full flex-1">
-            {/* Sidebar Pane (Col-span 1) */}
-            <div className="md:col-span-1 rounded-sm border border-[#1b2333] dynamic-card p-5 flex flex-col justify-between">
-              <div className="space-y-6">
-                <button
-                  onClick={() => setActiveView('dashboard')}
-                  className="flex items-center gap-2 text-xs font-semibold text-slate-450 hover:text-text-primary transition-colors cursor-pointer"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  <span>Back to Dashboard</span>
-                </button>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-200">Control Deck</h2>
-                  <p className="text-xs text-slate-500 mt-1">Config and customization</p>
-                </div>
-                <nav className="flex flex-col gap-2 mt-4">
-                  <button
-                    onClick={() => setSettingsTab('visual')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-semibold transition-all cursor-pointer ${
-                      settingsTab === 'visual'
-                        ? 'bg-accent-blue text-slate-950 border border-accent-blue shadow-md shadow-accent-blue/15'
-                        : 'text-[#64748b] hover:bg-[#0c0f17] hover:text-text-primary border border-transparent'
-                    }`}
-                  >
-                    <Sliders className="h-4 w-4" />
-                    <span>Visual Theme</span>
-                  </button>
-                  <button
-                    onClick={() => setSettingsTab('audio')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-semibold transition-all cursor-pointer ${
-                      settingsTab === 'audio'
-                        ? 'bg-accent-blue text-slate-950 border border-accent-blue shadow-md shadow-accent-blue/15'
-                        : 'text-[#64748b] hover:bg-[#0c0f17] hover:text-text-primary border border-transparent'
-                    }`}
-                  >
-                    <Volume2 className="h-4 w-4" />
-                    <span>Audio Soundscape</span>
-                  </button>
-                  <button
-                    onClick={() => setSettingsTab('metrics')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-semibold transition-all cursor-pointer ${
-                      settingsTab === 'metrics'
-                        ? 'bg-accent-blue text-slate-950 border border-accent-blue shadow-md shadow-accent-blue/15'
-                        : 'text-[#64748b] hover:bg-[#0c0f17] hover:text-text-primary border border-transparent'
-                    }`}
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    <span>Focus & Categories</span>
-                  </button>
-                  <button
-                    onClick={() => setSettingsTab('vault')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-semibold transition-all cursor-pointer ${
-                      settingsTab === 'vault'
-                        ? 'bg-accent-blue text-slate-950 border border-accent-blue shadow-md shadow-accent-blue/15'
-                        : 'text-[#64748b] hover:bg-[#0c0f17] hover:text-text-primary border border-transparent'
-                    }`}
-                  >
-                    <Database className="h-4 w-4" />
-                    <span>Vault Backup</span>
-                  </button>
-                </nav>
-              </div>
-              <div className="border-t border-[#1b2333] pt-4 mt-6">
-                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
-                  <span>Phase 24 Engine</span>
-                </div>
-              </div>
-            </div>
+                      </div>
 
-            {/* Configuration Workspace (Col-span 3) */}
-            <div className="md:col-span-3 flex flex-col gap-6">
-              {settingsTab === 'visual' && (
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                  <div className="xl:col-span-2 flex flex-col gap-6">
-                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
-                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Select Theme Profile</h3>
+                      {/* Visual 24h study timeline */}
+                      <div className="border-t border-white/5 pt-4">
+                        <p className="text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-2.5">Focus Horizon Timeline (24h)</p>
+                        <div className="relative w-full bg-black/10 border border-white/5 rounded-2xl p-4">
+                          <div className="relative h-6 w-full bg-black/30 rounded-xl border border-white/5 overflow-hidden">
+                            <div className="absolute inset-0 flex justify-between pointer-events-none text-[8px] text-slate-700 font-mono">
+                              <div className="h-full border-r border-white/5" style={{ left: '25%' }} />
+                              <div className="h-full border-r border-white/5" style={{ left: '50%' }} />
+                              <div className="h-full border-r border-white/5" style={{ left: '75%' }} />
+                            </div>
+
+                            {selectedDayHistory.map((entry, idx) => {
+                              const parts = entry.timestamp.split(' ')
+                              if (parts.length < 3) return null
+                              const timePart = parts[2]
+                              const [hours, minutes] = timePart.split(':').map(Number)
+                              if (isNaN(hours) || isNaN(minutes)) return null
+                              
+                              const endMinute = hours * 60 + minutes
+                              const startMinute = Math.max(0, endMinute - entry.durationMinutes)
+                              const startPercent = (startMinute / 1440) * 100
+                              const widthPercent = ((endMinute - startMinute) / 1440) * 100
+                              const isStudy = entry.type === 'study'
+                              
+                              return (
+                                <div
+                                  key={idx}
+                                  title={`${isStudy ? 'Focus block' : 'Break time'}: ${entry.durationMinutes}m (ending ${timePart})`}
+                                  className="absolute top-0 h-full rounded-md transition-all hover:scale-y-110 cursor-pointer"
+                                  style={{
+                                    left: `${startPercent}%`,
+                                    width: `${widthPercent}%`,
+                                    backgroundColor: isStudy ? activeThemeVars.accentBlue : activeThemeVars.accentAmber,
+                                    boxShadow: `0 0 6px ${isStudy ? activeThemeVars.accentBlue : activeThemeVars.accentAmber}50`
+                                  }}
+                                />
+                              )
+                            })}
+                          </div>
+                          <div className="flex justify-between text-[8px] text-slate-555 font-mono mt-1.5 px-1 select-none">
+                            <span>00:00</span>
+                            <span>06:00</span>
+                            <span>12:00</span>
+                            <span>18:00</span>
+                            <span>24:00</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: CONTROL DECK (SETTINGS) */}
+              {activeTab === 'settings' && (
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 w-full flex-1 items-start animate-fade-in">
+                  
+                  {/* Left settings pane - Grid 8 */}
+                  <div className="xl:col-span-8 flex flex-col gap-6">
+                    
+                    {/* Visual Themes profile */}
+                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
+                      <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-4">Workspace Theme Profiles</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {Object.entries(THEME_PROFILES).map(([key, profile]) => {
                           const isSelected = theme === key
@@ -2544,28 +2300,28 @@ function App() {
                             <button
                               key={key}
                               onClick={() => updateSetting('theme', key)}
-                              className={`relative flex flex-col text-left p-4 rounded-sm border transition-all cursor-pointer group ${
+                              className={`relative flex flex-col text-left p-4 rounded-xl border transition-all cursor-pointer group ${
                                 isSelected
-                                  ? 'border-accent-blue bg-accent-blue/10'
-                                  : 'border-[#1b2333] bg-[#0c0f17] hover:border-[#1b2333] '
+                                  ? 'border-accent-blue bg-accent-blue/5 shadow-md'
+                                  : 'border-white/5 bg-[#0c0f17]/40 hover:border-white/10 hover:bg-[#0c0f17]/65'
                               }`}
                             >
                               <div className="flex items-center justify-between mb-3 w-full">
                                 <span className="text-xs font-bold text-slate-200">{displayName}</span>
                                 {isSelected && (
-                                  <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-accent-blue text-slate-950">
-                                    <Check className="h-3 w-3 stroke-[3]" />
+                                  <span className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-accent-blue text-slate-950">
+                                    <Check className="h-3.5 w-3.5 stroke-[3]" />
                                   </span>
                                 )}
                               </div>
-                              <div className="flex gap-2.5">
-                                <span className="h-4.5 w-4.5 rounded-full border border-[#1b2333]" style={{ backgroundColor: profile.surface }} title="Background" />
-                                <span className="h-4.5 w-4.5 rounded-full border border-[#1b2333]" style={{ backgroundColor: profile.surfaceCard }} title="Cards" />
-                                <div className="h-4 w-px bg-[#1b2333]" />
-                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentBlue }} title="Primary Blue Accent" />
-                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentPurple }} title="Purple Accent" />
-                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentGreen }} title="Green Accent" />
-                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentAmber }} title="Amber Accent" />
+                              <div className="flex gap-2 text-slate-400">
+                                <span className="h-4.5 w-4.5 rounded-full border border-white/5" style={{ backgroundColor: profile.surface }} title="Background" />
+                                <span className="h-4.5 w-4.5 rounded-full border border-white/5" style={{ backgroundColor: profile.surfaceCard }} title="Cards" />
+                                <div className="h-4 w-px bg-white/10" />
+                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentBlue }} title="Primary" />
+                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentPurple }} title="Secondary" />
+                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentGreen }} title="Cycle break" />
+                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentAmber }} title="Intermission" />
                               </div>
                             </button>
                           )
@@ -2573,12 +2329,13 @@ function App() {
                       </div>
                     </div>
 
-                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
-                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-5">Translucency & Frosting</h3>
+                    {/* Translucency sliders */}
+                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
+                      <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-5">Translucency & Backdrop Blur Frosting</h3>
                       <div className="space-y-6">
                         <div>
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-semibold text-slate-300">Card Opacity</span>
+                            <span className="text-xs font-semibold text-slate-350">Card Backdrop Opacity</span>
                             <span className="text-xs font-bold text-accent-blue">{Math.round(cardOpacity * 100)}%</span>
                           </div>
                           <input
@@ -2588,17 +2345,17 @@ function App() {
                             step="0.05"
                             value={cardOpacity}
                             onChange={e => updateSetting('cardOpacity', parseFloat(e.target.value))}
-                            className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-[#1b2333] outline-none"
+                            className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-white/5 outline-none"
                           />
-                          <div className="mt-1 flex justify-between text-[10px] text-slate-500 font-semibold">
-                            <span>20% (Max Glass)</span>
-                            <span>90% (Max Solid)</span>
+                          <div className="mt-1 flex justify-between text-[9px] text-slate-500 font-semibold uppercase">
+                            <span>Max Translucency</span>
+                            <span>Solid background</span>
                           </div>
                         </div>
 
                         <div>
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-semibold text-slate-300">Backdrop Frosting Blur</span>
+                            <span className="text-xs font-semibold text-slate-350">Frosting blur size</span>
                             <span className="text-xs font-bold text-accent-blue">{backdropBlur}px</span>
                           </div>
                           <input
@@ -2608,254 +2365,66 @@ function App() {
                             step="1"
                             value={backdropBlur}
                             onChange={e => updateSetting('backdropBlur', parseInt(e.target.value))}
-                            className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-[#1b2333] outline-none"
+                            className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-white/5 outline-none"
                           />
-                          <div className="mt-1 flex justify-between text-[10px] text-slate-500 font-semibold">
-                            <span>4px (Sharp)</span>
-                            <span>24px (Muted Frost)</span>
+                          <div className="mt-1 flex justify-between text-[9px] text-slate-500 font-semibold uppercase">
+                            <span>Sharp layout</span>
+                            <span>Heavy blur</span>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
-                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Typography Calibration</h3>
-                      <div className="space-y-4">
+
+                    {/* Calibration controls */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="rounded-2xl border border-white/5 dynamic-card p-6 flex flex-col justify-between">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-300 mb-2">Developer Font Family</label>
-                          <select
-                            value={localDeveloperFont}
-                            onChange={e => {
-                              const val = e.target.value
-                              setLocalDeveloperFont(val)
-                              updateSetting('developer_font', val)
-                            }}
-                            className="w-full rounded-sm border border-[#1b2333] bg-[#0c0f17] px-3 py-2 text-xs text-text-primary outline-none focus:border-accent-blue/50 cursor-pointer transition-all"
-                          >
-                            <option value="JetBrains Mono">JetBrains Mono (Console default)</option>
-                            <option value="Fira Code">Fira Code (Ligature ready)</option>
-                            <option value="SF Mono">SF Mono (System premium)</option>
-                            <option value="Inter">Inter (Sans-serif modern)</option>
-                          </select>
-                          <p className="mt-1.5 text-[10px] text-slate-500 font-semibold">
-                            Applies immediately to all user interface panels and timer text overlays.
-                          </p>
+                          <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-3">Sound completions</h3>
+                          <p className="text-xs text-slate-505 leading-relaxed">Play chime ring when focus study cycles complete</p>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="xl:col-span-1">
-                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5 flex flex-col h-full">
-                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Sandbox Preview</h3>
-                      <div className="flex-1 flex flex-col items-center justify-center p-4 rounded-sm border border-[#1b2333] bg-[#07090e] relative overflow-hidden min-h-[280px] w-full">
-                        <div className="absolute top-1/4 left-1/4 h-28 w-28 rounded-full bg-accent-blue/30 blur-2xl animate-pulse-soft" />
-                        <div className="absolute bottom-1/4 right-1/4 h-24 w-24 rounded-full bg-accent-purple/35 blur-2xl" />
-                        <div className="absolute top-1/2 right-1/3 h-16 w-16 rounded-full bg-accent-amber/20 blur-xl" />
-
-                        <div className="relative w-full max-w-[240px] space-y-3.5 z-10">
-                          <div className="flex items-center justify-between px-1">
-                            <span className="h-3 w-16 rounded bg-slate-700/65" />
-                            <div className="flex gap-1">
-                              <span className="h-3.5 w-3.5 rounded-full bg-accent-blue/20 flex items-center justify-center"><span className="h-1.5 w-1.5 rounded-full bg-accent-blue" /></span>
-                              <span className="h-3.5 w-3.5 rounded-full bg-accent-purple/20 flex items-center justify-center"><span className="h-1.5 w-1.5 rounded-full bg-accent-purple" /></span>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="rounded-sm border border-[#1b2333] dynamic-card p-2.5 space-y-2">
-                              <div className="flex justify-between items-center">
-                                <span className="h-2 w-8 rounded bg-slate-700/65" />
-                                <span className="h-2.5 w-2.5 rounded bg-accent-blue/20" />
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <div className="relative h-7 w-7 rounded-full border-2 border-[#1b2333] flex items-center justify-center">
-                                  <div className="h-4.5 w-4.5 rounded-full border-2 border-accent-blue border-r-transparent animate-spin-slow" />
-                                  <span className="absolute text-[8px] font-bold text-accent-blue scale-90">65</span>
-                                </div>
-                                <div className="flex-1 space-y-1">
-                                  <span className="h-1.5 w-full rounded bg-slate-700/65 block" />
-                                  <span className="h-1 w-6 rounded bg-slate-700/65 block" />
-                                </div>
-                              </div>
-                            </div>
-                            <div className="rounded-sm border border-[#1b2333] dynamic-card p-2.5 space-y-2">
-                              <div className="flex justify-between items-center">
-                                <span className="h-2 w-10 rounded bg-slate-700/65" />
-                                <span className="h-2.5 w-2.5 rounded bg-accent-purple/20" />
-                              </div>
-                              <div className="space-y-1.5">
-                                <div className="flex items-center gap-1">
-                                  <span className="h-2.5 w-2.5 rounded border border-accent-blue/50 flex items-center justify-center bg-accent-blue/10"><Check className="h-2.5 w-2.5 text-accent-blue" /></span>
-                                  <span className="h-1.5 w-12 rounded bg-slate-700/40" />
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <span className="h-2.5 w-2.5 rounded border border-[#1b2333]" />
-                                  <span className="h-1.5 w-10 rounded bg-slate-700/40" />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="rounded-sm border border-[#1b2333] dynamic-card p-2.5 space-y-2">
-                            <span className="h-2 w-12 rounded bg-slate-700/65 block" />
-                            <div className="h-8 flex items-end gap-1.5 px-1 bg-[#0c0f17] rounded border border-slate-900/50 p-1">
-                              {[30, 45, 60, 40, 75, 90, 50].map((h, idx) => (
-                                <div key={idx} className="flex-1 bg-gradient-to-t from-accent-blue to-accent-purple rounded-t-sm" style={{ height: `${h}%` }} />
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-slate-500 font-semibold mt-3 text-center">
-                        Glow spheres preview glassmorphism depth. Adjust opacity and blur to check transparency blending.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {settingsTab === 'audio' && (
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                  <div className="xl:col-span-2 flex flex-col gap-6">
-                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
-                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-5">Ambient Soundscapes Mixer</h3>
-                      <div className="flex flex-col gap-4">
-                        {[
-                          { id: 'ambientVolume_rain', label: 'Rain soundscape', icon: CloudRain, val: localVolumeRain, colorClass: 'accent-accent-blue', setVal: setLocalVolumeRain },
-                          { id: 'ambientVolume_cafe', label: 'Cafe ambiance', icon: Coffee, val: localVolumeCafe, colorClass: 'accent-accent-amber', setVal: setLocalVolumeCafe },
-                          { id: 'ambientVolume_whiteNoise', label: 'White Noise floor', icon: Radio, val: localVolumeWhiteNoise, colorClass: 'accent-accent-purple', setVal: setLocalVolumeWhiteNoise },
-                        ].map(ch => {
-                          const Icon = ch.icon
-                          return (
-                            <div key={ch.id} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-[#0c0f17] border border-[#1b2333] rounded-sm px-4 py-3 transition-all duration-200">
-                              <div className="flex items-center gap-3 w-36 shrink-0">
-                                <Icon className="h-4 w-4 text-slate-400" />
-                                <span className="text-xs font-semibold text-slate-300">{ch.label}</span>
-                              </div>
-                              <input
-                                type="range"
-                                min="0"
-                                max="1"
-                                step="0.05"
-                                value={ch.val}
-                                onChange={e => {
-                                  const v = parseFloat(e.target.value)
-                                  ch.setVal(v)
-                                  updateSetting(ch.id as SettingsKey, v)
-                                }}
-                                className={`flex-1 h-1.5 rounded-full cursor-pointer bg-[#1b2333] outline-none ${ch.colorClass}`}
-                                style={{
-                                  '--color-accent-blue': `var(--color-accent-${
-                                    ch.id === 'ambientVolume_rain'
-                                      ? 'blue'
-                                      : ch.id === 'ambientVolume_cafe'
-                                      ? 'amber'
-                                      : 'purple'
-                                  })`
-                                } as React.CSSProperties}
-                              />
-                              <span className="text-xs font-bold text-slate-400 w-10 text-right tabular-nums">
-                                {Math.round(ch.val * 100)}%
-                              </span>
-                            </div>
-                          )
-                        })}
-
-                        {/* Deep Focus Alpha Waves (10Hz Beat) */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0c0f17] border border-[#1b2333] rounded-sm px-4 py-3 transition-all duration-200">
-                          <div className="flex items-center gap-3">
-                            <Brain className="h-4 w-4 text-accent-purple shrink-0" />
-                            <div>
-                              <span className="text-xs font-semibold text-slate-300 block">Deep Focus Alpha Waves</span>
-                              <span className="text-[10px] text-slate-500 font-medium">Binaural 10Hz brainwave beat (100Hz Left / 110Hz Right)</span>
-                            </div>
-                          </div>
+                        <div className="flex items-center justify-between mt-4 bg-[#0c0f17]/40 border border-white/5 px-4 py-2.5 rounded-xl">
+                          <span className="text-xs font-semibold text-slate-350">Status: {soundEnabled ? 'Enabled' : 'Muted'}</span>
                           <button
-                            onClick={() => {
-                              const nextVal = !localAlphaWaves
-                              setLocalAlphaWaves(nextVal)
-                              updateSetting('ambient_alphaWaves', nextVal)
-                            }}
-                            className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${
-                              localAlphaWaves ? 'bg-accent-purple animate-pulse-soft' : 'bg-[#1b2333]'
-                            }`}
+                            onClick={() => updateSetting('soundEnabled', !soundEnabled)}
+                            className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${soundEnabled ? 'bg-accent-blue' : 'bg-white/5 border border-white/5'}`}
                           >
-                            <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                              localAlphaWaves ? 'translate-x-5' : 'translate-x-0'
-                            }`} />
+                            <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                           </button>
                         </div>
+                      </div>
 
-                        {/* Tactile Keyboard Click Feedback */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0c0f17] border border-[#1b2333] rounded-sm px-4 py-3 transition-all duration-200">
-                          <div className="flex items-center gap-3">
-                            <Keyboard className="h-4 w-4 text-accent-blue shrink-0" />
-                            <div>
-                              <span className="text-xs font-semibold text-slate-300 block">Tactile Thocks</span>
-                              <span className="text-[10px] text-slate-500 font-medium">Synthesizes a mechanical keyboard brown switch thock on keystrokes and controls</span>
-                            </div>
-                          </div>
+                      <div className="rounded-2xl border border-white/5 dynamic-card p-6 flex flex-col justify-between">
+                        <div>
+                          <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-3">Zen lock boundaries</h3>
+                          <p className="text-xs text-slate-505 leading-relaxed">Enforce boundaries: Hides exit navigation controls inside active study blocks</p>
+                        </div>
+                        <div className="flex items-center justify-between mt-4 bg-[#0c0f17]/40 border border-white/5 px-4 py-2.5 rounded-xl">
+                          <span className="text-xs font-semibold text-slate-350">Status: {localEnforceLockout ? 'Active' : 'Bypassed'}</span>
                           <button
                             onClick={() => {
-                              const nextVal = !localTactileFeedback
-                              setLocalTactileFeedback(nextVal)
-                              updateSetting('tactile_feedback', nextVal)
+                              const nextVal = !localEnforceLockout
+                              setLocalEnforceLockout(nextVal)
+                              updateSetting('enforce_lockout', nextVal)
                             }}
-                            className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${
-                              localTactileFeedback ? 'bg-accent-blue' : 'bg-[#1b2333]'
-                            }`}
+                            className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${localEnforceLockout ? 'bg-accent-purple animate-pulse-soft' : 'bg-white/5 border border-white/5'}`}
                           >
-                            <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                              localTactileFeedback ? 'translate-x-5' : 'translate-x-0'
-                            }`} />
+                            <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${localEnforceLockout ? 'translate-x-5' : 'translate-x-0'}`} />
                           </button>
                         </div>
                       </div>
                     </div>
 
-                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-1">Sound Effects</h3>
-                          <p className="text-xs text-slate-400">Play responsive chime when study or break timer cycles complete</p>
-                        </div>
-                        <button
-                          onClick={() => updateSetting('soundEnabled', !soundEnabled)}
-                          className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${soundEnabled ? 'bg-accent-blue' : 'bg-[#1b2333]'}`}
-                        >
-                          <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-1">Enforce Session Boundary</h3>
-                          <p className="text-xs text-slate-400">Hides the exit navigation controls inside Zen Mode while the study session is active</p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            const nextVal = !localEnforceLockout
-                            setLocalEnforceLockout(nextVal)
-                            updateSetting('enforce_lockout', nextVal)
-                          }}
-                          className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${localEnforceLockout ? 'bg-accent-purple animate-pulse-soft' : 'bg-[#1b2333]'}`}
-                        >
-                          <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${localEnforceLockout ? 'translate-x-5' : 'translate-x-0'}`} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="xl:col-span-1 flex flex-col gap-6">
-                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
-                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Preset Snapshots</h3>
-                      <div className="space-y-3.5 mb-5 border-b border-[#1b2333] pb-5">
-                        <p className="text-xs text-slate-400">Save your current environmental volume balance as a preset snapshot.</p>
-                        <div className="flex flex-col gap-2">
+                    {/* Environment preset creator */}
+                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
+                      <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-4">Environment Sound Presets</h3>
+                      <div className="space-y-4 mb-4 pb-4 border-b border-white/5">
+                        <p className="text-xs text-slate-505">Save your active environmental audio track volume mixes as a dynamic profile preset.</p>
+                        <div className="flex gap-2">
                           <input
                             id="preset-name-input"
                             type="text"
-                            placeholder="Preset Name (e.g. Rain Cafe)"
-                            className="rounded-sm border border-[#1b2333] bg-[#0c0f17] focus:bg-slate-950 focus:border-accent-blue/50 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all duration-200"
+                            placeholder="Preset Label (e.g. Rainy Cafe Study)"
+                            className="flex-1 rounded-xl border border-white/5 bg-[#0c0f17]/40 focus:bg-black/20 focus:border-accent-blue/40 px-3.5 py-2 text-xs text-text-primary outline-none transition-all"
                             onKeyDown={e => {
                               if (e.key === 'Enter') {
                                 const val = (e.target as HTMLInputElement).value?.trim()
@@ -2863,12 +2432,7 @@ function App() {
                                 const newPreset = {
                                   id: Date.now(),
                                   name: val,
-                                  volumes: {
-                                    rain: localVolumeRain,
-                                    cafe: localVolumeCafe,
-                                    whiteNoise: localVolumeWhiteNoise,
-                                    alphaWaves: localAlphaWaves
-                                  }
+                                  volumes: { rain: localVolumeRain, cafe: localVolumeCafe, whiteNoise: localVolumeWhiteNoise, alphaWaves: localAlphaWaves }
                                 }
                                 updateSetting('audio_presets', [...audio_presets, newPreset])
                                 ;(e.target as HTMLInputElement).value = ''
@@ -2883,62 +2447,44 @@ function App() {
                               const newPreset = {
                                 id: Date.now(),
                                 name: val,
-                                volumes: {
-                                    rain: localVolumeRain,
-                                    cafe: localVolumeCafe,
-                                    whiteNoise: localVolumeWhiteNoise,
-                                    alphaWaves: localAlphaWaves
-                                }
+                                volumes: { rain: localVolumeRain, cafe: localVolumeCafe, whiteNoise: localVolumeWhiteNoise, alphaWaves: localAlphaWaves }
                               }
                               updateSetting('audio_presets', [...audio_presets, newPreset])
                               if (el) el.value = ''
                             }}
-                            className="w-full rounded-sm bg-accent-blue text-slate-950 border border-accent-blue px-3 py-1.5 text-xs font-semibold hover:bg-accent-blue/90 active:scale-95 transition-all cursor-pointer text-center"
+                            className="rounded-xl bg-accent-blue text-slate-950 border border-accent-blue px-4 py-2 text-xs font-bold hover:bg-accent-blue/90 transition-all cursor-pointer"
                           >
-                            Save Balance Preset
+                            Save Preset
                           </button>
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Saved Presets</p>
+                      <div className="space-y-2.5">
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Active Presets</p>
                         {audio_presets.length === 0 ? (
-                          <p className="text-xs italic text-slate-500 py-2">No audio presets saved yet.</p>
+                          <p className="text-xs italic text-slate-500 py-2">No custom environmental presets created yet.</p>
                         ) : (
-                          <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto custom-scrollbar pr-1">
                             {audio_presets.map((preset: any) => (
                               <div
                                 key={preset.id}
-                                className="flex items-center justify-between rounded-sm bg-[#0c0f17] border border-[#1b2333] p-2.5 group hover:border-[#1b2333] transition-all"
+                                className="flex items-center justify-between rounded-xl bg-[#0c0f17]/40 border border-white/5 p-3 hover:border-white/10 group transition-all"
                               >
                                 <div
-                                  className="flex-1 cursor-pointer"
+                                  className="flex-1 cursor-pointer min-w-0"
                                   onClick={() => {
                                     const vols = preset.volumes || {}
-                                    if (vols.rain !== undefined) {
-                                      setLocalVolumeRain(vols.rain)
-                                      updateSetting('ambientVolume_rain', vols.rain)
-                                    }
-                                    if (vols.cafe !== undefined) {
-                                      setLocalVolumeCafe(vols.cafe)
-                                      updateSetting('ambientVolume_cafe', vols.cafe)
-                                    }
-                                    if (vols.whiteNoise !== undefined) {
-                                      setLocalVolumeWhiteNoise(vols.whiteNoise)
-                                      updateSetting('ambientVolume_whiteNoise', vols.whiteNoise)
-                                    }
-                                    if (vols.alphaWaves !== undefined) {
-                                      setLocalAlphaWaves(vols.alphaWaves)
-                                      updateSetting('ambient_alphaWaves', vols.alphaWaves)
-                                    }
+                                    if (vols.rain !== undefined) { setLocalVolumeRain(vols.rain); updateSetting('ambientVolume_rain', vols.rain) }
+                                    if (vols.cafe !== undefined) { setLocalVolumeCafe(vols.cafe); updateSetting('ambientVolume_cafe', vols.cafe) }
+                                    if (vols.whiteNoise !== undefined) { setLocalVolumeWhiteNoise(vols.whiteNoise); updateSetting('ambientVolume_whiteNoise', vols.whiteNoise) }
+                                    if (vols.alphaWaves !== undefined) { setLocalAlphaWaves(vols.alphaWaves); updateSetting('ambient_alphaWaves', vols.alphaWaves) }
                                   }}
                                 >
-                                  <p className="text-xs font-semibold text-slate-200">{preset.name}</p>
-                                  <p className="text-[10px] text-slate-500 mt-0.5 font-medium font-mono">
+                                  <p className="text-xs font-bold text-slate-200 truncate">{preset.name}</p>
+                                  <p className="text-[9px] text-slate-500 mt-1 font-mono font-bold">
                                     🌧️ {Math.round((preset.volumes?.rain ?? 0) * 100)}% · 
                                     ☕ {Math.round((preset.volumes?.cafe ?? 0) * 100)}% · 
-                                    📻 {Math.round((preset.volumes?.whiteNoise ?? 0) * 100)}% · 
-                                    🧠 Alpha: {preset.volumes?.alphaWaves ? 'On' : 'Off'}
+                                    📻 {Math.round((preset.volumes?.whiteNoise ?? 0) * 100)}%
                                   </p>
                                 </div>
                                 <button
@@ -2946,9 +2492,9 @@ function App() {
                                     const filtered = audio_presets.filter((p: any) => p.id !== preset.id)
                                     updateSetting('audio_presets', filtered)
                                   }}
-                                  className="p-1 rounded text-slate-550 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <Trash2 className="h-4 w-4" />
                                 </button>
                               </div>
                             ))}
@@ -2956,188 +2502,25 @@ function App() {
                         )}
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
 
-              {settingsTab === 'metrics' && (
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                  <div className="xl:col-span-2 flex flex-col gap-6">
-                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
-                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-5">Target Focus Metrics</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="flex flex-col justify-between bg-[#0c0f17] border border-[#1b2333] rounded-sm p-4">
-                          <div>
-                            <p className="text-xs font-semibold text-slate-300">Daily Study Goal</p>
-                            <p className="text-[10px] text-slate-505 mt-0.5 font-medium">Target study minutes per day</p>
-                          </div>
-                          <div className="flex items-center justify-between mt-4">
-                            <button
-                              onClick={() => updateSetting('dailyGoalMinutes', Math.max(120, dailyGoalMinutes - 60))}
-                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-350 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
-                            >
-                              -
-                            </button>
-                            <span className="text-xs font-bold text-slate-200">{Math.round(dailyGoalMinutes / 60)} hours</span>
-                            <button
-                              onClick={() => updateSetting('dailyGoalMinutes', Math.min(720, dailyGoalMinutes + 60))}
-                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-350 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col justify-between bg-[#0c0f17] border border-[#1b2333] rounded-sm p-4">
-                          <div>
-                            <p className="text-xs font-semibold text-slate-300">Sessions per Cycle</p>
-                            <p className="text-[10px] text-slate-505 mt-0.5 font-medium">Study intervals before long breaks</p>
-                          </div>
-                          <div className="flex items-center justify-between mt-4">
-                            <button
-                              onClick={() => updateSetting('targetSessionsPerCycle', Math.max(2, targetSessionsPerCycle - 1))}
-                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-350 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
-                            >
-                              -
-                            </button>
-                            <span className="text-xs font-bold text-slate-200">{targetSessionsPerCycle} sessions</span>
-                            <button
-                              onClick={() => updateSetting('targetSessionsPerCycle', Math.min(6, targetSessionsPerCycle + 1))}
-                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-350 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col justify-between bg-[#0c0f17] border border-[#1b2333] rounded-sm p-4">
-                          <div>
-                            <p className="text-xs font-semibold text-slate-300">Short Break Duration</p>
-                            <p className="text-[10px] text-slate-505 mt-0.5 font-medium">Breather length between cycles</p>
-                          </div>
-                          <div className="flex items-center justify-between mt-4">
-                            <button
-                              onClick={() => updateSetting('shortBreakDurationMinutes', Math.max(3, shortBreakDurationMinutes - 1))}
-                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-300 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold"
-                            >
-                              -
-                            </button>
-                            <span className="text-xs font-bold text-slate-200">{shortBreakDurationMinutes} minutes</span>
-                            <button
-                              onClick={() => updateSetting('shortBreakDurationMinutes', Math.min(15, shortBreakDurationMinutes + 1))}
-                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-300 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col justify-between bg-[#0c0f17] border border-[#1b2333] rounded-sm p-4">
-                          <div>
-                            <p className="text-xs font-semibold text-slate-300">Long Break Duration</p>
-                            <p className="text-[10px] text-slate-505 mt-0.5 font-medium">Cooldown limit after target cycles</p>
-                          </div>
-                          <div className="flex items-center justify-between mt-4">
-                            <button
-                              onClick={() => updateSetting('longBreakDurationMinutes', Math.max(10, longBreakDurationMinutes - 5))}
-                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-300 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
-                            >
-                              -
-                            </button>
-                            <span className="text-xs font-bold text-slate-200">{longBreakDurationMinutes} minutes</span>
-                            <button
-                              onClick={() => updateSetting('longBreakDurationMinutes', Math.min(30, longBreakDurationMinutes + 5))}
-                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-300 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="xl:col-span-1">
-                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5 flex flex-col h-full">
-                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Subject Categories</h3>
-                      <div className="flex gap-2 mb-4">
-                        <input
-                          value={newCategoryName}
-                          onChange={e => setNewCategoryName(e.target.value)}
-                          type="text"
-                          placeholder="New Subject (e.g. Science)"
-                          className="flex-1 rounded-sm border border-[#1b2333] bg-[#0c0f17] focus:bg-slate-950 focus:border-accent-blue/50 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-550 outline-none transition-all duration-200"
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') {
-                              const val = newCategoryName.trim()
-                              if (!val) return
-                              addCategory(val, newCategoryColor)
-                              setNewCategoryName('')
-                            }
-                          }}
-                        />
-                        <input
-                          type="color"
-                          value={newCategoryColor}
-                          onChange={e => setNewCategoryColor(e.target.value)}
-                          className="h-8 w-8 cursor-pointer rounded-sm border border-[#1b2333] bg-[#0c0f17] p-0.5"
-                        />
-                        <button
-                          onClick={() => {
-                            const val = newCategoryName.trim()
-                            if (!val) return
-                            addCategory(val, newCategoryColor)
-                            setNewCategoryName('')
-                          }}
-                          className="rounded-sm bg-accent-blue/10 border border-accent-blue/20 text-accent-blue px-3 py-1.5 text-xs font-semibold hover:bg-accent-blue/20 transition-all cursor-pointer"
-                        >
-                          Add
-                        </button>
-                      </div>
-
-                      <div className="flex-1 overflow-y-auto max-h-[300px] pr-1 space-y-1.5">
-                        {categories.length === 0 ? (
-                          <p className="text-xs italic text-slate-500 text-center py-4">No categories configured yet.</p>
-                        ) : (
-                          categories.map(cat => (
-                            <div key={cat.id} className="flex items-center gap-2 rounded-sm bg-[#0c0f17] border border-[#1b2333] px-3 py-2">
-                              <span className="h-3 w-3 shrink-0 rounded-full border border-[#1b2333]" style={{ backgroundColor: cat.color }} />
-                              <span className="flex-1 text-xs font-semibold text-slate-200">{cat.name}</span>
-                              <button
-                                onClick={() => deleteCategory(cat.id!)}
-                                className="flex h-5 w-5 items-center justify-center rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {settingsTab === 'vault' && (
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                  <div className="xl:col-span-2 flex flex-col gap-6">
-                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
-                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-3">Backup & Import Vault</h3>
-                      <p className="text-xs text-slate-400 mb-5 leading-relaxed">
-                        All focus data is stored local-only on your device. Export a `.studybackup` container to secure your data or migrate configuration tables.
+                    {/* Backups & resets */}
+                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
+                      <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-3">Backup Vault container</h3>
+                      <p className="text-xs text-slate-505 mb-5 leading-relaxed">
+                        Export backup data bundle to sync tables or local study logs across devices.
                       </p>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="rounded-sm border border-[#1b2333] bg-[#0c0f17] p-5 flex flex-col justify-between hover:border-[#1b2333] transition-all">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="rounded-xl border border-white/5 bg-[#0c0f17]/40 p-4 flex flex-col justify-between">
                           <div>
-                            <p className="text-xs font-semibold text-slate-300">Export Study Vault</p>
-                            <p className="text-[10px] text-slate-500 mt-1 leading-normal font-medium">Constructs a JSON-based database bundle and triggers downloading.</p>
+                            <span className="text-xs font-bold text-slate-300 block">Export backup vault</span>
+                            <span className="text-[10px] text-slate-500 mt-1 leading-normal font-semibold">Prepares a JSON study logs package and initiates browser download.</span>
                           </div>
                           <button
                             onClick={exportStudyBackup}
-                            className="w-full mt-5 rounded-sm bg-accent-blue text-slate-950 border border-accent-blue py-2 text-xs font-semibold hover:bg-accent-blue/90 active:scale-95 transition-all cursor-pointer text-center"
+                            className="w-full mt-4 rounded-xl bg-accent-blue text-slate-950 border border-accent-blue py-2 text-xs font-bold hover:bg-accent-blue/90 transition-all cursor-pointer"
                           >
-                            Export Backup
+                            Export Vault
                           </button>
                         </div>
 
@@ -3146,19 +2529,15 @@ function App() {
                           onDragLeave={() => setIsDragging(false)}
                           onDrop={handleFileDrop}
                           onClick={() => fileInputRef.current?.click()}
-                          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-sm p-5 text-center transition-all cursor-pointer ${
+                          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-4 text-center transition-all cursor-pointer min-h-[120px] ${
                             isDragging
                               ? 'border-accent-purple bg-accent-purple/10'
-                              : 'border-[#1b2333] bg-[#0c0f17] hover:border-[#1b2333]'
+                              : 'border-white/5 bg-[#0c0f17]/40 hover:border-white/10'
                           }`}
                         >
                           <span className="text-2xl mb-1.5">📥</span>
-                          <p className="text-xs font-semibold text-slate-300">
-                            Drag & drop .studybackup here
-                          </p>
-                          <p className="text-[10px] text-slate-500 mt-1 leading-normal font-medium">
-                            or browse local file storage
-                          </p>
+                          <span className="text-xs font-bold text-slate-300">Drag backup here</span>
+                          <span className="text-[9px] text-slate-505 mt-0.5">or browse files to restore</span>
                         </div>
                       </div>
 
@@ -3177,56 +2556,119 @@ function App() {
                           e.target.value = ''
                         }}
                       />
-                    </div>
 
-                    <div className="rounded-sm border border-red-500/20 bg-red-500/5 p-5">
-                      <h3 className="text-xs font-bold text-red-400 tracking-wider uppercase mb-2">Destructive Database Sweep</h3>
-                      <p className="text-xs text-red-300/80 mb-5 leading-relaxed">
-                        Resetting is destructive and permanently sweeps out study logs, focus categories, tasks, and settings. This cannot be undone. We advise saving a backup first.
-                      </p>
-                      <button
-                        onClick={() => {
-                          if (confirm("DANGER: This will permanently reset all study logs, categories, and configs. Proceed?")) {
-                            resetData()
-                          }
-                        }}
-                        className="rounded-sm bg-red-500/10 border border-red-500/30 px-4 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/20 active:scale-95 transition-all cursor-pointer"
-                      >
-                        Clear & Reset All Data
-                      </button>
+                      <div className="mt-6 border-t border-red-500/15 pt-5">
+                        <span className="text-xs font-bold text-red-400 block mb-1">Destructive reset zone</span>
+                        <p className="text-xs text-red-300/60 leading-normal mb-4">Clearing parameters sweeps databases and settings completely. Export backup first to protect data.</p>
+                        <button
+                          onClick={() => {
+                            if (confirm("DANGER: Sweeping tables deletes your stats permanently. Reset?")) {
+                              resetData()
+                            }
+                          }}
+                          className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/25 active:scale-95 transition-all cursor-pointer"
+                        >
+                          Clear & Reset Workspace Data
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="xl:col-span-1">
-                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5 flex flex-col h-full">
-                      <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Recent Sessions</h3>
-                      <div className="flex-1 overflow-y-auto max-h-[360px] pr-1 space-y-2">
-                        {sessionHistory.length === 0 ? (
-                          <p className="text-xs italic text-slate-500 text-center py-6">No study sessions recorded today.</p>
+                  {/* Right settings column - Grid 4 */}
+                  <div className="xl:col-span-4 flex flex-col gap-6">
+                    
+                    {/* Subject category customizer */}
+                    <div className="rounded-2xl border border-white/5 dynamic-card p-6 flex flex-col">
+                      <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-4">Subject Categories</h3>
+                      
+                      <div className="flex gap-2 mb-4 bg-white/[0.01] border border-white/5 p-2 rounded-xl">
+                        <input
+                          value={newCategoryName}
+                          onChange={e => setNewCategoryName(e.target.value)}
+                          type="text"
+                          placeholder="Label (e.g. Science)"
+                          className="flex-1 rounded-xl bg-black/20 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-550 outline-none transition-all"
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              const val = newCategoryName.trim()
+                              if (!val) return
+                              addCategory(val, newCategoryColor)
+                              setNewCategoryName('')
+                            }
+                          }}
+                        />
+                        <input
+                          type="color"
+                          value={newCategoryColor}
+                          onChange={e => setNewCategoryColor(e.target.value)}
+                          className="h-8 w-8 cursor-pointer rounded-xl border border-white/5 bg-[#0c0f17] p-0.5"
+                        />
+                        <button
+                          onClick={() => {
+                            const val = newCategoryName.trim()
+                            if (!val) return
+                            addCategory(val, newCategoryColor)
+                            setNewCategoryName('')
+                          }}
+                          className="rounded-xl bg-accent-blue/15 border border-accent-blue/20 text-accent-blue px-3 py-1.5 text-xs font-bold hover:bg-accent-blue/20 transition-all cursor-pointer"
+                        >
+                          Add
+                        </button>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto max-h-[260px] custom-scrollbar space-y-2 pr-1">
+                        {categories.length === 0 ? (
+                          <p className="text-xs italic text-slate-500 text-center py-4">No categories configured yet.</p>
                         ) : (
-                          [...sessionHistory]
-                            .sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
-                            .slice(0, 10)
-                            .map(entry => (
-                            <div key={entry.id} className="flex flex-col gap-1 rounded-sm bg-[#0c0f17] border border-[#1b2333] p-2.5">
-                              <div className="flex items-center gap-2">
-                                <span className={`h-2 w-2 rounded-full ${entry.type === 'study' ? 'bg-accent-blue' : 'bg-accent-amber'}`} />
-                                <span className="text-xs font-semibold text-slate-200">{entry.type === 'study' ? 'Study session' : 'Break time'}</span>
-                                <span className="ml-auto text-[10px] text-slate-500 font-semibold">{entry.durationMinutes}m</span>
-                              </div>
-                              <p className="text-[10px] text-slate-500 font-semibold mt-1">🕒 {entry.timestamp}</p>
+                          categories.map(cat => (
+                            <div key={cat.id} className="flex items-center gap-2.5 rounded-xl bg-[#0c0f17]/40 border border-white/5 px-3 py-2">
+                              <span className="h-3 w-3 shrink-0 rounded-full border border-white/5" style={{ backgroundColor: cat.color }} />
+                              <span className="flex-1 text-xs font-bold text-slate-350 truncate">{cat.name}</span>
+                              <button
+                                onClick={() => deleteCategory(cat.id!)}
+                                className="flex h-6 w-6 items-center justify-center rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
                             </div>
                           ))
                         )}
+                      </div>
+                    </div>
+
+                    {/* Font Calibration tab */}
+                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
+                      <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-4">Typography Overrides</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-400 mb-2">Primary font override</label>
+                          <select
+                            value={localDeveloperFont}
+                            onChange={e => {
+                              const val = e.target.value
+                              setLocalDeveloperFont(val)
+                              updateSetting('developer_font', val)
+                            }}
+                            className="w-full rounded-xl border border-white/5 bg-[#0c0f17] px-3.5 py-2.5 text-xs text-text-primary outline-none focus:border-accent-blue/40 cursor-pointer"
+                          >
+                            <option value="Inter">Inter (Sans-serif display)</option>
+                            <option value="JetBrains Mono">JetBrains Mono (Console default)</option>
+                            <option value="Fira Code">Fira Code (Ligature style)</option>
+                            <option value="SF Mono">SF Mono (System default)</option>
+                          </select>
+                          <p className="mt-2 text-[10px] text-slate-550 font-semibold leading-normal">
+                            Custom font changes map instantly. Useful for aligning study dashboards with developer workspaces.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </main>
 
       {/* Zen Mode Cinematic Sanctuary Overlay */}
       {isZenMode && (
