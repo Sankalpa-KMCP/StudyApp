@@ -8,7 +8,7 @@ interface TaskRegistryProps {
   activeTaskId: number | null
   setActiveTaskId: (id: number | null) => void
   toggleTask: (id: number) => Promise<void>
-  handleAddTask: (text: string, categoryId?: number, estimatedCycles?: number, priority?: 'low' | 'medium' | 'high') => void
+  handleAddTask: (text: string, categoryId?: number, estimatedCycles?: number, priority?: 'low' | 'medium' | 'high', isStudySubject?: boolean) => void
   submitRecallGrade: (task: TaskItem, q: number) => Promise<void>
   timerCategoryId: number | undefined
   setTimerCategoryId: (id: number | undefined) => void
@@ -34,6 +34,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
   const [taskText, setTaskText] = useState('')
   const [taskCategory, setTaskCategory] = useState<string>('')
   const [taskPriority, setTaskPriority] = useState<'low' | 'medium' | 'high'>('medium')
+  const [taskIsStudySubject, setTaskIsStudySubject] = useState(false)
 
   const categoriesMap = useMemo(() => {
     const m = new Map<number, CategoryItem>()
@@ -54,7 +55,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
   }, [tasks])
 
   const reviewQueueList = useMemo(() => {
-    return tasks.filter(t => t.completed && (!t.nextReviewDate || t.nextReviewDate <= todayStr))
+    return tasks.filter(t => t.completed && t.isStudySubject && (!t.nextReviewDate || t.nextReviewDate <= todayStr))
   }, [tasks, todayStr])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -67,8 +68,9 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
     const trimmed = taskText.trim()
     if (!trimmed) return
     const catId = taskCategory ? Number(taskCategory) : undefined
-    handleAddTask(trimmed, catId, taskCycleCount, taskPriority)
+    handleAddTask(trimmed, catId, taskCycleCount, taskPriority, taskIsStudySubject)
     setTaskText('')
+    setTaskIsStudySubject(false)
   }
 
   const activeTask = useMemo(() => {
@@ -144,7 +146,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
             
             <select
               value={taskPriority}
-              onChange={e => setTaskPriority(e.target.value as any)}
+              onChange={e => setTaskPriority(e.target.value as 'low' | 'medium' | 'high')}
               className="rounded-full bg-white/5 border border-white/10 px-3.5 py-2 text-[10px] text-white/80 outline-none cursor-pointer hover:bg-white/10 transition-colors font-semibold"
             >
               <option value="medium" className="bg-[#11131e] text-accent-amber">Medium</option>
@@ -161,6 +163,19 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
                 <option key={n} value={n} className="bg-[#11131e]">🎯 {n}</option>
               ))}
             </select>
+
+            <button
+              type="button"
+              onClick={() => setTaskIsStudySubject(!taskIsStudySubject)}
+              className={`rounded-full border px-3 py-2 text-[10px] font-semibold transition-all cursor-pointer ios-active-scale ${
+                taskIsStudySubject
+                  ? 'bg-accent-purple/15 text-accent-purple border-accent-purple/30'
+                  : 'bg-white/5 text-white/60 border-white/10 hover:text-white'
+              }`}
+              title="Toggle Spaced Repetition review schedule on completion"
+            >
+              🔄 SR Review
+            </button>
             
             <button
               onClick={submitNewTask}

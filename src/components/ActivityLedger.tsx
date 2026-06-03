@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Calendar } from 'lucide-react'
 import type { CategoryItem, HistoryEntry } from '../db/types'
 
@@ -25,7 +25,7 @@ interface ActivityLedgerProps {
   calendarCategoryFilter: 'all' | number
   setCalendarCategoryFilter: (val: 'all' | number) => void
   categories: CategoryItem[]
-  activeThemeVars: any
+  activeThemeVars: { accentBlue: string; accentAmber: string }
   dynamicGridCells: Array<number | null>
   activeMonthData: DayData[]
   isLiveMonth: boolean
@@ -34,9 +34,9 @@ interface ActivityLedgerProps {
   todayBreakMinutes: number
   progressPercent: number
   liveDay: DayData
-  draftMood: string
+  initialDraftMood: string
   handleMoodSelect: (val: string) => void
-  draftNotes: string
+  initialDraftNotes: string
   handleNotesChange: (notes: string) => void
   selectedDayHistory: HistoryEntry[]
   formatMinutes: (minutes: number) => string
@@ -65,15 +65,18 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
   todayBreakMinutes,
   progressPercent,
   liveDay,
-  draftMood,
+  initialDraftMood,
   handleMoodSelect,
-  draftNotes,
+  initialDraftNotes,
   handleNotesChange,
   selectedDayHistory,
   formatMinutes,
   getIntensity,
   hexToRgb
 }) => {
+  const [draftMood, setDraftMood] = useState(initialDraftMood)
+  const [draftNotes, setDraftNotes] = useState(initialDraftNotes)
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-1 items-start animate-fade-in">
       
@@ -178,13 +181,13 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                 }
 
                 return [
-                  { label: '0-1h', intensity: 0 },
-                  { label: '1-2h', intensity: 1 },
-                  { label: '2-3h', intensity: 2 },
-                  { label: '3+h', intensity: 3 },
+                  { label: '0-1h', intensity: 0 as const },
+                  { label: '1-2h', intensity: 1 as const },
+                  { label: '2-3h', intensity: 2 as const },
+                  { label: '3+h', intensity: 3 as const },
                 ].map(item => (
                   <div key={item.label} className="flex items-center gap-1 font-bold">
-                    <div className="h-2.5 w-2.5 rounded-md border border-white/5" style={getIntensityStyle(item.intensity as any)} />
+                    <div className="h-2.5 w-2.5 rounded-md border border-white/5" style={getIntensityStyle(item.intensity)} />
                     <span>{item.label}</span>
                   </div>
                 ))
@@ -249,7 +252,11 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                 return (
                   <button
                     key={m.value}
-                    onClick={() => handleMoodSelect(m.value)}
+                    onClick={() => {
+                      const nextMood = draftMood === m.value ? '' : m.value
+                      setDraftMood(nextMood)
+                      handleMoodSelect(m.value)
+                    }}
                     className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer ios-active-scale ${
                       isSelected
                         ? 'border-accent-blue/30 bg-accent-blue/15 text-accent-blue shadow-sm'
@@ -269,7 +276,11 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
             <p className="text-[10px] font-semibold text-white/55 uppercase tracking-wider mb-2.5">Reflection log</p>
             <textarea
               value={draftNotes}
-              onChange={e => handleNotesChange(e.target.value)}
+              onChange={e => {
+                const next = e.target.value
+                setDraftNotes(next)
+                handleNotesChange(next)
+              }}
               placeholder="How did you perform? Note down any wins, hurdles, or focal points for today..."
               rows={3}
               className="w-full resize-none rounded-2xl border border-white/8 bg-white/4 focus:bg-white/8 focus:border-accent-blue/40 px-4 py-3 text-xs text-text-primary placeholder:text-white/35 outline-none transition-all duration-200"

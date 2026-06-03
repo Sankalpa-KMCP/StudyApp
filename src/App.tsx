@@ -20,6 +20,7 @@ import {
 } from './db/hooks'
 import { db } from './db/db'
 import type { TaskItem } from './db/types'
+import { formatMinutes, getIntensity, hexToRgb, parseStudyBackupPayload } from './lib/studyDashboard'
 
 // Custom audio hook
 import { useAmbientSynth } from './hooks/useAmbientSynth'
@@ -53,31 +54,45 @@ const THEME_PROFILES: Record<string, {
     accentPurple: '#6366f1',
     accentGreen: '#10b981',
     accentAmber: '#f59e0b',
+  },
+  'midnight-slate': {
+    surface: '#0f172a',
+    surfaceCard: '#1e293b',
+    surfaceCardRgb: '30, 41, 59',
+    accentBlue: '#38bdf8',
+    accentPurple: '#a78bfa',
+    accentGreen: '#34d399',
+    accentAmber: '#fbbf24',
+  },
+  'nordic-frost': {
+    surface: '#0f141c',
+    surfaceCard: '#1a2332',
+    surfaceCardRgb: '26, 35, 50',
+    accentBlue: '#88c0d0',
+    accentPurple: '#b48ead',
+    accentGreen: '#a3be8c',
+    accentAmber: '#ebcb8b',
+  },
+  'amber-retro': {
+    surface: '#0c0a09',
+    surfaceCard: '#1c1917',
+    surfaceCardRgb: '28, 25, 23',
+    accentBlue: '#f43f5e',
+    accentPurple: '#d946ef',
+    accentGreen: '#10b981',
+    accentAmber: '#f59e0b',
+  },
+  'nebula-purple': {
+    surface: '#0d0714',
+    surfaceCard: '#1c102b',
+    surfaceCardRgb: '28, 16, 43',
+    accentBlue: '#a855f7',
+    accentPurple: '#ec4899',
+    accentGreen: '#10b981',
+    accentAmber: '#f59e0b',
   }
 }
 
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null
-}
-
-function formatMinutes(minutes: number): string {
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  return `${h}h ${m}m`
-}
-
-function getIntensity(minutes: number): 0 | 1 | 2 | 3 {
-  if (minutes < 60) return 0
-  if (minutes < 120) return 1
-  if (minutes < 180) return 2
-  return 3
-}
 
 const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -104,7 +119,7 @@ interface DayData {
 }
 
 function App() {
-  const { tasks: sessionTasks, addTask, toggleTask, incrementTaskCycle, isLoading: tasksLoading } = useTasks()
+  const { tasks: sessionTasks, addTask, toggleTask, isLoading: tasksLoading } = useTasks()
   const { history: sessionHistory, addEntry: addHistoryEntry, isLoading: historyLoading } = useHistory()
   const {
     dailyGoalMinutes,
@@ -112,17 +127,11 @@ function App() {
     updateSetting,
     targetSessionsPerCycle,
     longBreakDurationMinutes,
-    ambientVolume_rain,
-    ambientVolume_cafe,
-    ambientVolume_whiteNoise,
     theme,
     cardOpacity,
     backdropBlur,
     audio_presets,
     shortBreakDurationMinutes,
-    ambient_alphaWaves,
-    tactile_feedback,
-    enforce_lockout,
     noiseType,
     binauralTarget,
     isLoading: settingsLoading
@@ -216,7 +225,7 @@ function App() {
 
   const [activeTaskId, setActiveTaskId] = useState<number | null>(null)
   const [taskCycleCount, setTaskCycleCount] = useState(1)
-  const [localTactileFeedback, setLocalTactileFeedback] = useState(false)
+  const [localTactileFeedback] = useState(false)
   const [activeToast, setActiveToast] = useState<{ key: string; message: string; id: number } | null>(null)
   const [localEnforceLockout, setLocalEnforceLockout] = useState(false)
   const [showReflectionModal, setShowReflectionModal] = useState(false)
@@ -259,8 +268,7 @@ function App() {
   incStudyRef.current = incrementStudy
   incBreakRef.current = incrementBreak
 
-  const handleModeSwitchRef = useRef<any>(null)
-  const completeSessionRef = useRef<any>(null)
+
 
   const isDataReady = !(tasksLoading || historyLoading || settingsLoading || todayLogLoading || allLogsLoading || categoriesLoading || flashcardsLoading || quickNotesLoading)
 
@@ -274,22 +282,22 @@ function App() {
 
   const monthLogMap = new Map(monthLogs.map(l => [parseInt(l.dateString.split('-')[2]), l]))
 
-  const selectedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`
-  const selectedDayLog = monthLogMap.get(selectedDay)
-  const [draftNotes, setDraftNotes] = useState('')
-  const [draftMood, setDraftMood] = useState('')
+  const effectiveSelectedDay = Math.min(selectedDay, totalDaysInMonth)
+  const selectedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(effectiveSelectedDay).padStart(2, '0')}`
+  const selectedDayLog = monthLogMap.get(effectiveSelectedDay)
+
   const notesRef = useRef('')
   const moodRef = useRef('')
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    const dbNotes = selectedDayLog?.notes ?? ''
-    const dbMood = selectedDayLog?.mood ?? ''
-    setDraftNotes(dbNotes)
-    setDraftMood(dbMood)
-    notesRef.current = dbNotes
-    moodRef.current = dbMood
-  }, [selectedDay, currentMonth, currentYear, selectedDayLog])
+    notesRef.current = selectedDayLog?.notes ?? ''
+    moodRef.current = selectedDayLog?.mood ?? ''
+  }, [selectedDateStr, selectedDayLog])
+
+  const pushToast = (key: string, message: string) => {
+    setActiveToast({ key, message, id: Date.now() })
+  }
 
   const categoriesMap = new Map<number, { name: string; color: string }>()
   for (const c of categories) {
@@ -383,17 +391,8 @@ function App() {
       sessionNotes: sessionNotes || undefined,
       ...(attRating !== undefined ? { attentionRating: attRating } : {}),
       ...(stabRating !== undefined ? { stabilityRating: stabRating } : {}),
-    } as any)
-    
-    const firstUncompleted = sessionTasks.find(t => !t.completed)
-    if (firstUncompleted && firstUncompleted.id !== undefined) {
-      await toggleTask(firstUncompleted.id)
-    } else {
-      await addTask(`Session ${Date.now()}`)
-      const allTasks = await db.tasks.orderBy('id').reverse().toArray()
-      const justAdded = allTasks[0]
-      if (justAdded?.id !== undefined) await toggleTask(justAdded.id)
-    }
+    })
+
     playChime()
     if (mode === 'study') {
       const studySessionCount = parseInt(localStorage.getItem('completed_study_sessions_count') || '0') + 1
@@ -402,7 +401,18 @@ function App() {
         await createDatabaseSnapshot()
       }
       if (activeTaskId !== null) {
-        await incrementTaskCycle(activeTaskId)
+        const task = await db.tasks.get(activeTaskId)
+        if (task) {
+          const newActual = (task.actualCycles ?? 0) + 1
+          const completed = newActual >= (task.estimatedCycles ?? 1)
+          await db.tasks.update(activeTaskId, {
+            actualCycles: newActual,
+            completed
+          })
+          if (completed) {
+            setActiveTaskId(null)
+          }
+        }
       }
     }
     completingRef.current = false
@@ -457,10 +467,10 @@ function App() {
     playChime()
   }
 
-  function handleAddTask(text: string, categoryId?: number, estimatedCycles?: number, priority?: 'low' | 'medium' | 'high') {
+  function handleAddTask(text: string, categoryId?: number, estimatedCycles?: number, priority?: 'low' | 'medium' | 'high', isStudySubject?: boolean) {
     const trimmed = text.trim()
     if (!trimmed) return
-    addTask(trimmed, categoryId, estimatedCycles ?? taskCycleCount, priority)
+    addTask(trimmed, categoryId, estimatedCycles ?? taskCycleCount, priority, isStudySubject)
   }
 
   async function handleToggleTask(id: number) {
@@ -501,7 +511,6 @@ function App() {
   }
 
   function handleNotesChange(value: string) {
-    setDraftNotes(value)
     notesRef.current = value
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
@@ -510,8 +519,7 @@ function App() {
   }
 
   function handleMoodSelect(mood: string) {
-    const newMood = mood === draftMood ? '' : mood
-    setDraftMood(newMood)
+    const newMood = mood === moodRef.current ? '' : mood
     moodRef.current = newMood
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     updateDailyReflection(selectedDateStr, notesRef.current, newMood)
@@ -527,10 +535,6 @@ function App() {
     else { setCurrentMonth(m => m + 1) }
   }
 
-  useEffect(() => {
-    if (selectedDay > totalDaysInMonth) setSelectedDay(totalDaysInMonth)
-  }, [currentMonth, currentYear, totalDaysInMonth, selectedDay])
-
   // Timer Tick Interval effect
   useEffect(() => {
     if (!isTimerActive) return
@@ -539,23 +543,23 @@ function App() {
         const ns = s + 1
         if (ns % 60 === 0) {
           if (timerMode === 'study') {
-            incStudyRef.current()
+            incrementStudy()
           } else {
-            incBreakRef.current()
+            incrementBreak()
           }
         }
         return ns
       })
     }, 1000)
     return () => clearInterval(id)
-  }, [isTimerActive, timerMode])
+  }, [isTimerActive, timerMode, incrementStudy, incrementBreak])
 
   // Auto-complete focus/break cycle when seconds elapsed reaches target seconds
   useEffect(() => {
     if (isTimerActive && secondsElapsed >= targetSeconds) {
-      completeSessionRef.current()
+      void completeSession()
     }
-  }, [secondsElapsed, targetSeconds, isTimerActive])
+  }, [secondsElapsed, targetSeconds, isTimerActive, completeSession])
 
   // Canvas particle background loop
   useEffect(() => {
@@ -715,9 +719,6 @@ function App() {
     }
   }, [isZenMode, theme])
 
-  handleModeSwitchRef.current = handleModeSwitch
-  completeSessionRef.current = completeSession
-
   // keyboard triggers
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {
@@ -741,15 +742,15 @@ function App() {
           })
           break
         case 's':
-          handleModeSwitchRef.current('study')
+          handleModeSwitch('study')
           setActiveToast({ key: 'S', message: 'SWITCHED TO DEEP WORK', id: Date.now() })
           break
         case 'b':
-          handleModeSwitchRef.current('break')
+          handleModeSwitch('break')
           setActiveToast({ key: 'B', message: 'SWITCHED TO BREAK MODE', id: Date.now() })
           break
         case 'c':
-          completeSessionRef.current()
+          void completeSession()
           setActiveToast({ key: 'C', message: 'FOCUS BLOCK COMPLETED', id: Date.now() })
           break
         case 'z':
@@ -787,7 +788,7 @@ function App() {
 
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [activeTab, isHotkeyHudOpen, isTimerActive, timerMode, localEnforceLockout])
+  }, [activeTab, isHotkeyHudOpen, isTimerActive, timerMode, localEnforceLockout, handleModeSwitch, completeSession])
 
   // HUD Toast Auto-Dismissal
   useEffect(() => {
@@ -870,6 +871,7 @@ function App() {
       console.log('Saved local storage emergency backup snapshot successfully.')
     } catch (err) {
       console.error('Failed to create database snapshot:', err)
+      pushToast('BACKUP', 'FAILED TO SAVE LOCAL SNAPSHOT')
     }
   }
 
@@ -894,13 +896,17 @@ function App() {
       URL.revokeObjectURL(url)
     } catch (err) {
       console.error('Export failed:', err)
+      pushToast('BACKUP', 'FAILED TO EXPORT VAULT')
     }
   }
 
   async function importStudyBackup(fileString: string) {
     try {
-      const data = JSON.parse(fileString)
-      if (!data || typeof data !== 'object') return
+      const data = parseStudyBackupPayload(fileString)
+      if (!data) {
+        pushToast('BACKUP', 'INVALID BACKUP FILE')
+        return
+      }
 
       localStorage.removeItem('study_dashboard_snapshots')
       localStorage.removeItem('completed_study_sessions_count')
@@ -915,18 +921,19 @@ function App() {
         db.quick_notes.clear(),
       ])
 
-      if (Array.isArray(data.tasks)) await db.tasks.bulkAdd(data.tasks)
-      if (Array.isArray(data.history)) await db.history.bulkAdd(data.history)
-      if (Array.isArray(data.dailyLogs)) await db.daily_logs.bulkAdd(data.dailyLogs)
-      if (Array.isArray(data.settings)) await db.settings.bulkAdd(data.settings)
-      if (Array.isArray(data.categories)) await db.categories.bulkAdd(data.categories)
-      if (Array.isArray(data.flashcards)) await db.flashcards.bulkAdd(data.flashcards)
-      if (Array.isArray(data.quickNotes)) await db.quick_notes.bulkAdd(data.quickNotes)
-      else if (Array.isArray(data.quick_notes)) await db.quick_notes.bulkAdd(data.quick_notes)
+      if (data.tasks.length > 0) await db.tasks.bulkAdd(data.tasks)
+      if (data.history.length > 0) await db.history.bulkAdd(data.history)
+      if (data.dailyLogs.length > 0) await db.daily_logs.bulkAdd(data.dailyLogs)
+      if (data.settings.length > 0) await db.settings.bulkAdd(data.settings)
+      if (data.categories.length > 0) await db.categories.bulkAdd(data.categories)
+      if (data.flashcards.length > 0) await db.flashcards.bulkAdd(data.flashcards)
+      if (data.quickNotes.length > 0) await db.quick_notes.bulkAdd(data.quickNotes)
 
       console.log('Vault backup imported successfully. Reloading page...')
       window.location.reload()
     } catch (err) {
+      console.error('Failed to import vault:', err)
+      pushToast('BACKUP', 'FAILED TO IMPORT VAULT')
       alert('Failed to import vault: Malformed backup file.')
     }
   }
@@ -946,31 +953,6 @@ function App() {
     }
   }
 
-  // settings configurations restoration mapping
-  useEffect(() => {
-    if (ambientVolume_rain !== undefined) setLocalVolumeRain(ambientVolume_rain)
-  }, [ambientVolume_rain])
-
-  useEffect(() => {
-    if (ambientVolume_cafe !== undefined) setLocalVolumeCafe(ambientVolume_cafe)
-  }, [ambientVolume_cafe])
-
-  useEffect(() => {
-    if (ambientVolume_whiteNoise !== undefined) setLocalVolumeWhiteNoise(ambientVolume_whiteNoise)
-  }, [ambientVolume_whiteNoise])
-
-  useEffect(() => {
-    if (ambient_alphaWaves !== undefined) setLocalAlphaWaves(ambient_alphaWaves)
-  }, [ambient_alphaWaves])
-
-  useEffect(() => {
-    if (tactile_feedback !== undefined) setLocalTactileFeedback(tactile_feedback)
-  }, [tactile_feedback])
-
-
-  useEffect(() => {
-    if (enforce_lockout !== undefined) setLocalEnforceLockout(enforce_lockout)
-  }, [enforce_lockout])
 
   // session Heartbeat sessionStorage backing
   useEffect(() => {
@@ -1035,7 +1017,7 @@ function App() {
         sessionStorage.removeItem('active_session_shadow')
       }
     }
-  }, [isDataReady])
+  }, [isDataReady, addHistoryEntry])
 
   if (!isDataReady) {
     return (
@@ -1177,6 +1159,7 @@ function App() {
                 <AnalyticsStudio
                   tasks={sessionTasks}
                   monthLogs={monthLogs}
+                  allLogs={allLogs ?? []}
                   totalMonthHours={totalMonthHours}
                   totalWeeklyBreakHours={totalWeeklyBreakHours}
                   totalDaysInMonth={totalDaysInMonth}
@@ -1197,6 +1180,7 @@ function App() {
               {/* TAB 3: ACTIVITY LEDGER */}
               {activeTab === 'journal' && (
                 <ActivityLedger
+                  key={selectedDateStr}
                   selectedDay={selectedDay}
                   setSelectedDay={setSelectedDay}
                   currentMonth={currentMonth}
@@ -1217,9 +1201,9 @@ function App() {
                   todayBreakMinutes={todayBreakMinutes}
                   progressPercent={progressPercent}
                   liveDay={liveDay}
-                  draftMood={draftMood}
+                  initialDraftMood={selectedDayLog?.mood ?? ''}
                   handleMoodSelect={handleMoodSelect}
-                  draftNotes={draftNotes}
+                  initialDraftNotes={selectedDayLog?.notes ?? ''}
                   handleNotesChange={handleNotesChange}
                   selectedDayHistory={selectedDayHistory}
                   formatMinutes={formatMinutes}
@@ -1232,6 +1216,8 @@ function App() {
               {activeTab === 'cards' && (
                 <FlashcardStudio
                   categories={categories}
+                  addCategory={addCategory}
+                  deleteCategory={deleteCategory}
                   flashcards={flashcards}
                   addFlashcard={addFlashcard}
                   deleteFlashcard={deleteFlashcard}
@@ -1243,6 +1229,7 @@ function App() {
               {activeTab === 'settings' && (
                 <ControlDeck
                   updateSetting={updateSetting}
+                  theme={theme}
                   cardOpacity={cardOpacity}
                   backdropBlur={backdropBlur}
                   soundEnabled={soundEnabled}
@@ -1356,6 +1343,8 @@ function App() {
         isOpen={isNotesOpen}
         onClose={() => setIsNotesOpen(false)}
         categories={categories}
+        addCategory={addCategory}
+        deleteCategory={deleteCategory}
         notes={quickNotes}
         addNote={addQuickNote}
         updateNote={updateQuickNote}

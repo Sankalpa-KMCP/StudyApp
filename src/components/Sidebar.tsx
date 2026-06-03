@@ -73,11 +73,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Navigation Tabs (iOS Widget Actions list) */}
         <nav className="flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none">
           {[
-            { id: 'focus', label: 'Focus Sanctuary', icon: Clock, color: 'text-accent-blue' },
-            { id: 'cards', label: 'Recall Deck', icon: Layers, color: 'text-accent-purple' },
-            { id: 'analytics', label: 'Analytics Studio', icon: 'text-[#30d158]' }, // system green hex
-            { id: 'journal', label: 'Activity Ledger', icon: Calendar, color: 'text-accent-amber' },
-            { id: 'settings', label: 'Control Deck', icon: Settings, color: 'text-white/60' },
+            { id: 'focus' as const, label: 'Focus Sanctuary', icon: Clock, color: 'text-accent-blue' },
+            { id: 'cards' as const, label: 'Recall Deck', icon: Layers, color: 'text-accent-purple' },
+            { id: 'analytics' as const, label: 'Analytics Studio', icon: 'text-[#30d158]' }, // system green hex
+            { id: 'journal' as const, label: 'Activity Ledger', icon: Calendar, color: 'text-accent-amber' },
+            { id: 'settings' as const, label: 'Control Deck', icon: Settings, color: 'text-white/60' },
           ].map(tab => {
             const Icon = typeof tab.icon === 'string' ? BarChart3 : tab.icon
             const isActive = activeTab === tab.id
@@ -87,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={tab.id}
                 disabled={isLocked}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`w-auto shrink-0 md:w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[14px] font-semibold text-xs transition-all duration-200 ios-active-scale ${
                   isActive 
                     ? 'bg-white/10 border border-white/5 text-white' 
@@ -132,4 +132,3 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </aside>
   )
 }
-

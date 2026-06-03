@@ -1,6 +1,12 @@
 import Dexie, { type Table } from 'dexie'
 import type { TaskItem, HistoryEntry, DailyLog, SettingsRow, CategoryItem, FlashcardItem, QuickNoteItem } from './types'
 
+type LegacyTaskRecord = TaskItem & {
+  title?: string
+  estimatedPomodoros?: number
+  actualPomodoros?: number
+}
+
 class StudyDashboardDB extends Dexie {
   tasks!: Table<TaskItem, number>
   history!: Table<HistoryEntry, number>
@@ -26,7 +32,7 @@ class StudyDashboardDB extends Dexie {
       daily_logs: '&dateString, studyMinutes, breakMinutes',
       categories: '++id, name, color',
     }).upgrade(async tx => {
-      await tx.table('tasks').toCollection().modify(task => {
+      await tx.table('tasks').toCollection().modify((task: LegacyTaskRecord) => {
         if (task.categoryId === undefined) {
           task.categoryId = 1
         }
@@ -36,11 +42,9 @@ class StudyDashboardDB extends Dexie {
         if (task.actualCycles === undefined) {
           task.actualCycles = 0
         }
-        if ((task as any).title !== undefined && task.text === undefined) {
-          task.text = (task as any).title
-          try {
-            delete (task as any).title
-          } catch {}
+        if (task.title !== undefined && task.text === undefined) {
+          task.text = task.title
+          task.title = undefined
         }
       })
     })

@@ -4,6 +4,8 @@ import type { CategoryItem, FlashcardItem } from '../db/types'
 
 interface FlashcardStudioProps {
   categories: CategoryItem[]
+  addCategory: (name: string, color: string) => Promise<void> | void
+  deleteCategory: (id: number) => Promise<void> | void
   flashcards: FlashcardItem[]
   addFlashcard: (question: string, answer: string, categoryId?: number) => Promise<void>
   deleteFlashcard: (id: number) => Promise<void>
@@ -12,6 +14,8 @@ interface FlashcardStudioProps {
 
 export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
   categories,
+  addCategory,
+  deleteCategory,
   flashcards,
   addFlashcard,
   deleteFlashcard,
@@ -21,6 +25,11 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
   const [newQuestion, setNewQuestion] = useState('')
   const [newAnswer, setNewAnswer] = useState('')
   const [newCategoryId, setNewCategoryId] = useState<number | undefined>(undefined)
+
+  // Category Manager states
+  const [showCatManager, setShowCatManager] = useState(false)
+  const [inlineCatName, setInlineCatName] = useState('')
+  const [inlineCatColor, setInlineCatColor] = useState('#3B82F6')
   
   // Study session states
   const [isStudying, setIsStudying] = useState(false)
@@ -210,19 +219,82 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase text-white/45 mb-1.5 select-none">Deck Category</label>
-                <select
-                  value={newCategoryId ?? ''}
-                  onChange={e => setNewCategoryId(e.target.value ? parseInt(e.target.value) : undefined)}
-                  className="w-full rounded-full border border-white/8 bg-white/4 px-4 py-2.5 text-xs text-white outline-none transition-all focus:bg-white/8 focus:border-accent-blue/30 cursor-pointer"
-                >
-                  <option value="" className="bg-[#0b0c10] text-white/45">Uncategorized</option>
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id} className="bg-[#0b0c10] text-white">
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex justify-between items-center mb-1.5 select-none">
+                  <label className="text-[10px] font-bold uppercase text-white/45">Deck Category</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCatManager(!showCatManager)}
+                    className="text-[9px] font-bold text-accent-blue hover:underline cursor-pointer"
+                  >
+                    {showCatManager ? 'Done' : '✏️ Manage'}
+                  </button>
+                </div>
+                
+                {showCatManager ? (
+                  <div className="space-y-2.5 bg-black/20 border border-white/5 p-3 rounded-2xl animate-fade-in mb-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={inlineCatName}
+                        onChange={e => setInlineCatName(e.target.value)}
+                        placeholder="New category label..."
+                        className="flex-1 rounded-full bg-white/5 border border-white/8 px-3 py-1.5 text-xs text-white placeholder-white/20 outline-none"
+                      />
+                      <input
+                        type="color"
+                        value={inlineCatColor}
+                        onChange={e => setInlineCatColor(e.target.value)}
+                        className="h-7 w-7 shrink-0 cursor-pointer rounded-full border border-white/10 bg-[#0c0f17] p-0.5"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const name = inlineCatName.trim()
+                          if (name) {
+                            await addCategory(name, inlineCatColor)
+                            setInlineCatName('')
+                          }
+                        }}
+                        className="px-3 rounded-full bg-accent-blue text-white text-xs font-bold transition-all ios-active-scale cursor-pointer"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    
+                    <div className="max-h-24 overflow-y-auto custom-scrollbar space-y-1.5 pr-1 border-t border-white/5 pt-2">
+                      {categories.map(c => (
+                        <div key={c.id} className="flex items-center justify-between text-[10px] font-semibold bg-white/5 px-2.5 py-1.5 rounded-lg">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
+                            <span className="text-white/80 truncate">{c.name}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (c.id !== undefined) await deleteCategory(c.id)
+                            }}
+                            className="text-white/40 hover:text-red-400 font-bold transition-colors cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <select
+                    value={newCategoryId ?? ''}
+                    onChange={e => setNewCategoryId(e.target.value ? parseInt(e.target.value) : undefined)}
+                    className="w-full rounded-full border border-white/8 bg-white/4 px-4 py-2.5 text-xs text-white outline-none transition-all focus:bg-white/8 focus:border-accent-blue/30 cursor-pointer"
+                  >
+                    <option value="" className="bg-[#0b0c10] text-white/45">Uncategorized</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id} className="bg-[#0b0c10] text-white">
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <button

@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db'
-import type { HistoryEntry, SettingsKey, CategoryItem, FlashcardItem, QuickNoteItem } from './types'
+import type { AudioPreset, HistoryEntry, SettingsKey, CategoryItem, FlashcardItem, QuickNoteItem, SettingsValue, TaskItem } from './types'
+import {
+  calculateCalendarHeatmapData as calculateCalendarHeatmapDataPure,
+  calculateCategoryBreakdown as calculateCategoryBreakdownPure,
+  calculateMonthLogs as calculateMonthLogsPure,
+  calculateProductivityInsights as calculateProductivityInsightsPure,
+  calculateSM2 as calculateSM2Pure,
+  calculateStreak as calculateStreakPure,
+  calculateXpLevel as calculateXpLevelPure,
+} from '../lib/studyDashboard'
 
 export function useTasks() {
-  const tasks = useLiveQuery(() => db.tasks.orderBy('id').reverse().toArray())
+  const tasks = useLiveQuery<TaskItem[]>(() => db.tasks.orderBy('id').reverse().toArray())
 
-  const addTask = async (text: string, categoryId?: number, estimatedCycles: number = 1, priority?: 'low' | 'medium' | 'high') => {
-    await db.tasks.add({ text, completed: false, createdAt: Date.now(), categoryId, estimatedCycles, actualCycles: 0, priority } as any)
+  const addTask = async (text: string, categoryId?: number, estimatedCycles: number = 1, priority?: 'low' | 'medium' | 'high', isStudySubject?: boolean) => {
+    await db.tasks.add({ text, completed: false, createdAt: Date.now(), categoryId, estimatedCycles, actualCycles: 0, priority, isStudySubject })
   }
 
   const toggleTask = async (id: number) => {
@@ -20,15 +29,16 @@ export function useTasks() {
   const incrementTaskCycle = async (id: number) => {
     const task = await db.tasks.get(id)
     if (task) {
-      const currentActual = task.actualCycles ?? (task as any).actualPomodoros ?? 0
+      const legacyTask = task as TaskItem & { actualPomodoros?: number }
+      const currentActual = task.actualCycles ?? legacyTask.actualPomodoros ?? 0
       await db.tasks.update(id, { actualCycles: currentActual + 1 })
     }
   }
 
   const mappedTasks = (tasks ?? []).map(task => ({
     ...task,
-    estimatedCycles: task.estimatedCycles ?? (task as any).estimatedPomodoros ?? 1,
-    actualCycles: task.actualCycles ?? (task as any).actualPomodoros ?? 0,
+    estimatedCycles: task.estimatedCycles ?? (task as TaskItem & { estimatedPomodoros?: number }).estimatedPomodoros ?? 1,
+    actualCycles: task.actualCycles ?? (task as TaskItem & { actualPomodoros?: number }).actualPomodoros ?? 0,
   }))
 
   return {
@@ -85,35 +95,11 @@ export function useCategoryBreakdown() {
     return { breakdown: [], totalHours: 0, isLoading: true }
   }
 
-  const catMap = new Map<number, CategoryItem>()
-  for (const c of categories) {
-    if (c.id !== undefined) catMap.set(c.id, c)
-  }
-
-  const grouped = new Map<number | undefined, number>()
-  for (const entry of allHistory) {
-    if (entry.type !== 'study') continue
-    const key = entry.categoryId
-    grouped.set(key, (grouped.get(key) ?? 0) + entry.durationMinutes)
-  }
-
-  const totalDuration = Array.from(grouped.values()).reduce((s, v) => s + v, 0)
-
-  const breakdown = Array.from(grouped.entries())
-    .map(([catId, minutes]) => {
-      const cat = catId !== undefined ? catMap.get(catId) : undefined
-      return {
-        name: cat?.name ?? 'Uncategorized',
-        color: cat?.color ?? '#64748B',
-        hours: parseFloat((minutes / 60).toFixed(1)),
-        percentage: totalDuration > 0 ? Math.round((minutes / totalDuration) * 100) : 0,
-      }
-    })
-    .sort((a, b) => b.hours - a.hours)
+  const breakdownData = calculateCategoryBreakdownPure(allHistory, categories)
 
   return {
-    breakdown,
-    totalHours: parseFloat((totalDuration / 60).toFixed(1)),
+    breakdown: breakdownData.breakdown,
+    totalHours: breakdownData.totalHours,
     isLoading: false,
   }
 }
@@ -158,7 +144,7 @@ export function useSettings() {
   const theme = (rows?.find(r => r.key === 'theme')?.value as string) ?? 'midnight-slate'
   const cardOpacity = (rows?.find(r => r.key === 'cardOpacity')?.value as number) ?? 0.70
   const backdropBlur = (rows?.find(r => r.key === 'backdropBlur')?.value as number) ?? 8
-  const audio_presets = (rows?.find(r => r.key === 'audio_presets')?.value as any[]) ?? []
+  const audio_presets = (rows?.find(r => r.key === 'audio_presets')?.value as AudioPreset[]) ?? []
   const shortBreakDurationMinutes = (rows?.find(r => r.key === 'shortBreakDurationMinutes')?.value as number) ?? 5
   const rawAlpha = rows?.find(r => r.key === 'ambient_alphaWaves')?.value
   const ambient_alphaWaves = typeof rawAlpha === 'boolean' ? (rawAlpha ? 0.35 : 0) : ((rawAlpha as number) ?? 0)
@@ -168,7 +154,7 @@ export function useSettings() {
   const developer_font = (rows?.find(r => r.key === 'developer_font')?.value as string) ?? 'JetBrains Mono'
   const enforce_lockout = (rows?.find(r => r.key === 'enforce_lockout')?.value as boolean) ?? false
 
-  const updateSetting = async (key: SettingsKey, value: any) => {
+  const updateSetting = async (key: SettingsKey, value: SettingsValue) => {
     await db.settings.put({ key, value })
   }
 
@@ -201,6 +187,12 @@ export function useSettings() {
 function todayDateString(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function yesterdayDateString(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return todayDateString()
 }
 
 export function useTodayLog() {
@@ -273,14 +265,15 @@ export function useStreak() {
   )
   if (activeDateSet.size === 0) return { currentStreak: 0, isLoading: false }
 
-  const today = getLocalDateString()
-  const yesterday = getLocalDateString(new Date(Date.now() - 86400000))
+  const today = todayDateString()
+  const yesterday = yesterdayDateString()
 
   let cursorDate: Date
   if (activeDateSet.has(today)) {
     cursorDate = new Date()
   } else if (activeDateSet.has(yesterday)) {
-    cursorDate = new Date(Date.now() - 86400000)
+    cursorDate = new Date()
+    cursorDate.setDate(cursorDate.getDate() - 1)
   } else {
     return { currentStreak: 0, isLoading: false }
   }
@@ -324,51 +317,8 @@ export function useProductivityInsights() {
   if (allHistory === undefined || allTasks === undefined || allLogs === undefined || categories === undefined) {
     return { topSubject: 'None yet', avgMin: 0, completionRate: 0, peakDay: 'No data', isLoading: true }
   }
-
-  const studyEntries = allHistory.filter(e => e.type === 'study')
-
-  const catMap = new Map<number, string>()
-  for (const c of categories) {
-    if (c.id !== undefined) catMap.set(c.id, c.name)
-  }
-
-  const catMinutes = new Map<number | undefined, number>()
-  for (const e of studyEntries) {
-    const key = e.categoryId
-    catMinutes.set(key, (catMinutes.get(key) ?? 0) + e.durationMinutes)
-  }
-
-  let topSubject = 'None yet'
-  let maxMin = 0
-  for (const [catId, minutes] of catMinutes) {
-    if (minutes > maxMin) {
-      maxMin = minutes
-      topSubject = catId !== undefined ? (catMap.get(catId) ?? 'Uncategorized') : 'Uncategorized'
-    }
-  }
-
-  const avgMin = studyEntries.length > 0
-    ? Math.round(studyEntries.reduce((s, e) => s + e.durationMinutes, 0) / studyEntries.length)
-    : 0
-
-  const totalTasks = allTasks.length
-  const completedTasks = allTasks.filter(t => t.completed).length
-  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
-
-  const dayTotals = [0, 0, 0, 0, 0, 0, 0]
-  const dayNamesLocal = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-  for (const log of allLogs) {
-    if (log.studyMinutes <= 0) continue
-    const [year, month, day] = log.dateString.split('-').map(Number)
-    const dayIdx = new Date(year, month - 1, day).getDay()
-    dayTotals[dayIdx] += log.studyMinutes
-  }
-
-  const maxDayMinutes = Math.max(...dayTotals)
-  const peakDayIdx = maxDayMinutes > 0 ? dayTotals.indexOf(maxDayMinutes) : -1
-  const peakDay = peakDayIdx >= 0 ? dayNamesLocal[peakDayIdx] : 'No data'
-
-  return { topSubject, avgMin, completionRate, peakDay, isLoading: false }
+  const insights = calculateProductivityInsightsPure(allHistory, allTasks, allLogs, categories)
+  return { ...insights, isLoading: false }
 }
 
 export function useMonthLogs(month: number, year: number) {
@@ -396,215 +346,39 @@ export function useMonthLogs(month: number, year: number) {
 
 export function useCalendarHeatmapData(month: number, _year: number, filterCategoryId: number | 'all') {
   const allHistory = useLiveQuery(() => db.history.toArray())
-  const monthNamesLocal = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-
   if (allHistory === undefined || filterCategoryId === 'all') {
     return { dayMinutesMap: null as Map<number, number> | null, isLoading: allHistory === undefined }
   }
 
-  const dayMinutes = new Map<number, number>()
-  for (const entry of allHistory) {
-    if (entry.type !== 'study' || entry.categoryId !== filterCategoryId) continue
-    const parts = entry.timestamp.split(' ')
-    if (parts.length < 2) continue
-    const entryMonth = monthNamesLocal.indexOf(parts[0])
-    if (entryMonth !== month) continue
-    const dayNum = parseInt(parts[1])
-    if (isNaN(dayNum)) continue
-    dayMinutes.set(dayNum, (dayMinutes.get(dayNum) ?? 0) + entry.durationMinutes)
-  }
-
-  return { dayMinutesMap: dayMinutes, isLoading: false }
+  return { dayMinutesMap: calculateCalendarHeatmapDataPure(allHistory, month, filterCategoryId), isLoading: false }
 }
 
-export function calculateStreak(allLogs: any[]) {
-  const activeDateSet = new Set(
-    allLogs.filter(l => l.studyMinutes > 0).map(l => l.dateString),
-  )
-  if (activeDateSet.size === 0) return 0
-
-  const today = getLocalDateString()
-  const yesterday = getLocalDateString(new Date(Date.now() - 86400000))
-
-  let cursorDate: Date
-  if (activeDateSet.has(today)) {
-    cursorDate = new Date()
-  } else if (activeDateSet.has(yesterday)) {
-    cursorDate = new Date(Date.now() - 86400000)
-  } else {
-    return 0
-  }
-
-  let streak = 1
-  let safetyLimit = allLogs.length + 10
-  while (safetyLimit-- > 0) {
-    cursorDate.setDate(cursorDate.getDate() - 1)
-    const prev = getLocalDateString(cursorDate)
-    if (activeDateSet.has(prev)) {
-      streak++
-    } else {
-      break
-    }
-  }
-
-  return streak
+export function calculateStreak(allLogs: { dateString: string; studyMinutes: number }[]) {
+  return calculateStreakPure(allLogs)
 }
 
-export function calculateXpLevel(allLogs: any[]) {
-  const lifetimeStudyMinutes = allLogs.reduce((s, l) => s + (l.studyMinutes || 0), 0)
-  const totalXP = lifetimeStudyMinutes * 10
-  const level = Math.floor(totalXP / 1000) + 1
-  const currentLevelXP = totalXP % 1000
-  const xpProgressPercent = (currentLevelXP / 1000) * 100
-
-  return { level, currentLevelXP, xpProgressPercent, lifetimeStudyMinutes, totalXP }
+export function calculateXpLevel(allLogs: { dateString: string; studyMinutes: number }[]) {
+  return calculateXpLevelPure(allLogs)
 }
 
-export function calculateProductivityInsights(allHistory: any[], allTasks: any[], allLogs: any[], categories: any[]) {
-  const studyEntries = allHistory.filter(e => e.type === 'study')
-
-  const catMap = new Map<number, string>()
-  for (const c of categories) {
-    if (c.id !== undefined) catMap.set(c.id, c.name)
-  }
-
-  const catMinutes = new Map<number | undefined, number>()
-  for (const e of studyEntries) {
-    const key = e.categoryId
-    catMinutes.set(key, (catMinutes.get(key) ?? 0) + e.durationMinutes)
-  }
-
-  let topSubject = 'None yet'
-  let maxMin = 0
-  for (const [catId, minutes] of catMinutes) {
-    if (minutes > maxMin) {
-      maxMin = minutes
-      topSubject = catId !== undefined ? (catMap.get(catId) ?? 'Uncategorized') : 'Uncategorized'
-    }
-  }
-
-  const avgMin = studyEntries.length > 0
-    ? Math.round(studyEntries.reduce((s, e) => s + e.durationMinutes, 0) / studyEntries.length)
-    : 0
-
-  const totalTasks = allTasks.length
-  const completedTasks = allTasks.filter(t => t.completed).length
-  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
-
-  const dayTotals = [0, 0, 0, 0, 0, 0, 0]
-  const dayNamesLocal = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-  for (const log of allLogs) {
-    if (log.studyMinutes <= 0) continue
-    const [year, month, day] = log.dateString.split('-').map(Number)
-    if (!year || !month || !day) continue
-    const dayIdx = new Date(year, month - 1, day).getDay()
-    if (isNaN(dayIdx)) continue
-    dayTotals[dayIdx] += log.studyMinutes
-  }
-
-  const maxDayMinutes = Math.max(...dayTotals)
-  const peakDayIdx = maxDayMinutes > 0 ? dayTotals.indexOf(maxDayMinutes) : -1
-  const peakDay = peakDayIdx >= 0 ? dayNamesLocal[peakDayIdx] : 'No data'
-
-  return { topSubject, avgMin, completionRate, peakDay }
+export function calculateProductivityInsights(allHistory: HistoryEntry[], allTasks: { completed: boolean }[], allLogs: { dateString: string; studyMinutes: number }[], categories: CategoryItem[]) {
+  return calculateProductivityInsightsPure(allHistory, allTasks, allLogs, categories)
 }
 
-export function calculateCategoryBreakdown(allHistory: any[], categories: any[]) {
-  const catMap = new Map<number, CategoryItem>()
-  for (const c of categories) {
-    if (c.id !== undefined) catMap.set(c.id, c)
-  }
-
-  const grouped = new Map<number | undefined, number>()
-  for (const entry of allHistory) {
-    if (entry.type !== 'study') continue
-    const key = entry.categoryId
-    grouped.set(key, (grouped.get(key) ?? 0) + entry.durationMinutes)
-  }
-
-  const totalDuration = Array.from(grouped.values()).reduce((s, v) => s + v, 0)
-
-  const breakdown = Array.from(grouped.entries())
-    .map(([catId, minutes]) => {
-      const cat = catId !== undefined ? catMap.get(catId) : undefined
-      return {
-        name: cat?.name ?? 'Uncategorized',
-        color: cat?.color ?? '#64748B',
-        hours: parseFloat((minutes / 60).toFixed(1)) || 0,
-        percentage: totalDuration > 0 ? Math.round((minutes / totalDuration) * 100) : 0,
-      }
-    })
-    .sort((a, b) => b.hours - a.hours)
-
-  return {
-    breakdown,
-    totalHours: parseFloat((totalDuration / 60).toFixed(1)) || 0,
-  }
+export function calculateCategoryBreakdown(allHistory: HistoryEntry[], categories: CategoryItem[]) {
+  return calculateCategoryBreakdownPure(allHistory, categories)
 }
 
-export function calculateMonthLogs(allLogs: any[], month: number, year: number) {
-  const prefix = `${year}-${String(month + 1).padStart(2, '0')}-`
-  const logs = allLogs.filter(l => l.dateString.startsWith(prefix))
-
-  const totalMonthHours = logs.reduce((sum, l) => sum + (l.studyMinutes || 0) / 60, 0)
-  const totalMonthSessions = logs.reduce((sum, l) => sum + Math.floor((l.studyMinutes || 0) / 25), 0)
-
-  return {
-    monthLogs: logs,
-    totalMonthHours: parseFloat(totalMonthHours.toFixed(1)) || 0,
-    totalMonthSessions,
-  }
+export function calculateMonthLogs<T extends { dateString: string; studyMinutes: number }>(allLogs: T[], month: number, year: number) {
+  return calculateMonthLogsPure(allLogs, month, year)
 }
 
-export function calculateCalendarHeatmapData(allHistory: any[], month: number, filterCategoryId: number | 'all') {
-  if (filterCategoryId === 'all') {
-    return null
-  }
-  const monthNamesLocal = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-  const dayMinutes = new Map<number, number>()
-  for (const entry of allHistory) {
-    if (entry.type !== 'study' || entry.categoryId !== filterCategoryId) continue
-    const parts = entry.timestamp.split(' ')
-    if (parts.length < 2) continue
-    const entryMonth = monthNamesLocal.indexOf(parts[0])
-    if (entryMonth !== month) continue
-    const dayNum = parseInt(parts[1])
-    if (isNaN(dayNum)) continue
-    dayMinutes.set(dayNum, (dayMinutes.get(dayNum) ?? 0) + entry.durationMinutes)
-  }
-
-  return dayMinutes
+export function calculateCalendarHeatmapData(allHistory: HistoryEntry[], month: number, filterCategoryId: number | 'all') {
+  return calculateCalendarHeatmapDataPure(allHistory, month, filterCategoryId)
 }
 
 export function calculateSM2(q: number, prevRep: number = 0, prevEF: number = 2.5, prevInterval: number = 0) {
-  let repetitionCount = prevRep
-  let easinessFactor = prevEF
-  let intervalDays = prevInterval
-
-  if (q >= 3) {
-    if (repetitionCount === 0) {
-      intervalDays = 1
-    } else if (repetitionCount === 1) {
-      intervalDays = 6
-    } else {
-      intervalDays = Math.round(prevInterval * prevEF)
-    }
-    repetitionCount++
-  } else {
-    repetitionCount = 0
-    intervalDays = 1
-  }
-
-  easinessFactor = prevEF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-  if (easinessFactor < 1.3) {
-    easinessFactor = 1.3
-  }
-
-  return {
-    repetitionCount,
-    easinessFactor,
-    intervalDays,
-  }
+  return calculateSM2Pure(q, prevRep, prevEF, prevInterval)
 }
 
 export function useFlashcards() {

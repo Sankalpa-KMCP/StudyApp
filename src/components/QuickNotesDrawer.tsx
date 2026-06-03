@@ -6,6 +6,8 @@ interface QuickNotesDrawerProps {
   isOpen: boolean
   onClose: () => void
   categories: CategoryItem[]
+  addCategory: (name: string, color: string) => Promise<void> | void
+  deleteCategory: (id: number) => Promise<void> | void
   notes: QuickNoteItem[]
   addNote: (title: string, content: string, categoryId?: number) => Promise<void>
   updateNote: (id: number, title: string, content: string, categoryId?: number, color?: string) => Promise<void>
@@ -16,6 +18,8 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   isOpen,
   onClose,
   categories,
+  addCategory,
+  deleteCategory,
   notes,
   addNote,
   updateNote,
@@ -31,6 +35,11 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   const [editCategoryId, setEditCategoryId] = useState<number | undefined>(undefined)
   const [editColor, setEditColor] = useState('#06b6d4')
   
+  // Category manager inline states
+  const [showCatManager, setShowCatManager] = useState(false)
+  const [inlineCatName, setInlineCatName] = useState('')
+  const [inlineCatColor, setInlineCatColor] = useState('#3B82F6')
+
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   
@@ -212,18 +221,80 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
 
             {/* Note category and color picks */}
             <div className="grid grid-cols-2 gap-3.5 bg-black/20 border border-white/5 p-3 rounded-xl select-none">
-              <div>
-                <label className="block text-[8px] font-mono uppercase text-white/45 mb-1.5">Category</label>
-                <select
-                  value={editCategoryId ?? ''}
-                  onChange={e => handleCategoryChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                  className="w-full bg-black/50 border border-white/5 rounded-lg text-[10px] text-white p-1 outline-none"
-                >
-                  <option value="">Uncategorized</option>
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+              <div className="flex flex-col">
+                <div className="flex justify-between items-center mb-1 select-none">
+                  <label className="text-[8px] font-mono uppercase text-white/45">Category</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCatManager(!showCatManager)}
+                    className="text-[8px] font-bold text-accent-blue hover:underline cursor-pointer"
+                  >
+                    {showCatManager ? 'Done' : '✏️ Manage'}
+                  </button>
+                </div>
+                
+                {showCatManager ? (
+                  <div className="space-y-1.5 bg-black/30 border border-white/5 p-2 rounded-lg animate-fade-in mb-1">
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        value={inlineCatName}
+                        onChange={e => setInlineCatName(e.target.value)}
+                        placeholder="New label..."
+                        className="flex-1 rounded bg-white/5 border border-white/8 px-2 py-1 text-[9px] text-white placeholder-white/20 outline-none"
+                      />
+                      <input
+                        type="color"
+                        value={inlineCatColor}
+                        onChange={e => setInlineCatColor(e.target.value)}
+                        className="h-5.5 w-5.5 shrink-0 cursor-pointer rounded-full border border-white/10 bg-[#0c0f17] p-0"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const name = inlineCatName.trim()
+                          if (name) {
+                            await addCategory(name, inlineCatColor)
+                            setInlineCatName('')
+                          }
+                        }}
+                        className="px-2 rounded bg-accent-blue text-white text-[9px] font-bold transition-all cursor-pointer"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    <div className="max-h-20 overflow-y-auto custom-scrollbar space-y-1 pr-1 border-t border-white/5 pt-1.5">
+                      {categories.map(c => (
+                        <div key={c.id} className="flex items-center justify-between text-[8px] font-semibold bg-white/5 px-2 py-1 rounded">
+                          <div className="flex items-center gap-1 truncate">
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
+                            <span className="text-white/80 truncate">{c.name}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (c.id !== undefined) await deleteCategory(c.id)
+                            }}
+                            className="text-white/40 hover:text-red-400 font-bold transition-colors cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <select
+                    value={editCategoryId ?? ''}
+                    onChange={e => handleCategoryChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                    className="w-full bg-black/50 border border-white/5 rounded-lg text-[10px] text-white p-1 outline-none cursor-pointer"
+                  >
+                    <option value="">Uncategorized</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div>

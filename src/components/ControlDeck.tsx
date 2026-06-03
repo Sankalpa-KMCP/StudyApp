@@ -1,9 +1,10 @@
 import React from 'react'
 import { X } from 'lucide-react'
-import type { CategoryItem } from '../db/types'
+import type { CategoryItem, SettingsKey, SettingsValue } from '../db/types'
 
 interface ControlDeckProps {
-  updateSetting: (key: any, val: any) => void
+  updateSetting: (key: SettingsKey, val: SettingsValue) => void
+  theme: string
   cardOpacity: number
   backdropBlur: number
   soundEnabled: boolean
@@ -37,6 +38,7 @@ interface ControlDeckProps {
 
 export const ControlDeck: React.FC<ControlDeckProps> = ({
   updateSetting,
+  theme,
   cardOpacity,
   backdropBlur,
   localEnforceLockout,
@@ -62,10 +64,27 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
       {/* Left settings column */}
       <div className="flex flex-col gap-6">
         
-        {/* Translucency sliders */}
+        {/* Aesthetics & Translucency settings */}
         <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl">
-          <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-5">Translucency & Backdrop Blur</h3>
+          <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-5">Aesthetics & Translucency</h3>
           <div className="space-y-6">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-semibold text-white/80">Active Theme Preset</span>
+              </div>
+              <select
+                value={theme}
+                onChange={e => updateSetting('theme', e.target.value)}
+                className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-white outline-none cursor-pointer hover:bg-white/10 transition-colors font-semibold"
+              >
+                <option value="midnight-slate" className="bg-[#11131e] text-white">Midnight Slate (Default)</option>
+                <option value="midnight-oled" className="bg-[#11131e] text-white">Midnight OLED</option>
+                <option value="nordic-frost" className="bg-[#11131e] text-white">Nordic Frost</option>
+                <option value="amber-retro" className="bg-[#11131e] text-white">Amber Retro</option>
+                <option value="nebula-purple" className="bg-[#11131e] text-white">Nebula Purple</option>
+              </select>
+            </div>
+
             <div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs font-semibold text-white/80">Card Backdrop Opacity</span>
