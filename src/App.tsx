@@ -16,41 +16,50 @@ const THEME_PROFILES: Record<string, {
   accentAmber: string
 }> = {
   'midnight-slate': {
-    surface: '#07090e',
-    surfaceCard: '#0c0f17',
-    surfaceCardRgb: '12, 15, 23',
-    accentBlue: '#00ff66',
-    accentPurple: '#64748b',
-    accentGreen: '#00ff66',
-    accentAmber: '#f59e0b',
+    surface: '#080b11',
+    surfaceCard: '#101622',
+    surfaceCardRgb: '16, 22, 34',
+    accentBlue: '#38bdf8',
+    accentPurple: '#818cf8',
+    accentGreen: '#34d399',
+    accentAmber: '#fbbf24',
   },
   'cyber-amethyst': {
-    surface: '#07090e',
-    surfaceCard: '#0c0f17',
-    surfaceCardRgb: '12, 15, 23',
-    accentBlue: '#00ff66',
-    accentPurple: '#64748b',
-    accentGreen: '#00ff66',
-    accentAmber: '#f59e0b',
+    surface: '#0c0714',
+    surfaceCard: '#160e25',
+    surfaceCardRgb: '22, 14, 37',
+    accentBlue: '#f43f5e',
+    accentPurple: '#c084fc',
+    accentGreen: '#22d3ee',
+    accentAmber: '#fb7185',
   },
   'deep-forest': {
-    surface: '#07090e',
-    surfaceCard: '#0c0f17',
-    surfaceCardRgb: '12, 15, 23',
-    accentBlue: '#00ff66',
-    accentPurple: '#64748b',
-    accentGreen: '#00ff66',
+    surface: '#070c0a',
+    surfaceCard: '#0e1814',
+    surfaceCardRgb: '14, 24, 20',
+    accentBlue: '#10b981',
+    accentPurple: '#a7f3d0',
+    accentGreen: '#84cc16',
     accentAmber: '#f59e0b',
   },
   'ocean-trench': {
-    surface: '#07090e',
-    surfaceCard: '#0c0f17',
-    surfaceCardRgb: '12, 15, 23',
-    accentBlue: '#00ff66',
-    accentPurple: '#64748b',
-    accentGreen: '#00ff66',
-    accentAmber: '#f59e0b',
+    surface: '#030914',
+    surfaceCard: '#0a1224',
+    surfaceCardRgb: '10, 18, 36',
+    accentBlue: '#06b6d4',
+    accentPurple: '#3b82f6',
+    accentGreen: '#2dd4bf',
+    accentAmber: '#e11d48',
   }
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null
 }
 
 let audioCtx: AudioContext | null = null
@@ -178,7 +187,6 @@ function getIntensity(minutes: number): 0 | 1 | 2 | 3 {
 
 const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-const intensityColors = ['bg-intensity-0', 'bg-intensity-1', 'bg-intensity-2', 'bg-intensity-3']
 
 interface MicroCardItem {
   icon: React.ReactNode
@@ -270,7 +278,6 @@ function App() {
     return calculateXpLevel(allLogs ?? [])
   }, [allLogs])
   const level = xpData.level
-  const currentLevelXP = xpData.currentLevelXP
   const xpProgressPercent = xpData.xpProgressPercent
 
   const insights = useMemo(() => {
@@ -312,7 +319,7 @@ function App() {
 
   // Zen Mode, Active View Router & Backups Drag/Drop
   const [isZenMode, setIsZenMode] = useState(false)
-  const [activeView, setActiveView] = useState<'dashboard' | 'settings'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'focus' | 'analytics' | 'journal' | 'settings'>('focus')
   const [settingsTab, setSettingsTab] = useState<'visual' | 'audio' | 'metrics' | 'vault'>('visual')
   const [isDragging, setIsDragging] = useState(false)
 
@@ -680,7 +687,6 @@ function App() {
         originalVy: vy
       })
     }
-
     const animate = () => {
       ctx.clearRect(0, 0, width, height)
 
@@ -697,6 +703,12 @@ function App() {
       const speedFactor = isMuted ? 0 : Math.min(2.5, aggregateVol * 1.3)
       const maxDistance = isMuted ? 40 : 100 + Math.min(50, aggregateVol * 30)
       const maxLineAlpha = isMuted ? 0 : Math.min(0.20, aggregateVol * 0.12)
+
+      const activeThemeVars = THEME_PROFILES[theme] || THEME_PROFILES['midnight-slate']
+      const accentBlueColor = activeThemeVars.accentBlue
+      const accentPurpleColor = activeThemeVars.accentPurple
+      const rRgb = hexToRgb(accentBlueColor) || { r: 56, g: 189, b: 248 }
+      const pRgb = hexToRgb(accentPurpleColor) || { r: 129, g: 140, b: 248 }
 
       particles.forEach(p => {
         if (isMuted) {
@@ -722,7 +734,7 @@ function App() {
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
         ctx.fillStyle = isMuted
           ? 'rgba(71, 85, 105, 0.3)'
-          : `rgba(0, 255, 102, ${0.35 + Math.min(0.35, aggregateVol * 0.15)})`
+          : `rgba(${rRgb.r}, ${rRgb.g}, ${rRgb.b}, ${0.35 + Math.min(0.35, aggregateVol * 0.15)})`
         ctx.fill()
       })
 
@@ -741,7 +753,7 @@ function App() {
               ctx.beginPath()
               ctx.moveTo(p1.x, p1.y)
               ctx.lineTo(p2.x, p2.y)
-              ctx.strokeStyle = `rgba(0, 255, 102, ${alpha})`
+              ctx.strokeStyle = `rgba(${rRgb.r}, ${rRgb.g}, ${rRgb.b}, ${alpha})`
               ctx.lineWidth = 0.75
               ctx.stroke()
             }
@@ -757,9 +769,9 @@ function App() {
       if (waveAmplitudeRef.current > 0.5) {
         const waveTime = performance.now() * 0.001
         const layers = [
-          { freq: 0.008, speed: 0.8, phase: 0,          color: 'rgba(0, 255, 102, 0.2)',   lineW: 2.0 },
-          { freq: 0.012, speed: 1.2, phase: Math.PI / 3, color: 'rgba(245, 158, 11, 0.1)',  lineW: 1.5 },
-          { freq: 0.006, speed: -0.6, phase: Math.PI / 1.5, color: 'rgba(0, 255, 102, 0.12)', lineW: 1.0 },
+          { freq: 0.008, speed: 0.8, phase: 0,          color: `rgba(${rRgb.r}, ${rRgb.g}, ${rRgb.b}, 0.25)`,   lineW: 2.0 },
+          { freq: 0.012, speed: 1.2, phase: Math.PI / 3, color: `rgba(${pRgb.r}, ${pRgb.g}, ${pRgb.b}, 0.15)`,  lineW: 1.5 },
+          { freq: 0.006, speed: -0.6, phase: Math.PI / 1.5, color: `rgba(${rRgb.r}, ${rRgb.g}, ${rRgb.b}, 0.15)`, lineW: 1.0 },
         ]
         layers.forEach(l => {
           ctx.beginPath()
@@ -791,8 +803,7 @@ function App() {
       cancelAnimationFrame(animationFrameId)
       window.removeEventListener('resize', handleResize)
     }
-  }, [isZenMode])
-
+  }, [isZenMode, theme])
   // active recall helper
   async function submitRecallGrade(task: TaskItem, q: number) {
     if (task.id === undefined) return
@@ -1358,7 +1369,7 @@ function App() {
 
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {
-      if (activeView === 'settings' || isHotkeyHudOpen) return
+      if (activeTab === 'settings' || isHotkeyHudOpen) return
       if (completingRef.current) return
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
@@ -1416,7 +1427,7 @@ function App() {
 
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [activeView, isHotkeyHudOpen])
+  }, [activeTab, isHotkeyHudOpen])
 
 
   async function resetData() {
@@ -1465,6 +1476,7 @@ function App() {
     setLocalVolumeWhiteNoise(0.5)
     setLocalAlphaWaves(false)
     setActiveTaskId(null)
+    window.location.reload()
   }
 
 
@@ -1510,8 +1522,71 @@ function App() {
       <div className={`w-full max-w-[1650px] min-h-screen mx-auto p-4 md:p-6 lg:p-8 flex flex-col justify-between transition-all duration-700 ${
         isZenMode ? 'opacity-10 blur-md pointer-events-none scale-95' : ''
       }`}>
+        {/* Modern Top Header / Navigation */}
+        {!isZenMode && (
+          <header className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 mb-6 border-b border-white/5 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-accent-blue to-accent-purple shadow-lg shadow-accent-blue/20">
+                <Brain className="h-5.5 w-5.5 text-slate-950 stroke-[2.5]" />
+              </div>
+              <div>
+                <h1 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-text-primary via-slate-200 to-accent-blue bg-clip-text text-transparent">Aether Study</h1>
+                <p className="text-[10px] text-slate-400 font-semibold tracking-wider font-mono">FOCUS SYSTEM ACTIVE</p>
+              </div>
+            </div>
+
+            {/* Header Right - User Profile / Stats */}
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-3 bg-white/5 border border-white/5 rounded-2xl px-4 py-2 hover:border-white/10 transition-all duration-300">
+                <div className="flex items-center gap-1.5">
+                  <Flame className="h-4 w-4 text-orange-500 animate-pulse-soft" />
+                  <span className="text-xs font-bold font-mono text-orange-400">{currentStreak} Day Streak</span>
+                </div>
+                <div className="h-4 w-px bg-white/10" />
+                <div className="flex items-center gap-2">
+                  <span className="rounded-lg bg-accent-purple/20 border border-accent-purple/35 px-2 py-0.5 text-[10px] font-extrabold text-accent-purple font-mono tracking-wider">
+                    LV. {level}
+                  </span>
+                  <div className="w-16">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-accent-purple transition-all duration-300 shadow-[0_0_8px_var(--color-accent-purple)]"
+                        style={{ width: `${xpProgressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* View switchers */}
+              <div className="flex items-center gap-1 rounded-xl bg-white/5 border border-white/5 p-1">
+                <button
+                  onClick={() => setActiveView('dashboard')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
+                    activeView === 'dashboard'
+                      ? 'bg-accent-blue text-slate-950 font-extrabold shadow-md shadow-accent-blue/20'
+                      : 'text-slate-400 hover:text-text-primary'
+                  }`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => setActiveView('settings')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
+                    activeView === 'settings'
+                      ? 'bg-accent-blue text-slate-950 font-extrabold shadow-md shadow-accent-blue/20'
+                      : 'text-slate-400 hover:text-text-primary'
+                  }`}
+                >
+                  Settings
+                </button>
+              </div>
+            </div>
+          </header>
+        )}
+
         {activeView === 'dashboard' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 w-full flex-1 animate-fade-in">
 
           {/* COLUMN 1: Focus Core Command Center */}
           <div className={`h-full flex flex-col transition-all duration-500 ${
@@ -1519,83 +1594,67 @@ function App() {
           }`}>
 
             {/* CARD 1: Today's Progress */}
-            <div className="relative overflow-hidden flex flex-col h-full rounded-sm border border-[#1b2333] hover:border-[#1b2333] transition-all duration-300 dynamic-card p-5">
-              <p className="font-mono text-[10px] tracking-widest text-slate-500 mb-3">[MODULE // 01.CHRONOS]</p>
-              <div className="mb-5 flex items-center gap-2">
-                <Target className="h-5 w-5 text-accent-blue" />
-                <h2 className="text-sm font-semibold tracking-wide text-slate-200">Today's Progress</h2>
+            <div className="relative overflow-hidden flex flex-col h-full rounded-2xl border border-white/5 transition-all duration-300 dynamic-card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-mono tracking-widest text-accent-blue/90 uppercase bg-accent-blue/10 px-2.5 py-0.5 rounded-full border border-accent-blue/20">Chronos // focus</span>
                 <button
                   onClick={() => setIsZenMode(z => !z)}
-                  className={`ml-3 flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
                     isZenMode
-                      ? 'border-accent-purple/40 bg-accent-purple/20 text-accent-purple'
-                      : 'border-[#1b2333] bg-[#0c0f17] text-slate-400 hover:text-slate-200 hover:border-[#1b2333]'
+                      ? 'border-accent-purple/40 bg-accent-purple/20 text-accent-purple shadow-md'
+                      : 'border-white/5 bg-white/5 text-slate-400 hover:text-slate-200 hover:border-white/10 hover:bg-white/10'
                   }`}
                   title="Press 'Z' to toggle Zen Mode"
                 >
-                  {isZenMode ? 'Exit Zen' : 'Zen (Z)'}
+                  <Sparkles className="h-3 w-3" />
+                  {isZenMode ? 'Exit Zen' : 'Zen Sanctuary (Z)'}
                 </button>
-                {!isZenMode && (
-                  <div className="ml-auto flex items-center gap-2 group relative">
-                    <span className="rounded-md bg-accent-purple/15 px-2 py-0.5 text-xs font-bold text-accent-purple">
-                      Lv. {level}
-                    </span>
-                    <div className="w-20">
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface">
-                        <div
-                          className="h-full rounded-full bg-accent-purple transition-all duration-300"
-                          style={{ width: `${xpProgressPercent}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="pointer-events-none absolute -top-8 right-0 z-10 whitespace-nowrap rounded-md border border-[#1b2333] bg-[#0c0f17] px-2 py-1 text-[11px] text-text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                      {currentLevelXP} / 1000 XP to next rank
-                    </div>
-                  </div>
-                )}
               </div>
+
+              <div className="mb-5 flex items-center gap-2">
+                <Target className="h-5 w-5 text-accent-blue" />
+                <h2 className="text-sm font-semibold tracking-wide text-slate-200">Focus Operations</h2>
+              </div>
+
               <div className="flex flex-col lg:flex-row xl:flex-col gap-6 flex-1 min-h-0">
                 {/* Left - Circular Ring + Stats */}
-                <div className="flex flex-row lg:flex-col xl:flex-row items-center justify-around gap-4 shrink-0 w-full lg:w-44 xl:w-full border-b border-[#1b2333] pb-5 lg:border-b-0 lg:pb-0 xl:border-b xl:pb-5">
+                <div className="flex flex-row lg:flex-col xl:flex-row items-center justify-around gap-4 shrink-0 w-full lg:w-44 xl:w-full border-b border-white/5 pb-5 lg:border-b-0 lg:pb-0 xl:border-b xl:pb-5">
                   <div className="flex flex-col items-center">
                     <div className="relative flex h-36 w-36 items-center justify-center">
                       <svg className="absolute h-full w-full -rotate-90" viewBox="0 0 120 120">
                         <defs>
-                          <filter id="glow">
-                            <feGaussianBlur stdDeviation="3" result="blur" />
-                            <feMerge>
-                              <feMergeNode in="blur" />
-                              <feMergeNode in="SourceGraphic" />
-                            </feMerge>
+                          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="4" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
                           </filter>
                         </defs>
-                        <circle cx="60" cy="60" r="50" fill="none" stroke="#1E293B" strokeWidth="8" />
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="6" />
                         <circle
                           cx="60" cy="60" r="50"
                           fill="none" stroke="var(--color-accent-blue)"
-                          strokeWidth="8"
+                          strokeWidth="7"
                           strokeLinecap="round"
                           strokeDasharray="314.16"
                           strokeDashoffset={String(314.16 * (1 - progress))}
                           filter="url(#glow)"
-                          style={{ transition: 'stroke-dashoffset 1s linear' }}
+                          style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }}
                         />
                       </svg>
                       <div className="text-center">
-                        <p className="text-2xl font-bold text-text-primary">{formatMinutes(todayStudyMinutes)}</p>
-                        <p className="text-xs text-slate-400">of {Math.round(dailyGoalMinutes / 60)}h goal</p>
+                        <p className="text-2xl font-black text-text-primary font-mono tracking-tight">{formatMinutes(todayStudyMinutes)}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">of {Math.round(dailyGoalMinutes / 60)}h goal</p>
                       </div>
                     </div>
-                    <p className="mt-2 text-xs font-medium text-text-secondary">Study time</p>
+                    <p className="mt-2 text-xs font-bold tracking-wide text-text-secondary uppercase">Focus Time</p>
                   </div>
                   <div className="flex flex-col gap-1.5 flex-1 max-w-[200px] w-full">
                     {[
-                      { label: 'Focus', value: formatMinutes(todayStudyMinutes), valueClass: 'text-text-primary' },
-                      { label: 'Break', value: formatMinutes(todayBreakMinutes), valueClass: 'text-text-primary' },
-                      { label: 'Progress', value: `${progressPercent}%`, valueClass: 'text-accent-green' },
+                      { label: 'Work Duration', value: formatMinutes(todayStudyMinutes), valueClass: 'text-text-primary font-mono' },
+                      { label: 'Break Cooldown', value: formatMinutes(todayBreakMinutes), valueClass: 'text-text-primary font-mono' },
+                      { label: 'Daily Completion', value: `${progressPercent}%`, valueClass: 'text-accent-green font-bold font-mono' },
                     ].map((row) => (
-                      <div key={row.label} className="flex items-center justify-between border-b border-[#1b2333] pb-1 last:border-0">
-                        <span className="text-xs text-slate-400">{row.label}</span>
+                      <div key={row.label} className="flex items-center justify-between border-b border-white/5 pb-1 last:border-0">
+                        <span className="text-xs text-slate-450 font-medium">{row.label}</span>
                         <span className={`text-xs font-semibold ${row.valueClass}`}>{row.value}</span>
                       </div>
                     ))}
@@ -1607,7 +1666,7 @@ function App() {
                     <>
                       <MicroCard
                         icon={<Brain className="h-5 w-5 text-accent-purple" />}
-                        label="Focus score"
+                        label="Focus Efficiency"
                         value={`${chartFocus}%`}
                         badge={{ text: '+0% avg' }}
                         iconBg="bg-accent-purple/10"
@@ -1616,36 +1675,36 @@ function App() {
                       />
                       <MicroCard
                         icon={<BookOpen className="h-5 w-5 text-accent-green" />}
-                        label="Sessions done"
+                        label="Focus Cycles"
                         value={`${todaySessionsDone} of ${totalSessionsTarget}`}
-                        badge={{ text: sessionsRemaining > 0 ? `${sessionsRemaining} left` : 'Completed!' }}
+                        badge={{ text: sessionsRemaining > 0 ? `${sessionsRemaining} left` : 'Finished' }}
                         iconBg="bg-accent-green/10"
                         badgeBg={sessionsRemaining === 0 ? 'bg-accent-blue/10' : 'bg-accent-green/10'}
                         badgeText={sessionsRemaining === 0 ? 'text-accent-blue' : 'text-accent-green'}
                       />
                       <MicroCard
                         icon={<Zap className={`h-5 w-5 ${currentStreak > 0 ? 'text-accent-amber' : 'text-slate-400'}`} />}
-                        label="Streak"
+                        label="Streak Engine"
                         value={`${currentStreak} days`}
-                        badge={currentStreak > 0 ? { text: 'Active', dot: true } : { text: 'Inactive' }}
-                        iconBg={currentStreak > 0 ? 'bg-accent-amber/10' : 'bg-text-muted/10'}
-                        badgeBg={currentStreak > 0 ? 'bg-accent-amber/10' : 'bg-text-muted/10'}
+                        badge={currentStreak > 0 ? { text: 'Active', dot: true } : { text: 'Cooldown' }}
+                        iconBg={currentStreak > 0 ? 'bg-accent-amber/10' : 'bg-white/5'}
+                        badgeBg={currentStreak > 0 ? 'bg-accent-amber/10' : 'bg-white/5'}
                         badgeText={currentStreak > 0 ? 'text-accent-amber' : 'text-slate-400'}
                       />
                     </>
                   )}
                   {/* Timer Controls */}
-                  <div className={`flex flex-wrap items-center gap-2 rounded-sm border px-3 py-2 transition-all duration-300 ${
+                  <div className={`flex flex-wrap items-center gap-3 rounded-2xl border px-3 py-2 transition-all duration-300 ${
                     isLongBreak && timerMode === 'break'
                       ? 'border-accent-green/30 bg-accent-green/5'
-                      : 'border-[#1b2333] bg-[#0c0f17] hover:bg-[#0c0f17]'
+                      : 'border-white/5 bg-white/5 hover:border-white/10'
                   }`}>
-                    <div className="flex overflow-hidden rounded-md border border-[#1b2333] bg-[#07090e] p-0.5">
+                    <div className="flex overflow-hidden rounded-xl border border-white/5 bg-black/20 p-0.5">
                       <button
                         onClick={() => handleModeSwitch('study')}
-                        className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                           timerMode === 'study'
-                            ? 'bg-[#00ff66] text-black font-semibold'
+                            ? 'bg-accent-blue text-slate-950 font-extrabold shadow-sm shadow-accent-blue/15'
                             : 'text-slate-400 hover:text-text-primary'
                         }`}
                       >
@@ -1653,11 +1712,11 @@ function App() {
                       </button>
                       <button
                         onClick={() => handleModeSwitch('break')}
-                        className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                           timerMode === 'break'
                             ? isLongBreak
-                              ? 'bg-accent-green/15 text-accent-green font-semibold'
-                              : 'bg-accent-amber/15 text-accent-amber font-semibold'
+                              ? 'bg-accent-green text-slate-950 font-extrabold shadow-sm shadow-accent-green/15'
+                              : 'bg-accent-amber text-slate-950 font-extrabold shadow-sm shadow-accent-amber/15'
                             : 'text-slate-400 hover:text-text-primary'
                         }`}
                       >
@@ -1669,18 +1728,18 @@ function App() {
                         <select
                           value={timerCategoryId ?? ''}
                           onChange={e => setTimerCategoryId(e.target.value ? Number(e.target.value) : undefined)}
-                          className="rounded border border-[#1b2333] bg-[#07090e] px-2 py-1 text-xs text-text-primary outline-none focus:border-accent-blue/50 cursor-pointer transition-all"
+                          className="rounded-xl border border-white/5 bg-black/25 px-2 py-1 text-xs text-text-primary outline-none focus:border-accent-blue/50 cursor-pointer transition-all"
                         >
-                          <option value="" className="bg-[#07090e]">Subject</option>
+                          <option value="" className="bg-surface">Subject</option>
                           {categories.map(cat => (
-                            <option key={cat.id} value={cat.id} className="bg-[#07090e]">{cat.name}</option>
+                            <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
                           ))}
                         </select>
-                        <div className="h-5 w-px bg-[#1b2333]" />
+                        <div className="h-5 w-px bg-white/10" />
                       </>
                     )}
-                    {timerMode !== 'study' && !isZenMode && <div className="h-5 w-px bg-[#1b2333]" />}
-                    <span className={`min-w-[45px] text-sm font-semibold tabular-nums ${
+                    {timerMode !== 'study' && !isZenMode && <div className="h-5 w-px bg-white/10" />}
+                    <span className={`min-w-[45px] text-sm font-black font-mono tracking-tight tabular-nums ${
                       isLongBreak && timerMode === 'break' ? 'text-accent-green' : 'text-accent-blue'
                     }`}>
                       {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
@@ -1693,8 +1752,8 @@ function App() {
                             key={i}
                             className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
                               i < completedSessionsInCycle
-                                ? 'bg-accent-blue scale-110'
-                                : 'bg-slate-700'
+                                ? 'bg-accent-blue scale-125 shadow-[0_0_4px_var(--color-accent-blue)]'
+                                : 'bg-white/10'
                             }`}
                           />
                         ))}
@@ -1702,16 +1761,16 @@ function App() {
                     )}
                     <button
                       onClick={() => { if (!completingRef.current) setIsTimerActive(a => !a) }}
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent-blue/10 text-accent-blue transition-all hover:bg-[#00ff66]/20 active:scale-95 cursor-pointer"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-blue/15 text-accent-blue transition-all hover:bg-accent-blue hover:text-slate-950 active:scale-95 cursor-pointer"
                     >
                       {isTimerActive ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                     </button>
                     {(isTimerActive || secondsElapsed > 0) && (
                       <button
                         onClick={completeSession}
-                        className="flex items-center gap-1 rounded-md bg-accent-green/15 text-accent-green border border-accent-green/20 px-2 py-1 text-xs font-semibold transition-all hover:bg-accent-green/25 active:scale-95 cursor-pointer"
+                        className="flex items-center gap-1 rounded-lg bg-accent-green/15 text-accent-green border border-accent-green/20 px-2.5 py-1 text-xs font-bold transition-all hover:bg-accent-green hover:text-slate-950 active:scale-95 cursor-pointer"
                       >
-                        <Check className="h-3 w-3" />
+                        <Check className="h-3 w-3 stroke-[2.5]" />
                         Complete
                       </button>
                     )}
@@ -1720,10 +1779,10 @@ function App() {
                     const activeTask = sessionTasks.find(t => t.id === activeTaskId)
                     if (!activeTask || activeTask.completed) return null
                     return (
-                      <div className="mt-2 flex items-center gap-2 rounded-sm border border-accent-blue/20 bg-accent-blue/5 px-3 py-1.5 transition-all">
-                        <span className="text-xs text-slate-400">Target:</span>
-                        <span className="truncate text-xs font-medium text-accent-blue">{activeTask.text}</span>
-                        <span className="ml-auto whitespace-nowrap text-[11px] text-slate-400 flex items-center gap-1">
+                      <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-accent-blue/20 bg-accent-blue/5 px-3 py-2 transition-all animate-slide-in-up">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Target Focus:</span>
+                        <span className="truncate text-xs font-bold text-accent-blue">{activeTask.text}</span>
+                        <span className="ml-auto whitespace-nowrap text-[11px] font-mono font-bold text-slate-400 flex items-center gap-1 bg-accent-blue/10 px-2 py-0.5 rounded-md border border-accent-blue/10">
                           <Target className="h-3 w-3 text-accent-blue" />
                           <span>{activeTask.actualCycles ?? 0}/{activeTask.estimatedCycles ?? 1}</span>
                         </span>
@@ -1732,94 +1791,94 @@ function App() {
                   })()}
                   {/* Task Planner - Hide in Zen Mode */}
                   {!isZenMode && (
-                    <div className="flex flex-col flex-1 min-h-[200px] space-y-2">
+                    <div className="flex flex-col flex-1 min-h-[220px] space-y-2.5 mt-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <input
                           data-task-input
                           type="text"
-                          placeholder="Add a task..."
-                          className="flex-1 rounded-sm border border-[#1b2333] bg-[#0c0f17] focus:bg-slate-950 focus:border-accent-blue/50 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all duration-200"
+                          placeholder="Add a target objective..."
+                          className="flex-1 rounded-xl border border-white/5 bg-black/20 focus:bg-black/45 focus:border-accent-blue/40 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all duration-200"
                           onKeyDown={(e) => { if (e.key === 'Enter') { const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); handleAddTask((e.target as HTMLInputElement).value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); (e.target as HTMLInputElement).value = '' } }}
                         />
                         <select
                           data-task-category
-                          className="w-24 rounded-sm border border-[#1b2333] bg-[#0c0f17] focus:bg-[#07090e] focus:border-accent-blue/50 px-1.5 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
+                          className="w-24 rounded-xl border border-white/5 bg-black/20 focus:bg-[#07090e] focus:border-accent-blue/40 px-1.5 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
                         >
-                          <option value="" className="bg-[#07090e]">No category</option>
+                          <option value="" className="bg-surface">No category</option>
                           {categories.map(cat => (
-                            <option key={cat.id} value={cat.id} className="bg-[#07090e]">{cat.name}</option>
+                            <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
                           ))}
                         </select>
                         <select
                           data-task-cycles
                           value={taskCycleCount}
                           onChange={e => setTaskCycleCount(Number(e.target.value))}
-                          className="w-14 rounded-sm border border-[#1b2333] bg-[#0c0f17] focus:bg-[#07090e] focus:border-accent-blue/50 px-1 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
+                          className="w-14 rounded-xl border border-white/5 bg-black/20 focus:bg-[#07090e] focus:border-accent-blue/40 px-1 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
                         >
                           {[1,2,3,4,5,6,7,8].map(n => (
-                            <option key={n} value={n} className="bg-[#07090e]">🎯 {n}</option>
+                            <option key={n} value={n} className="bg-surface">🎯 {n}</option>
                           ))}
                         </select>
                         <button
                           onClick={() => { const input = document.querySelector<HTMLInputElement>('[data-task-input]'); const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); if (input) { handleAddTask(input.value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); input.value = '' } }}
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent-blue/10 text-accent-blue hover:bg-[#00ff66]/20 transition-all active:scale-95 cursor-pointer"
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-blue/15 text-accent-blue hover:bg-accent-blue hover:text-slate-950 transition-all active:scale-95 cursor-pointer"
                         >
                           <Plus className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <div className="flex-1 overflow-y-auto min-h-[100px] flex flex-col">
+                      <div className="flex-1 overflow-y-auto min-h-[120px] flex flex-col">
                         {activeTasksList.length === 0 ? (
-                          <div className="flex flex-1 flex-col items-center justify-center h-full min-h-[220px] border-2 border-dashed border-[#1b2333] bg-[#0c0f17] hover:border-[#1b2333] rounded-sm p-6 my-2 text-center transition-all duration-300 group">
-                            <span className="text-3xl mb-3 animate-pulse-soft filter drop-shadow-[0_0_8px_rgba(245,158,11,0.2)]">🎯</span>
-                            <p className="text-xs font-semibold text-slate-200 max-w-[220px] leading-relaxed">
+                          <div className="flex flex-1 flex-col items-center justify-center h-full min-h-[220px] border border-dashed border-white/5 bg-black/10 rounded-2xl p-6 my-2 text-center transition-all duration-300">
+                            <span className="text-3xl mb-3 animate-pulse-soft">🎯</span>
+                            <p className="text-xs font-bold text-slate-200 max-w-[220px] leading-relaxed">
                               No focus tasks planned for today.
                             </p>
-                            <p className="text-[11px] text-slate-500 max-w-[200px] mt-1.5 leading-normal">
+                            <p className="text-[11px] text-slate-550 max-w-[200px] mt-1.5 leading-normal">
                               Add an objective above to lock in your active target focus!
                             </p>
                           </div>
                         ) : (
-                          <div className="space-y-0.5">
+                          <div className="space-y-1 my-1">
                             {activeTasksList.map(task => (
                               <div
                                 key={task.id}
                                 onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
-                                className={`flex flex-col gap-1 rounded-md px-2 py-1.5 transition-colors cursor-pointer animate-slide-in-up ${
+                                className={`flex flex-col gap-1 rounded-xl px-3 py-2 transition-all cursor-pointer border border-transparent animate-slide-in-up ${
                                   activeTaskId === task.id
-                                    ? 'bg-accent-blue/10 ring-1 ring-accent-blue/30'
-                                    : 'hover:bg-[#07090e]'
+                                    ? 'bg-accent-blue/10 border-accent-blue/25 shadow-md shadow-accent-blue/5'
+                                    : 'hover:bg-white/5 hover:border-white/5'
                                 }`}
                               >
-                                <div className="flex items-center gap-2 w-full">
+                                <div className="flex items-center gap-2.5 w-full">
                                   <div
                                     onClick={e => { e.stopPropagation(); handleToggleTask(task.id!) }}
-                                    className={`flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border ${
-                                      task.completed ? 'border-accent-blue bg-accent-blue/20' : 'border-[#1b2333] bg-surface'
+                                    className={`flex h-4.5 w-4.5 shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-all ${
+                                      task.completed ? 'border-accent-blue bg-accent-blue/20 text-accent-blue' : 'border-white/10 bg-black/20 hover:border-white/20'
                                     }`}
                                   >
-                                    {task.completed && <Check className="h-3 w-3 text-accent-blue" />}
+                                    {task.completed && <Check className="h-3 w-3 stroke-[2.5]" />}
                                   </div>
                                   {task.categoryId !== undefined && categoriesMap.has(task.categoryId) && (
-                                    <div className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: categoriesMap.get(task.categoryId)!.color }} />
+                                    <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: categoriesMap.get(task.categoryId)!.color }} />
                                   )}
-                                  <span className={`flex-1 truncate text-xs ${task.completed ? 'text-slate-400 line-through' : 'text-text-primary'}`}>
+                                  <span className={`flex-1 truncate text-xs font-semibold ${task.completed ? 'text-slate-450 line-through' : 'text-text-primary'}`}>
                                     {task.text}
                                   </span>
-                                  <span className="shrink-0 text-[11px] text-slate-400 flex items-center gap-1">
+                                  <span className="shrink-0 text-[11px] font-mono font-semibold text-slate-400 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
                                     <Target className="h-3 w-3 text-accent-blue" />
                                     <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1}</span>
                                   </span>
                                 </div>
 
                                 {task.completed && (
-                                  <div className="mt-1 flex flex-col gap-1 pl-6 border-l border-[#1b2333]" onClick={e => e.stopPropagation()}>
-                                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Rate your Active Recall (SM-2)</p>
+                                  <div className="mt-2 flex flex-col gap-1.5 pl-6 border-l border-white/10" onClick={e => e.stopPropagation()}>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rate your Active Recall (SM-2)</p>
                                     <div className="flex gap-1.5">
                                       {[0, 1, 2, 3, 4, 5].map(q => (
                                         <button
                                           key={q}
                                           onClick={(e) => { e.stopPropagation(); submitRecallGrade(task, q) }}
-                                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#1b2333] hover:bg-accent-purple/20 hover:text-accent-purple border border-[#1b2333] hover:border-accent-purple/30 text-slate-300 transition-all cursor-pointer"
+                                          className="px-2 py-0.5 rounded-md text-[10px] font-extrabold font-mono bg-white/5 hover:bg-accent-purple hover:text-slate-950 border border-white/5 hover:border-accent-purple text-slate-300 transition-all cursor-pointer"
                                           title={
                                             q === 0 ? "Complete Blackout" :
                                             q === 1 ? "Incorrect but remembered" :
@@ -1869,6 +1928,15 @@ function App() {
                                   updateSetting(ch.id as SettingsKey, v)
                                 }}
                                 className={`flex-1 h-1.5 rounded-full cursor-pointer bg-[#1b2333] outline-none ${ch.colorClass}`}
+                                style={{
+                                  '--color-accent-blue': `var(--color-accent-${
+                                    ch.id === 'ambientVolume_rain'
+                                      ? 'blue'
+                                      : ch.id === 'ambientVolume_cafe'
+                                      ? 'amber'
+                                      : 'purple'
+                                  })`
+                                } as React.CSSProperties}
                               />
                               <span className="text-[10px] font-semibold text-slate-500 w-6 text-right tabular-nums">
                                 {Math.round(ch.val * 100)}%
@@ -1935,106 +2003,108 @@ function App() {
         }`}>
 
           {/* CARD 2: Weekly Rhythm */}
-          <div className="rounded-sm border border-[#1b2333] hover:border-[#1b2333] transition-all duration-300 dynamic-card p-5">
-            <p className="font-mono text-[10px] tracking-widest text-slate-500 mb-3">[MODULE // 02.RHYTHM]</p>
+          <div className="rounded-2xl border border-white/5 transition-all duration-300 dynamic-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] font-mono tracking-widest text-accent-purple/90 uppercase bg-accent-purple/10 px-2.5 py-0.5 rounded-full border border-accent-purple/20">Rhythm // analytics</span>
+            </div>
             <div className="mb-5 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-accent-blue" />
-              <h2 className="text-sm font-semibold tracking-wide text-slate-200">Weekly Rhythm</h2>
+              <BarChart3 className="h-5 w-5 text-accent-purple" />
+              <h2 className="text-sm font-semibold tracking-wide text-slate-200">Weekly Performance</h2>
             </div>
             {/* Top Metrics Row */}
-            <div className="mb-6 grid grid-cols-4 gap-4">
+            <div className="mb-6 grid grid-cols-4 gap-3">
               {[
                 { label: 'Study time', value: `${totalMonthHours.toFixed(1)}h`, icon: <Clock className="h-3.5 w-3.5 text-accent-blue" /> },
                 { label: 'Break time', value: `${totalWeeklyBreakHours}h`, icon: <Coffee className="h-3.5 w-3.5 text-accent-amber" /> },
                 { label: 'Active days', value: `${new Set(monthLogs.filter(l => l.studyMinutes > 0).map(l => l.dateString)).size}/${totalDaysInMonth}`, icon: <Calendar className="h-3.5 w-3.5 text-accent-green" /> },
                 { label: 'Best day', value: '--', icon: <Award className="h-3.5 w-3.5 text-accent-purple" /> },
               ].map((m) => (
-                <div key={m.label} className="flex items-center gap-2.5 rounded-sm border border-[#1b2333] bg-[#07090e] px-3 py-2.5 animate-slide-in-up">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-surface">
+                <div key={m.label} className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-black/20 px-3 py-2.5 hover:bg-black/35 hover:border-white/10 transition-all duration-300">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 border border-white/5">
                     {m.icon}
                   </div>
                   <div>
-                    <p className="text-[11px] text-slate-400">{m.label}</p>
-                    <p className="text-sm font-semibold">{m.value}</p>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{m.label}</p>
+                    <p className="text-xs font-bold font-mono text-text-primary mt-0.5">{m.value}</p>
                   </div>
                 </div>
               ))}
             </div>
             {/* Charts */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-sm border border-[#1b2333] bg-[#07090e] p-4">
-                <p className="mb-3 text-xs font-medium text-text-secondary">Study hours trend</p>
+              <div className="rounded-xl border border-white/5 bg-black/20 p-4">
+                <p className="mb-3 text-xs font-bold tracking-wide uppercase text-text-secondary">Focus Hours trend</p>
                 {hasChartData ? (
                   <ResponsiveContainer width="100%" height={180}>
                     <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.3} />
-                          <stop offset="100%" stopColor="#3B82F6" stopOpacity={0} />
+                          <stop offset="0%" stopColor={activeThemeVars.accentBlue} stopOpacity={0.35} />
+                          <stop offset="100%" stopColor={activeThemeVars.accentBlue} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={true} vertical={false} />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11 }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11 }} domain={[0, 12]} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" horizontal={true} vertical={false} />
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} domain={[0, 12]} />
                       <Tooltip
                         contentStyle={tooltipStyle}
-                        labelStyle={{ color: '#94A3B8', fontSize: 12, marginBottom: 4 }}
-                        itemStyle={{ color: '#F8FAFC', fontSize: 13 }}
+                        labelStyle={{ color: '#94A3B8', fontSize: 11, fontWeight: 700 }}
+                        itemStyle={{ color: '#F8FAFC', fontSize: 12 }}
                       />
-                      <Area type="monotone" dataKey="hours" stroke="#3B82F6" strokeWidth={2} fill="url(#areaGradient)" dot={false} activeDot={{ r: 4, fill: '#3B82F6' }} />
+                      <Area type="monotone" dataKey="hours" stroke={activeThemeVars.accentBlue} strokeWidth={2} fill="url(#areaGradient)" dot={false} activeDot={{ r: 4, fill: activeThemeVars.accentBlue }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex h-[180px] items-center justify-center">
-                    <p className="text-xs text-slate-400">No study data available for this week yet.</p>
+                    <p className="text-xs text-slate-500 italic">No study data available for this week yet.</p>
                   </div>
                 )}
               </div>
-              <div className="rounded-sm border border-[#1b2333] bg-[#07090e] p-4">
-                <p className="mb-3 text-xs font-medium text-text-secondary">Daily focus bars</p>
+              <div className="rounded-xl border border-white/5 bg-black/20 p-4">
+                <p className="mb-3 text-xs font-bold tracking-wide uppercase text-text-secondary">Daily efficiency index</p>
                 {hasChartData ? (
                   <ResponsiveContainer width="100%" height={180}>
                     <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
                       <defs>
                         <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#3B82F6" />
-                          <stop offset="100%" stopColor="#8B5CF6" />
+                          <stop offset="0%" stopColor={activeThemeVars.accentBlue} />
+                          <stop offset="100%" stopColor={activeThemeVars.accentPurple} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={true} vertical={false} />
-                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11 }} tickFormatter={(v: string) => v.charAt(0)} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" horizontal={true} vertical={false} />
+                      <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} tickFormatter={(v: string) => v.charAt(0)} />
                       <YAxis hide />
                       <Tooltip
                         contentStyle={tooltipStyle}
-                        labelStyle={{ color: '#94A3B8', fontSize: 12, marginBottom: 4 }}
+                        labelStyle={{ color: '#94A3B8', fontSize: 11, fontWeight: 700 }}
                         formatter={(value) => [`${value}%`, 'Focus']}
                       />
-                      <Bar dataKey="focus" fill="url(#barGradient)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                      <Bar dataKey="focus" fill="url(#barGradient)" radius={[4, 4, 0, 0]} maxBarSize={20} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex h-[180px] items-center justify-center">
-                    <p className="text-xs text-slate-400">No study data available for this week yet.</p>
+                    <p className="text-xs text-slate-500 italic">No study data available for this week yet.</p>
                   </div>
                 )}
               </div>
             </div>
             {/* Productivity Insights */}
-            <div className="rounded-sm border border-[#1b2333] bg-[#0c0f17] p-4">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Productivity Insights</p>
-              <div className="grid grid-cols-4 gap-4">
+            <div className="rounded-xl border border-white/5 bg-black/20 p-4 mt-4">
+              <p className="mb-3.5 text-xs font-bold uppercase tracking-wider text-slate-400">Productivity Analytics</p>
+              <div className="grid grid-cols-4 gap-3">
                 {[
                   { label: 'TOP SUBJECT', value: topSubject, icon: <Award className="h-3.5 w-3.5 text-accent-purple" />, valueClass: 'text-accent-purple' },
                   { label: 'AVG SESSION', value: `${avgMin} min`, icon: <Clock className="h-3.5 w-3.5 text-accent-blue" />, valueClass: 'text-accent-blue' },
                   { label: 'COMPLETION', value: `${completionRate}%`, icon: <CheckCircle className="h-3.5 w-3.5 text-accent-green" />, valueClass: 'text-accent-green' },
                   { label: 'PEAK DAY', value: peakDay, icon: <Calendar className="h-3.5 w-3.5 text-accent-amber" />, valueClass: 'text-accent-amber' },
                 ].map(m => (
-                  <div key={m.label} className="rounded-sm border border-[#1b2333] dynamic-card p-3">
-                    <div className="mb-2 flex items-center gap-2">
+                  <div key={m.label} className="rounded-xl border border-white/5 bg-white/5 p-3 hover:border-white/10 hover:bg-white/10 transition-all duration-300 shadow-sm">
+                    <div className="mb-2 flex items-center gap-1.5">
                       {m.icon}
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">{m.label}</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{m.label}</span>
                     </div>
-                    <p className={`text-sm font-bold ${m.valueClass}`}>{m.value}</p>
+                    <p className={`text-xs font-black truncate uppercase tracking-tight ${m.valueClass}`}>{m.value}</p>
                   </div>
                 ))}
               </div>
@@ -2042,109 +2112,115 @@ function App() {
           </div>
 
           {/* CARD 3: This Month */}
-          <div className="rounded-sm border border-[#1b2333] hover:border-[#1b2333] transition-all duration-300 dynamic-card p-5">
+          <div className="rounded-2xl border border-white/5 transition-all duration-300 dynamic-card p-5">
             <div className="mb-5 flex items-center gap-2">
               <Flame className="h-5 w-5 text-accent-amber" />
-              <h2 className="text-sm font-semibold tracking-wide text-slate-200">This Month</h2>
+              <h2 className="text-sm font-semibold tracking-wide text-slate-200">Session Totals (Current Month)</h2>
               <div className="ml-auto flex items-center gap-2">
                 <button
                   onClick={() => setIsHotkeyHudOpen(true)}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-all hover:bg-surface hover:text-text-primary"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-450 transition-all hover:bg-white/5 hover:text-text-primary"
                   title="Keyboard shortcuts"
                 >
                   <Keyboard className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setActiveView('settings')}
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-all hover:bg-surface hover:text-text-primary cursor-pointer"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-450 transition-all hover:bg-white/5 hover:text-text-primary cursor-pointer"
                   title="Open configuration deck"
                 >
                   <Settings className="h-4 w-4" />
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-3 divide-x divide-border-card">
+            <div className="grid grid-cols-3 divide-x divide-white/5">
               <div className="flex flex-col items-center px-4 first:pl-0">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-surface">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/5">
                     <Clock className="h-5 w-5 text-accent-blue" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">Total Hours</p>
-                    <p className="text-xl font-bold">{totalMonthHours.toFixed(1)}h</p>
+                    <p className="text-[10px] text-slate-450 font-semibold uppercase tracking-wider">Total Hours</p>
+                    <p className="text-lg font-black font-mono mt-0.5 text-text-primary">{totalMonthHours.toFixed(1)}h</p>
                   </div>
                 </div>
-                <div className="mt-3 h-0.5 w-full max-w-[200px] rounded-full bg-accent-blue/60" />
+                <div className="mt-3.5 h-1 w-full max-w-[200px] rounded-full bg-accent-blue/20 overflow-hidden">
+                  <div className="h-full bg-accent-blue rounded-full" style={{ width: `${Math.min(100, totalMonthHours * 2.5)}%` }} />
+                </div>
               </div>
               <div className="flex flex-col items-center px-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-surface">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/5">
                     <BookOpen className="h-5 w-5 text-accent-purple" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">Sessions</p>
-                    <p className="text-xl font-bold">{totalMonthSessions}</p>
+                    <p className="text-[10px] text-slate-455 font-semibold uppercase tracking-wider">Sessions</p>
+                    <p className="text-lg font-black font-mono mt-0.5 text-text-primary">{totalMonthSessions}</p>
                   </div>
                 </div>
-                <div className="mt-3 flex gap-1">
+                <div className="mt-4 flex gap-1">
                   {Array.from({ length: 10 }).map((_, i) => (
                     <div
                       key={i}
-                      className={`h-1 w-1.5 rounded-sm ${i < Math.min(totalMonthSessions, 10) && totalMonthSessions > 0 ? 'bg-accent-purple/70' : 'bg-accent-purple/20'}`}
+                      className={`h-1 w-1.5 rounded-sm transition-all duration-300 ${i < Math.min(totalMonthSessions, 10) && totalMonthSessions > 0 ? 'bg-accent-purple shadow-[0_0_4px_var(--color-accent-purple)]' : 'bg-white/10'}`}
                     />
                   ))}
                 </div>
               </div>
               <div className="flex flex-col items-center px-4 last:pr-0">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-surface">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/5">
                     <Target className="h-5 w-5 text-accent-green" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">Avg / Day</p>
-                    <p className="text-xl font-bold">{(totalDaysInMonth > 0 ? (totalMonthHours / totalDaysInMonth).toFixed(1) : '0.0')}h</p>
+                    <p className="text-[10px] text-slate-450 font-semibold uppercase tracking-wider">Avg / Day</p>
+                    <p className="text-lg font-black font-mono mt-0.5 text-text-primary">{(totalDaysInMonth > 0 ? (totalMonthHours / totalDaysInMonth).toFixed(1) : '0.0')}h</p>
                   </div>
                 </div>
-                <div className="mt-3 h-0.5 w-full max-w-[200px] rounded-full bg-accent-green/60" />
+                <div className="mt-3.5 h-1 w-full max-w-[200px] rounded-full bg-accent-green/20 overflow-hidden">
+                  <div className="h-full bg-accent-green rounded-full" style={{ width: `${Math.min(100, (totalMonthHours / (totalDaysInMonth || 1)) * 25)}%` }} />
+                </div>
               </div>
             </div>
             {/* Category Breakdown */}
-            <div className="mt-6 border-t border-[#1b2333] pt-5">
-              <p className="mb-4 text-sm font-semibold text-text-primary">Category Hours</p>
+            <div className="mt-6 border-t border-white/5 pt-5">
+              <p className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Category breakdown</p>
               {categoryBreakdown.length > 0 ? (
                 <div className="flex items-center gap-6">
-                  <ResponsiveContainer width="100%" height={160}>
-                    <PieChart>
-                      <Pie
-                        data={categoryBreakdown}
-                        dataKey="hours"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={32}
-                        outerRadius={55}
-                        paddingAngle={2}
-                        stroke="none"
-                      >
-                        {categoryBreakdown.map((entry, index) => (
-                          <Cell key={index} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex flex-col gap-2">
+                  <div className="w-[120px] h-[120px] shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryBreakdown}
+                          dataKey="hours"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={28}
+                          outerRadius={45}
+                          paddingAngle={3}
+                          stroke="none"
+                        >
+                          {categoryBreakdown.map((entry, index) => (
+                            <Cell key={index} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex flex-col gap-2 flex-1">
                     {categoryBreakdown.map((item, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs">
+                      <div key={i} className="flex items-center gap-2 text-xs font-semibold">
                         <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                        <span className="text-text-primary">{item.name}</span>
-                        <span className="text-slate-400">{item.hours}h</span>
-                        <span className="text-slate-400">({item.percentage}%)</span>
+                        <span className="text-text-primary flex-1">{item.name}</span>
+                        <span className="text-slate-400 font-mono">{item.hours}h</span>
+                        <span className="text-slate-500 font-mono">({item.percentage}%)</span>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
-                <p className="py-4 text-center text-xs italic text-slate-400">
+                <p className="py-4 text-center text-xs italic text-slate-500">
                   No category distributions recorded yet. Start a session to see your subject breakdown!
                 </p>
               )}
@@ -2158,128 +2234,156 @@ function App() {
         }`}>
 
           {/* CARD 4: Monthly Overview */}
-          <div className="flex flex-col rounded-sm border border-[#1b2333] hover:border-[#1b2333] transition-all duration-300 dynamic-card p-5">
-            <p className="font-mono text-[10px] tracking-widest text-slate-500 mb-3">[MODULE // 03.LEDGER]</p>
+          <div className="flex flex-col rounded-2xl border border-white/5 transition-all duration-300 dynamic-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] font-mono tracking-widest text-accent-amber/90 uppercase bg-accent-amber/10 px-2.5 py-0.5 rounded-full border border-accent-amber/20">Ledger // archive</span>
+            </div>
             {/* Month Header */}
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-accent-blue" />
                 <h2 className="text-sm font-semibold tracking-wide text-slate-200">{monthNames[currentMonth]} {currentYear}</h2>
               </div>
-              <div className="flex items-center gap-1 text-slate-400">
-                <button onClick={goPrevMonth} className="flex h-7 w-7 items-center justify-center rounded-md text-sm transition-colors hover:bg-surface hover:text-text-primary">‹</button>
-                <span className="text-xs font-medium">{monthNames[currentMonth]} {currentYear}</span>
-                <button onClick={goNextMonth} className="flex h-7 w-7 items-center justify-center rounded-md text-sm transition-colors hover:bg-surface hover:text-text-primary">›</button>
+              <div className="flex items-center gap-1.5 text-slate-400">
+                <button onClick={goPrevMonth} className="flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-colors hover:bg-white/5 hover:text-text-primary cursor-pointer">‹</button>
+                <span className="text-xs font-bold">{monthNames[currentMonth]} {currentYear}</span>
+                <button onClick={goNextMonth} className="flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-colors hover:bg-white/5 hover:text-text-primary cursor-pointer">›</button>
                 <select
                   value={calendarCategoryFilter === 'all' ? 'all' : String(calendarCategoryFilter)}
                   onChange={e => setCalendarCategoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                  className="ml-1 rounded-md border border-[#1b2333] bg-surface px-2 py-1 text-xs text-text-secondary outline-none"
+                  className="ml-1 rounded-xl border border-white/5 bg-black/25 px-2.5 py-1 text-xs text-text-secondary outline-none cursor-pointer"
                 >
-                  <option value="all">All Subjects</option>
+                  <option value="all" className="bg-surface">All Subjects</option>
                   {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
                   ))}
                 </select>
               </div>
             </div>
             {/* Day Labels */}
-            <div className="mb-1.5 grid grid-cols-7 gap-1">
+            <div className="mb-2 grid grid-cols-7 gap-1">
               {dayNames.map((d) => (
-                <div key={d} className="py-1 text-center text-[11px] font-medium text-slate-400">{d}</div>
+                <div key={d} className="py-0.5 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500">{d}</div>
               ))}
             </div>
             {/* Calendar Grid */}
             <div className="mb-5 grid grid-cols-7 gap-1.5">
-              {dynamicGridCells.map((cell, i) => {
-                const dayData = cell ? activeMonthData[cell - 1] : null
-                const isLiveDay = isLiveMonth && cell === totalDaysInMonth
-                const intensity = isLiveDay ? getIntensity(todayStudyMinutes) : (dayData?.intensity ?? 0)
-                return cell ? (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedDay(cell)}
-                    className={`aspect-square rounded-sm flex items-center justify-center text-xs font-medium transition-all duration-150 ${
-                      cell === selectedDay
-                        ? 'ring-2 ring-accent-blue bg-accent-blue/20 text-text-primary'
-                        : `${intensityColors[intensity]} text-text-secondary hover:ring-1 hover:ring-accent-blue/40`
-                    }`}
-                  >
-                    {cell}
-                  </button>
-                ) : (
-                  <div key={i} className="aspect-square" />
-                )
-              })}
+              {(() => {
+                const accentBlueRgb = hexToRgb(activeThemeVars.accentBlue) || { r: 56, g: 189, b: 248 }
+                const accentBlueRgbStr = `${accentBlueRgb.r}, ${accentBlueRgb.g}, ${accentBlueRgb.b}`
+
+                const getIntensityStyle = (intensity: 0 | 1 | 2 | 3) => {
+                  if (intensity === 0) return { backgroundColor: 'rgba(255, 255, 255, 0.04)' }
+                  const opacity = intensity === 1 ? '0.25' : intensity === 2 ? '0.6' : '1.0'
+                  return {
+                    backgroundColor: `rgba(${accentBlueRgbStr}, ${opacity})`,
+                    color: intensity === 3 ? '#080b11' : '#ffffff'
+                  }
+                }
+
+                return dynamicGridCells.map((cell, i) => {
+                  const dayData = cell ? activeMonthData[cell - 1] : null
+                  const isLiveDay = isLiveMonth && cell === totalDaysInMonth
+                  const intensity = isLiveDay ? getIntensity(todayStudyMinutes) : (dayData?.intensity ?? 0)
+                  return cell ? (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedDay(cell)}
+                      className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all duration-150 cursor-pointer ${
+                        cell === selectedDay
+                          ? 'ring-2 ring-accent-blue text-text-primary scale-110 z-10 shadow-md shadow-accent-blue/15'
+                          : 'hover:ring-1 hover:ring-accent-blue/40'
+                      }`}
+                      style={cell === selectedDay ? { backgroundColor: activeThemeVars.accentBlue, color: '#080b11' } : getIntensityStyle(intensity)}
+                    >
+                      {cell}
+                    </button>
+                  ) : (
+                    <div key={i} className="aspect-square" />
+                  )
+                })
+              })()}
             </div>
             {/* Heatmap Legend */}
-            <div className="mb-5 flex items-center justify-between text-[11px] text-slate-400">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 text-[10px] text-slate-400 border-b border-white/5 pb-4">
               <div className="flex items-center gap-3">
-                {[
-                  { label: '0-1h', color: intensityColors[0] },
-                  { label: '1-2h', color: intensityColors[1] },
-                  { label: '2-3h', color: intensityColors[2] },
-                  { label: '3+h', color: intensityColors[3] },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center gap-1">
-                    <div className={`h-2.5 w-2.5 rounded-sm ${item.color}`} />
-                    <span>{item.label}</span>
-                  </div>
-                ))}
+                {(() => {
+                  const accentBlueRgb = hexToRgb(activeThemeVars.accentBlue) || { r: 56, g: 189, b: 248 }
+                  const accentBlueRgbStr = `${accentBlueRgb.r}, ${accentBlueRgb.g}, ${accentBlueRgb.b}`
+
+                  const getIntensityStyle = (intensity: 0 | 1 | 2 | 3) => {
+                    if (intensity === 0) return { backgroundColor: 'rgba(255, 255, 255, 0.04)' }
+                    const opacity = intensity === 1 ? '0.25' : intensity === 2 ? '0.6' : '1.0'
+                    return { backgroundColor: `rgba(${accentBlueRgbStr}, ${opacity})` }
+                  }
+
+                  return [
+                    { label: '0-1h', intensity: 0 },
+                    { label: '1-2h', intensity: 1 },
+                    { label: '2-3h', intensity: 2 },
+                    { label: '3+h', intensity: 3 },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-1.5 font-semibold">
+                      <div className="h-3 w-3 rounded-md border border-white/5" style={getIntensityStyle(item.intensity as 0|1|2|3)} />
+                      <span>{item.label}</span>
+                    </div>
+                  ))
+                })()}
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 font-semibold">
                 <span>Low</span>
                 {[0.3, 0.5, 0.75, 1].map((opacity, i) => (
-                  <div key={i} className="h-2 w-2 rounded-full bg-accent-blue" style={{ opacity }} />
+                  <div key={i} className="h-2 w-2 rounded-full" style={{ backgroundColor: activeThemeVars.accentBlue, opacity }} />
                 ))}
                 <span>High</span>
               </div>
             </div>
             {/* Selected Day Panel */}
-            <div className="mt-auto rounded-sm border border-[#1b2333] bg-surface p-5">
+            <div className="mt-auto rounded-2xl border border-white/5 bg-black/20 p-5">
               <div className="mb-4 flex items-start justify-between">
                 <div>
-                  <p className="text-[11px] font-medium tracking-wider text-accent-blue">SELECTED DAY</p>
-                  <p className="text-sm font-semibold text-text-primary">{liveDay.dayName}, {selectedDay} {monthNames[currentMonth]}</p>
+                  <p className="text-[9px] font-bold tracking-wider text-accent-blue uppercase">Selected Day Logs</p>
+                  <p className="text-sm font-extrabold text-text-primary mt-0.5">{liveDay.dayName}, {selectedDay} {monthNames[currentMonth]}</p>
                 </div>
                 {isLiveMonth && selectedDay === totalDaysInMonth && (
-                  <div className="flex items-center gap-1.5 rounded-full bg-accent-green/10 px-3 py-1">
+                  <div className="flex items-center gap-1.5 rounded-full bg-accent-green/10 border border-accent-green/20 px-3 py-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-accent-green animate-pulse-soft" />
-                    <span className="text-xs font-medium text-accent-green">Active</span>
+                    <span className="text-[10px] font-bold text-accent-green uppercase tracking-wide">Active</span>
                   </div>
                 )}
               </div>
               <div className="mb-3 grid grid-cols-3 gap-4">
                 <div>
-                  <p className="mb-0.5 text-xs text-slate-400">Study{calendarCategoryFilter !== 'all' ? ` (${categories.find(c => c.id === calendarCategoryFilter)?.name ?? 'Unknown'})` : ''}</p>
-                  <p className="text-lg font-bold text-accent-blue">{liveDay.studyTime}</p>
+                  <p className="mb-0.5 text-[10px] font-semibold text-slate-450 uppercase">Study{calendarCategoryFilter !== 'all' ? ` (${categories.find(c => c.id === calendarCategoryFilter)?.name ?? 'Unknown'})` : ''}</p>
+                  <p className="text-base font-bold font-mono text-accent-blue">{liveDay.studyTime}</p>
                 </div>
                 <div>
-                  <p className="mb-0.5 text-xs text-slate-400">Breaks</p>
-                  <p className="text-lg font-bold text-accent-amber">{liveDay.breakTime}</p>
+                  <p className="mb-0.5 text-[10px] font-semibold text-slate-450 uppercase">Breaks</p>
+                  <p className="text-base font-bold font-mono text-accent-amber">{liveDay.breakTime}</p>
                 </div>
                 <div>
-                  <p className="mb-0.5 text-xs text-slate-400">Focus ratio</p>
-                  <p className="text-lg font-bold text-accent-green">{liveDay.focusRatio}</p>
+                  <p className="mb-0.5 text-[10px] font-semibold text-slate-450 uppercase">Focus ratio</p>
+                  <p className="text-base font-bold font-mono text-accent-green">{liveDay.focusRatio}</p>
                 </div>
               </div>
-              <p className="border-t border-[#1b2333] pt-3 text-xs text-slate-400">
+              <p className="border-t border-white/5 pt-3 text-xs font-semibold text-slate-400">
                 {liveDay.sessionsCompleted} sessions completed · score {liveDay.focusScore}
               </p>
               {/* Mood Selector */}
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
                 {[
                   { label: 'Focused', emoji: '🧠', value: 'focused' },
                   { label: 'Energetic', emoji: '⚡', value: 'energetic' },
                   { label: 'Tired', emoji: '🥱', value: 'tired' },
-                  { label: 'Distracted', emoji: '🌪️', value: 'distracted' },
+                  { label: 'Distracted', emoji: '🌪', value: 'distracted' },
                 ].map(m => (
                   <button
                     key={m.value}
                     onClick={() => handleMoodSelect(m.value)}
-                    className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs font-medium transition-all ${
+                    className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                       draftMood === m.value
-                        ? 'border-blue-500/20 bg-blue-500/10 text-blue-400'
-                        : 'border-[#1b2333] bg-[#07090e] text-slate-400 hover:border-blue-500/30 hover:text-text-primary'
+                        ? 'border-accent-blue/30 bg-accent-blue/15 text-accent-blue shadow-md'
+                        : 'border-white/5 bg-black/20 text-slate-400 hover:border-white/10 hover:text-text-primary'
                     }`}
                   >
                     <span>{m.emoji}</span>
@@ -2293,20 +2397,20 @@ function App() {
                 onChange={e => handleNotesChange(e.target.value)}
                 placeholder="Write a brief reflection on your focus, hurdles, or wins for this day..."
                 rows={3}
-                className="mt-3 w-full resize-none rounded-sm border border-[#1b2333] bg-[#07090e] px-3 py-2 text-xs text-text-primary placeholder:text-slate-400 outline-none focus:border-accent-blue/50"
+                className="mt-3 w-full resize-none rounded-xl border border-white/5 bg-black/20 focus:bg-black/45 focus:border-accent-blue/40 px-3 py-2.5 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all duration-200"
               />
 
               {/* Daily Focus Horizon */}
-              <div className="mt-4 border-t border-[#1b2333] pt-4">
+              <div className="mt-4 border-t border-white/5 pt-4">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">Daily Focus Horizon</p>
-                <div className="relative w-full bg-[#0c0f17] border border-[#1b2333] rounded-sm p-3">
+                <div className="relative w-full bg-black/10 border border-white/5 rounded-2xl p-4">
                   {/* Timeline Bar */}
-                  <div className="relative h-4 w-full bg-[#0c0f17] rounded-md border border-[#1b2333] overflow-hidden">
+                  <div className="relative h-5 w-full bg-black/30 rounded-xl border border-white/5 overflow-hidden">
                     {/* Time ticks / grid */}
                     <div className="absolute inset-0 flex justify-between pointer-events-none text-[8px] text-slate-600 font-mono">
-                      <div className="h-full border-r border-[#1b2333]" style={{ left: '25%' }} />
-                      <div className="h-full border-r border-[#1b2333]" style={{ left: '50%' }} />
-                      <div className="h-full border-r border-[#1b2333]" style={{ left: '75%' }} />
+                      <div className="h-full border-r border-white/5" style={{ left: '25%' }} />
+                      <div className="h-full border-r border-white/5" style={{ left: '50%' }} />
+                      <div className="h-full border-r border-white/5" style={{ left: '75%' }} />
                     </div>
 
                     {/* Mapped study and break sessions */}
@@ -2330,21 +2434,19 @@ function App() {
                         <div
                           key={idx}
                           title={titleText}
-                          className={`absolute top-0 h-full rounded-sm transition-all hover:scale-y-110 cursor-pointer ${
-                            isStudy
-                              ? 'bg-[#00ff66] shadow-[0_0_6px_rgba(0,255,102,0.35)] z-10'
-                              : 'bg-slate-700/80'
-                          }`}
+                          className="absolute top-0 h-full rounded-md transition-all hover:scale-y-110 cursor-pointer z-10"
                           style={{
                             left: `${startPercent}%`,
                             width: `${widthPercent}%`,
+                            backgroundColor: isStudy ? activeThemeVars.accentBlue : activeThemeVars.accentAmber,
+                            boxShadow: `0 0 6px ${isStudy ? activeThemeVars.accentBlue : activeThemeVars.accentAmber}60`
                           }}
                         />
                       )
                     })}
                   </div>
                   {/* Timeline labels */}
-                  <div className="flex justify-between text-[8px] text-slate-500 font-mono mt-1 px-1 select-none">
+                  <div className="flex justify-between text-[8px] text-slate-500 font-mono mt-1.5 px-1 select-none">
                     <span>00:00</span>
                     <span>06:00</span>
                     <span>12:00</span>
@@ -2378,7 +2480,7 @@ function App() {
                     onClick={() => setSettingsTab('visual')}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-semibold transition-all cursor-pointer ${
                       settingsTab === 'visual'
-                        ? 'bg-[#00ff66] text-black border border-[#00ff66]'
+                        ? 'bg-accent-blue text-slate-950 border border-accent-blue shadow-md shadow-accent-blue/15'
                         : 'text-[#64748b] hover:bg-[#0c0f17] hover:text-text-primary border border-transparent'
                     }`}
                   >
@@ -2389,7 +2491,7 @@ function App() {
                     onClick={() => setSettingsTab('audio')}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-semibold transition-all cursor-pointer ${
                       settingsTab === 'audio'
-                        ? 'bg-[#00ff66] text-black border border-[#00ff66]'
+                        ? 'bg-accent-blue text-slate-950 border border-accent-blue shadow-md shadow-accent-blue/15'
                         : 'text-[#64748b] hover:bg-[#0c0f17] hover:text-text-primary border border-transparent'
                     }`}
                   >
@@ -2400,7 +2502,7 @@ function App() {
                     onClick={() => setSettingsTab('metrics')}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-semibold transition-all cursor-pointer ${
                       settingsTab === 'metrics'
-                        ? 'bg-[#00ff66] text-black border border-[#00ff66]'
+                        ? 'bg-accent-blue text-slate-950 border border-accent-blue shadow-md shadow-accent-blue/15'
                         : 'text-[#64748b] hover:bg-[#0c0f17] hover:text-text-primary border border-transparent'
                     }`}
                   >
@@ -2411,7 +2513,7 @@ function App() {
                     onClick={() => setSettingsTab('vault')}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-semibold transition-all cursor-pointer ${
                       settingsTab === 'vault'
-                        ? 'bg-[#00ff66] text-black border border-[#00ff66]'
+                        ? 'bg-accent-blue text-slate-950 border border-accent-blue shadow-md shadow-accent-blue/15'
                         : 'text-[#64748b] hover:bg-[#0c0f17] hover:text-text-primary border border-transparent'
                     }`}
                   >
@@ -2640,6 +2742,15 @@ function App() {
                                   updateSetting(ch.id as SettingsKey, v)
                                 }}
                                 className={`flex-1 h-1.5 rounded-full cursor-pointer bg-[#1b2333] outline-none ${ch.colorClass}`}
+                                style={{
+                                  '--color-accent-blue': `var(--color-accent-${
+                                    ch.id === 'ambientVolume_rain'
+                                      ? 'blue'
+                                      : ch.id === 'ambientVolume_cafe'
+                                      ? 'amber'
+                                      : 'purple'
+                                  })`
+                                } as React.CSSProperties}
                               />
                               <span className="text-xs font-bold text-slate-400 w-10 text-right tabular-nums">
                                 {Math.round(ch.val * 100)}%
@@ -2782,7 +2893,7 @@ function App() {
                               updateSetting('audio_presets', [...audio_presets, newPreset])
                               if (el) el.value = ''
                             }}
-                            className="w-full rounded-sm bg-[#00ff66] text-black border border-[#00ff66] px-3 py-1.5 text-xs font-semibold hover:bg-[#00ff66]/25 active:scale-95 transition-all cursor-pointer text-center"
+                            className="w-full rounded-sm bg-accent-blue text-slate-950 border border-accent-blue px-3 py-1.5 text-xs font-semibold hover:bg-accent-blue/90 active:scale-95 transition-all cursor-pointer text-center"
                           >
                             Save Balance Preset
                           </button>
@@ -2978,7 +3089,7 @@ function App() {
                             addCategory(val, newCategoryColor)
                             setNewCategoryName('')
                           }}
-                          className="rounded-sm bg-accent-blue/10 border border-accent-blue/20 text-accent-blue px-3 py-1.5 text-xs font-semibold hover:bg-[#00ff66]/20 transition-all cursor-pointer"
+                          className="rounded-sm bg-accent-blue/10 border border-accent-blue/20 text-accent-blue px-3 py-1.5 text-xs font-semibold hover:bg-accent-blue/20 transition-all cursor-pointer"
                         >
                           Add
                         </button>
@@ -3024,7 +3135,7 @@ function App() {
                           </div>
                           <button
                             onClick={exportStudyBackup}
-                            className="w-full mt-5 rounded-sm bg-[#00ff66] text-black border border-[#00ff66] py-2 text-xs font-semibold hover:bg-[#00ff66]/25 active:scale-95 transition-all cursor-pointer text-center"
+                            className="w-full mt-5 rounded-sm bg-accent-blue text-slate-950 border border-accent-blue py-2 text-xs font-semibold hover:bg-accent-blue/90 active:scale-95 transition-all cursor-pointer text-center"
                           >
                             Export Backup
                           </button>
@@ -3122,7 +3233,7 @@ function App() {
         <div className="fixed inset-0 z-50 bg-[#020408] flex flex-col items-center justify-center overflow-hidden transition-opacity duration-1000 animate-fade-in animate-hrv-pacer">
           {/* Radial focal glow background pulse */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-[#00ff66]/5 via-[#f59e0b]/5 to-[#00ff66]/5 blur-3xl opacity-30 animate-zen-breath" />
+            <div className="w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-accent-blue/5 via-accent-purple/5 to-accent-blue/5 blur-3xl opacity-30 animate-zen-breath" />
           </div>
 
           {/* HTML5 Canvas Ambient Particle Background */}
@@ -3132,7 +3243,10 @@ function App() {
           <div className="relative z-10 flex flex-col items-center text-center space-y-8 select-none max-w-md px-6 animate-slide-in-up">
             {/* Cinematic countdown clock */}
             <div className="text-center">
-              <p className="text-[11rem] md:text-[14rem] text-[#00ff66] font-mono tracking-tighter leading-none select-none drop-shadow-[0_0_15px_rgba(0,255,102,0.4)]">
+              <p
+                className="text-[11rem] md:text-[14rem] text-accent-blue font-mono tracking-tighter leading-none select-none"
+                style={{ filter: `drop-shadow(0 0 15px ${activeThemeVars.accentBlue}60)` }}
+              >
                 {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
               </p>
               <p className="text-xs text-slate-400 mt-3 uppercase tracking-wider font-semibold">
@@ -3145,7 +3259,10 @@ function App() {
               {(() => {
                 const activeTask = sessionTasks.find(t => t.id === activeTaskId)
                 return (
-                  <p className="text-lg font-bold text-slate-200 tracking-widest uppercase drop-shadow-[0_0_8px_rgba(0,255,102,0.35)] font-sans">
+                  <p
+                    className="text-lg font-bold text-slate-200 tracking-widest uppercase font-sans"
+                    style={{ filter: `drop-shadow(0 0 8px ${activeThemeVars.accentBlue}50)` }}
+                  >
                     {activeTask ? activeTask.text : 'Radiant Silence'}
                   </p>
                 )
@@ -3156,14 +3273,14 @@ function App() {
             <div className="flex items-center gap-4 pt-4">
               <button
                 onClick={() => setIsTimerActive(!isTimerActive)}
-                className="flex h-12 w-12 items-center justify-center rounded-sm bg-[#00ff66] text-black border border-[#00ff66] hover:bg-[#00ff66] active:scale-95 cursor-pointer"
+                className="flex h-12 w-12 items-center justify-center rounded-sm bg-accent-blue text-slate-950 border border-accent-blue hover:bg-accent-blue/90 active:scale-95 cursor-pointer"
                 title={isTimerActive ? "Pause session" : "Start session"}
               >
                 {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
               </button>
               <button
                 onClick={completeSession}
-                className="flex items-center gap-2 rounded-sm bg-[#00ff66] text-black border border-[#00ff66] px-6 py-3 text-xs font-bold active:scale-95 cursor-pointer"
+                className="flex items-center gap-2 rounded-sm bg-accent-blue text-slate-950 border border-accent-blue px-6 py-3 text-xs font-bold hover:bg-accent-blue/90 active:scale-95 cursor-pointer"
               >
                 <Check className="h-4 w-4" />
                 Complete Focus

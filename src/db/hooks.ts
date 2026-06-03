@@ -79,9 +79,11 @@ export function useCategories() {
     }
   }
 
-  if (categories !== undefined && categories.length === 0) {
-    seedDefaults()
-  }
+  useEffect(() => {
+    if (categories !== undefined && categories.length === 0) {
+      seedDefaults()
+    }
+  }, [categories])
 
   return {
     categories: categories ?? [],
