@@ -937,6 +937,40 @@ function App() {
     }
   }
 
+  async function exportTaskCompletionLogsCSV() {
+    try {
+      const tasks = await db.tasks.toArray()
+      const cats = await db.categories.toArray()
+      const catMap = new Map(cats.map(c => [c.id, c.name]))
+
+      let csv = 'Task ID,Task Text,Status,Priority,Category,Created At,Estimated Cycles,Actual Cycles,Subtasks Progress,Subtasks Detail\n'
+      tasks.forEach(t => {
+        const text = t.text ? `"${t.text.replace(/"/g, '""')}"` : ''
+        const status = t.completed ? 'Completed' : 'Active'
+        const priority = t.priority || 'medium'
+        const category = t.categoryId ? (catMap.get(t.categoryId) || '') : ''
+        const dateStr = new Date(t.createdAt).toISOString().slice(0, 10)
+        const subtasksCount = t.subtasks?.length || 0
+        const subtasksCompleted = t.subtasks?.filter(s => s.completed).length || 0
+        const progress = subtasksCount > 0 ? `${subtasksCompleted}/${subtasksCount}` : 'N/A'
+        const detail = t.subtasks ? `"${t.subtasks.map(s => `[${s.completed ? 'x' : ' '}] ${s.text}`).join('; ').replace(/"/g, '""')}"` : ''
+
+        csv += `${t.id || ''},${text},${status},${priority},${category},${dateStr},${t.estimatedCycles},${t.actualCycles},${progress},${detail}\n`
+      })
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `task-logs-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Task CSV Export failed:', err)
+      pushToast('EXPORT', 'TASK CSV EXPORT FAILED')
+    }
+  }
+
   async function importStudyBackup(fileString: string) {
     try {
       const data = parseStudyBackupPayload(fileString)
@@ -1284,6 +1318,7 @@ function App() {
                   setLocalAlphaWaves={setLocalAlphaWaves}
                   exportStudyBackup={exportStudyBackup}
                   exportStudyLogsCSV={exportStudyLogsCSV}
+                  exportTaskCompletionLogsCSV={exportTaskCompletionLogsCSV}
                   importStudyBackup={importStudyBackup}
                   resetData={resetData}
                   categories={categories}

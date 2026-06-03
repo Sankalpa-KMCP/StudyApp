@@ -22,6 +22,7 @@ interface ControlDeckProps {
   setLocalAlphaWaves: (val: number) => void
   exportStudyBackup: () => void
   exportStudyLogsCSV: () => void
+  exportTaskCompletionLogsCSV: () => void
   importStudyBackup: (val: string) => void
   resetData: () => void
   categories: CategoryItem[]
@@ -46,6 +47,7 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   setLocalEnforceLockout,
   exportStudyBackup,
   exportStudyLogsCSV,
+  exportTaskCompletionLogsCSV,
   importStudyBackup,
   resetData,
   categories,
@@ -264,6 +266,19 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
                   className="w-full mt-4 rounded-full bg-accent-blue/10 hover:bg-accent-blue/25 text-accent-blue border border-accent-blue/20 py-2.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
                 >
                   Export CSV Logs
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-white/5 bg-black/20 p-4 flex flex-col justify-between">
+                <div>
+                  <span className="text-xs font-bold text-white/95 block">Task Completion (CSV)</span>
+                  <span className="text-[10px] text-white/40 mt-1 leading-normal font-semibold">Export tasks registry data, completion status, estimates, and subtask progress.</span>
+                </div>
+                <button
+                  onClick={exportTaskCompletionLogsCSV}
+                  className="w-full mt-4 rounded-full bg-accent-blue/10 hover:bg-accent-blue/25 text-accent-blue border border-accent-blue/20 py-2.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
+                >
+                  Export CSV Tasks
                 </button>
               </div>
             </div>
