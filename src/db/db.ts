@@ -68,5 +68,14 @@ class StudyDashboardDB extends Dexie {
   }
 }
 
-export const db = new StudyDashboardDB()
+export const db = new (StudyDashboardDB as any)()
+
+// Global Dexie error hook for storage & transaction telemetry
+(Dexie as any).on('error', (err: any) => {
+  console.error('Dexie Global Error Caught:', err)
+  if (typeof window !== 'undefined') {
+    const event = new CustomEvent('dexie-error', { detail: err })
+    window.dispatchEvent(event)
+  }
+})
 

@@ -19,7 +19,7 @@ import {
   useQuickNotes
 } from './db/hooks'
 import { db } from './db/db'
-import type { TaskItem } from './db/types'
+import type { DailyLog, TaskItem } from './db/types'
 import { formatMinutes, getIntensity, hexToRgb, parseStudyBackupPayload, validateBackupPayload } from './lib/studyDashboard'
 import { requestWakeLock, releaseWakeLock } from './lib/wakeLock'
 
@@ -149,14 +149,14 @@ function App() {
   const [calendarCategoryFilter, setCalendarCategoryFilter] = useState<'all' | number>('all')
 
   // Consolidated Single Table subscription for daily_logs
-  const allLogs = useLiveQuery(() => db.daily_logs.toArray())
+  const allLogs = useLiveQuery(() => db.daily_logs.toArray()) as DailyLog[] | undefined
   const allLogsLoading = allLogs === undefined
 
   // Pure selector derivations using useMemo to eliminate observer thrashing
   const monthLogsData = useMemo(() => {
     return calculateMonthLogs(allLogs ?? [], currentMonth, currentYear)
   }, [allLogs, currentMonth, currentYear])
-  const monthLogs = monthLogsData.monthLogs
+  const monthLogs = monthLogsData.monthLogs as DailyLog[]
   const totalMonthHours = monthLogsData.totalMonthHours
 
   const breakdownData = useMemo(() => {
@@ -836,6 +836,23 @@ function App() {
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [isTimerActive])
+
+  // Database error telemetry & warning notifications
+  useEffect(() => {
+    function handleDexieError(e: Event) {
+      const error = (e as CustomEvent).detail
+      console.warn('UI caught database telemetry error:', error)
+      const name = error?.name || 'IndexedDBError'
+      const message = error?.message || 'Database transaction failed'
+      if (name === 'QuotaExceededError' || message.toLowerCase().includes('quota') || message.toLowerCase().includes('exhausted')) {
+        pushToast('DATABASE', 'STORAGE QUOTA EXHAUSTED - TIDY UP NOTES')
+      } else {
+        pushToast('DATABASE', `DB ERROR: ${name.toUpperCase()}`)
+      }
+    }
+    window.addEventListener('dexie-error', handleDexieError)
+    return () => window.removeEventListener('dexie-error', handleDexieError)
+  }, [])
 
   // Screen Wake Lock active toggle during active study timers
   useEffect(() => {
