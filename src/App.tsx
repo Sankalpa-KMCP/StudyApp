@@ -1,10 +1,36 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Brain, Clock, BarChart3, Target, Flame, Calendar, Award, Coffee, Play, Pause, Check, CheckCircle, Plus, Settings, X, CloudRain, Radio, Keyboard, Trash2, Sparkles, ChevronLeft } from 'lucide-react'
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { Brain, Flame, Keyboard } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useTasks, useHistory, useSettings, useTodayLog, useCategories, updateDailyReflection, calculateStreak, calculateXpLevel, calculateProductivityInsights, calculateCategoryBreakdown, calculateMonthLogs, calculateCalendarHeatmapData, calculateSM2 } from './db/hooks'
+import {
+  useTasks,
+  useHistory,
+  useSettings,
+  useTodayLog,
+  useCategories,
+  updateDailyReflection,
+  calculateStreak,
+  calculateXpLevel,
+  calculateProductivityInsights,
+  calculateCategoryBreakdown,
+  calculateMonthLogs,
+  calculateCalendarHeatmapData,
+  calculateSM2
+} from './db/hooks'
 import { db } from './db/db'
-import type { TaskItem, SettingsKey } from './db/types'
+import type { TaskItem } from './db/types'
+
+// Custom audio hook
+import { useAmbientSynth } from './hooks/useAmbientSynth'
+
+// Modular Components
+import { Sidebar } from './components/Sidebar'
+import { FocusSanctuary } from './components/FocusSanctuary'
+import { TaskRegistry } from './components/TaskRegistry'
+import { AnalyticsStudio } from './components/AnalyticsStudio'
+import { ActivityLedger } from './components/ActivityLedger'
+import { ControlDeck } from './components/ControlDeck'
+import { ZenOverlay } from './components/ZenOverlay'
+import { ReflectionModal } from './components/ReflectionModal'
 
 const THEME_PROFILES: Record<string, {
   surface: string
@@ -62,116 +88,6 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   } : null
 }
 
-let audioCtx: AudioContext | null = null
-
-function playTibetanBowl(enabled: boolean) {
-  if (!enabled) return
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const ctx = audioCtx
-    if (ctx.state === 'suspended') {
-      ctx.resume()
-    }
-    const now = ctx.currentTime
-    const f0 = 180
-    const frequencies = [f0, f0 * 2.76, f0 * 5.4, f0 * 8.93]
-    const releaseTime = 4.5
-
-    const masterGain = ctx.createGain()
-    masterGain.gain.setValueAtTime(0.25, now)
-    masterGain.gain.exponentialRampToValueAtTime(0.0001, now + releaseTime)
-    masterGain.connect(ctx.destination)
-
-    frequencies.forEach((freq, idx) => {
-      const osc = ctx.createOscillator()
-      const oscGain = ctx.createGain()
-      
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(freq, now)
-      
-      const volume = idx === 0 ? 0.35 : idx === 1 ? 0.28 : idx === 2 ? 0.22 : 0.15
-      oscGain.gain.setValueAtTime(volume, now)
-      
-      osc.connect(oscGain)
-      oscGain.connect(masterGain)
-      
-      osc.start(now)
-      osc.stop(now + releaseTime)
-    })
-  } catch {
-    /* audio unavailable */
-  }
-}
-
-function playTactileThock() {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const ctx = audioCtx
-    if (ctx.state === 'suspended') {
-      ctx.resume()
-    }
-    const now = ctx.currentTime
-    const duration = 0.005
-    const sampleRate = ctx.sampleRate
-    const bufferSize = Math.max(1, Math.floor(sampleRate * duration))
-    const buffer = ctx.createBuffer(1, bufferSize, sampleRate)
-    const data = buffer.getChannelData(0)
-    
-    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1
-      b0 = 0.99886 * b0 + white * 0.0555179
-      b1 = 0.99332 * b1 + white * 0.0750759
-      b2 = 0.96900 * b2 + white * 0.1538520
-      b3 = 0.86650 * b3 + white * 0.3104856
-      b4 = 0.55000 * b4 + white * 0.5329522
-      b5 = -0.7616 * b5 - white * 0.0168980
-      const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362
-      b6 = white * 0.115926
-      data[i] = pink * 0.11
-    }
-    
-    const noiseNode = ctx.createBufferSource()
-    noiseNode.buffer = buffer
-    
-    const filter = ctx.createBiquadFilter()
-    filter.type = 'bandpass'
-    filter.frequency.setValueAtTime(380, now)
-    filter.Q.setValueAtTime(6.0, now)
-    
-    const gainNode = ctx.createGain()
-    gainNode.gain.setValueAtTime(0.4, now)
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration)
-    
-    noiseNode.connect(filter)
-    filter.connect(gainNode)
-    gainNode.connect(ctx.destination)
-    
-    noiseNode.start(now)
-    noiseNode.onended = () => {
-      try {
-        noiseNode.disconnect()
-        filter.disconnect()
-        gainNode.disconnect()
-      } catch {}
-    }
-  } catch {
-    /* audio unavailable */
-  }
-}
-
-
-interface DayData {
-  date: number
-  dayName: string
-  studyTime: string
-  breakTime: string
-  focusRatio: string
-  sessionsCompleted: string
-  focusScore: string
-  intensity: 0 | 1 | 2 | 3
-}
-
 function formatMinutes(minutes: number): string {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
@@ -198,6 +114,16 @@ const tooltipStyle = {
   outline: 'none',
 }
 
+interface DayData {
+  date: number
+  dayName: string
+  studyTime: string
+  breakTime: string
+  focusRatio: string
+  sessionsCompleted: string
+  focusScore: string
+  intensity: 0 | 1 | 2 | 3
+}
 
 function App() {
   const { tasks: sessionTasks, addTask, toggleTask, incrementTaskCycle, isLoading: tasksLoading } = useTasks()
@@ -220,8 +146,11 @@ function App() {
     tactile_feedback,
     developer_font,
     enforce_lockout,
+    noiseType,
+    binauralTarget,
     isLoading: settingsLoading
   } = useSettings()
+
   const { studyMinutes: todayStudyMinutes, breakMinutes: todayBreakMinutes, incrementStudy, incrementBreak, isLoading: todayLogLoading } = useTodayLog()
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear())
@@ -262,8 +191,8 @@ function App() {
   const categoryDayMinutes = useMemo(() => {
     return calculateCalendarHeatmapData(sessionHistory ?? [], currentMonth, calendarCategoryFilter)
   }, [sessionHistory, currentMonth, calendarCategoryFilter])
-  const [timerCategoryId, setTimerCategoryId] = useState<number | undefined>(undefined)
 
+  const [timerCategoryId, setTimerCategoryId] = useState<number | undefined>(undefined)
   const [selectedDay, setSelectedDay] = useState(() => new Date().getDate())
   const [secondsElapsed, setSecondsElapsed] = useState(0)
   const [isTimerActive, setIsTimerActive] = useState(false)
@@ -285,7 +214,7 @@ function App() {
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
 
-  // Multi-Channel Volumes
+  // Multi-Channel Volume states
   const [localVolumeRain, setLocalVolumeRain] = useState(0.5)
   const [localVolumeCafe, setLocalVolumeCafe] = useState(0.5)
   const [localVolumeWhiteNoise, setLocalVolumeWhiteNoise] = useState(0.5)
@@ -318,12 +247,26 @@ function App() {
   const [localSessionNotes, setLocalSessionNotes] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+
+  // Initialize and invoke custom audio synthesizer hook
+  const { playChime } = useAmbientSynth({
+    timerMode,
+    isTimerActive,
+    soundEnabled,
+    noiseType,
+    binauralTarget,
+    rainVol: localVolumeRain,
+    cafeVol: localVolumeCafe,
+    noiseVol: localVolumeWhiteNoise,
+    binauralVol: localAlphaWaves,
+    tactileEnabled: localTactileFeedback
+  })
+
   const volRainRef = useRef(localVolumeRain)
   const volCafeRef = useRef(localVolumeCafe)
   const volWhiteNoiseRef = useRef(localVolumeWhiteNoise)
   const alphaWavesRef = useRef(localAlphaWaves)
   const waveAmplitudeRef = useRef(0)
-  const masterGainRef = useRef<GainNode | null>(null)
 
   volRainRef.current = localVolumeRain
   volCafeRef.current = localVolumeCafe
@@ -334,27 +277,11 @@ function App() {
   const incStudyRef = useRef(incrementStudy)
   const incBreakRef = useRef(incrementBreak)
 
-  const audioCtxRef = useRef<AudioContext | null>(null)
-  const channelsRef = useRef<{
-    [key: string]: {
-      source: AudioNode | null
-      gainNode: GainNode | null
-      stop: (() => void) | null
-    }
-  }>({
-    rain: { source: null, gainNode: null, stop: null },
-    cafe: { source: null, gainNode: null, stop: null },
-    whiteNoise: { source: null, gainNode: null, stop: null },
-    alphaWaves: { source: null, gainNode: null, stop: null }
-  })
-
   incStudyRef.current = incrementStudy
   incBreakRef.current = incrementBreak
 
-  const handleModeSwitchRef = useRef(handleModeSwitch)
-  handleModeSwitchRef.current = handleModeSwitch
-  const completeSessionRef = useRef(completeSession)
-  completeSessionRef.current = completeSession
+  const handleModeSwitchRef = useRef<any>(null)
+  const completeSessionRef = useRef<any>(null)
 
   const isDataReady = !(tasksLoading || historyLoading || settingsLoading || todayLogLoading || allLogsLoading || categoriesLoading)
 
@@ -383,7 +310,7 @@ function App() {
     setDraftMood(dbMood)
     notesRef.current = dbNotes
     moodRef.current = dbMood
-  }, [selectedDay, currentMonth, currentYear])
+  }, [selectedDay, currentMonth, currentYear, selectedDayLog])
 
   const categoriesMap = new Map<number, { name: string; color: string }>()
   for (const c of categories) {
@@ -397,14 +324,14 @@ function App() {
     const studyMin = categoryDayMinutes !== null
       ? (categoryDayMinutes.get(date) ?? 0)
       : (log?.studyMinutes ?? 0)
-    const breakMin = log?.breakMinutes ?? 0
-    const total = studyMin + breakMin
+    const bgBreakMin = log?.breakMinutes ?? 0
+    const total = studyMin + bgBreakMin
     const focusRatio = total > 0 ? Math.round((studyMin / total) * 100) : 0
     return {
       date,
       dayName: dayNames[startDay],
       studyTime: formatMinutes(studyMin),
-      breakTime: formatMinutes(breakMin),
+      breakTime: formatMinutes(bgBreakMin),
       focusRatio: `${focusRatio}%`,
       sessionsCompleted: '0',
       focusScore: `${Math.min(Math.round((studyMin / dailyGoalMinutes) * 100), 100)}%`,
@@ -429,7 +356,6 @@ function App() {
       })
       .sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
   }, [sessionHistory, currentMonth, selectedDay])
-
 
   const isLastDay = selectedDay === totalDaysInMonth
   const liveDay = isLiveMonth && isLastDay
@@ -473,12 +399,13 @@ function App() {
     await addHistoryEntry({
       timestamp,
       type: mode,
-      durationMinutes: Math.floor(elapsed / 60),
+      durationMinutes: Math.floor(elapsed / 60) || 1,
       categoryId: mode === 'study' ? categoryId : undefined,
-      sessionNotes: mode === 'study' ? sessionNotes : undefined,
+      sessionNotes: sessionNotes || undefined,
       ...(attRating !== undefined ? { attentionRating: attRating } : {}),
       ...(stabRating !== undefined ? { stabilityRating: stabRating } : {}),
     } as any)
+    
     const firstUncompleted = sessionTasks.find(t => !t.completed)
     if (firstUncompleted && firstUncompleted.id !== undefined) {
       await toggleTask(firstUncompleted.id)
@@ -488,7 +415,7 @@ function App() {
       const justAdded = allTasks[0]
       if (justAdded?.id !== undefined) await toggleTask(justAdded.id)
     }
-    playTibetanBowl(soundEnabled)
+    playChime()
     if (mode === 'study') {
       const studySessionCount = parseInt(localStorage.getItem('completed_study_sessions_count') || '0') + 1
       localStorage.setItem('completed_study_sessions_count', String(studySessionCount))
@@ -507,7 +434,7 @@ function App() {
         setCompletedSessionsInCycle(0)
         setIsLongBreak(true)
         setTimerMode('break')
-        setTimeout(() => playTibetanBowl(soundEnabled), 400)
+        setTimeout(() => playChime(), 400)
       } else {
         setCompletedSessionsInCycle(nextCount)
         setIsLongBreak(false)
@@ -548,7 +475,7 @@ function App() {
     if (isTimerActive) setIsTimerActive(false)
     setSecondsElapsed(0)
     setTimerMode(mode)
-    playTibetanBowl(soundEnabled)
+    playChime()
   }
 
   function handleAddTask(text: string, categoryId?: number, estimatedCycles?: number, priority?: 'low' | 'medium' | 'high') {
@@ -561,13 +488,37 @@ function App() {
     const task = sessionTasks.find(t => t.id === id)
     if (task) {
       if (!task.completed) {
-        playTibetanBowl(soundEnabled)
+        playChime()
         await toggleTask(id)
       } else {
         await db.tasks.update(id, { completed: false, nextReviewDate: undefined })
       }
     }
     if (activeTaskId === id) setActiveTaskId(null)
+  }
+
+  async function submitRecallGrade(task: TaskItem, q: number) {
+    if (task.id === undefined) return
+    const { repetitionCount, easinessFactor, intervalDays } = calculateSM2(
+      q,
+      task.repetitionCount ?? 0,
+      task.easinessFactor ?? 2.5,
+      task.intervalDays ?? 0
+    )
+
+    const nextDate = new Date()
+    nextDate.setDate(nextDate.getDate() + intervalDays)
+    const nextReviewDate = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`
+
+    await db.tasks.update(task.id, {
+      repetitionCount,
+      easinessFactor,
+      intervalDays,
+      nextReviewDate,
+      completed: true,
+      latestGrade: q
+    })
+    playChime()
   }
 
   function handleNotesChange(value: string) {
@@ -601,6 +552,7 @@ function App() {
     if (selectedDay > totalDaysInMonth) setSelectedDay(totalDaysInMonth)
   }, [currentMonth, currentYear, totalDaysInMonth, selectedDay])
 
+  // Timer Tick Interval effect
   useEffect(() => {
     if (!isTimerActive) return
     const id = setInterval(() => {
@@ -626,7 +578,7 @@ function App() {
     }
   }, [secondsElapsed, targetSeconds, isTimerActive])
 
-  // Zen V3 Particle Engine: Runs inside requestAnimationFrame, scales speed and connection alpha with aggregate ambient volumes
+  // Canvas particle background loop
   useEffect(() => {
     if (!isZenMode) return
 
@@ -680,10 +632,7 @@ function App() {
     const animate = () => {
       ctx.clearRect(0, 0, width, height)
 
-      // Query volume master gain dynamically
-      const masterGain = masterGainRef.current
-      const aggregateVol = masterGain ? masterGain.gain.value : (volRainRef.current + volCafeRef.current + volWhiteNoiseRef.current + alphaWavesRef.current)
-
+      const aggregateVol = (volRainRef.current + volCafeRef.current + volWhiteNoiseRef.current + alphaWavesRef.current)
       const isMuted = aggregateVol <= 0.01
 
       // Speeds scale directly with sound volume levels
@@ -691,12 +640,9 @@ function App() {
       const maxDistance = isMuted ? 40 : 100 + Math.min(50, aggregateVol * 30)
       const maxLineAlpha = isMuted ? 0 : Math.min(0.20, aggregateVol * 0.12)
 
-
-
       // 1. Isolate coordinate calculation loop
       particles.forEach(p => {
         if (isMuted) {
-          // Collapse to static central cluster when muted
           const targetX = width / 2
           const targetY = height / 2
           p.x += (targetX - p.x) * 0.015
@@ -705,7 +651,6 @@ function App() {
           p.x += p.originalVx * speedFactor
           p.y += p.originalVy * speedFactor
 
-          // Wrap around or bounce within edges
           if (p.x < 0) { p.x = 0; p.originalVx *= -1 }
           else if (p.x > width) { p.x = width; p.originalVx *= -1 }
 
@@ -736,7 +681,7 @@ function App() {
 
             if (dist < maxDistance) {
               const alpha = (1 - dist / maxDistance) * maxLineAlpha
-               ctx.beginPath()
+              ctx.beginPath()
               ctx.moveTo(p1.x, p1.y)
               ctx.lineTo(p2.x, p2.y)
               ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`
@@ -759,11 +704,11 @@ function App() {
           { freq: 0.012, speed: 1.2, phase: Math.PI / 3, color: 'rgba(255, 255, 255, 0.08)',  lineW: 0.5 },
           { freq: 0.006, speed: -0.6, phase: Math.PI / 1.5, color: 'rgba(255, 255, 255, 0.08)', lineW: 0.5 },
         ]
-        layers.forEach(l => {
+        layers.forEach((l, idx) => {
           ctx.beginPath()
           ctx.moveTo(0, waveBaseY)
           const freq = l.freq * (1 + aggregateVol * 0.3)
-          const amp = waveAmplitudeRef.current * (1 - layers.indexOf(l) * 0.15)
+          const amp = waveAmplitudeRef.current * (1 - idx * 0.15)
           for (let x = 0; x <= width; x += 3) {
             ctx.lineTo(x, waveBaseY + Math.sin(x * freq + waveTime * l.speed + l.phase) * amp)
           }
@@ -790,30 +735,129 @@ function App() {
       window.removeEventListener('resize', handleResize)
     }
   }, [isZenMode, theme])
-  // active recall helper
-  async function submitRecallGrade(task: TaskItem, q: number) {
-    if (task.id === undefined) return
-    const { repetitionCount, easinessFactor, intervalDays } = calculateSM2(
-      q,
-      task.repetitionCount ?? 0,
-      task.easinessFactor ?? 2.5,
-      task.intervalDays ?? 0
-    )
 
-    const nextDate = new Date()
-    nextDate.setDate(nextDate.getDate() + intervalDays)
-    const nextReviewDate = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`
+  handleModeSwitchRef.current = handleModeSwitch
+  completeSessionRef.current = completeSession
 
-    await db.tasks.update(task.id, {
-      repetitionCount,
-      easinessFactor,
-      intervalDays,
-      nextReviewDate,
-      completed: true
-    })
+  // keyboard triggers
+  useEffect(() => {
+    function handleGlobalKeyDown(e: KeyboardEvent) {
+      if (activeTab === 'settings' || isHotkeyHudOpen) return
+      if (completingRef.current) return
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      const key = e.key.toLowerCase()
+      switch (key) {
+        case ' ':
+          e.preventDefault()
+          setIsTimerActive(active => {
+            const nextActive = !active
+            setActiveToast({
+              key: 'SPACE',
+              message: nextActive ? 'FOCUS ENGINE ACTIVE' : 'FOCUS ENGINE PAUSED',
+              id: Date.now()
+            })
+            return nextActive
+          })
+          break
+        case 's':
+          handleModeSwitchRef.current('study')
+          setActiveToast({ key: 'S', message: 'SWITCHED TO DEEP WORK', id: Date.now() })
+          break
+        case 'b':
+          handleModeSwitchRef.current('break')
+          setActiveToast({ key: 'B', message: 'SWITCHED TO BREAK MODE', id: Date.now() })
+          break
+        case 'c':
+          completeSessionRef.current()
+          setActiveToast({ key: 'C', message: 'FOCUS BLOCK COMPLETED', id: Date.now() })
+          break
+        case 'z':
+          if (localEnforceLockout && isTimerActive && timerMode === 'study') {
+            setActiveToast({
+              key: 'LOCK',
+              message: 'LOCKOUT ACTIVE - COMPULSORY STUDY',
+              id: Date.now()
+            })
+            break
+          }
+          setIsZenMode(zen => {
+            const nextZen = !zen
+            setActiveToast({
+              key: 'Z',
+              message: nextZen ? 'ENTERED ZEN SANCTUARY' : 'EXITED ZEN SANCTUARY',
+              id: Date.now()
+            })
+            return nextZen
+          })
+          break
+        case '?':
+          setIsHotkeyHudOpen(o => {
+            const nextOpen = !o
+            setActiveToast({
+              key: '?',
+              message: nextOpen ? 'OPENED SHORTCUT PANEL' : 'CLOSED SHORTCUT PANEL',
+              id: Date.now()
+            })
+            return nextOpen
+          })
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [activeTab, isHotkeyHudOpen, isTimerActive, timerMode, localEnforceLockout])
+
+  // HUD Toast Auto-Dismissal
+  useEffect(() => {
+    if (!activeToast) return
+    const timer = setTimeout(() => {
+      setActiveToast(null)
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [activeToast])
+
+  async function resetData() {
+    await db.tasks.clear()
+    await db.history.clear()
+    await db.daily_logs.clear()
+    await db.settings.clear()
+    await db.categories.clear()
+    await db.settings.bulkAdd([
+      { key: 'dailyGoalMinutes', value: 480 },
+      { key: 'soundEnabled', value: true },
+      { key: 'targetSessionsPerCycle', value: 4 },
+      { key: 'longBreakDurationMinutes', value: 15 },
+      { key: 'ambientTrack', value: 'none' },
+      { key: 'ambientVolume', value: 0.5 },
+      { key: 'ambientVolume_rain', value: 0.5 },
+      { key: 'ambientVolume_cafe', value: 0.5 },
+      { key: 'ambientVolume_whiteNoise', value: 0.5 },
+      { key: 'ambient_alphaWaves', value: 0.0 },
+      { key: 'noiseType', value: 'white' },
+      { key: 'binauralTarget', value: 'alpha' }
+    ])
+    await db.categories.bulkAdd([
+      { name: 'General', color: '#64748B' },
+      { name: 'Development', color: '#3B82F6' },
+      { name: 'Mathematics', color: '#8B5CF6' },
+    ])
+    setSecondsElapsed(0)
+    setIsTimerActive(false)
+    setTimerMode('study')
+    setTimerCategoryId(undefined)
+    setCompletedSessionsInCycle(0)
+    setIsLongBreak(false)
+    setLocalVolumeRain(0.5)
+    setLocalVolumeCafe(0.5)
+    setLocalVolumeWhiteNoise(0.5)
+    setLocalAlphaWaves(0)
+    setActiveTaskId(null)
+    window.location.reload()
   }
 
-  // snapshot helpers
   async function createDatabaseSnapshot() {
     try {
       const [tasks, history, dailyLogs, settings, categories] = await Promise.all([
@@ -910,39 +954,7 @@ function App() {
     }
   }
 
-  // Auto-restore effect
-  useEffect(() => {
-    if (!isDataReady) return
-    const autoRestoreIfEmpty = async () => {
-      const [tasksCount, categoriesCount, settingsCount] = await Promise.all([
-        db.tasks.count(),
-        db.categories.count(),
-        db.settings.count()
-      ])
-      if (tasksCount === 0 && categoriesCount === 0 && settingsCount === 0) {
-        const existingStr = localStorage.getItem('study_dashboard_snapshots')
-        if (existingStr) {
-          try {
-            const snapshots = JSON.parse(existingStr)
-            if (Array.isArray(snapshots) && snapshots.length > 0) {
-              const latest = snapshots[0]
-              console.log('IndexedDB is empty. Auto-restoring from latest localStorage snapshot...', latest.timestamp)
-              if (Array.isArray(latest.tasks)) await db.tasks.bulkAdd(latest.tasks)
-              if (Array.isArray(latest.history)) await db.history.bulkAdd(latest.history)
-              if (Array.isArray(latest.dailyLogs)) await db.daily_logs.bulkAdd(latest.dailyLogs)
-              if (Array.isArray(latest.settings)) await db.settings.bulkAdd(latest.settings)
-              if (Array.isArray(latest.categories)) await db.categories.bulkAdd(latest.categories)
-              window.location.reload()
-            }
-          } catch (err) {
-            console.error('Auto-restore failed:', err)
-          }
-        }
-      }
-    }
-    autoRestoreIfEmpty()
-  }, [isDataReady])
-
+  // settings configurations restoration mapping
   useEffect(() => {
     if (ambientVolume_rain !== undefined) setLocalVolumeRain(ambientVolume_rain)
   }, [ambientVolume_rain])
@@ -971,7 +983,7 @@ function App() {
     if (enforce_lockout !== undefined) setLocalEnforceLockout(enforce_lockout)
   }, [enforce_lockout])
 
-  // Tab Destruction Protection: sessionStorage backing shadow state
+  // session Heartbeat sessionStorage backing
   useEffect(() => {
     if (!isDataReady) return
     const shadow = {
@@ -984,7 +996,7 @@ function App() {
     sessionStorage.setItem('active_session_shadow', JSON.stringify(shadow))
   }, [timerMode, secondsElapsed, isTimerActive, timerCategoryId, isDataReady])
 
-  // Boot restore logic for interrupted active session
+  // session Heartbeat restoration on boot
   useEffect(() => {
     if (!isDataReady) return
     const shadowStr = sessionStorage.getItem('active_session_shadow')
@@ -997,7 +1009,6 @@ function App() {
             const now = new Date()
             const timestamp = `${monthNames[now.getMonth()]} ${now.getDate()}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
             
-            // 1. Add entry to Dexie history
             await addHistoryEntry({
               timestamp,
               type: shadow.mode,
@@ -1005,7 +1016,6 @@ function App() {
               categoryId: shadow.mode === 'study' ? shadow.categoryId : undefined,
             })
             
-            // 2. Increment daily log minutes
             const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
             const existing = await db.daily_logs.get(current)
             if (shadow.mode === 'study') {
@@ -1022,7 +1032,6 @@ function App() {
               }
             }
             
-            // 3. Trigger HUD toast notification
             setActiveToast({
               key: 'RESTORE',
               message: `RECOVERED ${elapsedMin}M INTERRUPTED ${shadow.mode.toUpperCase()}`,
@@ -1038,460 +1047,6 @@ function App() {
       }
     }
   }, [isDataReady])
-
-
-
-  function createAmbientTrack(ctx: AudioContext, track: string): { output: AudioNode; stop: () => void } | null {
-    if (track === 'white-noise') {
-      const bufSize = ctx.sampleRate * 2
-      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
-      const d = buf.getChannelData(0)
-      for (let i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1
-      const src = ctx.createBufferSource()
-      src.buffer = buf
-      src.loop = true
-      src.start()
-      return { output: src, stop: () => { try { src.stop(); src.disconnect() } catch {} } }
-    }
-    if (track === 'rain') {
-      const bufSize = ctx.sampleRate * 2
-      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
-      const d = buf.getChannelData(0)
-      let lastOut = 0
-      for (let i = 0; i < bufSize; i++) {
-        const white = Math.random() * 2 - 1
-        d[i] = (lastOut + 0.02 * white) / 1.02
-        lastOut = d[i]
-        d[i] *= 3.5
-      }
-      const src = ctx.createBufferSource()
-      src.buffer = buf
-      src.loop = true
-      src.start()
-      const filter = ctx.createBiquadFilter()
-      filter.type = 'lowpass'
-      filter.frequency.value = 600
-      const lfo = ctx.createOscillator()
-      lfo.frequency.value = 0.2
-      const lfoGain = ctx.createGain()
-      lfoGain.gain.value = 0.2
-      lfo.connect(lfoGain)
-      const ampGain = ctx.createGain()
-      ampGain.gain.value = 0.48
-      lfoGain.connect(ampGain.gain)
-      lfo.start()
-      src.connect(filter)
-      filter.connect(ampGain)
-
-      // Transient Rain Clicks: Dynamic procedural scheduler for micro noise bursts (striking glass pane)
-      let rainClickInterval: any = null
-      const scheduleRainClick = (time: number) => {
-        try {
-          const clickBuf = ctx.createBuffer(1, ctx.sampleRate * 0.02, ctx.sampleRate)
-          const clickData = clickBuf.getChannelData(0)
-          for (let i = 0; i < clickData.length; i++) {
-            clickData[i] = Math.random() * 2 - 1
-          }
-          const clickNode = ctx.createBufferSource()
-          clickNode.buffer = clickBuf
-          
-          const clickFilter = ctx.createBiquadFilter()
-          clickFilter.type = 'bandpass'
-          clickFilter.frequency.setValueAtTime(1400 + Math.random() * 800, time)
-          clickFilter.Q.setValueAtTime(4, time)
-          
-          const clickGain = ctx.createGain()
-          clickGain.gain.setValueAtTime(0, time)
-          clickGain.gain.linearRampToValueAtTime(0.06 + Math.random() * 0.06, time + 0.001) // Instant attack (0.001s)
-          clickGain.gain.exponentialRampToValueAtTime(0.0001, time + 0.02) // Exponential decay down to 0 inside 0.02s
-          
-          clickNode.connect(clickFilter)
-          clickFilter.connect(clickGain)
-          clickGain.connect(ampGain) // Connected to rain's ampGain so volume scales with rain slider
-          
-          clickNode.start(time)
-          clickNode.onended = () => {
-            try {
-              clickNode.disconnect()
-              clickFilter.disconnect()
-              clickGain.disconnect()
-            } catch {}
-          }
-        } catch {}
-      }
-
-      const runScheduler = () => {
-        const nextDelay = 40 + Math.random() * 120
-        rainClickInterval = setTimeout(() => {
-          if (ctx.state !== 'closed') {
-            scheduleRainClick(ctx.currentTime)
-            runScheduler()
-          }
-        }, nextDelay)
-      }
-      runScheduler()
-
-      return {
-        output: ampGain,
-        stop: () => {
-          try {
-            clearTimeout(rainClickInterval)
-            src.stop()
-            lfo.stop()
-            src.disconnect()
-            filter.disconnect()
-            lfo.disconnect()
-            lfoGain.disconnect()
-            ampGain.disconnect()
-          } catch {}
-        }
-      }
-    }
-    if (track === 'cafe') {
-      const bufSize = ctx.sampleRate * 2
-      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
-      const d = buf.getChannelData(0)
-      for (let i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1
-      const src = ctx.createBufferSource()
-      src.buffer = buf
-      src.loop = true
-      src.start()
-      const bandpass = ctx.createBiquadFilter()
-      bandpass.type = 'bandpass'
-      bandpass.frequency.value = 900
-      bandpass.Q.value = 0.4
-      const gain = ctx.createGain()
-      gain.gain.value = 0.25
-      src.connect(bandpass)
-      bandpass.connect(gain)
-      return {
-        output: gain,
-        stop: () => {
-          try {
-            src.stop()
-            src.disconnect()
-            bandpass.disconnect()
-            gain.disconnect()
-          } catch {}
-        }
-      }
-    }
-    if (track === 'alphaWaves') {
-      const oscL = ctx.createOscillator()
-      const oscR = ctx.createOscillator()
-      
-      oscL.type = 'sine'
-      oscL.frequency.setValueAtTime(100, ctx.currentTime)
-      
-      oscR.type = 'sine'
-      oscR.frequency.setValueAtTime(110, ctx.currentTime)
-      
-      const pannerL = ctx.createStereoPanner()
-      pannerL.pan.setValueAtTime(-1, ctx.currentTime)
-      
-      const pannerR = ctx.createStereoPanner()
-      pannerR.pan.setValueAtTime(1, ctx.currentTime)
-      
-      const gainNode = ctx.createGain()
-      gainNode.gain.setValueAtTime(0.25, ctx.currentTime) // Delicate main gain node
-      
-      oscL.connect(pannerL)
-      pannerL.connect(gainNode)
-      
-      oscR.connect(pannerR)
-      pannerR.connect(gainNode)
-      
-      oscL.start()
-      oscR.start()
-      
-      return {
-        output: gainNode,
-        stop: () => {
-          try {
-            oscL.stop()
-            oscR.stop()
-            oscL.disconnect()
-            oscR.disconnect()
-            pannerL.disconnect()
-            pannerR.disconnect()
-            gainNode.disconnect()
-          } catch {}
-        }
-      }
-    }
-    return null
-  }
-
-  const updateAudioMixer = () => {
-    try {
-      const isStudyActive = timerMode === 'study' && isTimerActive
-
-      const tracks = [
-        { id: 'rain', vol: localVolumeRain },
-        { id: 'cafe', vol: localVolumeCafe },
-        { id: 'whiteNoise', vol: localVolumeWhiteNoise },
-        { id: 'alphaWaves', vol: localAlphaWaves }
-      ]
-
-      const anyActive = isStudyActive && tracks.some(t => t.vol > 0)
-
-      if (!anyActive) {
-        tracks.forEach(t => {
-          const ch = channelsRef.current[t.id]
-          if (ch && ch.stop) {
-            try { ch.stop() } catch {}
-            channelsRef.current[t.id] = { source: null, gainNode: null, stop: null }
-          }
-        })
-        if (audioCtxRef.current && audioCtxRef.current.state !== 'suspended') {
-          audioCtxRef.current.suspend()
-        }
-        return
-      }
-
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
-        const masterGain = audioCtxRef.current.createGain()
-        masterGain.connect(audioCtxRef.current.destination)
-        masterGainRef.current = masterGain
-      }
-
-      const ctx = audioCtxRef.current
-
-      if (ctx.state === 'suspended') {
-        ctx.resume()
-      }
-
-      const aggregateVol = tracks.reduce((sum, t) => sum + t.vol, 0)
-      if (masterGainRef.current) {
-        masterGainRef.current.gain.setValueAtTime(anyActive ? Math.min(1.0, aggregateVol) : 0, ctx.currentTime)
-      }
-
-      tracks.forEach(t => {
-        const ch = channelsRef.current[t.id]
-        const shouldPlay = isStudyActive && t.vol > 0
-
-        if (shouldPlay) {
-          if (!ch.source) {
-            const gainNode = ctx.createGain()
-            gainNode.gain.setValueAtTime(t.vol, ctx.currentTime)
-            gainNode.connect(masterGainRef.current || ctx.destination)
-
-            const result = createAmbientTrack(ctx, t.id === 'whiteNoise' ? 'white-noise' : t.id)
-            if (result) {
-              result.output.connect(gainNode)
-              channelsRef.current[t.id] = {
-                source: result.output,
-                gainNode: gainNode,
-                stop: () => {
-                  try {
-                    result.stop()
-                    gainNode.disconnect()
-                  } catch {}
-                }
-              }
-            } else {
-              gainNode.disconnect()
-            }
-          } else {
-            if (ch.gainNode) {
-              ch.gainNode.gain.setValueAtTime(t.vol, ctx.currentTime)
-            }
-          }
-        } else {
-          if (ch.stop) {
-            try { ch.stop() } catch {}
-            channelsRef.current[t.id] = { source: null, gainNode: null, stop: null }
-          }
-        }
-      })
-    } catch (err) {
-      console.error('Failed to update audio mixer:', err)
-    }
-  }
-
-  useEffect(() => {
-    updateAudioMixer()
-    return () => {
-      const tracks = ['rain', 'cafe', 'whiteNoise', 'alphaWaves']
-      tracks.forEach(id => {
-        const ch = channelsRef.current[id]
-        if (ch && ch.stop) {
-          try { ch.stop() } catch {}
-        }
-      })
-      if (audioCtxRef.current) {
-        try { audioCtxRef.current.close() } catch {}
-        audioCtxRef.current = null
-      }
-    }
-  }, [timerMode, isTimerActive, localVolumeRain, localVolumeCafe, localVolumeWhiteNoise, localAlphaWaves])
-
-
-  // Tactile Mechanical Thock Keystroke & Click Captures
-  useEffect(() => {
-    const handleKeystroke = () => {
-      if (localTactileFeedback) {
-        playTactileThock()
-      }
-    }
-    window.addEventListener('keydown', handleKeystroke, true)
-    return () => window.removeEventListener('keydown', handleKeystroke, true)
-  }, [localTactileFeedback])
-
-  useEffect(() => {
-    const handleGlobalClick = (e: MouseEvent) => {
-      if (!localTactileFeedback) return
-      const target = e.target as HTMLElement
-      const isInteractive = target.closest('button') || target.closest('a') || target.tagName === 'INPUT' || target.tagName === 'SELECT'
-      if (isInteractive) {
-        playTactileThock()
-      }
-    }
-    window.addEventListener('click', handleGlobalClick)
-    return () => window.removeEventListener('click', handleGlobalClick)
-  }, [localTactileFeedback])
-
-  // HUD Toast Auto-Dismiss
-  useEffect(() => {
-    if (!activeToast) return
-    const timer = setTimeout(() => {
-      setActiveToast(null)
-    }, 1500)
-    return () => clearTimeout(timer)
-  }, [activeToast])
-
-  useEffect(() => {
-    function handleGlobalKeyDown(e: KeyboardEvent) {
-      if (activeTab === 'settings' || isHotkeyHudOpen) return
-      if (completingRef.current) return
-      const target = e.target as HTMLElement
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
-      if (e.ctrlKey || e.metaKey || e.altKey) return
-      const key = e.key.toLowerCase()
-      switch (key) {
-        case ' ':
-          e.preventDefault()
-          setIsTimerActive(active => {
-            const nextActive = !active
-            setActiveToast({
-              key: 'SPACE',
-              message: nextActive ? 'FOCUS ENGINE ACTIVE' : 'FOCUS ENGINE PAUSED',
-              id: Date.now()
-            })
-            return nextActive
-          })
-          break
-        case 's':
-          handleModeSwitchRef.current('study')
-          setActiveToast({ key: 'S', message: 'SWITCHED TO DEEP WORK', id: Date.now() })
-          break
-        case 'b':
-          handleModeSwitchRef.current('break')
-          setActiveToast({ key: 'B', message: 'SWITCHED TO BREAK MODE', id: Date.now() })
-          break
-        case 'c':
-          completeSessionRef.current()
-          setActiveToast({ key: 'C', message: 'FOCUS BLOCK COMPLETED', id: Date.now() })
-          break
-        case 'z':
-          if (localEnforceLockout && isTimerActive && timerMode === 'study') {
-            setActiveToast({
-              key: 'LOCK',
-              message: 'LOCKOUT ACTIVE - COMPULSORY STUDY',
-              id: Date.now()
-            })
-            break
-          }
-          setIsZenMode(zen => {
-            const nextZen = !zen
-            setActiveToast({
-              key: 'Z',
-              message: nextZen ? 'ENTERED ZEN SANCTUARY' : 'EXITED ZEN SANCTUARY',
-              id: Date.now()
-            })
-            return nextZen
-          })
-          break
-        case '?':
-          setIsHotkeyHudOpen(o => {
-            const nextOpen = !o
-            setActiveToast({
-              key: '?',
-              message: nextOpen ? 'OPENED SHORTCUT PANEL' : 'CLOSED SHORTCUT PANEL',
-              id: Date.now()
-            })
-            return nextOpen
-          })
-          break
-      }
-    }
-
-    window.addEventListener('keydown', handleGlobalKeyDown)
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [activeTab, isHotkeyHudOpen])
-
-
-  async function resetData() {
-    const tracks = ['rain', 'cafe', 'whiteNoise', 'alphaWaves']
-    tracks.forEach(id => {
-      const ch = channelsRef.current[id]
-      if (ch && ch.stop) {
-        try { ch.stop() } catch {}
-        channelsRef.current[id] = { source: null, gainNode: null, stop: null }
-      }
-    })
-    if (audioCtxRef.current && audioCtxRef.current.state !== 'suspended') {
-      audioCtxRef.current.suspend()
-    }
-
-    await db.tasks.clear()
-    await db.history.clear()
-    await db.daily_logs.clear()
-    await db.settings.clear()
-    await db.categories.clear()
-    await db.settings.bulkAdd([
-      { key: 'dailyGoalMinutes', value: 480 },
-      { key: 'soundEnabled', value: true },
-      { key: 'targetSessionsPerCycle', value: 4 },
-      { key: 'longBreakDurationMinutes', value: 15 },
-      { key: 'ambientTrack', value: 'none' },
-      { key: 'ambientVolume', value: 0.5 },
-      { key: 'ambientVolume_rain', value: 0.5 },
-      { key: 'ambientVolume_cafe', value: 0.5 },
-      { key: 'ambientVolume_whiteNoise', value: 0.5 },
-      { key: 'ambient_alphaWaves', value: 0.0 },
-    ])
-    await db.categories.bulkAdd([
-      { name: 'General', color: '#64748B' },
-      { name: 'Development', color: '#3B82F6' },
-      { name: 'Mathematics', color: '#8B5CF6' },
-    ])
-    setSecondsElapsed(0)
-    setIsTimerActive(false)
-    setTimerMode('study')
-    setTimerCategoryId(undefined)
-    setCompletedSessionsInCycle(0)
-    setIsLongBreak(false)
-    setLocalVolumeRain(0.5)
-    setLocalVolumeCafe(0.5)
-    setLocalVolumeWhiteNoise(0.5)
-    setLocalAlphaWaves(0)
-    setActiveTaskId(null)
-    window.location.reload()
-  }
-
-
-
-  const activeTasksList = useMemo(() => {
-    const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
-    return sessionTasks.filter(task => {
-      if (task.completed && task.nextReviewDate && task.nextReviewDate > todayStr) {
-        return false
-      }
-      return true
-    })
-  }, [sessionTasks])
 
   if (!isDataReady) {
     return (
@@ -1531,96 +1086,21 @@ function App() {
       </div>
 
       {/* Collapsible/Floating Glassmorphic Sidebar */}
-      {!isZenMode && (
-        <aside className="w-full md:w-64 shrink-0 bg-white/[0.02] backdrop-blur-xl border-b md:border-b-0 md:border-r border-white/[0.06] p-4 md:p-6 flex flex-col justify-between gap-6 transition-all duration-300 z-20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-          <div className="flex flex-col gap-6">
-            
-            {/* Branding Logo */}
-            <div className="flex items-center gap-3 px-1">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-                <Brain className="h-5 w-5 text-white stroke-[2.5]" />
-              </div>
-              <div>
-                <h1 className="text-base font-semibold tracking-tight text-white">Study Dashboard</h1>
-                <p className="text-[9px] text-white/60 font-bold tracking-widest font-mono uppercase">by Sankalpa KMCP</p>
-              </div>
-            </div>
-
-            {/* Streak & Progression Panel */}
-            <div className="bg-white/[0.03] backdrop-blur-md border border-white/[0.06] rounded-2xl p-4 space-y-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Flame className="h-4 w-4 text-orange-400 animate-pulse-soft" />
-                  <span className="text-xs font-semibold font-mono text-white/80">{currentStreak} Day Streak</span>
-                </div>
-                <span className="rounded-lg bg-white/10 border border-white/10 px-2 py-0.5 text-[9px] font-semibold text-white/95 font-mono tracking-wider">
-                  LV. {level}
-                </span>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[9px] text-white/60 font-semibold">
-                  <span>Level Progress</span>
-                  <span>{xpProgressPercent}%</span>
-                </div>
-                <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-white/40 transition-all duration-300"
-                    style={{ width: `${xpProgressPercent}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Navigation Tabs */}
-            <nav className="flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none">
-              {[
-                { id: 'focus', label: 'Focus Sanctuary', icon: Clock },
-                { id: 'analytics', label: 'Analytics Studio', icon: BarChart3 },
-                { id: 'journal', label: 'Activity Ledger', icon: Calendar },
-                { id: 'settings', label: 'Control Deck', icon: Settings },
-              ].map(tab => {
-                const Icon = tab.icon
-                const isActive = activeTab === tab.id
-                const isLocked = localEnforceLockout && isTimerActive && timerMode === 'study' && tab.id !== 'focus'
-                return (
-                  <button
-                    key={tab.id}
-                    disabled={isLocked}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`nav-tab shrink-0 md:w-full w-auto rounded-xl transition-all duration-300 ease-out ${isActive ? 'bg-white/10 text-white font-medium border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' : 'text-white/60 hover:bg-white/5 hover:text-white'} ${isLocked ? 'opacity-30 cursor-not-allowed hover:bg-transparent' : 'cursor-pointer'}`}
-                    title={isLocked ? "Focus Lockout Active" : undefined}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{tab.label}</span>
-                  </button>
-                )
-              })}
-            </nav>
-          </div>
-
-          {/* Sidebar Footer / Keyboard trigger */}
-          <div className="hidden md:flex flex-col gap-3 border-t border-white/5 pt-4">
-            <button
-              onClick={() => setIsHotkeyHudOpen(true)}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-white/50 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
-            >
-              <Keyboard className="h-4 w-4" />
-              <span>Keyboard Shortcuts</span>
-            </button>
-            <div className="text-center space-y-1">
-              <p className="text-[9px] text-white/40 font-bold font-mono uppercase tracking-wider">
-                Study Dashboard Engine v2.0
-              </p>
-              <p className="text-[8px] text-white/30 font-semibold font-mono uppercase tracking-widest">
-                Created by Sankalpa KMCP
-              </p>
-            </div>
-          </div>
-        </aside>
-      )}
+      <Sidebar
+        isZenMode={isZenMode}
+        currentStreak={currentStreak}
+        level={level}
+        xpProgressPercent={xpProgressPercent}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        setIsHotkeyHudOpen={setIsHotkeyHudOpen}
+        isTimerActive={isTimerActive}
+        timerMode={timerMode}
+        localEnforceLockout={localEnforceLockout}
+      />
 
       {/* Main Workspace Frame */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 z-10">
         
         {/* Mobile top-bar */}
         {!isZenMode && (
@@ -1639,7 +1119,7 @@ function App() {
               </div>
               <button
                 onClick={() => setIsHotkeyHudOpen(true)}
-                className="p-1 rounded-lg hover:bg-white/5 text-slate-400"
+                className="p-1 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer"
               >
                 <Keyboard className="h-4 w-4" />
               </button>
@@ -1655,1202 +1135,154 @@ function App() {
               
               {/* TAB 1: FOCUS SANCTUARY */}
               {activeTab === 'focus' && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-1 items-start animate-fade-in">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-1 items-start">
                   
-                  {/* Left block (Clock & Soundscapes) - Grid 5 */}
-                  <div className="lg:col-span-5 flex flex-col gap-6">
-                    <div className="relative overflow-hidden flex flex-col border border-white/[0.06] dynamic-card p-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <span className="font-serif-luxury italic tracking-wide text-white/80 text-xs uppercase">01 / CHRONOS ENGINE</span>
-                        <button
-                          onClick={() => setIsZenMode(true)}
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-medium border border-white/10 bg-white/5 text-white/90 hover:bg-white/10 transition-all duration-300 ease-out cursor-pointer"
-                        >
-                          <Sparkles className="h-3 w-3" />
-                          <span>Sanctuary Mode (Z)</span>
-                        </button>
-                      </div>
-
-                      {/* Timer Dial Display */}
-                      <div className="flex flex-col items-center py-4 border-b border-white/5">
-                        <div className="relative flex h-44 w-44 items-center justify-center">
-                          <svg className="absolute h-full w-full -rotate-90" viewBox="0 0 120 120">
-                            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="4" />
-                            <circle
-                              cx="60" cy="60" r="52"
-                              fill="none" stroke="var(--color-accent-blue)"
-                              strokeWidth="5"
-                              strokeLinecap="round"
-                              strokeDasharray="326.7"
-                              strokeDashoffset={String(326.7 * (1 - progress))}
-                              style={{
-                                stroke: timerMode === 'study' ? 'var(--color-accent-blue)' : isLongBreak ? 'var(--color-accent-green)' : 'var(--color-accent-amber)',
-                                transition: 'stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.3s',
-                                filter: `drop-shadow(0 0 8px ${timerMode === 'study' ? 'var(--color-accent-blue)' : isLongBreak ? 'var(--color-accent-green)' : 'var(--color-accent-amber)'}40)`
-                              }}
-                            />
-                          </svg>
-                          <div className="text-center z-10">
-                            <p className="text-4xl font-extralight text-white font-mono tracking-tight tabular-nums select-none drop-shadow-[0_2px_12px_rgba(255,255,255,0.05)]">
-                              {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
-                            </p>
-                            <p className="text-[10px] text-white/60 font-semibold uppercase tracking-wider mt-1 select-none">
-                              {timerMode === 'study' ? 'Study Block' : isLongBreak ? 'Long Break' : 'Short Break'}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Quick Controls */}
-                        <div className="flex items-center gap-3 mt-6">
-                          <button
-                            onClick={() => handleModeSwitch(timerMode === 'study' ? 'break' : 'study')}
-                            className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-white/10 bg-white/5 hover:bg-white/10 text-white/80 transition-all duration-300 ease-out cursor-pointer"
-                          >
-                            Switch to {timerMode === 'study' ? 'Break' : 'Study'}
-                          </button>
-                          
-                          <button
-                            onClick={() => { if (!completingRef.current) setIsTimerActive(a => !a) }}
-                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white border border-white/20 hover:bg-white/15 transition-all duration-300 ease-out active:scale-95 cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
-                          >
-                            {isTimerActive ? <Pause className="h-4.5 w-4.5" /> : <Play className="h-4.5 w-4.5" />}
-                          </button>
-
-                          {(isTimerActive || secondsElapsed > 0) && (
-                            <button
-                              onClick={completeSession}
-                              className="flex items-center gap-1.5 rounded-xl bg-white/20 text-white border border-white/30 px-3.5 py-1.5 text-xs font-medium transition-all duration-300 ease-out hover:bg-white/25 active:scale-95 cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
-                            >
-                              <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-                              <span>Complete</span>
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Progress Tracker */}
-                        <div className="flex items-center gap-2 mt-4 text-[10px] text-slate-400 font-semibold bg-white/[0.02] border border-white/5 px-3 py-1 rounded-full">
-                          <span>Cycle:</span>
-                          <div className="flex items-center gap-1" title={`${completedSessionsInCycle} of ${targetSessionsPerCycle} completed`}>
-                            {Array.from({ length: targetSessionsPerCycle }, (_, i) => (
-                              <span
-                                key={i}
-                                className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
-                                  i < completedSessionsInCycle
-                                    ? 'bg-accent-blue scale-125 shadow-[0_0_4px_var(--color-accent-blue)]'
-                                    : 'bg-white/10'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Guided HRV Coherence Breath Pacer (Active during Break) */}
-                      {timerMode !== 'study' && (
-                        <div className="mt-5 border border-white/[0.04] bg-white/[0.02] rounded-2xl p-4 flex flex-col items-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] transition-all duration-500 animate-slide-in-up">
-                          <div className="flex justify-between w-full text-[10px] text-white/50 tracking-wider uppercase font-semibold">
-                            <span>Guided HRV Breathing</span>
-                            <span className="text-[9px] text-accent-blue tracking-widest animate-pulse font-mono">Coherence Active</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-4 py-2 w-full justify-center">
-                            {/* Animated Breathing Circle */}
-                            <div className="relative flex h-14 w-14 items-center justify-center rounded-full border transition-all duration-1000 ease-in-out"
-                              style={{
-                                transform: breathTime < 5 ? `scale(${1 + (breathTime / 5) * 0.2})` : breathTime < 7 ? 'scale(1.2)' : `scale(${1.2 - ((breathTime - 7) / 5) * 0.4})`,
-                                borderColor: breathTime < 5 ? 'rgba(255,255,255,0.15)' : breathTime < 7 ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)',
-                                backgroundColor: breathTime < 5 ? 'rgba(255,255,255,0.02)' : breathTime < 7 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
-                              }}
-                            >
-                              <div className="h-6 w-6 rounded-full bg-white/20 blur-sm animate-pulse" />
-                            </div>
-
-                            <div className="flex flex-col">
-                              <span className="text-xs font-mono font-bold tracking-widest text-white uppercase">
-                                {breathTime < 5 ? 'Inhale 💨' : breathTime < 7 ? 'Hold 🧘' : 'Exhale 🌬️'}
-                              </span>
-                              <span className="text-[9px] text-white/40 font-semibold mt-0.5">
-                                Regulate heart-rate coherence
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Ambient Controls */}
-                      <div className="mt-5 space-y-3">
-                        <p className="text-[10px] font-semibold text-white/60 tracking-wider uppercase">Background Ambience</p>
-                        <div className="flex flex-col gap-2">
-                          {[
-                            { id: 'ambientVolume_rain', label: 'Rain', icon: CloudRain, val: localVolumeRain, setVal: setLocalVolumeRain },
-                            { id: 'ambientVolume_cafe', label: 'Cafe Ambiance', icon: Coffee, val: localVolumeCafe, setVal: setLocalVolumeCafe },
-                            { id: 'ambientVolume_whiteNoise', label: 'White Noise', icon: Radio, val: localVolumeWhiteNoise, setVal: setLocalVolumeWhiteNoise },
-                            { id: 'ambient_alphaWaves', label: 'Alpha Waves', icon: Brain, val: localAlphaWaves, setVal: setLocalAlphaWaves },
-                          ].map(ch => {
-                            const Icon = ch.icon
-                            return (
-                              <div key={ch.id} className="flex items-center gap-3 bg-white/[0.02] border border-white/[0.04] rounded-xl px-3 py-2 transition-all duration-300 ease-out">
-                                <Icon className="h-3.5 w-3.5 text-white/60 shrink-0" />
-                                <span className="text-xs font-medium text-white/80 w-24 shrink-0">{ch.label}</span>
-                                
-                                {/* Soundwave Visualizer Bar Indicator */}
-                                <div className="w-8 h-3 flex items-end justify-center shrink-0">
-                                  {ch.val > 0 && (
-                                    <div className="flex items-end gap-[2px] h-3 w-5">
-                                      <span className="w-[2px] bg-white/50 rounded-full animate-wave-bar-1" style={{ animationDuration: '0.8s' }} />
-                                      <span className="w-[2px] bg-white/50 rounded-full animate-wave-bar-2" style={{ animationDuration: '0.5s' }} />
-                                      <span className="w-[2px] bg-white/50 rounded-full animate-wave-bar-3" style={{ animationDuration: '0.7s' }} />
-                                      <span className="w-[2px] bg-white/50 rounded-full animate-wave-bar-4" style={{ animationDuration: '0.6s' }} />
-                                    </div>
-                                  )}
-                                </div>
-
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="1"
-                                  step="0.05"
-                                  value={ch.val}
-                                  onChange={e => {
-                                    const v = parseFloat(e.target.value)
-                                    ch.setVal(v)
-                                    updateSetting(ch.id as SettingsKey, v)
-                                  }}
-                                  className="flex-1 h-1 rounded-full cursor-pointer bg-white/10 outline-none accent-white"
-                                />
-                                <span className="text-[10px] font-semibold text-white/60 w-7 text-right font-mono">
-                                  {Math.round(ch.val * 100)}%
-                                </span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* HRV Coherence Pacer Card */}
-                    <div className="border border-white/[0.06] dynamic-card p-5 animate-hrv-pacer">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-[9px] font-mono tracking-widest text-white/80 uppercase bg-white/5 px-2.5 py-0.5 rounded-xl border border-white/10">HRV Resonance</span>
-                        <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">8s Breathe</span>
-                      </div>
-                      <div className="flex items-center gap-4 bg-[#0c0f17]/40 border border-white/5 px-4 py-3 rounded-xl">
-                        <div className="relative flex h-10 w-10 items-center justify-center shrink-0">
-                          <div className="absolute inset-0 rounded-full border border-accent-purple/30 animate-zen-breath" />
-                          <div className="h-4 w-4 rounded-full bg-accent-purple animate-pulse" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-350 select-none">HRV Coherence Pacer</p>
-                          <p className="text-[10px] text-slate-505 leading-normal mt-0.5">Align respiration with the expanding shadow ring (4s inhale / 4s exhale) to optimize autonomic stability.</p>
-                        </div>
-                      </div>
-                    </div>
+                  {/* Left block (Clock & sound configurations) */}
+                  <div className="lg:col-span-5">
+                    <FocusSanctuary
+                      timerMode={timerMode}
+                      isTimerActive={isTimerActive}
+                      setIsTimerActive={setIsTimerActive}
+                      remainingSeconds={remainingSeconds}
+                      secondsElapsed={secondsElapsed}
+                      progress={progress}
+                      isLongBreak={isLongBreak}
+                      completedSessionsInCycle={completedSessionsInCycle}
+                      targetSessionsPerCycle={targetSessionsPerCycle}
+                      handleModeSwitch={handleModeSwitch}
+                      completeSession={completeSession}
+                      breathTime={breathTime}
+                      setIsZenMode={setIsZenMode}
+                      soundEnabled={soundEnabled}
+                      noiseType={noiseType}
+                      binauralTarget={binauralTarget}
+                      updateSetting={updateSetting}
+                      localVolumeRain={localVolumeRain}
+                      setLocalVolumeRain={setLocalVolumeRain}
+                      localVolumeCafe={localVolumeCafe}
+                      setLocalVolumeCafe={setLocalVolumeCafe}
+                      localVolumeWhiteNoise={localVolumeWhiteNoise}
+                      setLocalVolumeWhiteNoise={setLocalVolumeWhiteNoise}
+                      localAlphaWaves={localAlphaWaves}
+                      setLocalAlphaWaves={setLocalAlphaWaves}
+                    />
                   </div>
 
-                  {/* Right block (Task Objectives) - Grid 7 */}
-                  <div className="lg:col-span-7 flex flex-col gap-6 h-full">
-                    <div className="border border-white/[0.06] dynamic-card p-6 flex flex-col h-full">
-                      <div className="flex items-center justify-between mb-4 border-b border-white/[0.06] pb-3">
-                        <div>
-                          <h2 className="font-serif-luxury italic tracking-wide text-white/80 text-xs uppercase">02 / ACTIVE REGISTRY</h2>
-                          <p className="text-[10px] text-white/60 font-semibold mt-0.5">Define and check target objectives</p>
-                        </div>
-                        
-                        {timerMode === 'study' && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-white/60 uppercase font-mono">Active Subject:</span>
-                            <select
-                              value={timerCategoryId ?? ''}
-                              onChange={e => setTimerCategoryId(e.target.value ? Number(e.target.value) : undefined)}
-                              className="rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white outline-none focus:border-white/20 cursor-pointer transition-all duration-300"
-                            >
-                              <option value="" className="bg-surface">General</option>
-                              {categories.map(cat => (
-                                <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Active Task Target Indicator */}
-                      {activeTaskId !== null && (() => {
-                        const activeTask = sessionTasks.find(t => t.id === activeTaskId)
-                        if (!activeTask || activeTask.completed) return null
-                        return (
-                          <div className="mb-4 flex items-center gap-3 rounded-xl border border-accent-blue/20 bg-accent-blue/5 px-4 py-3 animate-slide-in-up">
-                            <div className="h-2 w-2 rounded-full bg-accent-blue animate-ping" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[9px] uppercase font-bold tracking-wider text-slate-450">Active Target Focus</p>
-                              <p className="truncate text-xs font-bold text-accent-blue mt-0.5">{activeTask.text}</p>
-                            </div>
-                            <span className="whitespace-nowrap text-xs font-mono font-bold text-slate-450 flex items-center gap-1.5 bg-accent-blue/10 px-2.5 py-1 rounded-lg border border-accent-blue/10">
-                              <Target className="h-3.5 w-3.5 text-accent-blue" />
-                              <span>{activeTask.actualCycles ?? 0}/{activeTask.estimatedCycles ?? 1} Cycles</span>
-                            </span>
-                          </div>
-                        )
-                      })()}
-
-                      {/* Add Task Input Form */}
-                      <div className="flex flex-wrap items-center gap-2 mb-4 bg-white/[0.01] border border-white/[0.04] p-2 rounded-2xl">
-                        <input
-                          data-task-input
-                          type="text"
-                          placeholder="What is your next study objective?"
-                          className="flex-1 rounded-xl bg-white/5 border border-white/5 focus:bg-white/10 px-3.5 py-2 text-xs text-white placeholder:text-white/40 outline-none transition-all duration-300 min-w-[160px]"
-                          onKeyDown={(e) => { 
-                            if (e.key === 'Enter') { 
-                              const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); 
-                              const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); 
-                              const prio = document.querySelector<HTMLSelectElement>('[data-task-priority]');
-                              handleAddTask((e.target as HTMLInputElement).value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined, prio?.value as any); 
-                              (e.target as HTMLInputElement).value = '' 
-                            } 
-                          }}
-                        />
-                        <select
-                          data-task-category
-                          className="w-28 rounded-xl bg-white/5 border border-white/5 px-2 py-2 text-xs text-white outline-none cursor-pointer hover:bg-white/10 transition-all duration-300"
-                        >
-                          <option value="" className="bg-[#12141c]">No subject</option>
-                          {categories.map(cat => (
-                            <option key={cat.id} value={cat.id} className="bg-[#12141c]">{cat.name}</option>
-                          ))}
-                        </select>
-                        <select
-                          data-task-priority
-                          className="w-20 rounded-xl bg-white/5 border border-white/5 px-2 py-2 text-xs text-white outline-none cursor-pointer hover:bg-white/10 transition-all duration-300"
-                        >
-                          <option value="medium" className="bg-[#12141c]">Medium</option>
-                          <option value="high" className="bg-[#12141c]">High</option>
-                          <option value="low" className="bg-[#12141c]">Low</option>
-                        </select>
-                        <select
-                          data-task-cycles
-                          value={taskCycleCount}
-                          onChange={e => setTaskCycleCount(Number(e.target.value))}
-                          className="w-16 rounded-xl bg-white/5 border border-white/5 px-2 py-2 text-xs text-white outline-none cursor-pointer hover:bg-white/10 transition-all duration-300"
-                        >
-                          {[1,2,3,4,5,6,7,8].map(n => (
-                            <option key={n} value={n} className="bg-[#12141c]">🎯 {n}</option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => { 
-                            const input = document.querySelector<HTMLInputElement>('[data-task-input]'); 
-                            const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); 
-                            const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); 
-                            const prio = document.querySelector<HTMLSelectElement>('[data-task-priority]');
-                            if (input) { 
-                              handleAddTask(input.value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined, prio?.value as any); 
-                              input.value = '' 
-                            } 
-                          }}
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white border border-white/20 hover:bg-white/15 transition-all duration-300 ease-out cursor-pointer"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      {/* Objectives Scroll List */}
-                      <div className="flex-1 overflow-y-auto max-h-[360px] custom-scrollbar flex flex-col gap-1.5 pr-1">
-                        {activeTasksList.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-12 border border-dashed border-white/5 rounded-2xl bg-black/10 text-center my-2">
-                            <span className="text-4xl mb-3 animate-pulse-soft">🎯</span>
-                            <p className="text-xs font-bold text-slate-350 max-w-[200px] leading-relaxed">
-                              No study objectives set for today.
-                            </p>
-                            <p className="text-[10px] text-slate-550 max-w-[180px] mt-1.5">
-                              Input an objective above to plan your focus session.
-                            </p>
-                          </div>
-                        ) : (
-                          activeTasksList.map(task => (
-                            <div
-                              key={task.id}
-                              onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
-                              className={`flex flex-col gap-2 rounded-xl px-4 py-3 transition-all duration-300 ease-out cursor-pointer border ${
-                                activeTaskId === task.id
-                                  ? 'bg-white/10 border-white/20 shadow-md shadow-white/5'
-                                  : 'bg-white/[0.02] border-white/[0.04] hover:bg-white/[0.05] hover:border-white/10'
-                              }`}
-                            >
-                              <div className="flex items-center gap-3 w-full">
-                                <div
-                                  onClick={e => { e.stopPropagation(); handleToggleTask(task.id!) }}
-                                  className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-all duration-300 ease-out ${
-                                    task.completed ? 'border-white/30 bg-white/20 text-white' : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
-                                  }`}
-                                >
-                                  {task.completed && <Check className="h-3.5 w-3.5 stroke-[2.5]" />}
-                                </div>
-                                
-                                {task.categoryId !== undefined && categoriesMap.has(task.categoryId) && (
-                                  <span 
-                                    className="shrink-0 text-[8px] font-bold px-2 py-0.5 rounded-lg border text-white/90" 
-                                    style={{ 
-                                      backgroundColor: `${categoriesMap.get(task.categoryId)!.color}20`, 
-                                      borderColor: `${categoriesMap.get(task.categoryId)!.color}40` 
-                                    }}
-                                  >
-                                    {categoriesMap.get(task.categoryId)!.name}
-                                  </span>
-                                )}
-
-                                {task.priority && (
-                                  <span className={`shrink-0 text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg border ${
-                                    task.priority === 'high' 
-                                      ? 'bg-red-500/10 text-red-400 border-red-500/20' 
-                                      : task.priority === 'low' 
-                                      ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
-                                      : 'bg-white/5 text-white/60 border-white/10'
-                                  }`}>
-                                    {task.priority}
-                                  </span>
-                                )}
-
-                                <span className={`flex-1 truncate text-xs font-semibold ${task.completed ? 'text-white/40 line-through' : 'text-white'}`}>
-                                  {task.text}
-                                </span>
-
-                                <span className="shrink-0 text-[10px] font-mono font-semibold text-white/60 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
-                                  <Target className="h-3 w-3 text-white" />
-                                  <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1} Cycles</span>
-                                </span>
-                              </div>
-
-                              {/* SM-2 Recall Rating Panel */}
-                              {task.completed && (
-                                <div className="mt-2 pl-8 border-l-2 border-white/5 flex flex-col gap-2 py-1.5" onClick={e => e.stopPropagation()}>
-                                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Rate Active Recall (SM-2 Algorithm)</p>
-                                  <div className="flex gap-1.5">
-                                    {[0, 1, 2, 3, 4, 5].map(q => (
-                                      <button
-                                        key={q}
-                                        onClick={(e) => { e.stopPropagation(); submitRecallGrade(task, q) }}
-                                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 transition-all duration-300 ease-out cursor-pointer"
-                                        title={
-                                          q === 0 ? "Complete blackout" :
-                                          q === 1 ? "Incorrect but remembered" :
-                                          q === 2 ? "Incorrect; easy to recall after checking" :
-                                          q === 3 ? "Correct with serious effort" :
-                                          q === 4 ? "Correct after hesitation" :
-                                          "Perfect recall"
-                                        }
-                                      >
-                                        {q}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
+                  {/* Right block (Task list and reviews) */}
+                  <div className="lg:col-span-7">
+                    <TaskRegistry
+                      tasks={sessionTasks}
+                      categories={categories}
+                      activeTaskId={activeTaskId}
+                      setActiveTaskId={setActiveTaskId}
+                      toggleTask={handleToggleTask}
+                      handleAddTask={handleAddTask}
+                      submitRecallGrade={submitRecallGrade}
+                      timerCategoryId={timerCategoryId}
+                      setTimerCategoryId={setTimerCategoryId}
+                      timerMode={timerMode}
+                      taskCycleCount={taskCycleCount}
+                      setTaskCycleCount={setTaskCycleCount}
+                    />
                   </div>
+
                 </div>
               )}
 
               {/* TAB 2: ANALYTICS STUDIO */}
               {activeTab === 'analytics' && (
-                <div className="flex flex-col gap-6 w-full flex-1 animate-fade-in">
-                  
-                  {/* Summary Metrics Row */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[
-                      { label: 'Monthly Study Time', value: `${totalMonthHours.toFixed(1)}h`, icon: Clock, iconColor: 'text-white' },
-                      { label: 'Weekly Break Cooldown', value: `${totalWeeklyBreakHours}h`, icon: Coffee, iconColor: 'text-white' },
-                      { label: 'Active Study Days', value: `${new Set(monthLogs.filter(l => l.studyMinutes > 0).map(l => l.dateString)).size} / ${totalDaysInMonth}`, icon: Calendar, iconColor: 'text-white' },
-                      { label: 'Streak Status', value: `${currentStreak} Days`, icon: Flame, iconColor: 'text-white' },
-                    ].map(item => {
-                      const Icon = item.icon
-                      return (
-                        <div key={item.label} className="border border-white/[0.06] dynamic-card p-5 flex items-center justify-between">
-                          <div>
-                            <p className="text-[10px] text-white/60 font-semibold uppercase tracking-wider">{item.label}</p>
-                            <p className="text-xl font-semibold text-white mt-1 font-mono">{item.value}</p>
-                          </div>
-                          <div className="h-11 w-11 rounded-xl flex items-center justify-center border border-white/10 bg-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-                            <Icon className="h-5 w-5 text-white" />
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* Recharts Performance Trends */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <div className="lg:col-span-8 border border-white/[0.06] dynamic-card p-6">
-                      <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Weekly Performance Trends</h3>
-                      {hasChartData ? (
-                        <div className="h-[220px]">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                              <defs>
-                                <linearGradient id="trendsGrad" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="0%" stopColor={activeThemeVars.accentBlue} stopOpacity={0.3} />
-                                  <stop offset="100%" stopColor={activeThemeVars.accentBlue} stopOpacity={0} />
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" horizontal={true} vertical={false} />
-                              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} />
-                              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} />
-                              <Tooltip contentStyle={tooltipStyle} />
-                              <Area type="monotone" dataKey="hours" stroke={activeThemeVars.accentBlue} strokeWidth={2.5} fill="url(#trendsGrad)" dot={false} />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </div>
-                      ) : (
-                        <div className="flex h-[220px] items-center justify-center">
-                          <p className="text-xs text-slate-500 italic">No study hours logged for this period.</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="lg:col-span-4 border border-white/[0.06] dynamic-card p-6 flex flex-col justify-between">
-                      <div>
-                        <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-5">Daily Efficiency Index</h3>
-                        {hasChartData ? (
-                          <div className="h-[200px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
-                                <defs>
-                                  <linearGradient id="effGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor={activeThemeVars.accentBlue} />
-                                    <stop offset="100%" stopColor={activeThemeVars.accentPurple} />
-                                  </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" horizontal={true} vertical={false} />
-                                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10, fontWeight: 600 }} />
-                                <YAxis hide />
-                                <Tooltip contentStyle={tooltipStyle} formatter={(val) => [`${val}%`, 'Efficiency']} />
-                                <Bar dataKey="focus" fill="url(#effGrad)" radius={[4, 4, 0, 0]} maxBarSize={16} />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </div>
-                        ) : (
-                          <div className="flex h-[200px] items-center justify-center">
-                            <p className="text-xs text-slate-500 italic">No activity indexes logged.</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Subject Breakdown & Insights */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <div className="lg:col-span-6 border border-white/[0.06] dynamic-card p-6">
-                      <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Subject Distribution</h3>
-                      {categoryBreakdown.length > 0 ? (
-                        <div className="flex items-center gap-8 justify-around">
-                          <div className="w-32 h-32 shrink-0">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                <Pie
-                                  data={categoryBreakdown}
-                                  dataKey="hours"
-                                  nameKey="name"
-                                  cx="50%"
-                                  cy="50%"
-                                  innerRadius={32}
-                                  outerRadius={48}
-                                  paddingAngle={4}
-                                  stroke="none"
-                                >
-                                  {categoryBreakdown.map((entry, index) => (
-                                    <Cell key={index} fill={entry.color} />
-                                  ))}
-                                </Pie>
-                              </PieChart>
-                            </ResponsiveContainer>
-                          </div>
-                          <div className="flex flex-col gap-2.5 flex-1 max-w-[220px]">
-                            {categoryBreakdown.map((item, i) => (
-                              <div key={i} className="flex items-center gap-2 text-xs font-semibold">
-                                <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                                <span className="text-text-primary flex-1 truncate">{item.name}</span>
-                                <span className="text-slate-400 font-mono">{item.hours}h</span>
-                                <span className="text-slate-500 font-mono text-[10px]">({item.percentage}%)</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="py-12 text-center text-xs italic text-slate-500">
-                          Configure categories and complete focus blocks to display breakdowns.
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="lg:col-span-6 border border-white/[0.06] dynamic-card p-6">
-                      <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Productivity Metrics</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        {[
-                          { label: 'TOP SUBJECT', value: topSubject || 'No logs', icon: Award, color: 'text-accent-purple', bg: 'bg-accent-purple/5' },
-                          { label: 'AVG SESSION LENGTH', value: `${avgMin} min`, icon: Clock, color: 'text-accent-blue', bg: 'bg-accent-blue/5' },
-                          { label: 'COMPLETION RATIO', value: `${completionRate}%`, icon: CheckCircle, color: 'text-accent-green', bg: 'bg-accent-green/5' },
-                          { label: 'PEAK WORKDAY', value: peakDay || 'No logs', icon: Calendar, color: 'text-accent-amber', bg: 'bg-accent-amber/5' },
-                        ].map(insight => {
-                          const Icon = insight.icon
-                          return (
-                            <div key={insight.label} className="rounded-xl border border-white/5 bg-[#0c0f17]/40 p-4 hover:border-white/10 transition-all flex items-center gap-4">
-                              <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${insight.bg}`}>
-                                <Icon className={`h-4.5 w-4.5 ${insight.color}`} />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-[9px] font-bold tracking-wider text-slate-450 uppercase">{insight.label}</p>
-                                <p className="text-sm font-extrabold text-text-primary truncate mt-0.5">{insight.value}</p>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <AnalyticsStudio
+                  tasks={sessionTasks}
+                  monthLogs={monthLogs}
+                  totalMonthHours={totalMonthHours}
+                  totalWeeklyBreakHours={totalWeeklyBreakHours}
+                  totalDaysInMonth={totalDaysInMonth}
+                  currentStreak={currentStreak}
+                  level={level}
+                  chartData={chartData}
+                  categoryBreakdown={categoryBreakdown}
+                  topSubject={topSubject}
+                  avgMin={avgMin}
+                  completionRate={completionRate}
+                  peakDay={peakDay}
+                  activeThemeVars={activeThemeVars}
+                  tooltipStyle={tooltipStyle}
+                  hasChartData={hasChartData}
+                />
               )}
 
               {/* TAB 3: ACTIVITY LEDGER */}
               {activeTab === 'journal' && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-1 items-start animate-fade-in">
-                  
-                  {/* Left Block (Calendar & Heatmap) - Grid 5 */}
-                  <div className="lg:col-span-5 flex flex-col gap-6">
-                    <div className="border border-white/[0.06] dynamic-card p-6">
-                      <div className="flex items-center justify-between mb-5">
-                        <span className="font-serif-luxury italic tracking-wide text-white/80 text-xs uppercase">03 / HISTORICAL LEDGER</span>
-                      </div>
-                      
-                      {/* Calendar Navigation header */}
-                      <div className="flex items-center justify-between mb-5">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-5 w-5 text-accent-blue" />
-                          <span className="text-sm font-bold text-slate-200">{monthNames[currentMonth]} {currentYear}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={goPrevMonth} className="h-7 w-7 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-bold transition-all flex items-center justify-center cursor-pointer">‹</button>
-                          <button onClick={goNextMonth} className="h-7 w-7 rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-bold transition-all flex items-center justify-center cursor-pointer">›</button>
-                          <select
-                            value={calendarCategoryFilter === 'all' ? 'all' : String(calendarCategoryFilter)}
-                            onChange={e => setCalendarCategoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                            className="rounded-xl border border-white/5 bg-black/25 px-2.5 py-1 text-xs text-text-secondary outline-none cursor-pointer"
-                          >
-                            <option value="all" className="bg-surface">All Subjects</option>
-                            {categories.map(cat => (
-                              <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Day Label Grids */}
-                      <div className="grid grid-cols-7 gap-1 mb-2 text-center">
-                        {dayNames.map(d => (
-                          <div key={d} className="text-[9px] font-bold text-slate-550 uppercase tracking-widest">{d}</div>
-                        ))}
-                      </div>
-
-                      {/* Heatmap Matrix grid */}
-                      <div className="grid grid-cols-7 gap-2">
-                        {(() => {
-                          const accentBlueRgb = hexToRgb(activeThemeVars.accentBlue) || { r: 56, g: 189, b: 248 }
-                          const accentBlueRgbStr = `${accentBlueRgb.r}, ${accentBlueRgb.g}, ${accentBlueRgb.b}`
-
-                          const getIntensityStyle = (intensity: 0 | 1 | 2 | 3) => {
-                            if (intensity === 0) return { backgroundColor: 'rgba(255, 255, 255, 0.03)' }
-                            const opacity = intensity === 1 ? '0.25' : intensity === 2 ? '0.6' : '1.0'
-                            return {
-                              backgroundColor: `rgba(${accentBlueRgbStr}, ${opacity})`,
-                              color: intensity === 3 ? '#080b11' : '#ffffff'
-                            }
-                          }
-
-                          return dynamicGridCells.map((cell, i) => {
-                            const dayData = cell ? activeMonthData[cell - 1] : null
-                            const isLiveDay = isLiveMonth && cell === totalDaysInMonth
-                            const intensity = isLiveDay ? getIntensity(todayStudyMinutes) : (dayData?.intensity ?? 0)
-                            return cell ? (
-                              <button
-                                key={i}
-                                onClick={() => setSelectedDay(cell)}
-                                className={`group relative aspect-square rounded-[10px] flex items-center justify-center text-xs font-bold transition-all duration-300 ease-out cursor-pointer ${
-                                  cell === selectedDay
-                                    ? 'ring-2 ring-accent-blue text-text-primary scale-110 z-10 shadow-md shadow-accent-blue/15'
-                                    : 'hover:scale-105 hover:z-10 hover:ring-1 hover:ring-white/20'
-                                }`}
-                                style={cell === selectedDay ? { backgroundColor: activeThemeVars.accentBlue, color: '#080b11' } : getIntensityStyle(intensity)}
-                              >
-                                <span>{cell}</span>
-                                
-                                {/* iOS 26 Glassmorphic Tooltip */}
-                                {dayData && (
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-36 bg-black/80 backdrop-blur-md border border-white/10 p-2.5 rounded-xl text-[9px] font-mono text-left pointer-events-none z-30 shadow-[0_8px_24px_rgba(0,0,0,0.5)] leading-normal animate-slide-in-up">
-                                    <div className="font-bold text-white mb-1 border-b border-white/10 pb-0.5">
-                                      {monthNames[currentMonth]} {cell}, {currentYear}
-                                    </div>
-                                    <div className="text-white/80">⏱️ Focus: {isLiveDay ? formatMinutes(todayStudyMinutes) : dayData.studyTime}</div>
-                                    <div className="text-white/60">☕ Break: {isLiveDay ? formatMinutes(todayBreakMinutes) : dayData.breakTime}</div>
-                                    <div className="text-accent-blue font-bold mt-0.5">🎯 Score: {isLiveDay ? `${progressPercent}%` : dayData.focusScore}</div>
-                                  </div>
-                                )}
-                              </button>
-                            ) : (
-                              <div key={i} className="aspect-square" />
-                            )
-                          })
-                        })()}
-                      </div>
-
-                      {/* Legend scale */}
-                      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[9px] text-slate-550 border-t border-white/5 pt-4">
-                        <div className="flex items-center gap-3">
-                          {(() => {
-                            const accentBlueRgb = hexToRgb(activeThemeVars.accentBlue) || { r: 56, g: 189, b: 248 }
-                            const accentBlueRgbStr = `${accentBlueRgb.r}, ${accentBlueRgb.g}, ${accentBlueRgb.b}`
-
-                            const getIntensityStyle = (intensity: 0 | 1 | 2 | 3) => {
-                              if (intensity === 0) return { backgroundColor: 'rgba(255, 255, 255, 0.03)' }
-                              const opacity = intensity === 1 ? '0.25' : intensity === 2 ? '0.6' : '1.0'
-                              return { backgroundColor: `rgba(${accentBlueRgbStr}, ${opacity})` }
-                            }
-
-                            return [
-                              { label: '0-1h', intensity: 0 },
-                              { label: '1-2h', intensity: 1 },
-                              { label: '2-3h', intensity: 2 },
-                              { label: '3+h', intensity: 3 },
-                            ].map(item => (
-                              <div key={item.label} className="flex items-center gap-1 font-bold">
-                                <div className="h-2.5 w-2.5 rounded-md border border-white/5" style={getIntensityStyle(item.intensity as any)} />
-                                <span>{item.label}</span>
-                              </div>
-                            ))
-                          })()}
-                        </div>
-                        <div className="flex items-center gap-1.5 font-bold">
-                          <span>Low</span>
-                          {[0.3, 0.6, 1].map((opacity, i) => (
-                            <div key={i} className="h-2 w-2 rounded-full" style={{ backgroundColor: activeThemeVars.accentBlue, opacity }} />
-                          ))}
-                          <span>High</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Block (Reflection notes & Focus timeline) - Grid 7 */}
-                  <div className="lg:col-span-7 flex flex-col gap-6">
-                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
-                      <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
-                        <div>
-                          <p className="text-[9px] font-bold text-accent-blue uppercase tracking-widest">Day Journal reflections</p>
-                          <h3 className="text-sm font-bold text-text-primary mt-0.5">
-                            {liveDay.dayName}, {selectedDay} {monthNames[currentMonth]} {currentYear}
-                          </h3>
-                        </div>
-                        {isLiveMonth && selectedDay === totalDaysInMonth && (
-                          <span className="flex items-center gap-1 bg-accent-green/10 border border-accent-green/20 rounded-full px-2.5 py-0.5 text-[9px] font-bold text-accent-green uppercase">
-                            <span className="h-1 w-1 bg-accent-green rounded-full animate-ping" />
-                            <span>Today</span>
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Day summary numbers */}
-                      <div className="grid grid-cols-3 gap-4 mb-4">
-                        <div className="bg-white/[0.01] p-3 rounded-xl border border-white/5">
-                          <span className="text-[9px] font-bold text-slate-505 uppercase block">Study block</span>
-                          <span className="text-base font-extrabold text-accent-blue mt-0.5 font-mono">{liveDay.studyTime}</span>
-                        </div>
-                        <div className="bg-white/[0.01] p-3 rounded-xl border border-white/5">
-                          <span className="text-[9px] font-bold text-slate-505 uppercase block">Break cooldown</span>
-                          <span className="text-base font-extrabold text-accent-amber mt-0.5 font-mono">{liveDay.breakTime}</span>
-                        </div>
-                        <div className="bg-white/[0.01] p-3 rounded-xl border border-white/5">
-                          <span className="text-[9px] font-bold text-slate-505 uppercase block">Efficiency score</span>
-                          <span className="text-base font-extrabold text-accent-green mt-0.5 font-mono">{liveDay.focusScore}</span>
-                        </div>
-                      </div>
-
-                      {/* Mood calibration deck */}
-                      <div className="mb-4">
-                        <p className="text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-2">Track Mood</p>
-                        <div className="flex flex-wrap gap-2">
-                          {[
-                            { label: 'Focused', emoji: '🧠', value: 'focused' },
-                            { label: 'Energetic', emoji: '⚡', value: 'energetic' },
-                            { label: 'Tired', emoji: '🥱', value: 'tired' },
-                            { label: 'Distracted', emoji: '🌪', value: 'distracted' },
-                          ].map(m => {
-                            const isSelected = draftMood === m.value
-                            return (
-                              <button
-                                key={m.value}
-                                onClick={() => handleMoodSelect(m.value)}
-                                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                                  isSelected
-                                    ? 'border-accent-blue/30 bg-accent-blue/15 text-accent-blue shadow-md'
-                                    : 'border-white/5 bg-[#0c0f17]/40 text-slate-455 hover:border-white/10 hover:text-text-primary'
-                                }`}
-                              >
-                                <span>{m.emoji}</span>
-                                <span>{m.label}</span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Text reflection input */}
-                      <div className="mb-4">
-                        <p className="text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-2">Reflection log</p>
-                        <textarea
-                          value={draftNotes}
-                          onChange={e => handleNotesChange(e.target.value)}
-                          placeholder="How did you perform? Note down any wins, hurdles, or focal points for today..."
-                          rows={3}
-                          className="w-full resize-none rounded-xl border border-white/5 bg-[#0c0f17]/40 focus:bg-black/20 focus:border-accent-blue/40 px-3.5 py-3 text-xs text-text-primary placeholder:text-slate-550 outline-none transition-all duration-200"
-                        />
-                      </div>
-
-                      {/* Visual 24h study timeline */}
-                      <div className="border-t border-white/5 pt-4">
-                        <p className="text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-2.5">Focus Horizon Timeline (24h)</p>
-                        <div className="relative w-full bg-black/10 border border-white/5 rounded-2xl p-4">
-                          <div className="relative h-6 w-full bg-black/30 rounded-xl border border-white/5 overflow-hidden">
-                            <div className="absolute inset-0 flex justify-between pointer-events-none text-[8px] text-slate-700 font-mono">
-                              <div className="h-full border-r border-white/5" style={{ left: '25%' }} />
-                              <div className="h-full border-r border-white/5" style={{ left: '50%' }} />
-                              <div className="h-full border-r border-white/5" style={{ left: '75%' }} />
-                            </div>
-
-                            {selectedDayHistory.map((entry, idx) => {
-                              const parts = entry.timestamp.split(' ')
-                              if (parts.length < 3) return null
-                              const timePart = parts[2]
-                              const [hours, minutes] = timePart.split(':').map(Number)
-                              if (isNaN(hours) || isNaN(minutes)) return null
-                              
-                              const endMinute = hours * 60 + minutes
-                              const startMinute = Math.max(0, endMinute - entry.durationMinutes)
-                              const startPercent = (startMinute / 1440) * 100
-                              const widthPercent = ((endMinute - startMinute) / 1440) * 100
-                              const isStudy = entry.type === 'study'
-                              
-                              return (
-                                <div
-                                  key={idx}
-                                  title={`${isStudy ? 'Focus block' : 'Break time'}: ${entry.durationMinutes}m (ending ${timePart})`}
-                                  className="absolute top-0 h-full rounded-md transition-all hover:scale-y-110 cursor-pointer"
-                                  style={{
-                                    left: `${startPercent}%`,
-                                    width: `${widthPercent}%`,
-                                    backgroundColor: isStudy ? activeThemeVars.accentBlue : activeThemeVars.accentAmber,
-                                    boxShadow: `0 0 6px ${isStudy ? activeThemeVars.accentBlue : activeThemeVars.accentAmber}50`
-                                  }}
-                                />
-                              )
-                            })}
-                          </div>
-                          <div className="flex justify-between text-[8px] text-slate-555 font-mono mt-1.5 px-1 select-none">
-                            <span>00:00</span>
-                            <span>06:00</span>
-                            <span>12:00</span>
-                            <span>18:00</span>
-                            <span>24:00</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <ActivityLedger
+                  selectedDay={selectedDay}
+                  setSelectedDay={setSelectedDay}
+                  currentMonth={currentMonth}
+                  currentYear={currentYear}
+                  monthNames={monthNames}
+                  dayNames={dayNames}
+                  goPrevMonth={goPrevMonth}
+                  goNextMonth={goNextMonth}
+                  calendarCategoryFilter={calendarCategoryFilter}
+                  setCalendarCategoryFilter={setCalendarCategoryFilter}
+                  categories={categories}
+                  activeThemeVars={activeThemeVars}
+                  dynamicGridCells={dynamicGridCells}
+                  activeMonthData={activeMonthData}
+                  isLiveMonth={isLiveMonth}
+                  totalDaysInMonth={totalDaysInMonth}
+                  todayStudyMinutes={todayStudyMinutes}
+                  todayBreakMinutes={todayBreakMinutes}
+                  progressPercent={progressPercent}
+                  liveDay={liveDay}
+                  draftMood={draftMood}
+                  handleMoodSelect={handleMoodSelect}
+                  draftNotes={draftNotes}
+                  handleNotesChange={handleNotesChange}
+                  selectedDayHistory={selectedDayHistory}
+                  formatMinutes={formatMinutes}
+                  getIntensity={getIntensity}
+                  hexToRgb={hexToRgb}
+                />
               )}
 
               {/* TAB 4: CONTROL DECK (SETTINGS) */}
               {activeTab === 'settings' && (
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 w-full flex-1 items-start animate-fade-in">
-                  
-                  {/* Left settings pane - Grid 8 */}
-                  <div className="xl:col-span-8 flex flex-col gap-6">
-                     {/* Visual Themes profile */}
-                    <div className="border border-white/[0.06] dynamic-card p-6">
-                      <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-4">Workspace Theme Profiles</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {Object.entries(THEME_PROFILES).map(([key, profile]) => {
-                          const isSelected = theme === key
-                          const displayName = key.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-                          return (
-                            <button
-                              key={key}
-                              onClick={() => updateSetting('theme', key)}
-                              className={`relative flex flex-col text-left p-4 rounded-xl border transition-all duration-300 ease-out cursor-pointer group ${
-                                isSelected
-                                  ? 'border-white/20 bg-white/10 text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]'
-                                  : 'border-white/5 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.05]'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between mb-3 w-full">
-                                <span className="text-xs font-bold text-white/90">{displayName}</span>
-                                {isSelected && (
-                                  <span className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-white text-slate-950 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-                                    <Check className="h-3.5 w-3.5 stroke-[3]" />
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex gap-2 text-white/40">
-                                <span className="h-4.5 w-4.5 rounded-full border border-white/5" style={{ backgroundColor: profile.surface }} title="Background" />
-                                <span className="h-4.5 w-4.5 rounded-full border border-white/5" style={{ backgroundColor: profile.surfaceCard }} title="Cards" />
-                                <div className="h-4 w-px bg-white/10" />
-                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentBlue }} title="Primary" />
-                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentPurple }} title="Secondary" />
-                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentGreen }} title="Cycle break" />
-                                <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentAmber }} title="Intermission" />
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>               
-
-                    {/* Translucency sliders */}
-                    <div className="border border-white/[0.06] dynamic-card p-6">
-                      <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Translucency & Backdrop Blur Frosting</h3>
-                      <div className="space-y-6">
-                        <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-semibold text-white/80">Card Backdrop Opacity</span>
-                            <span className="text-xs font-bold text-white">{Math.round(cardOpacity * 100)}%</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0.20"
-                            max="0.90"
-                            step="0.05"
-                            value={cardOpacity}
-                            onChange={e => updateSetting('cardOpacity', parseFloat(e.target.value))}
-                            className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-white/5 outline-none"
-                          />
-                          <div className="mt-1 flex justify-between text-[9px] text-slate-500 font-semibold uppercase">
-                            <span>Max Translucency</span>
-                            <span>Solid background</span>
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-semibold text-slate-350">Frosting blur size</span>
-                            <span className="text-xs font-bold text-accent-blue">{backdropBlur}px</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="4"
-                            max="24"
-                            step="1"
-                            value={backdropBlur}
-                            onChange={e => updateSetting('backdropBlur', parseInt(e.target.value))}
-                            className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-white/5 outline-none"
-                          />
-                          <div className="mt-1 flex justify-between text-[9px] text-slate-500 font-semibold uppercase">
-                            <span>Sharp layout</span>
-                            <span>Heavy blur</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Calibration controls */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="rounded-2xl border border-white/5 dynamic-card p-6 flex flex-col justify-between">
-                        <div>
-                          <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-3">Sound completions</h3>
-                          <p className="text-xs text-slate-505 leading-relaxed">Play chime ring when focus study cycles complete</p>
-                        </div>
-                        <div className="flex items-center justify-between mt-4 bg-[#0c0f17]/40 border border-white/5 px-4 py-2.5 rounded-xl">
-                          <span className="text-xs font-semibold text-slate-350">Status: {soundEnabled ? 'Enabled' : 'Muted'}</span>
-                          <button
-                            onClick={() => updateSetting('soundEnabled', !soundEnabled)}
-                            className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${soundEnabled ? 'bg-accent-blue' : 'bg-white/5 border border-white/5'}`}
-                          >
-                            <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl border border-white/5 dynamic-card p-6 flex flex-col justify-between">
-                        <div>
-                          <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-3">Zen lock boundaries</h3>
-                          <p className="text-xs text-slate-505 leading-relaxed">Enforce boundaries: Hides exit navigation controls inside active study blocks</p>
-                        </div>
-                        <div className="flex items-center justify-between mt-4 bg-[#0c0f17]/40 border border-white/5 px-4 py-2.5 rounded-xl">
-                          <span className="text-xs font-semibold text-slate-350">Status: {localEnforceLockout ? 'Active' : 'Bypassed'}</span>
-                          <button
-                            onClick={() => {
-                              const nextVal = !localEnforceLockout
-                              setLocalEnforceLockout(nextVal)
-                              updateSetting('enforce_lockout', nextVal)
-                            }}
-                            className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${localEnforceLockout ? 'bg-accent-purple animate-pulse-soft' : 'bg-white/5 border border-white/5'}`}
-                          >
-                            <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${localEnforceLockout ? 'translate-x-5' : 'translate-x-0'}`} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Environment preset creator */}
-                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
-                      <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-4">Environment Sound Presets</h3>
-                      <div className="space-y-4 mb-4 pb-4 border-b border-white/5">
-                        <p className="text-xs text-slate-505">Save your active environmental audio track volume mixes as a dynamic profile preset.</p>
-                        <div className="flex gap-2">
-                          <input
-                            id="preset-name-input"
-                            type="text"
-                            placeholder="Preset Label (e.g. Rainy Cafe Study)"
-                            className="flex-1 rounded-xl border border-white/5 bg-[#0c0f17]/40 focus:bg-black/20 focus:border-accent-blue/40 px-3.5 py-2 text-xs text-text-primary outline-none transition-all"
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') {
-                                const val = (e.target as HTMLInputElement).value?.trim()
-                                if (!val) return
-                                const newPreset = {
-                                  id: Date.now(),
-                                  name: val,
-                                  volumes: { rain: localVolumeRain, cafe: localVolumeCafe, whiteNoise: localVolumeWhiteNoise, alphaWaves: localAlphaWaves }
-                                }
-                                updateSetting('audio_presets', [...audio_presets, newPreset])
-                                ;(e.target as HTMLInputElement).value = ''
-                              }
-                            }}
-                          />
-                          <button
-                            onClick={() => {
-                              const el = document.getElementById('preset-name-input') as HTMLInputElement
-                              const val = el?.value?.trim()
-                              if (!val) return
-                              const newPreset = {
-                                id: Date.now(),
-                                name: val,
-                                volumes: { rain: localVolumeRain, cafe: localVolumeCafe, whiteNoise: localVolumeWhiteNoise, alphaWaves: localAlphaWaves }
-                              }
-                              updateSetting('audio_presets', [...audio_presets, newPreset])
-                              if (el) el.value = ''
-                            }}
-                            className="rounded-xl bg-accent-blue text-slate-950 border border-accent-blue px-4 py-2 text-xs font-bold hover:bg-accent-blue/90 transition-all cursor-pointer"
-                          >
-                            Save Preset
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2.5">
-                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Active Presets</p>
-                        {audio_presets.length === 0 ? (
-                          <p className="text-xs italic text-slate-500 py-2">No custom environmental presets created yet.</p>
-                        ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                            {audio_presets.map((preset: any) => (
-                              <div
-                                key={preset.id}
-                                className="flex items-center justify-between rounded-xl bg-[#0c0f17]/40 border border-white/5 p-3 hover:border-white/10 group transition-all"
-                              >
-                                <div
-                                  className="flex-1 cursor-pointer min-w-0"
-                                  onClick={() => {
-                                    const vols = preset.volumes || {}
-                                    if (vols.rain !== undefined) { setLocalVolumeRain(vols.rain); updateSetting('ambientVolume_rain', vols.rain) }
-                                    if (vols.cafe !== undefined) { setLocalVolumeCafe(vols.cafe); updateSetting('ambientVolume_cafe', vols.cafe) }
-                                    if (vols.whiteNoise !== undefined) { setLocalVolumeWhiteNoise(vols.whiteNoise); updateSetting('ambientVolume_whiteNoise', vols.whiteNoise) }
-                                    if (vols.alphaWaves !== undefined) { setLocalAlphaWaves(vols.alphaWaves); updateSetting('ambient_alphaWaves', vols.alphaWaves) }
-                                  }}
-                                >
-                                  <p className="text-xs font-bold text-slate-200 truncate">{preset.name}</p>
-                                  <p className="text-[9px] text-slate-500 mt-1 font-mono font-bold">
-                                    🌧️ {Math.round((preset.volumes?.rain ?? 0) * 100)}% · 
-                                    ☕ {Math.round((preset.volumes?.cafe ?? 0) * 100)}% · 
-                                    📻 {Math.round((preset.volumes?.whiteNoise ?? 0) * 100)}%
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={() => {
-                                    const filtered = audio_presets.filter((p: any) => p.id !== preset.id)
-                                    updateSetting('audio_presets', filtered)
-                                  }}
-                                  className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Backups & resets */}
-                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
-                      <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-3">Backup Vault container</h3>
-                      <p className="text-xs text-slate-505 mb-5 leading-relaxed">
-                        Export backup data bundle to sync tables or local study logs across devices.
-                      </p>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="rounded-xl border border-white/5 bg-[#0c0f17]/40 p-4 flex flex-col justify-between">
-                          <div>
-                            <span className="text-xs font-bold text-slate-300 block">Export backup vault</span>
-                            <span className="text-[10px] text-slate-500 mt-1 leading-normal font-semibold">Prepares a JSON study logs package and initiates browser download.</span>
-                          </div>
-                          <button
-                            onClick={exportStudyBackup}
-                            className="w-full mt-4 rounded-xl bg-accent-blue text-slate-950 border border-accent-blue py-2 text-xs font-bold hover:bg-accent-blue/90 transition-all cursor-pointer"
-                          >
-                            Export Vault
-                          </button>
-                        </div>
-
-                        <div
-                          onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
-                          onDragLeave={() => setIsDragging(false)}
-                          onDrop={handleFileDrop}
-                          onClick={() => fileInputRef.current?.click()}
-                          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-4 text-center transition-all cursor-pointer min-h-[120px] ${
-                            isDragging
-                              ? 'border-accent-purple bg-accent-purple/10'
-                              : 'border-white/5 bg-[#0c0f17]/40 hover:border-white/10'
-                          }`}
-                        >
-                          <span className="text-2xl mb-1.5">📥</span>
-                          <span className="text-xs font-bold text-slate-300">Drag backup here</span>
-                          <span className="text-[9px] text-slate-505 mt-0.5">or browse files to restore</span>
-                        </div>
-                      </div>
-
-                      <input
-                        type="file"
-                        accept=".studybackup,.json"
-                        ref={fileInputRef}
-                        className="hidden"
-                        onChange={e => {
-                          const file = e.target.files?.[0]
-                          if (file) {
-                            const r = new FileReader()
-                            r.onload = () => importStudyBackup(r.result as string)
-                            r.readAsText(file)
-                          }
-                          e.target.value = ''
-                        }}
-                      />
-
-                      <div className="mt-6 border-t border-red-500/15 pt-5">
-                        <span className="text-xs font-bold text-red-400 block mb-1">Destructive reset zone</span>
-                        <p className="text-xs text-red-300/60 leading-normal mb-4">Clearing parameters sweeps databases and settings completely. Export backup first to protect data.</p>
-                        <button
-                          onClick={() => {
-                            if (confirm("DANGER: Sweeping tables deletes your stats permanently. Reset?")) {
-                              resetData()
-                            }
-                          }}
-                          className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/25 active:scale-95 transition-all cursor-pointer"
-                        >
-                          Clear & Reset Workspace Data
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right settings column - Grid 4 */}
-                  <div className="xl:col-span-4 flex flex-col gap-6">
-                    
-                    {/* Subject category customizer */}
-                    <div className="rounded-2xl border border-white/5 dynamic-card p-6 flex flex-col">
-                      <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-4">Subject Categories</h3>
-                      
-                      <div className="flex gap-2 mb-4 bg-white/[0.01] border border-white/5 p-2 rounded-xl">
-                        <input
-                          value={newCategoryName}
-                          onChange={e => setNewCategoryName(e.target.value)}
-                          type="text"
-                          placeholder="Label (e.g. Science)"
-                          className="flex-1 rounded-xl bg-black/20 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-550 outline-none transition-all"
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') {
-                              const val = newCategoryName.trim()
-                              if (!val) return
-                              addCategory(val, newCategoryColor)
-                              setNewCategoryName('')
-                            }
-                          }}
-                        />
-                        <input
-                          type="color"
-                          value={newCategoryColor}
-                          onChange={e => setNewCategoryColor(e.target.value)}
-                          className="h-8 w-8 cursor-pointer rounded-xl border border-white/5 bg-[#0c0f17] p-0.5"
-                        />
-                        <button
-                          onClick={() => {
-                            const val = newCategoryName.trim()
-                            if (!val) return
-                            addCategory(val, newCategoryColor)
-                            setNewCategoryName('')
-                          }}
-                          className="rounded-xl bg-accent-blue/15 border border-accent-blue/20 text-accent-blue px-3 py-1.5 text-xs font-bold hover:bg-accent-blue/20 transition-all cursor-pointer"
-                        >
-                          Add
-                        </button>
-                      </div>
-
-                      <div className="flex-1 overflow-y-auto max-h-[260px] custom-scrollbar space-y-2 pr-1">
-                        {categories.length === 0 ? (
-                          <p className="text-xs italic text-slate-500 text-center py-4">No categories configured yet.</p>
-                        ) : (
-                          categories.map(cat => (
-                            <div key={cat.id} className="flex items-center gap-2.5 rounded-xl bg-[#0c0f17]/40 border border-white/5 px-3 py-2">
-                              <span className="h-3 w-3 shrink-0 rounded-full border border-white/5" style={{ backgroundColor: cat.color }} />
-                              <span className="flex-1 text-xs font-bold text-slate-350 truncate">{cat.name}</span>
-                              <button
-                                onClick={() => deleteCategory(cat.id!)}
-                                className="flex h-6 w-6 items-center justify-center rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Font Calibration tab */}
-                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
-                      <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-4">Typography Overrides</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-400 mb-2">Primary font override</label>
-                          <select
-                            value={localDeveloperFont}
-                            onChange={e => {
-                              const val = e.target.value
-                              setLocalDeveloperFont(val)
-                              updateSetting('developer_font', val)
-                            }}
-                            className="w-full rounded-xl border border-white/5 bg-[#0c0f17] px-3.5 py-2.5 text-xs text-text-primary outline-none focus:border-accent-blue/40 cursor-pointer"
-                          >
-                            <option value="Outfit">Outfit (Geometric display)</option>
-                            <option value="Inter">Inter (Sans-serif display)</option>
-                            <option value="JetBrains Mono">JetBrains Mono (Console default)</option>
-                            <option value="Fira Code">Fira Code (Ligature style)</option>
-                            <option value="SF Mono">SF Mono (System default)</option>
-                          </select>
-                          <p className="mt-2 text-[10px] text-slate-550 font-semibold leading-normal">
-                            Custom font changes map instantly. Useful for aligning study dashboards with developer workspaces.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <ControlDeck
+                  theme={theme}
+                  updateSetting={updateSetting}
+                  cardOpacity={cardOpacity}
+                  backdropBlur={backdropBlur}
+                  soundEnabled={soundEnabled}
+                  tactileEnabled={localTactileFeedback}
+                  localEnforceLockout={localEnforceLockout}
+                  setLocalEnforceLockout={setLocalEnforceLockout}
+                  audio_presets={audio_presets}
+                  localVolumeRain={localVolumeRain}
+                  setLocalVolumeRain={setLocalVolumeRain}
+                  localVolumeCafe={localVolumeCafe}
+                  setLocalVolumeCafe={setLocalVolumeCafe}
+                  localVolumeWhiteNoise={localVolumeWhiteNoise}
+                  setLocalVolumeWhiteNoise={setLocalVolumeWhiteNoise}
+                  localAlphaWaves={localAlphaWaves}
+                  setLocalAlphaWaves={setLocalAlphaWaves}
+                  exportStudyBackup={exportStudyBackup}
+                  importStudyBackup={importStudyBackup}
+                  resetData={resetData}
+                  categories={categories}
+                  addCategory={addCategory}
+                  deleteCategory={deleteCategory}
+                  newCategoryName={newCategoryName}
+                  setNewCategoryName={setNewCategoryName}
+                  newCategoryColor={newCategoryColor}
+                  setNewCategoryColor={setNewCategoryColor}
+                  localDeveloperFont={localDeveloperFont}
+                  setLocalDeveloperFont={setLocalDeveloperFont}
+                  isDragging={isDragging}
+                  setIsDragging={setIsDragging}
+                  handleFileDrop={handleFileDrop}
+                  fileInputRef={fileInputRef}
+                  THEME_PROFILES={THEME_PROFILES}
+                />
               )}
             </div>
           )}
@@ -2858,149 +1290,48 @@ function App() {
       </main>
 
       {/* Zen Mode Cinematic Sanctuary Overlay */}
-      {isZenMode && (
-        <div className="fixed inset-0 z-50 bg-[#0d0d0f] flex flex-col items-center justify-center overflow-hidden transition-opacity duration-1000 animate-fade-in">
-          {/* HTML5 Canvas Ambient Particle Background */}
-          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0" />
+      <ZenOverlay
+        isZenMode={isZenMode}
+        canvasRef={canvasRef}
+        remainingSeconds={remainingSeconds}
+        timerMode={timerMode}
+        sessionTasks={sessionTasks}
+        activeTaskId={activeTaskId}
+        isTimerActive={isTimerActive}
+        setIsTimerActive={setIsTimerActive}
+        completeSession={completeSession}
+        localEnforceLockout={localEnforceLockout}
+        setIsZenMode={setIsZenMode}
+      />
 
-          {/* Centerpiece Layout */}
-          <div className="relative z-10 flex flex-col items-center text-center space-y-8 select-none max-w-md px-6 animate-slide-in-up">
-            {/* Cinematic countdown clock */}
-            <div className="text-center">
-              <p className="text-[12rem] md:text-[15rem] text-white/90 font-extralight font-mono tracking-tight leading-none select-none drop-shadow-[0_4px_40px_rgba(255,255,255,0.05)]">
-                {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
-              </p>
-              <p className="text-xs text-white/60 mt-3 uppercase tracking-wider font-semibold">
-                {timerMode === 'study' ? 'Deep Study' : 'Resting'}
-              </p>
-            </div>
+      {/* Post-Sprint Reflection Modal Gate */}
+      <ReflectionModal
+        showReflectionModal={showReflectionModal}
+        pendingSessionData={pendingSessionData}
+        attentionRating={attentionRating}
+        setAttentionRating={setAttentionRating}
+        stabilityRating={stabilityRating}
+        setStabilityRating={setStabilityRating}
+        localSessionNotes={localSessionNotes}
+        setLocalSessionNotes={setLocalSessionNotes}
+        onSubmitReflection={async (att, stab, notes) => {
+          setShowReflectionModal(false)
+          const data = pendingSessionData
+          setPendingSessionData(null)
+          completingRef.current = true
+          await processSessionCompletion(data!.elapsed, data!.mode, data!.timestamp, data!.categoryId, att, stab, notes)
+        }}
+      />
 
-            {/* Focus Anchor Text */}
-            <div className="mt-10 space-y-1">
-              {(() => {
-                const activeTask = sessionTasks.find(t => t.id === activeTaskId)
-                return (
-                  <p className="text-xs font-serif-luxury italic text-white/80 tracking-widest uppercase">
-                    {activeTask ? activeTask.text : 'Radiant Silence'}
-                  </p>
-                )
-              })()}
-            </div>
-
-            {/* Play/Pause controls */}
-            <div className="flex items-center gap-4 pt-4">
-              <button
-                onClick={() => setIsTimerActive(!isTimerActive)}
-                className="flex h-12 w-12 items-center justify-center rounded-sm bg-accent-blue text-slate-950 border border-accent-blue hover:bg-accent-blue/90 active:scale-95 cursor-pointer"
-                title={isTimerActive ? "Pause session" : "Start session"}
-              >
-                {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-              </button>
-              <button
-                onClick={completeSession}
-                className="flex items-center gap-2 rounded-sm bg-accent-blue text-slate-950 border border-accent-blue px-6 py-3 text-xs font-bold hover:bg-accent-blue/90 active:scale-95 cursor-pointer"
-              >
-                <Check className="h-4 w-4" />
-                Complete Focus
-              </button>
-            </div>
-          </div>
-
-          {/* Minimal exit chevron */}
-          {!(localEnforceLockout && isTimerActive && timerMode === 'study') && (
-            <button
-              onClick={() => setIsZenMode(false)}
-              className="absolute top-8 left-8 flex h-10 w-10 items-center justify-center rounded-sm bg-[#0c0f17] border border-[#1b2333] hover:bg-[#0c0f17] text-[#64748b] transition-colors cursor-pointer"
-              title="Exit Sanctuary"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-          )}
-        </div>
-      )}
-      {showReflectionModal && pendingSessionData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
-          <div className="relative w-full max-w-md border border-white/10 bg-white/5 backdrop-blur-2xl rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)] animate-slide-in-up">
-            <div className="mb-4 pb-2 border-b border-white/10">
-              <h3 className="text-sm font-serif-luxury italic font-medium tracking-wider text-white">FLOW SESSION REFLECTION</h3>
-              <p className="text-[10px] text-white/50 font-mono mt-1">Telemetry validation required for interval log archiving</p>
-            </div>
-            
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-semibold text-white/80 uppercase tracking-wide mb-2.5 font-mono">1. Internal Attention Focus</label>
-                <div className="flex gap-2.5">
-                  {[1, 2, 3, 4, 5].map(rating => (
-                    <button
-                      key={rating}
-                      onClick={() => setAttentionRating(rating)}
-                      className={`flex-1 py-2 text-xs font-semibold border transition-all duration-300 ease-out rounded-xl cursor-pointer ${attentionRating === rating ? 'bg-white/15 text-white border-white/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' : 'bg-white/5 text-white/60 border-white/5 hover:border-white/10 hover:text-white'}`}
-                    >
-                      {rating}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex justify-between text-[9px] text-white/40 mt-1 font-semibold">
-                  <span>Highly Distracted</span>
-                  <span>Flow State</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-white/80 uppercase tracking-wide mb-2.5 font-mono">2. Context-Switching Stability</label>
-                <div className="flex gap-2.5">
-                  {[1, 2, 3, 4, 5].map(rating => (
-                    <button
-                      key={rating}
-                      onClick={() => setStabilityRating(rating)}
-                      className={`flex-1 py-2 text-xs font-semibold border transition-all duration-300 ease-out rounded-xl cursor-pointer ${stabilityRating === rating ? 'bg-white/15 text-white border-white/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' : 'bg-white/5 text-white/60 border-white/5 hover:border-white/10 hover:text-white'}`}
-                    >
-                      {rating}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex justify-between text-[9px] text-white/40 mt-1 font-semibold">
-                  <span>Erratic/Fragmented</span>
-                  <span>Highly Resolute</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-white/80 uppercase tracking-wide mb-2 font-mono">3. Session Intention Summary</label>
-                <textarea
-                  value={localSessionNotes}
-                  onChange={e => setLocalSessionNotes(e.target.value)}
-                  placeholder="Capture the essence of this session in a single sentence..."
-                  className="w-full h-16 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-xs text-white outline-none focus:border-white/20 placeholder-white/30 resize-none font-sans transition-all duration-300"
-                />
-              </div>
-
-              <button
-                onClick={async () => {
-                  setShowReflectionModal(false)
-                  const data = pendingSessionData
-                  setPendingSessionData(null)
-                  completingRef.current = true
-                  await processSessionCompletion(data.elapsed, data.mode, data.timestamp, data.categoryId, attentionRating, stabilityRating, localSessionNotes)
-                }}
-                className="w-full py-3 text-xs font-bold uppercase tracking-widest bg-white/15 text-white border border-white/20 hover:bg-white/20 transition-all duration-300 ease-out rounded-xl cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
-              >
-                Log Workstation Telemetry
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Key Shortcut Deck Modal */}
       {isHotkeyHudOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setIsHotkeyHudOpen(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
           <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 backdrop-blur-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)]" onClick={e => e.stopPropagation()}>
             <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-lg font-semibold">Keyboard Shortcuts</h3>
-              <button onClick={() => setIsHotkeyHudOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
-                <X className="h-4 w-4" />
+              <button onClick={() => setIsHotkeyHudOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-white/10 hover:text-white cursor-pointer">
+                <X />
               </button>
             </div>
             <div className="space-y-3">
@@ -3022,14 +1353,21 @@ function App() {
         </div>
       )}
 
+      {/* Floating HUD Toast alerts */}
       {activeToast && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),_inset_0_1px_1px_rgba(255,255,255,0.08)] rounded-full px-4 py-1.5 text-[11px] font-mono tracking-wider text-white animate-slide-down">
           <kbd className="bg-white/10 text-white border border-white/15 rounded px-1.5 py-0.5 text-[9px] font-sans">{activeToast.key}</kbd>
           <span>{activeToast.message}</span>
         </div>
       )}
+
     </div>
   )
 }
+
+// Simple placeholder close icon helper
+const X: React.FC = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+)
 
 export default App

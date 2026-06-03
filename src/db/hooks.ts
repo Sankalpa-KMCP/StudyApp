@@ -6,22 +6,6 @@ import type { HistoryEntry, SettingsKey, CategoryItem } from './types'
 export function useTasks() {
   const tasks = useLiveQuery(() => db.tasks.orderBy('id').reverse().toArray())
 
-  useEffect(() => {
-    if (!tasks) return
-    const today = todayDateString()
-    const checkAndSurface = async () => {
-      const dueTasks = tasks.filter(t => t.completed && t.nextReviewDate && t.nextReviewDate <= today)
-      if (dueTasks.length > 0) {
-        for (const task of dueTasks) {
-          if (task.id !== undefined) {
-            await db.tasks.update(task.id, { completed: false })
-          }
-        }
-      }
-    }
-    checkAndSurface()
-  }, [tasks])
-
   const addTask = async (text: string, categoryId?: number, estimatedCycles: number = 1, priority?: 'low' | 'medium' | 'high') => {
     await db.tasks.add({ text, completed: false, createdAt: Date.now(), categoryId, estimatedCycles, actualCycles: 0, priority } as any)
   }
@@ -178,6 +162,8 @@ export function useSettings() {
   const shortBreakDurationMinutes = (rows?.find(r => r.key === 'shortBreakDurationMinutes')?.value as number) ?? 5
   const rawAlpha = rows?.find(r => r.key === 'ambient_alphaWaves')?.value
   const ambient_alphaWaves = typeof rawAlpha === 'boolean' ? (rawAlpha ? 0.35 : 0) : ((rawAlpha as number) ?? 0)
+  const noiseType = (rows?.find(r => r.key === 'noiseType')?.value as 'white' | 'pink' | 'brown') ?? 'white'
+  const binauralTarget = (rows?.find(r => r.key === 'binauralTarget')?.value as 'alpha' | 'theta' | 'beta') ?? 'alpha'
   const tactile_feedback = (rows?.find(r => r.key === 'tactile_feedback')?.value as boolean) ?? false
   const developer_font = (rows?.find(r => r.key === 'developer_font')?.value as string) ?? 'JetBrains Mono'
   const enforce_lockout = (rows?.find(r => r.key === 'enforce_lockout')?.value as boolean) ?? false
@@ -205,6 +191,8 @@ export function useSettings() {
     tactile_feedback,
     developer_font,
     enforce_lockout,
+    noiseType,
+    binauralTarget,
     updateSetting,
     isLoading: rows === undefined,
   }
