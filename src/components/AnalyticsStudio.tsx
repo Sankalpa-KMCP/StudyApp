@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { Clock, Coffee, Calendar, Flame, Award, CheckCircle } from 'lucide-react'
+import { Clock, Coffee, Calendar, Flame, Award, CheckCircle, Target } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import type { TaskItem, DailyLog } from '../db/types'
 
@@ -117,6 +117,26 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
   }, [activeThemeVars.accentBlue]);
 
   const rgbStr = `${rgb.r}, ${rgb.g}, ${rgb.b}`;
+
+  // Calculate estimation deviation insight
+  const estimationInsight = useMemo(() => {
+    const completedTasks = tasks.filter(t => t.completed && t.estimatedCycles > 0)
+    if (completedTasks.length === 0) return 'No data'
+    
+    let totalEstimated = 0
+    let totalActual = 0
+    
+    completedTasks.forEach(t => {
+      totalEstimated += t.estimatedCycles
+      totalActual += t.actualCycles
+    })
+    
+    const diff = Math.abs(totalActual - totalEstimated)
+    const errorRate = Math.round((diff / totalEstimated) * 100)
+    
+    if (totalActual === totalEstimated) return '0% Dev (Perfect)'
+    return `${errorRate}% Dev (${totalActual > totalEstimated ? 'Under' : 'Over'})`
+  }, [tasks])
 
   return (
     <div className="flex flex-col gap-6 w-full flex-1 animate-fade-in">
@@ -326,6 +346,7 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
               { label: 'AVG SESSION LENGTH', value: `${avgMin} min`, icon: Clock, color: 'text-accent-blue', bg: 'bg-accent-blue/10' },
               { label: 'COMPLETION RATIO', value: `${completionRate}%`, icon: CheckCircle, color: 'text-accent-green', bg: 'bg-accent-green/10' },
               { label: 'PEAK WORKDAY', value: peakDay || 'No logs', icon: Calendar, color: 'text-accent-amber', bg: 'bg-accent-amber/10' },
+              { label: 'ESTIMATION DEVIATION', value: estimationInsight, icon: Target, color: 'text-accent-blue', bg: 'bg-accent-blue/10' },
             ].map(insight => {
               const Icon = insight.icon
               return (
