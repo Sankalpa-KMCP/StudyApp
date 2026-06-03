@@ -871,6 +871,8 @@ function App() {
     await db.categories.clear()
     await db.flashcards.clear()
     await db.quick_notes.clear()
+    localStorage.removeItem('completed_study_sessions_count')
+    localStorage.removeItem('study_dashboard_snapshots')
     await db.settings.bulkAdd([
       { key: 'dailyGoalMinutes', value: 480 },
       { key: 'soundEnabled', value: true },
@@ -902,6 +904,36 @@ function App() {
     setLocalAlphaWaves(0)
     setActiveTaskId(null)
     window.location.reload()
+  }
+
+  async function resetDataSelective(options: { tasks: boolean; history: boolean; categories: boolean; cards: boolean; notes: boolean }) {
+    try {
+      const promises: Promise<any>[] = []
+      if (options.tasks) {
+        promises.push(db.tasks.clear())
+        setActiveTaskId(null)
+      }
+      if (options.history) {
+        promises.push(db.history.clear())
+        promises.push(db.daily_logs.clear())
+        localStorage.removeItem('completed_study_sessions_count')
+      }
+      if (options.categories) {
+        promises.push(db.categories.clear())
+      }
+      if (options.cards) {
+        promises.push(db.flashcards.clear())
+      }
+      if (options.notes) {
+        promises.push(db.quick_notes.clear())
+      }
+
+      await Promise.all(promises)
+      pushToast('RESET', 'SELECTED TABLES SWEPT')
+    } catch (err) {
+      console.error('Selective reset failed:', err)
+      pushToast('RESET', 'SELECTIVE RESET FAILED')
+    }
   }
 
   async function createDatabaseSnapshot() {
@@ -1385,6 +1417,7 @@ function App() {
                   exportTaskCompletionLogsCSV={exportTaskCompletionLogsCSV}
                   importStudyBackup={importStudyBackup}
                   resetData={resetData}
+                  resetDataSelective={resetDataSelective}
                   categories={categories}
                   addCategory={addCategory}
                   deleteCategory={deleteCategory}
