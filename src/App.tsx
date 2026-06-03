@@ -16,40 +16,40 @@ const THEME_PROFILES: Record<string, {
   accentAmber: string
 }> = {
   'midnight-slate': {
-    surface: '#080b11',
-    surfaceCard: '#101622',
-    surfaceCardRgb: '16, 22, 34',
-    accentBlue: '#38bdf8',
-    accentPurple: '#818cf8',
-    accentGreen: '#34d399',
-    accentAmber: '#fbbf24',
+    surface: '#111215',
+    surfaceCard: '#16181d',
+    surfaceCardRgb: '22, 24, 29',
+    accentBlue: '#c5a880',
+    accentPurple: '#d5bea1',
+    accentGreen: '#a38c6b',
+    accentAmber: '#e0d3c1',
   },
   'cyber-amethyst': {
-    surface: '#0c0714',
-    surfaceCard: '#160e25',
-    surfaceCardRgb: '22, 14, 37',
-    accentBlue: '#f43f5e',
-    accentPurple: '#c084fc',
-    accentGreen: '#22d3ee',
-    accentAmber: '#fb7185',
+    surface: '#121115',
+    surfaceCard: '#18161e',
+    surfaceCardRgb: '24, 22, 30',
+    accentBlue: '#c5a880',
+    accentPurple: '#b69fc4',
+    accentGreen: '#8a7695',
+    accentAmber: '#e6dfeb',
   },
   'deep-forest': {
-    surface: '#070c0a',
-    surfaceCard: '#0e1814',
-    surfaceCardRgb: '14, 24, 20',
-    accentBlue: '#10b981',
-    accentPurple: '#a7f3d0',
-    accentGreen: '#84cc16',
-    accentAmber: '#f59e0b',
+    surface: '#111512',
+    surfaceCard: '#161e18',
+    surfaceCardRgb: '22, 30, 24',
+    accentBlue: '#c5a880',
+    accentPurple: '#a5b59f',
+    accentGreen: '#76856d',
+    accentAmber: '#e4ebe0',
   },
   'ocean-trench': {
-    surface: '#030914',
-    surfaceCard: '#0a1224',
-    surfaceCardRgb: '10, 18, 36',
-    accentBlue: '#06b6d4',
-    accentPurple: '#3b82f6',
-    accentGreen: '#2dd4bf',
-    accentAmber: '#e11d48',
+    surface: '#111315',
+    surfaceCard: '#161a1e',
+    surfaceCardRgb: '22, 26, 30',
+    accentBlue: '#c5a880',
+    accentPurple: '#9faab5',
+    accentGreen: '#6d7785',
+    accentAmber: '#e0e6eb',
   }
 }
 
@@ -303,6 +303,7 @@ function App() {
   const [pendingSessionData, setPendingSessionData] = useState<{ elapsed: number; mode: 'study' | 'break'; timestamp: string; categoryId?: number } | null>(null)
   const [attentionRating, setAttentionRating] = useState(4)
   const [stabilityRating, setStabilityRating] = useState(4)
+  const [localSessionNotes, setLocalSessionNotes] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const volRainRef = useRef(localVolumeRain)
@@ -456,12 +457,13 @@ function App() {
     focus: d ? Math.min(Math.round((d.studyMin / dailyGoalMinutes) * 100), 100) : 0,
   })) : []
 
-  async function processSessionCompletion(elapsed: number, mode: 'study' | 'break', timestamp: string, categoryId?: number, attRating?: number, stabRating?: number) {
+  async function processSessionCompletion(elapsed: number, mode: 'study' | 'break', timestamp: string, categoryId?: number, attRating?: number, stabRating?: number, sessionNotes?: string) {
     await addHistoryEntry({
       timestamp,
       type: mode,
       durationMinutes: Math.floor(elapsed / 60),
       categoryId: mode === 'study' ? categoryId : undefined,
+      sessionNotes: mode === 'study' ? sessionNotes : undefined,
       ...(attRating !== undefined ? { attentionRating: attRating } : {}),
       ...(stabRating !== undefined ? { stabilityRating: stabRating } : {}),
     } as any)
@@ -518,6 +520,7 @@ function App() {
       setPendingSessionData({ elapsed, mode, timestamp, categoryId: timerCategoryId })
       setAttentionRating(4)
       setStabilityRating(4)
+      setLocalSessionNotes('')
       setShowReflectionModal(true)
       completingRef.current = false
       return
@@ -676,11 +679,7 @@ function App() {
       const maxDistance = isMuted ? 40 : 100 + Math.min(50, aggregateVol * 30)
       const maxLineAlpha = isMuted ? 0 : Math.min(0.20, aggregateVol * 0.12)
 
-      const activeThemeVars = THEME_PROFILES[theme] || THEME_PROFILES['midnight-slate']
-      const accentBlueColor = activeThemeVars.accentBlue
-      const accentPurpleColor = activeThemeVars.accentPurple
-      const rRgb = hexToRgb(accentBlueColor) || { r: 56, g: 189, b: 248 }
-      const pRgb = hexToRgb(accentPurpleColor) || { r: 129, g: 140, b: 248 }
+
 
       // 1. Isolate coordinate calculation loop
       particles.forEach(p => {
@@ -708,8 +707,8 @@ function App() {
         ctx.beginPath()
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
         ctx.fillStyle = isMuted
-          ? 'rgba(71, 85, 105, 0.3)'
-          : `rgba(${rRgb.r}, ${rRgb.g}, ${rRgb.b}, ${0.35 + Math.min(0.35, aggregateVol * 0.15)})`
+          ? 'rgba(197, 168, 128, 0.05)'
+          : `rgba(197, 168, 128, ${0.10 + Math.min(0.15, aggregateVol * 0.10)})`
         ctx.fill()
       })
 
@@ -728,8 +727,8 @@ function App() {
                ctx.beginPath()
               ctx.moveTo(p1.x, p1.y)
               ctx.lineTo(p2.x, p2.y)
-              ctx.strokeStyle = `rgba(${rRgb.r}, ${rRgb.g}, ${rRgb.b}, ${alpha})`
-              ctx.lineWidth = 0.75
+              ctx.strokeStyle = `rgba(197, 168, 128, ${alpha * 0.5})`
+              ctx.lineWidth = 0.5
               ctx.stroke()
             }
           }
@@ -744,9 +743,9 @@ function App() {
       if (waveAmplitudeRef.current > 0.5) {
         const waveTime = performance.now() * 0.001
         const layers = [
-          { freq: 0.008, speed: 0.8, phase: 0,          color: `rgba(${rRgb.r}, ${rRgb.g}, ${rRgb.b}, 0.25)`,   lineW: 2.0 },
-          { freq: 0.012, speed: 1.2, phase: Math.PI / 3, color: `rgba(${pRgb.r}, ${pRgb.g}, ${pRgb.b}, 0.15)`,  lineW: 1.5 },
-          { freq: 0.006, speed: -0.6, phase: Math.PI / 1.5, color: `rgba(${rRgb.r}, ${rRgb.g}, ${rRgb.b}, 0.15)`, lineW: 1.0 },
+          { freq: 0.008, speed: 0.8, phase: 0,          color: 'rgba(197, 168, 128, 0.15)',   lineW: 0.75 },
+          { freq: 0.012, speed: 1.2, phase: Math.PI / 3, color: 'rgba(225, 222, 215, 0.08)',  lineW: 0.5 },
+          { freq: 0.006, speed: -0.6, phase: Math.PI / 1.5, color: 'rgba(197, 168, 128, 0.08)', lineW: 0.5 },
         ]
         layers.forEach(l => {
           ctx.beginPath()
@@ -1568,7 +1567,7 @@ function App() {
                     key={tab.id}
                     disabled={isLocked}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`nav-tab shrink-0 w-full ${isActive ? 'active' : ''} ${isLocked ? 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-slate-400' : 'cursor-pointer'}`}
+                    className={`nav-tab shrink-0 w-full rounded-none ${isActive ? 'bg-[#c5a880] text-[#111215] font-medium' : 'text-slate-400 hover:bg-white/5'} ${isLocked ? 'opacity-30 cursor-not-allowed hover:bg-transparent' : 'cursor-pointer'}`}
                     title={isLocked ? "Focus Lockout Active" : undefined}
                   >
                     <Icon className="h-4 w-4" />
@@ -1632,12 +1631,12 @@ function App() {
                   
                   {/* Left block (Clock & Soundscapes) - Grid 5 */}
                   <div className="lg:col-span-5 flex flex-col gap-6">
-                    <div className="relative overflow-hidden flex flex-col rounded-2xl border border-white/5 dynamic-card p-6">
+                    <div className="relative overflow-hidden flex flex-col border border-white/5 dynamic-card p-6">
                       <div className="flex items-center justify-between mb-6">
-                        <span className="text-[9px] font-mono tracking-widest text-accent-blue/90 uppercase bg-accent-blue/10 px-2.5 py-0.5 rounded-full border border-accent-blue/20">Focus Session</span>
+                        <span className="font-serif-luxury italic tracking-wide text-[#c5a880]/80 text-xs uppercase">01 / CHRONOS ENGINE</span>
                         <button
                           onClick={() => setIsZenMode(true)}
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-bold border border-accent-purple/30 bg-accent-purple/10 text-accent-purple hover:bg-accent-purple/20 transition-all cursor-pointer"
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-none text-[10px] font-medium border border-[#c5a880]/20 bg-[#c5a880]/10 text-[#c5a880] hover:bg-[#c5a880]/20 transition-all cursor-pointer"
                         >
                           <Sparkles className="h-3 w-3" />
                           <span>Sanctuary Mode (Z)</span>
@@ -1677,14 +1676,14 @@ function App() {
                         <div className="flex items-center gap-3 mt-6">
                           <button
                             onClick={() => handleModeSwitch(timerMode === 'study' ? 'break' : 'study')}
-                            className="px-3.5 py-1.5 rounded-xl text-xs font-bold border border-white/5 bg-white/5 hover:bg-white/10 text-slate-355 hover:text-text-primary transition-all cursor-pointer"
+                            className="px-3.5 py-1.5 rounded-none text-xs font-medium border border-[#262930] bg-[#16181d] hover:bg-[#1c1f26] text-[#e1ded7] transition-all cursor-pointer"
                           >
                             Switch to {timerMode === 'study' ? 'Break' : 'Study'}
                           </button>
                           
                           <button
                             onClick={() => { if (!completingRef.current) setIsTimerActive(a => !a) }}
-                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-blue/15 text-accent-blue hover:bg-accent-blue hover:text-slate-950 transition-all active:scale-95 cursor-pointer"
+                            className="flex h-9 w-9 items-center justify-center rounded-none bg-[#c5a880]/15 text-[#c5a880] hover:bg-[#c5a880] hover:text-[#111215] transition-all active:scale-95 cursor-pointer"
                           >
                             {isTimerActive ? <Pause className="h-4.5 w-4.5" /> : <Play className="h-4.5 w-4.5" />}
                           </button>
@@ -1692,7 +1691,7 @@ function App() {
                           {(isTimerActive || secondsElapsed > 0) && (
                             <button
                               onClick={completeSession}
-                              className="flex items-center gap-1.5 rounded-xl bg-accent-green/15 text-accent-green border border-accent-green/20 px-3.5 py-1.5 text-xs font-bold transition-all hover:bg-accent-green hover:text-slate-950 active:scale-95 cursor-pointer"
+                              className="flex items-center gap-1.5 rounded-none bg-[#c5a880] text-[#111215] px-3.5 py-1.5 text-xs font-medium transition-all hover:bg-[#c5a880]/90 active:scale-95 cursor-pointer"
                             >
                               <Check className="h-3.5 w-3.5 stroke-[2.5]" />
                               <span>Complete</span>
@@ -1758,9 +1757,9 @@ function App() {
                     </div>
 
                     {/* HRV Coherence Pacer Card */}
-                    <div className="rounded-2xl border border-white/5 dynamic-card p-5 animate-hrv-pacer">
+                    <div className="border border-white/5 dynamic-card p-5 animate-hrv-pacer">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-[9px] font-mono tracking-widest text-accent-purple/90 uppercase bg-accent-purple/10 px-2.5 py-0.5 rounded-full border border-accent-purple/20">HRV Resonance</span>
+                        <span className="text-[9px] font-mono tracking-widest text-[#c5a880]/90 uppercase bg-[#c5a880]/10 px-2.5 py-0.5 rounded-none border border-[#c5a880]/20">HRV Resonance</span>
                         <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">8s Breathe</span>
                       </div>
                       <div className="flex items-center gap-4 bg-[#0c0f17]/40 border border-white/5 px-4 py-3 rounded-xl">
@@ -1778,10 +1777,10 @@ function App() {
 
                   {/* Right block (Task Objectives) - Grid 7 */}
                   <div className="lg:col-span-7 flex flex-col gap-6 h-full">
-                    <div className="rounded-2xl border border-white/5 dynamic-card p-6 flex flex-col h-full">
+                    <div className="border border-white/5 dynamic-card p-6 flex flex-col h-full">
                       <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
                         <div>
-                          <h2 className="text-sm font-bold text-slate-200 tracking-wide">Focus Objectives</h2>
+                          <h2 className="font-serif-luxury italic tracking-wide text-[#c5a880]/80 text-xs uppercase">02 / ACTIVE REGISTRY</h2>
                           <p className="text-[10px] text-slate-555 font-semibold mt-0.5">Define and check target objectives</p>
                         </div>
                         
@@ -2103,9 +2102,9 @@ function App() {
                   
                   {/* Left Block (Calendar & Heatmap) - Grid 5 */}
                   <div className="lg:col-span-5 flex flex-col gap-6">
-                    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
+                    <div className="border border-white/5 dynamic-card p-6">
                       <div className="flex items-center justify-between mb-5">
-                        <span className="text-[9px] font-mono tracking-widest text-accent-amber/90 uppercase bg-accent-amber/10 px-2.5 py-0.5 rounded-full border border-accent-amber/20">Activity Ledger</span>
+                        <span className="font-serif-luxury italic tracking-wide text-[#c5a880]/80 text-xs uppercase">03 / HISTORICAL LEDGER</span>
                       </div>
                       
                       {/* Calendar Navigation header */}
@@ -2732,12 +2731,7 @@ function App() {
 
       {/* Zen Mode Cinematic Sanctuary Overlay */}
       {isZenMode && (
-        <div className="fixed inset-0 z-50 bg-[#020408] flex flex-col items-center justify-center overflow-hidden transition-opacity duration-1000 animate-fade-in animate-hrv-pacer">
-          {/* Radial focal glow background pulse */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-accent-blue/5 via-accent-purple/5 to-accent-blue/5 blur-3xl opacity-30 animate-zen-breath" />
-          </div>
-
+        <div className="fixed inset-0 z-50 bg-[#0d0d0f] flex flex-col items-center justify-center overflow-hidden transition-opacity duration-1000 animate-fade-in">
           {/* HTML5 Canvas Ambient Particle Background */}
           <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0" />
 
@@ -2745,10 +2739,7 @@ function App() {
           <div className="relative z-10 flex flex-col items-center text-center space-y-8 select-none max-w-md px-6 animate-slide-in-up">
             {/* Cinematic countdown clock */}
             <div className="text-center">
-              <p
-                className="text-[11rem] md:text-[14rem] text-accent-blue font-mono tracking-tighter leading-none select-none"
-                style={{ filter: `drop-shadow(0 0 15px ${activeThemeVars.accentBlue}60)` }}
-              >
+              <p className="text-[12rem] md:text-[15rem] text-[#e1ded7] font-light font-mono tracking-tight leading-none select-none">
                 {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
               </p>
               <p className="text-xs text-slate-400 mt-3 uppercase tracking-wider font-semibold">
@@ -2761,10 +2752,7 @@ function App() {
               {(() => {
                 const activeTask = sessionTasks.find(t => t.id === activeTaskId)
                 return (
-                  <p
-                    className="text-lg font-bold text-slate-200 tracking-widest uppercase font-sans"
-                    style={{ filter: `drop-shadow(0 0 8px ${activeThemeVars.accentBlue}50)` }}
-                  >
+                  <p className="text-xs font-serif-luxury italic text-[#c5a880]/80 tracking-widest uppercase">
                     {activeTask ? activeTask.text : 'Radiant Silence'}
                   </p>
                 )
@@ -2805,9 +2793,9 @@ function App() {
       {showReflectionModal && pendingSessionData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-          <div className="relative w-full max-w-md border border-[#1b2333] bg-[#0c0f17] rounded-none p-6 animate-slide-in-up">
-            <div className="mb-4 pb-2 border-b border-white/5">
-              <h3 className="text-sm font-bold tracking-wider uppercase text-accent-amber font-mono">FLOW SESSION REFLECTION</h3>
+          <div className="relative w-full max-w-md border border-[#262930] bg-[#16181d] rounded-none p-6 animate-slide-in-up">
+            <div className="mb-4 pb-2 border-b border-[#262930]">
+              <h3 className="text-sm font-serif-luxury italic font-medium tracking-wider text-[#c5a880]">FLOW SESSION REFLECTION</h3>
               <p className="text-[10px] text-slate-500 font-mono mt-1">Telemetry validation required for interval log archiving</p>
             </div>
             
@@ -2819,13 +2807,13 @@ function App() {
                     <button
                       key={rating}
                       onClick={() => setAttentionRating(rating)}
-                      className={`flex-1 py-2 text-xs font-bold border transition-all rounded-none cursor-pointer ${attentionRating === rating ? 'bg-accent-blue/15 text-accent-blue border-accent-blue/50' : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/10'}`}
+                      className={`flex-1 py-2 text-xs font-bold border transition-all rounded-none cursor-pointer ${attentionRating === rating ? 'bg-[#c5a880]/15 text-[#c5a880] border-[#c5a880]/50' : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/10'}`}
                     >
                       {rating}
                     </button>
                   ))}
                 </div>
-                <div className="flex justify-between text-[9px] text-slate-555 mt-1 font-semibold">
+                <div className="flex justify-between text-[9px] text-[#5f6368] mt-1 font-semibold">
                   <span>Highly Distracted</span>
                   <span>Flow State</span>
                 </div>
@@ -2838,16 +2826,26 @@ function App() {
                     <button
                       key={rating}
                       onClick={() => setStabilityRating(rating)}
-                      className={`flex-1 py-2 text-xs font-bold border transition-all rounded-none cursor-pointer ${stabilityRating === rating ? 'bg-accent-purple/15 text-accent-purple border-accent-purple/50' : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/10'}`}
+                      className={`flex-1 py-2 text-xs font-bold border transition-all rounded-none cursor-pointer ${stabilityRating === rating ? 'bg-[#c5a880]/15 text-[#c5a880] border-[#c5a880]/50' : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/10'}`}
                     >
                       {rating}
                     </button>
                   ))}
                 </div>
-                <div className="flex justify-between text-[9px] text-slate-555 mt-1 font-semibold">
+                <div className="flex justify-between text-[9px] text-[#5f6368] mt-1 font-semibold">
                   <span>Erratic/Fragmented</span>
                   <span>Highly Resolute</span>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-350 uppercase tracking-wide mb-2 font-mono">3. Session Intention Summary</label>
+                <textarea
+                  value={localSessionNotes}
+                  onChange={e => setLocalSessionNotes(e.target.value)}
+                  placeholder="Capture the essence of this session in a single sentence..."
+                  className="w-full h-16 rounded-none border border-[#262930] bg-[#111215] px-3.5 py-2.5 text-xs text-text-primary outline-none focus:border-[#c5a880]/40 placeholder-slate-600 resize-none font-sans"
+                />
               </div>
 
               <button
@@ -2856,9 +2854,9 @@ function App() {
                   const data = pendingSessionData
                   setPendingSessionData(null)
                   completingRef.current = true
-                  await processSessionCompletion(data.elapsed, data.mode, data.timestamp, data.categoryId, attentionRating, stabilityRating)
+                  await processSessionCompletion(data.elapsed, data.mode, data.timestamp, data.categoryId, attentionRating, stabilityRating, localSessionNotes)
                 }}
-                className="w-full py-3 text-xs font-extrabold uppercase tracking-widest bg-accent-green text-slate-950 hover:bg-accent-green/90 transition-all rounded-none cursor-pointer"
+                className="w-full py-3 text-xs font-extrabold uppercase tracking-widest bg-[#c5a880] text-[#111215] hover:bg-[#c5a880]/90 transition-all rounded-none cursor-pointer"
               >
                 Log Workstation Telemetry
               </button>
