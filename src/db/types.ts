@@ -24,6 +24,7 @@ export interface HistoryEntry {
   type: 'study' | 'break'
   durationMinutes: number
   categoryId?: number
+  sessionNotes?: string
 }
 
 export interface DailyLog {
