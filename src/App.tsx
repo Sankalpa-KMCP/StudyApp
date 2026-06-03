@@ -135,6 +135,7 @@ function App() {
     shortBreakDurationMinutes,
     noiseType,
     binauralTarget,
+    initialEasinessFactor,
     isLoading: settingsLoading
   } = useSettings()
 
@@ -493,7 +494,7 @@ function App() {
     const { repetitionCount, easinessFactor, intervalDays } = calculateSM2(
       q,
       task.repetitionCount ?? 0,
-      task.easinessFactor ?? 2.5,
+      task.easinessFactor ?? initialEasinessFactor,
       task.intervalDays ?? 0
     )
 
@@ -1331,6 +1332,7 @@ function App() {
                   theme={theme}
                   cardOpacity={cardOpacity}
                   backdropBlur={backdropBlur}
+                  initialEasinessFactor={initialEasinessFactor}
                   soundEnabled={soundEnabled}
                   tactileEnabled={localTactileFeedback}
                   localEnforceLockout={localEnforceLockout}

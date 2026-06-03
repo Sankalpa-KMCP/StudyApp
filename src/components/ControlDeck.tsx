@@ -7,6 +7,7 @@ interface ControlDeckProps {
   theme: string
   cardOpacity: number
   backdropBlur: number
+  initialEasinessFactor: number
   soundEnabled: boolean
   tactileEnabled: boolean
   localEnforceLockout: boolean
@@ -43,6 +44,7 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   theme,
   cardOpacity,
   backdropBlur,
+  initialEasinessFactor,
   localEnforceLockout,
   setLocalEnforceLockout,
   exportStudyBackup,
@@ -126,6 +128,35 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
               <div className="mt-1.5 flex justify-between text-[9px] text-white/40 font-semibold uppercase">
                 <span>Sharp layout</span>
                 <span>Heavy blur</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Spaced Repetition Algorithm Settings */}
+        <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl">
+          <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-2">Algorithm Settings</h3>
+          <p className="text-[10px] text-white/40 leading-relaxed mb-4">
+            Adjust default SM-2 memory parameters for initial recall intervals.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-semibold text-white/80">Initial Easiness Factor (EF)</span>
+                <span className="text-xs font-bold text-accent-blue">{initialEasinessFactor.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="1.3"
+                max="3.5"
+                step="0.1"
+                value={initialEasinessFactor}
+                onChange={e => updateSetting('initialEasinessFactor', parseFloat(e.target.value))}
+                className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-white/5 outline-none"
+              />
+              <div className="mt-1.5 flex justify-between text-[9px] text-white/40 font-semibold uppercase">
+                <span>Harder (1.3)</span>
+                <span>Easier (3.5)</span>
               </div>
             </div>
           </div>

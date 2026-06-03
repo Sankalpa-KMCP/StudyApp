@@ -55,7 +55,7 @@ export interface AudioPreset {
   alphaWaves: number
 }
 
-export type SettingsKey = 'dailyGoalMinutes' | 'soundEnabled' | 'targetSessionsPerCycle' | 'longBreakDurationMinutes' | 'ambientTrack' | 'ambientVolume' | 'ambientVolume_rain' | 'ambientVolume_cafe' | 'ambientVolume_whiteNoise' | 'theme' | 'cardOpacity' | 'backdropBlur' | 'audio_presets' | 'shortBreakDurationMinutes' | 'ambient_alphaWaves' | 'tactile_feedback' | 'developer_font' | 'enforce_lockout' | 'noiseType' | 'binauralTarget'
+export type SettingsKey = 'dailyGoalMinutes' | 'soundEnabled' | 'targetSessionsPerCycle' | 'longBreakDurationMinutes' | 'ambientTrack' | 'ambientVolume' | 'ambientVolume_rain' | 'ambientVolume_cafe' | 'ambientVolume_whiteNoise' | 'theme' | 'cardOpacity' | 'backdropBlur' | 'audio_presets' | 'shortBreakDurationMinutes' | 'ambient_alphaWaves' | 'tactile_feedback' | 'developer_font' | 'enforce_lockout' | 'noiseType' | 'binauralTarget' | 'initialEasinessFactor'
 
 export type SettingsValue = number | boolean | string | AudioPreset[] | null
 

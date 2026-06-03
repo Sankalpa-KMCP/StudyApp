@@ -173,6 +173,7 @@ export function useSettings() {
   const tactile_feedback = (rows?.find(r => r.key === 'tactile_feedback')?.value as boolean) ?? false
   const developer_font = (rows?.find(r => r.key === 'developer_font')?.value as string) ?? 'JetBrains Mono'
   const enforce_lockout = (rows?.find(r => r.key === 'enforce_lockout')?.value as boolean) ?? false
+  const initialEasinessFactor = (rows?.find(r => r.key === 'initialEasinessFactor')?.value as number) ?? 2.5
 
   const updateSetting = async (key: SettingsKey, value: SettingsValue) => {
     await db.settings.put({ key, value })
@@ -199,6 +200,7 @@ export function useSettings() {
     enforce_lockout,
     noiseType,
     binauralTarget,
+    initialEasinessFactor,
     updateSetting,
     isLoading: rows === undefined,
   }
@@ -405,13 +407,15 @@ export function useFlashcards() {
   const flashcards = useLiveQuery<FlashcardItem[]>(() => db.flashcards.toArray())
 
   const addFlashcard = async (question: string, answer: string, categoryId?: number) => {
+    const settings = await db.settings.toArray()
+    const initialEF = (settings.find(r => r.key === 'initialEasinessFactor')?.value as number) ?? 2.5
     await db.flashcards.add({
       question,
       answer,
       categoryId,
       createdAt: Date.now(),
       repetitionCount: 0,
-      easinessFactor: 2.5,
+      easinessFactor: initialEF,
       intervalDays: 0,
     })
   }
@@ -423,10 +427,12 @@ export function useFlashcards() {
   const submitFlashcardGrade = async (id: number, q: number) => {
     const card: FlashcardItem | undefined = await db.flashcards.get(id)
     if (!card) return
+    const settings = await db.settings.toArray()
+    const initialEF = (settings.find(r => r.key === 'initialEasinessFactor')?.value as number) ?? 2.5
     const { repetitionCount, easinessFactor, intervalDays } = calculateSM2(
       q,
       card.repetitionCount ?? 0,
-      card.easinessFactor ?? 2.5,
+      card.easinessFactor ?? initialEF,
       card.intervalDays ?? 0
     )
 
