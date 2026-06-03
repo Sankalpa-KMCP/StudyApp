@@ -1483,10 +1483,10 @@ function App() {
 
   if (!isDataReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface">
+      <div className="flex min-h-screen items-center justify-center bg-[#06070a]">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-blue border-t-transparent" />
-          <p className="text-sm text-slate-400">Loading dashboard...</p>
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+          <p className="text-sm text-white/50 font-mono tracking-wider">LOADING ZENITH WORKSPACE...</p>
         </div>
       </div>
     )
@@ -1529,8 +1529,8 @@ function App() {
                 <Brain className="h-5 w-5 text-white stroke-[2.5]" />
               </div>
               <div>
-                <h1 className="text-base font-semibold tracking-tight text-white">Aether</h1>
-                <p className="text-[9px] text-white/60 font-bold tracking-widest font-mono uppercase">Study Sanctuary</p>
+                <h1 className="text-base font-semibold tracking-tight text-white">Zenith</h1>
+                <p className="text-[9px] text-white/60 font-bold tracking-widest font-mono uppercase">Cognitive Workstation</p>
               </div>
             </div>
 
@@ -1590,14 +1590,19 @@ function App() {
           <div className="hidden md:flex flex-col gap-3 border-t border-white/5 pt-4">
             <button
               onClick={() => setIsHotkeyHudOpen(true)}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-450 hover:bg-white/5 hover:text-text-primary transition-all cursor-pointer"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-white/50 hover:bg-white/5 hover:text-white transition-all cursor-pointer"
             >
               <Keyboard className="h-4 w-4" />
               <span>Keyboard Shortcuts</span>
             </button>
-            <p className="text-[10px] text-slate-555 font-semibold uppercase tracking-wider text-center">
-              Aether Engine v1.0
-            </p>
+            <div className="text-center space-y-1">
+              <p className="text-[9px] text-white/40 font-bold font-mono uppercase tracking-wider">
+                Zenith Engine v2.0
+              </p>
+              <p className="text-[8px] text-white/30 font-semibold font-mono uppercase tracking-widest">
+                Created by Sankalpa KMCP
+              </p>
+            </div>
           </div>
         </aside>
       )}
@@ -1608,9 +1613,12 @@ function App() {
         {/* Mobile top-bar */}
         {!isZenMode && (
           <header className="flex md:hidden items-center justify-between px-4 py-3 border-b border-white/5 bg-black/10">
-            <div className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-accent-blue" />
-              <span className="font-bold text-sm bg-gradient-to-r from-text-primary to-accent-blue bg-clip-text text-transparent">Aether</span>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <Brain className="h-4 w-4 text-white animate-pulse" />
+                <span className="font-bold text-sm text-white">Zenith</span>
+              </div>
+              <span className="text-[8px] text-white/40 font-mono tracking-widest font-bold">BY SANKALPA KMCP</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
