@@ -513,37 +513,37 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
             ) : (
               <div className="w-full flex flex-col items-center gap-6 animate-slide-in-up">
                 
-                {/* Simplified Card Panel */}
-                <div className="w-full aspect-[4/3] max-w-md">
+                {/* Simplified Card Panel with true 3D flip animation */}
+                <div className="w-full aspect-[4/3] max-w-md flashcard-wrapper">
                   <div
                     onClick={() => setIsFlipped(f => !f)}
-                    className="w-full h-full cursor-pointer select-none rounded-[28px] border border-white/8 bg-[#161620]/45 backdrop-blur-2xl hover:bg-white/5 hover:border-white/15 transition-all flex flex-col items-center justify-center p-6 text-center shadow-[0_24px_50px_rgba(0,0,0,0.35)] relative ios-active-scale"
+                    className={`flashcard-inner ${isFlipped ? 'flipped' : ''}`}
                   >
-                    {!isFlipped ? (
-                      <>
-                        <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase absolute top-5 select-none font-semibold">
-                          Question Prompt
-                        </span>
-                        <p className="text-base md:text-lg font-bold text-white px-4 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">
-                          {currentCard.question}
-                        </p>
-                        <span className="text-[9px] font-mono text-white/30 absolute bottom-5 uppercase select-none tracking-widest font-bold">
-                          Click to reveal answer
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-[9px] font-mono tracking-widest text-accent-blue uppercase absolute top-5 select-none font-bold">
-                          Definition Answer
-                        </span>
-                        <p className="text-base md:text-lg font-bold text-white px-4 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">
-                          {currentCard.answer}
-                        </p>
-                        <span className="text-[9px] font-mono text-white/30 absolute bottom-5 uppercase select-none tracking-widest font-bold">
-                          Click to show question
-                        </span>
-                      </>
-                    )}
+                    {/* Front Side */}
+                    <div className="flashcard-front bg-[#161620]/45 border border-white/8 hover:bg-white/5 hover:border-white/15 transition-all shadow-[0_24px_50px_rgba(0,0,0,0.35)] select-none">
+                      <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase absolute top-5 select-none font-semibold">
+                        Question Prompt
+                      </span>
+                      <p className="text-base md:text-lg font-bold text-white px-4 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">
+                        {currentCard.question}
+                      </p>
+                      <span className="text-[9px] font-mono text-white/30 absolute bottom-5 uppercase select-none tracking-widest font-bold">
+                        Click to reveal answer
+                      </span>
+                    </div>
+
+                    {/* Back Side */}
+                    <div className="flashcard-back bg-[#161620]/65 border border-accent-blue/20 hover:bg-white/5 hover:border-accent-blue/30 transition-all shadow-[0_24px_50px_rgba(0,0,0,0.35)] select-none">
+                      <span className="text-[9px] font-mono tracking-widest text-accent-blue uppercase absolute top-5 select-none font-bold">
+                        Definition Answer
+                      </span>
+                      <p className="text-base md:text-lg font-bold text-white px-4 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">
+                        {currentCard.answer}
+                      </p>
+                      <span className="text-[9px] font-mono text-white/30 absolute bottom-5 uppercase select-none tracking-widest font-bold">
+                        Click to show question
+                      </span>
+                    </div>
                   </div>
                 </div>
 
