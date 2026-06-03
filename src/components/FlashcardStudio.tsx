@@ -22,6 +22,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
   submitFlashcardGrade
 }) => {
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<'all' | number>('all')
+  const [activeSpacingFilter, setActiveSpacingFilter] = useState<'all' | 'due' | 'new' | 'completed'>('all')
   const [newQuestion, setNewQuestion] = useState('')
   const [newAnswer, setNewAnswer] = useState('')
   const [newCategoryId, setNewCategoryId] = useState<number | undefined>(undefined)
@@ -47,9 +48,18 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
 
   // Filtered flashcards list
   const filteredCards = useMemo(() => {
-    if (activeCategoryFilter === 'all') return flashcards
-    return flashcards.filter(c => c.categoryId === activeCategoryFilter)
-  }, [flashcards, activeCategoryFilter])
+    return flashcards.filter(c => {
+      const matchesCategory = activeCategoryFilter === 'all' || c.categoryId === activeCategoryFilter
+      if (!matchesCategory) return false
+
+      if (activeSpacingFilter === 'all') return true
+      if (activeSpacingFilter === 'new') return c.latestGrade === undefined
+      if (activeSpacingFilter === 'due') return c.latestGrade !== undefined && (!c.nextReviewDate || c.nextReviewDate <= todayStr)
+      if (activeSpacingFilter === 'completed') return c.latestGrade !== undefined && c.nextReviewDate && c.nextReviewDate > todayStr
+
+      return true
+    })
+  }, [flashcards, activeCategoryFilter, activeSpacingFilter, todayStr])
 
   // Count metrics
   const stats = useMemo(() => {
@@ -344,7 +354,39 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
 
         {/* Right Cards List Grid */}
         <div className="lg:col-span-8 flex flex-col min-h-[450px] lg:h-[600px] dynamic-card p-5">
-          <h3 className="text-sm font-semibold mb-4 text-white">Flashcards Registry</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 select-none">
+            <h3 className="text-sm font-semibold text-white">Flashcards Registry</h3>
+            
+            {/* Spacing Status Filter Switches */}
+            <div className="flex bg-black/35 border border-white/5 p-1 rounded-xl">
+              {(['all', 'new', 'due', 'completed'] as const).map(status => {
+                const count = flashcards.filter(c => {
+                  const matchesCategory = activeCategoryFilter === 'all' || c.categoryId === activeCategoryFilter
+                  if (!matchesCategory) return false
+                  if (status === 'all') return true
+                  if (status === 'new') return c.latestGrade === undefined
+                  if (status === 'due') return c.latestGrade !== undefined && (!c.nextReviewDate || c.nextReviewDate <= todayStr)
+                  if (status === 'completed') return c.latestGrade !== undefined && c.nextReviewDate && c.nextReviewDate > todayStr
+                  return true
+                }).length
+
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => setActiveSpacingFilter(status)}
+                    className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                      activeSpacingFilter === status
+                        ? 'bg-white/10 text-white shadow-sm'
+                        : 'text-white/40 hover:text-white'
+                    }`}
+                  >
+                    {status} ({count})
+                  </button>
+                )
+              })}
+            </div>
+          </div>
           
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3">
             {filteredCards.length === 0 ? (
