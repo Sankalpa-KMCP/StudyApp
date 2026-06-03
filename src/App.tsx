@@ -286,7 +286,7 @@ function App() {
   const [localVolumeRain, setLocalVolumeRain] = useState(0.5)
   const [localVolumeCafe, setLocalVolumeCafe] = useState(0.5)
   const [localVolumeWhiteNoise, setLocalVolumeWhiteNoise] = useState(0.5)
-  const [localAlphaWaves, setLocalAlphaWaves] = useState(false)
+  const [localAlphaWaves, setLocalAlphaWaves] = useState(0.0)
 
   // Zen Mode, Active View Router & Backups Drag/Drop
   const [isZenMode, setIsZenMode] = useState(false)
@@ -648,7 +648,7 @@ function App() {
       const volRain = volRainRef.current
       const volCafe = volCafeRef.current
       const volWhiteNoise = volWhiteNoiseRef.current
-      const alphaWaves = alphaWavesRef.current ? 0.35 : 0
+      const alphaWaves = alphaWavesRef.current
       const aggregateVol = volRain + volCafe + volWhiteNoise + alphaWaves
 
       const isMuted = aggregateVol <= 0.01
@@ -1198,7 +1198,7 @@ function App() {
         { id: 'rain', vol: localVolumeRain },
         { id: 'cafe', vol: localVolumeCafe },
         { id: 'whiteNoise', vol: localVolumeWhiteNoise },
-        { id: 'alphaWaves', vol: localAlphaWaves ? 0.35 : 0 }
+        { id: 'alphaWaves', vol: localAlphaWaves }
       ]
 
       const anyActive = isStudyActive && tracks.some(t => t.vol > 0)
@@ -1420,7 +1420,7 @@ function App() {
       { key: 'ambientVolume_rain', value: 0.5 },
       { key: 'ambientVolume_cafe', value: 0.5 },
       { key: 'ambientVolume_whiteNoise', value: 0.5 },
-      { key: 'ambient_alphaWaves', value: false },
+      { key: 'ambient_alphaWaves', value: 0.0 },
     ])
     await db.categories.bulkAdd([
       { name: 'General', color: '#64748B' },
@@ -1436,7 +1436,7 @@ function App() {
     setLocalVolumeRain(0.5)
     setLocalVolumeCafe(0.5)
     setLocalVolumeWhiteNoise(0.5)
-    setLocalAlphaWaves(false)
+    setLocalAlphaWaves(0)
     setActiveTaskId(null)
     window.location.reload()
   }
@@ -1697,6 +1697,7 @@ function App() {
                             { id: 'ambientVolume_rain', label: 'Rain', icon: CloudRain, val: localVolumeRain, colorClass: 'accent-accent-blue', setVal: setLocalVolumeRain, colorName: 'blue' },
                             { id: 'ambientVolume_cafe', label: 'Cafe Ambiance', icon: Coffee, val: localVolumeCafe, colorClass: 'accent-accent-amber', setVal: setLocalVolumeCafe, colorName: 'amber' },
                             { id: 'ambientVolume_whiteNoise', label: 'White Noise', icon: Radio, val: localVolumeWhiteNoise, colorClass: 'accent-accent-purple', setVal: setLocalVolumeWhiteNoise, colorName: 'purple' },
+                            { id: 'ambient_alphaWaves', label: 'Alpha Waves', icon: Brain, val: localAlphaWaves, colorClass: 'accent-accent-purple', setVal: setLocalAlphaWaves, colorName: 'purple' },
                           ].map(ch => {
                             const Icon = ch.icon
                             return (
