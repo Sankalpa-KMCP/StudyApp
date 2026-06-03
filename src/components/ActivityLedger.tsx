@@ -273,18 +273,41 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
 
           {/* Text reflection input */}
           <div className="mb-5">
-            <p className="text-[10px] font-semibold text-white/55 uppercase tracking-wider mb-2.5">Reflection log</p>
+            <div className="flex justify-between items-center mb-2.5">
+              <p className="text-[10px] font-semibold text-white/55 uppercase tracking-wider">Reflection log</p>
+              <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded-full ${
+                draftNotes.length > 450
+                  ? 'bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse'
+                  : draftNotes.length > 350
+                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  : 'text-white/40'
+              }`}>
+                {draftNotes.length} / 500
+              </span>
+            </div>
             <textarea
               value={draftNotes}
               onChange={e => {
-                const next = e.target.value
+                const next = e.target.value.slice(0, 500)
                 setDraftNotes(next)
                 handleNotesChange(next)
               }}
+              maxLength={500}
               placeholder="How did you perform? Note down any wins, hurdles, or focal points for today..."
               rows={3}
-              className="w-full resize-none rounded-2xl border border-white/8 bg-white/4 focus:bg-white/8 focus:border-accent-blue/40 px-4 py-3 text-xs text-text-primary placeholder:text-white/35 outline-none transition-all duration-200"
+              className={`w-full resize-none rounded-2xl border bg-white/4 focus:bg-white/8 px-4 py-3 text-xs text-text-primary placeholder:text-white/35 outline-none transition-all duration-200 ${
+                draftNotes.length >= 500
+                  ? 'border-red-500/40 focus:border-red-500/60'
+                  : draftNotes.length > 450
+                  ? 'border-amber-500/40 focus:border-amber-500/60'
+                  : 'border-white/8 focus:border-accent-blue/40'
+              }`}
             />
+            {draftNotes.length >= 500 && (
+              <p className="text-[9px] text-red-400 font-semibold mt-1.5 leading-normal">
+                ⚠️ Character limit reached (500 maximum). Please condense your thoughts.
+              </p>
+            )}
           </div>
 
           {/* Visual 24h study timeline */}

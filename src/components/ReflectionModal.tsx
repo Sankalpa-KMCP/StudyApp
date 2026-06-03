@@ -74,12 +74,26 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wide mb-2">3. Session Intention Summary</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wide">3. Session Intention Summary</label>
+              <span className={`text-[8px] font-bold font-mono px-2 py-0.5 rounded-full ${
+                localSessionNotes.length > 450
+                  ? 'bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse'
+                  : 'text-white/40'
+              }`}>
+                {localSessionNotes.length} / 500
+              </span>
+            </div>
             <textarea
               value={localSessionNotes}
-              onChange={e => setLocalSessionNotes(e.target.value)}
+              onChange={e => setLocalSessionNotes(e.target.value.slice(0, 500))}
+              maxLength={500}
               placeholder="Capture the essence of this session in a single sentence..."
-              className="w-full h-16 rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-xs text-white outline-none focus:bg-white/8 focus:border-accent-blue/30 placeholder-white/25 resize-none font-sans transition-all duration-300"
+              className={`w-full h-16 rounded-2xl border bg-white/4 px-4 py-3 text-xs text-white outline-none focus:bg-white/8 placeholder-white/25 resize-none font-sans transition-all duration-300 ${
+                localSessionNotes.length >= 500
+                  ? 'border-red-500/40 focus:border-red-500/60'
+                  : 'border-white/8 focus:border-accent-blue/30'
+              }`}
             />
           </div>
 
