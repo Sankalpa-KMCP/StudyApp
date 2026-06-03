@@ -2790,59 +2790,59 @@ function App() {
       )}
       {showReflectionModal && pendingSessionData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-          <div className="relative w-full max-w-md border border-[#262930] bg-[#16181d] rounded-none p-6 animate-slide-in-up">
-            <div className="mb-4 pb-2 border-b border-[#262930]">
-              <h3 className="text-sm font-serif-luxury italic font-medium tracking-wider text-[#c5a880]">FLOW SESSION REFLECTION</h3>
-              <p className="text-[10px] text-slate-500 font-mono mt-1">Telemetry validation required for interval log archiving</p>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+          <div className="relative w-full max-w-md border border-white/10 bg-white/5 backdrop-blur-2xl rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)] animate-slide-in-up">
+            <div className="mb-4 pb-2 border-b border-white/10">
+              <h3 className="text-sm font-serif-luxury italic font-medium tracking-wider text-white">FLOW SESSION REFLECTION</h3>
+              <p className="text-[10px] text-white/50 font-mono mt-1">Telemetry validation required for interval log archiving</p>
             </div>
             
             <div className="space-y-6">
               <div>
-                <label className="block text-xs font-bold text-slate-350 uppercase tracking-wide mb-2.5 font-mono">1. Internal Attention Focus</label>
+                <label className="block text-xs font-semibold text-white/80 uppercase tracking-wide mb-2.5 font-mono">1. Internal Attention Focus</label>
                 <div className="flex gap-2.5">
                   {[1, 2, 3, 4, 5].map(rating => (
                     <button
                       key={rating}
                       onClick={() => setAttentionRating(rating)}
-                      className={`flex-1 py-2 text-xs font-bold border transition-all rounded-none cursor-pointer ${attentionRating === rating ? 'bg-[#c5a880]/15 text-[#c5a880] border-[#c5a880]/50' : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/10'}`}
+                      className={`flex-1 py-2 text-xs font-semibold border transition-all duration-300 ease-out rounded-xl cursor-pointer ${attentionRating === rating ? 'bg-white/15 text-white border-white/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' : 'bg-white/5 text-white/60 border-white/5 hover:border-white/10 hover:text-white'}`}
                     >
                       {rating}
                     </button>
                   ))}
                 </div>
-                <div className="flex justify-between text-[9px] text-[#5f6368] mt-1 font-semibold">
+                <div className="flex justify-between text-[9px] text-white/40 mt-1 font-semibold">
                   <span>Highly Distracted</span>
                   <span>Flow State</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-350 uppercase tracking-wide mb-2.5 font-mono">2. Context-Switching Stability</label>
+                <label className="block text-xs font-semibold text-white/80 uppercase tracking-wide mb-2.5 font-mono">2. Context-Switching Stability</label>
                 <div className="flex gap-2.5">
                   {[1, 2, 3, 4, 5].map(rating => (
                     <button
                       key={rating}
                       onClick={() => setStabilityRating(rating)}
-                      className={`flex-1 py-2 text-xs font-bold border transition-all rounded-none cursor-pointer ${stabilityRating === rating ? 'bg-[#c5a880]/15 text-[#c5a880] border-[#c5a880]/50' : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/10'}`}
+                      className={`flex-1 py-2 text-xs font-semibold border transition-all duration-300 ease-out rounded-xl cursor-pointer ${stabilityRating === rating ? 'bg-white/15 text-white border-white/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' : 'bg-white/5 text-white/60 border-white/5 hover:border-white/10 hover:text-white'}`}
                     >
                       {rating}
                     </button>
                   ))}
                 </div>
-                <div className="flex justify-between text-[9px] text-[#5f6368] mt-1 font-semibold">
+                <div className="flex justify-between text-[9px] text-white/40 mt-1 font-semibold">
                   <span>Erratic/Fragmented</span>
                   <span>Highly Resolute</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-350 uppercase tracking-wide mb-2 font-mono">3. Session Intention Summary</label>
+                <label className="block text-xs font-semibold text-white/80 uppercase tracking-wide mb-2 font-mono">3. Session Intention Summary</label>
                 <textarea
                   value={localSessionNotes}
                   onChange={e => setLocalSessionNotes(e.target.value)}
                   placeholder="Capture the essence of this session in a single sentence..."
-                  className="w-full h-16 rounded-none border border-[#262930] bg-[#111215] px-3.5 py-2.5 text-xs text-text-primary outline-none focus:border-[#c5a880]/40 placeholder-slate-600 resize-none font-sans"
+                  className="w-full h-16 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-xs text-white outline-none focus:border-white/20 placeholder-white/30 resize-none font-sans transition-all duration-300"
                 />
               </div>
 
@@ -2854,7 +2854,7 @@ function App() {
                   completingRef.current = true
                   await processSessionCompletion(data.elapsed, data.mode, data.timestamp, data.categoryId, attentionRating, stabilityRating, localSessionNotes)
                 }}
-                className="w-full py-3 text-xs font-extrabold uppercase tracking-widest bg-[#c5a880] text-[#111215] hover:bg-[#c5a880]/90 transition-all rounded-none cursor-pointer"
+                className="w-full py-3 text-xs font-bold uppercase tracking-widest bg-white/15 text-white border border-white/20 hover:bg-white/20 transition-all duration-300 ease-out rounded-xl cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
               >
                 Log Workstation Telemetry
               </button>
@@ -2865,9 +2865,9 @@ function App() {
 
       {isHotkeyHudOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setIsHotkeyHudOpen(false)}>
-          <div className="absolute inset-0 bg-black/60 " />
-          <div className="relative w-full max-w-sm rounded-sm border border-[#1b2333] bg-[#0c0f17] p-5" onClick={e => e.stopPropagation()}>
-            <div className="mb-5 flex items-center justify-between">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 backdrop-blur-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)]" onClick={e => e.stopPropagation()}>
+            <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-lg font-semibold">Keyboard Shortcuts</h3>
               <button onClick={() => setIsHotkeyHudOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-surface hover:text-text-primary">
                 <X className="h-4 w-4" />
