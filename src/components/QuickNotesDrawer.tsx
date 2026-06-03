@@ -26,6 +26,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   deleteNote
 }) => {
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
   const [activeCategoryId, setActiveCategoryId] = useState<'all' | number>('all')
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null)
   
@@ -133,15 +134,6 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
     await deleteNote(id)
   }
 
-  const filteredNotes = useMemo(() => {
-    return notes.filter(n => {
-      const matchesSearch = n.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            n.content.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesCategory = activeCategoryId === 'all' || n.categoryId === activeCategoryId
-      return matchesSearch && matchesCategory
-    })
-  }, [notes, searchQuery, activeCategoryId])
-
   const categoriesMap = useMemo(() => {
     const map = new Map<number, CategoryItem>()
     categories.forEach(c => {
@@ -149,6 +141,36 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
     })
     return map
   }, [categories])
+
+  const filteredNotes = useMemo(() => {
+    return notes.filter(n => {
+      const cat = n.categoryId !== undefined ? categoriesMap.get(n.categoryId) : undefined
+      const catName = cat ? cat.name.toLowerCase() : ''
+      
+      const tagsInQuery = searchQuery.match(/#(\w+)/g)
+      let matchesSearch = true
+      
+      if (tagsInQuery) {
+        const tagNames = tagsInQuery.map(t => t.substring(1).toLowerCase())
+        const matchesTags = tagNames.every(tn => catName.replace(/\s+/g, '').includes(tn))
+        
+        const cleanQuery = searchQuery.replace(/#\w+/g, '').trim().toLowerCase()
+        const matchesText = cleanQuery === '' || 
+                            n.title.toLowerCase().includes(cleanQuery) || 
+                            n.content.toLowerCase().includes(cleanQuery)
+        
+        matchesSearch = matchesTags && matchesText
+      } else {
+        const q = searchQuery.toLowerCase()
+        matchesSearch = n.title.toLowerCase().includes(q) || 
+                        n.content.toLowerCase().includes(q) ||
+                        catName.includes(q)
+      }
+      
+      const matchesCategory = activeCategoryId === 'all' || n.categoryId === activeCategoryId
+      return matchesSearch && matchesCategory
+    })
+  }, [notes, searchQuery, activeCategoryId, categoriesMap])
 
   const notePaletteColors = [
     '#06b6d4', // cyan
@@ -335,7 +357,9 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search scratch notes..."
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+                placeholder="Search notes or use #tag..."
                 className="bg-transparent text-xs text-white outline-none w-full placeholder-white/20"
               />
               {searchQuery && (
@@ -344,6 +368,42 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
                 </button>
               )}
             </div>
+
+            {/* Quick Notes Search by Category Tag Suggestions */}
+            {searchFocused && categories.length > 0 && (
+              <div className="flex flex-wrap gap-1 bg-black/40 border border-white/5 p-2 rounded-xl animate-fade-in">
+                <span className="text-[8px] font-mono text-slate-450 w-full mb-0.5">Quick tag search tags:</span>
+                {categories.map(c => {
+                  const tagText = `#${c.name.replace(/\s+/g, '')}`
+                  const isActive = searchQuery.includes(tagText)
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        // Prevent input from losing focus
+                        e.preventDefault()
+                      }}
+                      onClick={() => {
+                        if (isActive) {
+                          setSearchQuery(prev => prev.replace(tagText, '').replace(/\s+/g, ' ').trim())
+                        } else {
+                          setSearchQuery(prev => `${prev} ${tagText}`.replace(/\s+/g, ' ').trim())
+                        }
+                      }}
+                      className={`text-[9px] font-mono px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                        isActive 
+                          ? 'text-white border-white/20' 
+                          : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                      }`}
+                      style={{ borderLeftColor: c.color, borderLeftWidth: '3px' }}
+                    >
+                      {tagText}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Category selection */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
