@@ -1736,6 +1736,24 @@ function App() {
                         </div>
                       </div>
                     </div>
+
+                    {/* HRV Coherence Pacer Card */}
+                    <div className="rounded-2xl border border-white/5 dynamic-card p-5 animate-hrv-pacer">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[9px] font-mono tracking-widest text-accent-purple/90 uppercase bg-accent-purple/10 px-2.5 py-0.5 rounded-full border border-accent-purple/20">HRV Resonance</span>
+                        <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">8s Breathe</span>
+                      </div>
+                      <div className="flex items-center gap-4 bg-[#0c0f17]/40 border border-white/5 px-4 py-3 rounded-xl">
+                        <div className="relative flex h-10 w-10 items-center justify-center shrink-0">
+                          <div className="absolute inset-0 rounded-full border border-accent-purple/30 animate-zen-breath" />
+                          <div className="h-4 w-4 rounded-full bg-accent-purple animate-pulse" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-350 select-none">HRV Coherence Pacer</p>
+                          <p className="text-[10px] text-slate-505 leading-normal mt-0.5">Align respiration with the expanding shadow ring (4s inhale / 4s exhale) to optimize autonomic stability.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Right block (Task Objectives) - Grid 7 */}
