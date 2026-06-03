@@ -1496,12 +1496,13 @@ function App() {
         setStabilityRating={setStabilityRating}
         localSessionNotes={localSessionNotes}
         setLocalSessionNotes={setLocalSessionNotes}
-        onSubmitReflection={async (att, stab, notes) => {
+        onSubmitReflection={async (att, stab, notes, customElapsed) => {
           setShowReflectionModal(false)
           const data = pendingSessionData
           setPendingSessionData(null)
           completingRef.current = true
-          await processSessionCompletion(data!.elapsed, data!.mode, data!.timestamp, data!.categoryId, att, stab, notes)
+          const finalElapsed = customElapsed !== undefined ? customElapsed : data!.elapsed
+          await processSessionCompletion(finalElapsed, data!.mode, data!.timestamp, data!.categoryId, att, stab, notes)
         }}
       />
 

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 
 interface ReflectionModalProps {
   showReflectionModal: boolean
@@ -9,7 +9,7 @@ interface ReflectionModalProps {
   setStabilityRating: (rating: number) => void
   localSessionNotes: string
   setLocalSessionNotes: (notes: string) => void
-  onSubmitReflection: (attention: number, stability: number, notes: string) => void
+  onSubmitReflection: (attention: number, stability: number, notes: string, customElapsed?: number) => void
 }
 
 export const ReflectionModal: React.FC<ReflectionModalProps> = ({
@@ -23,7 +23,16 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
   setLocalSessionNotes,
   onSubmitReflection
 }) => {
+  const [adjustedElapsed, setAdjustedElapsed] = useState<number | null>(null)
+
+  useEffect(() => {
+    setAdjustedElapsed(null)
+  }, [pendingSessionData])
+
   if (!showReflectionModal || !pendingSessionData) return null
+
+  const elapsed = adjustedElapsed !== null ? adjustedElapsed : pendingSessionData.elapsed
+  const durationMinutes = Math.floor(elapsed / 60) || 1
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in">
@@ -35,6 +44,24 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
         </div>
         
         <div className="space-y-6">
+          {durationMinutes > 240 && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs leading-relaxed text-accent-amber animate-fade-in flex flex-col gap-2">
+              <span className="font-bold flex items-center gap-1">
+                ⚠️ Duration Threshold Alert
+              </span>
+              <span>
+                This session registered as <strong>{durationMinutes} minutes</strong> (exceeding 4 hours). To avoid logging an anomaly, you can validate it or reset to a standard 25-minute cycle.
+              </span>
+              <button
+                type="button"
+                onClick={() => setAdjustedElapsed(25 * 60)}
+                className="px-3.5 py-1.5 rounded-xl bg-accent-amber/20 hover:bg-accent-amber/30 text-white text-[10px] font-bold text-center self-start transition-all cursor-pointer"
+              >
+                Adjust to 25 mins
+              </button>
+            </div>
+          )}
+
           <div>
             <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wide mb-2.5">1. Internal Attention Focus</label>
             <div className="flex gap-2">
@@ -98,7 +125,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
           </div>
 
           <button
-            onClick={() => onSubmitReflection(attentionRating, stabilityRating, localSessionNotes)}
+            onClick={() => onSubmitReflection(attentionRating, stabilityRating, localSessionNotes, elapsed)}
             className="w-full py-3.5 text-xs font-semibold tracking-wide bg-accent-blue text-white hover:bg-accent-blue/90 border border-white/10 transition-all duration-200 rounded-full cursor-pointer shadow-md ios-active-scale"
           >
             Log Workstation Telemetry
