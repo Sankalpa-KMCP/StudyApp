@@ -74,9 +74,30 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
     setTaskIsStudySubject(false)
   }
 
-  const handleAddSubtask = async (task: TaskItem, text: string) => {}
-  const handleToggleSubtask = async (task: TaskItem, subId: string) => {}
-  const handleDeleteSubtask = async (task: TaskItem, subId: string) => {}
+  const handleAddSubtask = async (task: TaskItem, text: string) => {
+    if (task.id === undefined) return
+    const sub: SubTask = {
+      id: Date.now().toString(),
+      text,
+      completed: false
+    }
+    const subtasks = [...(task.subtasks ?? []), sub]
+    await db.tasks.update(task.id, { subtasks })
+  }
+
+  const handleToggleSubtask = async (task: TaskItem, subId: string) => {
+    if (task.id === undefined) return
+    const subtasks = (task.subtasks ?? []).map(s => 
+      s.id === subId ? { ...s, completed: !s.completed } : s
+    )
+    await db.tasks.update(task.id, { subtasks })
+  }
+
+  const handleDeleteSubtask = async (task: TaskItem, subId: string) => {
+    if (task.id === undefined) return
+    const subtasks = (task.subtasks ?? []).filter(s => s.id !== subId)
+    await db.tasks.update(task.id, { subtasks })
+  }
 
   const activeTask = useMemo(() => {
     if (activeTaskId === null) return null
