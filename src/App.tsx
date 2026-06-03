@@ -306,6 +306,7 @@ function App() {
   const volWhiteNoiseRef = useRef(localVolumeWhiteNoise)
   const alphaWavesRef = useRef(localAlphaWaves)
   const waveAmplitudeRef = useRef(0)
+  const masterGainRef = useRef<GainNode | null>(null)
 
   volRainRef.current = localVolumeRain
   volCafeRef.current = localVolumeCafe
@@ -644,12 +645,9 @@ function App() {
     const animate = () => {
       ctx.clearRect(0, 0, width, height)
 
-      // Query volume refs dynamically
-      const volRain = volRainRef.current
-      const volCafe = volCafeRef.current
-      const volWhiteNoise = volWhiteNoiseRef.current
-      const alphaWaves = alphaWavesRef.current
-      const aggregateVol = volRain + volCafe + volWhiteNoise + alphaWaves
+      // Query volume master gain dynamically
+      const masterGain = masterGainRef.current
+      const aggregateVol = masterGain ? masterGain.gain.value : (volRainRef.current + volCafeRef.current + volWhiteNoiseRef.current + alphaWavesRef.current)
 
       const isMuted = aggregateVol <= 0.01
 
@@ -664,6 +662,7 @@ function App() {
       const rRgb = hexToRgb(accentBlueColor) || { r: 56, g: 189, b: 248 }
       const pRgb = hexToRgb(accentPurpleColor) || { r: 129, g: 140, b: 248 }
 
+      // 1. Isolate coordinate calculation loop
       particles.forEach(p => {
         if (isMuted) {
           // Collapse to static central cluster when muted
@@ -682,8 +681,10 @@ function App() {
           if (p.y < 0) { p.y = 0; p.originalVy *= -1 }
           else if (p.y > height) { p.y = height; p.originalVy *= -1 }
         }
+      })
 
-        // Draw node
+      // 2. Draw particle nodes
+      particles.forEach(p => {
         ctx.beginPath()
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
         ctx.fillStyle = isMuted
@@ -704,7 +705,7 @@ function App() {
 
             if (dist < maxDistance) {
               const alpha = (1 - dist / maxDistance) * maxLineAlpha
-              ctx.beginPath()
+               ctx.beginPath()
               ctx.moveTo(p1.x, p1.y)
               ctx.lineTo(p2.x, p2.y)
               ctx.strokeStyle = `rgba(${rRgb.r}, ${rRgb.g}, ${rRgb.b}, ${alpha})`
@@ -1219,12 +1220,20 @@ function App() {
 
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+        const masterGain = audioCtxRef.current.createGain()
+        masterGain.connect(audioCtxRef.current.destination)
+        masterGainRef.current = masterGain
       }
 
       const ctx = audioCtxRef.current
 
       if (ctx.state === 'suspended') {
         ctx.resume()
+      }
+
+      const aggregateVol = tracks.reduce((sum, t) => sum + t.vol, 0)
+      if (masterGainRef.current) {
+        masterGainRef.current.gain.setValueAtTime(anyActive ? Math.min(1.0, aggregateVol) : 0, ctx.currentTime)
       }
 
       tracks.forEach(t => {
@@ -1235,7 +1244,7 @@ function App() {
           if (!ch.source) {
             const gainNode = ctx.createGain()
             gainNode.gain.setValueAtTime(t.vol, ctx.currentTime)
-            gainNode.connect(ctx.destination)
+            gainNode.connect(masterGainRef.current || ctx.destination)
 
             const result = createAmbientTrack(ctx, t.id === 'whiteNoise' ? 'white-noise' : t.id)
             if (result) {
