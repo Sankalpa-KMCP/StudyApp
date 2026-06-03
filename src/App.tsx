@@ -43,43 +43,44 @@ const THEME_PROFILES: Record<string, {
   accentGreen: string
   accentAmber: string
 }> = {
-  'midnight-slate': {
-    surface: '#08090d',
-    surfaceCard: '#12141c',
-    surfaceCardRgb: '18, 20, 28',
-    accentBlue: '#c5a880',
-    accentPurple: '#dcd6cd',
-    accentGreen: '#8a7d6d',
-    accentAmber: '#e5dec9',
+  'midnight-oled': {
+    surface: '#030305',
+    surfaceCard: '#090a0f',
+    surfaceCardRgb: '9, 10, 15',
+    accentBlue: '#06b6d4',
+    accentPurple: '#3b82f6',
+    accentGreen: '#10b981',
+    accentAmber: '#f59e0b',
   },
   'cyber-amethyst': {
-    surface: '#0a080d',
-    surfaceCard: '#15121c',
-    surfaceCardRgb: '21, 18, 28',
-    accentBlue: '#a855f7',
-    accentPurple: '#c084fc',
-    accentGreen: '#701a75',
-    accentAmber: '#ebd5ff',
+    surface: '#07050e',
+    surfaceCard: '#100a1d',
+    surfaceCardRgb: '16, 10, 29',
+    accentBlue: '#d946ef',
+    accentPurple: '#8b5cf6',
+    accentGreen: '#06b6d4',
+    accentAmber: '#f43f5e',
   },
-  'deep-forest': {
-    surface: '#080d09',
-    surfaceCard: '#121c14',
-    surfaceCardRgb: '18, 28, 20',
-    accentBlue: '#22c55e',
-    accentPurple: '#4ade80',
-    accentGreen: '#14532d',
-    accentAmber: '#bbf7d0',
+  'aurora-nord': {
+    surface: '#040810',
+    surfaceCard: '#0a101f',
+    surfaceCardRgb: '10, 16, 31',
+    accentBlue: '#14b8a6',
+    accentPurple: '#10b981',
+    accentGreen: '#0ea5e9',
+    accentAmber: '#8b5cf6',
   },
-  'ocean-trench': {
-    surface: '#080b0d',
-    surfaceCard: '#12181c',
-    surfaceCardRgb: '18, 24, 28',
-    accentBlue: '#0ea5e9',
-    accentPurple: '#38bdf8',
-    accentGreen: '#0c4a6e',
-    accentAmber: '#bae6fd',
+  'crimson-nebula': {
+    surface: '#080305',
+    surfaceCard: '#14080e',
+    surfaceCardRgb: '20, 8, 14',
+    accentBlue: '#ef4444',
+    accentPurple: '#f43f5e',
+    accentGreen: '#10b981',
+    accentAmber: '#f59e0b',
   }
 }
+
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
@@ -1068,7 +1069,7 @@ function App() {
     )
   }
 
-  const activeThemeVars = THEME_PROFILES[theme] || THEME_PROFILES['midnight-slate']
+  const activeThemeVars = THEME_PROFILES[theme] || THEME_PROFILES['midnight-oled']
 
   const inlineStyles = {
     '--color-surface': activeThemeVars.surface,
