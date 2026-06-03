@@ -1,13 +1,12 @@
-import React from 'react'
-import { Brain, Clock, BarChart3, Calendar, Settings, Keyboard, Flame } from 'lucide-react'
+import { Brain, Clock, BarChart3, Calendar, Settings, Keyboard, Flame, Layers } from 'lucide-react'
 
 interface SidebarProps {
   isZenMode: boolean
   currentStreak: number
   level: number
   xpProgressPercent: number
-  activeTab: 'focus' | 'analytics' | 'journal' | 'settings'
-  setActiveTab: (tab: 'focus' | 'analytics' | 'journal' | 'settings') => void
+  activeTab: 'focus' | 'analytics' | 'journal' | 'cards' | 'settings'
+  setActiveTab: (tab: 'focus' | 'analytics' | 'journal' | 'cards' | 'settings') => void
   setIsHotkeyHudOpen: (open: boolean) => void
   isTimerActive: boolean
   timerMode: 'study' | 'break'
@@ -72,6 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <nav className="flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none">
           {[
             { id: 'focus', label: 'Focus Sanctuary', icon: Clock },
+            { id: 'cards', label: 'Recall Deck', icon: Layers },
             { id: 'analytics', label: 'Analytics Studio', icon: BarChart3 },
             { id: 'journal', label: 'Activity Ledger', icon: Calendar },
             { id: 'settings', label: 'Control Deck', icon: Settings },

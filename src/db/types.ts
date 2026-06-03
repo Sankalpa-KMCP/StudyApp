@@ -44,4 +44,17 @@ export interface SettingsRow {
   value: any
 }
 
+export interface FlashcardItem {
+  id?: number
+  question: string
+  answer: string
+  categoryId?: number
+  createdAt: number
+  repetitionCount: number
+  easinessFactor: number
+  intervalDays: number
+  nextReviewDate?: string
+  latestGrade?: number
+}
+
 
