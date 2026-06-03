@@ -16,40 +16,40 @@ const THEME_PROFILES: Record<string, {
   accentAmber: string
 }> = {
   'midnight-slate': {
-    surface: '#111215',
-    surfaceCard: '#16181d',
-    surfaceCardRgb: '22, 24, 29',
+    surface: '#08090d',
+    surfaceCard: '#12141c',
+    surfaceCardRgb: '18, 20, 28',
     accentBlue: '#c5a880',
-    accentPurple: '#d5bea1',
-    accentGreen: '#a38c6b',
-    accentAmber: '#e0d3c1',
+    accentPurple: '#dcd6cd',
+    accentGreen: '#8a7d6d',
+    accentAmber: '#e5dec9',
   },
   'cyber-amethyst': {
-    surface: '#121115',
-    surfaceCard: '#18161e',
-    surfaceCardRgb: '24, 22, 30',
-    accentBlue: '#c5a880',
-    accentPurple: '#b69fc4',
-    accentGreen: '#8a7695',
-    accentAmber: '#e6dfeb',
+    surface: '#0a080d',
+    surfaceCard: '#15121c',
+    surfaceCardRgb: '21, 18, 28',
+    accentBlue: '#a855f7',
+    accentPurple: '#c084fc',
+    accentGreen: '#701a75',
+    accentAmber: '#ebd5ff',
   },
   'deep-forest': {
-    surface: '#111512',
-    surfaceCard: '#161e18',
-    surfaceCardRgb: '22, 30, 24',
-    accentBlue: '#c5a880',
-    accentPurple: '#a5b59f',
-    accentGreen: '#76856d',
-    accentAmber: '#e4ebe0',
+    surface: '#080d09',
+    surfaceCard: '#121c14',
+    surfaceCardRgb: '18, 28, 20',
+    accentBlue: '#22c55e',
+    accentPurple: '#4ade80',
+    accentGreen: '#14532d',
+    accentAmber: '#bbf7d0',
   },
   'ocean-trench': {
-    surface: '#111315',
-    surfaceCard: '#161a1e',
-    surfaceCardRgb: '22, 26, 30',
-    accentBlue: '#c5a880',
-    accentPurple: '#9faab5',
-    accentGreen: '#6d7785',
-    accentAmber: '#e0e6eb',
+    surface: '#080b0d',
+    surfaceCard: '#12181c',
+    surfaceCardRgb: '18, 24, 28',
+    accentBlue: '#0ea5e9',
+    accentPurple: '#38bdf8',
+    accentGreen: '#0c4a6e',
+    accentAmber: '#bae6fd',
   }
 }
 
@@ -1508,8 +1508,16 @@ function App() {
   } as React.CSSProperties
 
   return (
-    <div className="min-h-screen bg-surface font-sans text-text-primary antialiased relative flex flex-col md:flex-row" style={inlineStyles}>
+    <div className="min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden" style={inlineStyles}>
       
+      {/* iOS 26 Animated Mesh Backdrop Blobs */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none">
+        <div className="mesh-blob mesh-blob-1" />
+        <div className="mesh-blob mesh-blob-2" />
+        <div className="mesh-blob mesh-blob-3" />
+        <div className="mesh-blob mesh-blob-4" />
+      </div>
+
       {/* Collapsible/Floating Glassmorphic Sidebar */}
       {!isZenMode && (
         <aside className="w-full md:w-64 shrink-0 bg-white/[0.02] backdrop-blur-xl border-b md:border-b-0 md:border-r border-white/[0.06] p-4 md:p-6 flex flex-col justify-between gap-6 transition-all duration-300 z-20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
@@ -2869,7 +2877,7 @@ function App() {
           <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 backdrop-blur-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)]" onClick={e => e.stopPropagation()}>
             <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-lg font-semibold">Keyboard Shortcuts</h3>
-              <button onClick={() => setIsHotkeyHudOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-surface hover:text-text-primary">
+              <button onClick={() => setIsHotkeyHudOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -2881,9 +2889,9 @@ function App() {
                 { keys: 'C', action: 'Complete current session' },
                 { keys: '?', action: 'Toggle this shortcut panel' },
               ].map(item => (
-                <div key={item.keys} className="flex items-center justify-between rounded-sm border border-[#1b2333] bg-[#07090e] px-4 py-3">
-                  <span className="text-sm text-text-primary">{item.action}</span>
-                  <kbd className="rounded border border-[#1b2333] bg-surface px-2 py-0.5 font-mono text-[10px] font-bold uppercase">{item.keys}</kbd>
+                <div key={item.keys} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
+                  <span className="text-sm text-white/80">{item.action}</span>
+                  <kbd className="rounded border border-white/15 bg-white/10 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white">{item.keys}</kbd>
                 </div>
               ))}
             </div>
@@ -2893,8 +2901,8 @@ function App() {
       )}
 
       {activeToast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-[#07090e] border border-[#1b2333] rounded-full px-4 py-1.5 text-[11px] font-mono tracking-wider text-slate-200 animate-slide-down">
-          <kbd className="bg-[#1b2333] text-slate-400 border border-[#1b2333] rounded px-1.5 py-0.5 text-[9px] font-sans">{activeToast.key}</kbd>
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),_inset_0_1px_1px_rgba(255,255,255,0.08)] rounded-full px-4 py-1.5 text-[11px] font-mono tracking-wider text-white animate-slide-down">
+          <kbd className="bg-white/10 text-white border border-white/15 rounded px-1.5 py-0.5 text-[9px] font-sans">{activeToast.key}</kbd>
           <span>{activeToast.message}</span>
         </div>
       )}
