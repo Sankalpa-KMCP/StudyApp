@@ -1748,6 +1748,19 @@ function App() {
                               <div key={ch.id} className="flex items-center gap-3 bg-white/[0.02] border border-white/[0.04] rounded-xl px-3 py-2 transition-all duration-300 ease-out">
                                 <Icon className="h-3.5 w-3.5 text-white/60 shrink-0" />
                                 <span className="text-xs font-medium text-white/80 w-24 shrink-0">{ch.label}</span>
+                                
+                                {/* Soundwave Visualizer Bar Indicator */}
+                                <div className="w-8 h-3 flex items-end justify-center shrink-0">
+                                  {ch.val > 0 && (
+                                    <div className="flex items-end gap-[2px] h-3 w-5">
+                                      <span className="w-[2px] bg-white/50 rounded-full animate-wave-bar-1" style={{ animationDuration: '0.8s' }} />
+                                      <span className="w-[2px] bg-white/50 rounded-full animate-wave-bar-2" style={{ animationDuration: '0.5s' }} />
+                                      <span className="w-[2px] bg-white/50 rounded-full animate-wave-bar-3" style={{ animationDuration: '0.7s' }} />
+                                      <span className="w-[2px] bg-white/50 rounded-full animate-wave-bar-4" style={{ animationDuration: '0.6s' }} />
+                                    </div>
+                                  )}
+                                </div>
+
                                 <input
                                   type="range"
                                   min="0"
