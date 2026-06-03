@@ -136,6 +136,7 @@ function App() {
     noiseType,
     binauralTarget,
     initialEasinessFactor,
+    autoArchiveAncientTasks,
     isLoading: settingsLoading
   } = useSettings()
 
@@ -839,6 +840,25 @@ function App() {
     }
   }, [level, isDataReady])
 
+  // Automatic Archive of Ancient Tasks
+  useEffect(() => {
+    if (isDataReady && autoArchiveAncientTasks) {
+      const archiveAncientTasks = async () => {
+        const ninetyDaysAgo = Date.now() - 7776000000
+        const allTasks = await db.tasks.toArray()
+        const targetTasks = allTasks.filter(t => t.completed && t.createdAt < ninetyDaysAgo && !t.archived)
+        if (targetTasks.length > 0) {
+          const ids = targetTasks.map(t => t.id).filter((id): id is number => id !== undefined)
+          if (ids.length > 0) {
+            await Promise.all(ids.map(id => db.tasks.update(id, { archived: true })))
+            pushToast('ARCHIVE', `AUTO-ARCHIVED ${ids.length} COMPLETED TASKS (90+ DAYS)`)
+          }
+        }
+      }
+      archiveAncientTasks()
+    }
+  }, [isDataReady, autoArchiveAncientTasks])
+
   // Page Visibility Auto-Pause
   useEffect(() => {
     function handleVisibilityChange() {
@@ -1438,6 +1458,7 @@ function App() {
                   tactileEnabled={localTactileFeedback}
                   localEnforceLockout={localEnforceLockout}
                   setLocalEnforceLockout={setLocalEnforceLockout}
+                  autoArchiveAncientTasks={autoArchiveAncientTasks}
                   audio_presets={audio_presets}
                   localVolumeRain={localVolumeRain}
                   setLocalVolumeRain={setLocalVolumeRain}

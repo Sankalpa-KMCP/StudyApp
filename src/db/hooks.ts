@@ -35,11 +35,13 @@ export function useTasks() {
     }
   }
 
-  const mappedTasks = (tasks ?? []).map(task => ({
-    ...task,
-    estimatedCycles: task.estimatedCycles ?? (task as TaskItem & { estimatedPomodoros?: number }).estimatedPomodoros ?? 1,
-    actualCycles: task.actualCycles ?? (task as TaskItem & { actualPomodoros?: number }).actualPomodoros ?? 0,
-  }))
+  const mappedTasks = (tasks ?? [])
+    .filter(task => !task.archived)
+    .map(task => ({
+      ...task,
+      estimatedCycles: task.estimatedCycles ?? (task as TaskItem & { estimatedPomodoros?: number }).estimatedPomodoros ?? 1,
+      actualCycles: task.actualCycles ?? (task as TaskItem & { actualPomodoros?: number }).actualPomodoros ?? 0,
+    }))
 
   const sortedTasks = [...mappedTasks].sort((a, b) => {
     // 1. Uncompleted tasks first
@@ -174,6 +176,7 @@ export function useSettings() {
   const developer_font = (rows?.find(r => r.key === 'developer_font')?.value as string) ?? 'JetBrains Mono'
   const enforce_lockout = (rows?.find(r => r.key === 'enforce_lockout')?.value as boolean) ?? false
   const initialEasinessFactor = (rows?.find(r => r.key === 'initialEasinessFactor')?.value as number) ?? 2.5
+  const autoArchiveAncientTasks = (rows?.find(r => r.key === 'autoArchiveAncientTasks')?.value as boolean) ?? false
 
   const updateSetting = async (key: SettingsKey, value: SettingsValue) => {
     await db.settings.put({ key, value })
@@ -201,6 +204,7 @@ export function useSettings() {
     noiseType,
     binauralTarget,
     initialEasinessFactor,
+    autoArchiveAncientTasks,
     updateSetting,
     isLoading: rows === undefined,
   }

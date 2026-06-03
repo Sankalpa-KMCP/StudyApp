@@ -12,6 +12,7 @@ interface ControlDeckProps {
   tactileEnabled: boolean
   localEnforceLockout: boolean
   setLocalEnforceLockout: (val: boolean) => void
+  autoArchiveAncientTasks: boolean
   audio_presets: any[]
   localVolumeRain: number
   setLocalVolumeRain: (val: number) => void
@@ -48,6 +49,7 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   initialEasinessFactor,
   localEnforceLockout,
   setLocalEnforceLockout,
+  autoArchiveAncientTasks,
   exportStudyBackup,
   exportStudyLogsCSV,
   exportTaskCompletionLogsCSV,
@@ -185,6 +187,26 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
                 updateSetting('enforce_lockout', nextVal)
               }}
               className={`ios-switch shrink-0 ${localEnforceLockout ? 'active' : ''}`}
+            >
+              <span className="ios-switch-thumb" />
+            </button>
+          </div>
+        </div>
+
+        {/* Task Archiving */}
+        <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl flex flex-col justify-between">
+          <div>
+            <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-2">Automated Archiving</h3>
+            <p className="text-[10px] text-white/40 leading-relaxed">Automatically archives completed tasks older than 90 days to keep the workspace clean.</p>
+          </div>
+          <div className="flex items-center justify-between mt-4 bg-black/20 border border-white/5 px-4 py-3 rounded-2xl">
+            <span className="text-[10px] font-semibold text-white/70">{autoArchiveAncientTasks ? 'Active' : 'Disabled'}</span>
+            <button
+              onClick={() => {
+                const nextVal = !autoArchiveAncientTasks
+                updateSetting('autoArchiveAncientTasks', nextVal)
+              }}
+              className={`ios-switch shrink-0 ${autoArchiveAncientTasks ? 'active' : ''}`}
             >
               <span className="ios-switch-thumb" />
             </button>
