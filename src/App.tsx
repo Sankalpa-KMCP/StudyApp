@@ -2273,14 +2273,26 @@ function App() {
                               <button
                                 key={i}
                                 onClick={() => setSelectedDay(cell)}
-                                className={`aspect-square rounded-xl flex items-center justify-center text-xs font-bold transition-all cursor-pointer ${
+                                className={`group relative aspect-square rounded-[10px] flex items-center justify-center text-xs font-bold transition-all duration-300 ease-out cursor-pointer ${
                                   cell === selectedDay
                                     ? 'ring-2 ring-accent-blue text-text-primary scale-110 z-10 shadow-md shadow-accent-blue/15'
-                                    : 'hover:ring-1 hover:ring-accent-blue/30'
+                                    : 'hover:scale-105 hover:z-10 hover:ring-1 hover:ring-white/20'
                                 }`}
                                 style={cell === selectedDay ? { backgroundColor: activeThemeVars.accentBlue, color: '#080b11' } : getIntensityStyle(intensity)}
                               >
-                                {cell}
+                                <span>{cell}</span>
+                                
+                                {/* iOS 26 Glassmorphic Tooltip */}
+                                {dayData && (
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-36 bg-black/80 backdrop-blur-md border border-white/10 p-2.5 rounded-xl text-[9px] font-mono text-left pointer-events-none z-30 shadow-[0_8px_24px_rgba(0,0,0,0.5)] leading-normal animate-slide-in-up">
+                                    <div className="font-bold text-white mb-1 border-b border-white/10 pb-0.5">
+                                      {monthNames[currentMonth]} {cell}, {currentYear}
+                                    </div>
+                                    <div className="text-white/80">⏱️ Focus: {isLiveDay ? formatMinutes(todayStudyMinutes) : dayData.studyTime}</div>
+                                    <div className="text-white/60">☕ Break: {isLiveDay ? formatMinutes(todayBreakMinutes) : dayData.breakTime}</div>
+                                    <div className="text-accent-blue font-bold mt-0.5">🎯 Score: {isLiveDay ? `${progressPercent}%` : dayData.focusScore}</div>
+                                  </div>
+                                )}
                               </button>
                             ) : (
                               <div key={i} className="aspect-square" />
