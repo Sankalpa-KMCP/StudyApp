@@ -16,40 +16,40 @@ const THEME_PROFILES: Record<string, {
   accentAmber: string
 }> = {
   'midnight-slate': {
-    surface: '#0B0F19',
-    surfaceCard: '#131926',
-    surfaceCardRgb: '19, 25, 38',
-    accentBlue: '#3B82F6',
-    accentPurple: '#8B5CF6',
-    accentGreen: '#10B981',
-    accentAmber: '#F59E0B',
+    surface: '#07090e',
+    surfaceCard: '#0c0f17',
+    surfaceCardRgb: '12, 15, 23',
+    accentBlue: '#00ff66',
+    accentPurple: '#64748b',
+    accentGreen: '#00ff66',
+    accentAmber: '#f59e0b',
   },
   'cyber-amethyst': {
-    surface: '#12071F',
-    surfaceCard: '#1C0D2E',
-    surfaceCardRgb: '28, 13, 46',
-    accentBlue: '#C084FC',
-    accentPurple: '#A855F7',
-    accentGreen: '#F472B6',
-    accentAmber: '#FB7185',
+    surface: '#07090e',
+    surfaceCard: '#0c0f17',
+    surfaceCardRgb: '12, 15, 23',
+    accentBlue: '#00ff66',
+    accentPurple: '#64748b',
+    accentGreen: '#00ff66',
+    accentAmber: '#f59e0b',
   },
   'deep-forest': {
-    surface: '#050F0B',
-    surfaceCard: '#0C1C16',
-    surfaceCardRgb: '12, 28, 22',
-    accentBlue: '#10B981',
-    accentPurple: '#34D399',
-    accentGreen: '#059669',
-    accentAmber: '#F59E0B',
+    surface: '#07090e',
+    surfaceCard: '#0c0f17',
+    surfaceCardRgb: '12, 15, 23',
+    accentBlue: '#00ff66',
+    accentPurple: '#64748b',
+    accentGreen: '#00ff66',
+    accentAmber: '#f59e0b',
   },
   'ocean-trench': {
-    surface: '#000000',
-    surfaceCard: '#0A0F1D',
-    surfaceCardRgb: '10, 15, 29',
-    accentBlue: '#06B6D4',
-    accentPurple: '#0891B2',
-    accentGreen: '#22D3EE',
-    accentAmber: '#E0F2FE',
+    surface: '#07090e',
+    surfaceCard: '#0c0f17',
+    surfaceCardRgb: '12, 15, 23',
+    accentBlue: '#00ff66',
+    accentPurple: '#64748b',
+    accentGreen: '#00ff66',
+    accentAmber: '#f59e0b',
   }
 }
 
@@ -199,9 +199,9 @@ const tooltipStyle = {
 
 function MicroCard({ icon, label, value, badge, iconBg, badgeBg, badgeText }: MicroCardItem) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/40 hover:bg-slate-950/65 hover:border-slate-700/80 p-4 transition-all duration-300 hover:scale-[1.01] group cursor-default">
+    <div className="flex items-center justify-between rounded-sm border border-[#1b2333] bg-[#0c0f17] hover:border-[#1b2333] p-4 transition-all duration-300 hover:scale-[1.01] group cursor-default">
       <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-105 ${iconBg}`}>
+        <div className={`flex h-10 w-10 items-center justify-center rounded-sm transition-transform duration-300 group-hover:scale-105 ${iconBg}`}>
           {icon}
         </div>
         <div>
@@ -722,7 +722,7 @@ function App() {
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
         ctx.fillStyle = isMuted
           ? 'rgba(71, 85, 105, 0.3)'
-          : `rgba(99, 102, 241, ${0.35 + Math.min(0.35, aggregateVol * 0.15)})`
+          : `rgba(0, 255, 102, ${0.35 + Math.min(0.35, aggregateVol * 0.15)})`
         ctx.fill()
       })
 
@@ -741,7 +741,7 @@ function App() {
               ctx.beginPath()
               ctx.moveTo(p1.x, p1.y)
               ctx.lineTo(p2.x, p2.y)
-              ctx.strokeStyle = `rgba(99, 102, 241, ${alpha})`
+              ctx.strokeStyle = `rgba(0, 255, 102, ${alpha})`
               ctx.lineWidth = 0.75
               ctx.stroke()
             }
@@ -757,9 +757,9 @@ function App() {
       if (waveAmplitudeRef.current > 0.5) {
         const waveTime = performance.now() * 0.001
         const layers = [
-          { freq: 0.008, speed: 0.8, phase: 0,          color: 'rgba(168, 85, 247, 0.2)',  lineW: 2.0 },
-          { freq: 0.012, speed: 1.2, phase: Math.PI / 3, color: 'rgba(59, 130, 246, 0.1)',  lineW: 1.5 },
-          { freq: 0.006, speed: -0.6, phase: Math.PI / 1.5, color: 'rgba(139, 92, 246, 0.15)', lineW: 1.0 },
+          { freq: 0.008, speed: 0.8, phase: 0,          color: 'rgba(0, 255, 102, 0.2)',   lineW: 2.0 },
+          { freq: 0.012, speed: 1.2, phase: Math.PI / 3, color: 'rgba(245, 158, 11, 0.1)',  lineW: 1.5 },
+          { freq: 0.006, speed: -0.6, phase: Math.PI / 1.5, color: 'rgba(0, 255, 102, 0.12)', lineW: 1.0 },
         ]
         layers.forEach(l => {
           ctx.beginPath()
@@ -1519,8 +1519,8 @@ function App() {
           }`}>
 
             {/* CARD 1: Today's Progress */}
-            <div className="relative overflow-hidden flex flex-col h-full rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 dynamic-card shadow-xl p-5">
-              <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-purple-500/40 via-blue-500/40 to-transparent" />
+            <div className="relative overflow-hidden flex flex-col h-full rounded-sm border border-[#1b2333] hover:border-[#1b2333] transition-all duration-300 dynamic-card p-5">
+              <p className="font-mono text-[10px] tracking-widest text-slate-500 mb-3">[MODULE // 01.CHRONOS]</p>
               <div className="mb-5 flex items-center gap-2">
                 <Target className="h-5 w-5 text-accent-blue" />
                 <h2 className="text-sm font-semibold tracking-wide text-slate-200">Today's Progress</h2>
@@ -1529,7 +1529,7 @@ function App() {
                   className={`ml-3 flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border transition-all cursor-pointer ${
                     isZenMode
                       ? 'border-accent-purple/40 bg-accent-purple/20 text-accent-purple'
-                      : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      : 'border-[#1b2333] bg-[#0c0f17] text-slate-400 hover:text-slate-200 hover:border-[#1b2333]'
                   }`}
                   title="Press 'Z' to toggle Zen Mode"
                 >
@@ -1548,7 +1548,7 @@ function App() {
                         />
                       </div>
                     </div>
-                    <div className="pointer-events-none absolute -top-8 right-0 z-10 whitespace-nowrap rounded-md border border-border-card bg-surface-card px-2 py-1 text-[11px] text-text-primary opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                    <div className="pointer-events-none absolute -top-8 right-0 z-10 whitespace-nowrap rounded-md border border-[#1b2333] bg-[#0c0f17] px-2 py-1 text-[11px] text-text-primary opacity-0 transition-opacity group-hover:opacity-100">
                       {currentLevelXP} / 1000 XP to next rank
                     </div>
                   </div>
@@ -1556,7 +1556,7 @@ function App() {
               </div>
               <div className="flex flex-col lg:flex-row xl:flex-col gap-6 flex-1 min-h-0">
                 {/* Left - Circular Ring + Stats */}
-                <div className="flex flex-row lg:flex-col xl:flex-row items-center justify-around gap-4 shrink-0 w-full lg:w-44 xl:w-full border-b border-slate-800/40 pb-5 lg:border-b-0 lg:pb-0 xl:border-b xl:pb-5">
+                <div className="flex flex-row lg:flex-col xl:flex-row items-center justify-around gap-4 shrink-0 w-full lg:w-44 xl:w-full border-b border-[#1b2333] pb-5 lg:border-b-0 lg:pb-0 xl:border-b xl:pb-5">
                   <div className="flex flex-col items-center">
                     <div className="relative flex h-36 w-36 items-center justify-center">
                       <svg className="absolute h-full w-full -rotate-90" viewBox="0 0 120 120">
@@ -1594,7 +1594,7 @@ function App() {
                       { label: 'Break', value: formatMinutes(todayBreakMinutes), valueClass: 'text-text-primary' },
                       { label: 'Progress', value: `${progressPercent}%`, valueClass: 'text-accent-green' },
                     ].map((row) => (
-                      <div key={row.label} className="flex items-center justify-between border-b border-border-subtle pb-1 last:border-0">
+                      <div key={row.label} className="flex items-center justify-between border-b border-[#1b2333] pb-1 last:border-0">
                         <span className="text-xs text-slate-400">{row.label}</span>
                         <span className={`text-xs font-semibold ${row.valueClass}`}>{row.value}</span>
                       </div>
@@ -1635,17 +1635,17 @@ function App() {
                     </>
                   )}
                   {/* Timer Controls */}
-                  <div className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 transition-all duration-300 ${
+                  <div className={`flex flex-wrap items-center gap-2 rounded-sm border px-3 py-2 transition-all duration-300 ${
                     isLongBreak && timerMode === 'break'
                       ? 'border-accent-green/30 bg-accent-green/5'
-                      : 'border-slate-800 bg-slate-950/45 hover:bg-slate-950/60'
+                      : 'border-[#1b2333] bg-[#0c0f17] hover:bg-[#0c0f17]'
                   }`}>
-                    <div className="flex overflow-hidden rounded-md border border-slate-800 bg-[#0B0F19] p-0.5">
+                    <div className="flex overflow-hidden rounded-md border border-[#1b2333] bg-[#07090e] p-0.5">
                       <button
                         onClick={() => handleModeSwitch('study')}
                         className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
                           timerMode === 'study'
-                            ? 'bg-accent-blue/15 text-accent-blue font-semibold'
+                            ? 'bg-[#00ff66] text-black font-semibold'
                             : 'text-slate-400 hover:text-text-primary'
                         }`}
                       >
@@ -1669,17 +1669,17 @@ function App() {
                         <select
                           value={timerCategoryId ?? ''}
                           onChange={e => setTimerCategoryId(e.target.value ? Number(e.target.value) : undefined)}
-                          className="rounded border border-slate-800 bg-[#0B0F19] px-2 py-1 text-xs text-text-primary outline-none focus:border-accent-blue/50 cursor-pointer transition-all"
+                          className="rounded border border-[#1b2333] bg-[#07090e] px-2 py-1 text-xs text-text-primary outline-none focus:border-accent-blue/50 cursor-pointer transition-all"
                         >
-                          <option value="" className="bg-[#0B0F19]">Subject</option>
+                          <option value="" className="bg-[#07090e]">Subject</option>
                           {categories.map(cat => (
-                            <option key={cat.id} value={cat.id} className="bg-[#0B0F19]">{cat.name}</option>
+                            <option key={cat.id} value={cat.id} className="bg-[#07090e]">{cat.name}</option>
                           ))}
                         </select>
-                        <div className="h-5 w-px bg-slate-800" />
+                        <div className="h-5 w-px bg-[#1b2333]" />
                       </>
                     )}
-                    {timerMode !== 'study' && !isZenMode && <div className="h-5 w-px bg-slate-800" />}
+                    {timerMode !== 'study' && !isZenMode && <div className="h-5 w-px bg-[#1b2333]" />}
                     <span className={`min-w-[45px] text-sm font-semibold tabular-nums ${
                       isLongBreak && timerMode === 'break' ? 'text-accent-green' : 'text-accent-blue'
                     }`}>
@@ -1693,7 +1693,7 @@ function App() {
                             key={i}
                             className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
                               i < completedSessionsInCycle
-                                ? 'bg-accent-blue shadow-sm shadow-accent-blue/40 scale-110'
+                                ? 'bg-accent-blue scale-110'
                                 : 'bg-slate-700'
                             }`}
                           />
@@ -1702,7 +1702,7 @@ function App() {
                     )}
                     <button
                       onClick={() => { if (!completingRef.current) setIsTimerActive(a => !a) }}
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent-blue/10 text-accent-blue transition-all hover:bg-accent-blue/20 hover:shadow-md hover:shadow-accent-blue/20 active:scale-95 cursor-pointer"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent-blue/10 text-accent-blue transition-all hover:bg-[#00ff66]/20 active:scale-95 cursor-pointer"
                     >
                       {isTimerActive ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                     </button>
@@ -1720,7 +1720,7 @@ function App() {
                     const activeTask = sessionTasks.find(t => t.id === activeTaskId)
                     if (!activeTask || activeTask.completed) return null
                     return (
-                      <div className="mt-2 flex items-center gap-2 rounded-lg border border-accent-blue/20 bg-accent-blue/5 px-3 py-1.5 transition-all">
+                      <div className="mt-2 flex items-center gap-2 rounded-sm border border-accent-blue/20 bg-accent-blue/5 px-3 py-1.5 transition-all">
                         <span className="text-xs text-slate-400">Target:</span>
                         <span className="truncate text-xs font-medium text-accent-blue">{activeTask.text}</span>
                         <span className="ml-auto whitespace-nowrap text-[11px] text-slate-400 flex items-center gap-1">
@@ -1738,38 +1738,38 @@ function App() {
                           data-task-input
                           type="text"
                           placeholder="Add a task..."
-                          className="flex-1 rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-950/70 focus:bg-slate-950 focus:border-accent-blue/50 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all duration-200"
+                          className="flex-1 rounded-sm border border-[#1b2333] bg-[#0c0f17] focus:bg-slate-950 focus:border-accent-blue/50 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all duration-200"
                           onKeyDown={(e) => { if (e.key === 'Enter') { const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); handleAddTask((e.target as HTMLInputElement).value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); (e.target as HTMLInputElement).value = '' } }}
                         />
                         <select
                           data-task-category
-                          className="w-24 rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-950/70 focus:bg-[#0B0F19] focus:border-accent-blue/50 px-1.5 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
+                          className="w-24 rounded-sm border border-[#1b2333] bg-[#0c0f17] focus:bg-[#07090e] focus:border-accent-blue/50 px-1.5 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
                         >
-                          <option value="" className="bg-[#0B0F19]">No category</option>
+                          <option value="" className="bg-[#07090e]">No category</option>
                           {categories.map(cat => (
-                            <option key={cat.id} value={cat.id} className="bg-[#0B0F19]">{cat.name}</option>
+                            <option key={cat.id} value={cat.id} className="bg-[#07090e]">{cat.name}</option>
                           ))}
                         </select>
                         <select
                           data-task-cycles
                           value={taskCycleCount}
                           onChange={e => setTaskCycleCount(Number(e.target.value))}
-                          className="w-14 rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-950/70 focus:bg-[#0B0F19] focus:border-accent-blue/50 px-1 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
+                          className="w-14 rounded-sm border border-[#1b2333] bg-[#0c0f17] focus:bg-[#07090e] focus:border-accent-blue/50 px-1 py-1.5 text-xs text-text-primary outline-none transition-all duration-200 cursor-pointer"
                         >
                           {[1,2,3,4,5,6,7,8].map(n => (
-                            <option key={n} value={n} className="bg-[#0B0F19]">🎯 {n}</option>
+                            <option key={n} value={n} className="bg-[#07090e]">🎯 {n}</option>
                           ))}
                         </select>
                         <button
                           onClick={() => { const input = document.querySelector<HTMLInputElement>('[data-task-input]'); const sel = document.querySelector<HTMLSelectElement>('[data-task-category]'); const step = document.querySelector<HTMLSelectElement>('[data-task-cycles]'); if (input) { handleAddTask(input.value, sel?.value ? Number(sel.value) : undefined, step?.value ? Number(step.value) : undefined); input.value = '' } }}
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 transition-all active:scale-95 cursor-pointer"
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent-blue/10 text-accent-blue hover:bg-[#00ff66]/20 transition-all active:scale-95 cursor-pointer"
                         >
                           <Plus className="h-3.5 w-3.5" />
                         </button>
                       </div>
                       <div className="flex-1 overflow-y-auto min-h-[100px] flex flex-col">
                         {activeTasksList.length === 0 ? (
-                          <div className="flex flex-1 flex-col items-center justify-center h-full min-h-[220px] border-2 border-dashed border-slate-800 bg-slate-950/20 hover:bg-slate-950/45 hover:border-slate-700/60 rounded-xl p-6 my-2 text-center transition-all duration-300 shadow-inner group">
+                          <div className="flex flex-1 flex-col items-center justify-center h-full min-h-[220px] border-2 border-dashed border-[#1b2333] bg-[#0c0f17] hover:border-[#1b2333] rounded-sm p-6 my-2 text-center transition-all duration-300 group">
                             <span className="text-3xl mb-3 animate-pulse-soft filter drop-shadow-[0_0_8px_rgba(245,158,11,0.2)]">🎯</span>
                             <p className="text-xs font-semibold text-slate-200 max-w-[220px] leading-relaxed">
                               No focus tasks planned for today.
@@ -1787,14 +1787,14 @@ function App() {
                                 className={`flex flex-col gap-1 rounded-md px-2 py-1.5 transition-colors cursor-pointer animate-slide-in-up ${
                                   activeTaskId === task.id
                                     ? 'bg-accent-blue/10 ring-1 ring-accent-blue/30'
-                                    : 'hover:bg-surface/50'
+                                    : 'hover:bg-[#07090e]'
                                 }`}
                               >
                                 <div className="flex items-center gap-2 w-full">
                                   <div
                                     onClick={e => { e.stopPropagation(); handleToggleTask(task.id!) }}
                                     className={`flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border ${
-                                      task.completed ? 'border-accent-blue bg-accent-blue/20' : 'border-border-subtle bg-surface'
+                                      task.completed ? 'border-accent-blue bg-accent-blue/20' : 'border-[#1b2333] bg-surface'
                                     }`}
                                   >
                                     {task.completed && <Check className="h-3 w-3 text-accent-blue" />}
@@ -1812,14 +1812,14 @@ function App() {
                                 </div>
 
                                 {task.completed && (
-                                  <div className="mt-1 flex flex-col gap-1 pl-6 border-l border-slate-800" onClick={e => e.stopPropagation()}>
+                                  <div className="mt-1 flex flex-col gap-1 pl-6 border-l border-[#1b2333]" onClick={e => e.stopPropagation()}>
                                     <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Rate your Active Recall (SM-2)</p>
                                     <div className="flex gap-1.5">
                                       {[0, 1, 2, 3, 4, 5].map(q => (
                                         <button
                                           key={q}
                                           onClick={(e) => { e.stopPropagation(); submitRecallGrade(task, q) }}
-                                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 hover:bg-accent-purple/20 hover:text-accent-purple border border-slate-700 hover:border-accent-purple/30 text-slate-300 transition-all cursor-pointer"
+                                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#1b2333] hover:bg-accent-purple/20 hover:text-accent-purple border border-[#1b2333] hover:border-accent-purple/30 text-slate-300 transition-all cursor-pointer"
                                           title={
                                             q === 0 ? "Complete Blackout" :
                                             q === 1 ? "Incorrect but remembered" :
@@ -1844,7 +1844,7 @@ function App() {
                   )}
                   {/* Ambient Soundscape Mixer - Hide in Zen Mode */}
                   {!isZenMode && (
-                    <div className="mt-4 border-t border-slate-800/50 pt-3">
+                    <div className="mt-4 border-t border-[#1b2333]/50 pt-3">
                       <p className="text-[11px] font-semibold text-slate-400 mb-2.5 tracking-wider uppercase">Ambient Soundscapes Mixer</p>
                       <div className="flex flex-col gap-2">
                         {[
@@ -1854,7 +1854,7 @@ function App() {
                         ].map(ch => {
                           const Icon = ch.icon
                           return (
-                            <div key={ch.id} className="flex items-center gap-3 bg-slate-950/30 border border-slate-800/40 rounded-lg px-3 py-1.5 hover:bg-slate-950/50 transition-all duration-200">
+                            <div key={ch.id} className="flex items-center gap-3 bg-[#0c0f17] border border-[#1b2333] rounded-sm px-3 py-1.5 transition-all duration-200">
                               <Icon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                               <span className="text-xs font-medium text-slate-300 w-20 shrink-0">{ch.label}</span>
                               <input
@@ -1868,7 +1868,7 @@ function App() {
                                   ch.setVal(v)
                                   updateSetting(ch.id as SettingsKey, v)
                                 }}
-                                className={`flex-1 h-1.5 rounded-full cursor-pointer bg-slate-800 outline-none ${ch.colorClass}`}
+                                className={`flex-1 h-1.5 rounded-full cursor-pointer bg-[#1b2333] outline-none ${ch.colorClass}`}
                               />
                               <span className="text-[10px] font-semibold text-slate-500 w-6 text-right tabular-nums">
                                 {Math.round(ch.val * 100)}%
@@ -1878,7 +1878,7 @@ function App() {
                         })}
 
                         {/* Alpha Waves (10Hz Binaural Beat) */}
-                        <div className="flex items-center justify-between bg-slate-950/30 border border-slate-800/40 rounded-lg px-3 py-1.5 hover:bg-slate-950/50 transition-all duration-200 mt-1">
+                        <div className="flex items-center justify-between bg-[#0c0f17] border border-[#1b2333] rounded-sm px-3 py-1.5 transition-all duration-200 mt-1">
                           <div className="flex items-center gap-3">
                             <Brain className="h-3.5 w-3.5 text-accent-purple shrink-0" />
                             <span className="text-xs font-medium text-slate-300">Alpha Waves (10Hz)</span>
@@ -1890,7 +1890,7 @@ function App() {
                               updateSetting('ambient_alphaWaves', nextVal)
                             }}
                             className={`relative h-5 w-9 shrink-0 rounded-full transition-all cursor-pointer ${
-                              localAlphaWaves ? 'bg-accent-purple animate-pulse-soft' : 'bg-slate-800'
+                              localAlphaWaves ? 'bg-accent-purple animate-pulse-soft' : 'bg-[#1b2333]'
                             }`}
                           >
                             <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
@@ -1900,7 +1900,7 @@ function App() {
                         </div>
 
                         {/* Tactile Keyboard Click Feedback */}
-                        <div className="flex items-center justify-between bg-slate-950/30 border border-slate-800/40 rounded-lg px-3 py-1.5 hover:bg-slate-950/50 transition-all duration-200 mt-1">
+                        <div className="flex items-center justify-between bg-[#0c0f17] border border-[#1b2333] rounded-sm px-3 py-1.5 transition-all duration-200 mt-1">
                           <div className="flex items-center gap-3">
                             <Keyboard className="h-3.5 w-3.5 text-accent-blue shrink-0" />
                             <span className="text-xs font-medium text-slate-300">Tactile Thocks</span>
@@ -1912,7 +1912,7 @@ function App() {
                               updateSetting('tactile_feedback', nextVal)
                             }}
                             className={`relative h-5 w-9 shrink-0 rounded-full transition-all cursor-pointer ${
-                              localTactileFeedback ? 'bg-accent-blue' : 'bg-slate-800'
+                              localTactileFeedback ? 'bg-accent-blue' : 'bg-[#1b2333]'
                             }`}
                           >
                             <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
@@ -1935,7 +1935,8 @@ function App() {
         }`}>
 
           {/* CARD 2: Weekly Rhythm */}
-          <div className="rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 dynamic-card shadow-xl p-5">
+          <div className="rounded-sm border border-[#1b2333] hover:border-[#1b2333] transition-all duration-300 dynamic-card p-5">
+            <p className="font-mono text-[10px] tracking-widest text-slate-500 mb-3">[MODULE // 02.RHYTHM]</p>
             <div className="mb-5 flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-accent-blue" />
               <h2 className="text-sm font-semibold tracking-wide text-slate-200">Weekly Rhythm</h2>
@@ -1948,7 +1949,7 @@ function App() {
                 { label: 'Active days', value: `${new Set(monthLogs.filter(l => l.studyMinutes > 0).map(l => l.dateString)).size}/${totalDaysInMonth}`, icon: <Calendar className="h-3.5 w-3.5 text-accent-green" /> },
                 { label: 'Best day', value: '--', icon: <Award className="h-3.5 w-3.5 text-accent-purple" /> },
               ].map((m) => (
-                <div key={m.label} className="flex items-center gap-2.5 rounded-lg border border-border-subtle bg-surface/50 px-3 py-2.5 animate-slide-in-up">
+                <div key={m.label} className="flex items-center gap-2.5 rounded-sm border border-[#1b2333] bg-[#07090e] px-3 py-2.5 animate-slide-in-up">
                   <div className="flex h-7 w-7 items-center justify-center rounded-md bg-surface">
                     {m.icon}
                   </div>
@@ -1961,7 +1962,7 @@ function App() {
             </div>
             {/* Charts */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-xl border border-border-subtle bg-surface/30 p-4">
+              <div className="rounded-sm border border-[#1b2333] bg-[#07090e] p-4">
                 <p className="mb-3 text-xs font-medium text-text-secondary">Study hours trend</p>
                 {hasChartData ? (
                   <ResponsiveContainer width="100%" height={180}>
@@ -1989,7 +1990,7 @@ function App() {
                   </div>
                 )}
               </div>
-              <div className="rounded-xl border border-border-subtle bg-surface/30 p-4">
+              <div className="rounded-sm border border-[#1b2333] bg-[#07090e] p-4">
                 <p className="mb-3 text-xs font-medium text-text-secondary">Daily focus bars</p>
                 {hasChartData ? (
                   <ResponsiveContainer width="100%" height={180}>
@@ -2019,7 +2020,7 @@ function App() {
               </div>
             </div>
             {/* Productivity Insights */}
-            <div className="rounded-xl border border-slate-800/40 bg-[#0F172A]/50 p-4">
+            <div className="rounded-sm border border-[#1b2333] bg-[#0c0f17] p-4">
               <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Productivity Insights</p>
               <div className="grid grid-cols-4 gap-4">
                 {[
@@ -2028,7 +2029,7 @@ function App() {
                   { label: 'COMPLETION', value: `${completionRate}%`, icon: <CheckCircle className="h-3.5 w-3.5 text-accent-green" />, valueClass: 'text-accent-green' },
                   { label: 'PEAK DAY', value: peakDay, icon: <Calendar className="h-3.5 w-3.5 text-accent-amber" />, valueClass: 'text-accent-amber' },
                 ].map(m => (
-                  <div key={m.label} className="rounded-lg border border-slate-800/60 dynamic-card p-3">
+                  <div key={m.label} className="rounded-sm border border-[#1b2333] dynamic-card p-3">
                     <div className="mb-2 flex items-center gap-2">
                       {m.icon}
                       <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">{m.label}</span>
@@ -2041,7 +2042,7 @@ function App() {
           </div>
 
           {/* CARD 3: This Month */}
-          <div className="rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 dynamic-card shadow-xl p-5">
+          <div className="rounded-sm border border-[#1b2333] hover:border-[#1b2333] transition-all duration-300 dynamic-card p-5">
             <div className="mb-5 flex items-center gap-2">
               <Flame className="h-5 w-5 text-accent-amber" />
               <h2 className="text-sm font-semibold tracking-wide text-slate-200">This Month</h2>
@@ -2065,7 +2066,7 @@ function App() {
             <div className="grid grid-cols-3 divide-x divide-border-card">
               <div className="flex flex-col items-center px-4 first:pl-0">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-surface">
                     <Clock className="h-5 w-5 text-accent-blue" />
                   </div>
                   <div>
@@ -2077,7 +2078,7 @@ function App() {
               </div>
               <div className="flex flex-col items-center px-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-surface">
                     <BookOpen className="h-5 w-5 text-accent-purple" />
                   </div>
                   <div>
@@ -2096,7 +2097,7 @@ function App() {
               </div>
               <div className="flex flex-col items-center px-4 last:pr-0">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-surface">
                     <Target className="h-5 w-5 text-accent-green" />
                   </div>
                   <div>
@@ -2108,7 +2109,7 @@ function App() {
               </div>
             </div>
             {/* Category Breakdown */}
-            <div className="mt-6 border-t border-border-subtle pt-5">
+            <div className="mt-6 border-t border-[#1b2333] pt-5">
               <p className="mb-4 text-sm font-semibold text-text-primary">Category Hours</p>
               {categoryBreakdown.length > 0 ? (
                 <div className="flex items-center gap-6">
@@ -2157,7 +2158,8 @@ function App() {
         }`}>
 
           {/* CARD 4: Monthly Overview */}
-          <div className="flex flex-col rounded-xl border border-slate-800/60 hover:border-slate-700/50 transition-all duration-300 dynamic-card shadow-xl p-5">
+          <div className="flex flex-col rounded-sm border border-[#1b2333] hover:border-[#1b2333] transition-all duration-300 dynamic-card p-5">
+            <p className="font-mono text-[10px] tracking-widest text-slate-500 mb-3">[MODULE // 03.LEDGER]</p>
             {/* Month Header */}
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -2171,7 +2173,7 @@ function App() {
                 <select
                   value={calendarCategoryFilter === 'all' ? 'all' : String(calendarCategoryFilter)}
                   onChange={e => setCalendarCategoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                  className="ml-1 rounded-md border border-border-subtle bg-surface px-2 py-1 text-xs text-text-secondary outline-none"
+                  className="ml-1 rounded-md border border-[#1b2333] bg-surface px-2 py-1 text-xs text-text-secondary outline-none"
                 >
                   <option value="all">All Subjects</option>
                   {categories.map(cat => (
@@ -2196,9 +2198,9 @@ function App() {
                   <button
                     key={i}
                     onClick={() => setSelectedDay(cell)}
-                    className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-all duration-150 ${
+                    className={`aspect-square rounded-sm flex items-center justify-center text-xs font-medium transition-all duration-150 ${
                       cell === selectedDay
-                        ? 'ring-2 ring-accent-blue shadow-lg shadow-accent-blue/20 bg-accent-blue/20 text-text-primary'
+                        ? 'ring-2 ring-accent-blue bg-accent-blue/20 text-text-primary'
                         : `${intensityColors[intensity]} text-text-secondary hover:ring-1 hover:ring-accent-blue/40`
                     }`}
                   >
@@ -2233,7 +2235,7 @@ function App() {
               </div>
             </div>
             {/* Selected Day Panel */}
-            <div className="mt-auto rounded-xl border border-border-card bg-surface p-5">
+            <div className="mt-auto rounded-sm border border-[#1b2333] bg-surface p-5">
               <div className="mb-4 flex items-start justify-between">
                 <div>
                   <p className="text-[11px] font-medium tracking-wider text-accent-blue">SELECTED DAY</p>
@@ -2260,7 +2262,7 @@ function App() {
                   <p className="text-lg font-bold text-accent-green">{liveDay.focusRatio}</p>
                 </div>
               </div>
-              <p className="border-t border-border-card pt-3 text-xs text-slate-400">
+              <p className="border-t border-[#1b2333] pt-3 text-xs text-slate-400">
                 {liveDay.sessionsCompleted} sessions completed · score {liveDay.focusScore}
               </p>
               {/* Mood Selector */}
@@ -2274,10 +2276,10 @@ function App() {
                   <button
                     key={m.value}
                     onClick={() => handleMoodSelect(m.value)}
-                    className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-all ${
+                    className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs font-medium transition-all ${
                       draftMood === m.value
                         ? 'border-blue-500/20 bg-blue-500/10 text-blue-400'
-                        : 'border-border-subtle bg-surface/50 text-slate-400 hover:border-blue-500/30 hover:text-text-primary'
+                        : 'border-[#1b2333] bg-[#07090e] text-slate-400 hover:border-blue-500/30 hover:text-text-primary'
                     }`}
                   >
                     <span>{m.emoji}</span>
@@ -2291,20 +2293,20 @@ function App() {
                 onChange={e => handleNotesChange(e.target.value)}
                 placeholder="Write a brief reflection on your focus, hurdles, or wins for this day..."
                 rows={3}
-                className="mt-3 w-full resize-none rounded-lg border border-border-subtle bg-surface/50 px-3 py-2 text-xs text-text-primary placeholder:text-slate-400 outline-none focus:border-accent-blue/50"
+                className="mt-3 w-full resize-none rounded-sm border border-[#1b2333] bg-[#07090e] px-3 py-2 text-xs text-text-primary placeholder:text-slate-400 outline-none focus:border-accent-blue/50"
               />
 
               {/* Daily Focus Horizon */}
-              <div className="mt-4 border-t border-slate-800/40 pt-4">
+              <div className="mt-4 border-t border-[#1b2333] pt-4">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">Daily Focus Horizon</p>
-                <div className="relative w-full bg-slate-950/60 border border-slate-800/80 rounded-lg p-3">
+                <div className="relative w-full bg-[#0c0f17] border border-[#1b2333] rounded-sm p-3">
                   {/* Timeline Bar */}
-                  <div className="relative h-4 w-full bg-slate-900/60 rounded-md border border-slate-800 overflow-hidden shadow-inner">
+                  <div className="relative h-4 w-full bg-[#0c0f17] rounded-md border border-[#1b2333] overflow-hidden">
                     {/* Time ticks / grid */}
                     <div className="absolute inset-0 flex justify-between pointer-events-none text-[8px] text-slate-600 font-mono">
-                      <div className="h-full border-r border-slate-800/30" style={{ left: '25%' }} />
-                      <div className="h-full border-r border-slate-800/30" style={{ left: '50%' }} />
-                      <div className="h-full border-r border-slate-800/30" style={{ left: '75%' }} />
+                      <div className="h-full border-r border-[#1b2333]" style={{ left: '25%' }} />
+                      <div className="h-full border-r border-[#1b2333]" style={{ left: '50%' }} />
+                      <div className="h-full border-r border-[#1b2333]" style={{ left: '75%' }} />
                     </div>
 
                     {/* Mapped study and break sessions */}
@@ -2330,7 +2332,7 @@ function App() {
                           title={titleText}
                           className={`absolute top-0 h-full rounded-sm transition-all hover:scale-y-110 cursor-pointer ${
                             isStudy
-                              ? 'bg-gradient-to-r from-accent-blue to-accent-purple shadow-[0_0_6px_rgba(59,130,246,0.35)] z-10'
+                              ? 'bg-[#00ff66] shadow-[0_0_6px_rgba(0,255,102,0.35)] z-10'
                               : 'bg-slate-700/80'
                           }`}
                           style={{
@@ -2358,7 +2360,7 @@ function App() {
     ) : (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 w-full flex-1">
             {/* Sidebar Pane (Col-span 1) */}
-            <div className="md:col-span-1 rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5 flex flex-col justify-between">
+            <div className="md:col-span-1 rounded-sm border border-[#1b2333] dynamic-card p-5 flex flex-col justify-between">
               <div className="space-y-6">
                 <button
                   onClick={() => setActiveView('dashboard')}
@@ -2374,10 +2376,10 @@ function App() {
                 <nav className="flex flex-col gap-2 mt-4">
                   <button
                     onClick={() => setSettingsTab('visual')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-semibold transition-all cursor-pointer ${
                       settingsTab === 'visual'
-                        ? 'bg-accent-blue/15 text-accent-blue border border-accent-blue/20'
-                        : 'text-slate-400 hover:bg-slate-950/20 hover:text-text-primary border border-transparent'
+                        ? 'bg-[#00ff66] text-black border border-[#00ff66]'
+                        : 'text-[#64748b] hover:bg-[#0c0f17] hover:text-text-primary border border-transparent'
                     }`}
                   >
                     <Sliders className="h-4 w-4" />
@@ -2385,10 +2387,10 @@ function App() {
                   </button>
                   <button
                     onClick={() => setSettingsTab('audio')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-semibold transition-all cursor-pointer ${
                       settingsTab === 'audio'
-                        ? 'bg-accent-blue/15 text-accent-blue border border-accent-blue/20'
-                        : 'text-slate-400 hover:bg-slate-950/20 hover:text-text-primary border border-transparent'
+                        ? 'bg-[#00ff66] text-black border border-[#00ff66]'
+                        : 'text-[#64748b] hover:bg-[#0c0f17] hover:text-text-primary border border-transparent'
                     }`}
                   >
                     <Volume2 className="h-4 w-4" />
@@ -2396,10 +2398,10 @@ function App() {
                   </button>
                   <button
                     onClick={() => setSettingsTab('metrics')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-semibold transition-all cursor-pointer ${
                       settingsTab === 'metrics'
-                        ? 'bg-accent-blue/15 text-accent-blue border border-accent-blue/20'
-                        : 'text-slate-400 hover:bg-slate-950/20 hover:text-text-primary border border-transparent'
+                        ? 'bg-[#00ff66] text-black border border-[#00ff66]'
+                        : 'text-[#64748b] hover:bg-[#0c0f17] hover:text-text-primary border border-transparent'
                     }`}
                   >
                     <Sparkles className="h-4 w-4" />
@@ -2407,10 +2409,10 @@ function App() {
                   </button>
                   <button
                     onClick={() => setSettingsTab('vault')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm text-xs font-semibold transition-all cursor-pointer ${
                       settingsTab === 'vault'
-                        ? 'bg-accent-blue/15 text-accent-blue border border-accent-blue/20'
-                        : 'text-slate-400 hover:bg-slate-950/20 hover:text-text-primary border border-transparent'
+                        ? 'bg-[#00ff66] text-black border border-[#00ff66]'
+                        : 'text-[#64748b] hover:bg-[#0c0f17] hover:text-text-primary border border-transparent'
                     }`}
                   >
                     <Database className="h-4 w-4" />
@@ -2418,7 +2420,7 @@ function App() {
                   </button>
                 </nav>
               </div>
-              <div className="border-t border-slate-800/60 pt-4 mt-6">
+              <div className="border-t border-[#1b2333] pt-4 mt-6">
                 <div className="flex items-center gap-2 text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
                   <span>Phase 24 Engine</span>
                 </div>
@@ -2430,7 +2432,7 @@ function App() {
               {settingsTab === 'visual' && (
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                   <div className="xl:col-span-2 flex flex-col gap-6">
-                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
                       <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Select Theme Profile</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {Object.entries(THEME_PROFILES).map(([key, profile]) => {
@@ -2440,10 +2442,10 @@ function App() {
                             <button
                               key={key}
                               onClick={() => updateSetting('theme', key)}
-                              className={`relative flex flex-col text-left p-4 rounded-xl border transition-all cursor-pointer group ${
+                              className={`relative flex flex-col text-left p-4 rounded-sm border transition-all cursor-pointer group ${
                                 isSelected
-                                  ? 'border-accent-blue bg-accent-blue/10 shadow-lg shadow-accent-blue/10'
-                                  : 'border-slate-800/80 bg-slate-950/20 hover:border-slate-700 hover:bg-slate-950/40'
+                                  ? 'border-accent-blue bg-accent-blue/10'
+                                  : 'border-[#1b2333] bg-[#0c0f17] hover:border-[#1b2333] '
                               }`}
                             >
                               <div className="flex items-center justify-between mb-3 w-full">
@@ -2455,9 +2457,9 @@ function App() {
                                 )}
                               </div>
                               <div className="flex gap-2.5">
-                                <span className="h-4.5 w-4.5 rounded-full border border-slate-800" style={{ backgroundColor: profile.surface }} title="Background" />
-                                <span className="h-4.5 w-4.5 rounded-full border border-slate-800" style={{ backgroundColor: profile.surfaceCard }} title="Cards" />
-                                <div className="h-4 w-px bg-slate-800" />
+                                <span className="h-4.5 w-4.5 rounded-full border border-[#1b2333]" style={{ backgroundColor: profile.surface }} title="Background" />
+                                <span className="h-4.5 w-4.5 rounded-full border border-[#1b2333]" style={{ backgroundColor: profile.surfaceCard }} title="Cards" />
+                                <div className="h-4 w-px bg-[#1b2333]" />
                                 <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentBlue }} title="Primary Blue Accent" />
                                 <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentPurple }} title="Purple Accent" />
                                 <span className="h-4.5 w-4.5 rounded-full" style={{ backgroundColor: profile.accentGreen }} title="Green Accent" />
@@ -2469,7 +2471,7 @@ function App() {
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
                       <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-5">Translucency & Frosting</h3>
                       <div className="space-y-6">
                         <div>
@@ -2484,7 +2486,7 @@ function App() {
                             step="0.05"
                             value={cardOpacity}
                             onChange={e => updateSetting('cardOpacity', parseFloat(e.target.value))}
-                            className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-slate-800 outline-none"
+                            className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-[#1b2333] outline-none"
                           />
                           <div className="mt-1 flex justify-between text-[10px] text-slate-500 font-semibold">
                             <span>20% (Max Glass)</span>
@@ -2504,7 +2506,7 @@ function App() {
                             step="1"
                             value={backdropBlur}
                             onChange={e => updateSetting('backdropBlur', parseInt(e.target.value))}
-                            className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-slate-800 outline-none"
+                            className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-[#1b2333] outline-none"
                           />
                           <div className="mt-1 flex justify-between text-[10px] text-slate-500 font-semibold">
                             <span>4px (Sharp)</span>
@@ -2513,7 +2515,7 @@ function App() {
                         </div>
                       </div>
                     </div>
-                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
                       <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Typography Calibration</h3>
                       <div className="space-y-4">
                         <div>
@@ -2525,7 +2527,7 @@ function App() {
                               setLocalDeveloperFont(val)
                               updateSetting('developer_font', val)
                             }}
-                            className="w-full rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2 text-xs text-text-primary outline-none focus:border-accent-blue/50 cursor-pointer transition-all"
+                            className="w-full rounded-sm border border-[#1b2333] bg-[#0c0f17] px-3 py-2 text-xs text-text-primary outline-none focus:border-accent-blue/50 cursor-pointer transition-all"
                           >
                             <option value="JetBrains Mono">JetBrains Mono (Console default)</option>
                             <option value="Fira Code">Fira Code (Ligature ready)</option>
@@ -2541,9 +2543,9 @@ function App() {
                   </div>
 
                   <div className="xl:col-span-1">
-                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5 flex flex-col h-full">
+                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5 flex flex-col h-full">
                       <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Sandbox Preview</h3>
-                      <div className="flex-1 flex flex-col items-center justify-center p-4 rounded-xl border border-slate-800 bg-[#0B0F19] relative overflow-hidden min-h-[280px] w-full">
+                      <div className="flex-1 flex flex-col items-center justify-center p-4 rounded-sm border border-[#1b2333] bg-[#07090e] relative overflow-hidden min-h-[280px] w-full">
                         <div className="absolute top-1/4 left-1/4 h-28 w-28 rounded-full bg-accent-blue/30 blur-2xl animate-pulse-soft" />
                         <div className="absolute bottom-1/4 right-1/4 h-24 w-24 rounded-full bg-accent-purple/35 blur-2xl" />
                         <div className="absolute top-1/2 right-1/3 h-16 w-16 rounded-full bg-accent-amber/20 blur-xl" />
@@ -2557,13 +2559,13 @@ function App() {
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
-                            <div className="rounded-lg border border-slate-800/60 dynamic-card p-2.5 space-y-2">
+                            <div className="rounded-sm border border-[#1b2333] dynamic-card p-2.5 space-y-2">
                               <div className="flex justify-between items-center">
                                 <span className="h-2 w-8 rounded bg-slate-700/65" />
                                 <span className="h-2.5 w-2.5 rounded bg-accent-blue/20" />
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <div className="relative h-7 w-7 rounded-full border-2 border-slate-800 flex items-center justify-center">
+                                <div className="relative h-7 w-7 rounded-full border-2 border-[#1b2333] flex items-center justify-center">
                                   <div className="h-4.5 w-4.5 rounded-full border-2 border-accent-blue border-r-transparent animate-spin-slow" />
                                   <span className="absolute text-[8px] font-bold text-accent-blue scale-90">65</span>
                                 </div>
@@ -2573,7 +2575,7 @@ function App() {
                                 </div>
                               </div>
                             </div>
-                            <div className="rounded-lg border border-slate-800/60 dynamic-card p-2.5 space-y-2">
+                            <div className="rounded-sm border border-[#1b2333] dynamic-card p-2.5 space-y-2">
                               <div className="flex justify-between items-center">
                                 <span className="h-2 w-10 rounded bg-slate-700/65" />
                                 <span className="h-2.5 w-2.5 rounded bg-accent-purple/20" />
@@ -2584,15 +2586,15 @@ function App() {
                                   <span className="h-1.5 w-12 rounded bg-slate-700/40" />
                                 </div>
                                 <div className="flex items-center gap-1">
-                                  <span className="h-2.5 w-2.5 rounded border border-slate-700" />
+                                  <span className="h-2.5 w-2.5 rounded border border-[#1b2333]" />
                                   <span className="h-1.5 w-10 rounded bg-slate-700/40" />
                                 </div>
                               </div>
                             </div>
                           </div>
-                          <div className="rounded-lg border border-slate-800/60 dynamic-card p-2.5 space-y-2">
+                          <div className="rounded-sm border border-[#1b2333] dynamic-card p-2.5 space-y-2">
                             <span className="h-2 w-12 rounded bg-slate-700/65 block" />
-                            <div className="h-8 flex items-end gap-1.5 px-1 bg-slate-950/20 rounded border border-slate-900/50 p-1">
+                            <div className="h-8 flex items-end gap-1.5 px-1 bg-[#0c0f17] rounded border border-slate-900/50 p-1">
                               {[30, 45, 60, 40, 75, 90, 50].map((h, idx) => (
                                 <div key={idx} className="flex-1 bg-gradient-to-t from-accent-blue to-accent-purple rounded-t-sm" style={{ height: `${h}%` }} />
                               ))}
@@ -2611,7 +2613,7 @@ function App() {
               {settingsTab === 'audio' && (
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                   <div className="xl:col-span-2 flex flex-col gap-6">
-                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
                       <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-5">Ambient Soundscapes Mixer</h3>
                       <div className="flex flex-col gap-4">
                         {[
@@ -2621,7 +2623,7 @@ function App() {
                         ].map(ch => {
                           const Icon = ch.icon
                           return (
-                            <div key={ch.id} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-slate-950/30 border border-slate-800/40 rounded-xl px-4 py-3 hover:bg-slate-950/50 transition-all duration-200">
+                            <div key={ch.id} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-[#0c0f17] border border-[#1b2333] rounded-sm px-4 py-3 transition-all duration-200">
                               <div className="flex items-center gap-3 w-36 shrink-0">
                                 <Icon className="h-4 w-4 text-slate-400" />
                                 <span className="text-xs font-semibold text-slate-300">{ch.label}</span>
@@ -2637,7 +2639,7 @@ function App() {
                                   ch.setVal(v)
                                   updateSetting(ch.id as SettingsKey, v)
                                 }}
-                                className={`flex-1 h-1.5 rounded-full cursor-pointer bg-slate-800 outline-none ${ch.colorClass}`}
+                                className={`flex-1 h-1.5 rounded-full cursor-pointer bg-[#1b2333] outline-none ${ch.colorClass}`}
                               />
                               <span className="text-xs font-bold text-slate-400 w-10 text-right tabular-nums">
                                 {Math.round(ch.val * 100)}%
@@ -2647,7 +2649,7 @@ function App() {
                         })}
 
                         {/* Deep Focus Alpha Waves (10Hz Beat) */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/30 border border-slate-800/40 rounded-xl px-4 py-3 hover:bg-slate-950/50 transition-all duration-200">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0c0f17] border border-[#1b2333] rounded-sm px-4 py-3 transition-all duration-200">
                           <div className="flex items-center gap-3">
                             <Brain className="h-4 w-4 text-accent-purple shrink-0" />
                             <div>
@@ -2662,7 +2664,7 @@ function App() {
                               updateSetting('ambient_alphaWaves', nextVal)
                             }}
                             className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${
-                              localAlphaWaves ? 'bg-accent-purple animate-pulse-soft' : 'bg-slate-800'
+                              localAlphaWaves ? 'bg-accent-purple animate-pulse-soft' : 'bg-[#1b2333]'
                             }`}
                           >
                             <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
@@ -2672,7 +2674,7 @@ function App() {
                         </div>
 
                         {/* Tactile Keyboard Click Feedback */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/30 border border-slate-800/40 rounded-xl px-4 py-3 hover:bg-slate-950/50 transition-all duration-200">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0c0f17] border border-[#1b2333] rounded-sm px-4 py-3 transition-all duration-200">
                           <div className="flex items-center gap-3">
                             <Keyboard className="h-4 w-4 text-accent-blue shrink-0" />
                             <div>
@@ -2687,7 +2689,7 @@ function App() {
                               updateSetting('tactile_feedback', nextVal)
                             }}
                             className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${
-                              localTactileFeedback ? 'bg-accent-blue' : 'bg-slate-800'
+                              localTactileFeedback ? 'bg-accent-blue' : 'bg-[#1b2333]'
                             }`}
                           >
                             <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
@@ -2698,7 +2700,7 @@ function App() {
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-1">Sound Effects</h3>
@@ -2706,13 +2708,13 @@ function App() {
                         </div>
                         <button
                           onClick={() => updateSetting('soundEnabled', !soundEnabled)}
-                          className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${soundEnabled ? 'bg-accent-blue' : 'bg-slate-800'}`}
+                          className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${soundEnabled ? 'bg-accent-blue' : 'bg-[#1b2333]'}`}
                         >
                           <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                         </button>
                       </div>
                     </div>
-                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-1">Enforce Session Boundary</h3>
@@ -2724,7 +2726,7 @@ function App() {
                             setLocalEnforceLockout(nextVal)
                             updateSetting('enforce_lockout', nextVal)
                           }}
-                          className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${localEnforceLockout ? 'bg-accent-purple animate-pulse-soft' : 'bg-slate-800'}`}
+                          className={`relative h-6 w-11 shrink-0 rounded-full transition-all cursor-pointer ${localEnforceLockout ? 'bg-accent-purple animate-pulse-soft' : 'bg-[#1b2333]'}`}
                         >
                           <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${localEnforceLockout ? 'translate-x-5' : 'translate-x-0'}`} />
                         </button>
@@ -2733,16 +2735,16 @@ function App() {
                   </div>
 
                   <div className="xl:col-span-1 flex flex-col gap-6">
-                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
                       <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Preset Snapshots</h3>
-                      <div className="space-y-3.5 mb-5 border-b border-slate-800/40 pb-5">
+                      <div className="space-y-3.5 mb-5 border-b border-[#1b2333] pb-5">
                         <p className="text-xs text-slate-400">Save your current environmental volume balance as a preset snapshot.</p>
                         <div className="flex flex-col gap-2">
                           <input
                             id="preset-name-input"
                             type="text"
                             placeholder="Preset Name (e.g. Rain Cafe)"
-                            className="rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-950/70 focus:bg-slate-950 focus:border-accent-blue/50 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all duration-200"
+                            className="rounded-sm border border-[#1b2333] bg-[#0c0f17] focus:bg-slate-950 focus:border-accent-blue/50 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-500 outline-none transition-all duration-200"
                             onKeyDown={e => {
                               if (e.key === 'Enter') {
                                 const val = (e.target as HTMLInputElement).value?.trim()
@@ -2780,7 +2782,7 @@ function App() {
                               updateSetting('audio_presets', [...audio_presets, newPreset])
                               if (el) el.value = ''
                             }}
-                            className="w-full rounded-lg bg-accent-blue/15 text-accent-blue border border-accent-blue/20 px-3 py-1.5 text-xs font-semibold hover:bg-accent-blue/25 active:scale-95 transition-all cursor-pointer text-center"
+                            className="w-full rounded-sm bg-[#00ff66] text-black border border-[#00ff66] px-3 py-1.5 text-xs font-semibold hover:bg-[#00ff66]/25 active:scale-95 transition-all cursor-pointer text-center"
                           >
                             Save Balance Preset
                           </button>
@@ -2796,7 +2798,7 @@ function App() {
                             {audio_presets.map((preset: any) => (
                               <div
                                 key={preset.id}
-                                className="flex items-center justify-between rounded-lg bg-slate-950/30 hover:bg-slate-950/50 border border-slate-800/40 p-2.5 group hover:border-slate-700/50 transition-all"
+                                className="flex items-center justify-between rounded-sm bg-[#0c0f17] border border-[#1b2333] p-2.5 group hover:border-[#1b2333] transition-all"
                               >
                                 <div
                                   className="flex-1 cursor-pointer"
@@ -2850,10 +2852,10 @@ function App() {
               {settingsTab === 'metrics' && (
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                   <div className="xl:col-span-2 flex flex-col gap-6">
-                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
                       <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-5">Target Focus Metrics</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="flex flex-col justify-between bg-slate-950/30 border border-slate-800/40 rounded-xl p-4">
+                        <div className="flex flex-col justify-between bg-[#0c0f17] border border-[#1b2333] rounded-sm p-4">
                           <div>
                             <p className="text-xs font-semibold text-slate-300">Daily Study Goal</p>
                             <p className="text-[10px] text-slate-505 mt-0.5 font-medium">Target study minutes per day</p>
@@ -2861,21 +2863,21 @@ function App() {
                           <div className="flex items-center justify-between mt-4">
                             <button
                               onClick={() => updateSetting('dailyGoalMinutes', Math.max(120, dailyGoalMinutes - 60))}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-350 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
+                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-350 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
                             >
                               -
                             </button>
                             <span className="text-xs font-bold text-slate-200">{Math.round(dailyGoalMinutes / 60)} hours</span>
                             <button
                               onClick={() => updateSetting('dailyGoalMinutes', Math.min(720, dailyGoalMinutes + 60))}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-350 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
+                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-350 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
                             >
                               +
                             </button>
                           </div>
                         </div>
 
-                        <div className="flex flex-col justify-between bg-slate-950/30 border border-slate-800/40 rounded-xl p-4">
+                        <div className="flex flex-col justify-between bg-[#0c0f17] border border-[#1b2333] rounded-sm p-4">
                           <div>
                             <p className="text-xs font-semibold text-slate-300">Sessions per Cycle</p>
                             <p className="text-[10px] text-slate-505 mt-0.5 font-medium">Study intervals before long breaks</p>
@@ -2883,21 +2885,21 @@ function App() {
                           <div className="flex items-center justify-between mt-4">
                             <button
                               onClick={() => updateSetting('targetSessionsPerCycle', Math.max(2, targetSessionsPerCycle - 1))}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-350 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
+                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-350 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
                             >
                               -
                             </button>
                             <span className="text-xs font-bold text-slate-200">{targetSessionsPerCycle} sessions</span>
                             <button
                               onClick={() => updateSetting('targetSessionsPerCycle', Math.min(6, targetSessionsPerCycle + 1))}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-350 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
+                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-350 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
                             >
                               +
                             </button>
                           </div>
                         </div>
 
-                        <div className="flex flex-col justify-between bg-slate-950/30 border border-slate-800/40 rounded-xl p-4">
+                        <div className="flex flex-col justify-between bg-[#0c0f17] border border-[#1b2333] rounded-sm p-4">
                           <div>
                             <p className="text-xs font-semibold text-slate-300">Short Break Duration</p>
                             <p className="text-[10px] text-slate-505 mt-0.5 font-medium">Breather length between cycles</p>
@@ -2905,21 +2907,21 @@ function App() {
                           <div className="flex items-center justify-between mt-4">
                             <button
                               onClick={() => updateSetting('shortBreakDurationMinutes', Math.max(3, shortBreakDurationMinutes - 1))}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-300 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold"
+                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-300 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold"
                             >
                               -
                             </button>
                             <span className="text-xs font-bold text-slate-200">{shortBreakDurationMinutes} minutes</span>
                             <button
                               onClick={() => updateSetting('shortBreakDurationMinutes', Math.min(15, shortBreakDurationMinutes + 1))}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-300 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold"
+                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-300 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold"
                             >
                               +
                             </button>
                           </div>
                         </div>
 
-                        <div className="flex flex-col justify-between bg-slate-950/30 border border-slate-800/40 rounded-xl p-4">
+                        <div className="flex flex-col justify-between bg-[#0c0f17] border border-[#1b2333] rounded-sm p-4">
                           <div>
                             <p className="text-xs font-semibold text-slate-300">Long Break Duration</p>
                             <p className="text-[10px] text-slate-505 mt-0.5 font-medium">Cooldown limit after target cycles</p>
@@ -2927,14 +2929,14 @@ function App() {
                           <div className="flex items-center justify-between mt-4">
                             <button
                               onClick={() => updateSetting('longBreakDurationMinutes', Math.max(10, longBreakDurationMinutes - 5))}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-300 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
+                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-300 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
                             >
                               -
                             </button>
                             <span className="text-xs font-bold text-slate-200">{longBreakDurationMinutes} minutes</span>
                             <button
                               onClick={() => updateSetting('longBreakDurationMinutes', Math.min(30, longBreakDurationMinutes + 5))}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-[#0B0F19] text-slate-300 hover:border-slate-700 hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
+                              className="flex h-8 w-8 items-center justify-center rounded-sm border border-[#1b2333] bg-[#07090e] text-slate-300 hover:border-[#1b2333] hover:text-text-primary active:scale-95 transition-all cursor-pointer font-bold animate-transition"
                             >
                               +
                             </button>
@@ -2945,7 +2947,7 @@ function App() {
                   </div>
 
                   <div className="xl:col-span-1">
-                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5 flex flex-col h-full">
+                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5 flex flex-col h-full">
                       <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Subject Categories</h3>
                       <div className="flex gap-2 mb-4">
                         <input
@@ -2953,7 +2955,7 @@ function App() {
                           onChange={e => setNewCategoryName(e.target.value)}
                           type="text"
                           placeholder="New Subject (e.g. Science)"
-                          className="flex-1 rounded-lg border border-slate-800 bg-slate-950/50 hover:bg-slate-950/70 focus:bg-slate-950 focus:border-accent-blue/50 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-550 outline-none transition-all duration-200"
+                          className="flex-1 rounded-sm border border-[#1b2333] bg-[#0c0f17] focus:bg-slate-950 focus:border-accent-blue/50 px-3 py-1.5 text-xs text-text-primary placeholder:text-slate-550 outline-none transition-all duration-200"
                           onKeyDown={e => {
                             if (e.key === 'Enter') {
                               const val = newCategoryName.trim()
@@ -2967,7 +2969,7 @@ function App() {
                           type="color"
                           value={newCategoryColor}
                           onChange={e => setNewCategoryColor(e.target.value)}
-                          className="h-8 w-8 cursor-pointer rounded-lg border border-slate-800 bg-slate-950/50 p-0.5"
+                          className="h-8 w-8 cursor-pointer rounded-sm border border-[#1b2333] bg-[#0c0f17] p-0.5"
                         />
                         <button
                           onClick={() => {
@@ -2976,7 +2978,7 @@ function App() {
                             addCategory(val, newCategoryColor)
                             setNewCategoryName('')
                           }}
-                          className="rounded-lg bg-accent-blue/10 border border-accent-blue/20 text-accent-blue px-3 py-1.5 text-xs font-semibold hover:bg-accent-blue/20 transition-all cursor-pointer"
+                          className="rounded-sm bg-accent-blue/10 border border-accent-blue/20 text-accent-blue px-3 py-1.5 text-xs font-semibold hover:bg-[#00ff66]/20 transition-all cursor-pointer"
                         >
                           Add
                         </button>
@@ -2987,8 +2989,8 @@ function App() {
                           <p className="text-xs italic text-slate-500 text-center py-4">No categories configured yet.</p>
                         ) : (
                           categories.map(cat => (
-                            <div key={cat.id} className="flex items-center gap-2 rounded-lg bg-slate-950/30 border border-slate-850 px-3 py-2">
-                              <span className="h-3 w-3 shrink-0 rounded-full border border-slate-850" style={{ backgroundColor: cat.color }} />
+                            <div key={cat.id} className="flex items-center gap-2 rounded-sm bg-[#0c0f17] border border-[#1b2333] px-3 py-2">
+                              <span className="h-3 w-3 shrink-0 rounded-full border border-[#1b2333]" style={{ backgroundColor: cat.color }} />
                               <span className="flex-1 text-xs font-semibold text-slate-200">{cat.name}</span>
                               <button
                                 onClick={() => deleteCategory(cat.id!)}
@@ -3008,21 +3010,21 @@ function App() {
               {settingsTab === 'vault' && (
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                   <div className="xl:col-span-2 flex flex-col gap-6">
-                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5">
+                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5">
                       <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-3">Backup & Import Vault</h3>
                       <p className="text-xs text-slate-400 mb-5 leading-relaxed">
                         All focus data is stored local-only on your device. Export a `.studybackup` container to secure your data or migrate configuration tables.
                       </p>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="rounded-xl border border-slate-800 bg-slate-950/30 p-5 flex flex-col justify-between hover:border-slate-700/60 transition-all">
+                        <div className="rounded-sm border border-[#1b2333] bg-[#0c0f17] p-5 flex flex-col justify-between hover:border-[#1b2333] transition-all">
                           <div>
                             <p className="text-xs font-semibold text-slate-300">Export Study Vault</p>
                             <p className="text-[10px] text-slate-500 mt-1 leading-normal font-medium">Constructs a JSON-based database bundle and triggers downloading.</p>
                           </div>
                           <button
                             onClick={exportStudyBackup}
-                            className="w-full mt-5 rounded-lg bg-accent-blue/15 text-accent-blue border border-accent-blue/20 py-2 text-xs font-semibold hover:bg-accent-blue/25 active:scale-95 transition-all cursor-pointer text-center"
+                            className="w-full mt-5 rounded-sm bg-[#00ff66] text-black border border-[#00ff66] py-2 text-xs font-semibold hover:bg-[#00ff66]/25 active:scale-95 transition-all cursor-pointer text-center"
                           >
                             Export Backup
                           </button>
@@ -3033,10 +3035,10 @@ function App() {
                           onDragLeave={() => setIsDragging(false)}
                           onDrop={handleFileDrop}
                           onClick={() => fileInputRef.current?.click()}
-                          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-5 text-center transition-all cursor-pointer ${
+                          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-sm p-5 text-center transition-all cursor-pointer ${
                             isDragging
                               ? 'border-accent-purple bg-accent-purple/10'
-                              : 'border-slate-800 bg-slate-950/20 hover:bg-slate-950/40 hover:border-slate-700/60'
+                              : 'border-[#1b2333] bg-[#0c0f17] hover:border-[#1b2333]'
                           }`}
                         >
                           <span className="text-2xl mb-1.5">📥</span>
@@ -3066,7 +3068,7 @@ function App() {
                       />
                     </div>
 
-                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 shadow-xl p-5">
+                    <div className="rounded-sm border border-red-500/20 bg-red-500/5 p-5">
                       <h3 className="text-xs font-bold text-red-400 tracking-wider uppercase mb-2">Destructive Database Sweep</h3>
                       <p className="text-xs text-red-300/80 mb-5 leading-relaxed">
                         Resetting is destructive and permanently sweeps out study logs, focus categories, tasks, and settings. This cannot be undone. We advise saving a backup first.
@@ -3077,7 +3079,7 @@ function App() {
                             resetData()
                           }
                         }}
-                        className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/20 active:scale-95 transition-all cursor-pointer"
+                        className="rounded-sm bg-red-500/10 border border-red-500/30 px-4 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/20 active:scale-95 transition-all cursor-pointer"
                       >
                         Clear & Reset All Data
                       </button>
@@ -3085,7 +3087,7 @@ function App() {
                   </div>
 
                   <div className="xl:col-span-1">
-                    <div className="rounded-xl border border-slate-800/60 dynamic-card shadow-xl p-5 flex flex-col h-full">
+                    <div className="rounded-sm border border-[#1b2333] dynamic-card p-5 flex flex-col h-full">
                       <h3 className="text-xs font-bold text-slate-200 tracking-wider uppercase mb-4">Recent Sessions</h3>
                       <div className="flex-1 overflow-y-auto max-h-[360px] pr-1 space-y-2">
                         {sessionHistory.length === 0 ? (
@@ -3095,7 +3097,7 @@ function App() {
                             .sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
                             .slice(0, 10)
                             .map(entry => (
-                            <div key={entry.id} className="flex flex-col gap-1 rounded-lg bg-slate-950/30 border border-slate-850 p-2.5">
+                            <div key={entry.id} className="flex flex-col gap-1 rounded-sm bg-[#0c0f17] border border-[#1b2333] p-2.5">
                               <div className="flex items-center gap-2">
                                 <span className={`h-2 w-2 rounded-full ${entry.type === 'study' ? 'bg-accent-blue' : 'bg-accent-amber'}`} />
                                 <span className="text-xs font-semibold text-slate-200">{entry.type === 'study' ? 'Study session' : 'Break time'}</span>
@@ -3120,7 +3122,7 @@ function App() {
         <div className="fixed inset-0 z-50 bg-[#020408] flex flex-col items-center justify-center overflow-hidden transition-opacity duration-1000 animate-fade-in animate-hrv-pacer">
           {/* Radial focal glow background pulse */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-accent-blue/10 via-accent-purple/10 to-accent-blue/10 blur-3xl opacity-20 animate-zen-breath" />
+            <div className="w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-[#00ff66]/5 via-[#f59e0b]/5 to-[#00ff66]/5 blur-3xl opacity-30 animate-zen-breath" />
           </div>
 
           {/* HTML5 Canvas Ambient Particle Background */}
@@ -3130,7 +3132,7 @@ function App() {
           <div className="relative z-10 flex flex-col items-center text-center space-y-8 select-none max-w-md px-6 animate-slide-in-up">
             {/* Cinematic countdown clock */}
             <div className="text-center">
-              <p className="text-[11rem] md:text-[14rem] font-extralight tracking-tighter text-white/95 font-mono leading-none select-none drop-shadow-[0_4px_24px_rgba(255,255,255,0.03)]">
+              <p className="text-[11rem] md:text-[14rem] text-[#00ff66] font-mono tracking-tighter leading-none select-none drop-shadow-[0_0_15px_rgba(0,255,102,0.4)]">
                 {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
               </p>
               <p className="text-xs text-slate-400 mt-3 uppercase tracking-wider font-semibold">
@@ -3143,7 +3145,7 @@ function App() {
               {(() => {
                 const activeTask = sessionTasks.find(t => t.id === activeTaskId)
                 return (
-                  <p className="text-lg font-bold text-slate-200 tracking-widest uppercase drop-shadow-[0_0_8px_rgba(59,130,246,0.35)] font-sans">
+                  <p className="text-lg font-bold text-slate-200 tracking-widest uppercase drop-shadow-[0_0_8px_rgba(0,255,102,0.35)] font-sans">
                     {activeTask ? activeTask.text : 'Radiant Silence'}
                   </p>
                 )
@@ -3154,14 +3156,14 @@ function App() {
             <div className="flex items-center gap-4 pt-4">
               <button
                 onClick={() => setIsTimerActive(!isTimerActive)}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 border border-slate-800 text-accent-blue transition-all hover:bg-slate-800 hover:scale-105 active:scale-95 cursor-pointer"
+                className="flex h-12 w-12 items-center justify-center rounded-sm bg-[#00ff66] text-black border border-[#00ff66] hover:bg-[#00ff66] active:scale-95 cursor-pointer"
                 title={isTimerActive ? "Pause session" : "Start session"}
               >
                 {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
               </button>
               <button
                 onClick={completeSession}
-                className="flex items-center gap-2 rounded-full bg-accent-green/15 text-accent-green border border-accent-green/30 px-6 py-3 text-xs font-bold transition-all hover:bg-accent-green/25 active:scale-95 cursor-pointer"
+                className="flex items-center gap-2 rounded-sm bg-[#00ff66] text-black border border-[#00ff66] px-6 py-3 text-xs font-bold active:scale-95 cursor-pointer"
               >
                 <Check className="h-4 w-4" />
                 Complete Focus
@@ -3173,7 +3175,7 @@ function App() {
           {!(localEnforceLockout && isTimerActive && timerMode === 'study') && (
             <button
               onClick={() => setIsZenMode(false)}
-              className="absolute top-8 left-8 flex h-10 w-10 items-center justify-center rounded-full bg-slate-950/40 border border-slate-800 hover:bg-slate-900 hover:text-text-primary text-slate-400 transition-colors cursor-pointer"
+              className="absolute top-8 left-8 flex h-10 w-10 items-center justify-center rounded-sm bg-[#0c0f17] border border-[#1b2333] hover:bg-[#0c0f17] text-[#64748b] transition-colors cursor-pointer"
               title="Exit Sanctuary"
             >
               <ChevronLeft className="h-5 w-5" />
@@ -3183,8 +3185,8 @@ function App() {
       )}
       {isHotkeyHudOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setIsHotkeyHudOpen(false)}>
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative w-full max-w-sm rounded-xl border border-slate-800/60 bg-[#0F172A]/70 backdrop-blur-md shadow-xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="absolute inset-0 bg-black/60 " />
+          <div className="relative w-full max-w-sm rounded-sm border border-[#1b2333] bg-[#0c0f17] p-5" onClick={e => e.stopPropagation()}>
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold">Keyboard Shortcuts</h3>
               <button onClick={() => setIsHotkeyHudOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-surface hover:text-text-primary">
@@ -3199,9 +3201,9 @@ function App() {
                 { keys: 'C', action: 'Complete current session' },
                 { keys: '?', action: 'Toggle this shortcut panel' },
               ].map(item => (
-                <div key={item.keys} className="flex items-center justify-between rounded-lg border border-border-subtle bg-surface/50 px-4 py-3">
+                <div key={item.keys} className="flex items-center justify-between rounded-sm border border-[#1b2333] bg-[#07090e] px-4 py-3">
                   <span className="text-sm text-text-primary">{item.action}</span>
-                  <kbd className="rounded border border-border-subtle bg-surface px-2 py-0.5 font-mono text-[10px] font-bold uppercase shadow-sm">{item.keys}</kbd>
+                  <kbd className="rounded border border-[#1b2333] bg-surface px-2 py-0.5 font-mono text-[10px] font-bold uppercase">{item.keys}</kbd>
                 </div>
               ))}
             </div>
@@ -3211,8 +3213,8 @@ function App() {
       )}
 
       {activeToast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-[#020617]/90 backdrop-blur-xl border border-slate-700/50 rounded-full px-4 py-1.5 shadow-2xl text-[11px] font-mono tracking-wider text-slate-200 animate-slide-down">
-          <kbd className="bg-slate-800 text-slate-400 border border-slate-700 rounded px-1.5 py-0.5 text-[9px] font-sans">{activeToast.key}</kbd>
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-[#07090e] border border-[#1b2333] rounded-full px-4 py-1.5 text-[11px] font-mono tracking-wider text-slate-200 animate-slide-down">
+          <kbd className="bg-[#1b2333] text-slate-400 border border-[#1b2333] rounded px-1.5 py-0.5 text-[9px] font-sans">{activeToast.key}</kbd>
           <span>{activeToast.message}</span>
         </div>
       )}
