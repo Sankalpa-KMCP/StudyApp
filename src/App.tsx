@@ -288,6 +288,15 @@ function App() {
   const [localVolumeWhiteNoise, setLocalVolumeWhiteNoise] = useState(0.5)
   const [localAlphaWaves, setLocalAlphaWaves] = useState(0.0)
 
+  // Guided HRV Breathing state
+  const [breathTime, setBreathTime] = useState(0)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBreathTime(t => (t + 1) % 12)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
   // Zen Mode, Active View Router & Backups Drag/Drop
   const [isZenMode, setIsZenMode] = useState(false)
   const [activeTab, setActiveTab] = useState<'focus' | 'analytics' | 'journal' | 'settings'>('focus')
@@ -1732,6 +1741,38 @@ function App() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Guided HRV Coherence Breath Pacer (Active during Break) */}
+                      {timerMode !== 'study' && (
+                        <div className="mt-5 border border-white/[0.04] bg-white/[0.02] rounded-2xl p-4 flex flex-col items-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)] transition-all duration-500 animate-slide-in-up">
+                          <div className="flex justify-between w-full text-[10px] text-white/50 tracking-wider uppercase font-semibold">
+                            <span>Guided HRV Breathing</span>
+                            <span className="text-[9px] text-accent-blue tracking-widest animate-pulse font-mono">Coherence Active</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 py-2 w-full justify-center">
+                            {/* Animated Breathing Circle */}
+                            <div className="relative flex h-14 w-14 items-center justify-center rounded-full border transition-all duration-1000 ease-in-out"
+                              style={{
+                                transform: breathTime < 5 ? `scale(${1 + (breathTime / 5) * 0.2})` : breathTime < 7 ? 'scale(1.2)' : `scale(${1.2 - ((breathTime - 7) / 5) * 0.4})`,
+                                borderColor: breathTime < 5 ? 'rgba(255,255,255,0.15)' : breathTime < 7 ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)',
+                                backgroundColor: breathTime < 5 ? 'rgba(255,255,255,0.02)' : breathTime < 7 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                              }}
+                            >
+                              <div className="h-6 w-6 rounded-full bg-white/20 blur-sm animate-pulse" />
+                            </div>
+
+                            <div className="flex flex-col">
+                              <span className="text-xs font-mono font-bold tracking-widest text-white uppercase">
+                                {breathTime < 5 ? 'Inhale 💨' : breathTime < 7 ? 'Hold 🧘' : 'Exhale 🌬️'}
+                              </span>
+                              <span className="text-[9px] text-white/40 font-semibold mt-0.5">
+                                Regulate heart-rate coherence
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Ambient Controls */}
                       <div className="mt-5 space-y-3">
