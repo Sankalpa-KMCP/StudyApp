@@ -815,11 +815,29 @@ function App() {
   // HUD Toast Auto-Dismissal
   useEffect(() => {
     if (!activeToast) return
+    const duration = activeToast.key === 'LEVEL UP' ? 4000 : 1500
     const timer = setTimeout(() => {
       setActiveToast(null)
-    }, 1500)
+    }, duration)
     return () => clearTimeout(timer)
   }, [activeToast])
+
+  // XP Level Up milestone detector
+  const prevLevelRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (isDataReady && level !== undefined) {
+      if (prevLevelRef.current === null) {
+        prevLevelRef.current = level
+      } else if (level > prevLevelRef.current) {
+        setActiveToast({
+          key: 'LEVEL UP',
+          message: `Reached Level ${level}! Keep up the focus! 🎉`,
+          id: Date.now()
+        })
+        prevLevelRef.current = level
+      }
+    }
+  }, [level, isDataReady])
 
   // Page Visibility Auto-Pause
   useEffect(() => {
