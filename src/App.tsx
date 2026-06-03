@@ -1512,39 +1512,39 @@ function App() {
       
       {/* Collapsible/Floating Glassmorphic Sidebar */}
       {!isZenMode && (
-        <aside className="w-full md:w-64 shrink-0 bg-black/20 border-b md:border-b-0 md:border-r border-white/5 p-4 md:p-6 flex flex-col justify-between gap-6 transition-all duration-300 z-20">
+        <aside className="w-full md:w-64 shrink-0 bg-white/[0.02] backdrop-blur-xl border-b md:border-b-0 md:border-r border-white/[0.06] p-4 md:p-6 flex flex-col justify-between gap-6 transition-all duration-300 z-20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
           <div className="flex flex-col gap-6">
             
             {/* Branding Logo */}
             <div className="flex items-center gap-3 px-1">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-accent-blue to-accent-purple shadow-lg shadow-accent-blue/20">
-                <Brain className="h-5 w-5 text-slate-950 stroke-[2.5]" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                <Brain className="h-5 w-5 text-white stroke-[2.5]" />
               </div>
               <div>
-                <h1 className="text-base font-bold tracking-tight bg-gradient-to-r from-text-primary to-accent-blue bg-clip-text text-transparent">Aether</h1>
-                <p className="text-[9px] text-slate-450 font-bold tracking-widest font-mono uppercase">Study Sanctuary</p>
+                <h1 className="text-base font-semibold tracking-tight text-white">Aether</h1>
+                <p className="text-[9px] text-white/60 font-bold tracking-widest font-mono uppercase">Study Sanctuary</p>
               </div>
             </div>
 
             {/* Streak & Progression Panel */}
-            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-3 shadow-sm">
+            <div className="bg-white/[0.03] backdrop-blur-md border border-white/[0.06] rounded-2xl p-4 space-y-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <Flame className="h-4 w-4 text-orange-500 animate-pulse-soft" />
-                  <span className="text-xs font-bold font-mono text-orange-400">{currentStreak} Day Streak</span>
+                  <Flame className="h-4 w-4 text-orange-400 animate-pulse-soft" />
+                  <span className="text-xs font-semibold font-mono text-white/80">{currentStreak} Day Streak</span>
                 </div>
-                <span className="rounded-lg bg-accent-purple/20 border border-accent-purple/30 px-2 py-0.5 text-[9px] font-extrabold text-accent-purple font-mono tracking-wider">
+                <span className="rounded-lg bg-white/10 border border-white/10 px-2 py-0.5 text-[9px] font-semibold text-white/95 font-mono tracking-wider">
                   LV. {level}
                 </span>
               </div>
               <div className="space-y-1">
-                <div className="flex justify-between text-[9px] text-slate-400 font-semibold">
+                <div className="flex justify-between text-[9px] text-white/60 font-semibold">
                   <span>Level Progress</span>
                   <span>{xpProgressPercent}%</span>
                 </div>
                 <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
                   <div
-                    className="h-full rounded-full bg-accent-purple transition-all duration-300 shadow-[0_0_8px_var(--color-accent-purple)]"
+                    className="h-full rounded-full bg-white/40 transition-all duration-300"
                     style={{ width: `${xpProgressPercent}%` }}
                   />
                 </div>
@@ -1567,7 +1567,7 @@ function App() {
                     key={tab.id}
                     disabled={isLocked}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`nav-tab shrink-0 w-full rounded-none ${isActive ? 'bg-[#c5a880] text-[#111215] font-medium' : 'text-slate-400 hover:bg-white/5'} ${isLocked ? 'opacity-30 cursor-not-allowed hover:bg-transparent' : 'cursor-pointer'}`}
+                    className={`nav-tab shrink-0 w-full rounded-xl transition-all duration-300 ease-out ${isActive ? 'bg-white/10 text-white font-medium border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' : 'text-white/60 hover:bg-white/5 hover:text-white'} ${isLocked ? 'opacity-30 cursor-not-allowed hover:bg-transparent' : 'cursor-pointer'}`}
                     title={isLocked ? "Focus Lockout Active" : undefined}
                   >
                     <Icon className="h-4 w-4" />
@@ -1631,12 +1631,12 @@ function App() {
                   
                   {/* Left block (Clock & Soundscapes) - Grid 5 */}
                   <div className="lg:col-span-5 flex flex-col gap-6">
-                    <div className="relative overflow-hidden flex flex-col border border-white/5 dynamic-card p-6">
+                    <div className="relative overflow-hidden flex flex-col border border-white/[0.06] dynamic-card p-6">
                       <div className="flex items-center justify-between mb-6">
-                        <span className="font-serif-luxury italic tracking-wide text-[#c5a880]/80 text-xs uppercase">01 / CHRONOS ENGINE</span>
+                        <span className="font-serif-luxury italic tracking-wide text-white/80 text-xs uppercase">01 / CHRONOS ENGINE</span>
                         <button
                           onClick={() => setIsZenMode(true)}
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-none text-[10px] font-medium border border-[#c5a880]/20 bg-[#c5a880]/10 text-[#c5a880] hover:bg-[#c5a880]/20 transition-all cursor-pointer"
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-medium border border-white/10 bg-white/5 text-white/90 hover:bg-white/10 transition-all duration-300 ease-out cursor-pointer"
                         >
                           <Sparkles className="h-3 w-3" />
                           <span>Sanctuary Mode (Z)</span>
@@ -1757,9 +1757,9 @@ function App() {
                     </div>
 
                     {/* HRV Coherence Pacer Card */}
-                    <div className="border border-white/5 dynamic-card p-5 animate-hrv-pacer">
+                    <div className="border border-white/[0.06] dynamic-card p-5 animate-hrv-pacer">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-[9px] font-mono tracking-widest text-[#c5a880]/90 uppercase bg-[#c5a880]/10 px-2.5 py-0.5 rounded-none border border-[#c5a880]/20">HRV Resonance</span>
+                        <span className="text-[9px] font-mono tracking-widest text-white/80 uppercase bg-white/5 px-2.5 py-0.5 rounded-xl border border-white/10">HRV Resonance</span>
                         <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">8s Breathe</span>
                       </div>
                       <div className="flex items-center gap-4 bg-[#0c0f17]/40 border border-white/5 px-4 py-3 rounded-xl">
@@ -1777,20 +1777,20 @@ function App() {
 
                   {/* Right block (Task Objectives) - Grid 7 */}
                   <div className="lg:col-span-7 flex flex-col gap-6 h-full">
-                    <div className="border border-white/5 dynamic-card p-6 flex flex-col h-full">
-                      <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+                    <div className="border border-white/[0.06] dynamic-card p-6 flex flex-col h-full">
+                      <div className="flex items-center justify-between mb-4 border-b border-white/[0.06] pb-3">
                         <div>
-                          <h2 className="font-serif-luxury italic tracking-wide text-[#c5a880]/80 text-xs uppercase">02 / ACTIVE REGISTRY</h2>
-                          <p className="text-[10px] text-slate-555 font-semibold mt-0.5">Define and check target objectives</p>
+                          <h2 className="font-serif-luxury italic tracking-wide text-white/80 text-xs uppercase">02 / ACTIVE REGISTRY</h2>
+                          <p className="text-[10px] text-white/60 font-semibold mt-0.5">Define and check target objectives</p>
                         </div>
                         
                         {timerMode === 'study' && (
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-slate-450 uppercase font-mono">Active Subject:</span>
+                            <span className="text-[10px] font-bold text-white/60 uppercase font-mono">Active Subject:</span>
                             <select
                               value={timerCategoryId ?? ''}
                               onChange={e => setTimerCategoryId(e.target.value ? Number(e.target.value) : undefined)}
-                              className="rounded-xl border border-white/5 bg-black/20 px-2.5 py-1 text-xs text-text-primary outline-none focus:border-accent-blue/40 cursor-pointer"
+                              className="rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white outline-none focus:border-white/20 cursor-pointer transition-all duration-300"
                             >
                               <option value="" className="bg-surface">General</option>
                               {categories.map(cat => (
@@ -1944,20 +1944,20 @@ function App() {
                   {/* Summary Metrics Row */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
-                      { label: 'Monthly Study Time', value: `${totalMonthHours.toFixed(1)}h`, icon: Clock, iconColor: 'text-accent-blue', bg: 'bg-accent-blue/5' },
-                      { label: 'Weekly Break Cooldown', value: `${totalWeeklyBreakHours}h`, icon: Coffee, iconColor: 'text-accent-amber', bg: 'bg-accent-amber/5' },
-                      { label: 'Active Study Days', value: `${new Set(monthLogs.filter(l => l.studyMinutes > 0).map(l => l.dateString)).size} / ${totalDaysInMonth}`, icon: Calendar, iconColor: 'text-accent-green', bg: 'bg-accent-green/5' },
-                      { label: 'Streak Status', value: `${currentStreak} Days`, icon: Flame, iconColor: 'text-orange-500', bg: 'bg-orange-500/5' },
+                      { label: 'Monthly Study Time', value: `${totalMonthHours.toFixed(1)}h`, icon: Clock, iconColor: 'text-white' },
+                      { label: 'Weekly Break Cooldown', value: `${totalWeeklyBreakHours}h`, icon: Coffee, iconColor: 'text-white' },
+                      { label: 'Active Study Days', value: `${new Set(monthLogs.filter(l => l.studyMinutes > 0).map(l => l.dateString)).size} / ${totalDaysInMonth}`, icon: Calendar, iconColor: 'text-white' },
+                      { label: 'Streak Status', value: `${currentStreak} Days`, icon: Flame, iconColor: 'text-white' },
                     ].map(item => {
                       const Icon = item.icon
                       return (
-                        <div key={item.label} className="rounded-2xl border border-white/5 bg-black/20 p-5 flex items-center justify-between">
+                        <div key={item.label} className="border border-white/[0.06] dynamic-card p-5 flex items-center justify-between">
                           <div>
-                            <p className="text-[10px] text-slate-455 font-bold uppercase tracking-wider">{item.label}</p>
-                            <p className="text-xl font-extrabold text-text-primary mt-1 font-mono">{item.value}</p>
+                            <p className="text-[10px] text-white/60 font-semibold uppercase tracking-wider">{item.label}</p>
+                            <p className="text-xl font-semibold text-white mt-1 font-mono">{item.value}</p>
                           </div>
-                          <div className={`h-11 w-11 rounded-xl flex items-center justify-center border border-white/5 ${item.bg}`}>
-                            <Icon className={`h-5 w-5 ${item.iconColor}`} />
+                          <div className="h-11 w-11 rounded-xl flex items-center justify-center border border-white/10 bg-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                            <Icon className="h-5 w-5 text-white" />
                           </div>
                         </div>
                       )
@@ -1966,8 +1966,8 @@ function App() {
 
                   {/* Recharts Performance Trends */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <div className="lg:col-span-8 rounded-2xl border border-white/5 dynamic-card p-6">
-                      <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-5">Weekly Performance Trends</h3>
+                    <div className="lg:col-span-8 border border-white/[0.06] dynamic-card p-6">
+                      <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Weekly Performance Trends</h3>
                       {hasChartData ? (
                         <div className="h-[220px]">
                           <ResponsiveContainer width="100%" height="100%">
@@ -1993,7 +1993,7 @@ function App() {
                       )}
                     </div>
 
-                    <div className="lg:col-span-4 rounded-2xl border border-white/5 dynamic-card p-6 flex flex-col justify-between">
+                    <div className="lg:col-span-4 border border-white/[0.06] dynamic-card p-6 flex flex-col justify-between">
                       <div>
                         <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-5">Daily Efficiency Index</h3>
                         {hasChartData ? (
@@ -2025,8 +2025,8 @@ function App() {
 
                   {/* Subject Breakdown & Insights */}
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <div className="lg:col-span-6 rounded-2xl border border-white/5 dynamic-card p-6">
-                      <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-5">Subject Distribution</h3>
+                    <div className="lg:col-span-6 border border-white/[0.06] dynamic-card p-6">
+                      <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Subject Distribution</h3>
                       {categoryBreakdown.length > 0 ? (
                         <div className="flex items-center gap-8 justify-around">
                           <div className="w-32 h-32 shrink-0">
@@ -2068,8 +2068,8 @@ function App() {
                       )}
                     </div>
 
-                    <div className="lg:col-span-6 rounded-2xl border border-white/5 dynamic-card p-6">
-                      <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-5">Productivity Metrics</h3>
+                    <div className="lg:col-span-6 border border-white/[0.06] dynamic-card p-6">
+                      <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Productivity Metrics</h3>
                       <div className="grid grid-cols-2 gap-4">
                         {[
                           { label: 'TOP SUBJECT', value: topSubject || 'No logs', icon: Award, color: 'text-accent-purple', bg: 'bg-accent-purple/5' },
@@ -2102,9 +2102,9 @@ function App() {
                   
                   {/* Left Block (Calendar & Heatmap) - Grid 5 */}
                   <div className="lg:col-span-5 flex flex-col gap-6">
-                    <div className="border border-white/5 dynamic-card p-6">
+                    <div className="border border-white/[0.06] dynamic-card p-6">
                       <div className="flex items-center justify-between mb-5">
-                        <span className="font-serif-luxury italic tracking-wide text-[#c5a880]/80 text-xs uppercase">03 / HISTORICAL LEDGER</span>
+                        <span className="font-serif-luxury italic tracking-wide text-white/80 text-xs uppercase">03 / HISTORICAL LEDGER</span>
                       </div>
                       
                       {/* Calendar Navigation header */}
