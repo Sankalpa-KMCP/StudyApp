@@ -35,10 +35,10 @@ The workstation's background operations are orchestrated via four low-latency su
 
 | Subsystem | Underlying Technology | Engineering Specifications |
 | :--- | :--- | :--- |
-| **Storage & State Resilience Matrix** | `Dexie.js` (IndexedDB Wrapper) & `sessionStorage` | Implements a continuous local storage pipeline. An active `sessionStorage` heartbeat safety shadow tracks seconds elapsed and timer phases in real-time. If the session suffers accidental tab closure, system crash, or power failure, the boot sequencer detects the uncompleted sequence and gracefully archives it in the historical logs as an "Interrupted Session". |
-| **Acoustic Density & Synthesis Engine** | HTML5 Low-Level Web Audio API | Generates real-time soundscapes without external audio file requests. The **Tibetan Singing Bowl Chime** synthesizes a four-oscillator additive harmonic signal with a $180\text{ Hz}$ baseline core ($f_0$) and upper partials ($2.76 f_0$, $5.4 f_0$, $8.93 f_0$) routed through an exponential volume decay envelope. The **Tactile Keyboard Click** procedural model synthesizes real-time pink noise filtered through a sharp $380\text{ Hz}$ bandpass filter ($Q=6.0$) with a rapid decay envelope to simulate a physical mechanical Brown Switch relay. |
-| **HTML5 Radar Telemetry Canvas** | Decoupled 2D Canvas & React Refs | Integrates a performance-optimized 2D canvas context executing a `requestAnimationFrame` loop. Computes independent coordinate vector offsets for a field of 60 floating nodes. A 3-layered sine wave ribbon is overlayed, modulated dynamically by active soundscape mixer channel gains to produce an audio-reactive visual telemetry graph. |
-| **HRV Coherence Pacer** | GPU-Accelerated CSS Shadows | Runs a smooth breathing guide using keyframed CSS shadow transitions. Employs a strict 8-second cycle (4s inhalation, 4s exhalation) to cultivate Heart Rate Variability resonance and lower cardiac velocity during deep intellectual sprints. |
+| **Storage & State Resilience Matrix** | `Dexie.js` (IndexedDB Wrapper) & `sessionStorage` | Implements a continuous local storage pipeline. An active `sessionStorage` heartbeat safety shadow tracks seconds elapsed and timer phases in real-time. If the session suffers accidental tab closure, system crash, or power failure, the boot sequencer detects the uncompleted sequence and gracefully archives it as an "Interrupted Session". Version 3 migrations run relational schema upgrades (defaulting missing category IDs and estimated/actual focus cycles) to protect historical tables. |
+| **Acoustic Density & Synthesis Engine** | HTML5 Low-Level Web Audio API | Generates real-time soundscapes without external audio file requests. Synthesizes a four-oscillator additive harmonic Tibetan Singing Bowl Chime ($180\text{ Hz}$ baseline core, $f_0$), and a procedurally-filtered mechanical key thock. Also implements a discrete **Alpha Waves Binaural Beat** generator (parallel left/right oscillators at $100\text{ Hz}$ and $110\text{ Hz}$ producing a $10\text{ Hz}$ frequency offset) integrated into the multi-channel volume mixer. |
+| **HTML5 Radar Telemetry Canvas** | Decoupled 2D Canvas & React Refs | Integrates a performance-optimized 2D canvas context executing a `requestAnimationFrame` loop. Coordinate calculations for the 60 particle nodes are decoupled from draw routines, and the 3-layered sine wave ribbon is modulated dynamically by the active audio mixer's master gain node. |
+| **HRV Coherence Pacer** | GPU-Accelerated CSS Shadows | Runs a smooth breathing guide using keyframed CSS shadow transitions. Employs a strict 8-second cycle (4s inhalation scaling up, 4s exhalation scaling down) to cultivate Heart Rate Variability resonance and lower cardiac velocity during deep intellectual sprints. |
 
 ---
 
@@ -48,18 +48,18 @@ The primary operations of the console are divided into three high-fidelity modul
 
 ### `[MODULE // 01.CHRONOS FLOW ENGINE]`
 * **Precision Countdown Matrix:** Runs a highly accurate interval timer tracking focus blocks, short recovery phases, and extended recovery gates.
-* **Hard Lockout Mode:** When activated via settings, the engine enforces strict session boundaries by hiding the manual exit controls. Users cannot abort the flow sequence early.
-* **Relative Horizontal Timeline:** Displays a linear visual overview mapping historical study sprints, active periods, and planned recovery gates on a 24-hour horizontal track.
+* **Hard Lockout Mode:** When activated via settings, the engine enforces strict session boundaries by disabling tab navigation and shortcut-based exits. Manual exit triggers are stripped out entirely during active study blocks.
+* **Post-Sprint Reflection Gate:** When a study interval completes, a modal blocks the interface requesting attention focus and context-switching metrics, logging workstation stats immediately into history.
 
 ### `[MODULE // 02.TASK REGISTRY]`
 * **Relational Local Mapping:** Tasks are structured as local entities tracking estimates (target cycles) against actual elapsed focus intervals.
-* **Adaptive Legacy Fallbacks:** Contains dynamic schema adaptation layers that gracefully reconcile outdated local task versions to prevent schema friction.
-* **Interactive Rating Systems:** Implements focus self-reflection gates that prompt users to rate their attention and context-switching metrics at the completion of a sprint.
+* **Version 3 Schema Migrations:** Auto-maps legacy fields and defaults missing categories or estimation data during initialization lifecycles without losing user logs.
+* **Attention Focus Matrix:** Saves qualitative metrics alongside duration telemetry to map long-term intellectual efficiency.
 
 ### `[MODULE // 03.CUSTOMIZATION HUB]`
-* **Variable Typography Calibration:** Allows developers to switch the dashboard's monospaced and sans-serif typography interfaces (`JetBrains Mono`, `Fira Code`, `SF Mono`, `Outfit`, `Inter`) via custom `:root` CSS variables.
+* **Variable Typography Calibration:** Enables switching monospace and geometric displays (`JetBrains Mono`, `Fira Code`, `SF Mono`, `Outfit`, `Inter`) via CSS `:root` variable changes.
 * **Multi-Channel Soundscape Mixer:** Synthesizes and mixes independent volume channels (Rain, Cafe, White Noise, Alpha Waves) directly in the browser.
-* **Opacity Card Frosting Adjuster:** Fine-tunes the backdrop blur and card opacity via settings, letting users adjust visual transparency to their exact hardware performance needs.
+* **Real-time Glass Opacity Adjuster:** Injects card-opacity and backdrop-blur variables, altering CSS values dynamically to optimize interface performance.
 
 ---
 
@@ -84,5 +84,4 @@ To support local hosting and serverless deployments (such as GitHub Pages), the 
 2. **SPA Refresh Interceptor (`404.html` Route Recovery):**
    * Since GitHub Pages cannot serve custom path responses dynamically, a custom SPA routing guard is integrated.
    * If a user refreshes the page on a non-root route (e.g. `/journal` or `/analytics`), GitHub Pages falls back to the customized [404.html](file:///e:/New%20Web%20Lernning/study%20app/web/public/404.html) fallback.
-   * The fallback script parses the current route path and query parameters, wraps them into a temporary routing token, and redirects back to the index page.
-   * Before the main React bundle mounts in [index.html](file:///e:/New%20Web%20Lernning/study%20app/web/index.html), a script block checks for this redirect token, extracts the target route, and updates the browser history state cleanly using `history.replaceState` to allow React to load the intended page structure seamlessly.
+   * A script decodes search query routing keys and reconstructs them into history paths via `history.replaceState` before the main React index mounts.
