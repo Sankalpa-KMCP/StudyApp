@@ -4,6 +4,12 @@ export interface CategoryItem {
   color: string
 }
 
+export interface SubTask {
+  id: string
+  text: string
+  completed: boolean
+}
+
 export interface TaskItem {
   id?: number
   text: string
@@ -19,6 +25,7 @@ export interface TaskItem {
   priority?: 'low' | 'medium' | 'high'
   latestGrade?: number
   isStudySubject?: boolean
+  subtasks?: SubTask[]
 }
 
 export interface HistoryEntry {
