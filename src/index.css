@@ -1,28 +1,29 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Fira+Code:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-surface: #07090e;
-  --color-surface-card: #0c0f17;
-  --color-surface-card-hover: #111622;
-  --color-accent-blue: #0ea5e9;
-  --color-accent-purple: #818cf8;
-  --color-accent-amber: #f59e0b;
-  --color-accent-green: #10b981;
-  --color-text-primary: #F8FAFC;
-  --color-text-secondary: #94A3B8;
-  --color-text-muted: #64748B;
-  --color-border-card: #1e293b;
-  --color-border-subtle: #1e293b;
-  --color-intensity-0: #1e293b;
-  --color-intensity-1: #1d4ed8;
-  --color-intensity-2: #2563eb;
-  --color-intensity-3: #3b82f6;
+  --color-surface: #111215;
+  --color-surface-card: #16181d;
+  --color-surface-card-hover: #1c1f26;
+  --color-accent-blue: #c5a880;
+  --color-accent-purple: #d5bea1;
+  --color-accent-green: #a38c6b;
+  --color-accent-amber: #e0d3c1;
+  --color-text-primary: #e1ded7;
+  --color-text-secondary: #a3a39e;
+  --color-text-muted: #5f6368;
+  --color-border-card: #262930;
+  --color-border-subtle: #262930;
+  --color-intensity-0: #1c1e22;
+  --color-intensity-1: #423c34;
+  --color-intensity-2: #7d6e5c;
+  --color-intensity-3: #c5a880;
 }
 
 :root {
   --font-monospace: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
   --font-sans-geom: 'Outfit', 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-serif-luxury: 'Cormorant Garamond', serif;
 }
 
 .font-mono-console {
@@ -31,6 +32,10 @@
 
 .font-sans-geometric {
   font-family: var(--font-sans-geom) !important;
+}
+
+.font-serif-luxury {
+  font-family: var(--font-serif-luxury) !important;
 }
 
 body {
@@ -59,8 +64,8 @@ body {
 }
 
 @keyframes pulse-soft {
-  0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px var(--color-accent-blue)); }
-  50% { opacity: 0.5; filter: drop-shadow(0 0 1px var(--color-accent-blue)); }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .animate-pulse-soft {
@@ -129,16 +134,16 @@ body {
 
 @keyframes hrv-glow {
   0%, 100% {
-    box-shadow: inset 0 0 0 1px rgba(var(--surface-card-rgb), 0.05);
+    border-color: rgba(197, 168, 128, 0.05);
   }
   50% {
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 20px rgba(var(--surface-card-rgb), 0.15);
+    border-color: rgba(197, 168, 128, 0.2);
   }
 }
 
 .animate-hrv-pacer {
   animation: hrv-glow 8s ease-in-out infinite;
-  will-change: box-shadow, filter;
+  will-change: border-color;
 }
 
 /* Dynamic glassmorphic card definition */
@@ -147,15 +152,16 @@ body {
   background-color: rgba(var(--surface-card-rgb), var(--card-opacity)) !important;
   backdrop-filter: blur(var(--backdrop-blur)) !important;
   -webkit-backdrop-filter: blur(var(--backdrop-blur)) !important;
-  border: 1px solid rgba(255, 255, 255, 0.04) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #262930 !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dynamic-card:hover {
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
-  transform: translateY(-2px);
+  border-color: #c5a880 !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 /* Beautiful custom slider controls */
