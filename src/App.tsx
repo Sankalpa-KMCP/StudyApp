@@ -21,6 +21,7 @@ import {
 import { db } from './db/db'
 import type { TaskItem } from './db/types'
 import { formatMinutes, getIntensity, hexToRgb, parseStudyBackupPayload } from './lib/studyDashboard'
+import { requestWakeLock, releaseWakeLock } from './lib/wakeLock'
 
 // Custom audio hook
 import { useAmbientSynth } from './hooks/useAmbientSynth'
@@ -289,6 +290,7 @@ function App() {
   const notesRef = useRef('')
   const moodRef = useRef('')
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wakeLockSentinelRef = useRef<any>(null)
 
   useEffect(() => {
     notesRef.current = selectedDayLog?.notes ?? ''
@@ -814,6 +816,32 @@ function App() {
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [isTimerActive])
+
+  // Screen Wake Lock active toggle during active study timers
+  useEffect(() => {
+    let activeSentinel: any = null
+    let isMounted = true
+
+    async function acquireLock() {
+      if (isTimerActive && timerMode === 'study') {
+        const lock = await requestWakeLock()
+        if (isMounted && lock) {
+          activeSentinel = lock
+          wakeLockSentinelRef.current = lock
+        }
+      }
+    }
+
+    acquireLock()
+
+    return () => {
+      isMounted = false
+      if (activeSentinel) {
+        releaseWakeLock(activeSentinel)
+        wakeLockSentinelRef.current = null
+      }
+    }
+  }, [isTimerActive, timerMode])
 
   async function resetData() {
     await db.tasks.clear()
