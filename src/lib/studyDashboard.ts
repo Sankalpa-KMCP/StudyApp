@@ -294,4 +294,83 @@ export function parseStudyBackupPayload(raw: string): ParsedStudyBackupPayload |
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
+export function validateBackupPayload(parsed: unknown): boolean {
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return false
+  }
+
+  const p = parsed as Record<string, unknown>
+
+  // Validate version
+  if ('version' in p && typeof p.version !== 'number') {
+    return false
+  }
+
+  // Validate tasks array
+  if ('tasks' in p) {
+    if (!Array.isArray(p.tasks)) return false
+    for (const t of p.tasks) {
+      if (typeof t !== 'object' || t === null) return false
+      if (typeof t.text !== 'string' || typeof t.completed !== 'boolean') return false
+    }
+  }
+
+  // Validate history array
+  if ('history' in p) {
+    if (!Array.isArray(p.history)) return false
+    for (const h of p.history) {
+      if (typeof h !== 'object' || h === null) return false
+      if (typeof h.timestamp !== 'string' || !['study', 'break'].includes(h.type) || typeof h.durationMinutes !== 'number') return false
+    }
+  }
+
+  // Validate dailyLogs array
+  if ('dailyLogs' in p) {
+    if (!Array.isArray(p.dailyLogs)) return false
+    for (const l of p.dailyLogs) {
+      if (typeof l !== 'object' || l === null) return false
+      if (typeof l.dateString !== 'string' || typeof l.studyMinutes !== 'number' || typeof l.breakMinutes !== 'number') return false
+    }
+  }
+
+  // Validate settings array
+  if ('settings' in p) {
+    if (!Array.isArray(p.settings)) return false
+    for (const s of p.settings) {
+      if (typeof s !== 'object' || s === null) return false
+      if (typeof s.key !== 'string' || !('value' in s)) return false
+    }
+  }
+
+  // Validate categories array
+  if ('categories' in p) {
+    if (!Array.isArray(p.categories)) return false
+    for (const c of p.categories) {
+      if (typeof c !== 'object' || c === null) return false
+      if (typeof c.name !== 'string' || typeof c.color !== 'string') return false
+    }
+  }
+
+  // Validate flashcards array
+  if ('flashcards' in p) {
+    if (!Array.isArray(p.flashcards)) return false
+    for (const f of p.flashcards) {
+      if (typeof f !== 'object' || f === null) return false
+      if (typeof f.question !== 'string' || typeof f.answer !== 'string') return false
+    }
+  }
+
+  // Validate quickNotes array
+  if ('quickNotes' in p || 'quick_notes' in p) {
+    const notes = p.quickNotes ?? p.quick_notes
+    if (!Array.isArray(notes)) return false
+    for (const n of notes) {
+      if (typeof n !== 'object' || n === null) return false
+      if (typeof n.title !== 'string' || typeof n.content !== 'string') return false
+    }
+  }
+
+  return true
+}
+
 
