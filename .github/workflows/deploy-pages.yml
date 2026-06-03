@@ -24,14 +24,23 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.22'
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Production build
         run: npm run build
+
+      - name: Verify dist output
+        run: |
+          test -f dist/index.html
+          grep -q '/StudyApp/assets/' dist/index.html
+          ! grep -q 'main.tsx' dist/index.html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
