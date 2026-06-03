@@ -916,6 +916,27 @@ function App() {
     }
   }
 
+  async function exportStudyLogsCSV() {
+    try {
+      const logs = await db.daily_logs.toArray()
+      let csv = 'Date,Study Minutes,Break Minutes,Mood,Notes\n'
+      logs.forEach(l => {
+        const notes = l.notes ? `"${l.notes.replace(/"/g, '""')}"` : ''
+        csv += `${l.dateString},${l.studyMinutes},${l.breakMinutes},${l.mood || ''},${notes}\n`
+      })
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `study-logs-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('CSV Export failed:', err)
+      pushToast('EXPORT', 'CSV EXPORT FAILED')
+    }
+  }
+
   async function importStudyBackup(fileString: string) {
     try {
       const data = parseStudyBackupPayload(fileString)
@@ -1262,6 +1283,7 @@ function App() {
                   localAlphaWaves={localAlphaWaves}
                   setLocalAlphaWaves={setLocalAlphaWaves}
                   exportStudyBackup={exportStudyBackup}
+                  exportStudyLogsCSV={exportStudyLogsCSV}
                   importStudyBackup={importStudyBackup}
                   resetData={resetData}
                   categories={categories}

@@ -21,6 +21,7 @@ interface ControlDeckProps {
   localAlphaWaves: number
   setLocalAlphaWaves: (val: number) => void
   exportStudyBackup: () => void
+  exportStudyLogsCSV: () => void
   importStudyBackup: (val: string) => void
   resetData: () => void
   categories: CategoryItem[]
@@ -44,6 +45,7 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   localEnforceLockout,
   setLocalEnforceLockout,
   exportStudyBackup,
+  exportStudyLogsCSV,
   importStudyBackup,
   resetData,
   categories,
@@ -246,6 +248,24 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
               <span className="text-2xl mb-1.5">📥</span>
               <span className="text-xs font-bold text-white/90">Drag backup here</span>
               <span className="text-[9px] text-white/40 mt-0.5">or browse files to restore</span>
+            </div>
+          </div>
+
+          <div className="mt-5 border-t border-white/5 pt-5">
+            <span className="text-xs font-bold text-white/90 block mb-3">CSV Reports Export</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="rounded-2xl border border-white/5 bg-black/20 p-4 flex flex-col justify-between">
+                <div>
+                  <span className="text-xs font-bold text-white/95 block">Study Logs (CSV)</span>
+                  <span className="text-[10px] text-white/40 mt-1 leading-normal font-semibold">Export daily study and break durations, mood, and reflection notes.</span>
+                </div>
+                <button
+                  onClick={exportStudyLogsCSV}
+                  className="w-full mt-4 rounded-full bg-accent-blue/10 hover:bg-accent-blue/25 text-accent-blue border border-accent-blue/20 py-2.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
+                >
+                  Export CSV Logs
+                </button>
+              </div>
             </div>
           </div>
 
