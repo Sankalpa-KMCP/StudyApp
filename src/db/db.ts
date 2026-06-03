@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { TaskItem, HistoryEntry, DailyLog, SettingsRow, CategoryItem, FlashcardItem } from './types'
+import type { TaskItem, HistoryEntry, DailyLog, SettingsRow, CategoryItem, FlashcardItem, QuickNoteItem } from './types'
 
 class StudyDashboardDB extends Dexie {
   tasks!: Table<TaskItem, number>
@@ -8,6 +8,7 @@ class StudyDashboardDB extends Dexie {
   settings!: Table<SettingsRow, string>
   categories!: Table<CategoryItem, number>
   flashcards!: Table<FlashcardItem, number>
+  quick_notes!: Table<QuickNoteItem, number>
 
   constructor() {
     super('StudyDashboardDB')
@@ -51,7 +52,17 @@ class StudyDashboardDB extends Dexie {
       categories: '++id, name, color',
       flashcards: '++id, question, answer, categoryId, nextReviewDate'
     })
+    this.version(5).stores({
+      tasks: '++id, text, completed, createdAt, categoryId',
+      history: '++id, timestamp, type, durationMinutes, categoryId',
+      settings: '&key, value',
+      daily_logs: '&dateString, studyMinutes, breakMinutes',
+      categories: '++id, name, color',
+      flashcards: '++id, question, answer, categoryId, nextReviewDate',
+      quick_notes: '++id, title, content, categoryId, updatedAt'
+    })
   }
 }
 
 export const db = new StudyDashboardDB()
+

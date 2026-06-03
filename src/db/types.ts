@@ -57,4 +57,14 @@ export interface FlashcardItem {
   latestGrade?: number
 }
 
+export interface QuickNoteItem {
+  id?: number
+  title: string
+  content: string
+  categoryId?: number
+  color?: string
+  updatedAt: number
+}
+
+
 

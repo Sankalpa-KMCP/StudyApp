@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db'
-import type { HistoryEntry, SettingsKey, CategoryItem, FlashcardItem } from './types'
+import type { HistoryEntry, SettingsKey, CategoryItem, FlashcardItem, QuickNoteItem } from './types'
 
 export function useTasks() {
   const tasks = useLiveQuery(() => db.tasks.orderBy('id').reverse().toArray())
@@ -657,5 +657,42 @@ export function useFlashcards() {
     isLoading: flashcards === undefined
   }
 }
+
+export function useQuickNotes() {
+  const notes = useLiveQuery<QuickNoteItem[]>(() => db.quick_notes.orderBy('updatedAt').reverse().toArray())
+
+  const addNote = async (title: string, content: string, categoryId?: number) => {
+    await db.quick_notes.add({
+      title,
+      content,
+      categoryId,
+      color: '#06b6d4',
+      updatedAt: Date.now()
+    })
+  }
+
+  const updateNote = async (id: number, title: string, content: string, categoryId?: number, color?: string) => {
+    await db.quick_notes.update(id, {
+      title,
+      content,
+      categoryId,
+      color,
+      updatedAt: Date.now()
+    })
+  }
+
+  const deleteNote = async (id: number) => {
+    await db.quick_notes.delete(id)
+  }
+
+  return {
+    notes: notes ?? [],
+    addNote,
+    updateNote,
+    deleteNote,
+    isLoading: notes === undefined
+  }
+}
+
 
 

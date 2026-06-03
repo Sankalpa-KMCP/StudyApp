@@ -32,5 +32,9 @@ export const Database: Icon
   export const ChevronDown: Icon
   export const Layers: Icon
   export const GraduationCap: Icon
+  export const Edit3: Icon
+  export const Search: Icon
+  export const Save: Icon
+  export const FileText: Icon
 }
 

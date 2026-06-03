@@ -15,7 +15,8 @@ import {
   calculateMonthLogs,
   calculateCalendarHeatmapData,
   calculateSM2,
-  useFlashcards
+  useFlashcards,
+  useQuickNotes
 } from './db/hooks'
 import { db } from './db/db'
 import type { TaskItem } from './db/types'
@@ -33,6 +34,7 @@ import { ControlDeck } from './components/ControlDeck'
 import { ZenOverlay } from './components/ZenOverlay'
 import { ReflectionModal } from './components/ReflectionModal'
 import { FlashcardStudio } from './components/FlashcardStudio'
+import { QuickNotesDrawer } from './components/QuickNotesDrawer'
 
 const THEME_PROFILES: Record<string, {
   surface: string
@@ -156,6 +158,8 @@ function App() {
 
   const { studyMinutes: todayStudyMinutes, breakMinutes: todayBreakMinutes, incrementStudy, incrementBreak, isLoading: todayLogLoading } = useTodayLog()
   const { flashcards, addFlashcard, deleteFlashcard, submitFlashcardGrade, isLoading: flashcardsLoading } = useFlashcards()
+  const { notes: quickNotes, addNote: addQuickNote, updateNote: updateQuickNote, deleteNote: deleteQuickNote, isLoading: quickNotesLoading } = useQuickNotes()
+  const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear())
   const { categories, isLoading: categoriesLoading, addCategory, deleteCategory } = useCategories()
@@ -287,7 +291,7 @@ function App() {
   const handleModeSwitchRef = useRef<any>(null)
   const completeSessionRef = useRef<any>(null)
 
-  const isDataReady = !(tasksLoading || historyLoading || settingsLoading || todayLogLoading || allLogsLoading || categoriesLoading || flashcardsLoading)
+  const isDataReady = !(tasksLoading || historyLoading || settingsLoading || todayLogLoading || allLogsLoading || categoriesLoading || flashcardsLoading || quickNotesLoading)
 
   const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay()
   const totalDaysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
@@ -830,6 +834,7 @@ function App() {
     await db.settings.clear()
     await db.categories.clear()
     await db.flashcards.clear()
+    await db.quick_notes.clear()
     await db.settings.bulkAdd([
       { key: 'dailyGoalMinutes', value: 480 },
       { key: 'soundEnabled', value: true },
@@ -865,13 +870,14 @@ function App() {
 
   async function createDatabaseSnapshot() {
     try {
-      const [tasks, history, dailyLogs, settings, categories, flashcards] = await Promise.all([
+      const [tasks, history, dailyLogs, settings, categories, flashcards, quickNotes] = await Promise.all([
         db.tasks.toArray(),
         db.history.toArray(),
         db.daily_logs.toArray(),
         db.settings.toArray(),
         db.categories.toArray(),
         db.flashcards.toArray(),
+        db.quick_notes.toArray(),
       ])
       const snapshot = {
         timestamp: new Date().toISOString(),
@@ -880,7 +886,8 @@ function App() {
         dailyLogs,
         settings,
         categories,
-        flashcards
+        flashcards,
+        quickNotes
       }
       const existingStr = localStorage.getItem('study_dashboard_snapshots')
       const snapshots = existingStr ? JSON.parse(existingStr) : []
@@ -897,15 +904,16 @@ function App() {
 
   async function exportStudyBackup() {
     try {
-      const [tasks, history, dailyLogs, settings, categories, flashcards] = await Promise.all([
+      const [tasks, history, dailyLogs, settings, categories, flashcards, quickNotes] = await Promise.all([
         db.tasks.toArray(),
         db.history.toArray(),
         db.daily_logs.toArray(),
         db.settings.toArray(),
         db.categories.toArray(),
         db.flashcards.toArray(),
+        db.quick_notes.toArray(),
       ])
-      const data = { version: 1, exportedAt: new Date().toISOString(), tasks, history, dailyLogs, settings, categories, flashcards }
+      const data = { version: 1, exportedAt: new Date().toISOString(), tasks, history, dailyLogs, settings, categories, flashcards, quickNotes }
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -933,6 +941,7 @@ function App() {
         db.settings.clear(),
         db.categories.clear(),
         db.flashcards.clear(),
+        db.quick_notes.clear(),
       ])
 
       if (Array.isArray(data.tasks)) await db.tasks.bulkAdd(data.tasks)
@@ -941,6 +950,8 @@ function App() {
       if (Array.isArray(data.settings)) await db.settings.bulkAdd(data.settings)
       if (Array.isArray(data.categories)) await db.categories.bulkAdd(data.categories)
       if (Array.isArray(data.flashcards)) await db.flashcards.bulkAdd(data.flashcards)
+      if (Array.isArray(data.quickNotes)) await db.quick_notes.bulkAdd(data.quickNotes)
+      else if (Array.isArray(data.quick_notes)) await db.quick_notes.bulkAdd(data.quick_notes)
 
       console.log('Vault backup imported successfully. Reloading page...')
       window.location.reload()
@@ -1107,6 +1118,7 @@ function App() {
         isTimerActive={isTimerActive}
         timerMode={timerMode}
         localEnforceLockout={localEnforceLockout}
+        onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
       />
 
       {/* Main Workspace Frame */}
@@ -1381,6 +1393,17 @@ function App() {
           <span>{activeToast.message}</span>
         </div>
       )}
+
+      {/* Quick Notes sliding drawer Workspace */}
+      <QuickNotesDrawer
+        isOpen={isNotesOpen}
+        onClose={() => setIsNotesOpen(false)}
+        categories={categories}
+        notes={quickNotes}
+        addNote={addQuickNote}
+        updateNote={updateQuickNote}
+        deleteNote={deleteQuickNote}
+      />
 
     </div>
   )

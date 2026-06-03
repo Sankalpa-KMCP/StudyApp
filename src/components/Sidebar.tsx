@@ -1,4 +1,4 @@
-import { Brain, Clock, BarChart3, Calendar, Settings, Keyboard, Flame, Layers } from 'lucide-react'
+import { Brain, Clock, BarChart3, Calendar, Settings, Keyboard, Flame, Layers, FileText } from 'lucide-react'
 
 interface SidebarProps {
   isZenMode: boolean
@@ -11,6 +11,7 @@ interface SidebarProps {
   isTimerActive: boolean
   timerMode: 'study' | 'break'
   localEnforceLockout: boolean
+  onToggleNotes: () => void
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -23,7 +24,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsHotkeyHudOpen,
   isTimerActive,
   timerMode,
-  localEnforceLockout
+  localEnforceLockout,
+  onToggleNotes
 }) => {
   if (isZenMode) return null
 
@@ -94,6 +96,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             )
           })}
+          
+          <button
+            onClick={onToggleNotes}
+            className="nav-tab shrink-0 md:w-full w-auto rounded-xl text-white/60 hover:bg-white/5 hover:text-white transition-all duration-300 ease-out cursor-pointer"
+          >
+            <FileText className="h-4 w-4 text-accent-blue" />
+            <span>Quick Notes</span>
+          </button>
         </nav>
       </div>
 
