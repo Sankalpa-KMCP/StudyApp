@@ -299,6 +299,10 @@ function App() {
   const [activeToast, setActiveToast] = useState<{ key: string; message: string; id: number } | null>(null)
   const [localDeveloperFont, setLocalDeveloperFont] = useState('JetBrains Mono')
   const [localEnforceLockout, setLocalEnforceLockout] = useState(false)
+  const [showReflectionModal, setShowReflectionModal] = useState(false)
+  const [pendingSessionData, setPendingSessionData] = useState<{ elapsed: number; mode: 'study' | 'break'; timestamp: string; categoryId?: number } | null>(null)
+  const [attentionRating, setAttentionRating] = useState(4)
+  const [stabilityRating, setStabilityRating] = useState(4)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const volRainRef = useRef(localVolumeRain)
@@ -452,21 +456,15 @@ function App() {
     focus: d ? Math.min(Math.round((d.studyMin / dailyGoalMinutes) * 100), 100) : 0,
   })) : []
 
-  async function completeSession() {
-    if (completingRef.current) return
-    completingRef.current = true
-    const elapsed = secondsElapsed
-    const mode = timerMode
-    setIsTimerActive(false)
-    setSecondsElapsed(0)
-    const now = new Date()
-    const timestamp = `${monthNames[now.getMonth()]} ${now.getDate()}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  async function processSessionCompletion(elapsed: number, mode: 'study' | 'break', timestamp: string, categoryId?: number, attRating?: number, stabRating?: number) {
     await addHistoryEntry({
       timestamp,
       type: mode,
       durationMinutes: Math.floor(elapsed / 60),
-      categoryId: mode === 'study' ? timerCategoryId : undefined,
-    })
+      categoryId: mode === 'study' ? categoryId : undefined,
+      ...(attRating !== undefined ? { attentionRating: attRating } : {}),
+      ...(stabRating !== undefined ? { stabilityRating: stabRating } : {}),
+    } as any)
     const firstUncompleted = sessionTasks.find(t => !t.completed)
     if (firstUncompleted && firstUncompleted.id !== undefined) {
       await toggleTask(firstUncompleted.id)
@@ -504,6 +502,28 @@ function App() {
     } else {
       setTimerMode('study')
     }
+  }
+
+  async function completeSession() {
+    if (completingRef.current) return
+    completingRef.current = true
+    const elapsed = secondsElapsed
+    const mode = timerMode
+    setIsTimerActive(false)
+    setSecondsElapsed(0)
+    const now = new Date()
+    const timestamp = `${monthNames[now.getMonth()]} ${now.getDate()}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+
+    if (mode === 'study') {
+      setPendingSessionData({ elapsed, mode, timestamp, categoryId: timerCategoryId })
+      setAttentionRating(4)
+      setStabilityRating(4)
+      setShowReflectionModal(true)
+      completingRef.current = false
+      return
+    }
+
+    await processSessionCompletion(elapsed, mode, timestamp, timerCategoryId)
   }
 
   function handleModeSwitch(mode: 'study' | 'break') {
@@ -2782,6 +2802,71 @@ function App() {
           )}
         </div>
       )}
+      {showReflectionModal && pendingSessionData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+          <div className="relative w-full max-w-md border border-[#1b2333] bg-[#0c0f17] rounded-none p-6 animate-slide-in-up">
+            <div className="mb-4 pb-2 border-b border-white/5">
+              <h3 className="text-sm font-bold tracking-wider uppercase text-accent-amber font-mono">FLOW SESSION REFLECTION</h3>
+              <p className="text-[10px] text-slate-500 font-mono mt-1">Telemetry validation required for interval log archiving</p>
+            </div>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-xs font-bold text-slate-350 uppercase tracking-wide mb-2.5 font-mono">1. Internal Attention Focus</label>
+                <div className="flex gap-2.5">
+                  {[1, 2, 3, 4, 5].map(rating => (
+                    <button
+                      key={rating}
+                      onClick={() => setAttentionRating(rating)}
+                      className={`flex-1 py-2 text-xs font-bold border transition-all rounded-none cursor-pointer ${attentionRating === rating ? 'bg-accent-blue/15 text-accent-blue border-accent-blue/50' : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/10'}`}
+                    >
+                      {rating}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-between text-[9px] text-slate-555 mt-1 font-semibold">
+                  <span>Highly Distracted</span>
+                  <span>Flow State</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-350 uppercase tracking-wide mb-2.5 font-mono">2. Context-Switching Stability</label>
+                <div className="flex gap-2.5">
+                  {[1, 2, 3, 4, 5].map(rating => (
+                    <button
+                      key={rating}
+                      onClick={() => setStabilityRating(rating)}
+                      className={`flex-1 py-2 text-xs font-bold border transition-all rounded-none cursor-pointer ${stabilityRating === rating ? 'bg-accent-purple/15 text-accent-purple border-accent-purple/50' : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/10'}`}
+                    >
+                      {rating}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-between text-[9px] text-slate-555 mt-1 font-semibold">
+                  <span>Erratic/Fragmented</span>
+                  <span>Highly Resolute</span>
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  setShowReflectionModal(false)
+                  const data = pendingSessionData
+                  setPendingSessionData(null)
+                  completingRef.current = true
+                  await processSessionCompletion(data.elapsed, data.mode, data.timestamp, data.categoryId, attentionRating, stabilityRating)
+                }}
+                className="w-full py-3 text-xs font-extrabold uppercase tracking-widest bg-accent-green text-slate-950 hover:bg-accent-green/90 transition-all rounded-none cursor-pointer"
+              >
+                Log Workstation Telemetry
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isHotkeyHudOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setIsHotkeyHudOpen(false)}>
           <div className="absolute inset-0 bg-black/60 " />
