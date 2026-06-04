@@ -22,6 +22,7 @@ export interface HistoryEntryLike {
   durationMinutes: number
   categoryId?: number
   timestamp: string
+  createdAt?: number
 }
 
 export interface TaskCompletionLike {
@@ -81,11 +82,17 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } | nul
     : null
 }
 
-export function calculateMonthLogs<T extends StudyLogLike>(allLogs: T[], month: number, year: number) {
+export function calculateMonthLogs<T extends StudyLogLike>(
+  allLogs: T[],
+  month: number,
+  year: number,
+  studyBlockMinutes = 25,
+) {
   const prefix = `${year}-${String(month + 1).padStart(2, '0')}-`
   const monthLogs = allLogs.filter(log => log.dateString.startsWith(prefix))
   const totalMonthHours = monthLogs.reduce((sum, log) => sum + (log.studyMinutes || 0) / 60, 0)
-  const totalMonthSessions = monthLogs.reduce((sum, log) => sum + Math.floor((log.studyMinutes || 0) / 25), 0)
+  const blockMin = studyBlockMinutes > 0 ? studyBlockMinutes : 25
+  const totalMonthSessions = monthLogs.reduce((sum, log) => sum + Math.floor((log.studyMinutes || 0) / blockMin), 0)
 
   return {
     monthLogs,
@@ -125,18 +132,58 @@ export function calculateCategoryBreakdown(allHistory: HistoryEntryLike[], categ
   }
 }
 
-export function calculateCalendarHeatmapData(allHistory: HistoryEntryLike[], month: number, filterCategoryId: number | 'all') {
+export function formatHistoryTimestamp(date: Date = new Date()): string {
+  return `${MONTH_NAMES[date.getMonth()]} ${date.getDate()}, ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+export function parseLegacyHistoryTimestamp(timestamp: string): number {
+  const parts = timestamp.split(' ')
+  if (parts.length < 2) return Date.now()
+  const monthIndex = MONTH_NAMES.indexOf(parts[0])
+  if (monthIndex < 0) return Date.now()
+  const dayPart = parts[1].replace(',', '')
+  const day = Number.parseInt(dayPart, 10)
+  if (!Number.isFinite(day)) return Date.now()
+  let hours = 12
+  let minutes = 0
+  if (parts.length >= 3) {
+    const timeParts = parts[2].split(':')
+    hours = Number.parseInt(timeParts[0], 10) || 0
+    minutes = Number.parseInt(timeParts[1], 10) || 0
+  }
+  const now = new Date()
+  const year = now.getFullYear()
+  const parsed = new Date(year, monthIndex, day, hours, minutes)
+  if (parsed.getTime() > now.getTime() + 86400000) {
+    parsed.setFullYear(year - 1)
+  }
+  return parsed.getTime()
+}
+
+export function parseHistoryCreatedAt(entry: HistoryEntryLike): number {
+  if (entry.createdAt !== undefined && Number.isFinite(entry.createdAt)) {
+    return entry.createdAt
+  }
+  return parseLegacyHistoryTimestamp(entry.timestamp)
+}
+
+export function getHistoryDate(entry: HistoryEntryLike): Date {
+  return new Date(parseHistoryCreatedAt(entry))
+}
+
+export function getHistoryDayKey(entry: HistoryEntryLike): { month: number; day: number; year: number } {
+  const d = getHistoryDate(entry)
+  return { month: d.getMonth(), day: d.getDate(), year: d.getFullYear() }
+}
+
+export function calculateCalendarHeatmapData(allHistory: HistoryEntryLike[], month: number, year: number, filterCategoryId: number | 'all') {
   if (filterCategoryId === 'all') return null
 
   const dayMinutes = new Map<number, number>()
   for (const entry of allHistory) {
     if (entry.type !== 'study' || entry.categoryId !== filterCategoryId) continue
-    const parts = entry.timestamp.split(' ')
-    if (parts.length < 2) continue
-    const entryMonth = MONTH_NAMES.indexOf(parts[0])
-    if (entryMonth !== month) continue
-    const dayNumber = Number.parseInt(parts[1], 10)
-    if (!Number.isFinite(dayNumber)) continue
+    const { month: entryMonth, day: dayNumber, year: entryYear } = getHistoryDayKey(entry)
+    if (entryMonth !== month || entryYear !== year) continue
     dayMinutes.set(dayNumber, (dayMinutes.get(dayNumber) ?? 0) + entry.durationMinutes)
   }
 
@@ -239,8 +286,7 @@ export function calculateProductivityInsights(
 export function calculateSM2(q: number, prevRep = 0, prevEF = 2.5, prevInterval = 0) {
   const quality = Number.isFinite(q) ? Math.max(0, Math.min(5, q)) : 0
   let repetitionCount = prevRep
-  let easinessFactor = prevEF
-  let intervalDays = prevInterval
+  let intervalDays: number
 
   if (quality >= 3) {
     if (repetitionCount === 0) {
@@ -256,7 +302,7 @@ export function calculateSM2(q: number, prevRep = 0, prevEF = 2.5, prevInterval 
     intervalDays = 1
   }
 
-  easinessFactor = prevEF + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+  let easinessFactor = prevEF + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
   if (easinessFactor < 1.3) easinessFactor = 1.3
 
   return { repetitionCount, easinessFactor, intervalDays }
@@ -279,7 +325,10 @@ export function parseStudyBackupPayload(raw: string): ParsedStudyBackupPayload |
       version: Number.isFinite(Number(payload.version)) ? Number(payload.version) : 1,
       exportedAt: typeof payload.exportedAt === 'string' ? payload.exportedAt : new Date().toISOString(),
       tasks: toArray<TaskItem>(payload.tasks),
-      history: toArray<HistoryEntry>(payload.history),
+      history: toArray<HistoryEntry>(payload.history).map(h => ({
+        ...h,
+        createdAt: h.createdAt ?? parseLegacyHistoryTimestamp(h.timestamp),
+      })),
       dailyLogs: toArray<DailyLog>(payload.dailyLogs),
       settings: toArray<SettingsRow>(payload.settings),
       categories: toArray<CategoryItem>(payload.categories),
@@ -291,7 +340,7 @@ export function parseStudyBackupPayload(raw: string): ParsedStudyBackupPayload |
   }
 }
 
-const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+export const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 export function validateBackupPayload(parsed: unknown): boolean {
@@ -321,6 +370,7 @@ export function validateBackupPayload(parsed: unknown): boolean {
     for (const h of p.history) {
       if (typeof h !== 'object' || h === null) return false
       if (typeof h.timestamp !== 'string' || !['study', 'break'].includes(h.type) || typeof h.durationMinutes !== 'number') return false
+      if ('createdAt' in h && h.createdAt !== undefined && typeof h.createdAt !== 'number') return false
     }
   }
 
