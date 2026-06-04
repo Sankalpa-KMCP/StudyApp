@@ -1,0 +1,62 @@
+import type { ThemeProfile } from '../types/app'
+
+export const THEME_PROFILES: Record<string, ThemeProfile> = {
+  'midnight-oled': {
+    surface: '#0a0b10',
+    surfaceCard: '#11131e',
+    surfaceCardRgb: '17, 19, 30',
+    accentBlue: '#3b82f6',
+    accentPurple: '#6366f1',
+    accentGreen: '#10b981',
+    accentAmber: '#f59e0b',
+  },
+  'midnight-slate': {
+    surface: '#0f172a',
+    surfaceCard: '#1e293b',
+    surfaceCardRgb: '30, 41, 59',
+    accentBlue: '#38bdf8',
+    accentPurple: '#a78bfa',
+    accentGreen: '#34d399',
+    accentAmber: '#fbbf24',
+  },
+  'nordic-frost': {
+    surface: '#0f141c',
+    surfaceCard: '#1a2332',
+    surfaceCardRgb: '26, 35, 50',
+    accentBlue: '#88c0d0',
+    accentPurple: '#b48ead',
+    accentGreen: '#a3be8c',
+    accentAmber: '#ebcb8b',
+  },
+  'amber-retro': {
+    surface: '#0c0a09',
+    surfaceCard: '#1c1917',
+    surfaceCardRgb: '28, 25, 23',
+    accentBlue: '#f43f5e',
+    accentPurple: '#d946ef',
+    accentGreen: '#10b981',
+    accentAmber: '#f59e0b',
+  },
+  'nebula-purple': {
+    surface: '#0d0714',
+    surfaceCard: '#1c102b',
+    surfaceCardRgb: '28, 16, 43',
+    accentBlue: '#a855f7',
+    accentPurple: '#ec4899',
+    accentGreen: '#10b981',
+    accentAmber: '#f59e0b',
+  },
+}
+
+export const TOOLTIP_STYLE = {
+  backgroundColor: 'rgba(8, 10, 15, 0.85)',
+  backdropFilter: 'blur(16px)',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  borderRadius: '12px',
+  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.08)',
+  color: '#e1ded7',
+  outline: 'none',
+}
+
+export const DAY_NAMES_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+export const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
