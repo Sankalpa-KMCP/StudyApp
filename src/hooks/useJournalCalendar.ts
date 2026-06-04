@@ -2,13 +2,11 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { updateDailyReflection, useMonthLogsQuery } from '../db/hooks'
 import { calculateCalendarHeatmapData } from '../lib/studyDashboard'
 import { useCalendarData } from './useCalendarData'
-import type { CategoryItem, DailyLog, HistoryEntry, TaskItem } from '../db/types'
+import type { HistoryEntry, TaskItem } from '../db/types'
 
 interface UseJournalCalendarOptions {
   sessionHistory: HistoryEntry[]
   sessionTasks: TaskItem[]
-  allLogs: DailyLog[]
-  categories: CategoryItem[]
   dailyGoalMinutes: number
   studyBlockDurationMinutes: number
   todayStudyMinutes: number
@@ -18,7 +16,6 @@ interface UseJournalCalendarOptions {
 export function useJournalCalendar({
   sessionHistory,
   sessionTasks,
-  categories,
   dailyGoalMinutes,
   studyBlockDurationMinutes,
   todayStudyMinutes,
@@ -53,7 +50,6 @@ export function useJournalCalendar({
     currentYear,
     selectedDay,
     dailyGoalMinutes,
-    studyBlockDurationMinutes,
     todayStudyMinutes,
     todayBreakMinutes,
     categoryDayMinutes,

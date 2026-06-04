@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db'
-import type { HistoryEntry, SettingsKey, CategoryItem, FlashcardItem, QuickNoteItem, SettingsValue, TaskItem } from './types'
+import type { HistoryEntry, SettingsKey, FlashcardItem, QuickNoteItem, SettingsValue, TaskItem } from './types'
 import { calculateMonthLogs, calculateSM2, formatHistoryTimestamp } from '../lib/studyDashboard'
 
 export function useTasks() {

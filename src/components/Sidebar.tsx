@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Brain, Clock, BarChart3, Calendar, Settings, Keyboard, Flame, Layers, FileText } from 'lucide-react'
 
 interface SidebarProps {
@@ -34,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
   })
 
-  const updateIndicator = () => {
+  const updateIndicator = useCallback(() => {
     const activeBtn = tabRefs.current[activeTab]
     if (activeBtn) {
       setIndicatorStyle({
@@ -47,18 +47,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         opacity: 1
       })
     }
-  }
+  }, [activeTab])
 
   useEffect(() => {
     updateIndicator()
-    // Small timeout to allow layout settlement
     const timer = setTimeout(updateIndicator, 50)
     window.addEventListener('resize', updateIndicator)
     return () => {
       clearTimeout(timer)
       window.removeEventListener('resize', updateIndicator)
     }
-  }, [activeTab])
+  }, [updateIndicator])
 
   if (isZenMode) return null
 
