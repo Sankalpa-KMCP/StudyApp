@@ -94,10 +94,18 @@ class StudyDashboardDB extends Dexie {
 
 export const db = new StudyDashboardDB()
 
-;(Dexie as unknown as { on: (event: string, handler: (err: Error) => void) => void }).on('error', (err: Error) => {
-  console.error('Dexie Global Error Caught:', err)
-  if (typeof window !== 'undefined') {
-    const event = new CustomEvent('dexie-error', { detail: err })
-    window.dispatchEvent(event)
-  }
-})
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    const err = event.reason
+    if (!err || typeof err !== 'object' || !('name' in err)) return
+    const name = String((err as Error).name)
+    const message = String((err as Error).message ?? '')
+    const isDexieError = name === 'QuotaExceededError'
+      || name === 'DatabaseClosedError'
+      || message.toLowerCase().includes('indexeddb')
+      || message.toLowerCase().includes('quota')
+    if (!isDexieError) return
+    console.error('Dexie Global Error Caught:', err)
+    window.dispatchEvent(new CustomEvent('dexie-error', { detail: err }))
+  })
+}
