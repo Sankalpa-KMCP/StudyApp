@@ -55,6 +55,15 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
     return '#ff9500' // system orange
   }, [timerMode, isLongBreak])
 
+  // Get current breathing scale value
+  const currentScale = useMemo(() => {
+    return breathTime < 5 
+      ? 1 + (breathTime / 5) * 0.25 
+      : breathTime < 7 
+      ? 1.25 
+      : 1.25 - ((breathTime - 7) / 5) * 0.25
+  }, [breathTime])
+
   return (
     <div className="grid grid-cols-1 gap-6 w-full flex-1 items-start animate-fade-in">
       
@@ -183,13 +192,33 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               </div>
               
               <div className="flex items-center gap-4.5 w-full justify-center">
-                {/* Minimal breathing pace indicator */}
-                <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-accent-purple/20 bg-accent-purple/10 transition-transform duration-1000 ease-in-out"
-                  style={{
-                    transform: breathTime < 5 ? `scale(${1 + (breathTime / 5) * 0.18})` : breathTime < 7 ? 'scale(1.18)' : `scale(${1.18 - ((breathTime - 7) / 5) * 0.36})`
-                  }}
-                >
-                  <div className="h-4.5 w-4.5 rounded-full bg-accent-purple/40" />
+                {/* Upgraded multi-ring halo breathe pacer ripples */}
+                <div className="relative flex h-14 w-14 items-center justify-center shrink-0 select-none">
+                  {/* Outer ripple ring */}
+                  <div 
+                    className="absolute inset-0 rounded-full bg-accent-purple/5 border border-accent-purple/10 transition-all duration-1000 ease-in-out"
+                    style={{
+                      transform: `scale(${currentScale * 1.3})`,
+                      opacity: breathTime < 5 ? 0.3 : breathTime < 7 ? 0.6 : 0.15
+                    }}
+                  />
+                  {/* Middle ripple ring */}
+                  <div 
+                    className="absolute inset-1.5 rounded-full bg-accent-purple/10 border border-accent-purple/20 transition-all duration-1000 ease-in-out"
+                    style={{
+                      transform: `scale(${currentScale * 1.15})`,
+                      opacity: breathTime < 5 ? 0.45 : breathTime < 7 ? 0.8 : 0.2
+                    }}
+                  />
+                  {/* Inner core circle */}
+                  <div 
+                    className="relative flex h-8 w-8 items-center justify-center rounded-full bg-accent-purple/20 border border-accent-purple/40 transition-all duration-1000 ease-in-out shadow-[0_0_12px_rgba(175,82,222,0.2)]"
+                    style={{
+                      transform: `scale(${currentScale})`
+                    }}
+                  >
+                    <div className="h-3.5 w-3.5 rounded-full bg-accent-purple" />
+                  </div>
                 </div>
 
                 <div className="flex flex-col select-none max-w-[170px]">
