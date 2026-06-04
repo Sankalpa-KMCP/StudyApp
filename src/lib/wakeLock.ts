@@ -7,15 +7,14 @@ export function isWakeLockSupported(): boolean {
   return typeof window !== 'undefined' && 'wakeLock' in navigator
 }
 
-export async function requestWakeLock(): Promise<any | null> {
+export async function requestWakeLock(): Promise<WakeLockSentinel | null> {
   if (!isWakeLockSupported()) {
     console.warn('Wake Lock API is not supported in this browser.')
     return null
   }
 
   try {
-    // Request a screen wake lock
-    const wakeLock = await (navigator as any).wakeLock.request('screen')
+    const wakeLock = await navigator.wakeLock.request('screen')
     console.log('Screen Wake Lock acquired successfully.')
     return wakeLock
   } catch (err) {
@@ -24,7 +23,7 @@ export async function requestWakeLock(): Promise<any | null> {
   }
 }
 
-export async function releaseWakeLock(sentinel: any): Promise<void> {
+export async function releaseWakeLock(sentinel: WakeLockSentinel | null): Promise<void> {
   if (!sentinel) return
 
   try {
