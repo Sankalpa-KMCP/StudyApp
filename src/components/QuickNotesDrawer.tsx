@@ -148,8 +148,8 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
       const catName = cat ? cat.name.toLowerCase() : ''
       
       const tagsInQuery = searchQuery.match(/#(\w+)/g)
-      let matchesSearch = true
-      
+      let matchesSearch: boolean
+
       if (tagsInQuery) {
         const tagNames = tagsInQuery.map(t => t.substring(1).toLowerCase())
         const matchesTags = tagNames.every(tn => catName.replace(/\s+/g, '').includes(tn))
@@ -182,17 +182,20 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
     '#ef4444'  // red
   ]
 
+  if (!isOpen) return null
+
   return (
     <div
-      className={`fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-[#07090f]/90 border-l border-white/10 backdrop-blur-2xl shadow-2xl transition-transform duration-500 ease-out flex flex-col ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="quick-notes-title"
+      className="fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-[#07090f]/90 border-l border-white/10 backdrop-blur-2xl shadow-2xl transition-transform duration-500 ease-out flex flex-col translate-x-0"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-black/20 select-none">
         <div className="flex items-center gap-2">
           <Edit3 className="h-4 w-4 text-accent-blue" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-white">Notes Workspace</h3>
+          <h3 id="quick-notes-title" className="text-xs font-bold uppercase tracking-wider text-white">Notes Workspace</h3>
         </div>
         <button
           onClick={onClose}
