@@ -279,12 +279,20 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
               {activeTasksList.map(task => {
                 const isActive = activeTaskId === task.id
                 const cat = task.categoryId !== undefined ? categoriesMap.get(task.categoryId) : undefined
+                const priorityBorder = task.priority === 'high' 
+                  ? 'border-l-[4px] border-l-[#ff453a]' 
+                  : task.priority === 'medium'
+                  ? 'border-l-[4px] border-l-[#ff9f0a]'
+                  : 'border-l-[4px] border-l-accent-blue/40'
+
                 return (
                   <div
                     key={task.id}
-                    className={`flex flex-col gap-3 py-3.5 border-b border-white/5 last:border-b-0 px-3.5 rounded-2xl transition-colors duration-200 cursor-pointer ${
-                      isActive ? 'bg-white/10' : 'hover:bg-white/[0.03]'
-                    }`}
+                    className={`flex flex-col gap-3 py-3.5 px-3.5 rounded-2xl transition-all duration-300 cursor-pointer mb-2 border border-white/5 ${
+                      isActive 
+                        ? 'bg-white/10 shadow-lg border-white/12 -translate-y-[1px]' 
+                        : 'bg-white/[0.015] hover:bg-white/[0.04] hover:-translate-y-[2px] hover:shadow-md hover:border-white/10'
+                    } ${priorityBorder}`}
                     onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
                   >
                     {/* Main Row */}
