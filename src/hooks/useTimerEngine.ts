@@ -2,9 +2,8 @@ import { useState, useEffect, useRef, useMemo, useCallback, type RefObject } fro
 import { db } from '../db/db'
 import type { TaskItem } from '../db/types'
 import type { PendingSessionData } from '../types/app'
-import { formatHistoryTimestamp } from '../lib/studyDashboard'
+import { calculateSM2, formatHistoryTimestamp } from '../lib/studyDashboard'
 import { requestWakeLock, releaseWakeLock } from '../lib/wakeLock'
-import { calculateSM2 } from '../db/hooks'
 import type { HistoryEntry } from '../db/types'
 
 interface UseTimerEngineOptions {
