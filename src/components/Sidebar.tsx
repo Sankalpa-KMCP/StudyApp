@@ -11,7 +11,7 @@ interface SidebarProps {
   setIsHotkeyHudOpen: (open: boolean) => void
   isTimerActive: boolean
   timerMode: 'study' | 'break'
-  localEnforceLockout: boolean
+  enforceLockout: boolean
   onToggleNotes: () => void
 }
 
@@ -25,7 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsHotkeyHudOpen,
   isTimerActive,
   timerMode,
-  localEnforceLockout,
+  enforceLockout,
   onToggleNotes
 }) => {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
@@ -119,13 +119,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ].map(tab => {
             const Icon = typeof tab.icon === 'string' ? BarChart3 : tab.icon
             const isActive = activeTab === tab.id
-            const isLocked = localEnforceLockout && isTimerActive && timerMode === 'study' && tab.id !== 'focus'
+            const isLocked = enforceLockout && isTimerActive && timerMode === 'study' && tab.id !== 'focus'
             const activeColorClass = tab.id === 'analytics' ? 'text-[#30d158]' : (tab.color || '')
             return (
               <button
                 key={tab.id}
                 ref={el => { tabRefs.current[tab.id] = el }}
                 disabled={isLocked}
+                aria-current={isActive ? 'page' : undefined}
                 onClick={() => setActiveTab(tab.id)}
                 className={`relative z-10 w-auto shrink-0 md:w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[14px] font-semibold text-xs transition-colors duration-200 ios-active-scale bg-transparent border border-transparent ${
                   isActive 

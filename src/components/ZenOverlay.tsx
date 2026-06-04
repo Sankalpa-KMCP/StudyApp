@@ -12,7 +12,7 @@ interface ZenOverlayProps {
   isTimerActive: boolean
   setIsTimerActive: (active: boolean) => void
   completeSession: () => void
-  localEnforceLockout: boolean
+  enforceLockout: boolean
   setIsZenMode: (zen: boolean) => void
 }
 
@@ -26,7 +26,7 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
   isTimerActive,
   setIsTimerActive,
   completeSession,
-  localEnforceLockout,
+  enforceLockout,
   setIsZenMode
 }) => {
   if (!isZenMode) return null
@@ -77,7 +77,7 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
       </div>
 
       {/* Minimal exit chevron */}
-      {!(localEnforceLockout && isTimerActive && timerMode === 'study') && (
+      {!(enforceLockout && isTimerActive && timerMode === 'study') && (
         <button
           onClick={() => setIsZenMode(false)}
           className="absolute top-8 left-8 flex h-10 w-10 items-center justify-center rounded-full bg-white/5 border border-white/8 hover:bg-white/10 text-white transition-all duration-300 cursor-pointer shadow-md ios-active-scale"

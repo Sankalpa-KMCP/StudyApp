@@ -17,18 +17,7 @@ interface FocusSanctuaryProps {
   skipBreak: () => void
   breathTime: number
   setIsZenMode: (zen: boolean) => void
-  soundEnabled: boolean
-  noiseType: 'white' | 'pink' | 'brown'
-  binauralTarget: 'alpha' | 'theta' | 'beta'
-  updateSetting: (key: any, val: any) => void
-  localVolumeRain: number
-  setLocalVolumeRain: (v: number) => void
-  localVolumeCafe: number
-  setLocalVolumeCafe: (v: number) => void
-  localVolumeWhiteNoise: number
-  setLocalVolumeWhiteNoise: (v: number) => void
-  localAlphaWaves: number
-  setLocalAlphaWaves: (v: number) => void
+  onUserGesture?: () => void
 }
 export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   timerMode,
@@ -45,7 +34,8 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   extendSession,
   skipBreak,
   breathTime,
-  setIsZenMode
+  setIsZenMode,
+  onUserGesture,
 }) => {
 
   // Get active color based on state
@@ -109,8 +99,8 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               </svg>
 
               {/* Timer metrics display */}
-              <div className="text-center z-10 select-none">
-                <p className="text-5xl font-bold text-white tracking-tight tabular-nums">
+              <div className="text-center z-10 select-none" aria-live="polite" aria-atomic="true">
+                <p className="text-5xl font-bold text-white tracking-tight tabular-nums" role="timer">
                   {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
                 </p>
                 <span className="inline-block rounded-full bg-white/5 border border-white/5 px-3 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/60 mt-2.5">
@@ -139,8 +129,9 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               </button>
               
               <button
-                onClick={() => setIsTimerActive(a => !a)}
-                className="flex h-9.5 w-9.5 items-center justify-center rounded-full bg-accent-blue text-white hover:bg-accent-blue/90 transition-all ios-active-scale cursor-pointer shadow-md shadow-accent-blue/10"
+                onClick={() => { onUserGesture?.(); setIsTimerActive(a => !a) }}
+                aria-label={isTimerActive ? 'Pause timer' : 'Start timer'}
+                className="flex h-9.5 w-9.5 items-center justify-center rounded-full bg-accent-blue text-white hover:bg-accent-blue/90 transition-all ios-active-scale cursor-pointer shadow-md shadow-accent-blue/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 {isTimerActive ? <Pause className="h-4.5 w-4.5" /> : <Play className="h-4.5 w-4.5" />}
               </button>
