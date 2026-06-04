@@ -2,6 +2,8 @@ import React, { useMemo } from 'react'
 import { Clock, Coffee, Calendar, Flame, Award, CheckCircle, Target } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import type { TaskItem, DailyLog } from '../db/types'
+import type { ThemeProfile } from '../types/app'
+import type { CSSProperties } from 'react'
 
 const hexToRgb = (hex: string) => {
   const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
@@ -29,8 +31,8 @@ interface AnalyticsStudioProps {
   avgMin: number
   completionRate: number
   peakDay: string
-  activeThemeVars: any
-  tooltipStyle: any
+  activeThemeVars: ThemeProfile
+  tooltipStyle: CSSProperties
   hasChartData: boolean
 }
 
