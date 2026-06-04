@@ -1,27 +1,26 @@
 import { useMemo } from 'react'
-import type { DailyLog, HistoryEntry, TaskItem, CategoryItem } from '../db/types'
+import type { DailyLog, HistoryEntry, TaskItem } from '../db/types'
 import type { DayData } from '../types/app'
 import { formatMinutes, getIntensity, getHistoryDayKey } from '../lib/studyDashboard'
 import { DAY_NAMES_SHORT, MONTH_NAMES } from '../lib/dateConstants'
 
 interface UseCalendarDataOptions {
-  allLogs: DailyLog[]
+  monthLogs: DailyLog[]
+  totalMonthHours: number
   sessionHistory: HistoryEntry[]
   sessionTasks: TaskItem[]
-  categories: CategoryItem[]
   currentMonth: number
   currentYear: number
   selectedDay: number
-  calendarCategoryFilter: 'all' | number
   dailyGoalMinutes: number
-  studyBlockDurationMinutes: number
   todayStudyMinutes: number
   todayBreakMinutes: number
   categoryDayMinutes: Map<number, number> | null
 }
 
 export function useCalendarData({
-  allLogs,
+  monthLogs,
+  totalMonthHours,
   sessionHistory,
   sessionTasks,
   currentMonth,
@@ -32,15 +31,7 @@ export function useCalendarData({
   todayBreakMinutes,
   categoryDayMinutes,
 }: UseCalendarDataOptions) {
-  const monthLogsData = useMemo(() => {
-    const prefix = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-`
-    const monthLogs = allLogs.filter(log => log.dateString.startsWith(prefix))
-    const totalMonthHours = monthLogs.reduce((sum, log) => sum + (log.studyMinutes || 0) / 60, 0)
-    return {
-      monthLogs,
-      totalMonthHours: Number.parseFloat(totalMonthHours.toFixed(1)) || 0,
-    }
-  }, [allLogs, currentMonth, currentYear])
+  const monthLogsData = { monthLogs, totalMonthHours }
 
   const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay()
   const totalDaysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
