@@ -8,16 +8,20 @@ import {
   useCategories,
   useAllDailyLogs,
   updateDailyReflection,
+  useFlashcards,
+  useQuickNotes,
+} from './db/hooks'
+import { db } from './db/db'
+import {
+  hexToRgb,
+  formatMinutes,
+  getIntensity,
   calculateStreak,
   calculateXpLevel,
   calculateProductivityInsights,
   calculateCategoryBreakdown,
   calculateCalendarHeatmapData,
-  useFlashcards,
-  useQuickNotes,
-} from './db/hooks'
-import { db } from './db/db'
-import { hexToRgb, formatMinutes, getIntensity } from './lib/studyDashboard'
+} from './lib/studyDashboard'
 import { THEME_PROFILES, TOOLTIP_STYLE } from './lib/theme'
 import type { ActiveTab, ToastState } from './types/app'
 
