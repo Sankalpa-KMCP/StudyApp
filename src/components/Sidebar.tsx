@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Brain, Clock, BarChart3, Calendar, Settings, Keyboard, Flame, Layers, FileText } from 'lucide-react'
 
 interface SidebarProps {
@@ -28,6 +28,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
   localEnforceLockout,
   onToggleNotes
 }) => {
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const [indicatorStyle, setIndicatorStyle] = useState<React.CSSProperties>({
+    opacity: 0,
+    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+  })
+
+  const updateIndicator = () => {
+    const activeBtn = tabRefs.current[activeTab]
+    if (activeBtn) {
+      setIndicatorStyle({
+        position: 'absolute',
+        left: `${activeBtn.offsetLeft}px`,
+        top: `${activeBtn.offsetTop}px`,
+        width: `${activeBtn.offsetWidth}px`,
+        height: `${activeBtn.offsetHeight}px`,
+        transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        opacity: 1
+      })
+    }
+  }
+
+  useEffect(() => {
+    updateIndicator()
+    // Small timeout to allow layout settlement
+    const timer = setTimeout(updateIndicator, 50)
+    window.addEventListener('resize', updateIndicator)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('resize', updateIndicator)
+    }
+  }, [activeTab])
+
   if (isZenMode) return null
 
   return (
@@ -71,7 +103,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation Tabs (iOS Widget Actions list) */}
-        <nav className="flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none">
+        <nav className="relative flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none">
+          {/* Background Gliding Indicator Pill */}
+          <div 
+            className="bg-white/10 border border-white/5 rounded-[14px] pointer-events-none" 
+            style={indicatorStyle} 
+          />
+
           {[
             { id: 'focus' as const, label: 'Focus Sanctuary', icon: Clock, color: 'text-accent-blue' },
             { id: 'cards' as const, label: 'Recall Deck', icon: Layers, color: 'text-accent-purple' },
@@ -86,12 +124,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             return (
               <button
                 key={tab.id}
+                ref={el => { tabRefs.current[tab.id] = el }}
                 disabled={isLocked}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-auto shrink-0 md:w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[14px] font-semibold text-xs transition-all duration-200 ios-active-scale ${
+                className={`relative z-10 w-auto shrink-0 md:w-full flex items-center gap-3 px-3.5 py-2.5 rounded-[14px] font-semibold text-xs transition-colors duration-200 ios-active-scale bg-transparent border border-transparent ${
                   isActive 
-                    ? 'bg-white/10 border border-white/5 text-white' 
-                    : 'bg-transparent border border-transparent text-white/60 hover:bg-white/[0.04] hover:text-white'
+                    ? 'text-white font-bold' 
+                    : 'text-white/60 hover:text-white'
                 } ${isLocked ? 'opacity-25 cursor-not-allowed hover:bg-transparent' : 'cursor-pointer'}`}
                 title={isLocked ? "Focus Lockout Active" : undefined}
               >
