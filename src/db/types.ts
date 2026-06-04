@@ -32,6 +32,7 @@ export interface TaskItem {
 export interface HistoryEntry {
   id?: number
   timestamp: string
+  createdAt: number
   type: 'study' | 'break'
   durationMinutes: number
   categoryId?: number
@@ -56,7 +57,30 @@ export interface AudioPreset {
   alphaWaves: number
 }
 
-export type SettingsKey = 'dailyGoalMinutes' | 'soundEnabled' | 'targetSessionsPerCycle' | 'longBreakDurationMinutes' | 'ambientTrack' | 'ambientVolume' | 'ambientVolume_rain' | 'ambientVolume_cafe' | 'ambientVolume_whiteNoise' | 'theme' | 'cardOpacity' | 'backdropBlur' | 'audio_presets' | 'shortBreakDurationMinutes' | 'ambient_alphaWaves' | 'tactile_feedback' | 'developer_font' | 'enforce_lockout' | 'noiseType' | 'binauralTarget' | 'initialEasinessFactor' | 'autoArchiveAncientTasks'
+export type SettingsKey =
+  | 'dailyGoalMinutes'
+  | 'soundEnabled'
+  | 'targetSessionsPerCycle'
+  | 'longBreakDurationMinutes'
+  | 'shortBreakDurationMinutes'
+  | 'studyBlockDurationMinutes'
+  | 'ambientTrack'
+  | 'ambientVolume'
+  | 'ambientVolume_rain'
+  | 'ambientVolume_cafe'
+  | 'ambientVolume_whiteNoise'
+  | 'theme'
+  | 'cardOpacity'
+  | 'backdropBlur'
+  | 'audio_presets'
+  | 'ambient_alphaWaves'
+  | 'tactile_feedback'
+  | 'developer_font'
+  | 'enforce_lockout'
+  | 'noiseType'
+  | 'binauralTarget'
+  | 'initialEasinessFactor'
+  | 'autoArchiveAncientTasks'
 
 export type SettingsValue = number | boolean | string | AudioPreset[] | null
 
@@ -87,5 +111,8 @@ export interface QuickNoteItem {
   updatedAt: number
 }
 
-
-
+export interface SnapshotRow {
+  id?: number
+  timestamp: string
+  payload: string
+}
