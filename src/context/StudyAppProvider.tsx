@@ -1,8 +1,19 @@
 import type { ReactNode } from 'react'
-import { StudyAppContext } from './studyAppContext'
-import { useStudyAppState } from './useStudyAppState'
+import { useAppToast } from '../hooks/useAppToast'
+import { StudyDataProvider } from './StudyDataProvider'
+import { StudyTimerProvider } from './StudyTimerProvider'
+import { StudyUIProvider } from './StudyUIProvider'
 
 export function StudyAppProvider({ children }: { children: ReactNode }) {
-  const value = useStudyAppState()
-  return <StudyAppContext.Provider value={value}>{children}</StudyAppContext.Provider>
+  const toast = useAppToast()
+
+  return (
+    <StudyDataProvider pushToast={toast.pushToast}>
+      <StudyTimerProvider pushToast={toast.pushToast}>
+        <StudyUIProvider toast={toast}>
+          {children}
+        </StudyUIProvider>
+      </StudyTimerProvider>
+    </StudyDataProvider>
+  )
 }

@@ -1,46 +1,102 @@
-import { useContext } from 'react'
-import { StudyAppContext } from './studyAppContext'
+import { useMemo } from 'react'
+import { useStudyDataContext } from './studyDataContext'
+import { useStudyTimerContext } from './studyTimerContext'
+import { useStudyUIContext } from './studyUIContext'
 
 export function useStudyApp() {
-  const ctx = useContext(StudyAppContext)
-  if (!ctx) throw new Error('useStudyApp must be used within StudyAppProvider')
-  return ctx
+  const data = useStudyDataContext()
+  const timerCtx = useStudyTimerContext()
+  const ui = useStudyUIContext()
+
+  const handleFileDrop = useMemo(
+    () => (e: React.DragEvent) => ui.handleFileDrop(e, timerCtx.confirmImport),
+    [ui, timerCtx.confirmImport],
+  )
+
+  return {
+    ...data,
+    ...timerCtx,
+    ...ui,
+    handleFileDrop,
+  }
 }
 
 export function useStudyData() {
-  const { tasks, history, settings, todayLog, flashcards, quickNotes, categories, allLogs, isDataReady } = useStudyApp()
+  const {
+    tasks, history, settings, todayLog, flashcards, quickNotes, categories, allLogs, isDataReady,
+  } = useStudyDataContext()
   return { tasks, history, settings, todayLog, flashcards, quickNotes, categories, allLogs, isDataReady }
 }
 
 export function useStudyUI() {
-  const {
-    activeTab, setActiveTab, isZenMode, setIsZenMode, isNotesOpen, setIsNotesOpen,
-    isHotkeyHudOpen, setIsHotkeyHudOpen, activeToast, breathTime, isDragging, setIsDragging,
-    activeTaskId, setActiveTaskId, taskCycleCount, setTaskCycleCount, activeThemeVars, progress,
-  } = useStudyApp()
-  return {
-    activeTab, setActiveTab, isZenMode, setIsZenMode, isNotesOpen, setIsNotesOpen,
-    isHotkeyHudOpen, setIsHotkeyHudOpen, activeToast, breathTime, isDragging, setIsDragging,
-    activeTaskId, setActiveTaskId, taskCycleCount, setTaskCycleCount, activeThemeVars, progress,
-  }
+  const data = useStudyDataContext()
+  const timerCtx = useStudyTimerContext()
+  const ui = useStudyUIContext()
+  return useMemo(() => ({
+    activeTab: ui.activeTab,
+    setActiveTab: ui.setActiveTab,
+    isZenMode: ui.isZenMode,
+    setIsZenMode: ui.setIsZenMode,
+    isNotesOpen: ui.isNotesOpen,
+    setIsNotesOpen: ui.setIsNotesOpen,
+    isHotkeyHudOpen: ui.isHotkeyHudOpen,
+    setIsHotkeyHudOpen: ui.setIsHotkeyHudOpen,
+    activeToast: ui.activeToast,
+    breathTime: ui.breathTime,
+    isDragging: ui.isDragging,
+    setIsDragging: ui.setIsDragging,
+    activeTaskId: timerCtx.activeTaskId,
+    setActiveTaskId: timerCtx.setActiveTaskId,
+    taskCycleCount: timerCtx.taskCycleCount,
+    setTaskCycleCount: timerCtx.setTaskCycleCount,
+    activeThemeVars: ui.activeThemeVars,
+    progress: data.progress,
+  }), [data.progress, timerCtx, ui])
 }
 
 export function useStudyTimer() {
-  const { timer, ensureAudio, handleAddTask, handleToggleTask } = useStudyApp()
-  return { timer, ensureAudio, handleAddTask, handleToggleTask }
+  const timerCtx = useStudyTimerContext()
+  return useMemo(() => ({
+    timer: timerCtx.timer,
+    ensureAudio: timerCtx.ensureAudio,
+    handleAddTask: timerCtx.handleAddTask,
+    handleToggleTask: timerCtx.handleToggleTask,
+  }), [timerCtx])
 }
 
 export function useStudyJournal() {
-  const { journal, todayLog } = useStudyApp()
-  return { journal, todayLog }
+  const data = useStudyDataContext()
+  return useMemo(() => ({
+    journal: data.journal,
+    todayLog: data.todayLog,
+  }), [data.journal, data.todayLog])
 }
 
 export function useStudyAnalytics() {
-  const { currentStreak, xpData, insights, breakdownData, journal, allLogs } = useStudyApp()
-  return { currentStreak, xpData, insights, breakdownData, journal, allLogs }
+  const data = useStudyDataContext()
+  return useMemo(() => ({
+    currentStreak: data.currentStreak,
+    xpData: data.xpData,
+    insights: data.insights,
+    breakdownData: data.breakdownData,
+    journal: data.journal,
+    allLogs: data.allLogs,
+  }), [data])
 }
 
 export function useStudySettings() {
-  const { settings, backup, confirmImport, handleFileDrop, categories } = useStudyApp()
-  return { settings, backup, confirmImport, handleFileDrop, categories }
+  const data = useStudyDataContext()
+  const timerCtx = useStudyTimerContext()
+  const ui = useStudyUIContext()
+  const handleFileDrop = useMemo(
+    () => (e: React.DragEvent) => ui.handleFileDrop(e, timerCtx.confirmImport),
+    [ui, timerCtx.confirmImport],
+  )
+  return useMemo(() => ({
+    settings: data.settings,
+    backup: timerCtx.backup,
+    confirmImport: timerCtx.confirmImport,
+    handleFileDrop,
+    categories: data.categories,
+  }), [data.settings, data.categories, timerCtx.backup, timerCtx.confirmImport, handleFileDrop])
 }
