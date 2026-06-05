@@ -172,7 +172,8 @@ export function useSettings() {
   const backdropBlur = (rows?.find(r => r.key === 'backdropBlur')?.value as number) ?? 8
   const audio_presets = (rows?.find(r => r.key === 'audio_presets')?.value as any[]) ?? []
   const shortBreakDurationMinutes = (rows?.find(r => r.key === 'shortBreakDurationMinutes')?.value as number) ?? 5
-  const ambient_alphaWaves = (rows?.find(r => r.key === 'ambient_alphaWaves')?.value as boolean) ?? false
+  const rawAlpha = rows?.find(r => r.key === 'ambient_alphaWaves')?.value
+  const ambient_alphaWaves = typeof rawAlpha === 'boolean' ? (rawAlpha ? 0.35 : 0) : ((rawAlpha as number) ?? 0)
   const tactile_feedback = (rows?.find(r => r.key === 'tactile_feedback')?.value as boolean) ?? false
   const developer_font = (rows?.find(r => r.key === 'developer_font')?.value as string) ?? 'JetBrains Mono'
   const enforce_lockout = (rows?.find(r => r.key === 'enforce_lockout')?.value as boolean) ?? false
