@@ -6,18 +6,32 @@
       // Single Page Apps for GitHub Pages
       // https://github.com/rafgraph/spa-github-pages
       (function(l) {
-        if (l.search[1] === '_') {
-          var decoded = l.search.slice(1).split('&').reduce(function(q, v) {
-            var a = v.split('=');
-            q[a[0]] = a.slice(1).join('=').replace(/~and~/g, '&');
-            return q;
-          }, {});
-          if (decoded._p !== undefined) {
-            window.history.replaceState(null, null,
-              l.pathname.slice(0, -1) + (decoded._p ? '/' + decoded._p : '') +
-              (decoded._q ? ('?' + decoded._q) : '') +
-              l.hash
-            );
+        var search = l.search;
+        if (search && search.indexOf('_p=') !== -1) {
+          var params = {};
+          var pairs = search.slice(1).split('&');
+          var restOfQuery = [];
+          for (var i = 0; i < pairs.length; i++) {
+            var pair = pairs[i].split('=');
+            var key = decodeURIComponent(pair[0]);
+            var val = pair.slice(1).join('=').replace(/~and~/g, '&');
+            if (key === '_p') {
+              params._p = val;
+            } else {
+              restOfQuery.push(pair[0] + '=' + encodeURIComponent(val));
+            }
+          }
+          if (params._p !== undefined) {
+            var base = l.pathname;
+            if (base.slice(-1) !== '/') {
+              base += '/';
+            }
+            var newPath = base + params._p;
+            newPath = newPath.replace(/\/+/g, '/');
+            if (l.protocol !== 'file:') {
+              var newSearch = restOfQuery.length > 0 ? ('?' + restOfQuery.join('&')) : '';
+              window.history.replaceState(null, null, newPath + newSearch + l.hash);
+            }
           }
         }
       }(window.location));
