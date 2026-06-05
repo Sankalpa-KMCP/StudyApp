@@ -5,7 +5,7 @@ import { useGamification } from '../useGamification'
 describe('useGamification', () => {
   it('fires level-up toast when XP level increases', async () => {
     const pushToast = vi.fn()
-    const logs = [{ dateString: '2026-06-10', studyMinutes: 100 }]
+    const logs = [{ dateString: '2026-06-10', studyMinutes: 100, breakMinutes: 0 }]
 
     const { rerender } = renderHook(
       ({ allLogs }) => useGamification({ allLogs, isDataReady: true, pushToast }),
@@ -14,7 +14,7 @@ describe('useGamification', () => {
 
     await waitFor(() => expect(pushToast).not.toHaveBeenCalled())
 
-    rerender({ allLogs: [{ dateString: '2026-06-10', studyMinutes: 500 }] })
+    rerender({ allLogs: [{ dateString: '2026-06-10', studyMinutes: 500, breakMinutes: 0 }] })
 
     await waitFor(() => {
       expect(pushToast).toHaveBeenCalledWith('LEVEL UP', expect.stringContaining('Level'))
