@@ -1,10 +1,13 @@
 import { StudyAppProvider } from './context/StudyAppProvider'
 import { AppShell } from './components/AppShell'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 function App() {
   return (
     <StudyAppProvider>
-      <AppShell />
+      <ErrorBoundary>
+        <AppShell />
+      </ErrorBoundary>
     </StudyAppProvider>
   )
 }
