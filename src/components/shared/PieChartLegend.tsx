@@ -1,0 +1,37 @@
+export interface PieChartLegendItem {
+  name: string
+  color: string
+  value: number
+  percentage?: number
+  emoji?: string
+  unit?: string
+}
+
+interface PieChartLegendProps {
+  items: PieChartLegendItem[]
+  className?: string
+}
+
+export function PieChartLegend({ items, className = '' }: PieChartLegendProps) {
+  return (
+    <div className={`flex flex-col gap-2 flex-1 max-w-[150px] ${className}`}>
+      {items.map((item, i) => (
+        <div key={i} className="flex items-center gap-1.5 text-[10px] font-semibold">
+          {item.emoji ? (
+            <span className="text-xs shrink-0">{item.emoji}</span>
+          ) : (
+            <div className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+          )}
+          <span className="text-white/90 flex-1 truncate">{item.name}</span>
+          <span className="text-white/60 font-mono">
+            {item.value}
+            {item.unit ?? ''}
+          </span>
+          {item.percentage !== undefined && (
+            <span className="text-white/40 font-mono text-[9px]">({item.percentage}%)</span>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
