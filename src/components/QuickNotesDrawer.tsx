@@ -1,6 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React from 'react'
 import { X, Plus, Trash2, Edit3, Search, Check, Save } from 'lucide-react'
 import type { CategoryItem, QuickNoteItem } from '../db/types'
+import { useFocusTrap } from '../hooks/useFocusTrap'
+import { InlineCategoryManager } from './shared/InlineCategoryManager'
+import { useNoteFilters } from './quick-notes/useNoteFilters'
+import { useNoteEditor } from './quick-notes/useNoteEditor'
 
 interface QuickNotesDrawerProps {
   isOpen: boolean
@@ -25,71 +29,33 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   updateNote,
   deleteNote
 }) => {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchFocused, setSearchFocused] = useState(false)
-  const [activeCategoryId, setActiveCategoryId] = useState<'all' | number>('all')
-  const [editingNoteId, setEditingNoteId] = useState<number | null>(null)
-  
-  // Local edit states
-  const [editTitle, setEditTitle] = useState('')
-  const [editContent, setEditContent] = useState('')
-  const [editCategoryId, setEditCategoryId] = useState<number | undefined>(undefined)
-  const [editColor, setEditColor] = useState('#06b6d4')
-  
-  // Category manager inline states
-  const [showCatManager, setShowCatManager] = useState(false)
-  const [inlineCatName, setInlineCatName] = useState('')
-  const [inlineCatColor, setInlineCatColor] = useState('#3B82F6')
+  const trapRef = useFocusTrap(isOpen)
+  const {
+    searchQuery,
+    setSearchQuery,
+    searchFocused,
+    setSearchFocused,
+    activeCategoryId,
+    setActiveCategoryId,
+    categoriesMap,
+    filteredNotes,
+  } = useNoteFilters(notes, categories)
 
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
-  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  
-  // Clean up timers on unmount
-  useEffect(() => {
-    return () => {
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
-    }
-  }, [])
-
-  // Auto-save debouncing logic
-  const triggerAutoSave = (id: number, t: string, c: string, catId?: number, col?: string) => {
-    setSaveStatus('saving')
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
-    
-    autoSaveTimerRef.current = setTimeout(async () => {
-      await updateNote(id, t, c, catId, col)
-      setSaveStatus('saved')
-      setTimeout(() => setSaveStatus('idle'), 1500)
-    }, 500) // 500ms debounce
-  }
-
-  const handleTitleChange = (val: string) => {
-    setEditTitle(val)
-    if (editingNoteId !== null) {
-      triggerAutoSave(editingNoteId, val, editContent, editCategoryId, editColor)
-    }
-  }
-
-  const handleContentChange = (val: string) => {
-    setEditContent(val)
-    if (editingNoteId !== null) {
-      triggerAutoSave(editingNoteId, editTitle, val, editCategoryId, editColor)
-    }
-  }
-
-  const handleCategoryChange = (val: number | undefined) => {
-    setEditCategoryId(val)
-    if (editingNoteId !== null) {
-      triggerAutoSave(editingNoteId, editTitle, editContent, val, editColor)
-    }
-  }
-
-  const handleColorChange = (val: string) => {
-    setEditColor(val)
-    if (editingNoteId !== null) {
-      triggerAutoSave(editingNoteId, editTitle, editContent, editCategoryId, val)
-    }
-  }
+  const {
+    editingNoteId,
+    setEditingNoteId,
+    editTitle,
+    editContent,
+    editCategoryId,
+    editColor,
+    saveStatus,
+    handleTitleChange,
+    handleContentChange,
+    handleCategoryChange,
+    handleColorChange,
+    startEditing,
+    stopEditing,
+  } = useNoteEditor(updateNote)
 
   const handleCreateNote = async () => {
     await addNote('New Scratch Note', '', activeCategoryId !== 'all' ? activeCategoryId : undefined)
@@ -105,27 +71,6 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
     }, 100)
   }
 
-  const startEditing = (note: QuickNoteItem) => {
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
-    setEditingNoteId(note.id!)
-    setEditTitle(note.title)
-    setEditContent(note.content)
-    setEditCategoryId(note.categoryId)
-    setEditColor(note.color ?? '#06b6d4')
-    setSaveStatus('idle')
-  }
-
-  const stopEditing = () => {
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current)
-      // Force immediate final save
-      if (editingNoteId !== null) {
-        updateNote(editingNoteId, editTitle, editContent, editCategoryId, editColor)
-      }
-    }
-    setEditingNoteId(null)
-  }
-
   const handleDelete = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation()
     if (editingNoteId === id) {
@@ -133,44 +78,6 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
     }
     await deleteNote(id)
   }
-
-  const categoriesMap = useMemo(() => {
-    const map = new Map<number, CategoryItem>()
-    categories.forEach(c => {
-      if (c.id !== undefined) map.set(c.id, c)
-    })
-    return map
-  }, [categories])
-
-  const filteredNotes = useMemo(() => {
-    return notes.filter(n => {
-      const cat = n.categoryId !== undefined ? categoriesMap.get(n.categoryId) : undefined
-      const catName = cat ? cat.name.toLowerCase() : ''
-      
-      const tagsInQuery = searchQuery.match(/#(\w+)/g)
-      let matchesSearch: boolean
-
-      if (tagsInQuery) {
-        const tagNames = tagsInQuery.map(t => t.substring(1).toLowerCase())
-        const matchesTags = tagNames.every(tn => catName.replace(/\s+/g, '').includes(tn))
-        
-        const cleanQuery = searchQuery.replace(/#\w+/g, '').trim().toLowerCase()
-        const matchesText = cleanQuery === '' || 
-                            n.title.toLowerCase().includes(cleanQuery) || 
-                            n.content.toLowerCase().includes(cleanQuery)
-        
-        matchesSearch = matchesTags && matchesText
-      } else {
-        const q = searchQuery.toLowerCase()
-        matchesSearch = n.title.toLowerCase().includes(q) || 
-                        n.content.toLowerCase().includes(q) ||
-                        catName.includes(q)
-      }
-      
-      const matchesCategory = activeCategoryId === 'all' || n.categoryId === activeCategoryId
-      return matchesSearch && matchesCategory
-    })
-  }, [notes, searchQuery, activeCategoryId, categoriesMap])
 
   const notePaletteColors = [
     '#06b6d4', // cyan
@@ -186,6 +93,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
 
   return (
     <div
+      ref={trapRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="quick-notes-title"
@@ -246,81 +154,14 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
 
             {/* Note category and color picks */}
             <div className="grid grid-cols-2 gap-3.5 bg-black/20 border border-white/5 p-3 rounded-xl select-none">
-              <div className="flex flex-col">
-                <div className="flex justify-between items-center mb-1 select-none">
-                  <label className="text-[8px] font-mono uppercase text-white/45">Category</label>
-                  <button
-                    type="button"
-                    onClick={() => setShowCatManager(!showCatManager)}
-                    className="text-[8px] font-bold text-accent-blue hover:underline cursor-pointer"
-                  >
-                    {showCatManager ? 'Done' : '✏️ Manage'}
-                  </button>
-                </div>
-                
-                {showCatManager ? (
-                  <div className="space-y-1.5 bg-black/30 border border-white/5 p-2 rounded-lg animate-fade-in mb-1">
-                    <div className="flex gap-1.5">
-                      <input
-                        type="text"
-                        value={inlineCatName}
-                        onChange={e => setInlineCatName(e.target.value)}
-                        placeholder="New label..."
-                        className="flex-1 rounded bg-white/5 border border-white/8 px-2 py-1 text-[9px] text-white placeholder-white/20 outline-none"
-                      />
-                      <input
-                        type="color"
-                        value={inlineCatColor}
-                        onChange={e => setInlineCatColor(e.target.value)}
-                        className="h-5.5 w-5.5 shrink-0 cursor-pointer rounded-full border border-white/10 bg-[#0c0f17] p-0"
-                      />
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const name = inlineCatName.trim()
-                          if (name) {
-                            await addCategory(name, inlineCatColor)
-                            setInlineCatName('')
-                          }
-                        }}
-                        className="px-2 rounded bg-accent-blue text-white text-[9px] font-bold transition-all cursor-pointer"
-                      >
-                        Add
-                      </button>
-                    </div>
-                    <div className="max-h-20 overflow-y-auto custom-scrollbar space-y-1 pr-1 border-t border-white/5 pt-1.5">
-                      {categories.map(c => (
-                        <div key={c.id} className="flex items-center justify-between text-[8px] font-semibold bg-white/5 px-2 py-1 rounded">
-                          <div className="flex items-center gap-1 truncate">
-                            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
-                            <span className="text-white/80 truncate">{c.name}</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (c.id !== undefined) await deleteCategory(c.id)
-                            }}
-                            className="text-white/40 hover:text-red-400 font-bold transition-colors cursor-pointer"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <select
-                    value={editCategoryId ?? ''}
-                    onChange={e => handleCategoryChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                    className="w-full bg-black/50 border border-white/5 rounded-lg text-[10px] text-white p-1 outline-none cursor-pointer"
-                  >
-                    <option value="">Uncategorized</option>
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
+              <InlineCategoryManager
+                label="Category"
+                categories={categories}
+                addCategory={addCategory}
+                deleteCategory={deleteCategory}
+                selectedCategoryId={editCategoryId}
+                onSelectCategory={handleCategoryChange}
+              />
 
               <div>
                 <label className="block text-[8px] font-mono uppercase text-white/45 mb-1.5">Color Tag</label>
