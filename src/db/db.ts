@@ -77,6 +77,11 @@ class StudyDashboardDB extends Dexie {
       quick_notes: '++id, title, content, categoryId, updatedAt',
       snapshots: '++id, timestamp',
     }).upgrade(async tx => {
+      await tx.table('snapshots').add({
+        timestamp: new Date().toISOString(),
+        payload: JSON.stringify({ reason: 'pre-v6-migration-backup', at: Date.now() }),
+      })
+
       await tx.table('history').toCollection().modify((entry: HistoryEntry & { createdAt?: number }) => {
         if (entry.createdAt === undefined || !Number.isFinite(entry.createdAt)) {
           entry.createdAt = parseLegacyHistoryTimestamp(entry.timestamp)
