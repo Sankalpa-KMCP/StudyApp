@@ -1,8 +1,12 @@
 import React, { useState } from 'react'
 import { X } from 'lucide-react'
 import type { CategoryItem, SettingsKey, SettingsValue } from '../db/types'
-
-const FONT_OPTIONS = ['JetBrains Mono', 'Fira Code', 'SF Mono', 'Outfit', 'Inter'] as const
+import { AestheticsPanel } from './control-deck/AestheticsPanel'
+import { TimerFocusPanel } from './control-deck/TimerFocusPanel'
+import { SoundFeedbackPanel } from './control-deck/SoundFeedbackPanel'
+import { AlgorithmPanel } from './control-deck/AlgorithmPanel'
+import { ZenLockoutPanel } from './control-deck/ZenLockoutPanel'
+import { BackupVaultPanel } from './control-deck/BackupVaultPanel'
 
 interface ControlDeckProps {
   updateSetting: (key: SettingsKey, val: SettingsValue) => void
@@ -63,229 +67,40 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   isDragging,
   setIsDragging,
   handleFileDrop,
-  fileInputRef
+  fileInputRef,
 }) => {
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
-  const [sweepTasks, setSweepTasks] = useState(false)
-  const [sweepHistory, setSweepHistory] = useState(false)
-  const [sweepCategories, setSweepCategories] = useState(false)
-  const [sweepCards, setSweepCards] = useState(false)
-  const [sweepNotes, setSweepNotes] = useState(false)
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full flex-1 items-start animate-fade-in">
-      
-      {/* Left settings column */}
       <div className="flex flex-col gap-6">
-        
-        {/* Aesthetics & Translucency settings */}
-        <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl">
-          <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-5">Aesthetics & Translucency</h3>
-          <div className="space-y-6">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-white/80">Active Theme Preset</span>
-              </div>
-              <select
-                value={theme}
-                onChange={e => updateSetting('theme', e.target.value)}
-                className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-white outline-none cursor-pointer hover:bg-white/10 transition-colors font-semibold"
-              >
-                <option value="midnight-slate" className="bg-[#11131e] text-white">Midnight Slate (Default)</option>
-                <option value="midnight-oled" className="bg-[#11131e] text-white">Midnight OLED</option>
-                <option value="nordic-frost" className="bg-[#11131e] text-white">Nordic Frost</option>
-                <option value="amber-retro" className="bg-[#11131e] text-white">Amber Retro</option>
-                <option value="nebula-purple" className="bg-[#11131e] text-white">Nebula Purple</option>
-              </select>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-white/80">Card Backdrop Opacity</span>
-                <span className="text-xs font-bold text-white">{Math.round(cardOpacity * 100)}%</span>
-              </div>
-              <input
-                type="range"
-                min="0.20"
-                max="0.90"
-                step="0.05"
-                value={cardOpacity}
-                onChange={e => updateSetting('cardOpacity', parseFloat(e.target.value))}
-                className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-white/5 outline-none"
-              />
-              <div className="mt-1.5 flex justify-between text-[9px] text-white/40 font-semibold uppercase">
-                <span>Max Translucency</span>
-                <span>Solid background</span>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-white/80">Frosting blur size</span>
-                <span className="text-xs font-bold text-accent-blue">{backdropBlur}px</span>
-              </div>
-              <input
-                type="range"
-                min="4"
-                max="24"
-                step="1"
-                value={backdropBlur}
-                onChange={e => updateSetting('backdropBlur', parseInt(e.target.value))}
-                className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-white/5 outline-none"
-              />
-              <div className="mt-1.5 flex justify-between text-[9px] text-white/40 font-semibold uppercase">
-                <span>Sharp layout</span>
-                <span>Heavy blur</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Timer & Focus Settings */}
-        <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl">
-          <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-5">Timer & Focus</h3>
-          <div className="space-y-4">
-            {[
-              { key: 'dailyGoalMinutes' as const, label: 'Daily goal (minutes)', value: dailyGoalMinutes, min: 30, max: 960, step: 30 },
-              { key: 'studyBlockDurationMinutes' as const, label: 'Study block (minutes)', value: studyBlockDurationMinutes, min: 5, max: 120, step: 5 },
-              { key: 'shortBreakDurationMinutes' as const, label: 'Short break (minutes)', value: shortBreakDurationMinutes, min: 1, max: 30, step: 1 },
-              { key: 'longBreakDurationMinutes' as const, label: 'Long break (minutes)', value: longBreakDurationMinutes, min: 5, max: 60, step: 5 },
-              { key: 'targetSessionsPerCycle' as const, label: 'Sessions before long break', value: targetSessionsPerCycle, min: 1, max: 10, step: 1 },
-            ].map(item => (
-              <div key={item.key}>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-semibold text-white/80">{item.label}</span>
-                  <span className="text-xs font-bold text-accent-blue">{item.value}</span>
-                </div>
-                <input
-                  type="range"
-                  min={item.min}
-                  max={item.max}
-                  step={item.step}
-                  value={item.value}
-                  onChange={e => updateSetting(item.key, parseInt(e.target.value))}
-                  className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-white/5 outline-none"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Sound & Feedback */}
-        <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl">
-          <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-4">Sound & Feedback</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between bg-black/20 border border-white/5 px-4 py-3 rounded-2xl">
-              <span className="text-[10px] font-semibold text-white/70">Session chimes</span>
-              <button
-                onClick={() => updateSetting('soundEnabled', !soundEnabled)}
-                className={`ios-switch shrink-0 ${soundEnabled ? 'active' : ''}`}
-                aria-pressed={soundEnabled}
-              >
-                <span className="ios-switch-thumb" />
-              </button>
-            </div>
-            <div className="flex items-center justify-between bg-black/20 border border-white/5 px-4 py-3 rounded-2xl">
-              <span className="text-[10px] font-semibold text-white/70">Tactile click feedback</span>
-              <button
-                onClick={() => updateSetting('tactile_feedback', !tactileEnabled)}
-                className={`ios-switch shrink-0 ${tactileEnabled ? 'active' : ''}`}
-                aria-pressed={tactileEnabled}
-              >
-                <span className="ios-switch-thumb" />
-              </button>
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-white/80 block mb-2">Monospace font</span>
-              <select
-                value={developerFont}
-                onChange={e => updateSetting('developer_font', e.target.value)}
-                className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-white outline-none cursor-pointer"
-              >
-                {FONT_OPTIONS.map(f => (
-                  <option key={f} value={f} className="bg-[#11131e] text-white">{f}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Spaced Repetition Algorithm Settings */}
-        <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl">
-          <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-2">Algorithm Settings</h3>
-          <p className="text-[10px] text-white/40 leading-relaxed mb-4">
-            Adjust default SM-2 memory parameters for initial recall intervals.
-          </p>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-white/80">Initial Easiness Factor (EF)</span>
-                <span className="text-xs font-bold text-accent-blue">{initialEasinessFactor.toFixed(1)}</span>
-              </div>
-              <input
-                type="range"
-                min="1.3"
-                max="3.5"
-                step="0.1"
-                value={initialEasinessFactor}
-                onChange={e => updateSetting('initialEasinessFactor', parseFloat(e.target.value))}
-                className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-white/5 outline-none"
-              />
-              <div className="mt-1.5 flex justify-between text-[9px] text-white/40 font-semibold uppercase">
-                <span>Harder (1.3)</span>
-                <span>Easier (3.5)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Zen Lockout */}
-        <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl flex flex-col justify-between">
-          <div>
-            <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-2">Zen Lockout</h3>
-            <p className="text-[10px] text-white/40 leading-relaxed">Hides tab and escape navigation menus during study blocks to enforce strict focus.</p>
-          </div>
-          <div className="flex items-center justify-between mt-4 bg-black/20 border border-white/5 px-4 py-3 rounded-2xl">
-            <span className="text-[10px] font-semibold text-white/70">{enforceLockout ? 'Enforced' : 'Bypassed'}</span>
-            <button
-              onClick={() => updateSetting('enforce_lockout', !enforceLockout)}
-              className={`ios-switch shrink-0 ${enforceLockout ? 'active' : ''}`}
-              aria-pressed={enforceLockout}
-            >
-              <span className="ios-switch-thumb" />
-            </button>
-          </div>
-        </div>
-
-        {/* Task Archiving */}
-        <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl flex flex-col justify-between">
-          <div>
-            <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-2">Automated Archiving</h3>
-            <p className="text-[10px] text-white/40 leading-relaxed">Automatically archives completed tasks older than 90 days to keep the workspace clean.</p>
-          </div>
-          <div className="flex items-center justify-between mt-4 bg-black/20 border border-white/5 px-4 py-3 rounded-2xl">
-            <span className="text-[10px] font-semibold text-white/70">{autoArchiveAncientTasks ? 'Active' : 'Disabled'}</span>
-            <button
-              onClick={() => {
-                const nextVal = !autoArchiveAncientTasks
-                updateSetting('autoArchiveAncientTasks', nextVal)
-              }}
-              className={`ios-switch shrink-0 ${autoArchiveAncientTasks ? 'active' : ''}`}
-            >
-              <span className="ios-switch-thumb" />
-            </button>
-          </div>
-        </div>
+        <AestheticsPanel theme={theme} cardOpacity={cardOpacity} backdropBlur={backdropBlur} updateSetting={updateSetting} />
+        <TimerFocusPanel
+          dailyGoalMinutes={dailyGoalMinutes}
+          studyBlockDurationMinutes={studyBlockDurationMinutes}
+          shortBreakDurationMinutes={shortBreakDurationMinutes}
+          longBreakDurationMinutes={longBreakDurationMinutes}
+          targetSessionsPerCycle={targetSessionsPerCycle}
+          updateSetting={updateSetting}
+        />
+        <SoundFeedbackPanel
+          soundEnabled={soundEnabled}
+          tactileEnabled={tactileEnabled}
+          developerFont={developerFont}
+          updateSetting={updateSetting}
+        />
+        <AlgorithmPanel initialEasinessFactor={initialEasinessFactor} updateSetting={updateSetting} />
+        <ZenLockoutPanel
+          enforceLockout={enforceLockout}
+          autoArchiveAncientTasks={autoArchiveAncientTasks}
+          updateSetting={updateSetting}
+        />
       </div>
 
-      {/* Right settings column */}
       <div className="flex flex-col gap-6">
-        
-        {/* Subject category customizer */}
         <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl flex flex-col">
           <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-4">Subject Categories</h3>
-          
           <div className="flex gap-2 mb-4 bg-white/5 border border-white/5 p-2 rounded-full">
             <input
               value={newCategoryName}
@@ -320,8 +135,6 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
               Add
             </button>
           </div>
-
-          {/* Predefined Color Swatches */}
           <div className="flex items-center gap-2.5 mb-4.5 px-2 select-none">
             <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Swatches:</span>
             <div className="flex flex-wrap gap-2">
@@ -341,7 +154,6 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
               ))}
             </div>
           </div>
-
           <div className="flex-1 overflow-y-auto max-h-[260px] custom-scrollbar space-y-2 pr-1">
             {categories.length === 0 ? (
               <p className="text-xs italic text-white/30 text-center py-4">No categories configured yet.</p>
@@ -359,7 +171,7 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
                       }
                     }}
                     aria-label={`Delete category ${cat.name}`}
-                    className="flex h-6 w-6 items-center justify-center rounded-full text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all ios-active-scale cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
+                    className="flex h-6 w-6 items-center justify-center rounded-full text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all ios-active-scale cursor-pointer"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -369,187 +181,18 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
           </div>
         </div>
 
-        {/* Backups & resets */}
-        <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl">
-          <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-3">Backup Vault</h3>
-          <p className="text-xs text-white/50 mb-5 leading-relaxed">
-            Export backup data bundle to sync tables or local study logs across devices.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-white/5 bg-black/20 p-4 flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-bold text-white/95 block">Export backup vault</span>
-                <span className="text-[10px] text-white/40 mt-1 leading-normal font-semibold">Prepares a JSON package and initiates browser download.</span>
-              </div>
-              <button
-                onClick={exportStudyBackup}
-                className="w-full mt-4 rounded-full bg-accent-blue text-white py-2.5 text-xs font-bold hover:bg-accent-blue/90 transition-all ios-active-scale cursor-pointer shadow-md shadow-accent-blue/15"
-              >
-                Export Vault
-              </button>
-            </div>
-
-            <div
-              onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleFileDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`flex flex-col items-center justify-center border border-dashed rounded-2xl p-4 text-center transition-all cursor-pointer min-h-[120px] ${
-                isDragging
-                  ? 'border-accent-purple bg-accent-purple/10'
-                  : 'border-white/10 bg-black/20 hover:border-white/20'
-              }`}
-            >
-              <span className="text-2xl mb-1.5">📥</span>
-              <span className="text-xs font-bold text-white/90">Drag backup here</span>
-              <span className="text-[9px] text-white/40 mt-0.5">or browse files to restore</span>
-            </div>
-          </div>
-
-          <div className="mt-5 border-t border-white/5 pt-5">
-            <span className="text-xs font-bold text-white/90 block mb-3">CSV Reports Export</span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-white/5 bg-black/20 p-4 flex flex-col justify-between">
-                <div>
-                  <span className="text-xs font-bold text-white/95 block">Study Logs (CSV)</span>
-                  <span className="text-[10px] text-white/40 mt-1 leading-normal font-semibold">Export daily study and break durations, mood, and reflection notes.</span>
-                </div>
-                <button
-                  onClick={exportStudyLogsCSV}
-                  className="w-full mt-4 rounded-full bg-accent-blue/10 hover:bg-accent-blue/25 text-accent-blue border border-accent-blue/20 py-2.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
-                >
-                  Export CSV Logs
-                </button>
-              </div>
-
-              <div className="rounded-2xl border border-white/5 bg-black/20 p-4 flex flex-col justify-between">
-                <div>
-                  <span className="text-xs font-bold text-white/95 block">Task Completion (CSV)</span>
-                  <span className="text-[10px] text-white/40 mt-1 leading-normal font-semibold">Export tasks registry data, completion status, estimates, and subtask progress.</span>
-                </div>
-                <button
-                  onClick={exportTaskCompletionLogsCSV}
-                  className="w-full mt-4 rounded-full bg-accent-blue/10 hover:bg-accent-blue/25 text-accent-blue border border-accent-blue/20 py-2.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
-                >
-                  Export CSV Tasks
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <input
-            type="file"
-            accept=".studybackup,.json"
-            ref={fileInputRef}
-            className="hidden"
-            onChange={e => {
-              const file = e.target.files?.[0]
-              if (file) {
-                const r = new FileReader()
-                r.onload = () => importStudyBackup(r.result as string)
-                r.readAsText(file)
-              }
-              e.target.value = ''
-            }}
-          />
-
-          <div className="mt-6 border-t border-red-500/15 pt-5">
-            <span className="text-xs font-bold text-red-400 block mb-1">Destructive reset zone</span>
-            <p className="text-[10px] text-white/50 leading-normal mb-4">
-              Select specific database tables to clear individually, or sweep all tables to perform a full workspace wipe.
-            </p>
-
-            <div className="grid grid-cols-2 gap-3 mb-5 bg-black/10 border border-white/5 p-4 rounded-2xl">
-              <label className="flex items-center gap-2.5 text-[10px] text-white/70 font-semibold cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={sweepTasks}
-                  onChange={e => setSweepTasks(e.target.checked)}
-                  className="rounded border-white/10 bg-black/30 text-red-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
-                />
-                <span>Tasks & Subtasks</span>
-              </label>
-
-              <label className="flex items-center gap-2.5 text-[10px] text-white/70 font-semibold cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={sweepHistory}
-                  onChange={e => setSweepHistory(e.target.checked)}
-                  className="rounded border-white/10 bg-black/30 text-red-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
-                />
-                <span>Study Logs & History</span>
-              </label>
-
-              <label className="flex items-center gap-2.5 text-[10px] text-white/70 font-semibold cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={sweepCategories}
-                  onChange={e => setSweepCategories(e.target.checked)}
-                  className="rounded border-white/10 bg-black/30 text-red-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
-                />
-                <span>Subject Categories</span>
-              </label>
-
-              <label className="flex items-center gap-2.5 text-[10px] text-white/70 font-semibold cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={sweepCards}
-                  onChange={e => setSweepCards(e.target.checked)}
-                  className="rounded border-white/10 bg-black/30 text-red-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
-                />
-                <span>Flashcard Decks</span>
-              </label>
-
-              <label className="flex items-center gap-2.5 text-[10px] text-white/70 font-semibold cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={sweepNotes}
-                  onChange={e => setSweepNotes(e.target.checked)}
-                  className="rounded border-white/10 bg-black/30 text-red-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
-                />
-                <span>Quick Notes</span>
-              </label>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                disabled={!sweepTasks && !sweepHistory && !sweepCategories && !sweepCards && !sweepNotes}
-                onClick={() => {
-                  if (confirm("Are you sure you want to sweep the selected workspace databases? This cannot be undone.")) {
-                    resetDataSelective({
-                      tasks: sweepTasks,
-                      history: sweepHistory,
-                      categories: sweepCategories,
-                      cards: sweepCards,
-                      notes: sweepNotes
-                    })
-                    // Reset checks
-                    setSweepTasks(false)
-                    setSweepHistory(false)
-                    setSweepCategories(false)
-                    setSweepCards(false)
-                    setSweepNotes(false)
-                  }
-                }}
-                className="rounded-full bg-red-500/10 border border-red-500/20 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 disabled:opacity-40 disabled:pointer-events-none transition-all ios-active-scale cursor-pointer"
-              >
-                Sweep Selected
-              </button>
-
-              <button
-                onClick={() => {
-                  if (confirm("DANGER: Sweeping all tables deletes your workspace stats and configuration permanently. Reset everything?")) {
-                    resetData()
-                  }
-                }}
-                className="rounded-full bg-white/5 border border-white/10 px-4 py-2 text-xs font-bold text-white/80 hover:bg-white/10 transition-all ios-active-scale cursor-pointer"
-              >
-                Sweep All Tables
-              </button>
-            </div>
-          </div>
-        </div>
+        <BackupVaultPanel
+          exportStudyBackup={exportStudyBackup}
+          exportStudyLogsCSV={exportStudyLogsCSV}
+          exportTaskCompletionLogsCSV={exportTaskCompletionLogsCSV}
+          importStudyBackup={importStudyBackup}
+          resetData={resetData}
+          resetDataSelective={resetDataSelective}
+          isDragging={isDragging}
+          setIsDragging={setIsDragging}
+          handleFileDrop={handleFileDrop}
+          fileInputRef={fileInputRef}
+        />
       </div>
     </div>
   )
