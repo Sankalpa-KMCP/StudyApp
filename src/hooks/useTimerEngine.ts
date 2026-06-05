@@ -3,6 +3,7 @@ import { db } from '../db/db'
 import type { TaskItem } from '../db/types'
 import type { PendingSessionData } from '../types/app'
 import { calculateSM2, formatHistoryTimestamp } from '../lib/studyDashboard'
+import { devLog } from '../lib/devLogger'
 import { requestWakeLock, releaseWakeLock } from '../lib/wakeLock'
 import type { HistoryEntry } from '../db/types'
 
@@ -92,6 +93,7 @@ export function useTimerEngine({
     })
 
     playChime()
+    devLog('timer', 'session-complete', { mode, elapsed })
     if (mode === 'study') {
       const studySessionCount = parseInt(localStorage.getItem('completed_study_sessions_count') || '0') + 1
       localStorage.setItem('completed_study_sessions_count', String(studySessionCount))
