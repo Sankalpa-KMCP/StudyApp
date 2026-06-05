@@ -2,18 +2,18 @@
 @import "tailwindcss";
 
 @theme {
-  --color-surface: #0B0F19;
-  --color-surface-card: #131926;
-  --color-surface-card-hover: #1A2235;
-  --color-accent-blue: #3B82F6;
-  --color-accent-purple: #8B5CF6;
-  --color-accent-amber: #F59E0B;
-  --color-accent-green: #10B981;
+  --color-surface: #07090e;
+  --color-surface-card: #0c0f17;
+  --color-surface-card-hover: #111622;
+  --color-accent-blue: #00ff66;
+  --color-accent-purple: #64748b;
+  --color-accent-amber: #f59e0b;
+  --color-accent-green: #00ff66;
   --color-text-primary: #F8FAFC;
   --color-text-secondary: #94A3B8;
   --color-text-muted: #64748B;
-  --color-border-card: rgba(255, 255, 255, 0.06);
-  --color-border-subtle: rgba(255, 255, 255, 0.04);
+  --color-border-card: #1b2333;
+  --color-border-subtle: #1b2333;
   --color-intensity-0: #1E293B;
   --color-intensity-1: #1D4ED8;
   --color-intensity-2: #2563EB;
@@ -78,38 +78,8 @@ body {
 }
 
 .dynamic-card {
-  background-color: rgba(var(--surface-card-rgb), var(--card-opacity)) !important;
-  backdrop-filter: blur(var(--backdrop-blur)) !important;
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  background-color: #0c0f17 !important;
   position: relative;
-  overflow: hidden;
-}
-
-.dynamic-card:hover {
-  transform: translateY(-4px) !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-}
-
-.dynamic-card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -150%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transform: skewX(-20deg);
-  pointer-events: none;
-}
-
-.dynamic-card:hover::after {
-  animation: glass-shimmer 2s ease-out;
 }
 
 @keyframes fade-in {
@@ -142,12 +112,10 @@ body {
 
 @keyframes hrv-glow {
   0%, 100% {
-    box-shadow: inset 0 0 30px rgba(147, 51, 234, 0.05), 0 0 20px rgba(59, 130, 246, 0.02);
-    filter: drop-shadow(0 0 2px rgba(147, 51, 234, 0.02));
+    box-shadow: inset 0 0 0 1px rgba(0, 255, 102, 0.03);
   }
   50% {
-    box-shadow: inset 0 0 60px rgba(147, 51, 234, 0.18), 0 0 40px rgba(59, 130, 246, 0.08);
-    filter: drop-shadow(0 0 10px rgba(147, 51, 234, 0.08));
+    box-shadow: inset 0 0 0 2px rgba(0, 255, 102, 0.15), 0 0 12px rgba(0, 255, 102, 0.06);
   }
 }
 
