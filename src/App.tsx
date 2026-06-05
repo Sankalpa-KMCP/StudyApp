@@ -1355,6 +1355,14 @@ function App() {
           setActiveToast({ key: 'C', message: 'FOCUS BLOCK COMPLETED', id: Date.now() })
           break
         case 'z':
+          if (localEnforceLockout && isTimerActive && timerMode === 'study') {
+            setActiveToast({
+              key: 'LOCK',
+              message: 'LOCKOUT ACTIVE - COMPULSORY STUDY',
+              id: Date.now()
+            })
+            break
+          }
           setIsZenMode(zen => {
             const nextZen = !zen
             setActiveToast({
@@ -1525,11 +1533,14 @@ function App() {
               ].map(tab => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
+                const isLocked = localEnforceLockout && isTimerActive && timerMode === 'study' && tab.id !== 'focus'
                 return (
                   <button
                     key={tab.id}
+                    disabled={isLocked}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`nav-tab shrink-0 w-full ${isActive ? 'active' : ''} cursor-pointer`}
+                    className={`nav-tab shrink-0 w-full ${isActive ? 'active' : ''} ${isLocked ? 'opacity-30 cursor-not-allowed hover:bg-transparent hover:text-slate-400' : 'cursor-pointer'}`}
+                    title={isLocked ? "Focus Lockout Active" : undefined}
                   >
                     <Icon className="h-4 w-4" />
                     <span>{tab.label}</span>
