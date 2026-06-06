@@ -22,7 +22,7 @@ export function useFlashcardFilters(flashcards: FlashcardItem[]) {
       if (activeSpacingFilter === 'completed') return c.latestGrade !== undefined && c.nextReviewDate && c.nextReviewDate > todayStr
       return true
     })
-  }, [flashcards, activeCategoryFilter, activeSpacingFilter, isDue])
+  }, [flashcards, activeCategoryFilter, activeSpacingFilter, isDue, todayStr])
 
   const stats = useMemo(() => {
     const total = filteredCards.length
