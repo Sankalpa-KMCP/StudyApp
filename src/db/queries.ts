@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db'
 import type { HistoryEntry, SettingsKey, FlashcardItem, QuickNoteItem, SettingsValue, TaskItem } from './types'
-import { calculateMonthLogs, calculateSM2, formatHistoryTimestamp } from '../lib/studyDashboard'
+import { buildDateString, calculateMonthLogs, calculateSM2, formatHistoryTimestamp } from '../lib/studyDashboard'
+import { settingsFromRows } from './selectors/settingsFromRows'
 
 export function useTasks() {
   const tasks = useLiveQuery<TaskItem[]>(() => db.tasks.orderBy('id').reverse().toArray())
@@ -143,57 +144,25 @@ export function useHistory() {
 
 export function useSettings() {
   const rows = useLiveQuery(() => db.settings.toArray())
-
-  const dailyGoalMinutes = (rows?.find(r => r.key === 'dailyGoalMinutes')?.value as number) ?? 480
-  const soundEnabled = (rows?.find(r => r.key === 'soundEnabled')?.value as boolean) ?? true
-  const targetSessionsPerCycle = (rows?.find(r => r.key === 'targetSessionsPerCycle')?.value as number) ?? 4
-  const longBreakDurationMinutes = (rows?.find(r => r.key === 'longBreakDurationMinutes')?.value as number) ?? 15
-  const shortBreakDurationMinutes = (rows?.find(r => r.key === 'shortBreakDurationMinutes')?.value as number) ?? 5
-  const studyBlockDurationMinutes = (rows?.find(r => r.key === 'studyBlockDurationMinutes')?.value as number) ?? 25
-  const theme = (rows?.find(r => r.key === 'theme')?.value as string) ?? 'midnight-slate'
-  const cardOpacity = (rows?.find(r => r.key === 'cardOpacity')?.value as number) ?? 0.70
-  const backdropBlur = (rows?.find(r => r.key === 'backdropBlur')?.value as number) ?? 8
-  const tactile_feedback = (rows?.find(r => r.key === 'tactile_feedback')?.value as boolean) ?? false
-  const developer_font = (rows?.find(r => r.key === 'developer_font')?.value as string) ?? 'JetBrains Mono'
-  const enforce_lockout = (rows?.find(r => r.key === 'enforce_lockout')?.value as boolean) ?? false
-  const initialEasinessFactor = (rows?.find(r => r.key === 'initialEasinessFactor')?.value as number) ?? 2.5
-  const autoArchiveAncientTasks = (rows?.find(r => r.key === 'autoArchiveAncientTasks')?.value as boolean) ?? false
+  const parsed = settingsFromRows(rows)
 
   const updateSetting = async (key: SettingsKey, value: SettingsValue) => {
     await db.settings.put({ key, value })
   }
 
   return {
-    dailyGoalMinutes,
-    soundEnabled,
-    targetSessionsPerCycle,
-    longBreakDurationMinutes,
-    shortBreakDurationMinutes,
-    studyBlockDurationMinutes,
-    theme,
-    cardOpacity,
-    backdropBlur,
-    tactile_feedback,
-    developer_font,
-    enforce_lockout,
-    initialEasinessFactor,
-    autoArchiveAncientTasks,
+    ...parsed,
     updateSetting,
     isLoading: rows === undefined,
   }
 }
 
-function todayDateString(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 export function useTodayLog() {
-  const [dateString, setDateString] = useState(todayDateString)
+  const [dateString, setDateString] = useState(() => buildDateString())
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const current = todayDateString()
+      const current = buildDateString()
       if (current !== dateString) {
         setDateString(current)
       }
@@ -204,7 +173,7 @@ export function useTodayLog() {
   const log = useLiveQuery(() => db.daily_logs.get(dateString).then(r => r ?? null), [dateString])
 
   const incrementStudy = async () => {
-    const current = todayDateString()
+    const current = buildDateString()
     const existing = await db.daily_logs.get(current)
     if (existing) {
       await db.daily_logs.update(current, { studyMinutes: existing.studyMinutes + 1 })
@@ -214,7 +183,7 @@ export function useTodayLog() {
   }
 
   const incrementBreak = async () => {
-    const current = todayDateString()
+    const current = buildDateString()
     const existing = await db.daily_logs.get(current)
     if (existing) {
       await db.daily_logs.update(current, { breakMinutes: existing.breakMinutes + 1 })
