@@ -22,10 +22,20 @@ export function useStudyApp() {
 }
 
 export function useStudyData() {
-  const {
-    tasks, history, settings, todayLog, flashcards, quickNotes, categories, allLogs, isDataReady,
-  } = useStudyDataContext()
-  return { tasks, history, settings, todayLog, flashcards, quickNotes, categories, allLogs, isDataReady }
+  const ctx = useStudyDataContext()
+  return useMemo(() => ({
+    tasks: ctx.tasks,
+    history: ctx.history,
+    settings: ctx.settings,
+    todayLog: ctx.todayLog,
+    flashcards: ctx.flashcards,
+    quickNotes: ctx.quickNotes,
+    categories: ctx.categories,
+    allLogs: ctx.allLogs,
+    isDataReady: ctx.isDataReady,
+    currentStreak: ctx.currentStreak,
+    xpData: ctx.xpData,
+  }), [ctx])
 }
 
 export function useStudyUI() {

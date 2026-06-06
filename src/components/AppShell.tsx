@@ -10,23 +10,21 @@ import { AnalyticsTab } from './tabs/AnalyticsTab'
 import { JournalTab } from './tabs/JournalTab'
 import { CardsTab } from './tabs/CardsTab'
 import { SettingsTab } from './tabs/SettingsTab'
-import { useStudyApp, useStudyUI } from '../context/useStudyApp'
+import { useStudyData, useStudyUI } from '../context/useStudyApp'
+import { useStudyTimerContext } from '../context/studyTimerContext'
 
 export function AppShell() {
   const {
     isDataReady,
-    canvasRef,
     tasks,
     settings,
     quickNotes,
     categories,
-    timer,
     currentStreak,
     xpData,
-    activeToast,
-    isNotesOpen,
-    setIsNotesOpen,
-  } = useStudyApp()
+  } = useStudyData()
+
+  const { timer } = useStudyTimerContext()
 
   const {
     activeTab,
@@ -37,6 +35,10 @@ export function AppShell() {
     setIsHotkeyHudOpen,
     activeTaskId,
     activeThemeVars,
+    canvasRef,
+    activeToast,
+    isNotesOpen,
+    setIsNotesOpen,
   } = useStudyUI()
 
   if (!isDataReady) {
