@@ -41,7 +41,7 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
       {/* Centerpiece Layout */}
       <div className="relative z-10 flex flex-col items-center text-center space-y-8 select-none max-w-md px-6 animate-slide-in-up">
         {/* Cinematic countdown clock */}
-        <div className="text-center">
+        <div className="text-center" aria-live="polite" aria-atomic="true">
           <p className="text-[12rem] md:text-[15rem] text-white/90 font-thin tracking-tighter leading-none select-none drop-shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
             {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
           </p>
