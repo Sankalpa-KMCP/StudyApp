@@ -707,8 +707,8 @@ function App() {
         ctx.beginPath()
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
         ctx.fillStyle = isMuted
-          ? 'rgba(197, 168, 128, 0.05)'
-          : `rgba(197, 168, 128, ${0.10 + Math.min(0.15, aggregateVol * 0.10)})`
+          ? 'rgba(255, 255, 255, 0.02)'
+          : `rgba(255, 255, 255, ${0.08 + Math.min(0.12, aggregateVol * 0.10)})`
         ctx.fill()
       })
 
@@ -727,7 +727,7 @@ function App() {
                ctx.beginPath()
               ctx.moveTo(p1.x, p1.y)
               ctx.lineTo(p2.x, p2.y)
-              ctx.strokeStyle = `rgba(197, 168, 128, ${alpha * 0.5})`
+              ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`
               ctx.lineWidth = 0.5
               ctx.stroke()
             }
@@ -743,9 +743,9 @@ function App() {
       if (waveAmplitudeRef.current > 0.5) {
         const waveTime = performance.now() * 0.001
         const layers = [
-          { freq: 0.008, speed: 0.8, phase: 0,          color: 'rgba(197, 168, 128, 0.15)',   lineW: 0.75 },
-          { freq: 0.012, speed: 1.2, phase: Math.PI / 3, color: 'rgba(225, 222, 215, 0.08)',  lineW: 0.5 },
-          { freq: 0.006, speed: -0.6, phase: Math.PI / 1.5, color: 'rgba(197, 168, 128, 0.08)', lineW: 0.5 },
+          { freq: 0.008, speed: 0.8, phase: 0,          color: 'rgba(255, 255, 255, 0.15)',   lineW: 0.75 },
+          { freq: 0.012, speed: 1.2, phase: Math.PI / 3, color: 'rgba(255, 255, 255, 0.08)',  lineW: 0.5 },
+          { freq: 0.006, speed: -0.6, phase: Math.PI / 1.5, color: 'rgba(255, 255, 255, 0.08)', lineW: 0.5 },
         ]
         layers.forEach(l => {
           ctx.beginPath()
@@ -763,7 +763,7 @@ function App() {
         ctx.beginPath()
         ctx.moveTo(0, waveBaseY)
         ctx.lineTo(width, waveBaseY)
-        ctx.strokeStyle = 'rgba(71, 85, 105, 0.15)'
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)'
         ctx.lineWidth = 0.5
         ctx.stroke()
       }
@@ -1663,10 +1663,10 @@ function App() {
                             />
                           </svg>
                           <div className="text-center z-10">
-                            <p className="text-4xl font-extrabold text-text-primary font-mono tracking-tight tabular-nums select-none">
+                            <p className="text-4xl font-extralight text-white font-mono tracking-tight tabular-nums select-none drop-shadow-[0_2px_12px_rgba(255,255,255,0.05)]">
                               {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
                             </p>
-                            <p className="text-[10px] text-slate-450 font-bold uppercase tracking-wider mt-1 select-none">
+                            <p className="text-[10px] text-white/60 font-semibold uppercase tracking-wider mt-1 select-none">
                               {timerMode === 'study' ? 'Study Block' : isLongBreak ? 'Long Break' : 'Short Break'}
                             </p>
                           </div>
@@ -2739,10 +2739,10 @@ function App() {
           <div className="relative z-10 flex flex-col items-center text-center space-y-8 select-none max-w-md px-6 animate-slide-in-up">
             {/* Cinematic countdown clock */}
             <div className="text-center">
-              <p className="text-[12rem] md:text-[15rem] text-[#e1ded7] font-light font-mono tracking-tight leading-none select-none">
+              <p className="text-[12rem] md:text-[15rem] text-white/90 font-extralight font-mono tracking-tight leading-none select-none drop-shadow-[0_4px_40px_rgba(255,255,255,0.05)]">
                 {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
               </p>
-              <p className="text-xs text-slate-400 mt-3 uppercase tracking-wider font-semibold">
+              <p className="text-xs text-white/60 mt-3 uppercase tracking-wider font-semibold">
                 {timerMode === 'study' ? 'Deep Study' : 'Resting'}
               </p>
             </div>
@@ -2752,7 +2752,7 @@ function App() {
               {(() => {
                 const activeTask = sessionTasks.find(t => t.id === activeTaskId)
                 return (
-                  <p className="text-xs font-serif-luxury italic text-[#c5a880]/80 tracking-widest uppercase">
+                  <p className="text-xs font-serif-luxury italic text-white/80 tracking-widest uppercase">
                     {activeTask ? activeTask.text : 'Radiant Silence'}
                   </p>
                 )
