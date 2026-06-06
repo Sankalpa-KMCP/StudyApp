@@ -68,7 +68,8 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 
 - **History entries** include `createdAt` (epoch ms) for reliable date filtering, plus a human-readable `timestamp` for display.
 - **Emergency snapshots** are stored in IndexedDB (`snapshots` table), keeping the last 3 automatic backups.
-- **Schema version:** 6 (migrates legacy history timestamps automatically).
+- **Schema version:** 7 (Dexie `db.verno` — IndexedDB migration version).
+- **Backup `version: 2`** in `.studybackup` JSON exports is the **export file format** revision — separate from the DB schema version above.
 
 ---
 
@@ -118,7 +119,7 @@ npm install
 npm run dev            # Vite dev server at http://localhost:5173
 npm run build          # Production build to dist/
 npm test               # Vitest unit tests
-npm run test:coverage  # Coverage report (60% threshold on lib/db/hooks)
+npm run test:coverage  # Coverage report (70% threshold on scoped lib/db/hooks)
 npm run test:watch     # Vitest watch mode
 npm run test:e2e       # Playwright smoke tests
 npm run storybook      # Component stories on port 6006
@@ -132,7 +133,7 @@ npm run lint           # ESLint
 |-------|---------|----------|
 | Unit / hooks | `npm test` | `src/lib/__tests__`, `src/db/__tests__`, `src/hooks/__tests__` |
 | Context | `npm test` | `src/context/__tests__` |
-| Coverage gate | `npm run test:coverage` | CI fails under 60% on lib/db/hooks |
+| Coverage gate | `npm run test:coverage` | CI fails under 70% on scoped lib/db/hooks |
 | E2E smoke | `npm run test:e2e` | `e2e/focus.spec.ts`, `e2e/settings.spec.ts` |
 | Storybook | `npm run storybook` | `src/**/*.stories.tsx` |
 
