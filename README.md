@@ -72,15 +72,69 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph data [Data Layer]
+    db[(IndexedDB / Dexie)]
+    queries[db/queries.ts hooks]
+  end
+  subgraph hooks [Hooks]
+    timer[useTimerEngine]
+    backup[useSessionBackup]
+    journal[useJournalCalendar]
+  end
+  subgraph context [Context Providers]
+    dataP[StudyDataProvider]
+    timerP[StudyTimerProvider]
+    uiP[StudyUIProvider]
+  end
+  subgraph ui [UI Tabs]
+    focus[FocusTab]
+    cards[CardsTab]
+    analytics[AnalyticsTab]
+    journalTab[JournalTab]
+    settings[SettingsTab]
+  end
+  db --> queries
+  queries --> dataP
+  timer --> timerP
+  backup --> timerP
+  journal --> dataP
+  dataP --> focus
+  timerP --> focus
+  uiP --> focus
+  dataP --> cards
+  dataP --> analytics
+  dataP --> journalTab
+  timerP --> settings
+```
+
 ## Development
 
 ```bash
 npm install
-npm run dev        # Vite dev server at http://localhost:5173
-npm run build      # Production build to dist/
-npm test           # Vitest unit tests
-npm run lint       # ESLint
+npm run dev            # Vite dev server at http://localhost:5173
+npm run build          # Production build to dist/
+npm test               # Vitest unit tests
+npm run test:coverage  # Coverage report (60% threshold on lib/db/hooks)
+npm run test:watch     # Vitest watch mode
+npm run test:e2e       # Playwright smoke tests
+npm run storybook      # Component stories on port 6006
+npm run build-storybook
+npm run lint           # ESLint
 ```
+
+### Testing guide
+
+| Layer | Command | Location |
+|-------|---------|----------|
+| Unit / hooks | `npm test` | `src/lib/__tests__`, `src/db/__tests__`, `src/hooks/__tests__` |
+| Context | `npm test` | `src/context/__tests__` |
+| Coverage gate | `npm run test:coverage` | CI fails under 60% on lib/db/hooks |
+| E2E smoke | `npm run test:e2e` | `e2e/focus.spec.ts`, `e2e/settings.spec.ts` |
+| Storybook | `npm run storybook` | `src/**/*.stories.tsx` |
 
 ### Tauri Desktop App
 
@@ -93,7 +147,7 @@ npm run tauri:build  # Build native installer
 
 ## PWA Install
 
-The app includes a web manifest for installable PWA support. Deploy to GitHub Pages or any static host; data remains in browser IndexedDB.
+The app includes a web manifest and service worker (`vite-plugin-pwa`) for offline app-shell caching. Deploy to GitHub Pages or any static host; data remains in browser IndexedDB.
 
 ---
 
