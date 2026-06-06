@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useConfirm } from '../../context/useConfirm'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 
 interface BackupVaultPanelProps {
@@ -26,6 +27,7 @@ export function BackupVaultPanel({
   handleFileDrop,
   fileInputRef,
 }: BackupVaultPanelProps) {
+  const { requestConfirm } = useConfirm()
   const [sweepTasks, setSweepTasks] = useState(false)
   const [sweepHistory, setSweepHistory] = useState(false)
   const [sweepCategories, setSweepCategories] = useState(false)
@@ -140,31 +142,41 @@ export function BackupVaultPanel({
         <div className="flex flex-wrap gap-3">
           <button
             disabled={!sweepTasks && !sweepHistory && !sweepCategories && !sweepCards && !sweepNotes}
-            onClick={() => {
-              if (confirm('Are you sure you want to sweep the selected workspace databases? This cannot be undone.')) {
-                resetDataSelective({
-                  tasks: sweepTasks,
-                  history: sweepHistory,
-                  categories: sweepCategories,
-                  cards: sweepCards,
-                  notes: sweepNotes,
-                })
-                setSweepTasks(false)
-                setSweepHistory(false)
-                setSweepCategories(false)
-                setSweepCards(false)
-                setSweepNotes(false)
-              }
+            onClick={async () => {
+              const ok = await requestConfirm({
+                title: 'Sweep selected tables?',
+                message: 'Are you sure you want to sweep the selected workspace databases? This cannot be undone.',
+                confirmLabel: 'Sweep Selected',
+                danger: true,
+              })
+              if (!ok) return
+              resetDataSelective({
+                tasks: sweepTasks,
+                history: sweepHistory,
+                categories: sweepCategories,
+                cards: sweepCards,
+                notes: sweepNotes,
+              })
+              setSweepTasks(false)
+              setSweepHistory(false)
+              setSweepCategories(false)
+              setSweepCards(false)
+              setSweepNotes(false)
             }}
             className="rounded-full bg-red-500/10 border border-red-500/20 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 disabled:opacity-40 disabled:pointer-events-none transition-all ios-active-scale cursor-pointer"
           >
             Sweep Selected
           </button>
           <button
-            onClick={() => {
-              if (confirm('DANGER: Sweeping all tables deletes your workspace stats and configuration permanently. Reset everything?')) {
-                resetData()
-              }
+            onClick={async () => {
+              const ok = await requestConfirm({
+                title: 'Reset entire workspace?',
+                message: 'Sweeping all tables deletes your workspace stats and configuration permanently.',
+                confirmLabel: 'Sweep All',
+                danger: true,
+              })
+              if (!ok) return
+              resetData()
             }}
             className="rounded-full bg-white/5 border border-white/10 px-4 py-2 text-xs font-bold text-white/80 hover:bg-white/10 transition-all ios-active-scale cursor-pointer"
           >

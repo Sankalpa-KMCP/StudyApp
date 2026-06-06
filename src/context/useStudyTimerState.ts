@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { useConfirm } from './useConfirm'
 import { useSessionBackup } from '../hooks/useSessionBackup'
 import { useAmbientSynth } from '../hooks/useAmbientSynth'
 import { useTimerEngine } from '../hooks/useTimerEngine'
@@ -9,6 +10,7 @@ import type { useAppToast } from '../hooks/useAppToast'
 type PushToast = ReturnType<typeof useAppToast>['pushToast']
 
 export function useStudyTimerState(pushToast: PushToast) {
+  const { requestConfirm } = useConfirm()
   const {
     isDataReady,
     tasks,
@@ -56,16 +58,19 @@ export function useStudyTimerState(pushToast: PushToast) {
     pushToast,
   })
 
-  function confirmImport(fileString: string) {
+  const confirmImport = useCallback(async (fileString: string) => {
     const warn = timer.isTimerActive || timer.showReflectionModal
-    if (warn && !confirm('Importing will replace all data and reload the page. An active timer or reflection is in progress. Continue?')) {
-      return
-    }
-    if (!warn && !confirm('Importing will replace all workspace data. Continue?')) {
-      return
-    }
+    const ok = await requestConfirm({
+      title: warn ? 'Import during active session?' : 'Import backup?',
+      message: warn
+        ? 'Importing will replace all data and reload the page. An active timer or reflection is in progress.'
+        : 'Importing will replace all workspace data. Continue?',
+      confirmLabel: 'Import',
+      danger: true,
+    })
+    if (!ok) return
     void backup.importStudyBackup(fileString)
-  }
+  }, [backup, requestConfirm, timer.isTimerActive, timer.showReflectionModal])
 
   return useMemo(() => ({
     backup,
