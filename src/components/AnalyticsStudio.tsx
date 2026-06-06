@@ -149,8 +149,8 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
 
       {/* Recharts Performance Trends */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 border border-white/5 bg-white/[0.02] dynamic-card p-6">
-          <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Weekly Performance Trends</h3>
+        <div className="lg:col-span-8 border border-white/5 bg-white/[0.02] dynamic-card p-6" aria-labelledby="analytics-weekly-trends">
+          <h3 id="analytics-weekly-trends" className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Weekly Performance Trends</h3>
           {hasChartData ? (
             <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -176,9 +176,9 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
           )}
         </div>
 
-        <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6 flex flex-col justify-between">
+        <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6 flex flex-col justify-between" aria-labelledby="analytics-efficiency-index">
           <div>
-            <h3 className="text-xs font-bold text-white/70 tracking-wider uppercase mb-5">Daily Efficiency Index</h3>
+            <h3 id="analytics-efficiency-index" className="text-xs font-bold text-white/70 tracking-wider uppercase mb-5">Daily Efficiency Index</h3>
             {hasChartData ? (
               <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -207,8 +207,8 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
       </div>
 
       {/* Spaced Repetition Retention Telemetry Chart */}
-      <div className="border border-white/5 bg-white/[0.02] dynamic-card p-6">
-        <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Retention Telemetry (SM-2 Active Recall)</h3>
+      <div className="border border-white/5 bg-white/[0.02] dynamic-card p-6" aria-labelledby="analytics-retention">
+        <h3 id="analytics-retention" className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Retention Telemetry (SM-2 Active Recall)</h3>
         {hasRetentionData ? (
           <div className="h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -230,9 +230,9 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
       </div>
 
       {/* 365-Day Focus Heatmap */}
-      <div className="border border-white/5 bg-white/[0.02] dynamic-card p-6 flex flex-col gap-5">
+      <div className="border border-white/5 bg-white/[0.02] dynamic-card p-6 flex flex-col gap-5" aria-labelledby="analytics-heatmap">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <h3 className="text-xs font-semibold text-white/85 tracking-wider uppercase">Yearly Focus Horizon (365 Days)</h3>
+          <h3 id="analytics-heatmap" className="text-xs font-semibold text-white/85 tracking-wider uppercase">Yearly Focus Horizon (365 Days)</h3>
           <div className="flex items-center gap-1.5 text-[10px] text-white/40 font-semibold select-none">
             <span>Less</span>
             <div className="h-2.5 w-2.5 rounded-[2px] bg-white/5" />
@@ -249,6 +249,9 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
             {heatmapData.map(day => (
               <div
                 key={day.dateStr}
+                role="img"
+                aria-label={`${day.dateStr}: ${day.minutes} minutes studied`}
+                title={`${day.dateStr}: ${day.minutes}m`}
                 className="w-2.5 h-2.5 rounded-[2px] cursor-pointer transition-transform hover:scale-125 relative group"
                 style={{
                   backgroundColor: day.minutes === 0
@@ -278,8 +281,8 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
 
       {/* Subject Breakdown, Mood Distribution & Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6">
-          <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Subject Distribution</h3>
+        <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6" aria-labelledby="analytics-subjects">
+          <h3 id="analytics-subjects" className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Subject Distribution</h3>
           {categoryBreakdown.length > 0 ? (
             <div className="flex items-center gap-8 justify-around">
               <div className="w-24 h-24 shrink-0">
@@ -320,8 +323,8 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
           )}
         </div>
 
-        <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6">
-          <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Mood Distribution</h3>
+        <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6" aria-labelledby="analytics-mood">
+          <h3 id="analytics-mood" className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Mood Distribution</h3>
           {moodDistribution.some(m => m.value > 0) ? (
             <div className="flex items-center gap-8 justify-around">
               <div className="w-24 h-24 shrink-0">
@@ -365,8 +368,8 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
           )}
         </div>
 
-        <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6">
-          <h3 className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Productivity Metrics</h3>
+        <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6" aria-labelledby="analytics-productivity">
+          <h3 id="analytics-productivity" className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Productivity Metrics</h3>
           <div className="grid grid-cols-1 gap-2.5">
             {[
               { label: 'TOP SUBJECT', value: topSubject || 'No logs', icon: Award, color: 'text-accent-purple', bg: 'bg-accent-purple/10' },
