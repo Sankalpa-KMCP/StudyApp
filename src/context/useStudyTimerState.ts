@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSessionBackup } from '../hooks/useSessionBackup'
 import { useAmbientSynth } from '../hooks/useAmbientSynth'
 import { useTimerEngine } from '../hooks/useTimerEngine'
@@ -67,7 +67,7 @@ export function useStudyTimerState(pushToast: PushToast) {
     void backup.importStudyBackup(fileString)
   }
 
-  return {
+  return useMemo(() => ({
     backup,
     timer,
     ensureAudio,
@@ -78,5 +78,14 @@ export function useStudyTimerState(pushToast: PushToast) {
     taskCycleCount,
     setTaskCycleCount,
     confirmImport,
-  }
+  }), [
+    backup,
+    timer,
+    ensureAudio,
+    handleAddTask,
+    handleToggleTask,
+    activeTaskId,
+    taskCycleCount,
+    confirmImport,
+  ])
 }

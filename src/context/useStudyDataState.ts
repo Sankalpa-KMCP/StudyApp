@@ -38,7 +38,7 @@ export function useStudyDataState(pushToast: PushToast) {
     [settings.dailyGoalMinutes, todayLog.studyMinutes],
   )
 
-  return {
+  return useMemo(() => ({
     isDataReady,
     tasks,
     history,
@@ -54,5 +54,21 @@ export function useStudyDataState(pushToast: PushToast) {
     breakdownData,
     journal,
     progress,
-  }
+  }), [
+    isDataReady,
+    tasks,
+    history,
+    settings,
+    todayLog,
+    flashcards,
+    quickNotes,
+    categories,
+    allLogs,
+    currentStreak,
+    xpData,
+    insights,
+    breakdownData,
+    journal,
+    progress,
+  ])
 }

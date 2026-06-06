@@ -67,7 +67,7 @@ export function useStudyUIState(toast: ToastApi) {
     }
   }
 
-  return {
+  return useMemo(() => ({
     activeToast,
     isNotesOpen,
     setIsNotesOpen,
@@ -83,5 +83,15 @@ export function useStudyUIState(toast: ToastApi) {
     canvasRef,
     activeThemeVars,
     handleFileDrop,
-  }
+  }), [
+    activeToast,
+    isNotesOpen,
+    breathTime,
+    isZenMode,
+    activeTab,
+    isDragging,
+    isHotkeyHudOpen,
+    activeThemeVars,
+    handleFileDrop,
+  ])
 }
