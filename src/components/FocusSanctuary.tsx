@@ -18,6 +18,7 @@ interface FocusSanctuaryProps {
   breathTime: number
   setIsZenMode: (zen: boolean) => void
   onUserGesture?: () => void
+  showReflectionModal?: boolean
 }
 export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   timerMode,
@@ -36,6 +37,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   breathTime,
   setIsZenMode,
   onUserGesture,
+  showReflectionModal = false,
 }) => {
 
   // Get active color based on state
@@ -56,7 +58,10 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
 
   return (
     <div className="grid grid-cols-1 gap-6 w-full flex-1 items-start animate-fade-in">
-      
+      <div className="sr-only" aria-live="assertive" aria-atomic="true">
+        {showReflectionModal && timerMode === 'study' ? 'Study block complete' : ''}
+      </div>
+
       {/* Clock Sanctuary Block */}
       <div className="flex flex-col gap-6 w-full">
         

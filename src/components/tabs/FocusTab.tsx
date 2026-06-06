@@ -27,6 +27,7 @@ export function FocusTab() {
           breathTime={breathTime}
           setIsZenMode={setIsZenMode}
           onUserGesture={ensureAudio}
+          showReflectionModal={timer.showReflectionModal}
         />
       </div>
       <div className="lg:col-span-7">
