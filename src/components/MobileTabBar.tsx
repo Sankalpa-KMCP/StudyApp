@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Clock, Layers, BarChart3, Calendar, Settings } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
 
@@ -25,6 +25,12 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
   timerMode,
   enforceLockout,
 }) => {
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+
+  useEffect(() => {
+    tabRefs.current[activeTab]?.focus()
+  }, [activeTab])
+
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-30 flex md:hidden items-center justify-around border-t border-white/10 bg-black/40 backdrop-blur-xl px-2 py-2 safe-area-pb"
@@ -37,6 +43,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
         return (
           <button
             key={tab.id}
+            ref={el => { tabRefs.current[tab.id] = el }}
             type="button"
             disabled={isLocked}
             aria-current={isActive ? 'page' : undefined}

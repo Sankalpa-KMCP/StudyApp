@@ -59,6 +59,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   }, [updateIndicator])
 
+  useEffect(() => {
+    tabRefs.current[activeTab]?.focus()
+  }, [activeTab])
+
   if (isZenMode) return null
 
   return (
