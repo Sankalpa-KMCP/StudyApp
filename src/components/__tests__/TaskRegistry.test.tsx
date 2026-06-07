@@ -21,15 +21,15 @@ const baseProps = {
 describe('TaskRegistry', () => {
   it('renders focus registry and task input', () => {
     render(<TaskRegistry {...baseProps} tasks={[]} />)
-    expect(screen.getByText('Focus Registry')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Create focus target...')).toBeInTheDocument()
+    expect(screen.getByText('Focus targets')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('What do you want to focus on?')).toBeInTheDocument()
   })
 
   it('submits a new task on Enter', async () => {
     const user = userEvent.setup()
     const handleAddTask = vi.fn()
     render(<TaskRegistry {...baseProps} tasks={[]} handleAddTask={handleAddTask} />)
-    const input = screen.getByPlaceholderText('Create focus target...')
+    const input = screen.getByPlaceholderText('What do you want to focus on?')
     await user.type(input, 'My task{Enter}')
     expect(handleAddTask).toHaveBeenCalledWith('My task', undefined, 1, 'medium', false)
   })

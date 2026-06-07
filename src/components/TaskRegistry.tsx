@@ -61,13 +61,13 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
       <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-5 md:p-6 flex flex-col h-full shadow-2xl backdrop-blur-3xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 border-b border-white/5 pb-4">
           <div className="select-none">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-white/40">02 / Study Objectives</span>
-            <p className="text-sm font-bold text-white mt-1">Focus Registry</p>
+            <span className="text-label font-bold uppercase tracking-wider text-white/40">Study tasks</span>
+            <p className="text-sm font-bold text-white mt-1">Focus targets</p>
           </div>
 
           {timerMode === 'study' && (
             <div className="flex items-center gap-2.5">
-              <span className="text-[9px] font-bold text-white/40 uppercase tracking-wide select-none">Subject Focus:</span>
+              <span className="text-label font-bold text-white/40 uppercase tracking-wide select-none">Subject:</span>
               <select
                 value={timerCategoryId ?? ''}
                 onChange={e => setTimerCategoryId(e.target.value ? Number(e.target.value) : undefined)}
@@ -86,7 +86,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           <div className="mb-5 flex items-center gap-3.5 rounded-[20px] border border-white/5 bg-black/20 p-4 shadow-md animate-slide-in-up">
             <div className="h-2 w-2 rounded-full bg-accent-blue" />
             <div className="flex-1 min-w-0">
-              <p className="text-[9px] uppercase font-bold text-white/40">Active Target</p>
+              <p className="text-label uppercase font-bold text-white/40">Active target</p>
               <p className="truncate text-xs font-bold text-white mt-0.5 whitespace-pre-wrap">{activeTask.text}</p>
             </div>
             <span className="whitespace-nowrap text-xs font-mono font-bold text-white/75 flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full border border-white/5">

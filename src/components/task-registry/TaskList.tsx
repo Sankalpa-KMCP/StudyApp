@@ -96,9 +96,9 @@ export function TaskList({
             <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-white/5 mb-3 text-white/40">
               <AlertCircle className="h-5 w-5" />
             </div>
-            <p className="text-xs font-bold text-white/60">Objectives list is clear</p>
-            <p className="text-[8.5px] text-white/30 uppercase tracking-wider mt-1.5 font-bold">
-              Define targets to begin focus tracking
+            <p className="text-sm font-bold text-white/70">No focus targets yet</p>
+            <p className="text-label text-white/40 mt-1.5 font-medium">
+              Add one above to start tracking your study blocks
             </p>
           </div>
         ) : (
@@ -115,10 +115,10 @@ export function TaskList({
               return (
                 <div
                   key={task.id}
-                  className={`flex flex-col gap-3 py-3.5 px-3.5 rounded-2xl transition-all duration-300 cursor-pointer mb-2 border border-white/5 ${
+                  className={`dynamic-card flex flex-col gap-3 py-4 px-4 transition-all duration-300 cursor-pointer mb-2 ${
                     isActive
-                      ? 'bg-white/10 shadow-lg border-white/12 -translate-y-[1px]'
-                      : 'bg-white/[0.015] hover:bg-white/[0.04] hover:-translate-y-[2px] hover:shadow-md hover:border-white/10'
+                      ? 'shadow-lg border-white/12 -translate-y-[1px]'
+                      : 'hover:-translate-y-[2px]'
                   } ${priorityBorder}`}
                   onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
                 >

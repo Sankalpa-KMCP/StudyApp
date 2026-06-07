@@ -42,8 +42,8 @@ export function TaskCreateForm({
         value={taskText}
         onChange={e => setTaskText(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Create focus target..."
-        className="flex-1 min-w-[200px] rounded-lg bg-transparent px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none font-semibold"
+        placeholder="What do you want to focus on?"
+        className="flex-1 min-w-[200px] rounded-xl bg-transparent px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none font-semibold"
       />
 
       <div className="flex items-center gap-1.5">
