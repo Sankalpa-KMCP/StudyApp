@@ -8,7 +8,7 @@ test('cancelling backup import leaves current data unchanged', async ({ page }) 
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
 
   const taskName = 'Cancel-import anchor task'
-  const input = page.getByPlaceholder('Create focus target...')
+  const input = page.getByPlaceholder('What do you want to focus on?')
   await input.fill(taskName)
   await input.press('Enter')
   await expect(page.getByText(taskName)).toBeVisible({ timeout: 10000 })
