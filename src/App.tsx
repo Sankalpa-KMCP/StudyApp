@@ -14,7 +14,8 @@ import {
   calculateCategoryBreakdown,
   calculateMonthLogs,
   calculateCalendarHeatmapData,
-  calculateSM2
+  calculateSM2,
+  useFlashcards
 } from './db/hooks'
 import { db } from './db/db'
 import type { TaskItem } from './db/types'
@@ -31,6 +32,7 @@ import { ActivityLedger } from './components/ActivityLedger'
 import { ControlDeck } from './components/ControlDeck'
 import { ZenOverlay } from './components/ZenOverlay'
 import { ReflectionModal } from './components/ReflectionModal'
+import { FlashcardStudio } from './components/FlashcardStudio'
 
 const THEME_PROFILES: Record<string, {
   surface: string
@@ -152,6 +154,7 @@ function App() {
   } = useSettings()
 
   const { studyMinutes: todayStudyMinutes, breakMinutes: todayBreakMinutes, incrementStudy, incrementBreak, isLoading: todayLogLoading } = useTodayLog()
+  const { flashcards, addFlashcard, deleteFlashcard, submitFlashcardGrade, isLoading: flashcardsLoading } = useFlashcards()
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear())
   const { categories, isLoading: categoriesLoading, addCategory, deleteCategory } = useCategories()
@@ -231,7 +234,7 @@ function App() {
 
   // Zen Mode, Active View Router & Backups Drag/Drop
   const [isZenMode, setIsZenMode] = useState(false)
-  const [activeTab, setActiveTab] = useState<'focus' | 'analytics' | 'journal' | 'settings'>('focus')
+  const [activeTab, setActiveTab] = useState<'focus' | 'analytics' | 'journal' | 'cards' | 'settings'>('focus')
   const [isDragging, setIsDragging] = useState(false)
 
   const [activeTaskId, setActiveTaskId] = useState<number | null>(null)
@@ -283,7 +286,7 @@ function App() {
   const handleModeSwitchRef = useRef<any>(null)
   const completeSessionRef = useRef<any>(null)
 
-  const isDataReady = !(tasksLoading || historyLoading || settingsLoading || todayLogLoading || allLogsLoading || categoriesLoading)
+  const isDataReady = !(tasksLoading || historyLoading || settingsLoading || todayLogLoading || allLogsLoading || categoriesLoading || flashcardsLoading)
 
   const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay()
   const totalDaysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
@@ -825,6 +828,7 @@ function App() {
     await db.daily_logs.clear()
     await db.settings.clear()
     await db.categories.clear()
+    await db.flashcards.clear()
     await db.settings.bulkAdd([
       { key: 'dailyGoalMinutes', value: 480 },
       { key: 'soundEnabled', value: true },
@@ -860,12 +864,13 @@ function App() {
 
   async function createDatabaseSnapshot() {
     try {
-      const [tasks, history, dailyLogs, settings, categories] = await Promise.all([
+      const [tasks, history, dailyLogs, settings, categories, flashcards] = await Promise.all([
         db.tasks.toArray(),
         db.history.toArray(),
         db.daily_logs.toArray(),
         db.settings.toArray(),
         db.categories.toArray(),
+        db.flashcards.toArray(),
       ])
       const snapshot = {
         timestamp: new Date().toISOString(),
@@ -873,7 +878,8 @@ function App() {
         history,
         dailyLogs,
         settings,
-        categories
+        categories,
+        flashcards
       }
       const existingStr = localStorage.getItem('study_dashboard_snapshots')
       const snapshots = existingStr ? JSON.parse(existingStr) : []
@@ -890,14 +896,15 @@ function App() {
 
   async function exportStudyBackup() {
     try {
-      const [tasks, history, dailyLogs, settings, categories] = await Promise.all([
+      const [tasks, history, dailyLogs, settings, categories, flashcards] = await Promise.all([
         db.tasks.toArray(),
         db.history.toArray(),
         db.daily_logs.toArray(),
         db.settings.toArray(),
         db.categories.toArray(),
+        db.flashcards.toArray(),
       ])
-      const data = { version: 1, exportedAt: new Date().toISOString(), tasks, history, dailyLogs, settings, categories }
+      const data = { version: 1, exportedAt: new Date().toISOString(), tasks, history, dailyLogs, settings, categories, flashcards }
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -924,6 +931,7 @@ function App() {
         db.daily_logs.clear(),
         db.settings.clear(),
         db.categories.clear(),
+        db.flashcards.clear(),
       ])
 
       if (Array.isArray(data.tasks)) await db.tasks.bulkAdd(data.tasks)
@@ -931,6 +939,7 @@ function App() {
       if (Array.isArray(data.dailyLogs)) await db.daily_logs.bulkAdd(data.dailyLogs)
       if (Array.isArray(data.settings)) await db.settings.bulkAdd(data.settings)
       if (Array.isArray(data.categories)) await db.categories.bulkAdd(data.categories)
+      if (Array.isArray(data.flashcards)) await db.flashcards.bulkAdd(data.flashcards)
 
       console.log('Vault backup imported successfully. Reloading page...')
       window.location.reload()
@@ -1245,7 +1254,18 @@ function App() {
                 />
               )}
 
-              {/* TAB 4: CONTROL DECK (SETTINGS) */}
+              {/* TAB 4: FLASHCARD STUDY DECK */}
+              {activeTab === 'cards' && (
+                <FlashcardStudio
+                  categories={categories}
+                  flashcards={flashcards}
+                  addFlashcard={addFlashcard}
+                  deleteFlashcard={deleteFlashcard}
+                  submitFlashcardGrade={submitFlashcardGrade}
+                />
+              )}
+
+              {/* TAB 5: CONTROL DECK (SETTINGS) */}
               {activeTab === 'settings' && (
                 <ControlDeck
                   theme={theme}

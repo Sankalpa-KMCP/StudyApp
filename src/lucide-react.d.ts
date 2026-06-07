@@ -30,4 +30,7 @@ export const Database: Icon
   export const Sparkles: Icon
   export const ChevronLeft: Icon
   export const ChevronDown: Icon
+  export const Layers: Icon
+  export const GraduationCap: Icon
 }
+

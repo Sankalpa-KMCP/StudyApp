@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db'
-import type { HistoryEntry, SettingsKey, CategoryItem } from './types'
+import type { HistoryEntry, SettingsKey, CategoryItem, FlashcardItem } from './types'
 
 export function useTasks() {
   const tasks = useLiveQuery(() => db.tasks.orderBy('id').reverse().toArray())
@@ -606,4 +606,56 @@ export function calculateSM2(q: number, prevRep: number = 0, prevEF: number = 2.
     intervalDays,
   }
 }
+
+export function useFlashcards() {
+  const flashcards = useLiveQuery<FlashcardItem[]>(() => db.flashcards.toArray())
+
+  const addFlashcard = async (question: string, answer: string, categoryId?: number) => {
+    await db.flashcards.add({
+      question,
+      answer,
+      categoryId,
+      createdAt: Date.now(),
+      repetitionCount: 0,
+      easinessFactor: 2.5,
+      intervalDays: 0,
+    })
+  }
+
+  const deleteFlashcard = async (id: number) => {
+    await db.flashcards.delete(id)
+  }
+
+  const submitFlashcardGrade = async (id: number, q: number) => {
+    const card: FlashcardItem | undefined = await db.flashcards.get(id)
+    if (!card) return
+    const { repetitionCount, easinessFactor, intervalDays } = calculateSM2(
+      q,
+      card.repetitionCount ?? 0,
+      card.easinessFactor ?? 2.5,
+      card.intervalDays ?? 0
+    )
+
+    const nextDate = new Date()
+    nextDate.setDate(nextDate.getDate() + intervalDays)
+    const nextReviewDate = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`
+
+    await db.flashcards.update(id, {
+      repetitionCount,
+      easinessFactor,
+      intervalDays,
+      nextReviewDate,
+      latestGrade: q
+    })
+  }
+
+  return {
+    flashcards: flashcards ?? [],
+    addFlashcard,
+    deleteFlashcard,
+    submitFlashcardGrade,
+    isLoading: flashcards === undefined
+  }
+}
+
 
