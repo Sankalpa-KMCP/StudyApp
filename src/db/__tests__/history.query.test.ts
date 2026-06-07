@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { db } from '../db'
 import { resetDatabase } from '../../test/dbTestUtils'
 import {
+  addHistoryEntry,
+  clearHistory,
   getHistoryForDateRange,
   getMonthBounds,
   getRecentHistory,
@@ -31,5 +33,22 @@ describe('history queries', () => {
     const rows = await getRecentHistory(2)
     expect(rows).toHaveLength(2)
     expect(rows.map(r => r.timestamp)).toEqual(['recent-c', 'recent-b'])
+  })
+
+  it('addHistoryEntry assigns createdAt and timestamp', async () => {
+    await addHistoryEntry({
+      type: 'study',
+      durationMinutes: 25,
+      timestamp: '',
+    })
+    const rows = await db.history.toArray()
+    expect(rows).toHaveLength(7)
+    expect(rows[6].createdAt).toBeGreaterThan(0)
+    expect(rows[6].timestamp).toBeTruthy()
+  })
+
+  it('clearHistory removes all rows', async () => {
+    await clearHistory()
+    expect(await db.history.count()).toBe(0)
   })
 })
