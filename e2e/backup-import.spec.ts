@@ -6,7 +6,7 @@ import * as path from 'path'
 test('imports backup vault after confirm dialog', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
-  await expect(page.getByText('Focus Registry')).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('Focus targets')).toBeVisible({ timeout: 15000 })
 
   const taskName = 'Round-trip backup task'
   const input = page.getByPlaceholder('Create focus target...')

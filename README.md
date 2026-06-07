@@ -16,6 +16,11 @@ A local-first, privacy-focused study dashboard with Pomodoro timing, task tracki
 
 ## Features
 
+### Refined glass UI
+- Frosted panels with shared `Card`, `Button`, and `ModalShell` primitives
+- Theme opacity and blur sliders in Control Deck affect all glass cards in real time
+- Per-theme page gradients and consistent 11–12px minimum label typography
+
 ### Focus Engine
 - Configurable study block, short break, and long break durations
 - Pomodoro cycle tracking with optional zen lockout during study
