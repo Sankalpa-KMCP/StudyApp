@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback, type RefObject } fro
 import { db } from '../db/db'
 import type { TaskItem } from '../db/types'
 import type { PendingSessionData } from '../types/app'
+import { addRecoveredMinutes } from '../db/repositories/dailyLogs'
 import { calculateSM2, formatHistoryTimestamp } from '../lib/studyDashboard'
 import { devLog } from '../lib/devLogger'
 import { requestWakeLock, releaseWakeLock } from '../lib/wakeLock'
@@ -227,18 +228,6 @@ export function useTimerEngine({
 
   useEffect(() => {
     if (!isDataReady) return
-    const shadow = {
-      mode: timerMode,
-      secondsElapsed,
-      isTimerActive,
-      categoryId: timerCategoryId,
-      timestamp: Date.now(),
-    }
-    sessionStorage.setItem('active_session_shadow', JSON.stringify(shadow))
-  }, [timerMode, secondsElapsed, isTimerActive, timerCategoryId, isDataReady])
-
-  useEffect(() => {
-    if (!isDataReady) return
     const shadowStr = sessionStorage.getItem('active_session_shadow')
     if (!shadowStr) return
     try {
@@ -255,15 +244,7 @@ export function useTimerEngine({
             durationMinutes: elapsedMin,
             categoryId: shadow.mode === 'study' ? shadow.categoryId : undefined,
           })
-          const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-          const existing = await db.daily_logs.get(current)
-          if (shadow.mode === 'study') {
-            if (existing) await db.daily_logs.update(current, { studyMinutes: existing.studyMinutes + elapsedMin })
-            else await db.daily_logs.add({ dateString: current, studyMinutes: elapsedMin, breakMinutes: 0 })
-          } else {
-            if (existing) await db.daily_logs.update(current, { breakMinutes: existing.breakMinutes + elapsedMin })
-            else await db.daily_logs.add({ dateString: current, studyMinutes: 0, breakMinutes: elapsedMin })
-          }
+          await addRecoveredMinutes(shadow.mode, elapsedMin)
           pushToast('RESTORE', `RECOVERED ${elapsedMin}M INTERRUPTED ${shadow.mode.toUpperCase()}`)
         }
         void runRestore()
@@ -274,6 +255,18 @@ export function useTimerEngine({
       sessionStorage.removeItem('active_session_shadow')
     }
   }, [isDataReady, addHistoryEntry, pushToast])
+
+  useEffect(() => {
+    if (!isDataReady) return
+    const shadow = {
+      mode: timerMode,
+      secondsElapsed,
+      isTimerActive,
+      categoryId: timerCategoryId,
+      timestamp: Date.now(),
+    }
+    sessionStorage.setItem('active_session_shadow', JSON.stringify(shadow))
+  }, [timerMode, secondsElapsed, isTimerActive, timerCategoryId, isDataReady])
 
   useEffect(() => {
     function handleVisibilityChange() {
