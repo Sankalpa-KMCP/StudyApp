@@ -28,7 +28,16 @@ describe('ActivityLedger', () => {
         todayStudyMinutes={0}
         todayBreakMinutes={0}
         progressPercent={0}
-        liveDay={{ day: 10, dayName: 'Tue', studyMinutes: 0, breakMinutes: 0, sessions: 0 }}
+        liveDay={{
+          date: 10,
+          dayName: 'Tue',
+          studyTime: '0m',
+          breakTime: '0m',
+          focusRatio: '0%',
+          sessionsCompleted: '0',
+          focusScore: '0%',
+          intensity: 0,
+        }}
         initialDraftMood=""
         handleMoodSelect={vi.fn()}
         initialDraftNotes=""

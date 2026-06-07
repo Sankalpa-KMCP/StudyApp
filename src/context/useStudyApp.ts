@@ -60,6 +60,7 @@ export function useStudyUI() {
     taskCycleCount: timerCtx.taskCycleCount,
     setTaskCycleCount: timerCtx.setTaskCycleCount,
     activeThemeVars: ui.activeThemeVars,
+    canvasRef: ui.canvasRef,
     progress: data.progress,
   }), [data.progress, timerCtx, ui])
 }
