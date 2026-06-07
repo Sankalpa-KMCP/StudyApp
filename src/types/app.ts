@@ -9,6 +9,7 @@ export interface ThemeProfile {
   surface: string
   surfaceCard: string
   surfaceCardRgb: string
+  pageGradient: string
   accentBlue: string
   accentPurple: string
   accentGreen: string
