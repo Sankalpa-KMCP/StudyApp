@@ -29,3 +29,19 @@ export async function updateDailyReflection(dateString: string, notes: string, m
     await db.daily_logs.add({ dateString, studyMinutes: 0, breakMinutes: 0, notes, mood })
   }
 }
+
+export async function addRecoveredMinutes(mode: 'study' | 'break', minutes: number) {
+  const current = buildDateString()
+  const existing = await db.daily_logs.get(current)
+  if (mode === 'study') {
+    if (existing) {
+      await db.daily_logs.update(current, { studyMinutes: existing.studyMinutes + minutes })
+    } else {
+      await db.daily_logs.add({ dateString: current, studyMinutes: minutes, breakMinutes: 0 })
+    }
+  } else if (existing) {
+    await db.daily_logs.update(current, { breakMinutes: existing.breakMinutes + minutes })
+  } else {
+    await db.daily_logs.add({ dateString: current, studyMinutes: 0, breakMinutes: minutes })
+  }
+}
