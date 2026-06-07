@@ -63,6 +63,7 @@ export function useStudyUI() {
     activeThemeVars: ui.activeThemeVars,
     canvasRef: ui.canvasRef,
     progress: data.progress,
+    notifyFocusLockout: ui.notifyFocusLockout,
   }), [data.progress, timerCtx, ui])
 }
 
