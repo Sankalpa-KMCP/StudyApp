@@ -109,17 +109,17 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="dynamic-card p-4 flex flex-col justify-between">
-          <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase">Total Flashcards</span>
+          <span className="text-label font-mono tracking-widest text-white/40 uppercase">Total Flashcards</span>
           <span className="text-2xl font-bold text-white mt-2 font-mono">{stats.total}</span>
         </div>
         <div className="dynamic-card p-4 flex flex-col justify-between">
-          <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase">Due For Review</span>
+          <span className="text-label font-mono tracking-widest text-white/40 uppercase">Due For Review</span>
           <span className={`text-2xl font-bold mt-2 font-mono ${stats.due > 0 ? 'text-accent-amber' : 'text-accent-green'}`}>
             {stats.due}
           </span>
         </div>
         <div className="dynamic-card p-4 flex flex-col justify-between">
-          <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase">Average Recall Grade</span>
+          <span className="text-label font-mono tracking-widest text-white/40 uppercase">Average Recall Grade</span>
           <span className="text-2xl font-bold text-white mt-2 font-mono">
             {stats.avgGrade} <span className="text-xs text-white/30">/ 5.0</span>
           </span>

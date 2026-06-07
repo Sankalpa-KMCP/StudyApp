@@ -47,7 +47,7 @@ export function FlashcardCreateForm({
               value={newQuestion}
               onChange={e => setNewQuestion(e.target.value)}
               placeholder="Enter front side question..."
-              className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-2.5 text-xs text-white placeholder-white/25 outline-none transition-all focus:bg-white/8 focus:border-accent-blue/30"
+              className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-white placeholder-white/25 outline-none transition-all focus:bg-white/8 focus:border-accent-blue/30"
             />
           </div>
           <div>
@@ -58,7 +58,7 @@ export function FlashcardCreateForm({
               value={newAnswer}
               onChange={e => setNewAnswer(e.target.value)}
               placeholder="Enter back side answer detail..."
-              className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-2.5 text-xs text-white placeholder-white/25 outline-none transition-all focus:bg-white/8 focus:border-accent-blue/30"
+              className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-white placeholder-white/25 outline-none transition-all focus:bg-white/8 focus:border-accent-blue/30"
             />
           </div>
           <InlineCategoryManager
