@@ -13,6 +13,14 @@ export function useHistory() {
   }
 }
 
+export function useHistoryMutations() {
+  return {
+    addEntry: historyRepo.addHistoryEntry,
+    clearHistory: historyRepo.clearHistory,
+    isLoading: false,
+  }
+}
+
 export function useRecentHistory(limit = 100) {
   const history = useLiveQuery(() => historyRepo.getRecentHistory(limit), [limit])
 
