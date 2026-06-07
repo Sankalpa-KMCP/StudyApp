@@ -1,4 +1,4 @@
-# Zenith // The Cognitive Focus Console
+# Study Dashboard // The Cognitive Focus Console
 
 A local-first, hardware-accelerated deep work dashboard and cognitive retention engine bound inside an iOS 26 spatial glassmorphic interface.
 

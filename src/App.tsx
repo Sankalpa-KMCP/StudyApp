@@ -1498,7 +1498,7 @@ function App() {
       <div className="flex min-h-screen items-center justify-center bg-[#06070a]">
         <div className="flex flex-col items-center gap-4">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-          <p className="text-sm text-white/50 font-mono tracking-wider">LOADING ZENITH WORKSPACE...</p>
+          <p className="text-sm text-white/50 font-mono tracking-wider">LOADING STUDY DASHBOARD...</p>
         </div>
       </div>
     )
@@ -1541,8 +1541,8 @@ function App() {
                 <Brain className="h-5 w-5 text-white stroke-[2.5]" />
               </div>
               <div>
-                <h1 className="text-base font-semibold tracking-tight text-white">Zenith</h1>
-                <p className="text-[9px] text-white/60 font-bold tracking-widest font-mono uppercase">Cognitive Workstation</p>
+                <h1 className="text-base font-semibold tracking-tight text-white">Study Dashboard</h1>
+                <p className="text-[9px] text-white/60 font-bold tracking-widest font-mono uppercase">by Sankalpa KMCP</p>
               </div>
             </div>
 
@@ -1609,7 +1609,7 @@ function App() {
             </button>
             <div className="text-center space-y-1">
               <p className="text-[9px] text-white/40 font-bold font-mono uppercase tracking-wider">
-                Zenith Engine v2.0
+                Study Dashboard Engine v2.0
               </p>
               <p className="text-[8px] text-white/30 font-semibold font-mono uppercase tracking-widest">
                 Created by Sankalpa KMCP
@@ -1628,7 +1628,7 @@ function App() {
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <Brain className="h-4 w-4 text-white animate-pulse" />
-                <span className="font-bold text-sm text-white">Zenith</span>
+                <span className="font-bold text-sm text-white">Study Dashboard</span>
               </div>
               <span className="text-[8px] text-white/40 font-mono tracking-widest font-bold">BY SANKALPA KMCP</span>
             </div>
