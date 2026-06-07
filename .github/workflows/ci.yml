@@ -18,7 +18,10 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: |
+          rm -rf node_modules
+          npm install --no-audit --no-fund
+          test -d node_modules/vite
 
       - name: Lint
         run: npm run lint
@@ -41,7 +44,10 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: |
+          rm -rf node_modules
+          npm install --no-audit --no-fund
+          test -d node_modules/@playwright/test
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps

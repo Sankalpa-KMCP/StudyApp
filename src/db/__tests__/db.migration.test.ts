@@ -3,13 +3,13 @@ import { db } from '../db'
 import { resetDatabase } from '../../test/dbTestUtils'
 import { parseLegacyHistoryTimestamp } from '../../lib/studyDashboard'
 
-describe('db v6 migration helpers', () => {
+describe('db migration helpers', () => {
   beforeEach(async () => {
     await resetDatabase()
   })
 
-  it('opens database at version 6 with snapshots table', async () => {
-    expect(db.verno).toBeGreaterThanOrEqual(6)
+  it('opens database at version 7 with snapshots table', async () => {
+    expect(db.verno).toBeGreaterThanOrEqual(7)
     const tableNames = db.tables.map(t => t.name)
     expect(tableNames).toContain('snapshots')
   })
