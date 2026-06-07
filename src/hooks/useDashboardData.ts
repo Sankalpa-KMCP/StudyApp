@@ -1,6 +1,7 @@
 import {
   useTasks,
-  useHistory,
+  useHistoryMutations,
+  useRecentHistory,
   useSettings,
   useTodayLog,
   useCategories,
@@ -9,9 +10,12 @@ import {
   useQuickNotes,
 } from '../db/hooks'
 
+const RECENT_HISTORY_LIMIT = 100
+
 export function useDashboardData() {
   const tasks = useTasks()
-  const history = useHistory()
+  const history = useHistoryMutations()
+  const recentHistory = useRecentHistory(RECENT_HISTORY_LIMIT)
   const settings = useSettings()
   const todayLog = useTodayLog()
   const flashcards = useFlashcards()
@@ -21,7 +25,7 @@ export function useDashboardData() {
 
   const isDataReady = !(
     tasks.isLoading
-    || history.isLoading
+    || recentHistory.isLoading
     || settings.isLoading
     || todayLog.isLoading
     || allLogs.isLoading
@@ -33,6 +37,7 @@ export function useDashboardData() {
   return {
     tasks,
     history,
+    recentHistory,
     settings,
     todayLog,
     flashcards,

@@ -26,6 +26,7 @@ export function useStudyData() {
   return useMemo(() => ({
     tasks: ctx.tasks,
     history: ctx.history,
+    recentHistory: ctx.recentHistory,
     settings: ctx.settings,
     todayLog: ctx.todayLog,
     flashcards: ctx.flashcards,
