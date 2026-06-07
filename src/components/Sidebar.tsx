@@ -32,35 +32,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex flex-col gap-6">
         
         {/* Branding Logo */}
-        <div className="flex items-center gap-3 px-1">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-            <Brain className="h-5 w-5 text-white stroke-[2.5]" />
+        <div className="flex items-center gap-3 px-2 py-1 select-none">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.04] border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_8px_16px_rgba(0,0,0,0.2)] animate-pulse-soft">
+            <Brain className="h-5 w-5 text-accent-blue stroke-[2.5]" />
           </div>
           <div>
-            <h1 className="text-base font-semibold tracking-tight text-white">Study Dashboard</h1>
-            <p className="text-[9px] text-white/60 font-bold tracking-widest font-mono uppercase">by Sankalpa KMCP</p>
+            <h1 className="text-sm font-bold tracking-tight uppercase text-gradient-accent">Study Dashboard</h1>
+            <p className="text-[8px] text-white/40 font-bold tracking-widest font-mono uppercase mt-0.5">by Sankalpa KMCP</p>
           </div>
         </div>
 
         {/* Streak & Progression Panel */}
-        <div className="bg-white/[0.03] backdrop-blur-md border border-white/[0.06] rounded-2xl p-4 space-y-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+        <div className="dynamic-card p-4 space-y-3.5 bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),_0_12px_24px_rgba(0,0,0,0.3)]">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Flame className="h-4 w-4 text-orange-400 animate-pulse-soft" />
-              <span className="text-xs font-semibold font-mono text-white/80">{currentStreak} Day Streak</span>
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-orange-500/10 border border-orange-500/20">
+                <Flame className="h-3.5 w-3.5 text-orange-400" />
+              </div>
+              <span className="text-xs font-bold font-mono text-white/90">{currentStreak} Day Streak</span>
             </div>
-            <span className="rounded-lg bg-white/10 border border-white/10 px-2 py-0.5 text-[9px] font-semibold text-white/95 font-mono tracking-wider">
+            <span className="rounded-lg bg-white/10 border border-white/15 px-2 py-0.5 text-[9px] font-bold text-white font-mono tracking-wider shadow-[0_2px_8px_rgba(0,0,0,0.2)]">
               LV. {level}
             </span>
           </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-[9px] text-white/60 font-semibold">
-              <span>Level Progress</span>
-              <span>{Math.round(xpProgressPercent)}%</span>
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[9px] text-white/50 font-bold font-mono uppercase tracking-wider">
+              <span>XP Progress</span>
+              <span className="text-white">{Math.round(xpProgressPercent)}%</span>
             </div>
-            <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/40 border border-white/5 p-[1px]">
               <div
-                className="h-full rounded-full bg-white/40 transition-all duration-300"
+                className="h-full rounded-full bg-gradient-to-r from-accent-blue via-accent-purple to-accent-amber transition-all duration-500 ease-out shadow-[0_0_8px_rgba(255,255,255,0.4)]"
                 style={{ width: `${xpProgressPercent}%` }}
               />
             </div>

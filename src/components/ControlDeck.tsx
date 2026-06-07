@@ -1,5 +1,5 @@
 import React from 'react'
-import { Check, Trash2, X } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import type { CategoryItem } from '../db/types'
 
 interface ControlDeckProps {
@@ -44,19 +44,8 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   updateSetting,
   cardOpacity,
   backdropBlur,
-  soundEnabled,
-  tactileEnabled,
   localEnforceLockout,
   setLocalEnforceLockout,
-  audio_presets,
-  localVolumeRain,
-  setLocalVolumeRain,
-  localVolumeCafe,
-  setLocalVolumeCafe,
-  localVolumeWhiteNoise,
-  setLocalVolumeWhiteNoise,
-  localAlphaWaves,
-  setLocalAlphaWaves,
   exportStudyBackup,
   importStudyBackup,
   resetData,
@@ -167,46 +156,12 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
         </div>
 
         {/* Calibration controls */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Sound completions */}
-          <div className="rounded-2xl border border-white/5 dynamic-card p-5 flex flex-col justify-between">
-            <div>
-              <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-2">Bowl Chime</h3>
-              <p className="text-[10px] text-slate-505 leading-relaxed">Play Singing Bowl chime when focus intervals complete.</p>
-            </div>
-            <div className="flex items-center justify-between mt-4 bg-[#0c0f17]/40 border border-white/5 px-3 py-2 rounded-xl">
-              <span className="text-[10px] font-semibold text-slate-350">{soundEnabled ? 'Active' : 'Muted'}</span>
-              <button
-                onClick={() => updateSetting('soundEnabled', !soundEnabled)}
-                className={`relative h-5.5 w-10 shrink-0 rounded-full transition-all cursor-pointer ${soundEnabled ? 'bg-accent-blue' : 'bg-white/5 border border-white/5'}`}
-              >
-                <span className={`absolute left-0.5 top-0.5 h-4.5 w-4.5 rounded-full bg-white transition-transform ${soundEnabled ? 'translate-x-4.5' : 'translate-x-0'}`} />
-              </button>
-            </div>
-          </div>
-
-          {/* Tactile keystrokes */}
-          <div className="rounded-2xl border border-white/5 dynamic-card p-5 flex flex-col justify-between">
-            <div>
-              <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-2">Tactile Feedback</h3>
-              <p className="text-[10px] text-slate-505 leading-relaxed">Synthesizes a mechanical key "thock" sound on interactions.</p>
-            </div>
-            <div className="flex items-center justify-between mt-4 bg-[#0c0f17]/40 border border-white/5 px-3 py-2 rounded-xl">
-              <span className="text-[10px] font-semibold text-slate-350">{tactileEnabled ? 'Enabled' : 'Muted'}</span>
-              <button
-                onClick={() => updateSetting('tactile_feedback', !tactileEnabled)}
-                className={`relative h-5.5 w-10 shrink-0 rounded-full transition-all cursor-pointer ${tactileEnabled ? 'bg-accent-blue' : 'bg-white/5 border border-white/5'}`}
-              >
-                <span className={`absolute left-0.5 top-0.5 h-4.5 w-4.5 rounded-full bg-white transition-transform ${tactileEnabled ? 'translate-x-4.5' : 'translate-x-0'}`} />
-              </button>
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 gap-6">
           {/* Lockout mode */}
           <div className="rounded-2xl border border-white/5 dynamic-card p-5 flex flex-col justify-between">
             <div>
-              <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-2">Zen Lockout</h3>
-              <p className="text-[10px] text-slate-505 leading-relaxed">Hides tab and escape navigation menus during study blocks.</p>
+              <h3 className="text-xs font-bold text-slate-350 tracking-wider uppercase mb-2">Zen Lockout</h3>
+              <p className="text-[10px] text-slate-500 leading-relaxed">Hides tab and escape navigation menus during study blocks to enforce strict cognitive focus.</p>
             </div>
             <div className="flex items-center justify-between mt-4 bg-[#0c0f17]/40 border border-white/5 px-3 py-2 rounded-xl">
               <span className="text-[10px] font-semibold text-slate-350">{localEnforceLockout ? 'Enforced' : 'Bypassed'}</span>
@@ -221,95 +176,6 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
                 <span className={`absolute left-0.5 top-0.5 h-4.5 w-4.5 rounded-full bg-white transition-transform ${localEnforceLockout ? 'translate-x-4.5' : 'translate-x-0'}`} />
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Environment preset creator */}
-        <div className="rounded-2xl border border-white/5 dynamic-card p-6">
-          <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase mb-4">Environment Sound Presets</h3>
-          <div className="space-y-4 mb-4 pb-4 border-b border-white/5">
-            <p className="text-xs text-slate-550">Save your active environmental audio track volume mixes as a dynamic profile preset.</p>
-            <div className="flex gap-2">
-              <input
-                id="preset-name-input"
-                type="text"
-                placeholder="Preset Label (e.g. Rainy Cafe Study)"
-                className="flex-1 rounded-xl border border-white/5 bg-[#0c0f17]/40 focus:bg-black/20 focus:border-accent-blue/40 px-3.5 py-2 text-xs text-text-primary outline-none transition-all"
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    const val = (e.target as HTMLInputElement).value?.trim()
-                    if (!val) return
-                    const newPreset = {
-                      id: Date.now(),
-                      name: val,
-                      volumes: { rain: localVolumeRain, cafe: localVolumeCafe, whiteNoise: localVolumeWhiteNoise, alphaWaves: localAlphaWaves }
-                    }
-                    updateSetting('audio_presets', [...audio_presets, newPreset])
-                    ;(e.target as HTMLInputElement).value = ''
-                  }
-                }}
-              />
-              <button
-                onClick={() => {
-                  const el = document.getElementById('preset-name-input') as HTMLInputElement
-                  const val = el?.value?.trim()
-                  if (!val) return
-                  const newPreset = {
-                    id: Date.now(),
-                    name: val,
-                    volumes: { rain: localVolumeRain, cafe: localVolumeCafe, whiteNoise: localVolumeWhiteNoise, alphaWaves: localAlphaWaves }
-                  }
-                  updateSetting('audio_presets', [...audio_presets, newPreset])
-                  if (el) el.value = ''
-                }}
-                className="rounded-xl bg-accent-blue text-slate-950 border border-accent-blue px-4 py-2 text-xs font-bold hover:bg-accent-blue/90 transition-all cursor-pointer"
-              >
-                Save Preset
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-2.5">
-            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Active Presets</p>
-            {audio_presets.length === 0 ? (
-              <p className="text-xs italic text-slate-500 py-2">No custom environmental presets created yet.</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                {audio_presets.map((preset: any) => (
-                  <div
-                    key={preset.id}
-                    className="flex items-center justify-between rounded-xl bg-[#0c0f17]/40 border border-white/5 p-3 hover:border-white/10 group transition-all"
-                  >
-                    <div
-                      className="flex-1 cursor-pointer min-w-0"
-                      onClick={() => {
-                        const vols = preset.volumes || {}
-                        if (vols.rain !== undefined) { setLocalVolumeRain(vols.rain); updateSetting('ambientVolume_rain', vols.rain) }
-                        if (vols.cafe !== undefined) { setLocalVolumeCafe(vols.cafe); updateSetting('ambientVolume_cafe', vols.cafe) }
-                        if (vols.whiteNoise !== undefined) { setLocalVolumeWhiteNoise(vols.whiteNoise); updateSetting('ambientVolume_whiteNoise', vols.whiteNoise) }
-                        if (vols.alphaWaves !== undefined) { setLocalAlphaWaves(vols.alphaWaves); updateSetting('ambient_alphaWaves', vols.alphaWaves) }
-                      }}
-                    >
-                      <p className="text-xs font-bold text-slate-200 truncate">{preset.name}</p>
-                      <p className="text-[9px] text-slate-500 mt-1 font-mono font-bold">
-                        🌧️ {Math.round((preset.volumes?.rain ?? 0) * 100)}% · 
-                        ☕ {Math.round((preset.volumes?.cafe ?? 0) * 100)}% · 
-                        📻 {Math.round((preset.volumes?.whiteNoise ?? 0) * 100)}%
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        const filtered = audio_presets.filter((p: any) => p.id !== preset.id)
-                        updateSetting('audio_presets', filtered)
-                      }}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 

@@ -347,8 +347,26 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
 
       {/* Fullscreen Immersive Study Session Modal */}
       {isStudying && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/70 backdrop-blur-xl">
-          <div className="relative w-full max-w-lg flex flex-col items-center gap-6">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-[#05060b]/80 backdrop-blur-2xl transition-all duration-500">
+          
+          {/* Dynamic Ambient Background backplate glow matching card category */}
+          {(() => {
+            const currentCardCat = currentCard?.categoryId !== undefined ? categoriesMap.get(currentCard.categoryId) : undefined
+            const glowColor = currentCardCat?.color ?? '#c5a880'
+            return (
+              <div
+                className="absolute h-96 w-96 rounded-full blur-[140px] opacity-15 pointer-events-none transition-all duration-1000 ease-in-out"
+                style={{
+                  backgroundColor: glowColor,
+                  transform: 'translate(-50%, -50%)',
+                  left: '50%',
+                  top: '55%'
+                }}
+              />
+            )
+          })()}
+
+          <div className="relative w-full max-w-lg flex flex-col items-center gap-6 z-10">
             
             {/* Modal Exit Trigger */}
             <button
@@ -360,17 +378,17 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
 
             {/* Title / Progress */}
             {!sessionCompleted && (
-              <div className="text-center w-full max-w-md">
-                <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase select-none">
-                  Recall Study Session
+              <div className="text-center w-full max-w-md select-none">
+                <span className="text-[9px] font-mono tracking-widest text-white/40 uppercase">
+                  Active Recall Practice
                 </span>
-                <h3 className="text-sm font-semibold mt-1">
+                <h3 className="text-sm font-bold text-white mt-1">
                   Card {currentQueueIndex + 1} of {studyQueue.length}
                 </h3>
                 {/* Progress bar */}
-                <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden mt-3">
+                <div className="h-1.5 w-full bg-white/5 border border-white/5 p-[1px] rounded-full overflow-hidden mt-3">
                   <div
-                    className="h-full bg-accent-blue transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-accent-blue to-accent-purple transition-all duration-300 shadow-[0_0_8px_rgba(255,255,255,0.3)]"
                     style={{ width: `${((currentQueueIndex) / studyQueue.length) * 100}%` }}
                   />
                 </div>
@@ -380,16 +398,16 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
             {/* Immersive Study Container */}
             {sessionCompleted ? (
               <div className="w-full max-w-md p-6 rounded-2xl border border-white/15 bg-white/5 backdrop-blur-2xl shadow-2xl flex flex-col items-center justify-center text-center animate-slide-in-up">
-                <div className="h-12 w-12 rounded-2xl bg-accent-green/20 border border-accent-green/30 flex items-center justify-center mb-4 text-accent-green">
-                  <Sparkles className="h-6 w-6" />
+                <div className="h-12 w-12 rounded-2xl bg-accent-green/20 border border-accent-green/30 flex items-center justify-center mb-4 text-accent-green animate-pulse-soft">
+                  <Sparkles className="h-6 w-6 text-accent-green" />
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2">Practice Session Finished!</h3>
+                <h3 className="text-lg font-bold text-white mb-2 uppercase tracking-wide text-gradient-green">Review Complete!</h3>
                 <p className="text-xs text-slate-400 mb-6 max-w-xs select-none">
                   Excellent work. You completed reviews for {cardsGradedCount} flashcards. Spaced repetition dates have been rescheduled.
                 </p>
                 <button
                   onClick={() => setIsStudying(false)}
-                  className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-white/10 border border-white/10 hover:bg-white/15 transition-all text-white cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl text-xs font-semibold bg-white/10 border border-white/10 hover:bg-white/15 transition-all text-white cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
                 >
                   Return to Dashboard
                 </button>
@@ -406,27 +424,27 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
                     }`}
                   >
                     {/* FRONT */}
-                    <div className="absolute inset-0 backface-hidden glass-tier-2 border border-white/10 flex flex-col items-center justify-center p-6 text-center select-none">
-                      <span className="text-[9px] font-mono tracking-widest text-slate-400 uppercase absolute top-4">
-                        Front Question
+                    <div className="absolute inset-0 backface-hidden glass-tier-2 border border-white/10 flex flex-col items-center justify-center p-6 text-center select-none shadow-[0_24px_48px_rgba(0,0,0,0.5)]">
+                      <span className="text-[9px] font-mono tracking-widest text-slate-400 uppercase absolute top-5 select-none">
+                        Question Prompt
                       </span>
-                      <p className="text-base md:text-lg font-medium text-white px-2 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">
+                      <p className="text-base md:text-lg font-bold text-white px-4 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">
                         {currentCard.question}
                       </p>
-                      <span className="text-[9px] font-mono text-slate-500 absolute bottom-4 animate-pulse uppercase">
+                      <span className="text-[9px] font-mono text-slate-500 absolute bottom-5 animate-pulse uppercase select-none tracking-widest font-bold">
                         Click card to flip
                       </span>
                     </div>
 
                     {/* BACK */}
-                    <div className="absolute inset-0 backface-hidden rotate-y-180 glass-tier-2 border border-white/15 flex flex-col items-center justify-center p-6 text-center select-none bg-white/[0.04]">
-                      <span className="text-[9px] font-mono tracking-widest text-accent-amber uppercase absolute top-4">
-                        Back Answer
+                    <div className="absolute inset-0 backface-hidden rotate-y-180 glass-tier-2 border border-white/15 flex flex-col items-center justify-center p-6 text-center select-none bg-white/[0.04] shadow-[0_24px_48px_rgba(0,0,0,0.5)]">
+                      <span className="text-[9px] font-mono tracking-widest text-accent-amber uppercase absolute top-5 select-none font-bold">
+                        Definition Answer
                       </span>
-                      <p className="text-base md:text-lg font-semibold text-accent-amber px-2 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">
+                      <p className="text-base md:text-lg font-extrabold text-accent-amber px-4 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">
                         {currentCard.answer}
                       </p>
-                      <span className="text-[9px] font-mono text-slate-500 absolute bottom-4 uppercase">
+                      <span className="text-[9px] font-mono text-slate-500 absolute bottom-5 uppercase select-none tracking-widest">
                         Click card to flip back
                       </span>
                     </div>
@@ -436,18 +454,18 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
 
                 {/* SM-2 Recall Grading Deck */}
                 <div className={`w-full max-w-md transition-all duration-300 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                  <p className="text-[10px] font-mono text-center text-slate-400 mb-3 select-none">
-                    Grade your retrieval strength:
+                  <p className="text-[10px] font-mono text-center text-white/50 mb-3 select-none uppercase tracking-wider font-bold">
+                    Rate retrieval strength (SM-2):
                   </p>
                   <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                     {grades.map(grade => (
                       <button
                         key={grade.value}
                         onClick={() => handleGrade(grade.value)}
-                        className={`p-2.5 rounded-xl border bg-white/[0.02] flex flex-col items-center justify-center gap-0.5 transition-all duration-300 group cursor-pointer ${grade.color}`}
+                        className={`p-3 rounded-2xl border bg-black/40 flex flex-col items-center justify-center gap-0.5 transition-all duration-300 group cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.2)] hover:-translate-y-1 ${grade.color}`}
                       >
-                        <span className="text-xs font-bold font-mono">{grade.value}</span>
-                        <span className="text-[8px] font-semibold tracking-tight leading-tight">{grade.label}</span>
+                        <span className="text-sm font-bold font-mono">{grade.value}</span>
+                        <span className="text-[8px] font-bold tracking-tight uppercase leading-tight font-mono">{grade.label}</span>
                       </button>
                     ))}
                   </div>
