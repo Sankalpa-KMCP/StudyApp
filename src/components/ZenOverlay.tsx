@@ -34,7 +34,7 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
   const activeTask = sessionTasks.find(t => t.id === activeTaskId)
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0d0d0f] flex flex-col items-center justify-center overflow-hidden transition-opacity duration-1000 animate-fade-in">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden transition-opacity duration-1000 animate-fade-in" style={{ background: 'radial-gradient(circle at 50% 0%, #17122b 0%, #080611 60%, #020105 100%)' }}>
       {/* HTML5 Canvas Ambient Particle Background */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0" />
 
@@ -42,7 +42,7 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
       <div className="relative z-10 flex flex-col items-center text-center space-y-8 select-none max-w-md px-6 animate-slide-in-up">
         {/* Cinematic countdown clock */}
         <div className="text-center">
-          <p className="text-[12rem] md:text-[15rem] text-white/90 font-extralight font-mono tracking-tight leading-none select-none drop-shadow-[0_4px_40px_rgba(255,255,255,0.05)]">
+          <p className="text-[12rem] md:text-[15rem] text-white/90 font-thin tracking-tighter leading-none select-none drop-shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
             {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
           </p>
           <p className="text-xs text-white/60 mt-3 uppercase tracking-wider font-semibold">
@@ -61,16 +61,16 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
         <div className="flex items-center gap-4 pt-4">
           <button
             onClick={() => setIsTimerActive(!isTimerActive)}
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 text-white border border-white/20 hover:bg-white/15 active:scale-95 cursor-pointer transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white border border-white/10 hover:bg-white/15 active:scale-95 cursor-pointer transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] ios-active-scale"
             title={isTimerActive ? "Pause session" : "Start session"}
           >
-            {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+            {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 fill-white" />}
           </button>
           <button
             onClick={completeSession}
-            className="flex items-center gap-2 rounded-xl bg-accent-blue text-slate-950 border border-accent-blue px-6 py-3 text-xs font-black uppercase tracking-wider hover:bg-accent-blue/90 active:scale-95 cursor-pointer transition-all duration-300 shadow-[0_4px_14px_rgba(6,182,212,0.3)]"
+            className="flex items-center gap-2 rounded-full bg-accent-blue text-white hover:bg-accent-blue/95 active:scale-95 cursor-pointer transition-all duration-300 shadow-lg px-8 py-3.5 text-xs font-semibold tracking-wide border border-white/10 ios-active-scale"
           >
-            <Check className="h-4 w-4 stroke-[3]" />
+            <Check className="h-4 w-4 stroke-[2]" />
             Complete Focus
           </button>
         </div>
@@ -80,7 +80,7 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
       {!(localEnforceLockout && isTimerActive && timerMode === 'study') && (
         <button
           onClick={() => setIsZenMode(false)}
-          className="absolute top-8 left-8 flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all duration-300 cursor-pointer shadow-[0_4px_12px_rgba(0,0,0,0.2)]"
+          className="absolute top-8 left-8 flex h-10 w-10 items-center justify-center rounded-full bg-white/5 border border-white/8 hover:bg-white/10 text-white transition-all duration-300 cursor-pointer shadow-md ios-active-scale"
           title="Exit Sanctuary"
         >
           <ChevronLeft className="h-5 w-5" />

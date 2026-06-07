@@ -27,8 +27,8 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
-      <div className="relative w-full max-w-md border border-white/10 bg-white/5 backdrop-blur-2xl rounded-2xl p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)] animate-slide-in-up animate-duration-300">
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-xl" />
+      <div className="relative w-full max-w-md border border-white/10 bg-[#161620]/45 backdrop-blur-3xl rounded-[28px] p-7 shadow-[0_24px_60px_rgba(0,0,0,0.5),_inset_0_1px_1px_rgba(255,255,255,0.1)] animate-slide-in-up">
         <div className="mb-4 pb-2 border-b border-white/10">
           <h3 className="text-sm font-serif-luxury italic font-medium tracking-wider text-white">FLOW SESSION REFLECTION</h3>
           <p className="text-[10px] text-white/50 font-mono mt-1">Telemetry validation required for interval log archiving</p>
@@ -36,56 +36,56 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
         
         <div className="space-y-6">
           <div>
-            <label className="block text-xs font-semibold text-white/80 uppercase tracking-wide mb-2.5 font-mono">1. Internal Attention Focus</label>
-            <div className="flex gap-2.5">
+            <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wide mb-2.5">1. Internal Attention Focus</label>
+            <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map(rating => (
                 <button
                   key={rating}
                   onClick={() => setAttentionRating(rating)}
-                  className={`flex-1 py-2 text-xs font-semibold border transition-all duration-300 ease-out rounded-xl cursor-pointer ${attentionRating === rating ? 'bg-white/15 text-white border-white/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' : 'bg-white/5 text-white/60 border-white/5 hover:border-white/10 hover:text-white'}`}
+                  className={`aspect-square flex-1 flex items-center justify-center text-xs font-bold transition-all duration-200 rounded-full cursor-pointer ios-active-scale border ${attentionRating === rating ? 'bg-accent-blue text-white border-accent-blue/30 shadow-md shadow-accent-blue/15' : 'bg-white/5 text-white/60 border-white/8 hover:bg-white/10 hover:text-white'}`}
                 >
                   {rating}
                 </button>
               ))}
             </div>
-            <div className="flex justify-between text-[9px] text-white/40 mt-1 font-semibold">
+            <div className="flex justify-between text-[9px] text-white/40 mt-1.5 font-bold">
               <span>Highly Distracted</span>
               <span>Flow State</span>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-white/80 uppercase tracking-wide mb-2.5 font-mono">2. Context-Switching Stability</label>
-            <div className="flex gap-2.5">
+            <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wide mb-2.5">2. Context-Switching Stability</label>
+            <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map(rating => (
                 <button
                   key={rating}
                   onClick={() => setStabilityRating(rating)}
-                  className={`flex-1 py-2 text-xs font-semibold border transition-all duration-300 ease-out rounded-xl cursor-pointer ${stabilityRating === rating ? 'bg-white/15 text-white border-white/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' : 'bg-white/5 text-white/60 border-white/5 hover:border-white/10 hover:text-white'}`}
+                  className={`aspect-square flex-1 flex items-center justify-center text-xs font-bold transition-all duration-200 rounded-full cursor-pointer ios-active-scale border ${stabilityRating === rating ? 'bg-accent-blue text-white border-accent-blue/30 shadow-md shadow-accent-blue/15' : 'bg-white/5 text-white/60 border-white/8 hover:bg-white/10 hover:text-white'}`}
                 >
                   {rating}
                 </button>
               ))}
             </div>
-            <div className="flex justify-between text-[9px] text-white/40 mt-1 font-semibold">
+            <div className="flex justify-between text-[9px] text-white/40 mt-1.5 font-bold">
               <span>Erratic/Fragmented</span>
               <span>Highly Resolute</span>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-white/80 uppercase tracking-wide mb-2 font-mono">3. Session Intention Summary</label>
+            <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wide mb-2">3. Session Intention Summary</label>
             <textarea
               value={localSessionNotes}
               onChange={e => setLocalSessionNotes(e.target.value)}
               placeholder="Capture the essence of this session in a single sentence..."
-              className="w-full h-16 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-xs text-white outline-none focus:border-white/20 placeholder-white/30 resize-none font-sans transition-all duration-300"
+              className="w-full h-16 rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-xs text-white outline-none focus:bg-white/8 focus:border-accent-blue/30 placeholder-white/25 resize-none font-sans transition-all duration-300"
             />
           </div>
 
           <button
             onClick={() => onSubmitReflection(attentionRating, stabilityRating, localSessionNotes)}
-            className="w-full py-3 text-xs font-bold uppercase tracking-widest bg-white/15 text-white border border-white/20 hover:bg-white/20 transition-all duration-300 ease-out rounded-xl cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+            className="w-full py-3.5 text-xs font-semibold tracking-wide bg-accent-blue text-white hover:bg-accent-blue/90 border border-white/10 transition-all duration-200 rounded-full cursor-pointer shadow-md ios-active-scale"
           >
             Log Workstation Telemetry
           </button>

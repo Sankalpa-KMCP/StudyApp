@@ -46,38 +46,11 @@ const THEME_PROFILES: Record<string, {
   accentAmber: string
 }> = {
   'midnight-oled': {
-    surface: '#030305',
-    surfaceCard: '#090a0f',
-    surfaceCardRgb: '9, 10, 15',
-    accentBlue: '#06b6d4',
-    accentPurple: '#3b82f6',
-    accentGreen: '#10b981',
-    accentAmber: '#f59e0b',
-  },
-  'cyber-amethyst': {
-    surface: '#07050e',
-    surfaceCard: '#100a1d',
-    surfaceCardRgb: '16, 10, 29',
-    accentBlue: '#d946ef',
-    accentPurple: '#8b5cf6',
-    accentGreen: '#06b6d4',
-    accentAmber: '#f43f5e',
-  },
-  'aurora-nord': {
-    surface: '#040810',
-    surfaceCard: '#0a101f',
-    surfaceCardRgb: '10, 16, 31',
-    accentBlue: '#14b8a6',
-    accentPurple: '#10b981',
-    accentGreen: '#0ea5e9',
-    accentAmber: '#8b5cf6',
-  },
-  'crimson-nebula': {
-    surface: '#080305',
-    surfaceCard: '#14080e',
-    surfaceCardRgb: '20, 8, 14',
-    accentBlue: '#ef4444',
-    accentPurple: '#f43f5e',
+    surface: '#0a0b10',
+    surfaceCard: '#11131e',
+    surfaceCardRgb: '17, 19, 30',
+    accentBlue: '#3b82f6',
+    accentPurple: '#6366f1',
     accentGreen: '#10b981',
     accentAmber: '#f59e0b',
   }
@@ -149,7 +122,6 @@ function App() {
     shortBreakDurationMinutes,
     ambient_alphaWaves,
     tactile_feedback,
-    developer_font,
     enforce_lockout,
     noiseType,
     binauralTarget,
@@ -246,7 +218,6 @@ function App() {
   const [taskCycleCount, setTaskCycleCount] = useState(1)
   const [localTactileFeedback, setLocalTactileFeedback] = useState(false)
   const [activeToast, setActiveToast] = useState<{ key: string; message: string; id: number } | null>(null)
-  const [localDeveloperFont, setLocalDeveloperFont] = useState('JetBrains Mono')
   const [localEnforceLockout, setLocalEnforceLockout] = useState(false)
   const [showReflectionModal, setShowReflectionModal] = useState(false)
   const [pendingSessionData, setPendingSessionData] = useState<{ elapsed: number; mode: 'study' | 'break'; timestamp: string; categoryId?: number } | null>(null)
@@ -996,9 +967,6 @@ function App() {
     if (tactile_feedback !== undefined) setLocalTactileFeedback(tactile_feedback)
   }, [tactile_feedback])
 
-  useEffect(() => {
-    if (developer_font !== undefined) setLocalDeveloperFont(developer_font)
-  }, [developer_font])
 
   useEffect(() => {
     if (enforce_lockout !== undefined) setLocalEnforceLockout(enforce_lockout)
@@ -1092,19 +1060,12 @@ function App() {
     '--surface-card-rgb': activeThemeVars.surfaceCardRgb,
     '--card-opacity': cardOpacity,
     '--backdrop-blur': `${backdropBlur}px`,
-    '--font-family-override': ['Inter', 'Outfit'].includes(localDeveloperFont) ? `'${localDeveloperFont}', 'Plus Jakarta Sans', system-ui, sans-serif` : `'${localDeveloperFont}', monospace`,
   } as React.CSSProperties
 
   return (
     <div className="min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden" style={inlineStyles}>
       
-      {/* iOS 26 Animated Mesh Backdrop Blobs */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden select-none">
-        <div className="mesh-blob mesh-blob-1" />
-        <div className="mesh-blob mesh-blob-2" />
-        <div className="mesh-blob mesh-blob-3" />
-        <div className="mesh-blob mesh-blob-4" />
-      </div>
+
 
       {/* Collapsible/Floating Glassmorphic Sidebar */}
       <Sidebar
@@ -1281,7 +1242,6 @@ function App() {
               {/* TAB 5: CONTROL DECK (SETTINGS) */}
               {activeTab === 'settings' && (
                 <ControlDeck
-                  theme={theme}
                   updateSetting={updateSetting}
                   cardOpacity={cardOpacity}
                   backdropBlur={backdropBlur}
@@ -1308,13 +1268,10 @@ function App() {
                   setNewCategoryName={setNewCategoryName}
                   newCategoryColor={newCategoryColor}
                   setNewCategoryColor={setNewCategoryColor}
-                  localDeveloperFont={localDeveloperFont}
-                  setLocalDeveloperFont={setLocalDeveloperFont}
                   isDragging={isDragging}
                   setIsDragging={setIsDragging}
                   handleFileDrop={handleFileDrop}
                   fileInputRef={fileInputRef}
-                  THEME_PROFILES={THEME_PROFILES}
                 />
               )}
             </div>
