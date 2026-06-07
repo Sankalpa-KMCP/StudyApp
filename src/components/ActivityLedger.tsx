@@ -95,13 +95,13 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 mb-2 text-center">
+          <div className="grid grid-cols-7 gap-1.5 mb-2 text-center">
             {dayNames.map(d => (
-              <div key={d} className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{d}</div>
+              <div key={d} className="text-label font-bold text-slate-400 uppercase tracking-widest">{d}</div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-2" role="grid" aria-label={`${monthNames[currentMonth]} ${currentYear} study calendar`}>
+          <div className="grid grid-cols-7 gap-2.5" role="grid" aria-label={`${monthNames[currentMonth]} ${currentYear} study calendar`}>
             {dynamicGridCells.map((cell, i) => {
               const dayData = cell ? activeMonthData[cell - 1] : null
               const isLiveDay = isLiveMonth && cell === totalDaysInMonth
@@ -117,7 +117,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                   aria-label={`${cellLabel}, focus ${studyLabel}`}
                   aria-selected={cell === selectedDay}
                   onClick={() => setSelectedDay(cell)}
-                  className={`group relative aspect-square rounded-[10px] flex items-center justify-center text-xs font-bold transition-all duration-300 ease-out cursor-pointer ios-active-scale active:scale-95 ${
+                  className={`group relative aspect-square min-h-[40px] rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300 ease-out cursor-pointer ios-active-scale active:scale-95 ${
                     cell === selectedDay
                       ? 'ring-2 ring-accent-blue text-text-primary scale-110 z-10 shadow-md shadow-accent-blue/15'
                       : 'hover:scale-105 hover:z-10 hover:ring-1 hover:ring-white/20'
@@ -142,7 +142,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
             })}
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[9px] text-slate-400 border-t border-white/5 pt-4">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-label text-slate-400 border-t border-white/5 pt-4">
             <div className="flex items-center gap-3">
               {[
                 { label: '0-1h', intensity: 0 as const },

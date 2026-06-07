@@ -1,5 +1,7 @@
+import { Clock } from 'lucide-react'
 import type { HistoryEntry } from '../../db/types'
 import type { DayData } from '../../types/app'
+import { EmptyState } from '../shared/EmptyState'
 import { MoodPicker } from './MoodPicker'
 
 interface DayDetailPanelProps {
@@ -102,7 +104,14 @@ export function DayDetailPanel({
       </div>
 
       <div className="border-t border-white/8 pt-5">
-        <p className="text-[10px] font-semibold text-white/55 uppercase tracking-wider mb-3">Focus Horizon Timeline (24h)</p>
+        <p className="text-caption font-semibold text-white/55 uppercase tracking-wider mb-3">Session timeline (24h)</p>
+        {selectedDayHistory.length === 0 ? (
+          <EmptyState
+            icon={<Clock className="h-8 w-8" />}
+            title="No sessions logged"
+            description="Complete a focus block on this day to see your timeline."
+          />
+        ) : (
         <div className="relative w-full bg-white/4 border border-white/8 rounded-2xl p-4.5">
           <div className="relative h-6 w-full bg-white/5 rounded-full border border-white/8 overflow-hidden">
             {selectedDayHistory.map((entry, idx) => {
@@ -134,7 +143,7 @@ export function DayDetailPanel({
               )
             })}
           </div>
-          <div className="flex justify-between text-[8px] text-white/40 font-mono mt-2 px-1.5 select-none font-bold">
+          <div className="flex justify-between text-label text-white/40 font-mono mt-2 px-1.5 select-none font-bold">
             <span>00:00</span>
             <span>06:00</span>
             <span>12:00</span>
@@ -142,6 +151,7 @@ export function DayDetailPanel({
             <span>24:00</span>
           </div>
         </div>
+        )}
       </div>
     </div>
   )
