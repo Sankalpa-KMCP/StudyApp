@@ -10,10 +10,10 @@ interface RangeSettingProps {
 
 export function RangeSetting({ label, value, min, max, step = 1, unit = '', onChange }: RangeSettingProps) {
   return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between text-[10px] font-semibold text-white/60">
+    <div className="space-y-2">
+      <div className="flex justify-between items-center text-caption font-semibold text-white/60">
         <span>{label}</span>
-        <span className="font-mono text-white/80">{value}{unit}</span>
+        <span className="font-mono text-white bg-white/10 border border-white/10 rounded-full px-2 py-0.5 text-label">{value}{unit}</span>
       </div>
       <input
         type="range"
