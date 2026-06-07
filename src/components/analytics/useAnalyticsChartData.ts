@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { DailyLog, TaskItem } from '../../db/types'
+import type { ThemeProfile } from '../../types/app'
 
 export function useRetentionData(tasks: TaskItem[]) {
   return useMemo(() => {
@@ -52,4 +53,68 @@ export function useHeatmapData(allLogs: DailyLog[]) {
 
     return days
   }, [allLogs])
+}
+
+export function useEstimationInsight(tasks: TaskItem[]) {
+  return useMemo(() => {
+    const completedTasks = tasks.filter(t => t.completed && t.estimatedCycles > 0)
+    if (completedTasks.length === 0) return 'No data'
+
+    let totalEstimated = 0
+    let totalActual = 0
+    completedTasks.forEach(t => {
+      totalEstimated += t.estimatedCycles
+      totalActual += t.actualCycles
+    })
+
+    const diff = Math.abs(totalActual - totalEstimated)
+    const errorRate = Math.round((diff / totalEstimated) * 100)
+    if (totalActual === totalEstimated) return '0% Dev (Perfect)'
+    return `${errorRate}% Dev (${totalActual > totalEstimated ? 'Under' : 'Over'})`
+  }, [tasks])
+}
+
+export function useMoodDistribution(monthLogs: DailyLog[], activeThemeVars: ThemeProfile) {
+  return useMemo(() => {
+    const counts: Record<string, number> = {
+      focused: 0,
+      energetic: 0,
+      tired: 0,
+      distracted: 0,
+    }
+    let totalLogged = 0
+
+    monthLogs.forEach(log => {
+      if (log.mood && counts[log.mood] !== undefined) {
+        counts[log.mood]++
+        totalLogged++
+      }
+    })
+
+    const colors: Record<string, string> = {
+      focused: activeThemeVars.accentBlue,
+      energetic: activeThemeVars.accentGreen,
+      tired: activeThemeVars.accentAmber,
+      distracted: '#ef4444',
+    }
+
+    const emojis: Record<string, string> = {
+      focused: '🧠',
+      energetic: '⚡',
+      tired: '🥱',
+      distracted: '🌪',
+    }
+
+    return Object.keys(counts).map(key => {
+      const count = counts[key]
+      const percentage = totalLogged > 0 ? Math.round((count / totalLogged) * 100) : 0
+      return {
+        name: key.charAt(0).toUpperCase() + key.slice(1),
+        value: count,
+        percentage,
+        color: colors[key],
+        emoji: emojis[key],
+      }
+    })
+  }, [monthLogs, activeThemeVars])
 }
