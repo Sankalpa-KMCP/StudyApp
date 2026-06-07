@@ -1,4 +1,5 @@
-import { Brain, Flame, Keyboard } from 'lucide-react'
+import { Brain, Flame, Keyboard, FileText } from 'lucide-react'
+import type { ActiveTab } from '../types/app'
 import { Sidebar } from './Sidebar'
 import { ZenOverlay } from './ZenOverlay'
 import { ReflectionModal } from './ReflectionModal'
@@ -39,11 +40,28 @@ export function AppShell() {
     activeToast,
     isNotesOpen,
     setIsNotesOpen,
+    notifyFocusLockout,
   } = useStudyUI()
+
+  const handleSetActiveTab = (tab: ActiveTab) => {
+    const locked =
+      settings.enforce_lockout &&
+      timer.isTimerActive &&
+      timer.timerMode === 'study' &&
+      tab !== 'focus'
+    if (locked) {
+      notifyFocusLockout()
+      return
+    }
+    setActiveTab(tab)
+  }
 
   if (!isDataReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#06070a]">
+      <div
+        className="flex min-h-screen items-center justify-center"
+        style={{ background: activeThemeVars.pageGradient }}
+      >
         <div className="flex flex-col items-center gap-4">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
           <p className="text-sm text-white/50 font-mono tracking-wider">LOADING STUDY DASHBOARD...</p>
@@ -62,6 +80,7 @@ export function AppShell() {
     '--surface-card-rgb': activeThemeVars.surfaceCardRgb,
     '--card-opacity': settings.cardOpacity,
     '--backdrop-blur': `${settings.backdropBlur}px`,
+    background: activeThemeVars.pageGradient,
   } as React.CSSProperties
 
   return (
@@ -72,33 +91,38 @@ export function AppShell() {
         level={xpData.level}
         xpProgressPercent={xpData.xpProgressPercent}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleSetActiveTab}
         setIsHotkeyHudOpen={setIsHotkeyHudOpen}
         isTimerActive={timer.isTimerActive}
         timerMode={timer.timerMode}
         enforceLockout={settings.enforce_lockout}
         onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
+        onFocusLockout={notifyFocusLockout}
       />
 
       <main className="flex-1 flex flex-col min-w-0 z-10">
         {!isZenMode && (
-          <header className="flex md:hidden items-center justify-between px-4 py-3 border-b border-white/5 bg-black/10">
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <Brain className="h-4 w-4 text-white animate-pulse" />
-                <span className="font-bold text-sm text-white">Study Dashboard</span>
-              </div>
-              <span className="text-[8px] text-white/40 font-mono tracking-widest font-bold">BY SANKALPA KMCP</span>
+          <header className="flex md:hidden items-center justify-between px-4 py-2.5 border-b border-white/5 bg-black/10 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <Brain className="h-4 w-4 text-accent-blue" />
+              <span className="font-bold text-sm text-white">Study Dashboard</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <Flame className="h-3.5 w-3.5 text-orange-500" />
-                <span className="text-xs font-mono font-bold text-orange-400">{currentStreak}d</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 rounded-full bg-white/5 border border-white/10 px-2.5 py-1">
+                <Flame className="h-3.5 w-3.5 text-accent-amber" />
+                <span className="text-label font-mono font-bold text-accent-amber">{currentStreak}d</span>
               </div>
+              <button
+                onClick={() => setIsNotesOpen(!isNotesOpen)}
+                aria-label="Quick notes"
+                className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
+              >
+                <FileText className="h-4 w-4" />
+              </button>
               <button
                 onClick={() => setIsHotkeyHudOpen(true)}
                 aria-label="Keyboard shortcuts"
-                className="p-1 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
+                className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
               >
                 <Keyboard className="h-4 w-4" />
               </button>
@@ -108,7 +132,7 @@ export function AppShell() {
 
         <div className={`flex-1 p-4 md:p-6 lg:p-8 flex flex-col transition-all duration-700 ${isZenMode ? 'opacity-0 scale-95 pointer-events-none' : ''}`}>
           {!isZenMode && (
-            <div className="flex-1 flex flex-col min-h-0">
+            <div key={activeTab} className="flex-1 flex flex-col min-h-0 animate-fade-in">
               {activeTab === 'focus' && <FocusTab />}
               {activeTab === 'analytics' && <AnalyticsTab />}
               {activeTab === 'journal' && <JournalTab />}
@@ -131,6 +155,7 @@ export function AppShell() {
         completeSession={timer.completeSession}
         enforceLockout={settings.enforce_lockout}
         setIsZenMode={setIsZenMode}
+        pageGradient={activeThemeVars.pageGradient}
       />
 
       <ReflectionModal
@@ -153,9 +178,9 @@ export function AppShell() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),_inset_0_1px_1px_rgba(255,255,255,0.08)] rounded-full px-4 py-1.5 text-[11px] font-mono tracking-wider text-white animate-slide-down"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),_inset_0_1px_1px_rgba(255,255,255,0.08)] rounded-full px-4 py-1.5 text-label font-mono tracking-wider text-white animate-slide-down"
         >
-          <kbd className="bg-white/10 text-white border border-white/15 rounded px-1.5 py-0.5 text-[9px] font-sans">{activeToast.key}</kbd>
+          <kbd className="bg-white/10 text-white border border-white/15 rounded px-1.5 py-0.5 text-label font-sans">{activeToast.key}</kbd>
           <span>{activeToast.message}</span>
         </div>
       )}
@@ -175,10 +200,11 @@ export function AppShell() {
       {!isZenMode && (
         <MobileTabBar
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={handleSetActiveTab}
           isTimerActive={timer.isTimerActive}
           timerMode={timer.timerMode}
           enforceLockout={settings.enforce_lockout}
+          onFocusLockout={notifyFocusLockout}
         />
       )}
     </div>

@@ -20,6 +20,7 @@ interface FocusSanctuaryProps {
   onUserGesture?: () => void
   showReflectionModal?: boolean
 }
+
 export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   timerMode,
   isTimerActive,
@@ -39,20 +40,17 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   onUserGesture,
   showReflectionModal = false,
 }) => {
-
-  // Get active color based on state
   const activeColor = useMemo(() => {
-    if (timerMode === 'study') return '#007aff' // system blue
-    if (isLongBreak) return '#34c759' // system green
-    return '#ff9500' // system orange
+    if (timerMode === 'study') return 'var(--color-accent-blue)'
+    if (isLongBreak) return 'var(--color-accent-green)'
+    return 'var(--color-accent-amber)'
   }, [timerMode, isLongBreak])
 
-  // Get current breathing scale value
   const currentScale = useMemo(() => {
-    return breathTime < 5 
-      ? 1 + (breathTime / 5) * 0.25 
-      : breathTime < 7 
-      ? 1.25 
+    return breathTime < 5
+      ? 1 + (breathTime / 5) * 0.25
+      : breathTime < 7
+      ? 1.25
       : 1.25 - ((breathTime - 7) / 5) * 0.25
   }, [breathTime])
 
@@ -62,61 +60,66 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
         {showReflectionModal && timerMode === 'study' ? 'Study block complete' : ''}
       </div>
 
-      {/* Clock Sanctuary Block */}
       <div className="flex flex-col gap-6 w-full">
-        
-        {/* Main Card Wrapper */}
         <div className="flex flex-col border border-white/5 bg-white/[0.02] rounded-[28px] p-5 md:p-6 shadow-2xl backdrop-blur-3xl">
-          
-          {/* Section Header */}
           <div className="flex items-center justify-between mb-5 border-b border-white/5 pb-3 select-none">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-white/40">01 / Focus Sanctuary</span>
+            <span className="text-label font-bold uppercase tracking-wider text-white/50">Focus Timer</span>
             <button
               onClick={() => setIsZenMode(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition-all ios-active-scale cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption font-bold border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition-all ios-active-scale cursor-pointer"
             >
               <Sparkles className="h-3.5 w-3.5 text-accent-blue" />
               <span>Sanctuary Mode</span>
             </button>
           </div>
 
-          {/* Minimal Timer Dial Display */}
+          <div className="flex justify-center gap-2 mb-4">
+            {(['study', 'break'] as const).map(mode => {
+              const isActive = timerMode === mode
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => handleModeSwitch(mode)}
+                  className={`px-4 py-2 rounded-full text-caption font-semibold transition-all ios-active-scale cursor-pointer ${
+                    isActive
+                      ? 'bg-accent-blue text-white border border-accent-blue/30 shadow-md shadow-accent-blue/15'
+                      : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {mode === 'study' ? 'Study' : 'Break'}
+                </button>
+              )
+            })}
+          </div>
+
           <div className="flex flex-col items-center py-2">
-            <div className="relative flex h-56 w-56 items-center justify-center rounded-full border border-white/5 bg-black/10">
-              
+            <div className="relative flex h-60 w-60 md:h-64 md:w-64 items-center justify-center rounded-full border border-white/5 bg-black/10">
               <svg className="absolute h-[94%] w-[94%] -rotate-90 overflow-visible" viewBox="0 0 120 120">
-                {/* Thin background track */}
                 <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255, 255, 255, 0.04)" strokeWidth="1" />
-                
-                {/* Clean progress indicator line */}
                 <circle
                   cx="60" cy="60" r="50"
                   fill="none"
                   stroke={activeColor}
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeDasharray="314.16"
                   strokeDashoffset={String(314.16 * (1 - progress))}
-                  style={{
-                    transition: 'stroke-dashoffset 0.3s ease-out, stroke 0.3s'
-                  }}
+                  style={{ transition: 'stroke-dashoffset 0.3s ease-out, stroke 0.3s' }}
                 />
               </svg>
 
-              {/* Timer metrics display */}
               <div className="text-center z-10 select-none" aria-live="polite" aria-atomic="true">
-                <p className="text-5xl font-bold text-white tracking-tight tabular-nums" role="timer">
+                <p className="text-6xl md:text-7xl font-bold text-white tracking-tight tabular-nums" role="timer">
                   {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
                 </p>
-                <span className="inline-block rounded-full bg-white/5 border border-white/5 px-3 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/60 mt-2.5">
+                <span className="inline-block rounded-full bg-white/5 border border-white/5 px-3 py-0.5 text-label font-semibold uppercase tracking-wider text-white/60 mt-3">
                   {timerMode === 'study' ? 'Study Block' : isLongBreak ? 'Long Break' : 'Short Break'}
                 </span>
               </div>
-
             </div>
 
-            {/* Dial Interaction Controls */}
-            <div className="flex items-center gap-3 mt-7 select-none">
+            <div className="flex items-center gap-3 mt-7 select-none flex-wrap justify-center">
               {timerMode === 'break' && (
                 <button
                   onClick={skipBreak}
@@ -127,16 +130,9 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               )}
 
               <button
-                onClick={() => handleModeSwitch(timerMode === 'study' ? 'break' : 'study')}
-                className="px-4 py-2.5 rounded-full text-xs font-bold border border-white/10 bg-white/5 hover:bg-white/10 text-white/90 transition-all ios-active-scale cursor-pointer"
-              >
-                Switch to {timerMode === 'study' ? 'Break' : 'Study'}
-              </button>
-              
-              <button
                 onClick={() => { onUserGesture?.(); setIsTimerActive(a => !a) }}
                 aria-label={isTimerActive ? 'Pause timer' : 'Start timer'}
-                className="flex h-9.5 w-9.5 items-center justify-center rounded-full bg-accent-blue text-white hover:bg-accent-blue/90 transition-all ios-active-scale cursor-pointer shadow-md shadow-accent-blue/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-blue text-white hover:bg-accent-blue/90 transition-all ios-active-scale cursor-pointer shadow-md shadow-accent-blue/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 {isTimerActive ? <Pause className="h-4.5 w-4.5" /> : <Play className="h-4.5 w-4.5" />}
               </button>
@@ -160,9 +156,8 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               )}
             </div>
 
-            {/* Cycle Completed Indicator */}
-            <div className="flex items-center gap-3 mt-5 text-[8px] text-white/40 font-bold uppercase tracking-wider select-none">
-              <span>Sprint Cycles Completed:</span>
+            <div className="flex items-center gap-3 mt-5 text-label text-white/40 font-bold uppercase tracking-wider select-none">
+              <span>Sprint Cycles:</span>
               <div className="flex items-center gap-1.5">
                 {Array.from({ length: targetSessionsPerCycle }, (_, i) => (
                   <span
@@ -176,42 +171,34 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                 ))}
               </div>
             </div>
-
           </div>
 
-          {/* Guided Respiration Breath Pacer (Active during Break) */}
           {timerMode !== 'study' && (
             <div className="mt-4 border border-white/5 bg-black/20 rounded-[20px] p-3.5 flex flex-col items-center gap-3.5 shadow-md transition-all duration-300 animate-slide-in-up">
-              <div className="flex justify-between w-full text-[8.5px] tracking-wider text-white/40 uppercase font-bold">
+              <div className="flex justify-between w-full text-label tracking-wider text-white/40 uppercase font-bold">
                 <span>Respiration Pacer</span>
-                <span className="text-[8.5px] text-accent-purple font-mono">Coherence Sync</span>
+                <span className="text-accent-purple font-mono">Coherence Sync</span>
               </div>
-              
+
               <div className="flex items-center gap-4.5 w-full justify-center">
-                {/* Upgraded multi-ring halo breathe pacer ripples */}
                 <div className="relative flex h-14 w-14 items-center justify-center shrink-0 select-none">
-                  {/* Outer ripple ring */}
-                  <div 
-                    className="absolute inset-0 rounded-full bg-accent-purple/5 border border-accent-purple/10 transition-all duration-1000 ease-in-out"
+                  <div
+                    className="absolute inset-0 rounded-full bg-accent-purple/5 border border-accent-purple/10 transition-all duration-[1250ms] ease-in-out"
                     style={{
                       transform: `scale(${currentScale * 1.3})`,
-                      opacity: breathTime < 5 ? 0.3 : breathTime < 7 ? 0.6 : 0.15
+                      opacity: breathTime < 5 ? 0.3 : breathTime < 7 ? 0.6 : 0.15,
                     }}
                   />
-                  {/* Middle ripple ring */}
-                  <div 
-                    className="absolute inset-1.5 rounded-full bg-accent-purple/10 border border-accent-purple/20 transition-all duration-1000 ease-in-out"
+                  <div
+                    className="absolute inset-1.5 rounded-full bg-accent-purple/10 border border-accent-purple/20 transition-all duration-[1250ms] ease-in-out"
                     style={{
                       transform: `scale(${currentScale * 1.15})`,
-                      opacity: breathTime < 5 ? 0.45 : breathTime < 7 ? 0.8 : 0.2
+                      opacity: breathTime < 5 ? 0.45 : breathTime < 7 ? 0.8 : 0.2,
                     }}
                   />
-                  {/* Inner core circle */}
-                  <div 
-                    className="relative flex h-8 w-8 items-center justify-center rounded-full bg-accent-purple/20 border border-accent-purple/40 transition-all duration-1000 ease-in-out shadow-[0_0_12px_rgba(175,82,222,0.2)]"
-                    style={{
-                      transform: `scale(${currentScale})`
-                    }}
+                  <div
+                    className="relative flex h-8 w-8 items-center justify-center rounded-full bg-accent-purple/20 border border-accent-purple/40 transition-all duration-[1250ms] ease-in-out shadow-[0_0_12px_rgba(175,82,222,0.2)]"
+                    style={{ transform: `scale(${currentScale})` }}
                   >
                     <div className="h-3.5 w-3.5 rounded-full bg-accent-purple" />
                   </div>
@@ -219,35 +206,32 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
 
                 <div className="flex flex-col select-none max-w-[170px]">
                   <span className="text-xs font-bold tracking-wide text-accent-purple uppercase">
-                    {breathTime < 5 ? 'Inhale 🌬️' : breathTime < 7 ? 'Hold 🧘' : 'Exhale 💨'}
+                    {breathTime < 5 ? 'Inhale' : breathTime < 7 ? 'Hold' : 'Exhale'}
                   </span>
-                  <span className="text-[9.5px] text-white/50 mt-1 leading-normal font-medium">
-                    Cohere respiration pacing to optimize stress control.
+                  <span className="text-caption text-white/50 mt-1 leading-normal font-medium">
+                    Slow breathing helps reset focus between blocks.
                   </span>
                 </div>
               </div>
             </div>
           )}
-
         </div>
 
-        {/* Coherence Informational Card (Active during Study) */}
         {timerMode === 'study' && (
           <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-4.5 select-none shadow-2xl backdrop-blur-3xl flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-[8px] font-bold tracking-wider text-white/40 uppercase bg-white/5 border border-white/5 px-2 py-0.5 rounded-full">Resonance Metrics</span>
+              <span className="text-label font-bold tracking-wider text-white/40 uppercase bg-white/5 border border-white/5 px-2 py-0.5 rounded-full">Study tip</span>
               <div className="flex items-center gap-1.5 text-accent-purple">
                 <Heart className="h-3.5 w-3.5" />
-                <span className="text-[8.5px] font-bold uppercase tracking-wider">Cardiac Coherence</span>
+                <span className="text-label font-bold uppercase tracking-wider">Stay present</span>
               </div>
             </div>
             <div className="bg-black/20 border border-white/5 px-3.5 py-3 rounded-[20px]">
-              <p className="text-xs font-bold text-white/90">Autonomic Stabilization</p>
-              <p className="text-[10px] text-white/50 leading-relaxed mt-1">Deep, periodic breathing coordinates heartbeat rhythm to down-regulate pressure and maximize focus capacity.</p>
+              <p className="text-xs font-bold text-white/90">One task at a time</p>
+              <p className="text-caption text-white/50 leading-relaxed mt-1">Pick a single focus target and protect this block from context switches.</p>
             </div>
           </div>
         )}
-
       </div>
     </div>
   )
