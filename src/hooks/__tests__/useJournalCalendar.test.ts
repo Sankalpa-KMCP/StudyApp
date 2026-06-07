@@ -4,7 +4,6 @@ import { useJournalCalendar } from '../useJournalCalendar'
 import { resetDatabase } from '../../test/dbTestUtils'
 
 const baseOptions = {
-  sessionHistory: [],
   sessionTasks: [],
   dailyGoalMinutes: 480,
   studyBlockDurationMinutes: 25,

@@ -1,11 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { updateDailyReflection, useMonthLogsQuery } from '../db/hooks'
+import { updateDailyReflection, useHistoryForMonth, useMonthLogsQuery } from '../db/hooks'
 import { calculateCalendarHeatmapData } from '../lib/studyDashboard'
 import { useCalendarData } from './useCalendarData'
-import type { HistoryEntry, TaskItem } from '../db/types'
+import type { TaskItem } from '../db/types'
 
 interface UseJournalCalendarOptions {
-  sessionHistory: HistoryEntry[]
   sessionTasks: TaskItem[]
   dailyGoalMinutes: number
   studyBlockDurationMinutes: number
@@ -14,7 +13,6 @@ interface UseJournalCalendarOptions {
 }
 
 export function useJournalCalendar({
-  sessionHistory,
   sessionTasks,
   dailyGoalMinutes,
   studyBlockDurationMinutes,
@@ -36,15 +34,17 @@ export function useJournalCalendar({
     studyBlockDurationMinutes,
   )
 
+  const { history: monthHistory } = useHistoryForMonth(currentYear, currentMonth)
+
   const categoryDayMinutes = useMemo(
-    () => calculateCalendarHeatmapData(sessionHistory, currentMonth, currentYear, calendarCategoryFilter),
-    [sessionHistory, currentMonth, currentYear, calendarCategoryFilter],
+    () => calculateCalendarHeatmapData(monthHistory, currentMonth, currentYear, calendarCategoryFilter),
+    [monthHistory, currentMonth, currentYear, calendarCategoryFilter],
   )
 
   const calendar = useCalendarData({
     monthLogs,
     totalMonthHours,
-    sessionHistory,
+    sessionHistory: monthHistory,
     sessionTasks,
     currentMonth,
     currentYear,
