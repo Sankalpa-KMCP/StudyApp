@@ -12,3 +12,24 @@ export function useHistory() {
     isLoading: history === undefined,
   }
 }
+
+export function useRecentHistory(limit = 100) {
+  const history = useLiveQuery(() => historyRepo.getRecentHistory(limit), [limit])
+
+  return {
+    history: history ?? [],
+    isLoading: history === undefined,
+  }
+}
+
+export function useHistoryForMonth(year: number, month: number) {
+  const history = useLiveQuery(() => {
+    const { start, end } = historyRepo.getMonthBounds(year, month)
+    return historyRepo.getHistoryForDateRange(start, end)
+  }, [year, month])
+
+  return {
+    history: history ?? [],
+    isLoading: history === undefined,
+  }
+}
