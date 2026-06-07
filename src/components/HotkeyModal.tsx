@@ -17,7 +17,7 @@ const SHORTCUTS = [
 ]
 
 export const HotkeyModal: React.FC<HotkeyModalProps> = ({ isOpen, onClose }) => {
-  const trapRef = useFocusTrap(isOpen)
+  const trapRef = useFocusTrap(isOpen, onClose)
 
   if (!isOpen) return null
 
