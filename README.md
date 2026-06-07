@@ -75,11 +75,14 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 
 ## Architecture
 
+Data hooks live in [`src/db/hooks/`](src/db/hooks/) (repositories + per-domain hooks). [`src/db/queries.ts`](src/db/queries.ts) is a deprecated re-export shim — import from `db/hooks` instead.
+
 ```mermaid
 flowchart TB
   subgraph data [Data Layer]
     db[(IndexedDB / Dexie)]
-    queries[db/queries.ts hooks]
+    repos[db/repositories]
+    dbHooks[db/hooks]
   end
   subgraph hooks [Hooks]
     timer[useTimerEngine]
@@ -87,6 +90,7 @@ flowchart TB
     journal[useJournalCalendar]
   end
   subgraph context [Context Providers]
+    confirmP[ConfirmProvider]
     dataP[StudyDataProvider]
     timerP[StudyTimerProvider]
     uiP[StudyUIProvider]
@@ -98,11 +102,13 @@ flowchart TB
     journalTab[JournalTab]
     settings[SettingsTab]
   end
-  db --> queries
-  queries --> dataP
+  db --> repos
+  repos --> dbHooks
+  dbHooks --> dataP
   timer --> timerP
   backup --> timerP
   journal --> dataP
+  confirmP --> dataP
   dataP --> focus
   timerP --> focus
   uiP --> focus
@@ -132,9 +138,10 @@ npm run lint           # ESLint
 | Layer | Command | Location |
 |-------|---------|----------|
 | Unit / hooks | `npm test` | `src/lib/__tests__`, `src/db/__tests__`, `src/hooks/__tests__` |
-| Context | `npm test` | `src/context/__tests__` |
+| Component | `npm test` | `src/components/__tests__` (TaskRegistry, ActivityLedger, FlashcardStudio) |
+| Context | `npm test` | `src/context/__tests__` (StudyAppProvider + ConfirmProvider) |
 | Coverage gate | `npm run test:coverage` | CI fails under 70% on scoped lib/db/hooks |
-| E2E smoke | `npm run test:e2e` | `e2e/focus.spec.ts`, `e2e/settings.spec.ts` |
+| E2E smoke | `npm run test:e2e` | `e2e/focus.spec.ts`, `settings.spec.ts`, `timer.spec.ts`, `tasks.spec.ts`, `flashcards.spec.ts`, `backup.spec.ts` |
 | Storybook | `npm run storybook` | `src/**/*.stories.tsx` |
 
 ### Tauri Desktop App
