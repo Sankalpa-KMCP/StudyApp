@@ -71,6 +71,17 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 - **Schema version:** 7 (Dexie `db.verno` — IndexedDB migration version).
 - **Backup `version: 2`** in `.studybackup` JSON exports is the **export file format** revision — separate from the DB schema version above.
 
+### Data limits
+
+| Limit | Value | Used by |
+|-------|-------|---------|
+| Recent history window | 100 entries | Analytics (`useRecentHistory`) |
+| Journal history | Current calendar month | `useHistoryForMonth` |
+| Full history table | Unbounded | Backup export only (`db.history.toArray`) |
+| Auto snapshots retained | 3 | `useSessionBackup` |
+| Shadow restore threshold | ≥ 60s elapsed | `useTimerEngine` sessionStorage heartbeat |
+| Reflection notes max | 500 chars | Activity ledger / reflection modal |
+
 ---
 
 ## Architecture
@@ -125,7 +136,7 @@ npm install
 npm run dev            # Vite dev server at http://localhost:5173
 npm run build          # Production build to dist/
 npm test               # Vitest unit tests
-npm run test:coverage  # Coverage report (70% threshold on scoped lib/db/hooks)
+npm run test:coverage  # Coverage report (75% threshold on scoped lib/db/hooks/repositories)
 npm run test:watch     # Vitest watch mode
 npm run test:e2e       # Playwright smoke tests
 npm run storybook      # Component stories on port 6006
@@ -140,8 +151,8 @@ npm run lint           # ESLint
 | Unit / hooks | `npm test` | `src/lib/__tests__`, `src/db/__tests__`, `src/hooks/__tests__` |
 | Component | `npm test` | `src/components/__tests__` (TaskRegistry, ActivityLedger, FlashcardStudio) |
 | Context | `npm test` | `src/context/__tests__` (StudyAppProvider + ConfirmProvider) |
-| Coverage gate | `npm run test:coverage` | CI fails under 70% on scoped lib/db/hooks |
-| E2E smoke | `npm run test:e2e` | `e2e/focus.spec.ts`, `settings.spec.ts`, `timer.spec.ts`, `tasks.spec.ts`, `flashcards.spec.ts`, `backup.spec.ts` |
+| Coverage gate | `npm run test:coverage` | CI fails under 75% on scoped lib/db/hooks/repositories |
+| E2E smoke | `npm run test:e2e` | `focus`, `settings`, `timer`, `tasks`, `flashcards`, `backup`, `backup-export`, `backup-import`, `backup-import-cancel`, `keyboard`, `reflection` |
 | Storybook | `npm run storybook` | `src/**/*.stories.tsx` |
 
 ### Tauri Desktop App
