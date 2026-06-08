@@ -6,8 +6,11 @@ import type { CategoryItem } from '../../db/types'
 
 const baseProps = {
   categories: [] as CategoryItem[],
+  addCategory: vi.fn().mockResolvedValue(1),
+  deleteCategory: vi.fn(),
   activeTaskId: null,
   setActiveTaskId: vi.fn(),
+  activateTask: vi.fn(),
   toggleTask: vi.fn(),
   handleAddTask: vi.fn(),
   submitRecallGrade: vi.fn(),
@@ -23,15 +26,39 @@ describe('TaskRegistry', () => {
     render(<TaskRegistry {...baseProps} tasks={[]} />)
     expect(screen.getByText('Focus targets')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('What do you want to focus on?')).toBeInTheDocument()
+    expect(screen.getByText('✏️ Manage')).toBeInTheDocument()
   })
 
-  it('submits a new task on Enter', async () => {
+  it('submits a new task on Enter with session subject', async () => {
     const user = userEvent.setup()
     const handleAddTask = vi.fn()
-    render(<TaskRegistry {...baseProps} tasks={[]} handleAddTask={handleAddTask} />)
+    render(
+      <TaskRegistry
+        {...baseProps}
+        tasks={[]}
+        handleAddTask={handleAddTask}
+        timerCategoryId={2}
+        categories={[{ id: 2, name: 'Math', color: '#3B82F6' }]}
+      />,
+    )
     const input = screen.getByPlaceholderText('What do you want to focus on?')
     await user.type(input, 'My task{Enter}')
-    expect(handleAddTask).toHaveBeenCalledWith('My task', undefined, 1, 'medium', false)
+    expect(handleAddTask).toHaveBeenCalledWith('My task', 2, 1, 'medium', false)
+  })
+
+  it('activates a task when a row is clicked', async () => {
+    const user = userEvent.setup()
+    const activateTask = vi.fn()
+    const task = { id: 1, text: 'Existing task', completed: false, createdAt: Date.now(), estimatedCycles: 1, actualCycles: 0 }
+    render(
+      <TaskRegistry
+        {...baseProps}
+        tasks={[task]}
+        activateTask={activateTask}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'Task Existing task' }))
+    expect(activateTask).toHaveBeenCalledWith(task)
   })
 
   it('marks a task complete when checkbox is clicked', async () => {
