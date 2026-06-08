@@ -3,7 +3,7 @@ import type { CategoryItem } from '../../db/types'
 
 interface InlineCategoryManagerProps {
   categories: CategoryItem[]
-  addCategory: (name: string, color: string) => Promise<void> | void
+  addCategory: (name: string, color: string) => Promise<number | void> | number | void
   deleteCategory: (id: number) => Promise<void> | void
   selectedCategoryId?: number
   onSelectCategory?: (id: number | undefined) => void
@@ -58,8 +58,11 @@ export function InlineCategoryManager({
               onClick={async () => {
                 const name = inlineName.trim()
                 if (name) {
-                  await addCategory(name, inlineColor)
+                  const newId = await addCategory(name, inlineColor)
                   setInlineName('')
+                  if (typeof newId === 'number' && onSelectCategory) {
+                    onSelectCategory(newId)
+                  }
                 }
               }}
               className="px-3 rounded-full bg-accent-blue text-white text-xs font-bold transition-all ios-active-scale cursor-pointer"
