@@ -16,12 +16,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
 
       - name: Install dependencies
-        run: |
-          rm -rf node_modules
-          npm install --no-audit --no-fund
-          test -d node_modules/vite
+        run: npm ci
 
       - name: Lint
         run: npm run lint
@@ -29,8 +27,39 @@ jobs:
       - name: Test with coverage
         run: npm run test:coverage
 
+      - name: Component coverage gate
+        run: npm run test:coverage:components
+
       - name: Production build
         run: npm run build
+
+      - name: Bundle size budget
+        run: npm run check:bundle
+
+      - name: Lighthouse CI
+        run: npx --yes @lhci/cli@0.14 autorun
+
+  chromatic:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.CHROMATIC_PROJECT_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build-storybook
+
+      - name: Publish to Chromatic
+        run: npx --yes chromatic --exit-zero-on-changes
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
 
   e2e:
     runs-on: ubuntu-latest
@@ -42,15 +71,47 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
 
       - name: Install dependencies
-        run: |
-          rm -rf node_modules
-          npm install --no-audit --no-fund
-          test -d node_modules/@playwright/test
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
+        run: npx playwright install chromium firefox --with-deps
 
-      - name: Run Playwright smoke tests
-        run: npm run test:e2e
+      - name: Run Playwright tests
+        run: npm run test:e2e -- --project=chromium --project=mobile-chrome --project=visual
+
+  e2e-firefox:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install firefox --with-deps
+
+      - name: Run Firefox smoke tests
+        run: npm run test:e2e -- --project=firefox e2e/focus.spec.ts e2e/tasks.spec.ts
