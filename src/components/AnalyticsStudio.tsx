@@ -1,5 +1,5 @@
 import React from 'react'
-import type { TaskItem, DailyLog } from '../db/types'
+import type { TaskItem, DailyLog, FlashcardItem } from '../db/types'
 import type { ThemeProfile } from '../types/app'
 import type { CSSProperties } from 'react'
 import { SummaryMetricsRow } from './analytics/SummaryMetricsRow'
@@ -16,6 +16,7 @@ import {
 
 interface AnalyticsStudioProps {
   tasks: TaskItem[]
+  flashcards: FlashcardItem[]
   monthLogs: DailyLog[]
   allLogs: DailyLog[]
   totalMonthHours: number
@@ -36,6 +37,7 @@ interface AnalyticsStudioProps {
 
 export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
   tasks,
+  flashcards,
   monthLogs,
   allLogs,
   totalMonthHours,
@@ -52,7 +54,7 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
   tooltipStyle,
   hasChartData,
 }) => {
-  const retentionData = useRetentionData(tasks)
+  const retentionData = useRetentionData(tasks, flashcards)
   const heatmapData = useHeatmapData(allLogs)
   const moodDistribution = useMoodDistribution(monthLogs, activeThemeVars)
   const estimationInsight = useEstimationInsight(tasks)

@@ -1,19 +1,23 @@
 import { useMemo } from 'react'
-import type { DailyLog, TaskItem } from '../../db/types'
+import type { DailyLog, TaskItem, FlashcardItem } from '../../db/types'
 import type { ThemeProfile } from '../../types/app'
 
-export function useRetentionData(tasks: TaskItem[]) {
+export function useRetentionData(tasks: TaskItem[], flashcards: FlashcardItem[] = []) {
   return useMemo(() => {
     const gradedTasks = tasks.filter(t => t.completed && t.latestGrade !== undefined)
+    const gradedCards = flashcards.filter(c => c.latestGrade !== undefined)
     const groupedByDate: Record<string, { sum: number; count: number }> = {}
 
-    gradedTasks.forEach(t => {
-      const d = new Date(t.createdAt)
+    const processItem = (item: { createdAt: number; latestGrade?: number }) => {
+      const d = new Date(item.createdAt)
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
       if (!groupedByDate[dateStr]) groupedByDate[dateStr] = { sum: 0, count: 0 }
-      groupedByDate[dateStr].sum += t.latestGrade!
+      groupedByDate[dateStr].sum += item.latestGrade!
       groupedByDate[dateStr].count += 1
-    })
+    }
+
+    gradedTasks.forEach(processItem)
+    gradedCards.forEach(processItem)
 
     return Object.keys(groupedByDate)
       .sort()
@@ -24,7 +28,7 @@ export function useRetentionData(tasks: TaskItem[]) {
           avgGrade: parseFloat((g.sum / g.count).toFixed(1)),
         }
       })
-  }, [tasks])
+  }, [tasks, flashcards])
 }
 
 export function useHeatmapData(allLogs: DailyLog[]) {

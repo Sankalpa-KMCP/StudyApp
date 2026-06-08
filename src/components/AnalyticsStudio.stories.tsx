@@ -25,6 +25,7 @@ export const Default: Story = {
     <div className="p-6" style={{ background: '#0a0b10' }}>
       <AnalyticsStudio
         tasks={[]}
+        flashcards={[]}
         monthLogs={[]}
         allLogs={[]}
         totalMonthHours={12}
