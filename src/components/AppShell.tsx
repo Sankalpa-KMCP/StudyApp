@@ -1,4 +1,5 @@
-import { Brain, Flame, Keyboard, FileText } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Brain, Flame, Keyboard, FileText, AlertCircle } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
 import { Sidebar } from './Sidebar'
 import { ZenOverlay } from './ZenOverlay'
@@ -13,8 +14,22 @@ import { CardsTab } from './tabs/CardsTab'
 import { SettingsTab } from './tabs/SettingsTab'
 import { useStudyData, useStudyUI } from '../context/useStudyApp'
 import { useStudyTimerContext } from '../context/studyTimerContext'
+import { E2eCrashProbe } from './E2eCrashProbe'
 
 export function AppShell() {
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
+
+  useEffect(() => {
+    const onOnline = () => setIsOffline(false)
+    const onOffline = () => setIsOffline(true)
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
+  }, [])
+
   const {
     isDataReady,
     tasks,
@@ -85,6 +100,7 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden pb-16 md:pb-0" style={inlineStyles}>
+      <E2eCrashProbe />
       <Sidebar
         isZenMode={isZenMode}
         currentStreak={currentStreak}
@@ -101,6 +117,15 @@ export function AppShell() {
       />
 
       <main className="flex-1 flex flex-col min-w-0 z-10">
+        {isOffline && (
+          <div
+            role="status"
+            className="flex items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-label font-semibold text-amber-200"
+          >
+            <AlertCircle className="h-3.5 w-3.5" aria-hidden />
+            You are offline — data stays on this device
+          </div>
+        )}
         {!isZenMode && (
           <header className="flex md:hidden items-center justify-between px-4 py-2.5 border-b border-white/5 bg-black/10 backdrop-blur-md">
             <div className="flex items-center gap-2">
@@ -182,6 +207,15 @@ export function AppShell() {
         >
           <kbd className="bg-white/10 text-white border border-white/15 rounded px-1.5 py-0.5 text-label font-sans">{activeToast.key}</kbd>
           <span>{activeToast.message}</span>
+          {activeToast.key === 'DATABASE' && activeToast.message.toLowerCase().includes('quota') && (
+            <button
+              type="button"
+              onClick={() => handleSetActiveTab('settings')}
+              className="rounded-full bg-white/15 px-2.5 py-0.5 text-label font-sans font-bold hover:bg-white/25"
+            >
+              Open backup
+            </button>
+          )}
         </div>
       )}
 
