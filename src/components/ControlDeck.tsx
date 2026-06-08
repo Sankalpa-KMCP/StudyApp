@@ -32,7 +32,7 @@ interface ControlDeckProps {
   resetData: () => void
   resetDataSelective: (options: { tasks: boolean; history: boolean; categories: boolean; cards: boolean; notes: boolean }) => void
   categories: CategoryItem[]
-  addCategory: (name: string, color: string) => void
+  addCategory: (name: string, color: string) => void | Promise<number>
   deleteCategory: (id: number) => void
   isDragging: boolean
   setIsDragging: (val: boolean) => void

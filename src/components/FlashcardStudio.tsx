@@ -10,7 +10,7 @@ import { FlashcardStudyModal } from './flashcard/FlashcardStudyModal'
 
 interface FlashcardStudioProps {
   categories: CategoryItem[]
-  addCategory: (name: string, color: string) => Promise<void> | void
+  addCategory: (name: string, color: string) => Promise<number | void> | number | void
   deleteCategory: (id: number) => Promise<void> | void
   flashcards: FlashcardItem[]
   addFlashcard: (question: string, answer: string, categoryId?: number) => Promise<void>

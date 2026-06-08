@@ -5,7 +5,7 @@ import { InlineCategoryManager } from '../shared/InlineCategoryManager'
 
 interface FlashcardCreateFormProps {
   categories: CategoryItem[]
-  addCategory: (name: string, color: string) => Promise<void> | void
+  addCategory: (name: string, color: string) => Promise<number | void> | number | void
   deleteCategory: (id: number) => Promise<void> | void
   newQuestion: string
   setNewQuestion: (v: string) => void

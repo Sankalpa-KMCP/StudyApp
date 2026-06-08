@@ -10,7 +10,7 @@ interface QuickNotesDrawerProps {
   isOpen: boolean
   onClose: () => void
   categories: CategoryItem[]
-  addCategory: (name: string, color: string) => Promise<void> | void
+  addCategory: (name: string, color: string) => Promise<number | void> | number | void
   deleteCategory: (id: number) => Promise<void> | void
   notes: QuickNoteItem[]
   addNote: (title: string, content: string, categoryId?: number) => Promise<void>
@@ -287,7 +287,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
               <div className="h-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-white/5 rounded-2xl bg-black/10 my-1">
                 <Edit3 className="h-8 w-8 text-white/20 mb-3 animate-pulse" />
                 <p className="text-xs text-white/40 select-none uppercase font-mono tracking-wider">Empty Notes Workspace</p>
-                <p className="text-[10px] text-slate-500 mt-1.5 select-none leading-relaxed">No note logs matches the current criteria.</p>
+                <p className="text-[10px] text-slate-500 mt-1.5 select-none leading-relaxed">No note logs matches the current criteria. Click "Create Note" below to jot down study structures, ideas, or quick references!</p>
               </div>
             ) : (
               filteredNotes.map(note => {
