@@ -21,7 +21,7 @@ describe('useAppToast', () => {
     })
 
     expect(result.current.activeToast?.key).toBe('DATABASE')
-    expect(result.current.activeToast?.message).toContain('QUOTA')
+    expect(result.current.activeToast?.message.toLowerCase()).toContain('quota')
   })
 
   it('auto-dismisses toast after timeout', () => {

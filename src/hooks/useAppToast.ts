@@ -21,7 +21,7 @@ export function useAppToast() {
       const name = error?.name || 'IndexedDBError'
       const message = error?.message || 'Database transaction failed'
       if (name === 'QuotaExceededError' || message.toLowerCase().includes('quota') || message.toLowerCase().includes('exhausted')) {
-        pushToast('DATABASE', 'STORAGE QUOTA EXHAUSTED - TIDY UP NOTES')
+        pushToast('DATABASE', 'Storage quota exceeded — export a backup in Settings')
       } else {
         pushToast('DATABASE', `DB ERROR: ${name.toUpperCase()}`)
       }
