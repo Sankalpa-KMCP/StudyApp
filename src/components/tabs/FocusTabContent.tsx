@@ -5,7 +5,7 @@ import { useStudyData, useStudyUI, useStudyTimer } from '../../context/useStudyA
 export function FocusTabContent() {
   const { settings, tasks, categories } = useStudyData()
   const { breathTime, setIsZenMode, activeTaskId, setActiveTaskId, taskCycleCount, setTaskCycleCount, progress } = useStudyUI()
-  const { timer, ensureAudio, handleAddTask, handleToggleTask } = useStudyTimer()
+  const { timer, ensureAudio, handleAddTask, handleToggleTask, activateTask } = useStudyTimer()
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-1 items-start">
@@ -38,8 +38,11 @@ export function FocusTabContent() {
         <TaskRegistry
           tasks={tasks.tasks}
           categories={categories.categories}
+          addCategory={categories.addCategory}
+          deleteCategory={categories.deleteCategory}
           activeTaskId={activeTaskId}
           setActiveTaskId={setActiveTaskId}
+          activateTask={activateTask}
           toggleTask={handleToggleTask}
           handleAddTask={handleAddTask}
           submitRecallGrade={timer.submitRecallGrade}
