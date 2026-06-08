@@ -40,8 +40,9 @@ export function FlashcardCreateForm({
         <h3 className="text-sm font-semibold mb-4 text-white">Create New Flashcard</h3>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="block text-[10px] font-bold uppercase text-white/45 mb-1.5 select-none">Question / Term</label>
+            <label htmlFor="flashcard-question" className="block text-[10px] font-bold uppercase text-white/45 mb-1.5 select-none">Question / Term</label>
             <textarea
+              id="flashcard-question"
               required
               rows={2}
               value={newQuestion}
@@ -51,8 +52,9 @@ export function FlashcardCreateForm({
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold uppercase text-white/45 mb-1.5 select-none">Answer / Definition</label>
+            <label htmlFor="flashcard-answer" className="block text-[10px] font-bold uppercase text-white/45 mb-1.5 select-none">Answer / Definition</label>
             <textarea
+              id="flashcard-answer"
               required
               rows={3}
               value={newAnswer}

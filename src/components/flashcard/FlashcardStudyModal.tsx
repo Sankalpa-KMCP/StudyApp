@@ -34,9 +34,10 @@ export function FlashcardStudyModal({
       <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} aria-hidden="true" />
       <div ref={trapRef} className="relative w-full max-w-lg flex flex-col items-center gap-6 z-10">
         <button
+          type="button"
           onClick={onClose}
+          aria-label="Close study mode"
           className="absolute -top-12 right-0 md:top-0 md:-right-12 h-10 w-10 flex items-center justify-center rounded-full bg-white/5 border border-white/8 text-white/70 hover:text-white hover:bg-white/10 cursor-pointer transition-all ios-active-scale shadow-md"
-          title="Close Study Mode"
         >
           <X className="h-5 w-5" />
         </button>
@@ -72,7 +73,19 @@ export function FlashcardStudyModal({
         ) : (
           <div className="w-full flex flex-col items-center gap-6 animate-slide-in-up">
             <div className="w-full aspect-[4/3] max-w-md flashcard-wrapper">
-              <div onClick={() => setIsFlipped(f => !f)} className={`flashcard-inner ${isFlipped ? 'flipped' : ''}`}>
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label={isFlipped ? 'Show question' : 'Reveal answer'}
+                onClick={() => setIsFlipped(f => !f)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setIsFlipped(f => !f)
+                  }
+                }}
+                className={`flashcard-inner ${isFlipped ? 'flipped' : ''}`}
+              >
                 <div className="flashcard-front bg-[#161620]/95 border border-white/8 hover:bg-white/5 hover:border-white/15 transition-all shadow-2xl backdrop-blur-xl select-none">
                   <span className="text-label font-mono tracking-widest text-white/40 uppercase absolute top-5 select-none font-semibold">Question</span>
                   <p className="text-base md:text-lg font-bold text-white px-4 max-h-40 overflow-y-auto whitespace-pre-wrap select-none leading-relaxed">{currentCard.question}</p>

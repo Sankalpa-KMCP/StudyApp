@@ -69,8 +69,8 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
           </div>
         )}
 
-        <div>
-          <label className="block text-caption font-bold text-white/70 uppercase tracking-wide mb-2.5">How focused were you?</label>
+        <fieldset>
+          <legend className="block text-caption font-bold text-white/70 uppercase tracking-wide mb-2.5">How focused were you?</legend>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map(rating => (
               <button
@@ -88,10 +88,10 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
             <span>Distracted</span>
             <span>In flow</span>
           </div>
-        </div>
+        </fieldset>
 
-        <div>
-          <label className="block text-caption font-bold text-white/70 uppercase tracking-wide mb-2.5">How stable was your focus?</label>
+        <fieldset>
+          <legend className="block text-caption font-bold text-white/70 uppercase tracking-wide mb-2.5">How stable was your focus?</legend>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map(rating => (
               <button
@@ -109,16 +109,17 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
             <span>Fragmented</span>
             <span>Steady</span>
           </div>
-        </div>
+        </fieldset>
 
         <div>
           <div className="flex justify-between items-center mb-2">
-            <label className="block text-caption font-bold text-white/70 uppercase tracking-wide">Session notes</label>
+            <label htmlFor="reflection-session-notes" className="block text-caption font-bold text-white/70 uppercase tracking-wide">Session notes</label>
             <span className={`text-label font-bold font-mono px-2 py-0.5 rounded-full ${localSessionNotes.length > 450 ? 'bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse' : 'text-white/40'}`}>
               {localSessionNotes.length} / 500
             </span>
           </div>
           <textarea
+            id="reflection-session-notes"
             value={localSessionNotes}
             onChange={e => setLocalSessionNotes(e.target.value.slice(0, 500))}
             maxLength={500}
