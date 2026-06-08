@@ -4,14 +4,24 @@ import type { TaskItem, CategoryItem } from '../db/types'
 import { TaskCreateForm } from './task-registry/TaskCreateForm'
 import { TaskList } from './task-registry/TaskList'
 import { useTaskFilters, useTodayDateString } from './task-registry/useTaskFilters'
+import { InlineCategoryManager } from './shared/InlineCategoryManager'
 
 interface TaskRegistryProps {
   tasks: TaskItem[]
   categories: CategoryItem[]
+  addCategory: (name: string, color: string) => Promise<number> | number
+  deleteCategory: (id: number) => Promise<void> | void
   activeTaskId: number | null
   setActiveTaskId: (id: number | null) => void
+  activateTask: (task: TaskItem) => void
   toggleTask: (id: number) => Promise<void>
-  handleAddTask: (text: string, categoryId?: number, estimatedCycles?: number, priority?: 'low' | 'medium' | 'high', isStudySubject?: boolean) => void
+  handleAddTask: (
+    text: string,
+    categoryId?: number,
+    estimatedCycles?: number,
+    priority?: 'low' | 'medium' | 'high',
+    isStudySubject?: boolean,
+  ) => void | Promise<void>
   submitRecallGrade: (task: TaskItem, q: number) => Promise<void>
   timerCategoryId: number | undefined
   setTimerCategoryId: (id: number | undefined) => void
@@ -23,8 +33,11 @@ interface TaskRegistryProps {
 export const TaskRegistry: React.FC<TaskRegistryProps> = ({
   tasks,
   categories,
+  addCategory,
+  deleteCategory,
   activeTaskId,
   setActiveTaskId,
+  activateTask,
   toggleTask,
   handleAddTask,
   submitRecallGrade,
@@ -35,7 +48,6 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
   setTaskCycleCount,
 }) => {
   const [taskText, setTaskText] = useState('')
-  const [taskCategory, setTaskCategory] = useState<string>('')
   const [taskPriority, setTaskPriority] = useState<'low' | 'medium' | 'high'>('medium')
   const [taskIsStudySubject, setTaskIsStudySubject] = useState(false)
 
@@ -45,8 +57,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
   const submitNewTask = () => {
     const trimmed = taskText.trim()
     if (!trimmed) return
-    const catId = taskCategory ? Number(taskCategory) : undefined
-    handleAddTask(trimmed, catId, taskCycleCount, taskPriority, taskIsStudySubject)
+    void handleAddTask(trimmed, timerCategoryId, taskCycleCount, taskPriority, taskIsStudySubject)
     setTaskText('')
     setTaskIsStudySubject(false)
   }
@@ -59,25 +70,22 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
   return (
     <div className="flex flex-col gap-6 h-full w-full">
       <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-5 md:p-6 flex flex-col h-full shadow-2xl backdrop-blur-3xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 border-b border-white/5 pb-4">
-          <div className="select-none">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5 border-b border-white/5 pb-4">
+          <div className="select-none shrink-0">
             <span className="text-label font-bold uppercase tracking-wider text-white/40">Study tasks</span>
             <p className="text-sm font-bold text-white mt-1">Focus targets</p>
           </div>
 
           {timerMode === 'study' && (
-            <div className="flex items-center gap-2.5">
-              <span className="text-label font-bold text-white/40 uppercase tracking-wide select-none">Subject:</span>
-              <select
-                value={timerCategoryId ?? ''}
-                onChange={e => setTimerCategoryId(e.target.value ? Number(e.target.value) : undefined)}
-                className="rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-xs font-bold text-white outline-none cursor-pointer hover:bg-white/10 transition-colors"
-              >
-                <option value="" className="bg-[#11131e] text-white/40">General / None</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id} className="bg-[#11131e] text-white">{cat.name}</option>
-                ))}
-              </select>
+            <div className="min-w-[180px] flex-1 sm:max-w-xs">
+              <InlineCategoryManager
+                label="Subject"
+                categories={categories}
+                addCategory={addCategory}
+                deleteCategory={deleteCategory}
+                selectedCategoryId={timerCategoryId}
+                onSelectCategory={setTimerCategoryId}
+              />
             </div>
           )}
         </div>
@@ -99,15 +107,14 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
         <TaskCreateForm
           taskText={taskText}
           setTaskText={setTaskText}
-          taskCategory={taskCategory}
-          setTaskCategory={setTaskCategory}
+          sessionCategoryId={timerCategoryId}
+          categories={categories}
           taskPriority={taskPriority}
           setTaskPriority={setTaskPriority}
           taskCycleCount={taskCycleCount}
           setTaskCycleCount={setTaskCycleCount}
           taskIsStudySubject={taskIsStudySubject}
           setTaskIsStudySubject={setTaskIsStudySubject}
-          categories={categories}
           onSubmit={submitNewTask}
         />
 
@@ -117,6 +124,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           categoriesMap={categoriesMap}
           activeTaskId={activeTaskId}
           setActiveTaskId={setActiveTaskId}
+          onActivateTask={activateTask}
           toggleTask={toggleTask}
           submitRecallGrade={submitRecallGrade}
         />
