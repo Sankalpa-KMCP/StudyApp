@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { TOOLTIP_STYLE } from '../../lib/theme'
+import { TabLoadingFallback } from '../shared/TabLoadingFallback'
 import { useStudyAnalytics, useStudyData, useStudyUI } from '../../context/useStudyApp'
 
 const AnalyticsStudio = lazy(() =>
@@ -13,7 +14,7 @@ export function AnalyticsTab() {
   const { calendar } = journal
 
   return (
-    <Suspense fallback={<div className="text-white/50 text-sm p-8">Loading analytics...</div>}>
+    <Suspense fallback={<TabLoadingFallback label="analytics" />}>
       <AnalyticsStudio
         tasks={tasks.tasks}
         monthLogs={calendar.monthLogs}

@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import { TabLoadingFallback } from '../shared/TabLoadingFallback'
 import { useStudyData } from '../../context/useStudyApp'
 
 const FlashcardStudio = lazy(() =>
@@ -9,7 +10,7 @@ export function CardsTab() {
   const { categories, flashcards } = useStudyData()
 
   return (
-    <Suspense fallback={<div className="p-6 text-white/50 text-sm animate-pulse">Loading recall deck…</div>}>
+    <Suspense fallback={<TabLoadingFallback label="recall deck" />}>
       <FlashcardStudio
         categories={categories.categories}
         addCategory={categories.addCategory}

@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import { TabLoadingFallback } from '../shared/TabLoadingFallback'
 import { useStudySettings, useStudyUI } from '../../context/useStudyApp'
 
 const ControlDeck = lazy(() =>
@@ -10,7 +11,7 @@ export function SettingsTab() {
   const { isDragging, setIsDragging } = useStudyUI()
 
   return (
-    <Suspense fallback={<div className="p-6 text-white/50 text-sm animate-pulse">Loading settings…</div>}>
+    <Suspense fallback={<TabLoadingFallback label="settings" />}>
       <ControlDeck
         updateSetting={settings.updateSetting}
         theme={settings.theme}
