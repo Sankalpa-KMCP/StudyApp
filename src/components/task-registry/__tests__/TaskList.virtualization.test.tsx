@@ -20,6 +20,7 @@ const baseProps = {
   categoriesMap: new Map(),
   activeTaskId: null,
   setActiveTaskId: vi.fn(),
+  onActivateTask: vi.fn(),
   toggleTask: vi.fn(),
   submitRecallGrade: vi.fn(),
 }
