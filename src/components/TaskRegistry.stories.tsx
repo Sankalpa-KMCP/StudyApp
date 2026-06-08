@@ -17,12 +17,15 @@ export const Default: Story = {
           { id: 1, text: 'Read chapter 4', completed: false, createdAt: Date.now(), estimatedCycles: 2, actualCycles: 0, priority: 'high' },
         ]}
         categories={[{ id: 1, name: 'Math', color: '#3B82F6' }]}
+        addCategory={async () => 2}
+        deleteCategory={async () => {}}
         activeTaskId={null}
         setActiveTaskId={() => {}}
+        activateTask={() => {}}
         toggleTask={async () => {}}
         handleAddTask={() => {}}
         submitRecallGrade={async () => {}}
-        timerCategoryId={undefined}
+        timerCategoryId={1}
         setTimerCategoryId={() => {}}
         timerMode="study"
         taskCycleCount={1}
