@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Layers, Trash2, Calendar } from 'lucide-react'
 import type { CategoryItem, FlashcardItem } from '../../db/types'
 import { EmptyState } from '../shared/EmptyState'
@@ -25,6 +26,12 @@ export function FlashcardRegistry({
   isDue,
   onDelete,
 }: FlashcardRegistryProps) {
+  const VIRTUALIZE_THRESHOLD = 100
+  const PAGE_SIZE = 50
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const shouldVirtualize = filteredCards.length > VIRTUALIZE_THRESHOLD
+  const visibleCards = shouldVirtualize ? filteredCards.slice(0, visibleCount) : filteredCards
+
   return (
     <div className="lg:col-span-8 flex flex-col min-h-[450px] lg:h-[600px] dynamic-card p-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 select-none">
@@ -66,7 +73,7 @@ export function FlashcardRegistry({
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredCards.map(card => {
+            {visibleCards.map(card => {
               const cat = card.categoryId !== undefined ? categoriesMap.get(card.categoryId) : undefined
               const isCardDue = isDue(card)
               return (
@@ -85,6 +92,8 @@ export function FlashcardRegistry({
                       <p className="text-xs font-semibold text-white leading-normal pr-4 line-clamp-2">{card.question}</p>
                     </div>
                     <button
+                      type="button"
+                      aria-label={`Delete flashcard ${card.question}`}
                       onClick={() => card.id !== undefined && onDelete(card.id)}
                       className="text-white/40 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-white/5 cursor-pointer"
                     >
@@ -110,6 +119,15 @@ export function FlashcardRegistry({
                 </div>
               )
             })}
+            {shouldVirtualize && visibleCount < filteredCards.length && (
+              <button
+                type="button"
+                onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                className="col-span-full rounded-full border border-white/10 bg-white/5 px-4 py-2 text-label font-semibold text-white/70 hover:bg-white/10"
+              >
+                Show more ({filteredCards.length - visibleCount} remaining)
+              </button>
+            )}
           </div>
         )}
       </div>

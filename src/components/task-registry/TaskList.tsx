@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Check, Target, AlertCircle } from 'lucide-react'
 import type { CategoryItem, TaskItem } from '../../db/types'
 import { db } from '../../db/db'
@@ -21,6 +22,12 @@ export function TaskList({
   toggleTask,
   submitRecallGrade,
 }: TaskListProps) {
+  const VIRTUALIZE_THRESHOLD = 100
+  const PAGE_SIZE = 50
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const shouldVirtualize = activeTasksList.length > VIRTUALIZE_THRESHOLD
+  const visibleTasks = shouldVirtualize ? activeTasksList.slice(0, visibleCount) : activeTasksList
+
   const handleAddSubtask = async (task: TaskItem, text: string) => {
     if (task.id === undefined) return
     const sub = { id: Date.now().toString(), text, completed: false }
@@ -103,7 +110,7 @@ export function TaskList({
           </div>
         ) : (
           <div className="flex flex-col">
-            {activeTasksList.map(task => {
+            {visibleTasks.map(task => {
               const isActive = activeTaskId === task.id
               const cat = task.categoryId !== undefined ? categoriesMap.get(task.categoryId) : undefined
               const priorityBorder = task.priority === 'high'
@@ -112,15 +119,31 @@ export function TaskList({
                 ? 'border-l-[4px] border-l-[#ff9f0a]'
                 : 'border-l-[4px] border-l-accent-blue/40'
 
+              const toggleActive = () => {
+                if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!)
+              }
+
               return (
                 <div
                   key={task.id}
+                  role="button"
+                  tabIndex={task.completed ? -1 : 0}
+                  aria-label={`Task ${task.text}`}
                   className={`dynamic-card flex flex-col gap-3 py-4 px-4 transition-all duration-300 cursor-pointer mb-2 ${
                     isActive
                       ? 'shadow-lg border-white/12 -translate-y-[1px]'
                       : 'hover:-translate-y-[2px]'
                   } ${priorityBorder}`}
-                  onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
+                  onClick={e => {
+                    if ((e.target as HTMLElement).closest('[data-subtask-panel]')) return
+                    toggleActive()
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      toggleActive()
+                    }
+                  }}
                 >
                   <div className="flex items-center justify-between gap-3.5 w-full">
                     <div className="flex items-center gap-3 w-full min-w-0">
@@ -166,7 +189,7 @@ export function TaskList({
                   </div>
 
                   {isActive && (
-                    <div className="pl-8 pr-2 pt-2.5 border-t border-white/5 space-y-3 cursor-default" onClick={e => e.stopPropagation()}>
+                    <div data-subtask-panel className="pl-8 pr-2 pt-2.5 border-t border-white/5 space-y-3 cursor-default">
                       {task.subtasks && task.subtasks.length > 0 && (
                         <div className="space-y-2">
                           {task.subtasks.map(sub => (
@@ -219,6 +242,15 @@ export function TaskList({
                 </div>
               )
             })}
+            {shouldVirtualize && visibleCount < activeTasksList.length && (
+              <button
+                type="button"
+                onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                className="mt-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-label font-semibold text-white/70 hover:bg-white/10"
+              >
+                Show more ({activeTasksList.length - visibleCount} remaining)
+              </button>
+            )}
           </div>
         )}
       </div>
