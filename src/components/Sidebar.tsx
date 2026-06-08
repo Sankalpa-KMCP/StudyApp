@@ -14,7 +14,6 @@ interface SidebarProps {
   timerMode: 'study' | 'break'
   enforceLockout: boolean
   onToggleNotes: () => void
-  onFocusLockout: () => void
 }
 
 const NAV_TABS: { id: ActiveTab; label: string; icon: React.FC<{ className?: string }>; color: string }[] = [
@@ -37,7 +36,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   timerMode,
   enforceLockout,
   onToggleNotes,
-  onFocusLockout,
 }) => {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const [indicatorStyle, setIndicatorStyle] = useState<React.CSSProperties>({
@@ -75,11 +73,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [activeTab])
 
   const handleTabClick = (tabId: ActiveTab) => {
-    const isLocked = enforceLockout && isTimerActive && timerMode === 'study' && tabId !== 'focus'
-    if (isLocked) {
-      onFocusLockout()
-      return
-    }
     setActiveTab(tabId)
   }
 

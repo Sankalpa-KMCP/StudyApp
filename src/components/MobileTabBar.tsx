@@ -8,7 +8,6 @@ interface MobileTabBarProps {
   isTimerActive: boolean
   timerMode: 'study' | 'break'
   enforceLockout: boolean
-  onFocusLockout: () => void
 }
 
 const TABS: { id: ActiveTab; label: string; icon: React.FC<{ className?: string }> }[] = [
@@ -25,7 +24,6 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
   isTimerActive,
   timerMode,
   enforceLockout,
-  onFocusLockout,
 }) => {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
@@ -34,11 +32,6 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
   }, [activeTab])
 
   const handleTabClick = (tabId: ActiveTab) => {
-    const isLocked = enforceLockout && isTimerActive && timerMode === 'study' && tabId !== 'focus'
-    if (isLocked) {
-      onFocusLockout()
-      return
-    }
     setActiveTab(tabId)
   }
 
