@@ -15,6 +15,7 @@ export interface ParsedSettings {
   enforce_lockout: boolean
   initialEasinessFactor: number
   autoArchiveAncientTasks: boolean
+  auto_pause_on_hidden: boolean
 }
 
 const DEFAULTS: ParsedSettings = {
@@ -32,6 +33,7 @@ const DEFAULTS: ParsedSettings = {
   enforce_lockout: false,
   initialEasinessFactor: 2.5,
   autoArchiveAncientTasks: false,
+  auto_pause_on_hidden: false,
 }
 
 function getValue<K extends keyof ParsedSettings>(
@@ -60,6 +62,7 @@ export function settingsFromRows(rows: SettingsRow[] | undefined): ParsedSetting
     enforce_lockout: getValue(rows, 'enforce_lockout', DEFAULTS.enforce_lockout),
     initialEasinessFactor: getValue(rows, 'initialEasinessFactor', DEFAULTS.initialEasinessFactor),
     autoArchiveAncientTasks: getValue(rows, 'autoArchiveAncientTasks', DEFAULTS.autoArchiveAncientTasks),
+    auto_pause_on_hidden: getValue(rows, 'auto_pause_on_hidden', DEFAULTS.auto_pause_on_hidden),
   } as ParsedSettings
 }
 
