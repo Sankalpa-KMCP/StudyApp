@@ -5,10 +5,11 @@ import { ToggleSetting } from '../shared/settings/ToggleSetting'
 interface ZenLockoutPanelProps {
   enforceLockout: boolean
   autoArchiveAncientTasks: boolean
+  autoPauseOnHidden: boolean
   updateSetting: (key: SettingsKey, val: SettingsValue) => void
 }
 
-export function ZenLockoutPanel({ enforceLockout, autoArchiveAncientTasks, updateSetting }: ZenLockoutPanelProps) {
+export function ZenLockoutPanel({ enforceLockout, autoArchiveAncientTasks, autoPauseOnHidden, updateSetting }: ZenLockoutPanelProps) {
   return (
     <>
       <SettingsCard title="Zen Lockout">
@@ -19,6 +20,16 @@ export function ZenLockoutPanel({ enforceLockout, autoArchiveAncientTasks, updat
           label={enforceLockout ? 'Enforced' : 'Bypassed'}
           checked={enforceLockout}
           onChange={v => updateSetting('enforce_lockout', v)}
+        />
+      </SettingsCard>
+      <SettingsCard title="Auto-Pause on Inactive">
+        <p className="text-[10px] text-white/40 leading-relaxed mb-4">
+          Pauses the active Pomodoro timer automatically when switching browser tabs or backgrounding the window.
+        </p>
+        <ToggleSetting
+          label={autoPauseOnHidden ? 'Active' : 'Disabled'}
+          checked={autoPauseOnHidden}
+          onChange={v => updateSetting('auto_pause_on_hidden', v)}
         />
       </SettingsCard>
       <SettingsCard title="Automated Archiving">
