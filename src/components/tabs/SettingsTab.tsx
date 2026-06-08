@@ -28,6 +28,7 @@ export function SettingsTab() {
         developerFont={settings.developer_font}
         enforceLockout={settings.enforce_lockout}
         autoArchiveAncientTasks={settings.autoArchiveAncientTasks}
+        autoPauseOnHidden={settings.auto_pause_on_hidden}
         exportStudyBackup={backup.exportStudyBackup}
         exportStudyLogsCSV={backup.exportStudyLogsCSV}
         exportTaskCompletionLogsCSV={backup.exportTaskCompletionLogsCSV}

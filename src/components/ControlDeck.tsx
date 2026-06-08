@@ -24,6 +24,7 @@ interface ControlDeckProps {
   developerFont: string
   enforceLockout: boolean
   autoArchiveAncientTasks: boolean
+  autoPauseOnHidden: boolean
   exportStudyBackup: () => void
   exportStudyLogsCSV: () => void
   exportTaskCompletionLogsCSV: () => void
@@ -55,6 +56,7 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   developerFont,
   enforceLockout,
   autoArchiveAncientTasks,
+  autoPauseOnHidden,
   exportStudyBackup,
   exportStudyLogsCSV,
   exportTaskCompletionLogsCSV,
@@ -94,6 +96,7 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
         <ZenLockoutPanel
           enforceLockout={enforceLockout}
           autoArchiveAncientTasks={autoArchiveAncientTasks}
+          autoPauseOnHidden={autoPauseOnHidden}
           updateSetting={updateSetting}
         />
       </div>
