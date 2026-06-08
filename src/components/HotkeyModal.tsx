@@ -45,5 +45,8 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({ isOpen, onClose }) => 
       ))}
     </div>
     <p className="mt-4 text-center text-label text-slate-400">Shortcuts are disabled while typing in input fields.</p>
+    <p className="mt-2 text-center text-label text-slate-500">
+      Tab through sidebar or bottom navigation to reach every section without a mouse.
+    </p>
   </ModalShell>
 )
