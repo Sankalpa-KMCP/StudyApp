@@ -23,6 +23,7 @@ interface UseTimerEngineOptions {
   pushToast: (key: string, message: string) => void
   activeTaskId: number | null
   setActiveTaskId: (id: number | null) => void
+  autoPauseOnHidden: boolean
 }
 
 export function useTimerEngine({
@@ -40,6 +41,7 @@ export function useTimerEngine({
   pushToast,
   activeTaskId,
   setActiveTaskId,
+  autoPauseOnHidden,
 }: UseTimerEngineOptions) {
   const [timerCategoryId, setTimerCategoryId] = useState<number | undefined>(undefined)
   const [secondsElapsed, setSecondsElapsed] = useState(0)
@@ -270,14 +272,14 @@ export function useTimerEngine({
 
   useEffect(() => {
     function handleVisibilityChange() {
-      if (document.hidden && isTimerActive) {
+      if (autoPauseOnHidden && document.hidden && isTimerActive) {
         setIsTimerActive(false)
         pushToast('PAUSE', 'PAUSED - WORKSPACE INACTIVE')
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [isTimerActive, pushToast])
+  }, [isTimerActive, pushToast, autoPauseOnHidden])
 
   useEffect(() => {
     let activeSentinel: WakeLockSentinel | null = null

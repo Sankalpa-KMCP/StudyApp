@@ -43,6 +43,7 @@ export function useStudyTimerState(pushToast: PushToast) {
     pushToast,
     activeTaskId,
     setActiveTaskId,
+    autoPauseOnHidden: settings.auto_pause_on_hidden,
   })
 
   const { handleAddTask, handleToggleTask } = useTaskActions({
