@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react'
 import { Play, Pause, Check, Sparkles, Heart } from 'lucide-react'
+import { Button } from './shared/Button'
 
 interface FocusSanctuaryProps {
   timerMode: 'study' | 'break'
@@ -64,13 +65,14 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
         <div className="flex flex-col border border-white/5 bg-white/[0.02] rounded-[28px] p-5 md:p-6 shadow-2xl backdrop-blur-3xl">
           <div className="flex items-center justify-between mb-5 border-b border-white/5 pb-3 select-none">
             <span className="text-label font-bold uppercase tracking-wider text-white/50">Focus Timer</span>
-            <button
+            <Button
+              size="sm"
               onClick={() => setIsZenMode(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption font-bold border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition-all ios-active-scale cursor-pointer"
+              className="gap-1.5"
             >
               <Sparkles className="h-3.5 w-3.5 text-accent-blue" />
               <span>Sanctuary Mode</span>
-            </button>
+            </Button>
           </div>
 
           <div className="flex justify-center gap-2 mb-4">

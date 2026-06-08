@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useConfirm } from '../../context/useConfirm'
 import { SettingsCard } from '../shared/settings/SettingsCard'
+import { Button } from '../shared/Button'
 
 interface BackupVaultPanelProps {
   exportStudyBackup: () => void
@@ -46,19 +47,25 @@ export function BackupVaultPanel({
             <span className="text-xs font-bold text-white/95 block">Export backup vault</span>
             <span className="text-[10px] text-white/40 mt-1 leading-normal font-semibold">Prepares a JSON package and initiates browser download.</span>
           </div>
-          <button
-            onClick={exportStudyBackup}
-            className="w-full mt-4 rounded-full bg-accent-blue text-white py-2.5 text-xs font-bold hover:bg-accent-blue/90 transition-all ios-active-scale cursor-pointer shadow-md shadow-accent-blue/15"
-          >
+          <Button variant="primary" onClick={exportStudyBackup} className="w-full mt-4">
             Export Vault
-          </button>
+          </Button>
         </div>
 
         <div
+          role="button"
+          tabIndex={0}
           onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleFileDrop}
           onClick={() => fileInputRef.current?.click()}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              fileInputRef.current?.click()
+            }
+          }}
+          aria-label="Import backup file"
           className={`flex flex-col items-center justify-center border border-dashed rounded-2xl p-4 text-center transition-all cursor-pointer min-h-[120px] ${
             isDragging ? 'border-accent-purple bg-accent-purple/10' : 'border-white/10 bg-black/20 hover:border-white/20'
           }`}
