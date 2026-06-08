@@ -57,7 +57,7 @@ export function useStudyUIState(toast: ToastApi) {
   const notifyFocusLockout = useCallback(() => {
     setActiveToast({
       key: 'LOCK',
-      message: 'FOCUS LOCKOUT — COMPLETE SESSION FIRST',
+      message: 'Focus lockout — complete your session first',
       id: Date.now(),
     })
   }, [setActiveToast])
