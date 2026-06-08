@@ -103,10 +103,12 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
           <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-4">Subject Categories</h3>
           <div className="flex gap-2 mb-4 bg-white/5 border border-white/5 p-2 rounded-full">
             <input
+              id="category-name-input"
               value={newCategoryName}
               onChange={e => setNewCategoryName(e.target.value)}
               type="text"
               placeholder="Label (e.g. Science)"
+              aria-label="Category name"
               className="flex-1 rounded-full bg-transparent px-3 py-1.5 text-xs text-white placeholder-white/20 outline-none transition-all"
               onKeyDown={e => {
                 if (e.key === 'Enter') {
@@ -150,6 +152,7 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
                   }`}
                   style={{ backgroundColor: color }}
                   title={color}
+                  aria-label={`Category color ${color}`}
                 />
               ))}
             </div>

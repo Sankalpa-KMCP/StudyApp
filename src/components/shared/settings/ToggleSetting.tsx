@@ -16,6 +16,7 @@ export function ToggleSetting({ label, description, checked, onChange }: ToggleS
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={label}
         onClick={() => onChange(!checked)}
         className={`relative h-6 w-11 rounded-full transition-colors ${checked ? 'bg-accent-blue' : 'bg-white/15'}`}
       >
