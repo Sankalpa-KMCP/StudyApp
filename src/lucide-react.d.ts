@@ -38,5 +38,6 @@ export const Database: Icon
   export const FileText: Icon
   export const Heart: Icon
   export const AlertCircle: Icon
+  export const Lock: Icon
 }
 
