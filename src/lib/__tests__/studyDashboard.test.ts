@@ -65,6 +65,35 @@ describe('validateBackupPayload', () => {
   it('rejects invalid task shape', () => {
     expect(validateBackupPayload({ tasks: [{ text: 1, completed: false }] })).toBe(false)
   })
+
+  it('rejects non-object roots and bad version', () => {
+    expect(validateBackupPayload(null)).toBe(false)
+    expect(validateBackupPayload([])).toBe(false)
+    expect(validateBackupPayload({ version: '2' })).toBe(false)
+  })
+
+  it('validates dailyLogs settings categories flashcards and quickNotes', () => {
+    expect(validateBackupPayload({
+      dailyLogs: [{ dateString: '2026-06-10', studyMinutes: 1, breakMinutes: 0 }],
+      settings: [{ key: 'theme', value: 'midnight-oled' }],
+      categories: [{ name: 'General', color: '#000' }],
+      flashcards: [{ question: 'Q', answer: 'A' }],
+      quickNotes: [{ title: 'T', content: 'C' }],
+    })).toBe(true)
+    expect(validateBackupPayload({ dailyLogs: [{}] })).toBe(false)
+    expect(validateBackupPayload({ settings: [{ key: 1, value: true }] })).toBe(false)
+    expect(validateBackupPayload({ flashcards: [{ question: 1, answer: 'A' }] })).toBe(false)
+    expect(validateBackupPayload({ quick_notes: [{ title: 'T', content: 1 }] })).toBe(false)
+  })
+
+  it('rejects invalid history entries', () => {
+    expect(validateBackupPayload({
+      history: [{ timestamp: 'x', type: 'invalid', durationMinutes: 1 }],
+    })).toBe(false)
+    expect(validateBackupPayload({
+      history: [{ timestamp: 'x', type: 'study', durationMinutes: 1, createdAt: 'bad' }],
+    })).toBe(false)
+  })
 })
 
 describe('history timestamp helpers', () => {
