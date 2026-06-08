@@ -9,6 +9,7 @@ interface TaskListProps {
   categoriesMap: Map<number, CategoryItem>
   activeTaskId: number | null
   setActiveTaskId: (id: number | null) => void
+  onActivateTask: (task: TaskItem) => void
   toggleTask: (id: number) => Promise<void>
   submitRecallGrade: (task: TaskItem, q: number) => Promise<void>
 }
@@ -19,6 +20,7 @@ export function TaskList({
   categoriesMap,
   activeTaskId,
   setActiveTaskId,
+  onActivateTask,
   toggleTask,
   submitRecallGrade,
 }: TaskListProps) {
@@ -79,15 +81,21 @@ export function TaskList({
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="text-[8px] text-white/40 font-bold uppercase tracking-wider mr-1.5 hidden sm:inline select-none">Recall:</span>
-                  {[0, 1, 2, 3, 4, 5].map(q => (
+                  {[
+                    { q: 1, label: '1', title: 'Forgot (Incorrect)' },
+                    { q: 2, label: '2', title: 'Hard (Barely)' },
+                    { q: 4, label: '4', title: 'Good (Correct)' },
+                    { q: 5, label: '5', title: 'Easy (Instant)' },
+                  ].map(({ q, label, title }) => (
                     <button
                       key={q}
                       type="button"
-                      aria-label={`Recall grade ${q} for ${task.text}`}
+                      title={title}
+                      aria-label={`Recall grade ${q} (${title}) for ${task.text}`}
                       onClick={() => submitRecallGrade(task, q)}
                       className="h-6 w-6 rounded-full text-[9px] font-bold font-mono bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 transition-all ios-active-scale cursor-pointer flex items-center justify-center"
                     >
-                      {q}
+                      {label}
                     </button>
                   ))}
                 </div>
@@ -104,8 +112,8 @@ export function TaskList({
               <AlertCircle className="h-5 w-5" />
             </div>
             <p className="text-sm font-bold text-white/70">No focus targets yet</p>
-            <p className="text-label text-white/40 mt-1.5 font-medium">
-              Add one above to start tracking your study blocks
+            <p className="text-label text-white/45 mt-1.5 font-medium max-w-xs leading-relaxed">
+              Create your first task above and hit Enter to start tracking your study blocks! Once started, click the play button on the timer card.
             </p>
           </div>
         ) : (
@@ -120,7 +128,12 @@ export function TaskList({
                 : 'border-l-[4px] border-l-accent-blue/40'
 
               const toggleActive = () => {
-                if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!)
+                if (task.completed) return
+                if (isActive) {
+                  setActiveTaskId(null)
+                } else {
+                  onActivateTask(task)
+                }
               }
 
               return (
