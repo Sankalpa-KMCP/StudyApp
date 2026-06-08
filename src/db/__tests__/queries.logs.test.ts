@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { useMonthLogsQuery } from '../queries'
+import { useMonthLogsQuery } from '../hooks'
 import { resetDatabase, seedDailyLog } from '../../test/dbTestUtils'
 
 describe('useMonthLogsQuery', () => {

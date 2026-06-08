@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
-import { useTasks, useHistory } from '../queries'
+import { useTasks, useHistory } from '../hooks'
 import { resetDatabase } from '../../test/dbTestUtils'
 
 describe('useTasks', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
-import { useCategories } from '../queries'
+import { useCategories } from '../hooks'
 import { db } from '../db'
 import { resetDatabase, seedCategory, seedTask } from '../../test/dbTestUtils'
 
