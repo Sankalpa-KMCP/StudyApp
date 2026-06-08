@@ -67,6 +67,8 @@ export function useStudyTimerState(pushToast: PushToast) {
     playChime,
     activeTaskId,
     setActiveTaskId,
+    activateTask,
+    sessionCategoryId: timer.timerCategoryId,
     taskCycleCount,
     autoArchiveAncientTasks: settings.autoArchiveAncientTasks,
     isDataReady,

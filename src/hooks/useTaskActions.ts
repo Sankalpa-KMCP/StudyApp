@@ -4,11 +4,19 @@ import type { TaskItem } from '../db/types'
 
 interface UseTaskActionsOptions {
   sessionTasks: TaskItem[]
-  addTask: (text: string, categoryId?: number, estimatedCycles?: number, priority?: 'low' | 'medium' | 'high', isStudySubject?: boolean) => void
+  addTask: (
+    text: string,
+    categoryId?: number,
+    estimatedCycles?: number,
+    priority?: 'low' | 'medium' | 'high',
+    isStudySubject?: boolean,
+  ) => Promise<number>
   toggleTask: (id: number) => Promise<void>
   playChime: () => void
   activeTaskId: number | null
   setActiveTaskId: (id: number | null) => void
+  activateTask: (task: TaskItem) => void
+  sessionCategoryId: number | undefined
   taskCycleCount: number
   autoArchiveAncientTasks: boolean
   isDataReady: boolean
@@ -22,6 +30,8 @@ export function useTaskActions({
   playChime,
   activeTaskId,
   setActiveTaskId,
+  activateTask,
+  sessionCategoryId,
   taskCycleCount,
   autoArchiveAncientTasks,
   isDataReady,
@@ -45,7 +55,7 @@ export function useTaskActions({
     }
   }, [isDataReady, autoArchiveAncientTasks, pushToast])
 
-  function handleAddTask(
+  async function handleAddTask(
     text: string,
     categoryId?: number,
     estimatedCycles?: number,
@@ -54,7 +64,20 @@ export function useTaskActions({
   ) {
     const trimmed = text.trim()
     if (!trimmed) return
-    addTask(trimmed, categoryId, estimatedCycles ?? taskCycleCount, priority, isStudySubject)
+    const resolvedCategoryId = categoryId ?? sessionCategoryId
+    const cycles = estimatedCycles ?? taskCycleCount
+    const taskId = await addTask(trimmed, resolvedCategoryId, cycles, priority, isStudySubject)
+    activateTask({
+      id: taskId,
+      text: trimmed,
+      completed: false,
+      createdAt: Date.now(),
+      categoryId: resolvedCategoryId,
+      estimatedCycles: cycles,
+      actualCycles: 0,
+      priority,
+      isStudySubject,
+    })
   }
 
   async function handleToggleTask(id: number) {
