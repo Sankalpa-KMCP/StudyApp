@@ -156,6 +156,10 @@ Pushes to `master` or `V2` trigger automatic deployment via `.github/workflows/d
 
 Base path: `/StudyApp/` (configured in `vite.config.ts`).
 
+**One-time repo setup (required):** In GitHub → Settings → Pages → Build and deployment, set **Source** to **GitHub Actions** (not “Deploy from a branch”). Without this, `deploy-pages` fails with `401 Requires authentication`.
+
+**Actions permissions:** Settings → Actions → General → Workflow permissions → **Read and write permissions**.
+
 ---
 
 ## License
