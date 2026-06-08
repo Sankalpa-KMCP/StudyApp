@@ -14,6 +14,7 @@ import { CardsTab } from './tabs/CardsTab'
 import { SettingsTab } from './tabs/SettingsTab'
 import { useStudyData, useStudyUI } from '../context/useStudyApp'
 import { useStudyTimerContext } from '../context/studyTimerContext'
+import { useConfirm } from '../context/useConfirm'
 import { E2eCrashProbe } from './E2eCrashProbe'
 
 export function AppShell() {
@@ -55,17 +56,27 @@ export function AppShell() {
     activeToast,
     isNotesOpen,
     setIsNotesOpen,
-    notifyFocusLockout,
   } = useStudyUI()
 
-  const handleSetActiveTab = (tab: ActiveTab) => {
+  const { requestConfirm } = useConfirm()
+
+  const handleSetActiveTab = async (tab: ActiveTab) => {
     const locked =
       settings.enforce_lockout &&
       timer.isTimerActive &&
       timer.timerMode === 'study' &&
       tab !== 'focus'
     if (locked) {
-      notifyFocusLockout()
+      const ok = await requestConfirm({
+        title: 'Focus Lockout Active',
+        message: 'Your lockout setting is active to prevent distractions. Pause your study timer to navigate to other tabs.',
+        confirmLabel: 'Pause & Navigate',
+        danger: true,
+      })
+      if (ok) {
+        timer.setIsTimerActive(false)
+        setActiveTab(tab)
+      }
       return
     }
     setActiveTab(tab)
@@ -113,7 +124,6 @@ export function AppShell() {
         timerMode={timer.timerMode}
         enforceLockout={settings.enforce_lockout}
         onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
-        onFocusLockout={notifyFocusLockout}
       />
 
       <main className="flex-1 flex flex-col min-w-0 z-10">
@@ -238,7 +248,6 @@ export function AppShell() {
           isTimerActive={timer.isTimerActive}
           timerMode={timer.timerMode}
           enforceLockout={settings.enforce_lockout}
-          onFocusLockout={notifyFocusLockout}
         />
       )}
     </div>
