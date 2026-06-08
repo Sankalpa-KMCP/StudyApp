@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
 import { Play, Pause, Check, Sparkles, Heart } from 'lucide-react'
 import { Button } from './shared/Button'
+import type { SettingsKey, SettingsValue } from '../db/types'
 
 interface FocusSanctuaryProps {
   timerMode: 'study' | 'break'
@@ -20,6 +21,10 @@ interface FocusSanctuaryProps {
   setIsZenMode: (zen: boolean) => void
   onUserGesture?: () => void
   showReflectionModal?: boolean
+  studyBlockDurationMinutes: number
+  shortBreakDurationMinutes: number
+  longBreakDurationMinutes: number
+  updateSetting: (key: SettingsKey, val: SettingsValue) => void
 }
 
 export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
@@ -40,7 +45,21 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   setIsZenMode,
   onUserGesture,
   showReflectionModal = false,
+  studyBlockDurationMinutes,
+  shortBreakDurationMinutes,
+  longBreakDurationMinutes,
+  updateSetting,
 }) => {
+  const handleDurationChange = (newMinutes: number) => {
+    if (!updateSetting) return
+    if (timerMode === 'study') {
+      updateSetting('studyBlockDurationMinutes', newMinutes)
+    } else if (isLongBreak) {
+      updateSetting('longBreakDurationMinutes', newMinutes)
+    } else {
+      updateSetting('shortBreakDurationMinutes', newMinutes)
+    }
+  }
   const activeColor = useMemo(() => {
     if (timerMode === 'study') return 'var(--color-accent-blue)'
     if (isLongBreak) return 'var(--color-accent-green)'
@@ -93,6 +112,93 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                 </button>
               )
             })}
+          </div>
+
+          {/* Duration Adjuster */}
+          <div className="flex flex-col items-center gap-2 mb-5 border-t border-white/5 pt-4">
+            <span className="text-[10px] uppercase font-bold text-white/40 tracking-wider">
+              {timerMode === 'study' ? 'Study Block Length' : isLongBreak ? 'Long Break Length' : 'Short Break Length'}
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={
+                  timerMode === 'study'
+                    ? studyBlockDurationMinutes <= 5
+                    : isLongBreak
+                    ? longBreakDurationMinutes <= 5
+                    : shortBreakDurationMinutes <= 2
+                }
+                onClick={() => {
+                  const current =
+                    timerMode === 'study'
+                      ? studyBlockDurationMinutes
+                      : isLongBreak
+                      ? longBreakDurationMinutes
+                      : shortBreakDurationMinutes
+                  handleDurationChange(current - (timerMode === 'study' ? 5 : 1))
+                }}
+                className="h-7 w-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-sm text-white/80 hover:bg-white/10 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer font-bold select-none"
+              >
+                -
+              </button>
+              <span className="text-sm font-mono font-bold text-white min-w-[60px] text-center">
+                {timerMode === 'study'
+                  ? studyBlockDurationMinutes
+                  : isLongBreak
+                  ? longBreakDurationMinutes
+                  : shortBreakDurationMinutes} min
+              </span>
+              <button
+                type="button"
+                disabled={
+                  timerMode === 'study'
+                    ? studyBlockDurationMinutes >= 180
+                    : isLongBreak
+                    ? longBreakDurationMinutes >= 60
+                    : shortBreakDurationMinutes >= 30
+                }
+                onClick={() => {
+                  const current =
+                    timerMode === 'study'
+                      ? studyBlockDurationMinutes
+                      : isLongBreak
+                      ? longBreakDurationMinutes
+                      : shortBreakDurationMinutes
+                  handleDurationChange(current + (timerMode === 'study' ? 5 : 1))
+                }}
+                className="h-7 w-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-sm text-white/80 hover:bg-white/10 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer font-bold select-none"
+              >
+                +
+              </button>
+            </div>
+            
+            {/* Quick Presets */}
+            <div className="flex items-center gap-1.5 mt-1">
+              {(timerMode === 'study' ? [15, 25, 45, 60] : isLongBreak ? [10, 15, 20, 30] : [3, 5, 10, 15]).map(mins => {
+                const currentVal =
+                  timerMode === 'study'
+                    ? studyBlockDurationMinutes
+                    : isLongBreak
+                    ? longBreakDurationMinutes
+                    : shortBreakDurationMinutes
+                const isSelected = currentVal === mins
+                return (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => handleDurationChange(mins)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-accent-blue/15 text-accent-blue border-accent-blue/35'
+                        : 'bg-white/[0.02] text-white/40 border-white/5 hover:text-white/70 hover:border-white/10'
+                    }`}
+                  >
+                    {mins}m
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           <div className="flex flex-col items-center py-2">
