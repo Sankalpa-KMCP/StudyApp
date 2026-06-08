@@ -119,6 +119,16 @@ export function useCalendarData({
     focus: d ? Math.min(Math.round((d.studyMin / dailyGoalMinutes) * 100), 100) : 0,
   })) : []
 
+  const weeklyBreakMinutes = weekData.reduce((sum, d, i) => {
+    const dDate = new Date(monday)
+    dDate.setDate(monday.getDate() + i)
+    const isToday = dDate.toDateString() === today.toDateString()
+    if (isToday) {
+      return sum + todayBreakMinutes
+    }
+    return sum + (d ? d.breakMin : 0)
+  }, 0)
+
   return {
     monthLogs: monthLogsData.monthLogs,
     totalMonthHours: monthLogsData.totalMonthHours,
@@ -133,7 +143,7 @@ export function useCalendarData({
     progressPercent,
     chartData,
     hasChartData,
-    totalWeeklyBreakHours: parseFloat((todayBreakMinutes / 60).toFixed(1)),
+    totalWeeklyBreakHours: parseFloat((weeklyBreakMinutes / 60).toFixed(1)),
     monthNames: MONTH_NAMES,
     dayNames: DAY_NAMES_SHORT,
   }
