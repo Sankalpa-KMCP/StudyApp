@@ -8,11 +8,12 @@ describe('categories repository', () => {
     await resetDatabase()
   })
 
-  it('addCategory inserts a row', async () => {
-    await addCategory('Science', '#3B82F6')
+  it('addCategory inserts a row and returns the new id', async () => {
+    const id = await addCategory('Science', '#3B82F6')
     const cats = await db.categories.toArray()
     expect(cats).toHaveLength(1)
     expect(cats[0].name).toBe('Science')
+    expect(id).toBe(cats[0].id)
   })
 
   it('seedDefaultCategories only runs when empty', async () => {

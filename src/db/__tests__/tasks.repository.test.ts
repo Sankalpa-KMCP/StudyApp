@@ -8,10 +8,11 @@ describe('tasks repository', () => {
     await resetDatabase()
   })
 
-  it('addTask creates an incomplete task', async () => {
-    await addTask('Read chapter 3', undefined, 2, 'high', true)
+  it('addTask creates an incomplete task and returns the new id', async () => {
+    const id = await addTask('Read chapter 3', undefined, 2, 'high', true)
     const tasks = await db.tasks.toArray()
     expect(tasks).toHaveLength(1)
+    expect(id).toBe(tasks[0].id)
     expect(tasks[0].text).toBe('Read chapter 3')
     expect(tasks[0].completed).toBe(false)
     expect(tasks[0].estimatedCycles).toBe(2)
