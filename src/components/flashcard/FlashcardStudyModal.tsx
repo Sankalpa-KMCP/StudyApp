@@ -101,7 +101,7 @@ export function FlashcardStudyModal({
 
             <div className={`w-full max-w-md transition-all duration-300 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
               <p className="text-caption font-mono text-center text-white/40 mb-3 select-none uppercase tracking-wider font-bold">Rate recall strength</p>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                 {SM2_GRADES.map(grade => (
                   <button
                     key={grade.value}
