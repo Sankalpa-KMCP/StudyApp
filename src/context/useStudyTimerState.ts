@@ -5,6 +5,7 @@ import { useAmbientSynth } from '../hooks/useAmbientSynth'
 import { useTimerEngine } from '../hooks/useTimerEngine'
 import { useTaskActions } from '../hooks/useTaskActions'
 import { useStudyDataContext } from './studyDataContext'
+import type { TaskItem } from '../db/types'
 import type { useAppToast } from '../hooks/useAppToast'
 
 type PushToast = ReturnType<typeof useAppToast>['pushToast']
@@ -46,6 +47,19 @@ export function useStudyTimerState(pushToast: PushToast) {
     autoPauseOnHidden: settings.auto_pause_on_hidden,
   })
 
+  const activateTask = useCallback((task: TaskItem) => {
+    if (task.id === undefined) return
+    setActiveTaskId(task.id)
+    if (task.categoryId !== undefined) {
+      timer.setTimerCategoryId(task.categoryId)
+    }
+    if (timer.timerMode === 'study' && !timer.isTimerActive) {
+      ensureAudio()
+      timer.setIsTimerActive(true)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- timer setters are stable; avoid rebinding every tick
+  }, [ensureAudio, timer.setTimerCategoryId, timer.setIsTimerActive, timer.timerMode, timer.isTimerActive])
+
   const { handleAddTask, handleToggleTask } = useTaskActions({
     sessionTasks: tasks.tasks,
     addTask: tasks.addTask,
@@ -79,6 +93,7 @@ export function useStudyTimerState(pushToast: PushToast) {
     ensureAudio,
     handleAddTask,
     handleToggleTask,
+    activateTask,
     activeTaskId,
     setActiveTaskId,
     taskCycleCount,
@@ -90,6 +105,7 @@ export function useStudyTimerState(pushToast: PushToast) {
     ensureAudio,
     handleAddTask,
     handleToggleTask,
+    activateTask,
     activeTaskId,
     taskCycleCount,
     confirmImport,

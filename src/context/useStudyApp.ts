@@ -74,6 +74,7 @@ export function useStudyTimer() {
     ensureAudio: timerCtx.ensureAudio,
     handleAddTask: timerCtx.handleAddTask,
     handleToggleTask: timerCtx.handleToggleTask,
+    activateTask: timerCtx.activateTask,
   }), [timerCtx])
 }
 
