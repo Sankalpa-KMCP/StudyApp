@@ -7,8 +7,8 @@ export async function addTask(
   estimatedCycles = 1,
   priority?: 'low' | 'medium' | 'high',
   isStudySubject?: boolean,
-) {
-  await db.tasks.add({
+): Promise<number> {
+  return db.tasks.add({
     text,
     completed: false,
     createdAt: Date.now(),
