@@ -3,9 +3,14 @@ import type { ToastState } from '../types/app'
 
 export function useAppToast() {
   const [activeToast, setActiveToast] = useState<ToastState | null>(null)
+  const [quotaExceeded, setQuotaExceeded] = useState(false)
 
   const pushToast = useCallback((key: string, message: string) => {
     setActiveToast({ key, message, id: Date.now() })
+  }, [])
+
+  const dismissQuotaRecovery = useCallback(() => {
+    setQuotaExceeded(false)
   }, [])
 
   useEffect(() => {
@@ -21,6 +26,7 @@ export function useAppToast() {
       const name = error?.name || 'IndexedDBError'
       const message = error?.message || 'Database transaction failed'
       if (name === 'QuotaExceededError' || message.toLowerCase().includes('quota') || message.toLowerCase().includes('exhausted')) {
+        setQuotaExceeded(true)
         pushToast('DATABASE', 'Storage quota exceeded — export a backup in Settings')
       } else {
         pushToast('DATABASE', `DB ERROR: ${name.toUpperCase()}`)
@@ -30,5 +36,5 @@ export function useAppToast() {
     return () => window.removeEventListener('dexie-error', handleDexieError)
   }, [pushToast])
 
-  return { activeToast, setActiveToast, pushToast }
+  return { activeToast, setActiveToast, pushToast, quotaExceeded, dismissQuotaRecovery }
 }
