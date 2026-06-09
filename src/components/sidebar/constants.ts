@@ -9,10 +9,11 @@ export const NAV_TABS: {
   label: string
   icon: React.FC<{ className?: string }>
   color: string
+  accent: ActiveTab
 }[] = [
-  { id: 'focus', label: 'Focus', icon: Clock, color: 'text-accent-blue' },
-  { id: 'cards', label: 'Cards', icon: Layers, color: 'text-accent-purple' },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-accent-green' },
-  { id: 'journal', label: 'Journal', icon: Calendar, color: 'text-accent-amber' },
-  { id: 'settings', label: 'Settings', icon: Settings, color: 'text-white/60' },
+  { id: 'focus', label: 'Focus', icon: Clock, color: 'text-accent-blue', accent: 'focus' },
+  { id: 'cards', label: 'Cards', icon: Layers, color: 'text-accent-purple', accent: 'cards' },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-accent-green', accent: 'analytics' },
+  { id: 'journal', label: 'Journal', icon: Calendar, color: 'text-accent-amber', accent: 'journal' },
+  { id: 'settings', label: 'Settings', icon: Settings, color: 'text-white/60', accent: 'settings' },
 ]
