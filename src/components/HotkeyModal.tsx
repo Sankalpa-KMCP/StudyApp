@@ -14,6 +14,7 @@ const SHORTCUTS = [
   { keys: 'C', action: 'Complete current session' },
   { keys: 'Z', action: 'Toggle Zen Sanctuary' },
   { keys: '?', action: 'Toggle this shortcut panel' },
+  { keys: '[', action: 'Toggle sidebar collapse (desktop)' },
 ]
 
 export const HotkeyModal: React.FC<HotkeyModalProps> = ({ isOpen, onClose }) => (
