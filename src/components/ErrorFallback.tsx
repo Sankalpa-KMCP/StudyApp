@@ -1,5 +1,7 @@
 import { useConfirm } from '../context/useConfirm'
 import { db } from '../db/db'
+import { exportStudyBackupFile } from '../lib/backupExport'
+import { copyDebugInfo } from '../lib/copyDebugInfo'
 import { Button } from './shared/Button'
 
 interface ErrorFallbackProps {
@@ -20,47 +22,12 @@ export function ErrorFallback({ message, stack, onRetry, onReload }: ErrorFallba
       `dbSchemaVersion: ${db.verno}`,
       `timestamp: ${new Date().toISOString()}`,
     ].join('\n')
-    try {
-      await navigator.clipboard.writeText(debugInfo)
-    } catch {
-      const textarea = document.createElement('textarea')
-      textarea.value = debugInfo
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-    }
+    await copyDebugInfo(debugInfo)
   }
 
   const handleExportData = async () => {
     try {
-      const [tasks, history, dailyLogs, settings, categories, flashcards, quickNotes] = await Promise.all([
-        db.tasks.toArray(),
-        db.history.toArray(),
-        db.daily_logs.toArray(),
-        db.settings.toArray(),
-        db.categories.toArray(),
-        db.flashcards.toArray(),
-        db.quick_notes.toArray(),
-      ])
-      const data = {
-        version: 2,
-        exportedAt: new Date().toISOString(),
-        tasks,
-        history,
-        dailyLogs,
-        settings,
-        categories,
-        flashcards,
-        quickNotes,
-      }
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `study-emergency-export-${new Date().toISOString().slice(0, 10)}.studybackup`
-      a.click()
-      URL.revokeObjectURL(url)
+      await exportStudyBackupFile('study-emergency-export')
     } catch (err) {
       console.error('Emergency export failed:', err)
     }
