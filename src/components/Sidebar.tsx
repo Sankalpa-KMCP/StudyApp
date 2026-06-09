@@ -119,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <nav className="relative hidden md:flex flex-col gap-1">
           <div
-            className="bg-white/10 border border-white/5 rounded-[14px] pointer-events-none"
+            className="sidebar-indicator pointer-events-none"
             style={indicatorStyle}
           />
 
