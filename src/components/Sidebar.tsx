@@ -117,12 +117,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-tr from-accent-blue to-accent-purple shadow-md shadow-accent-blue/10">
             <Brain className="h-5.5 w-5.5 text-white" />
           </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <h1 className="text-sm font-bold text-white tracking-wide leading-none">Study Dashboard</h1>
-              <p className="text-caption text-white/50 font-medium mt-1.5 leading-none">by Sankalpa KMCP</p>
-            </div>
-          )}
+          <div
+            className={`min-w-0 flex-1 overflow-hidden transition-all duration-200 ease-out ${
+              collapsed ? 'max-w-0 opacity-0 pointer-events-none' : 'max-w-[12rem] opacity-100'
+            }`}
+          >
+            <h1 className="text-sm font-bold text-white tracking-wide leading-none whitespace-nowrap">Study Dashboard</h1>
+            <p className="text-caption text-white/50 font-medium mt-1.5 leading-none whitespace-nowrap">by Sankalpa KMCP</p>
+          </div>
           <button
             type="button"
             onClick={toggleCollapsed}
@@ -134,31 +136,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {!collapsed && (
-          <div className="hidden md:block dynamic-card p-4 space-y-3.5 select-none">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Flame className="h-4 w-4 text-accent-amber" />
-                <span className="text-xs font-semibold text-white">{currentStreak} Day Streak</span>
-              </div>
-              <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-label font-bold text-white">
-                LVL {level}
-              </span>
+        <div
+          className={`hidden md:block dynamic-card space-y-3.5 select-none overflow-hidden transition-all duration-200 ease-out ${
+            collapsed ? 'max-h-0 opacity-0 p-0 pointer-events-none' : 'max-h-48 opacity-100 p-4'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Flame className="h-4 w-4 text-accent-amber" />
+              <span className="text-xs font-semibold text-white">{currentStreak} Day Streak</span>
             </div>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-label font-bold text-white/40 uppercase tracking-wider">
-                <span>XP Progress</span>
-                <span>{Math.round(xpProgressPercent)}%</span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
-                <div
-                  className="h-full bg-accent-blue rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${xpProgressPercent}%` }}
-                />
-              </div>
+            <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-label font-bold text-white">
+              LVL {level}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-label font-bold text-white/40 uppercase tracking-wider">
+              <span>XP Progress</span>
+              <span>{Math.round(xpProgressPercent)}%</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full bg-accent-blue rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${xpProgressPercent}%` }}
+              />
             </div>
           </div>
-        )}
+        </div>
 
         <nav className="relative hidden md:flex flex-col gap-1">
           {!collapsed && (
@@ -194,7 +198,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 } ${isLocked ? 'opacity-40' : 'cursor-pointer'}`}
               >
                 <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? tab.color : 'text-white/60'}`} />
-                {!collapsed && <span>{tab.label}</span>}
+                <span
+                  className={`whitespace-nowrap overflow-hidden transition-all duration-200 ease-out ${
+                    collapsed ? 'max-w-0 opacity-0' : 'max-w-[8rem] opacity-100'
+                  }`}
+                >
+                  {tab.label}
+                </span>
                 {collapsed && (
                   <span className={COLLAPSED_FLYOUT} aria-hidden="true">
                     {tab.label}
@@ -214,7 +224,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }`}
           >
             <FileText className="h-4.5 w-4.5 text-accent-blue shrink-0" />
-            {!collapsed && <span>Quick Notes</span>}
+            <span
+              className={`whitespace-nowrap overflow-hidden transition-all duration-200 ease-out ${
+                collapsed ? 'max-w-0 opacity-0' : 'max-w-[8rem] opacity-100'
+              }`}
+            >
+              Quick Notes
+            </span>
             {collapsed && (
               <span className={COLLAPSED_FLYOUT} aria-hidden="true">
                 Quick Notes
@@ -233,25 +249,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
           type="button"
           onClick={onShowOnboarding}
           aria-label="Getting Started Tour"
-          title="Getting Started Tour"
-          className={`flex items-center rounded-lg text-xs font-semibold text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-200 cursor-pointer ${
+          title={collapsed ? undefined : 'Getting Started Tour'}
+          className={`${collapsed ? 'group relative' : ''} flex items-center rounded-lg text-xs font-semibold text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-200 cursor-pointer ${
             collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5'
           }`}
         >
           <Sparkles className="h-4 w-4 text-accent-blue shrink-0" />
           {!collapsed && <span>Getting Started Tour</span>}
+          {collapsed && (
+            <span className={COLLAPSED_FLYOUT} aria-hidden="true">
+              Getting Started Tour
+            </span>
+          )}
         </button>
         <button
           type="button"
           onClick={() => setIsHotkeyHudOpen(true)}
           aria-label="Keyboard Shortcuts"
-          title="Keyboard Shortcuts"
-          className={`flex items-center rounded-lg text-xs font-semibold text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-200 cursor-pointer ${
+          title={collapsed ? undefined : 'Keyboard Shortcuts'}
+          className={`${collapsed ? 'group relative' : ''} flex items-center rounded-lg text-xs font-semibold text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-200 cursor-pointer ${
             collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5'
           }`}
         >
           <Keyboard className="h-4 w-4 text-white/40 shrink-0" />
           {!collapsed && <span>Keyboard Shortcuts</span>}
+          {collapsed && (
+            <span className={COLLAPSED_FLYOUT} aria-hidden="true">
+              Keyboard Shortcuts
+            </span>
+          )}
         </button>
         {!collapsed && (
           <div className="text-center space-y-0.5">
