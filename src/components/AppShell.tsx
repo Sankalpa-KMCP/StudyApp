@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Brain, Flame, Keyboard, FileText, AlertCircle } from 'lucide-react'
+import { Brain, Flame, Keyboard, FileText, AlertCircle, Sparkles } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
 import { Sidebar } from './Sidebar'
 import { ZenOverlay } from './ZenOverlay'
@@ -175,6 +175,13 @@ export function AppShell() {
                 className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
               >
                 <Keyboard className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setShowOnboarding(true)}
+                aria-label="Getting started tour"
+                className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
+              >
+                <Sparkles className="h-4 w-4 text-accent-blue" />
               </button>
             </div>
           </header>
