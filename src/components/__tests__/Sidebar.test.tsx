@@ -2,13 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Sidebar } from '../Sidebar'
+import type { SidebarProps } from '../sidebar/types'
+import { SidebarCollapseProvider } from '../sidebar/SidebarCollapseContext'
 
-const baseProps = {
+const baseProps: SidebarProps = {
   isZenMode: false,
   currentStreak: 5,
   level: 3,
   xpProgressPercent: 42,
-  activeTab: 'focus' as const,
+  activeTab: 'focus',
   setActiveTab: vi.fn(),
   setIsHotkeyHudOpen: vi.fn(),
   isTimerActive: false,
@@ -18,6 +20,14 @@ const baseProps = {
   onShowOnboarding: vi.fn(),
 }
 
+function renderSidebar(props = baseProps) {
+  return render(
+    <SidebarCollapseProvider>
+      <Sidebar {...props} />
+    </SidebarCollapseProvider>,
+  )
+}
+
 describe('Sidebar', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -25,7 +35,7 @@ describe('Sidebar', () => {
   })
 
   it('renders expanded by default when localStorage is empty', () => {
-    const { container } = render(<Sidebar {...baseProps} />)
+    const { container } = renderSidebar()
     expect(screen.getByText('Study Dashboard')).toBeVisible()
     expect(screen.getByText('Getting Started Tour')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Collapse sidebar', hidden: true })).toBeInTheDocument()
@@ -37,7 +47,7 @@ describe('Sidebar', () => {
 
   it('collapses to icon rail and persists preference in localStorage', async () => {
     const user = userEvent.setup()
-    const { container } = render(<Sidebar {...baseProps} />)
+    const { container } = renderSidebar()
     const shell = container.querySelector('.sidebar-shell')
     expect(shell).toBeTruthy()
 
@@ -54,11 +64,11 @@ describe('Sidebar', () => {
 
   it('renders rail with grid-centered nav and no inline labels when collapsed', async () => {
     const user = userEvent.setup()
-    const { container } = render(<Sidebar {...baseProps} />)
-    const shell = container.querySelector('.sidebar-shell')
+    const { container } = renderSidebar()
 
     await user.click(screen.getByRole('button', { name: 'Collapse sidebar', hidden: true }))
 
+    const shell = container.querySelector('.sidebar-shell')
     await waitFor(() => {
       expect(shell).toHaveAttribute('data-collapsed', 'true')
     })
@@ -79,7 +89,7 @@ describe('Sidebar', () => {
 
   it('uses square centered nav buttons when collapsed with active tab', () => {
     localStorage.setItem('sidebar_collapsed', 'true')
-    const { container } = render(<Sidebar {...baseProps} activeTab="cards" />)
+    const { container } = renderSidebar({ ...baseProps, activeTab: 'cards' })
 
     const shell = container.querySelector('.sidebar-shell')
     const nav = shell?.querySelector('nav')
@@ -97,7 +107,7 @@ describe('Sidebar', () => {
   it('expands from icon rail and clears collapsed preference', async () => {
     localStorage.setItem('sidebar_collapsed', 'true')
     const user = userEvent.setup()
-    const { container } = render(<Sidebar {...baseProps} />)
+    const { container } = renderSidebar()
     const shell = container.querySelector('.sidebar-shell')
 
     expect(shell).toHaveAttribute('data-collapsed', 'true')
