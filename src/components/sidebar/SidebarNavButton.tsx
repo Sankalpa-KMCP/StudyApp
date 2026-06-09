@@ -1,4 +1,5 @@
 import type { ActiveTab } from '../../types/app'
+import { NavTabButton } from '../../navigation/NavTabButton'
 import { useSidebarFlyout } from './useSidebarFlyout'
 
 interface SidebarNavButtonProps {
@@ -17,7 +18,7 @@ export function SidebarNavButton({
   variant,
   tabId,
   label,
-  icon: Icon,
+  icon,
   iconColor,
   accent,
   isActive,
@@ -34,41 +35,19 @@ export function SidebarNavButton({
     if (variant === 'rail') flyout.hideFlyout()
   }
 
-  if (variant === 'rail') {
-    return (
-      <button
-        type="button"
-        data-tab={tabId}
-        data-accent={accent}
-        data-active={isActive ? 'true' : 'false'}
-        aria-current={isActive ? 'page' : undefined}
-        aria-label={label}
-        onClick={onClick}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        className={`sidebar-rail-btn h-10 w-10 flex items-center justify-center rounded-[14px] font-semibold text-xs transition-all duration-200 ios-active-scale border ${
-          isLocked ? 'opacity-40' : 'cursor-pointer'
-        }`}
-      >
-        <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? iconColor : 'text-white/60'}`} />
-      </button>
-    )
-  }
-
   return (
-    <button
-      type="button"
-      data-tab={tabId}
-      data-accent={accent}
-      data-active={isActive ? 'true' : 'false'}
-      aria-current={isActive ? 'page' : undefined}
-      aria-label={label}
-      title={isLocked ? 'Focus lockout active' : label}
+    <NavTabButton
+      variant={variant === 'rail' ? 'sidebar-rail' : 'sidebar-expanded'}
+      tabId={tabId}
+      label={label}
+      icon={icon}
+      iconColor={iconColor}
+      accent={accent}
+      isActive={isActive}
+      isLocked={isLocked}
       onClick={onClick}
-      className={`nav-tab w-full ios-active-scale ${isLocked ? 'opacity-40' : 'cursor-pointer'}`}
-    >
-      <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? iconColor : 'text-white/60'}`} />
-      <span className="whitespace-nowrap">{label}</span>
-    </button>
+      onMouseEnter={variant === 'rail' ? handleMouseEnter : undefined}
+      onMouseLeave={variant === 'rail' ? handleMouseLeave : undefined}
+    />
   )
 }
