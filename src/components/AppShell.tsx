@@ -125,7 +125,7 @@ export function AppShell() {
   } as React.CSSProperties
 
   return (
-    <div className="min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden pb-16 md:pb-0" style={inlineStyles}>
+    <div className="min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden pb-24 md:pb-0" style={inlineStyles}>
       <E2eCrashProbe />
       <Sidebar
         isZenMode={isZenMode}
