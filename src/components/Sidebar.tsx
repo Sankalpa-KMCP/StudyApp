@@ -40,6 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onShowOnboarding,
 }) => {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const asideRef = useRef<HTMLElement>(null)
   const [collapsed, setCollapsed] = useState(
     () => typeof window !== 'undefined' && localStorage.getItem('sidebar_collapsed') === 'true',
   )
@@ -57,6 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }
 
   const updateIndicator = useCallback(() => {
+    if (collapsed) return
     const activeBtn = tabRefs.current[activeTab]
     if (activeBtn) {
       setIndicatorStyle({
@@ -69,17 +71,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         opacity: 1,
       })
     }
-  }, [activeTab])
+  }, [activeTab, collapsed])
 
   useEffect(() => {
+    if (collapsed) return
     updateIndicator()
-    const timer = setTimeout(updateIndicator, 50)
     window.addEventListener('resize', updateIndicator)
     return () => {
-      clearTimeout(timer)
       window.removeEventListener('resize', updateIndicator)
     }
   }, [updateIndicator, collapsed])
+
+  const handleAsideTransitionEnd = (e: React.TransitionEvent<HTMLElement>) => {
+    if (e.propertyName !== 'width' || collapsed) return
+    updateIndicator()
+  }
 
   useEffect(() => {
     tabRefs.current[activeTab]?.focus()
