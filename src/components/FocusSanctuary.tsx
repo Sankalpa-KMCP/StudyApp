@@ -336,7 +336,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
         </div>
 
         {timerMode === 'study' && (
-          <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-4.5 select-none shadow-2xl backdrop-blur-3xl flex flex-col gap-3">
+          <div className="dynamic-card p-4.5 select-none shadow-2xl flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-label font-bold tracking-wider text-white/40 uppercase bg-white/5 border border-white/5 px-2 py-0.5 rounded-full">Study tip</span>
               <div className="flex items-center gap-1.5 text-accent-purple">
