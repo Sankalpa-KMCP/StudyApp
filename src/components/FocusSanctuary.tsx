@@ -202,7 +202,14 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
           </div>
 
           <div className="flex flex-col items-center py-2">
-            <div className="relative flex h-60 w-60 md:h-64 md:w-64 items-center justify-center rounded-full border border-white/5 bg-black/10">
+            <div className="relative flex h-60 w-60 md:h-64 md:w-64 items-center justify-center rounded-full border border-white/5 bg-black/10 overflow-hidden">
+              {/* Spherical Radial Glow */}
+              <div 
+                className="absolute inset-[3%] rounded-full opacity-15 blur-2xl pointer-events-none transition-all duration-700 ease-out" 
+                style={{
+                  background: `radial-gradient(circle, ${activeColor} 0%, transparent 70%)`
+                }} 
+              />
               <svg className="absolute h-[94%] w-[94%] -rotate-90 overflow-visible" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255, 255, 255, 0.04)" strokeWidth="1" />
                 <circle
