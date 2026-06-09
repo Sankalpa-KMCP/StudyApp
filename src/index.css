@@ -66,20 +66,31 @@
   font-family: var(--font-sans-geom) !important;
 }
 
-.sidebar-indicator {
-  position: absolute;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+.sidebar-shell {
+  transition: width 200ms cubic-bezier(0.32, 0.72, 0, 1), padding 200ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.sidebar-rail {
+.sidebar-shell--expanded {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .sidebar-shell--expanded {
+    width: 16rem;
+  }
+}
+
+.sidebar-shell--rail {
   background-color: rgba(18, 18, 26, 0.88) !important;
   backdrop-filter: blur(32px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .sidebar-shell--rail {
+    width: 4rem;
+  }
 }
 
 body {
