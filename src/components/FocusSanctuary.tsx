@@ -220,15 +220,18 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                   strokeLinecap="round"
                   strokeDasharray="314.16"
                   strokeDashoffset={String(314.16 * (1 - progress))}
-                  style={{ transition: 'stroke-dashoffset 0.3s ease-out, stroke 0.3s' }}
+                  style={{ 
+                    transition: 'stroke-dashoffset 0.3s ease-out, stroke 0.3s',
+                    filter: `drop-shadow(0 0 4px ${activeColor})`
+                  }}
                 />
               </svg>
 
               <div className="text-center z-10 select-none" aria-live="polite" aria-atomic="true">
-                <p className="text-6xl md:text-7xl font-bold text-white tracking-tight tabular-nums" role="timer">
+                <p className="text-6xl md:text-7xl font-bold text-white tracking-tight tabular-nums drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]" role="timer">
                   {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
                 </p>
-                <span className="inline-block rounded-full bg-white/5 border border-white/5 px-3 py-0.5 text-label font-semibold uppercase tracking-wider text-white/60 mt-3">
+                <span className="inline-block rounded-full bg-white/5 border border-white/5 px-3 py-0.5 text-label font-semibold uppercase tracking-wider text-white/60 mt-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
                   {timerMode === 'study' ? 'Study Block' : isLongBreak ? 'Long Break' : 'Short Break'}
                 </span>
               </div>
