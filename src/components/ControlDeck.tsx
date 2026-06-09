@@ -102,7 +102,7 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
       </div>
 
       <div className="flex flex-col gap-6">
-        <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl flex flex-col">
+        <div className="dynamic-card p-6 shadow-2xl flex flex-col">
           <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-4">Subject Categories</h3>
           <div className="flex gap-2 mb-4 bg-white/5 border border-white/5 p-2 rounded-full">
             <input
