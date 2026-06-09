@@ -69,7 +69,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
 
   return (
     <div className="flex flex-col gap-6 h-full w-full">
-      <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-5 md:p-6 flex flex-col h-full shadow-2xl backdrop-blur-3xl">
+      <div className="dynamic-card p-5 md:p-6 flex flex-col h-full shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5 border-b border-white/5 pb-4">
           <div className="select-none shrink-0">
             <span className="text-label font-bold uppercase tracking-wider text-white/40">Study tasks</span>
