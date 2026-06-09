@@ -18,6 +18,14 @@ import { useConfirm } from '../context/useConfirm'
 import { E2eCrashProbe } from './E2eCrashProbe'
 import { OnboardingModal } from './OnboardingModal'
 
+const TAB_CHROME: Record<ActiveTab, { title: string; subtitle: string }> = {
+  focus: { title: 'Focus', subtitle: 'Timer, targets, and sanctuary mode' },
+  cards: { title: 'Flashcards', subtitle: 'Active recall and spaced repetition' },
+  analytics: { title: 'Analytics', subtitle: 'Study insights and retention trends' },
+  journal: { title: 'Journal', subtitle: 'Daily logs and session history' },
+  settings: { title: 'Settings', subtitle: 'Preferences, backup, and themes' },
+}
+
 export function AppShell() {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
 
@@ -181,6 +189,49 @@ export function AppShell() {
                 onClick={() => setShowOnboarding(true)}
                 aria-label="Getting started tour"
                 className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
+              >
+                <Sparkles className="h-4 w-4 text-accent-blue" />
+              </button>
+            </div>
+          </header>
+        )}
+        {!isZenMode && (
+          <header className="hidden md:flex items-center justify-between px-6 lg:px-8 py-4 border-b border-white/5 bg-black/10 backdrop-blur-md">
+            <div className="select-none">
+              <h2 className="text-base font-bold text-white tracking-wide">{TAB_CHROME[activeTab].title}</h2>
+              <p className="text-caption text-white/45 font-medium mt-1">{TAB_CHROME[activeTab].subtitle}</p>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-3 py-1.5">
+                <Flame className="h-3.5 w-3.5 text-accent-amber" />
+                <span className="text-label font-mono font-bold text-accent-amber">{currentStreak} day streak</span>
+              </div>
+              {timer.isTimerActive && (
+                <div className="flex items-center gap-1.5 rounded-full bg-accent-blue/10 border border-accent-blue/20 px-3 py-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent-blue animate-pulse" />
+                  <span className="text-label font-semibold text-accent-blue">
+                    {timer.timerMode === 'study' ? 'Study timer running' : 'Break timer running'}
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={() => setIsNotesOpen(!isNotesOpen)}
+                aria-label="Quick notes"
+                className="p-2 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
+              >
+                <FileText className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setIsHotkeyHudOpen(true)}
+                aria-label="Keyboard shortcuts"
+                className="p-2 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
+              >
+                <Keyboard className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setShowOnboarding(true)}
+                aria-label="Getting started tour"
+                className="p-2 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
               >
                 <Sparkles className="h-4 w-4 text-accent-blue" />
               </button>
