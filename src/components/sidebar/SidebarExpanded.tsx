@@ -29,7 +29,7 @@ export function SidebarExpandedContent({
       <div className="flex flex-col gap-4 md:gap-6">
         <SidebarHeader collapsed={false} onToggleCollapse={onToggleCollapse} />
 
-        <div className="hidden md:block dynamic-card space-y-3.5 select-none p-4">
+        <div className="hidden md:block dynamic-card space-y-3.5 select-none p-4 animate-slide-in-up">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="h-4 w-4 text-accent-amber" />
@@ -53,6 +53,7 @@ export function SidebarExpandedContent({
           </div>
         </div>
 
+        <p className="hidden md:block px-1 text-label font-bold uppercase tracking-wider text-white/30 select-none">Workspace</p>
         <nav className="hidden md:flex flex-col gap-1">
           {NAV_TABS.map(tab => {
             const isActive = activeTab === tab.id
@@ -73,6 +74,7 @@ export function SidebarExpandedContent({
             )
           })}
 
+          <p className="hidden md:block px-1 pt-2 text-label font-bold uppercase tracking-wider text-white/30 select-none">Tools</p>
           <SidebarActionButton
             variant="expanded"
             label="Quick Notes"
