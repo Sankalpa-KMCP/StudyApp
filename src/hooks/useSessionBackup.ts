@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { db } from '../db/db'
+import { exportStudyBackupFile } from '../lib/backupExport'
 import { parseStudyBackupPayload, validateBackupPayload } from '../lib/studyDashboard'
 import { devLog } from '../lib/devLogger'
 const MAX_SNAPSHOTS = 3
@@ -51,27 +52,20 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
 
   async function exportStudyBackup() {
     try {
-      const [tasks, history, dailyLogs, settings, categories, flashcards, quickNotes] = await Promise.all([
-        db.tasks.toArray(),
-        db.history.toArray(),
-        db.daily_logs.toArray(),
-        db.settings.toArray(),
-        db.categories.toArray(),
-        db.flashcards.toArray(),
-        db.quick_notes.toArray(),
-      ])
-      // `version: 2` is the JSON export format revision — not the IndexedDB schema version (see db.verno / CHANGELOG).
-      const data = { version: 2, exportedAt: new Date().toISOString(), tasks, history, dailyLogs, settings, categories, flashcards, quickNotes }
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `study-vault-${new Date().toISOString().slice(0, 10)}.studybackup`
-      a.click()
-      URL.revokeObjectURL(url)
+      await exportStudyBackupFile('study-vault')
     } catch (err) {
       console.error('Export failed:', err)
       pushToast('BACKUP', 'FAILED TO EXPORT VAULT')
+    }
+  }
+
+  async function clearSnapshots() {
+    try {
+      await db.snapshots.clear()
+      pushToast('BACKUP', 'LOCAL SNAPSHOTS CLEARED')
+    } catch (err) {
+      console.error('Failed to clear snapshots:', err)
+      pushToast('BACKUP', 'FAILED TO CLEAR SNAPSHOTS')
     }
   }
 
@@ -243,6 +237,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
     fileInputRef,
     createDatabaseSnapshot,
     exportStudyBackup,
+    clearSnapshots,
     exportStudyLogsCSV,
     exportTaskCompletionLogsCSV,
     importStudyBackup,
