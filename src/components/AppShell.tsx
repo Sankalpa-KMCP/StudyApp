@@ -139,6 +139,7 @@ export function AppShell() {
         timerMode={timer.timerMode}
         enforceLockout={settings.enforce_lockout}
         onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
+        onShowOnboarding={() => setShowOnboarding(true)}
       />
 
       <main className="flex-1 flex flex-col min-w-0 z-10">
