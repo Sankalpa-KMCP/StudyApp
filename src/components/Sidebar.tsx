@@ -56,6 +56,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setCollapsed(prev => {
       const next = !prev
       localStorage.setItem('sidebar_collapsed', String(next))
+      if (next) {
+        setIndicatorStyle(style => ({ ...style, opacity: 0 }))
+      }
       return next
     })
   }
@@ -164,7 +167,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        <nav className="relative hidden md:flex flex-col gap-1">
+        <nav className={`relative hidden md:flex flex-col gap-1 ${collapsed ? 'items-center' : ''}`}>
           {!collapsed && (
             <div
               className="sidebar-indicator pointer-events-none"
@@ -185,9 +188,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 aria-label={tab.label}
                 title={collapsed ? undefined : isLocked ? 'Focus lockout active' : tab.label}
                 onClick={() => handleTabClick(tab.id)}
-                className={`${collapsed ? 'group' : ''} relative z-10 w-full flex items-center rounded-[14px] font-semibold text-xs transition-colors duration-200 ios-active-scale border ${
-                  collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3.5 py-2.5 border-transparent bg-transparent'
-                } ${
+                className={`${collapsed ? 'group mx-auto h-10 w-10 shrink-0 p-0' : 'w-full gap-3 px-3.5 py-2.5 border-transparent bg-transparent'} relative z-10 flex items-center justify-center rounded-[14px] font-semibold text-xs transition-colors duration-200 ios-active-scale border ${
                   collapsed && isActive
                     ? 'bg-accent-blue/12 border-accent-blue/25 shadow-sm text-white font-bold'
                     : collapsed
@@ -198,13 +199,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 } ${isLocked ? 'opacity-40' : 'cursor-pointer'}`}
               >
                 <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? tab.color : 'text-white/60'}`} />
-                <span
-                  className={`whitespace-nowrap overflow-hidden transition-all duration-200 ease-out ${
-                    collapsed ? 'max-w-0 opacity-0' : 'max-w-[8rem] opacity-100'
-                  }`}
-                >
-                  {tab.label}
-                </span>
+                {!collapsed && (
+                  <span className="whitespace-nowrap overflow-hidden transition-all duration-200 ease-out max-w-[8rem] opacity-100">
+                    {tab.label}
+                  </span>
+                )}
                 {collapsed && (
                   <span className={COLLAPSED_FLYOUT} aria-hidden="true">
                     {tab.label}
@@ -219,18 +218,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onToggleNotes}
             aria-label="Quick Notes"
             title={collapsed ? undefined : 'Quick Notes'}
-            className={`${collapsed ? 'group' : ''} relative w-full flex items-center rounded-[14px] border border-transparent bg-transparent text-white/60 hover:bg-white/[0.04] hover:text-white transition-all duration-200 ios-active-scale cursor-pointer ${
-              collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3.5 py-2.5'
-            }`}
+            className={`${collapsed ? 'group mx-auto h-10 w-10 shrink-0 p-0' : 'w-full gap-3 px-3.5 py-2.5'} relative flex items-center justify-center rounded-[14px] border border-transparent bg-transparent text-white/60 hover:bg-white/[0.04] hover:text-white transition-all duration-200 ios-active-scale cursor-pointer`}
           >
             <FileText className="h-4.5 w-4.5 text-accent-blue shrink-0" />
-            <span
-              className={`whitespace-nowrap overflow-hidden transition-all duration-200 ease-out ${
-                collapsed ? 'max-w-0 opacity-0' : 'max-w-[8rem] opacity-100'
-              }`}
-            >
-              Quick Notes
-            </span>
+            {!collapsed && (
+              <span className="whitespace-nowrap overflow-hidden transition-all duration-200 ease-out max-w-[8rem] opacity-100">
+                Quick Notes
+              </span>
+            )}
             {collapsed && (
               <span className={COLLAPSED_FLYOUT} aria-hidden="true">
                 Quick Notes
@@ -250,18 +245,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={onShowOnboarding}
           aria-label="Getting Started Tour"
           title={collapsed ? undefined : 'Getting Started Tour'}
-          className={`${collapsed ? 'group relative' : ''} flex items-center rounded-lg text-xs font-semibold text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-200 cursor-pointer ${
-            collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5'
-          }`}
+          className={`${collapsed ? 'group relative mx-auto h-10 w-10 shrink-0 p-0' : 'gap-2.5 px-3 py-1.5'} flex items-center justify-center rounded-lg text-xs font-semibold text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-200 cursor-pointer`}
         >
           <Sparkles className="h-4 w-4 text-accent-blue shrink-0" />
-          <span
-            className={`whitespace-nowrap overflow-hidden transition-all duration-200 ease-out ${
-              collapsed ? 'max-w-0 opacity-0' : 'max-w-[12rem] opacity-100'
-            }`}
-          >
-            Getting Started Tour
-          </span>
+          {!collapsed && (
+            <span className="whitespace-nowrap overflow-hidden transition-all duration-200 ease-out max-w-[12rem] opacity-100">
+              Getting Started Tour
+            </span>
+          )}
           {collapsed && (
             <span className={COLLAPSED_FLYOUT} aria-hidden="true">
               Getting Started Tour
@@ -273,18 +264,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => setIsHotkeyHudOpen(true)}
           aria-label="Keyboard Shortcuts"
           title={collapsed ? undefined : 'Keyboard Shortcuts'}
-          className={`${collapsed ? 'group relative' : ''} flex items-center rounded-lg text-xs font-semibold text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-200 cursor-pointer ${
-            collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5'
-          }`}
+          className={`${collapsed ? 'group relative mx-auto h-10 w-10 shrink-0 p-0' : 'gap-2.5 px-3 py-1.5'} flex items-center justify-center rounded-lg text-xs font-semibold text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-200 cursor-pointer`}
         >
           <Keyboard className="h-4 w-4 text-white/40 shrink-0" />
-          <span
-            className={`whitespace-nowrap overflow-hidden transition-all duration-200 ease-out ${
-              collapsed ? 'max-w-0 opacity-0' : 'max-w-[12rem] opacity-100'
-            }`}
-          >
-            Keyboard Shortcuts
-          </span>
+          {!collapsed && (
+            <span className="whitespace-nowrap overflow-hidden transition-all duration-200 ease-out max-w-[12rem] opacity-100">
+              Keyboard Shortcuts
+            </span>
+          )}
           {collapsed && (
             <span className={COLLAPSED_FLYOUT} aria-hidden="true">
               Keyboard Shortcuts
