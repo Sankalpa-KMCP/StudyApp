@@ -35,7 +35,7 @@ export function SidebarActionButton({
         onClick={onClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="h-10 w-10 flex items-center justify-center rounded-lg text-xs font-semibold text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-200 cursor-pointer"
+        className="sidebar-rail-btn h-10 w-10 flex items-center justify-center rounded-lg text-xs font-semibold text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-200 cursor-pointer"
       >
         <Icon className={`h-4 w-4 shrink-0 ${iconClassName}`} />
       </button>
