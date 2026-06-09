@@ -60,6 +60,26 @@ describe('Sidebar', () => {
     expect(flyouts.some(el => el.textContent === 'Focus')).toBe(true)
   })
 
+  it('uses square centered nav buttons when collapsed with active tab', () => {
+    localStorage.setItem('sidebar_collapsed', 'true')
+    render(<Sidebar {...baseProps} activeTab="cards" />)
+
+    const cardsButton = screen.getByRole('button', { name: 'Cards', hidden: true })
+    expect(cardsButton).toHaveClass('h-10')
+    expect(cardsButton).toHaveClass('w-10')
+
+    const inlineLabels = [...cardsButton.querySelectorAll('span')].filter(
+      el => !el.getAttribute('aria-hidden') && el.textContent === 'Cards',
+    )
+    expect(inlineLabels).toHaveLength(0)
+
+    const flexChildren = [...cardsButton.children].filter(
+      el => el.getAttribute('aria-hidden') !== 'true',
+    )
+    expect(flexChildren).toHaveLength(1)
+    expect(flexChildren[0].querySelector('svg')).toBeInTheDocument()
+  })
+
   it('expands from icon rail and clears collapsed preference', async () => {
     localStorage.setItem('sidebar_collapsed', 'true')
     const user = userEvent.setup()
