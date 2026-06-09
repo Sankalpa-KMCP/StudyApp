@@ -105,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ref={asideRef}
       onTransitionEnd={handleAsideTransitionEnd}
       className={`glass-panel w-full shrink-0 overflow-x-visible overflow-y-hidden border-b md:border-b-0 md:border-r border-white/[0.08] md:m-4 md:mr-0 rounded-b-2xl md:rounded-[28px] p-4 flex flex-col justify-between gap-4 md:gap-6 transition-[width,padding] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] z-30 shadow-2xl ${
-        collapsed ? 'md:w-[4.25rem] md:p-3' : 'md:w-64 md:p-6'
+        collapsed ? 'sidebar-rail md:w-[4.25rem] md:p-3' : 'md:w-64 md:p-6'
       }`}
     >
       <div className="flex flex-col gap-4 md:gap-6">
@@ -130,7 +130,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={toggleCollapsed}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="hidden md:flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/40 hover:bg-white/[0.06] hover:text-white transition-all cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
+            className="hidden md:flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/50 hover:bg-white/[0.08] hover:text-white/80 transition-all cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
@@ -255,7 +255,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }`}
         >
           <Sparkles className="h-4 w-4 text-accent-blue shrink-0" />
-          {!collapsed && <span>Getting Started Tour</span>}
+          <span
+            className={`whitespace-nowrap overflow-hidden transition-all duration-200 ease-out ${
+              collapsed ? 'max-w-0 opacity-0' : 'max-w-[12rem] opacity-100'
+            }`}
+          >
+            Getting Started Tour
+          </span>
           {collapsed && (
             <span className={COLLAPSED_FLYOUT} aria-hidden="true">
               Getting Started Tour
@@ -272,19 +278,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }`}
         >
           <Keyboard className="h-4 w-4 text-white/40 shrink-0" />
-          {!collapsed && <span>Keyboard Shortcuts</span>}
+          <span
+            className={`whitespace-nowrap overflow-hidden transition-all duration-200 ease-out ${
+              collapsed ? 'max-w-0 opacity-0' : 'max-w-[12rem] opacity-100'
+            }`}
+          >
+            Keyboard Shortcuts
+          </span>
           {collapsed && (
             <span className={COLLAPSED_FLYOUT} aria-hidden="true">
               Keyboard Shortcuts
             </span>
           )}
         </button>
-        {!collapsed && (
-          <div className="text-center space-y-0.5">
-            <p className="text-label text-white/30 font-mono">Study Dashboard Engine</p>
-            <p className="text-label text-white/40 font-mono font-medium">Created by Sankalpa KMCP</p>
-          </div>
-        )}
+        <div
+          className={`text-center space-y-0.5 overflow-hidden transition-all duration-200 ease-out ${
+            collapsed ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-16 opacity-100'
+          }`}
+        >
+          <p className="text-label text-white/30 font-mono">Study Dashboard Engine</p>
+          <p className="text-label text-white/40 font-mono font-medium">Created by Sankalpa KMCP</p>
+        </div>
       </div>
     </aside>
   )
