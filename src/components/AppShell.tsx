@@ -16,6 +16,7 @@ import { useStudyData, useStudyUI } from '../context/useStudyApp'
 import { useStudyTimerContext } from '../context/studyTimerContext'
 import { useConfirm } from '../context/useConfirm'
 import { E2eCrashProbe } from './E2eCrashProbe'
+import { OnboardingModal } from './OnboardingModal'
 
 export function AppShell() {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
@@ -222,6 +223,8 @@ export function AppShell() {
       />
 
       <HotkeyModal isOpen={isHotkeyHudOpen} onClose={() => setIsHotkeyHudOpen(false)} />
+
+      <OnboardingModal isOpen={showOnboarding} onClose={handleCloseOnboarding} />
 
       {activeToast && (
         <div
