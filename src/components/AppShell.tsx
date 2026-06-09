@@ -67,19 +67,19 @@ export function AppShell() {
     setIsNotesOpen,
   } = useStudyUI()
 
-  const [showOnboarding, setShowOnboarding] = useState(false)
-
-  useEffect(() => {
-    const completed = localStorage.getItem('sanctuary_onboarding_completed')
-    if (!completed && isDataReady) {
-      setShowOnboarding(true)
-    }
-  }, [isDataReady])
+  const [onboardingDismissed, setOnboardingDismissed] = useState(
+    () => typeof window !== 'undefined' && !!localStorage.getItem('sanctuary_onboarding_completed'),
+  )
+  const [onboardingForced, setOnboardingForced] = useState(false)
+  const showOnboarding = (isDataReady && !onboardingDismissed) || onboardingForced
 
   const handleCloseOnboarding = () => {
     localStorage.setItem('sanctuary_onboarding_completed', 'true')
-    setShowOnboarding(false)
+    setOnboardingDismissed(true)
+    setOnboardingForced(false)
   }
+
+  const openOnboarding = () => setOnboardingForced(true)
 
   const { requestConfirm } = useConfirm()
 
@@ -153,7 +153,7 @@ export function AppShell() {
         timerMode={timer.timerMode}
         enforceLockout={settings.enforce_lockout}
         onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
-        onShowOnboarding={() => setShowOnboarding(true)}
+        onShowOnboarding={openOnboarding}
       />
 
       <main className="flex-1 flex flex-col min-w-0 z-10">
@@ -192,7 +192,7 @@ export function AppShell() {
                 <Keyboard className="h-4 w-4" />
               </button>
               <button
-                onClick={() => setShowOnboarding(true)}
+                onClick={openOnboarding}
                 aria-label="Getting started tour"
                 className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
               >
@@ -235,7 +235,7 @@ export function AppShell() {
                 <Keyboard className="h-4 w-4" />
               </button>
               <button
-                onClick={() => setShowOnboarding(true)}
+                onClick={openOnboarding}
                 aria-label="Getting started tour"
                 className="p-2 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
               >
