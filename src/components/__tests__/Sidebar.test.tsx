@@ -29,7 +29,8 @@ describe('Sidebar', () => {
     expect(screen.getByText('Study Dashboard')).toBeVisible()
     expect(screen.getByText('Getting Started Tour')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Collapse sidebar', hidden: true })).toBeInTheDocument()
-    expect(container.querySelector('.sidebar-indicator')).toBeInTheDocument()
+    expect(container.querySelector('[data-collapsed="false"]')).toBeInTheDocument()
+    expect(container.querySelector('.sidebar-shell--expanded')).toBeInTheDocument()
   })
 
   it('collapses to icon rail and persists preference in localStorage', async () => {
@@ -41,40 +42,43 @@ describe('Sidebar', () => {
     expect(localStorage.getItem('sidebar_collapsed')).toBe('true')
     expect(screen.getByRole('button', { name: 'Expand sidebar', hidden: true })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Focus', hidden: true })).toBeInTheDocument()
+    expect(document.querySelector('[data-collapsed="true"]')).toBeInTheDocument()
   })
 
-  it('hides sliding indicator and renders flyout labels when collapsed', async () => {
+  it('renders rail with grid-centered nav and no inline labels when collapsed', async () => {
     const user = userEvent.setup()
     const { container } = render(<Sidebar {...baseProps} />)
 
     await user.click(screen.getByRole('button', { name: 'Collapse sidebar', hidden: true }))
 
+    const rail = container.querySelector('[data-collapsed="true"]')
+    expect(rail).toBeInTheDocument()
+    expect(rail).toHaveClass('sidebar-shell--rail')
     expect(container.querySelector('.sidebar-indicator')).not.toBeInTheDocument()
-    const hiddenBrand = screen.getByText('Study Dashboard').parentElement
-    expect(hiddenBrand).toHaveClass('opacity-0')
-    expect(hiddenBrand).toHaveClass('max-w-0')
-    const flyouts = [...container.querySelectorAll('span[aria-hidden="true"]')].filter(
-      el => el.className.includes('glass-panel'),
-    )
-    expect(flyouts.length).toBeGreaterThan(0)
-    expect(flyouts.some(el => el.textContent === 'Focus')).toBe(true)
+
+    const nav = rail?.querySelector('nav')
+    expect(nav).toHaveClass('justify-items-center')
+
+    const focusButton = screen.getByRole('button', { name: 'Focus', hidden: true })
+    expect(focusButton).toHaveClass('h-10')
+    expect(focusButton).toHaveClass('w-10')
+    expect(focusButton.querySelectorAll('span')).toHaveLength(0)
+    expect(focusButton.querySelector('svg')).toBeInTheDocument()
   })
 
   it('uses square centered nav buttons when collapsed with active tab', () => {
     localStorage.setItem('sidebar_collapsed', 'true')
-    render(<Sidebar {...baseProps} activeTab="cards" />)
+    const { container } = render(<Sidebar {...baseProps} activeTab="cards" />)
+
+    const rail = container.querySelector('[data-collapsed="true"]')
+    const nav = rail?.querySelector('nav')
+    expect(nav).toHaveClass('justify-items-center')
 
     const cardsButton = screen.getByRole('button', { name: 'Cards', hidden: true })
     expect(cardsButton).toHaveClass('h-10')
     expect(cardsButton).toHaveClass('w-10')
-
-    const inlineLabels = [...cardsButton.querySelectorAll('span')].filter(
-      el => !el.getAttribute('aria-hidden') && el.textContent === 'Cards',
-    )
-    expect(inlineLabels).toHaveLength(0)
-
-    expect(cardsButton.querySelector('svg')).toBeInTheDocument()
     expect(cardsButton.querySelectorAll('span:not([aria-hidden="true"])')).toHaveLength(0)
+    expect(cardsButton.querySelector('svg')).toBeInTheDocument()
   })
 
   it('expands from icon rail and clears collapsed preference', async () => {
@@ -82,13 +86,14 @@ describe('Sidebar', () => {
     const user = userEvent.setup()
     const { container } = render(<Sidebar {...baseProps} />)
 
-    expect(container.querySelector('.sidebar-indicator')).not.toBeInTheDocument()
+    expect(container.querySelector('[data-collapsed="true"]')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Expand sidebar', hidden: true }))
 
     expect(localStorage.getItem('sidebar_collapsed')).toBe('false')
     expect(screen.getByText('Study Dashboard')).toBeVisible()
     expect(screen.getByText('Getting Started Tour')).toBeVisible()
-    expect(container.querySelector('.sidebar-indicator')).toBeInTheDocument()
+    expect(container.querySelector('[data-collapsed="false"]')).toBeInTheDocument()
+    expect(container.querySelector('.nav-tab.active')).toBeInTheDocument()
   })
 })
