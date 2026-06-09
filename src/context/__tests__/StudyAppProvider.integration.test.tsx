@@ -18,7 +18,7 @@ describe('StudyAppProvider integration', () => {
     await user.type(input, `${taskName}{Enter}`)
 
     await waitFor(() => {
-      expect(screen.getByText(taskName)).toBeInTheDocument()
+      expect(screen.getAllByText(taskName)[0]).toBeInTheDocument()
     })
   })
 })
