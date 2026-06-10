@@ -1,5 +1,6 @@
 import { Layers, Trash2, Calendar } from 'lucide-react'
 import type { CategoryItem, FlashcardItem } from '../../db/types'
+import { EmptyState } from '../shared/EmptyState'
 
 interface FlashcardRegistryProps {
   flashcards: FlashcardItem[]
@@ -58,10 +59,11 @@ export function FlashcardRegistry({
 
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3">
         {filteredCards.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8 border border-dashed border-white/10 rounded-[24px] bg-white/2">
-            <Layers className="h-8 w-8 text-white/20 mb-3" />
-            <p className="text-xs text-white/30 select-none">No cards created yet in this deck.</p>
-          </div>
+          <EmptyState
+            icon={<Layers className="h-8 w-8" />}
+            title="Empty deck"
+            description="Create a flashcard above to start building your recall deck."
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredCards.map(card => {
