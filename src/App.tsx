@@ -20,7 +20,7 @@ import {
 } from './db/hooks'
 import { db } from './db/db'
 import type { TaskItem } from './db/types'
-import { formatMinutes, getIntensity, hexToRgb, parseStudyBackupPayload } from './lib/studyDashboard'
+import { formatMinutes, getIntensity, hexToRgb, parseStudyBackupPayload, validateBackupPayload } from './lib/studyDashboard'
 import { requestWakeLock, releaseWakeLock } from './lib/wakeLock'
 
 // Custom audio hook
@@ -1021,6 +1021,19 @@ function App() {
 
   async function importStudyBackup(fileString: string) {
     try {
+      let parsedJson: any
+      try {
+        parsedJson = JSON.parse(fileString)
+      } catch {
+        pushToast('BACKUP', 'INVALID BACKUP FILE FORMAT')
+        return
+      }
+
+      if (!validateBackupPayload(parsedJson)) {
+        pushToast('BACKUP', 'VALIDATION FAILED - CORRUPT SCHEMA')
+        return
+      }
+
       const data = parseStudyBackupPayload(fileString)
       if (!data) {
         pushToast('BACKUP', 'INVALID BACKUP FILE')
