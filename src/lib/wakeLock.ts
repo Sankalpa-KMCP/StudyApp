@@ -1,6 +1,8 @@
 /**
  * Utility functions for interacting with the Screen Wake Lock API.
  * This keeps the screen awake during active study/focus sessions.
+ * Browsers release the lock when the document is hidden; callers should
+ * re-request on visibilitychange when the timer is active again.
  */
 
 export function isWakeLockSupported(): boolean {
