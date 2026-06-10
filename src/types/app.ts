@@ -9,7 +9,10 @@ export interface ThemeProfile {
   surface: string
   surfaceCard: string
   surfaceCardRgb: string
+  surfaceCardHover?: string
+  surfaceCardHoverRgb?: string
   pageGradient: string
+  ambientGlow?: string
   accentBlue: string
   accentPurple: string
   accentGreen: string
@@ -19,6 +22,17 @@ export interface ThemeProfile {
   textSecondary?: string
   textMuted?: string
   onAccent?: string
+  navActiveText?: string
+  scrollbarThumb?: string
+  scrollbarThumbHover?: string
+}
+
+export interface ThemePresetMeta {
+  id: string
+  label: string
+  description: string
+  isLight: boolean
+  swatchOrder: number
 }
 
 export interface DayData {
