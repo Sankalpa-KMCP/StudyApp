@@ -97,4 +97,20 @@ describe('history timestamp helpers', () => {
     })
     expect(key).toEqual({ month: 2, day: 5, year: 2026 })
   })
+
+  it('falls back to legacy timestamp when createdAt missing', () => {
+    const ts = parseHistoryCreatedAt({
+      timestamp: 'March 5, 12:00',
+      type: 'study',
+      durationMinutes: 25,
+    })
+    expect(new Date(ts).getMonth()).toBe(2)
+  })
+})
+
+describe('calculateStreak edge cases', () => {
+  it('returns 0 when latest day has no study minutes', () => {
+    const today = buildDateString(new Date())
+    expect(calculateStreak([{ dateString: today, studyMinutes: 0 }])).toBe(0)
+  })
 })
