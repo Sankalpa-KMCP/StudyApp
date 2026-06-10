@@ -12,6 +12,7 @@ interface ModalShellProps {
   ariaDescribedby?: string
   ariaLabel?: string
   trapRef?: Ref<HTMLDivElement>
+  closeOnBackdrop?: boolean
 }
 
 export function ModalShell({
@@ -25,6 +26,7 @@ export function ModalShell({
   ariaDescribedby,
   ariaLabel,
   trapRef: externalTrapRef,
+  closeOnBackdrop = true,
 }: ModalShellProps) {
   const internalTrapRef = useFocusTrap(open, onClose)
   const trapRef = externalTrapRef ?? internalTrapRef
@@ -36,7 +38,7 @@ export function ModalShell({
       <button
         type="button"
         className="absolute inset-0 bg-black/50 backdrop-blur-md border-0 p-0 cursor-default"
-        onClick={onClose}
+        onClick={closeOnBackdrop ? onClose : undefined}
         aria-label="Close dialog"
         tabIndex={-1}
       />

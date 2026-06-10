@@ -101,6 +101,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
     <ModalShell
       open={isOpen}
       onClose={onClose}
+      closeOnBackdrop={false}
       ariaLabelledby="onboarding-modal-title"
       ariaDescribedby="onboarding-modal-desc"
       panelClassName="max-w-md bg-white/5 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)] overflow-hidden"
