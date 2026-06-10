@@ -5,6 +5,8 @@ import type { TaskItem, DailyLog } from '../db/types'
 import type { ThemeProfile } from '../types/app'
 import type { CSSProperties } from 'react'
 import { hexToRgb } from '../lib/studyDashboard'
+import { PieChartLegend } from './shared/PieChartLegend'
+import { useHeatmapData, useRetentionData } from './analytics/useAnalyticsChartData'
 
 interface AnalyticsStudioProps {
   tasks: TaskItem[]
@@ -45,64 +47,9 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
   hasChartData
 }) => {
   
-  // Calculate SM-2 Spaced Repetition Retention Telemetry
-  const retentionData = useMemo(() => {
-    const gradedTasks = tasks.filter(t => t.completed && t.latestGrade !== undefined)
-    const groupedByDate: Record<string, { sum: number; count: number }> = {}
-    
-    gradedTasks.forEach(t => {
-      const d = new Date(t.createdAt)
-      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-      if (!groupedByDate[dateStr]) {
-        groupedByDate[dateStr] = { sum: 0, count: 0 }
-      }
-      groupedByDate[dateStr].sum += t.latestGrade!
-      groupedByDate[dateStr].count += 1
-    })
-
-    return Object.keys(groupedByDate)
-      .sort() // Sort chronologically
-      .map(dateStr => {
-        const g = groupedByDate[dateStr]
-        return {
-          date: dateStr.substring(5), // E.g. "06-07"
-          avgGrade: parseFloat((g.sum / g.count).toFixed(1))
-        }
-      })
-  }, [tasks])
-
+  const retentionData = useRetentionData(tasks)
   const hasRetentionData = retentionData.length > 0
-
-  // Calculate 365-Day Focus Heatmap data
-  const heatmapData = useMemo(() => {
-    const today = new Date();
-    const startDate = new Date();
-    startDate.setDate(today.getDate() - 364);
-    const startDayOfWeek = startDate.getDay();
-    startDate.setDate(startDate.getDate() - startDayOfWeek);
-
-    const logsMap = new Map<string, number>();
-    allLogs.forEach(log => {
-      logsMap.set(log.dateString, log.studyMinutes || 0);
-    });
-
-    const days: Array<{ dateStr: string; minutes: number }> = [];
-    const tempDate = new Date(startDate);
-    
-    const endAlignmentDate = new Date(today);
-    const endDayOfWeek = today.getDay();
-    endAlignmentDate.setDate(today.getDate() + (6 - endDayOfWeek));
-
-    while (tempDate <= endAlignmentDate) {
-      const dateStr = `${tempDate.getFullYear()}-${String(tempDate.getMonth() + 1).padStart(2, '0')}-${String(tempDate.getDate()).padStart(2, '0')}`;
-      days.push({
-        dateStr,
-        minutes: logsMap.get(dateStr) ?? 0
-      });
-      tempDate.setDate(tempDate.getDate() + 1);
-    }
-    return days;
-  }, [allLogs]);
+  const heatmapData = useHeatmapData(allLogs)
 
   const rgb = useMemo(() => {
     return hexToRgb(activeThemeVars.accentBlue) || { r: 59, g: 130, b: 246 };
@@ -356,16 +303,15 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex flex-col gap-2 flex-1 max-w-[150px]">
-                {categoryBreakdown.map((item, i) => (
-                  <div key={i} className="flex items-center gap-1.5 text-[10px] font-semibold">
-                    <div className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-white/90 flex-1 truncate">{item.name}</span>
-                    <span className="text-white/60 font-mono">{item.hours}h</span>
-                    <span className="text-white/40 font-mono text-[9px]">({item.percentage}%)</span>
-                  </div>
-                ))}
-              </div>
+              <PieChartLegend
+                items={categoryBreakdown.map(item => ({
+                  name: item.name,
+                  color: item.color,
+                  value: item.hours,
+                  unit: 'h',
+                  percentage: item.percentage,
+                }))}
+              />
             </div>
           ) : (
             <p className="py-12 text-center text-xs italic text-white/30">
@@ -399,16 +345,16 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="flex flex-col gap-1.5 flex-1 max-w-[150px]">
-                {moodDistribution.map((item, i) => (
-                  <div key={i} className="flex items-center gap-1.5 text-[10px] font-semibold">
-                    <span className="text-xs shrink-0">{item.emoji}</span>
-                    <span className="text-white/90 flex-1 truncate">{item.name}</span>
-                    <span className="text-white/60 font-mono">{item.value}d</span>
-                    <span className="text-white/40 font-mono text-[9px]">({item.percentage}%)</span>
-                  </div>
-                ))}
-              </div>
+              <PieChartLegend
+                items={moodDistribution.map(item => ({
+                  name: item.name,
+                  color: item.color,
+                  value: item.value,
+                  unit: 'd',
+                  percentage: item.percentage,
+                  emoji: item.emoji,
+                }))}
+              />
             </div>
           ) : (
             <div className="flex h-24 items-center justify-center text-center">
