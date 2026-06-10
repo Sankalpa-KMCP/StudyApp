@@ -7,6 +7,8 @@ import { SoundFeedbackPanel } from './control-deck/SoundFeedbackPanel'
 import { AlgorithmPanel } from './control-deck/AlgorithmPanel'
 import { ZenLockoutPanel } from './control-deck/ZenLockoutPanel'
 import { BackupVaultPanel } from './control-deck/BackupVaultPanel'
+import { TabPageShell } from './shared/TabPageShell'
+import { SettingsCard } from './shared/settings/SettingsCard'
 
 interface ControlDeckProps {
   updateSetting: (key: SettingsKey, val: SettingsValue) => void
@@ -31,6 +33,8 @@ interface ControlDeckProps {
   importStudyBackup: (val: string) => void
   resetData: () => void
   resetDataSelective: (options: { tasks: boolean; history: boolean; categories: boolean; cards: boolean; notes: boolean }) => void
+  clearSnapshots: () => void
+  quotaExceeded?: boolean
   categories: CategoryItem[]
   addCategory: (name: string, color: string) => void | Promise<number>
   deleteCategory: (id: number) => void
@@ -63,6 +67,8 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   importStudyBackup,
   resetData,
   resetDataSelective,
+  clearSnapshots,
+  quotaExceeded = false,
   categories,
   addCategory,
   deleteCategory,
@@ -75,8 +81,8 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full flex-1 items-start animate-fade-in">
-      <div className="flex flex-col gap-6">
+    <TabPageShell>
+      <div className="lg:col-span-6 flex flex-col gap-6">
         <AestheticsPanel theme={theme} cardOpacity={cardOpacity} backdropBlur={backdropBlur} updateSetting={updateSetting} />
         <TimerFocusPanel
           dailyGoalMinutes={dailyGoalMinutes}
@@ -101,9 +107,8 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
         />
       </div>
 
-      <div className="flex flex-col gap-6">
-        <div className="dynamic-card p-6 shadow-2xl flex flex-col">
-          <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-4">Subject Categories</h3>
+      <div className="lg:col-span-6 flex flex-col gap-6">
+        <SettingsCard title="Subject Categories">
           <div className="flex gap-2 mb-4 bg-white/5 border border-white/5 p-2 rounded-full">
             <input
               id="category-name-input"
@@ -185,7 +190,7 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
               ))
             )}
           </div>
-        </div>
+        </SettingsCard>
 
         <BackupVaultPanel
           exportStudyBackup={exportStudyBackup}
@@ -194,12 +199,14 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
           importStudyBackup={importStudyBackup}
           resetData={resetData}
           resetDataSelective={resetDataSelective}
+          clearSnapshots={clearSnapshots}
+          quotaExceeded={quotaExceeded}
           isDragging={isDragging}
           setIsDragging={setIsDragging}
           handleFileDrop={handleFileDrop}
           fileInputRef={fileInputRef}
         />
       </div>
-    </div>
+    </TabPageShell>
   )
 }

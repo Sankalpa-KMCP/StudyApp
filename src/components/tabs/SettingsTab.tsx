@@ -8,7 +8,7 @@ const ControlDeck = lazy(() =>
 
 export function SettingsTab() {
   const { settings, backup, confirmImport, handleFileDrop, categories } = useStudySettings()
-  const { isDragging, setIsDragging } = useStudyUI()
+  const { isDragging, setIsDragging, quotaExceeded } = useStudyUI()
 
   return (
     <Suspense fallback={<TabLoadingFallback label="settings" />}>
@@ -35,6 +35,8 @@ export function SettingsTab() {
         importStudyBackup={confirmImport}
         resetData={backup.resetData}
         resetDataSelective={backup.resetDataSelective}
+        clearSnapshots={backup.clearSnapshots}
+        quotaExceeded={quotaExceeded}
         categories={categories.categories}
         addCategory={categories.addCategory}
         deleteCategory={categories.deleteCategory}

@@ -30,6 +30,7 @@ function PanelStory() {
       importStudyBackup={() => {}}
       resetData={() => {}}
       resetDataSelective={() => {}}
+      clearSnapshots={() => {}}
       isDragging={false}
       setIsDragging={() => {}}
       handleFileDrop={() => {}}
