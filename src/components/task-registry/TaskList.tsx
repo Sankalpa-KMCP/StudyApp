@@ -61,7 +61,8 @@ export function TaskList({
             </span>
           </div>
 
-          <div className="flex flex-col gap-1 max-h-[185px] overflow-y-auto custom-scrollbar pr-1">
+          <p className="text-micro text-white/40">1 = forgot, 2 = hard, 4 = good, 5 = easy</p>
+          <div className="flex flex-col gap-1 max-h-[40vh] overflow-y-auto custom-scrollbar pr-1">
             {reviewQueueList.map(task => (
               <div key={task.id} className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2 border-b border-white/5 last:border-b-0 hover:bg-white/[0.03] px-1 rounded-xl transition-colors duration-200">
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -77,7 +78,7 @@ export function TaskList({
                       {categoriesMap.get(task.categoryId)!.name}
                     </span>
                   )}
-                  <span className="text-xs text-white/90 font-semibold truncate select-none">{task.text}</span>
+                  <span className="text-xs text-white/90 font-semibold truncate select-none" title={task.text}>{task.text}</span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="text-[8px] text-white/40 font-bold uppercase tracking-wider mr-1.5 hidden sm:inline select-none">Recall:</span>
@@ -105,7 +106,7 @@ export function TaskList({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto max-h-[350px] custom-scrollbar flex flex-col pr-1">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col pr-1">
         {activeTasksList.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 rounded-[24px] bg-black/20 text-center my-2 select-none animate-fade-in">
             <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-white/5 mb-3 text-white/40">
@@ -142,11 +143,12 @@ export function TaskList({
                   role="button"
                   tabIndex={task.completed ? -1 : 0}
                   aria-label={`Task ${task.text}`}
+                  aria-current={isActive ? 'true' : undefined}
                   className={`dynamic-card flex flex-col gap-3 py-4 px-4 transition-all duration-300 cursor-pointer mb-2 ${
                     isActive
-                      ? 'shadow-lg border-white/12 -translate-y-[1px]'
+                      ? 'shadow-lg border-white/12 -translate-y-[1px] ring-1 ring-accent-blue/25 border-l-[4px] border-l-accent-blue'
                       : 'hover:-translate-y-[2px]'
-                  } ${priorityBorder}`}
+                  } ${isActive ? '' : priorityBorder}`}
                   onClick={e => {
                     if ((e.target as HTMLElement).closest('[data-subtask-panel]')) return
                     toggleActive()
@@ -191,7 +193,10 @@ export function TaskList({
                           {task.priority}
                         </span>
                       )}
-                      <span className={`flex-1 truncate text-xs font-semibold select-none transition-colors ${isActive ? 'text-white' : 'text-white/80'}`}>
+                      <span
+                        title={task.text}
+                        className={`flex-1 text-xs font-semibold select-none transition-colors ${isActive ? 'text-white line-clamp-2' : 'text-white/80 truncate'}`}
+                      >
                         {task.text}
                       </span>
                     </div>
