@@ -4,6 +4,14 @@ A local-first, privacy-focused study dashboard with Pomodoro timing, task tracki
 
 **Created by Sankalpa KMCP**
 
+[![Live demo](https://img.shields.io/badge/demo-GitHub%20Pages-3B82F6)](https://github.com/SankalpaKMCP/StudyApp/deployments/github-pages)
+
+## Screenshots
+
+| Focus | Cards | Analytics | Settings |
+|-------|-------|-----------|----------|
+| ![Focus tab](docs/screenshots/focus.png) | ![Cards tab](docs/screenshots/cards.png) | ![Analytics tab](docs/screenshots/analytics.png) | ![Settings tab](docs/screenshots/settings.png) |
+
 ---
 
 ## Core Premise: Local-First & Offline
@@ -75,6 +83,7 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 - **Emergency snapshots** are stored in IndexedDB (`snapshots` table), keeping the last 3 automatic backups.
 - **Schema version:** 7 (Dexie `db.verno` — IndexedDB migration version).
 - **Backup `version: 2`** in `.studybackup` JSON exports is the **export file format** revision — separate from the DB schema version above.
+- See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ### Data limits
 
@@ -91,74 +100,38 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 
 ## Architecture
 
-Data hooks live in [`src/db/hooks/`](src/db/hooks/) (repositories + per-domain hooks). [`src/db/queries.ts`](src/db/queries.ts) is a deprecated re-export shim — import from `db/hooks` instead.
-
-```mermaid
-flowchart TB
-  subgraph data [Data Layer]
-    db[(IndexedDB / Dexie)]
-    repos[db/repositories]
-    dbHooks[db/hooks]
-  end
-  subgraph hooks [Hooks]
-    timer[useTimerEngine]
-    backup[useSessionBackup]
-    journal[useJournalCalendar]
-  end
-  subgraph context [Context Providers]
-    confirmP[ConfirmProvider]
-    dataP[StudyDataProvider]
-    timerP[StudyTimerProvider]
-    uiP[StudyUIProvider]
-  end
-  subgraph ui [UI Tabs]
-    focus[FocusTab]
-    cards[CardsTab]
-    analytics[AnalyticsTab]
-    journalTab[JournalTab]
-    settings[SettingsTab]
-  end
-  db --> repos
-  repos --> dbHooks
-  dbHooks --> dataP
-  timer --> timerP
-  backup --> timerP
-  journal --> dataP
-  confirmP --> dataP
-  dataP --> focus
-  timerP --> focus
-  uiP --> focus
-  dataP --> cards
-  dataP --> analytics
-  dataP --> journalTab
-  timerP --> settings
-```
+Data hooks live in [`src/db/hooks/`](src/db/hooks/) (repositories + per-domain hooks). Full diagrams and context tree: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev            # Vite dev server at http://localhost:5173
 npm run build          # Production build to dist/
 npm test               # Vitest unit tests
-npm run test:coverage  # Coverage report (75% threshold on scoped lib/db/hooks/repositories)
+npm run test:coverage  # Coverage gate (80% lines, 65% branches)
+npm run test:coverage:components  # Shared/analytics component gate (50%)
+npm run check:bundle   # Gzip budget on main chunk (~512 KB)
 npm run test:watch     # Vitest watch mode
-npm run test:e2e       # Playwright smoke tests
+npm run test:e2e       # Playwright user journeys
 npm run storybook      # Component stories on port 6006
 npm run build-storybook
-npm run lint           # ESLint
+npm run lint           # ESLint + jsx-a11y
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for migrations, settings, and E2E conventions.
 
 ### Testing guide
 
 | Layer | Command | Location |
 |-------|---------|----------|
 | Unit / hooks | `npm test` | `src/lib/__tests__`, `src/db/__tests__`, `src/hooks/__tests__` |
-| Component | `npm test` | `src/components/__tests__` (TaskRegistry, ActivityLedger, FlashcardStudio) |
-| Context | `npm test` | `src/context/__tests__` (StudyAppProvider + ConfirmProvider) |
-| Coverage gate | `npm run test:coverage` | CI fails under 75% on scoped lib/db/hooks/repositories |
-| E2E smoke | `npm run test:e2e` | `focus`, `settings`, `timer`, `tasks`, `flashcards`, `backup`, `backup-export`, `backup-import`, `backup-import-cancel`, `keyboard`, `reflection` |
-| Storybook | `npm run storybook` | `src/**/*.stories.tsx` |
+| Component | `npm test` | `src/components/**/__tests__` |
+| Context / integration | `npm test` | `src/context/__tests__` |
+| Coverage gate | `npm run test:coverage` | 80% lines / 65% branches on scoped modules |
+| Component gate | `npm run test:coverage:components` | 50% on shared primitives and analytics |
+| E2E | `npm run test:e2e` | `e2e/` including analytics, journal, zen, mobile, invalid backup |
+| Storybook + a11y | `npm run storybook` | `@storybook/addon-a11y` on all stories |
 
 ### Tauri Desktop App
 
@@ -167,11 +140,13 @@ npm run tauri:dev    # Desktop dev with hot reload
 npm run tauri:build  # Build native installer
 ```
 
+Push a version tag (`v*`, e.g. `v1.0.0`) to trigger the Tauri release build workflow (`.github/workflows/tauri-release.yml`).
+
 ---
 
 ## PWA Install
 
-The app includes a web manifest and service worker (`vite-plugin-pwa`) for offline app-shell caching. Deploy to GitHub Pages or any static host; data remains in browser IndexedDB.
+The app includes a web manifest and service worker (`vite-plugin-pwa`) for offline app-shell caching. The service worker precaches the app shell; IndexedDB is the source of truth (no remote API). An offline banner appears when the network is unavailable. Deploy to GitHub Pages or any static host.
 
 ---
 
