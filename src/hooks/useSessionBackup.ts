@@ -54,6 +54,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
         db.flashcards.toArray(),
         db.quick_notes.toArray(),
       ])
+      // `version: 2` is the JSON export format revision — not the IndexedDB schema version (see db.verno / CHANGELOG).
       const data = { version: 2, exportedAt: new Date().toISOString(), tasks, history, dailyLogs, settings, categories, flashcards, quickNotes }
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
