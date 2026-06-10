@@ -3,6 +3,9 @@ import { useEffect, type RefObject } from 'react'
 export function useZenCanvas(isZenMode: boolean, canvasRef: RefObject<HTMLCanvasElement | null>) {
   useEffect(() => {
     if (!isZenMode) return
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return
+    }
 
     const canvas = canvasRef.current
     if (!canvas) return
