@@ -1,6 +1,9 @@
 import type { CSSProperties } from 'react'
+import { BarChart3 } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import type { ThemeProfile } from '../../types/app'
+import { Card } from '../shared/Card'
+import { EmptyState } from '../shared/EmptyState'
 
 interface TrendsChartsPanelProps {
   chartData: Array<{ day: string; hours: number; focus: number }>
@@ -17,8 +20,8 @@ export function TrendsChartsPanel({
 }: TrendsChartsPanelProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div className="lg:col-span-8 border border-white/5 bg-white/[0.02] dynamic-card p-6" aria-labelledby="analytics-weekly-trends">
-        <h3 id="analytics-weekly-trends" className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Weekly Performance Trends</h3>
+      <Card className="lg:col-span-8" padding="md" aria-labelledby="analytics-weekly-trends">
+        <h3 id="analytics-weekly-trends" className="text-caption font-semibold text-white/80 tracking-wider uppercase mb-5">Weekly Performance Trends</h3>
         {hasChartData ? (
           <div className="h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -38,15 +41,17 @@ export function TrendsChartsPanel({
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="flex h-[220px] items-center justify-center">
-            <p className="text-xs text-white/40 italic">No study hours logged for this period.</p>
-          </div>
+          <EmptyState
+            icon={<BarChart3 className="h-8 w-8" />}
+            title="No study data yet"
+            description="Complete a focus block to see your weekly trends here."
+          />
         )}
-      </div>
+      </Card>
 
-      <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6 flex flex-col justify-between" aria-labelledby="analytics-efficiency-index">
+      <Card className="lg:col-span-4 flex flex-col justify-between" padding="md" aria-labelledby="analytics-efficiency-index">
         <div>
-          <h3 id="analytics-efficiency-index" className="text-xs font-bold text-white/70 tracking-wider uppercase mb-5">Daily Efficiency Index</h3>
+          <h3 id="analytics-efficiency-index" className="text-caption font-bold text-white/70 tracking-wider uppercase mb-5">Daily Efficiency Index</h3>
           {hasChartData ? (
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -66,12 +71,14 @@ export function TrendsChartsPanel({
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="flex h-[200px] items-center justify-center">
-              <p className="text-xs text-white/40 italic">No activity indexes logged.</p>
-            </div>
+            <EmptyState
+              icon={<BarChart3 className="h-8 w-8" />}
+              title="No efficiency data"
+              description="Your focus scores will appear after you log sessions."
+            />
           )}
         </div>
-      </div>
+      </Card>
     </div>
   )
 }
