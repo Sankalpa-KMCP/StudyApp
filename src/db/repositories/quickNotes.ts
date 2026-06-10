@@ -1,0 +1,25 @@
+import { db } from '../db'
+
+export async function addNote(title: string, content: string, categoryId?: number) {
+  await db.quick_notes.add({
+    title,
+    content,
+    categoryId,
+    color: '#06b6d4',
+    updatedAt: Date.now(),
+  })
+}
+
+export async function updateNote(id: number, title: string, content: string, categoryId?: number, color?: string) {
+  await db.quick_notes.update(id, {
+    title,
+    content,
+    categoryId,
+    color,
+    updatedAt: Date.now(),
+  })
+}
+
+export async function deleteNote(id: number) {
+  await db.quick_notes.delete(id)
+}
