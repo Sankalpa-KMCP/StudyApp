@@ -799,6 +799,22 @@ function App() {
     return () => clearTimeout(timer)
   }, [activeToast])
 
+  // Page Visibility Auto-Pause
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.hidden && isTimerActive) {
+        setIsTimerActive(false)
+        setActiveToast({
+          key: 'PAUSE',
+          message: 'PAUSED - WORKSPACE INACTIVE',
+          id: Date.now()
+        })
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [isTimerActive])
+
   async function resetData() {
     await db.tasks.clear()
     await db.history.clear()
