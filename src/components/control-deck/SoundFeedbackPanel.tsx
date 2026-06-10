@@ -2,7 +2,7 @@ import type { SettingsKey, SettingsValue } from '../../db/types'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
 
-const FONT_OPTIONS = ['JetBrains Mono', 'Fira Code', 'SF Mono', 'Outfit', 'Inter'] as const
+const FONT_OPTIONS = ['JetBrains Mono', 'Inter', 'Outfit'] as const
 
 interface SoundFeedbackPanelProps {
   soundEnabled: boolean
@@ -28,6 +28,7 @@ export function SoundFeedbackPanel({ soundEnabled, tactileEnabled, developerFont
               <option key={f} value={f} className="bg-[#11131e] text-white">{f}</option>
             ))}
           </select>
+          <p className="text-micro text-white/40 mt-1.5">Timer and metrics use the loaded monospace fonts above.</p>
         </div>
       </div>
     </SettingsCard>
