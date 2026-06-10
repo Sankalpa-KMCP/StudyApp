@@ -104,6 +104,7 @@ export function TaskCreateForm({
                 ))}
               </select>
             </div>
+            <p className="text-[10px] text-white/40 leading-relaxed">One cycle = one focus block (default 25 min).</p>
           </div>
         </div>
 

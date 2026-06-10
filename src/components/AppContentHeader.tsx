@@ -29,6 +29,7 @@ export function AppContentHeader({
 
   const focusChip = (
     <div
+      title="Change daily goal in Settings → Timer & Focus"
       className={`flex flex-col gap-1 rounded-full border px-3 py-1.5 min-w-[120px] ${
         focusStatus.goalMet
           ? 'bg-accent-green/10 border-accent-green/20'
