@@ -4,7 +4,7 @@ import { settingsFromRows } from '../selectors/settingsFromRows'
 describe('settingsFromRows', () => {
   it('returns defaults when rows are undefined', () => {
     const s = settingsFromRows(undefined)
-    expect(s.dailyGoalMinutes).toBe(480)
+    expect(s.dailyGoalMinutes).toBe(120)
     expect(s.theme).toBe('midnight-slate')
     expect(s.studyBlockDurationMinutes).toBe(25)
   })
