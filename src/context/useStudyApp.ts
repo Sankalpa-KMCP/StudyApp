@@ -53,6 +53,8 @@ export function useStudyUI() {
     isHotkeyHudOpen: ui.isHotkeyHudOpen,
     setIsHotkeyHudOpen: ui.setIsHotkeyHudOpen,
     activeToast: ui.activeToast,
+    quotaExceeded: ui.quotaExceeded,
+    dismissQuotaRecovery: ui.dismissQuotaRecovery,
     breathTime: ui.breathTime,
     isDragging: ui.isDragging,
     setIsDragging: ui.setIsDragging,

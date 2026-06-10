@@ -13,7 +13,7 @@ type ToastApi = ReturnType<typeof useAppToast>
 export function useStudyUIState(toast: ToastApi) {
   const { settings } = useStudyDataContext()
   const { timer } = useStudyTimerContext()
-  const { activeToast, setActiveToast } = toast
+  const { activeToast, setActiveToast, quotaExceeded, dismissQuotaRecovery } = toast
 
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [breathTime, setBreathTime] = useState(0)
@@ -81,6 +81,8 @@ export function useStudyUIState(toast: ToastApi) {
 
   return useMemo(() => ({
     activeToast,
+    quotaExceeded,
+    dismissQuotaRecovery,
     isNotesOpen,
     setIsNotesOpen,
     breathTime,
@@ -98,6 +100,8 @@ export function useStudyUIState(toast: ToastApi) {
     notifyFocusLockout,
   }), [
     activeToast,
+    quotaExceeded,
+    dismissQuotaRecovery,
     isNotesOpen,
     breathTime,
     isZenMode,
