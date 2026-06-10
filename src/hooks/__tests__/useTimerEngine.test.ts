@@ -19,7 +19,7 @@ function createTimerOptions(overrides: Partial<Parameters<typeof useTimerEngine>
     pushToast: vi.fn(),
     activeTaskId: null,
     setActiveTaskId: vi.fn(),
-    autoPauseOnHidden: true,
+    focusNotificationsEnabled: false,
     ...overrides,
   }
 }
@@ -33,63 +33,104 @@ describe('useTimerEngine', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false })
   })
 
   it('ticks remainingSeconds down when timer is active', () => {
     const { result } = renderHook(() => useTimerEngine(createTimerOptions()))
-    act(() => result.current.setIsTimerActive(true))
-    expect(result.current.remainingSeconds).toBe(25 * 60)
+    act(() => result.current.controls.setIsTimerActive(true))
+    expect(result.current.display.remainingSeconds).toBe(25 * 60)
     act(() => vi.advanceTimersByTime(1000))
-    expect(result.current.secondsElapsed).toBe(1)
-    expect(result.current.remainingSeconds).toBe(25 * 60 - 1)
+    expect(result.current.display.secondsElapsed).toBe(1)
+    expect(result.current.display.remainingSeconds).toBe(25 * 60 - 1)
   })
 
   it('opens reflection modal when completing a study session', async () => {
     const { result } = renderHook(() => useTimerEngine(createTimerOptions()))
     act(() => {
-      result.current.setIsTimerActive(true)
+      result.current.controls.setIsTimerActive(true)
     })
     await act(async () => {
-      await result.current.completeSession()
+      await result.current.controls.completeSession()
     })
-    expect(result.current.showReflectionModal).toBe(true)
-    expect(result.current.pendingSessionData?.mode).toBe('study')
+    expect(result.current.controls.showReflectionModal).toBe(true)
+    expect(result.current.controls.pendingSessionData?.mode).toBe('study')
   })
 
   it('switches between study and break modes', () => {
     const playChime = vi.fn()
     const { result } = renderHook(() => useTimerEngine(createTimerOptions({ playChime })))
-    act(() => result.current.handleModeSwitch('break'))
-    expect(result.current.timerMode).toBe('break')
+    act(() => result.current.controls.handleModeSwitch('break'))
+    expect(result.current.controls.timerMode).toBe('break')
     expect(playChime).toHaveBeenCalled()
-    act(() => result.current.handleModeSwitch('study'))
-    expect(result.current.timerMode).toBe('study')
+    act(() => result.current.controls.handleModeSwitch('study'))
+    expect(result.current.controls.timerMode).toBe('study')
   })
 
   it('resets timer state', () => {
     const setActiveTaskId = vi.fn()
     const { result } = renderHook(() => useTimerEngine(createTimerOptions({ setActiveTaskId })))
     act(() => {
-      result.current.setIsTimerActive(true)
-      result.current.resetTimerState()
+      result.current.controls.setIsTimerActive(true)
+      result.current.controls.resetTimerState()
     })
-    expect(result.current.isTimerActive).toBe(false)
-    expect(result.current.timerMode).toBe('study')
-    expect(result.current.secondsElapsed).toBe(0)
+    expect(result.current.controls.isTimerActive).toBe(false)
+    expect(result.current.controls.timerMode).toBe('study')
+    expect(result.current.display.secondsElapsed).toBe(0)
     expect(setActiveTaskId).toHaveBeenCalledWith(null)
   })
 
-  it('pauses when document becomes hidden while timer is active', () => {
+  it('sends focus notification when study block completes and notifications enabled', async () => {
+    const instances: unknown[] = []
+    class MockNotification {
+      static permission = 'granted'
+      constructor(..._args: unknown[]) {
+        instances.push(this)
+      }
+    }
+    vi.stubGlobal('Notification', MockNotification)
+
+    const { result } = renderHook(() => useTimerEngine(createTimerOptions({ focusNotificationsEnabled: true })))
+    await act(async () => {
+      await result.current.controls.processSessionCompletion(60, 'study', '2026-06-11 10:00', 1)
+    })
+
+    expect(instances.length).toBe(1)
+    vi.unstubAllGlobals()
+  })
+
+  it('does not pause when document becomes hidden while timer is active', () => {
     const pushToast = vi.fn()
     const { result } = renderHook(() => useTimerEngine(createTimerOptions({ pushToast })))
-    act(() => result.current.setIsTimerActive(true))
+    act(() => result.current.controls.setIsTimerActive(true))
     Object.defineProperty(document, 'hidden', { configurable: true, value: true })
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'))
     })
-    expect(result.current.isTimerActive).toBe(false)
-    expect(pushToast).toHaveBeenCalledWith('PAUSE', 'PAUSED - WORKSPACE INACTIVE')
+    expect(result.current.controls.isTimerActive).toBe(true)
+    expect(pushToast).not.toHaveBeenCalledWith('PAUSE', expect.any(String))
     Object.defineProperty(document, 'hidden', { configurable: true, value: false })
+  })
+
+  it('syncs elapsed from wall clock when returning from hidden', () => {
+    const { result } = renderHook(() => useTimerEngine(createTimerOptions()))
+    act(() => result.current.controls.setIsTimerActive(true))
+    act(() => vi.advanceTimersByTime(5000))
+    expect(result.current.display.secondsElapsed).toBe(5)
+
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    act(() => vi.advanceTimersByTime(120_000))
+
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false })
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(result.current.controls.isTimerActive).toBe(true)
+    expect(result.current.display.secondsElapsed).toBe(125)
   })
 
   it('rolls over midnight when computing session timestamp', async () => {
@@ -101,12 +142,12 @@ describe('useTimerEngine', () => {
         addHistoryEntry,
       })),
     )
-    act(() => result.current.setIsTimerActive(true))
+    act(() => result.current.controls.setIsTimerActive(true))
     await act(async () => {
       vi.advanceTimersByTime(15 * 1000)
-      await result.current.completeSession()
+      await result.current.controls.completeSession()
     })
-    expect(result.current.pendingSessionData?.timestamp).toBeTruthy()
+    expect(result.current.controls.pendingSessionData?.timestamp).toBeTruthy()
     vi.useRealTimers()
   })
 
@@ -120,8 +161,8 @@ describe('useTimerEngine', () => {
       })),
     )
     act(() => {
-      result.current.handleModeSwitch('break')
-      result.current.setIsTimerActive(true)
+      result.current.controls.handleModeSwitch('break')
+      result.current.controls.setIsTimerActive(true)
     })
     await act(async () => {
       vi.advanceTimersByTime(60 * 1000)

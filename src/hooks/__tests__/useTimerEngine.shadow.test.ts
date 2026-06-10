@@ -21,7 +21,7 @@ function createTimerOptions(overrides: Partial<Parameters<typeof useTimerEngine>
     pushToast: vi.fn(),
     activeTaskId: null,
     setActiveTaskId: vi.fn(),
-    autoPauseOnHidden: true,
+    focusNotificationsEnabled: false,
     ...overrides,
   }
 }
