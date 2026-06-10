@@ -8,12 +8,13 @@ interface MobileTabBarProps {
   isTimerActive: boolean
   timerMode: 'study' | 'break'
   enforceLockout: boolean
+  onFocusLockout: () => void
 }
 
 const TABS: { id: ActiveTab; label: string; icon: React.FC<{ className?: string }> }[] = [
   { id: 'focus', label: 'Focus', icon: Clock },
   { id: 'cards', label: 'Cards', icon: Layers },
-  { id: 'analytics', label: 'Stats', icon: BarChart3 },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'journal', label: 'Journal', icon: Calendar },
   { id: 'settings', label: 'Settings', icon: Settings },
 ]
@@ -24,6 +25,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
   isTimerActive,
   timerMode,
   enforceLockout,
+  onFocusLockout,
 }) => {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
@@ -31,9 +33,18 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
     tabRefs.current[activeTab]?.focus()
   }, [activeTab])
 
+  const handleTabClick = (tabId: ActiveTab) => {
+    const isLocked = enforceLockout && isTimerActive && timerMode === 'study' && tabId !== 'focus'
+    if (isLocked) {
+      onFocusLockout()
+      return
+    }
+    setActiveTab(tabId)
+  }
+
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 flex md:hidden items-center justify-around border-t border-white/10 bg-black/40 backdrop-blur-xl px-2 py-2 safe-area-pb"
+      className="fixed bottom-0 left-0 right-0 z-30 flex md:hidden items-center justify-around border-t border-white/10 bg-black/50 backdrop-blur-xl px-1 py-1.5 safe-area-pb"
       aria-label="Main navigation"
     >
       {TABS.map(tab => {
@@ -45,14 +56,16 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
             key={tab.id}
             ref={el => { tabRefs.current[tab.id] = el }}
             type="button"
-            disabled={isLocked}
             aria-current={isActive ? 'page' : undefined}
             aria-label={tab.label}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl text-[10px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue ${
-              isActive ? 'text-white' : 'text-white/50'
-            } ${isLocked ? 'opacity-25 cursor-not-allowed' : 'cursor-pointer'}`}
+            onClick={() => handleTabClick(tab.id)}
+            className={`relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-label font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue ${
+              isActive ? 'text-accent-blue' : 'text-white/50'
+            } ${isLocked ? 'opacity-40' : 'cursor-pointer'}`}
           >
+            {isActive && (
+              <span className="absolute -top-1 left-1/2 -translate-x-1/2 h-0.5 w-5 rounded-full bg-accent-blue" />
+            )}
             <Icon className={`h-5 w-5 ${isActive ? 'text-accent-blue' : ''}`} />
             <span>{tab.label}</span>
           </button>

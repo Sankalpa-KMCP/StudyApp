@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
 import { THEME_PROFILES } from '../lib/theme'
 import { useZenCanvas } from '../hooks/useZenCanvas'
@@ -41,7 +41,7 @@ export function useStudyUIState(toast: ToastApi) {
   })
 
   useEffect(() => {
-    const interval = setInterval(() => setBreathTime(t => (t + 1) % 12), 1000)
+    const interval = setInterval(() => setBreathTime(t => (t + 1) % 12), 1250)
     return () => clearInterval(interval)
   }, [])
 
@@ -53,6 +53,14 @@ export function useStudyUIState(toast: ToastApi) {
     () => THEME_PROFILES[settings.theme] || THEME_PROFILES['midnight-oled'],
     [settings.theme],
   )
+
+  const notifyFocusLockout = useCallback(() => {
+    setActiveToast({
+      key: 'LOCK',
+      message: 'FOCUS LOCKOUT — COMPLETE SESSION FIRST',
+      id: Date.now(),
+    })
+  }, [setActiveToast])
 
   const handleFileDrop = (e: React.DragEvent, confirmImport: (s: string) => void) => {
     e.preventDefault()
@@ -83,6 +91,7 @@ export function useStudyUIState(toast: ToastApi) {
     canvasRef,
     activeThemeVars,
     handleFileDrop,
+    notifyFocusLockout,
   }), [
     activeToast,
     isNotesOpen,
@@ -93,5 +102,6 @@ export function useStudyUIState(toast: ToastApi) {
     isHotkeyHudOpen,
     activeThemeVars,
     handleFileDrop,
+    notifyFocusLockout,
   ])
 }
