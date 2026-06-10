@@ -7,6 +7,7 @@ import { TrendsChartsPanel } from './analytics/TrendsChartsPanel'
 import { RetentionChartPanel } from './analytics/RetentionChartPanel'
 import { HeatmapPanel } from './analytics/HeatmapPanel'
 import { BreakdownPanels } from './analytics/BreakdownPanels'
+import { TabPageShell, TabSection } from './shared/TabPageShell'
 import {
   useHeatmapData,
   useRetentionData,
@@ -60,31 +61,45 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
   const estimationInsight = useEstimationInsight(tasks)
 
   return (
-    <div className="flex flex-col gap-6 w-full flex-1 animate-fade-in">
-      <SummaryMetricsRow
-        monthLogs={monthLogs}
-        totalMonthHours={totalMonthHours}
-        totalWeeklyBreakHours={totalWeeklyBreakHours}
-        totalDaysInMonth={totalDaysInMonth}
-        currentStreak={currentStreak}
-      />
-      <TrendsChartsPanel
-        chartData={chartData}
-        hasChartData={hasChartData}
-        activeThemeVars={activeThemeVars}
-        tooltipStyle={tooltipStyle}
-      />
-      <RetentionChartPanel retentionData={retentionData} tooltipStyle={tooltipStyle} />
-      <HeatmapPanel heatmapData={heatmapData} accentBlue={activeThemeVars.accentBlue} />
-      <BreakdownPanels
-        categoryBreakdown={categoryBreakdown}
-        moodDistribution={moodDistribution}
-        topSubject={topSubject}
-        avgMin={avgMin}
-        completionRate={completionRate}
-        peakDay={peakDay}
-        estimationInsight={estimationInsight}
-      />
-    </div>
+    <TabPageShell>
+      <TabSection label="Overview">
+        <SummaryMetricsRow
+          monthLogs={monthLogs}
+          totalMonthHours={totalMonthHours}
+          totalWeeklyBreakHours={totalWeeklyBreakHours}
+          totalDaysInMonth={totalDaysInMonth}
+          currentStreak={currentStreak}
+        />
+      </TabSection>
+
+      <TabSection label="Trends">
+        <TrendsChartsPanel
+          chartData={chartData}
+          hasChartData={hasChartData}
+          activeThemeVars={activeThemeVars}
+          tooltipStyle={tooltipStyle}
+        />
+      </TabSection>
+
+      <TabSection label="Retention" className="lg:col-span-6">
+        <RetentionChartPanel retentionData={retentionData} tooltipStyle={tooltipStyle} />
+      </TabSection>
+
+      <TabSection label="Activity map" className="lg:col-span-6">
+        <HeatmapPanel heatmapData={heatmapData} accentBlue={activeThemeVars.accentBlue} />
+      </TabSection>
+
+      <TabSection label="Insights">
+        <BreakdownPanels
+          categoryBreakdown={categoryBreakdown}
+          moodDistribution={moodDistribution}
+          topSubject={topSubject}
+          avgMin={avgMin}
+          completionRate={completionRate}
+          peakDay={peakDay}
+          estimationInsight={estimationInsight}
+        />
+      </TabSection>
+    </TabPageShell>
   )
 }
