@@ -1,6 +1,9 @@
 import { Clock, Calendar, Award, CheckCircle, Target } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { PieChartLegend } from '../shared/PieChartLegend'
+import { PanelCard } from '../shared/PanelCard'
+import { PanelHeader } from '../shared/PanelHeader'
+import { ChartSummary } from './ChartSummary'
 
 interface CategoryItem {
   name: string
@@ -38,9 +41,13 @@ export function BreakdownPanels({
 }: BreakdownPanelsProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6" aria-labelledby="analytics-subjects">
-        <h3 id="analytics-subjects" className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Subject Distribution</h3>
+      <PanelCard className="lg:col-span-4" aria-labelledby="analytics-subjects">
+        <PanelHeader title="Subject distribution" bordered={false} className="mb-5" id="analytics-subjects" />
         {categoryBreakdown.length > 0 ? (
+          <>
+          <ChartSummary>
+            {`Top category: ${topSubject}. Average session length ${avgMin} minutes. Completion rate ${completionRate}%. Peak study day: ${peakDay}.`}
+          </ChartSummary>
           <div className="flex items-center gap-8 justify-around">
             <div className="w-24 h-24 shrink-0">
               <ResponsiveContainer width="100%" height="100%">
@@ -63,13 +70,14 @@ export function BreakdownPanels({
               }))}
             />
           </div>
+          </>
         ) : (
           <p className="py-12 text-center text-xs italic text-white/30">Configure categories and complete focus blocks.</p>
         )}
-      </div>
+      </PanelCard>
 
-      <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6" aria-labelledby="analytics-mood">
-        <h3 id="analytics-mood" className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Mood Distribution</h3>
+      <PanelCard className="lg:col-span-4" aria-labelledby="analytics-mood">
+        <PanelHeader title="Mood distribution" bordered={false} className="mb-5" id="analytics-mood" />
         {moodDistribution.some(m => m.value > 0) ? (
           <div className="flex items-center gap-8 justify-around">
             <div className="w-24 h-24 shrink-0">
@@ -96,13 +104,13 @@ export function BreakdownPanels({
           </div>
         ) : (
           <div className="flex h-24 items-center justify-center text-center">
-            <p className="text-xs italic text-white/30">Log mood in the activity tab to see distribution.</p>
+            <p className="text-xs italic text-white/30">Log mood in the Journal tab to see distribution.</p>
           </div>
         )}
-      </div>
+      </PanelCard>
 
-      <div className="lg:col-span-4 border border-white/5 bg-white/[0.02] dynamic-card p-6" aria-labelledby="analytics-productivity">
-        <h3 id="analytics-productivity" className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Productivity Metrics</h3>
+      <PanelCard className="lg:col-span-4" aria-labelledby="analytics-productivity">
+        <PanelHeader title="Productivity metrics" bordered={false} className="mb-5" id="analytics-productivity" />
         <div className="grid grid-cols-1 gap-2.5">
           {[
             { label: 'TOP SUBJECT', value: topSubject || 'No logs', icon: Award, color: 'text-accent-purple', bg: 'bg-accent-purple/10' },
@@ -125,7 +133,7 @@ export function BreakdownPanels({
             )
           })}
         </div>
-      </div>
+      </PanelCard>
     </div>
   )
 }

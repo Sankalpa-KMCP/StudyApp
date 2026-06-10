@@ -1,18 +1,28 @@
 import type { CSSProperties } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { PanelCard } from '../shared/PanelCard'
+import { PanelHeader } from '../shared/PanelHeader'
+import { EmptyState } from '../shared/EmptyState'
+import { ChartSummary } from './ChartSummary'
 
 interface RetentionChartPanelProps {
   retentionData: Array<{ date: string; avgGrade: number }>
   tooltipStyle: CSSProperties
+  className?: string
 }
 
-export function RetentionChartPanel({ retentionData, tooltipStyle }: RetentionChartPanelProps) {
+export function RetentionChartPanel({ retentionData, tooltipStyle, className = '' }: RetentionChartPanelProps) {
   const hasRetentionData = retentionData.length > 0
+  const latestGrade = hasRetentionData ? retentionData[retentionData.length - 1]?.avgGrade : 0
 
   return (
-    <div className="border border-white/5 bg-white/[0.02] dynamic-card p-6" aria-labelledby="analytics-retention">
-      <h3 id="analytics-retention" className="text-xs font-semibold text-white/80 tracking-wider uppercase mb-5">Retention Telemetry (SM-2 Active Recall)</h3>
+    <PanelCard className={className} aria-labelledby="analytics-retention">
+      <PanelHeader title="Retention telemetry" bordered={false} className="mb-5" id="analytics-retention" />
       {hasRetentionData ? (
+        <>
+        <ChartSummary>
+          {`Retention trend across ${retentionData.length} review sessions. Latest average recall score: ${latestGrade.toFixed(1)} out of 5.`}
+        </ChartSummary>
         <div className="h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={retentionData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
@@ -24,12 +34,14 @@ export function RetentionChartPanel({ retentionData, tooltipStyle }: RetentionCh
             </LineChart>
           </ResponsiveContainer>
         </div>
+        </>
       ) : (
-        <div className="flex h-[180px] items-center justify-center flex-col gap-2 border border-dashed border-white/10 rounded-[24px] bg-black/20">
-          <span className="text-2xl">📈</span>
-          <p className="text-xs text-white/40 italic">Complete active recall reviews to display retention metrics.</p>
-        </div>
+        <EmptyState
+          icon={<span className="text-2xl">📈</span>}
+          title="No retention data yet"
+          description="Complete active recall reviews to display retention metrics."
+        />
       )}
-    </div>
+    </PanelCard>
   )
 }
