@@ -6,6 +6,10 @@
 @import "@fontsource/jetbrains-mono/500.css";
 @import "@fontsource/jetbrains-mono/600.css";
 @import "@fontsource/jetbrains-mono/700.css";
+@import "@fontsource/outfit/400.css";
+@import "@fontsource/outfit/500.css";
+@import "@fontsource/outfit/600.css";
+@import "@fontsource/outfit/700.css";
 @import "tailwindcss";
 
 @theme {
@@ -32,10 +36,16 @@
 
 :root {
   --font-monospace: 'JetBrains Mono', monospace;
-  --font-sans-geom: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Compact Display", "Segoe UI", Roboto, sans-serif;
+  --font-sans-geom: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-on-accent: #080b11;
   --card-opacity: 0.7;
   --backdrop-blur: 28px;
+  --backdrop-saturate: 180%;
+  --card-border-opacity: 0.08;
   --surface-card-rgb: 22, 22, 32;
+  --motion-fast: 150ms;
+  --motion-normal: 250ms;
+  --motion-slow: 400ms;
 }
 
 .text-label {
@@ -56,8 +66,8 @@
 .panel-shell {
   border: 1px solid var(--color-border-card);
   background-color: rgba(var(--surface-card-rgb), var(--card-opacity, 0.7));
-  backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%);
+  backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(var(--backdrop-saturate, 180%));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(var(--backdrop-saturate, 180%));
 }
 
 .font-mono-console {
@@ -193,7 +203,7 @@
 }
 
 .sidebar-flyout-enter {
-  animation: sidebar-flyout-enter 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: sidebar-flyout-enter var(--motion-fast) cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .sidebar-shell--rail::before {
@@ -248,7 +258,7 @@
 }
 
 .app-tab-panel {
-  animation: app-tab-enter 150ms ease-out;
+  animation: app-tab-enter var(--motion-fast) ease-out;
 }
 
 @keyframes app-tab-enter {
@@ -306,7 +316,7 @@ body {
   }
 }
 .animate-slide-in-up {
-  animation: slide-in-up 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slide-in-up var(--motion-slow) cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes fade-in {
@@ -314,7 +324,7 @@ body {
   100% { opacity: 1; }
 }
 .animate-fade-in {
-  animation: fade-in 250ms ease-out forwards;
+  animation: fade-in var(--motion-normal) ease-out forwards;
 }
 
 @keyframes slide-down {
@@ -341,8 +351,8 @@ body {
     0 8px 32px rgba(0, 0, 0, 0.25), 
     inset 0 1px 0px rgba(255, 255, 255, 0.08), 
     inset 0 -1px 0px rgba(255, 255, 255, 0.02) !important;
-  backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%) !important;
+  backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(var(--backdrop-saturate, 180%)) !important;
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(var(--backdrop-saturate, 180%)) !important;
   transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease !important;
   transform: none;
 }
@@ -352,6 +362,12 @@ body {
   border-color: rgba(255, 255, 255, 0.16) !important;
   box-shadow: var(--shadow-elevated) !important;
   transform: translateY(-2px) scale(1.005) !important;
+}
+
+@media (hover: none) {
+  .dynamic-card:hover {
+    transform: none !important;
+  }
 }
 
 .glass-tier-2 {
@@ -393,11 +409,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* Navigation Panel System */
 .glass-panel {
   position: relative;
-  background-color: rgba(18, 18, 26, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: rgba(var(--surface-card-rgb), calc(var(--card-opacity, 0.7) * 0.65));
+  border: 1px solid var(--color-border-card);
   border-radius: 28px;
-  backdrop-filter: blur(32px) saturate(180%);
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(var(--backdrop-saturate, 180%));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(var(--backdrop-saturate, 180%));
 }
 
 .nav-tab {
@@ -515,11 +531,21 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .text-gradient-amber {
-  color: #f59e0b;
+  color: var(--color-accent-amber);
 }
 
 .text-gradient-green {
-  color: #10b981;
+  color: var(--color-accent-green);
+}
+
+.text-on-accent {
+  color: var(--color-on-accent);
+}
+
+.surface-overlay {
+  background-color: var(--surface-overlay, rgba(var(--surface-card-rgb), 0.95));
+  backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%);
 }
 
 /* Remove AI/Neon visuals */
@@ -589,6 +615,54 @@ input[type="range"]::-webkit-slider-thumb:hover {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+[data-density="compact"] .tab-page-shell {
+  gap: 1rem;
+}
+
+@media (max-width: 767px) {
+  [data-density="compact"] .app-content-main {
+    padding: 0.75rem;
+  }
+
+  [data-density="compact"] header {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+[data-theme-mode="light"] .nav-tab {
+  color: var(--color-text-secondary);
+}
+
+[data-theme-mode="light"] .nav-tab:hover {
+  color: var(--color-text-primary);
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme-mode="light"] .nav-tab-active {
+  background-color: color-mix(in srgb, var(--color-accent-blue) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent-blue) 20%, transparent);
+}
+
+[data-theme-mode="light"] .mobile-nav-btn {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+[data-theme-mode="light"] .dynamic-card {
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0px rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme-mode="light"] .dynamic-card:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-theme-mode="light"] .glass-panel {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
 @media (prefers-reduced-motion: reduce) {
