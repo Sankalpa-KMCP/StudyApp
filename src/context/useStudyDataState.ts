@@ -25,7 +25,6 @@ export function useStudyDataState(pushToast: PushToast) {
   })
 
   const journal = useJournalCalendar({
-    sessionHistory: history.history,
     sessionTasks: tasks.tasks,
     dailyGoalMinutes: settings.dailyGoalMinutes,
     studyBlockDurationMinutes: settings.studyBlockDurationMinutes,
