@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test('submits study reflection after completing a focus block', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
-  await expect(page.getByText('Focus targets')).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('Focus targets', { exact: true })).toBeVisible({ timeout: 15000 })
 
   await page.keyboard.press('c')
   const dialog = page.getByRole('dialog')

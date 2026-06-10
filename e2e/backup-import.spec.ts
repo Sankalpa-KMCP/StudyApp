@@ -6,10 +6,10 @@ import * as path from 'path'
 test('imports backup vault after confirm dialog', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
-  await expect(page.getByText('Focus targets')).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('Focus targets', { exact: true })).toBeVisible({ timeout: 15000 })
 
   const taskName = 'Round-trip backup task'
-  const input = page.getByPlaceholder('Create focus target...')
+  const input = page.getByPlaceholder('What do you want to focus on?')
   await input.fill(taskName)
   await input.press('Enter')
   await expect(page.getByText(taskName)).toBeVisible({ timeout: 10000 })
