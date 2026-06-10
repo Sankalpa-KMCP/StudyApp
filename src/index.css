@@ -21,11 +21,37 @@
   --color-text-muted: rgba(255, 255, 255, 0.55);
   --color-border-card: rgba(255, 255, 255, 0.08);
   --color-border-subtle: rgba(255, 255, 255, 0.04);
+  --text-label: 0.6875rem;
+  --text-caption: 0.75rem;
+  --radius-card: 1.5rem;
+  --radius-panel: 1.75rem;
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.25);
+  --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.35);
 }
 
 :root {
   --font-monospace: 'JetBrains Mono', monospace;
   --font-sans-geom: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Compact Display", "Segoe UI", Roboto, sans-serif;
+  --card-opacity: 0.7;
+  --backdrop-blur: 28px;
+  --surface-card-rgb: 22, 22, 32;
+}
+
+.text-label {
+  font-size: var(--text-label);
+  line-height: 1.35;
+}
+
+.text-caption {
+  font-size: var(--text-caption);
+  line-height: 1.4;
+}
+
+.panel-shell {
+  border: 1px solid var(--color-border-card);
+  background-color: rgba(var(--surface-card-rgb), var(--card-opacity, 0.7));
+  backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%);
 }
 
 .font-mono-console {
@@ -107,20 +133,20 @@ body {
 /* iOS glassmorphism cards */
 .dynamic-card {
   position: relative;
-  background-color: rgba(22, 22, 32, 0.45) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 24px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
-  backdrop-filter: blur(28px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  background-color: color-mix(in srgb, var(--color-surface-card) calc(var(--card-opacity, 0.7) * 100%), transparent) !important;
+  border: 1px solid var(--color-border-card) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+  backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%) !important;
   transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease !important;
   transform: none;
 }
 
 .dynamic-card:hover {
-  background-color: rgba(30, 30, 44, 0.55) !important;
+  background-color: color-mix(in srgb, var(--color-surface-card-hover) calc(var(--card-opacity, 0.7) * 100%), transparent) !important;
   border-color: rgba(255, 255, 255, 0.14) !important;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: var(--shadow-elevated) !important;
 }
 
 .glass-tier-2 {
