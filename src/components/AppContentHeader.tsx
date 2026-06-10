@@ -10,6 +10,7 @@ interface AppContentHeaderProps {
   timerMode: 'study' | 'break'
   todayStudyMinutes: number
   dailyGoalMinutes: number
+  focusCategoryName?: string
 }
 
 export function AppContentHeader({
@@ -19,8 +20,10 @@ export function AppContentHeader({
   timerMode,
   todayStudyMinutes,
   dailyGoalMinutes,
+  focusCategoryName,
 }: AppContentHeaderProps) {
   const focusStatus = getDailyFocusStatus(todayStudyMinutes, dailyGoalMinutes)
+  const goalScopeLabel = focusCategoryName ? `${focusCategoryName} goal` : 'Daily goal'
 
   const focusChip = (
     <div
@@ -40,7 +43,7 @@ export function AppContentHeader({
         />
       </div>
       <span className="text-[9px] font-semibold text-white/45">
-        {focusStatus.studiedLabel} / {formatGoalLabel(dailyGoalMinutes)}
+        {focusStatus.studiedLabel} / {formatGoalLabel(dailyGoalMinutes)} ({goalScopeLabel})
       </span>
     </div>
   )
@@ -50,7 +53,10 @@ export function AppContentHeader({
       <header className="flex md:hidden items-center justify-between px-4 py-2.5 border-b border-white/5 bg-black/10 backdrop-blur-md gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <Brain className="h-4 w-4 text-accent-blue shrink-0" />
-          <span className="font-bold text-sm text-white truncate">{TAB_CHROME[activeTab].title}</span>
+          <div className="min-w-0">
+            <span className="font-bold text-sm text-white truncate block">{TAB_CHROME[activeTab].title}</span>
+            <p className="text-caption text-white/45 font-medium truncate">{TAB_CHROME[activeTab].subtitle}</p>
+          </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {focusChip}
