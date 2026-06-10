@@ -4,6 +4,12 @@ import { parseStudyBackupPayload, validateBackupPayload } from '../lib/studyDash
 import { devLog } from '../lib/devLogger'
 const MAX_SNAPSHOTS = 3
 
+function escapeCsvField(value: string): string {
+  const needsFormulaGuard = /^[=+\-@]/.test(value)
+  const sanitized = needsFormulaGuard ? `'${value}` : value
+  return `"${sanitized.replace(/"/g, '""')}"`
+}
+
 export function useSessionBackup(pushToast: (key: string, message: string) => void) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -74,7 +80,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
       const logs = await db.daily_logs.toArray()
       let csv = 'Date,Study Minutes,Break Minutes,Mood,Notes\n'
       logs.forEach(l => {
-        const notes = l.notes ? `"${l.notes.replace(/"/g, '""')}"` : ''
+        const notes = l.notes ? escapeCsvField(l.notes) : ''
         csv += `${l.dateString},${l.studyMinutes},${l.breakMinutes},${l.mood || ''},${notes}\n`
       })
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -98,7 +104,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
 
       let csv = 'Task ID,Task Text,Status,Priority,Category,Created At,Estimated Cycles,Actual Cycles,Subtasks Progress,Subtasks Detail\n'
       tasks.forEach(t => {
-        const text = t.text ? `"${t.text.replace(/"/g, '""')}"` : ''
+        const text = t.text ? escapeCsvField(t.text) : ''
         const status = t.completed ? 'Completed' : 'Active'
         const priority = t.priority || 'medium'
         const category = t.categoryId ? (catMap.get(t.categoryId) || '') : ''
