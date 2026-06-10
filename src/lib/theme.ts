@@ -6,7 +6,7 @@ export const THEME_PROFILES: Record<string, ThemeProfile> = {
     surfaceCard: '#11131e',
     surfaceCardRgb: '17, 19, 30',
     accentBlue: '#3b82f6',
-    accentPurple: '#6366f1',
+    accentPurple: '#818cf8',
     accentGreen: '#10b981',
     accentAmber: '#f59e0b',
   },
