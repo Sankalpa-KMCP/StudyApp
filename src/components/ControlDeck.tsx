@@ -2,26 +2,24 @@ import React, { useState } from 'react'
 import { X } from 'lucide-react'
 import type { CategoryItem, SettingsKey, SettingsValue } from '../db/types'
 
+const FONT_OPTIONS = ['JetBrains Mono', 'Fira Code', 'SF Mono', 'Outfit', 'Inter'] as const
+
 interface ControlDeckProps {
   updateSetting: (key: SettingsKey, val: SettingsValue) => void
   theme: string
   cardOpacity: number
   backdropBlur: number
   initialEasinessFactor: number
+  dailyGoalMinutes: number
+  studyBlockDurationMinutes: number
+  shortBreakDurationMinutes: number
+  longBreakDurationMinutes: number
+  targetSessionsPerCycle: number
   soundEnabled: boolean
   tactileEnabled: boolean
-  localEnforceLockout: boolean
-  setLocalEnforceLockout: (val: boolean) => void
+  developerFont: string
+  enforceLockout: boolean
   autoArchiveAncientTasks: boolean
-  audio_presets: any[]
-  localVolumeRain: number
-  setLocalVolumeRain: (val: number) => void
-  localVolumeCafe: number
-  setLocalVolumeCafe: (val: number) => void
-  localVolumeWhiteNoise: number
-  setLocalVolumeWhiteNoise: (val: number) => void
-  localAlphaWaves: number
-  setLocalAlphaWaves: (val: number) => void
   exportStudyBackup: () => void
   exportStudyLogsCSV: () => void
   exportTaskCompletionLogsCSV: () => void
@@ -47,8 +45,15 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   cardOpacity,
   backdropBlur,
   initialEasinessFactor,
-  localEnforceLockout,
-  setLocalEnforceLockout,
+  dailyGoalMinutes,
+  studyBlockDurationMinutes,
+  shortBreakDurationMinutes,
+  longBreakDurationMinutes,
+  targetSessionsPerCycle,
+  soundEnabled,
+  tactileEnabled,
+  developerFont,
+  enforceLockout,
   autoArchiveAncientTasks,
   exportStudyBackup,
   exportStudyLogsCSV,
@@ -143,6 +148,75 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
           </div>
         </div>
 
+        {/* Timer & Focus Settings */}
+        <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl">
+          <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-5">Timer & Focus</h3>
+          <div className="space-y-4">
+            {[
+              { key: 'dailyGoalMinutes' as const, label: 'Daily goal (minutes)', value: dailyGoalMinutes, min: 30, max: 960, step: 30 },
+              { key: 'studyBlockDurationMinutes' as const, label: 'Study block (minutes)', value: studyBlockDurationMinutes, min: 5, max: 120, step: 5 },
+              { key: 'shortBreakDurationMinutes' as const, label: 'Short break (minutes)', value: shortBreakDurationMinutes, min: 1, max: 30, step: 1 },
+              { key: 'longBreakDurationMinutes' as const, label: 'Long break (minutes)', value: longBreakDurationMinutes, min: 5, max: 60, step: 5 },
+              { key: 'targetSessionsPerCycle' as const, label: 'Sessions before long break', value: targetSessionsPerCycle, min: 1, max: 10, step: 1 },
+            ].map(item => (
+              <div key={item.key}>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-semibold text-white/80">{item.label}</span>
+                  <span className="text-xs font-bold text-accent-blue">{item.value}</span>
+                </div>
+                <input
+                  type="range"
+                  min={item.min}
+                  max={item.max}
+                  step={item.step}
+                  value={item.value}
+                  onChange={e => updateSetting(item.key, parseInt(e.target.value))}
+                  className="w-full accent-accent-blue h-1.5 rounded-full cursor-pointer bg-white/5 outline-none"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sound & Feedback */}
+        <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl">
+          <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-4">Sound & Feedback</h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between bg-black/20 border border-white/5 px-4 py-3 rounded-2xl">
+              <span className="text-[10px] font-semibold text-white/70">Session chimes</span>
+              <button
+                onClick={() => updateSetting('soundEnabled', !soundEnabled)}
+                className={`ios-switch shrink-0 ${soundEnabled ? 'active' : ''}`}
+                aria-pressed={soundEnabled}
+              >
+                <span className="ios-switch-thumb" />
+              </button>
+            </div>
+            <div className="flex items-center justify-between bg-black/20 border border-white/5 px-4 py-3 rounded-2xl">
+              <span className="text-[10px] font-semibold text-white/70">Tactile click feedback</span>
+              <button
+                onClick={() => updateSetting('tactile_feedback', !tactileEnabled)}
+                className={`ios-switch shrink-0 ${tactileEnabled ? 'active' : ''}`}
+                aria-pressed={tactileEnabled}
+              >
+                <span className="ios-switch-thumb" />
+              </button>
+            </div>
+            <div>
+              <span className="text-xs font-semibold text-white/80 block mb-2">Monospace font</span>
+              <select
+                value={developerFont}
+                onChange={e => updateSetting('developer_font', e.target.value)}
+                className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-white outline-none cursor-pointer"
+              >
+                {FONT_OPTIONS.map(f => (
+                  <option key={f} value={f} className="bg-[#11131e] text-white">{f}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Spaced Repetition Algorithm Settings */}
         <div className="border border-white/5 bg-white/[0.02] rounded-[28px] p-6 shadow-2xl backdrop-blur-3xl">
           <h3 className="text-xs font-bold text-white/50 tracking-wider uppercase mb-2">Algorithm Settings</h3>
@@ -179,14 +253,11 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
             <p className="text-[10px] text-white/40 leading-relaxed">Hides tab and escape navigation menus during study blocks to enforce strict focus.</p>
           </div>
           <div className="flex items-center justify-between mt-4 bg-black/20 border border-white/5 px-4 py-3 rounded-2xl">
-            <span className="text-[10px] font-semibold text-white/70">{localEnforceLockout ? 'Enforced' : 'Bypassed'}</span>
+            <span className="text-[10px] font-semibold text-white/70">{enforceLockout ? 'Enforced' : 'Bypassed'}</span>
             <button
-              onClick={() => {
-                const nextVal = !localEnforceLockout
-                setLocalEnforceLockout(nextVal)
-                updateSetting('enforce_lockout', nextVal)
-              }}
-              className={`ios-switch shrink-0 ${localEnforceLockout ? 'active' : ''}`}
+              onClick={() => updateSetting('enforce_lockout', !enforceLockout)}
+              className={`ios-switch shrink-0 ${enforceLockout ? 'active' : ''}`}
+              aria-pressed={enforceLockout}
             >
               <span className="ios-switch-thumb" />
             </button>
@@ -286,8 +357,15 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
                   <span className="h-3 w-3 shrink-0 rounded-full border border-white/5" style={{ backgroundColor: cat.color }} />
                   <span className="flex-1 text-xs font-bold text-white/80 truncate">{cat.name}</span>
                   <button
-                    onClick={() => deleteCategory(cat.id!)}
-                    className="flex h-6 w-6 items-center justify-center rounded-full text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all ios-active-scale cursor-pointer"
+                    onClick={async () => {
+                      try {
+                        await deleteCategory(cat.id!)
+                      } catch {
+                        alert('Cannot delete the last category.')
+                      }
+                    }}
+                    aria-label={`Delete category ${cat.name}`}
+                    className="flex h-6 w-6 items-center justify-center rounded-full text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all ios-active-scale cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
                   >
                     <X className="h-4 w-4" />
                   </button>
