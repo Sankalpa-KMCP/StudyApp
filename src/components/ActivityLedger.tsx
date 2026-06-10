@@ -1,25 +1,16 @@
 import React, { useState } from 'react'
 import { Calendar } from 'lucide-react'
 import type { CategoryItem, HistoryEntry } from '../db/types'
-
-interface DayData {
-  date: number
-  dayName: string
-  studyTime: string
-  breakTime: string
-  focusRatio: string
-  sessionsCompleted: string
-  focusScore: string
-  intensity: 0 | 1 | 2 | 3
-}
+import type { DayData } from '../types/app'
+import { formatMinutes, getIntensity, hexToRgb } from '../lib/studyDashboard'
 
 interface ActivityLedgerProps {
   selectedDay: number
   setSelectedDay: (day: number) => void
   currentMonth: number
   currentYear: number
-  monthNames: string[]
-  dayNames: string[]
+  monthNames: readonly string[]
+  dayNames: readonly string[]
   goPrevMonth: () => void
   goNextMonth: () => void
   calendarCategoryFilter: 'all' | number
@@ -39,9 +30,6 @@ interface ActivityLedgerProps {
   initialDraftNotes: string
   handleNotesChange: (notes: string) => void
   selectedDayHistory: HistoryEntry[]
-  formatMinutes: (minutes: number) => string
-  getIntensity: (minutes: number) => 0 | 1 | 2 | 3
-  hexToRgb: (hex: string) => { r: number; g: number; b: number } | null
 }
 
 export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
@@ -70,9 +58,6 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
   initialDraftNotes,
   handleNotesChange,
   selectedDayHistory,
-  formatMinutes,
-  getIntensity,
-  hexToRgb
 }) => {
   const [draftMood, setDraftMood] = useState(initialDraftMood)
   const [draftNotes, setDraftNotes] = useState(initialDraftNotes)

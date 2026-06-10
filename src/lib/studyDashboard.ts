@@ -142,7 +142,7 @@ export function formatHistoryTimestamp(date: Date = new Date()): string {
 export function parseLegacyHistoryTimestamp(timestamp: string): number {
   const parts = timestamp.split(' ')
   if (parts.length < 2) return Date.now()
-  const monthIndex = MONTH_NAMES.indexOf(parts[0])
+  const monthIndex = (MONTH_NAMES as readonly string[]).indexOf(parts[0])
   if (monthIndex < 0) return Date.now()
   const dayPart = parts[1].replace(',', '')
   const day = Number.parseInt(dayPart, 10)

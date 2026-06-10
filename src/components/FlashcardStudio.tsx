@@ -64,7 +64,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
   // Count metrics
   const stats = useMemo(() => {
     const total = filteredCards.length
-    const due = filteredCards.filter(isDue).length
+    const due = filteredCards.filter(c => !c.nextReviewDate || c.nextReviewDate <= todayStr).length
     const gradedCards = filteredCards.filter(c => c.latestGrade !== undefined)
     const avgGrade = gradedCards.length > 0
       ? parseFloat((gradedCards.reduce((acc, c) => acc + (c.latestGrade ?? 0), 0) / gradedCards.length).toFixed(1))

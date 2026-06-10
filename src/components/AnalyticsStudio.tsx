@@ -4,17 +4,7 @@ import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, Cartesia
 import type { TaskItem, DailyLog } from '../db/types'
 import type { ThemeProfile } from '../types/app'
 import type { CSSProperties } from 'react'
-
-const hexToRgb = (hex: string) => {
-  const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-  const fullHex = hex.replace(shorthandRegex, (_, r, g, b) => r + r + g + g + b + b);
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(fullHex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
-};
+import { hexToRgb } from '../lib/studyDashboard'
 
 interface AnalyticsStudioProps {
   tasks: TaskItem[]

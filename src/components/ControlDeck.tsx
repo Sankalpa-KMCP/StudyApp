@@ -29,10 +29,6 @@ interface ControlDeckProps {
   categories: CategoryItem[]
   addCategory: (name: string, color: string) => void
   deleteCategory: (id: number) => void
-  newCategoryName: string
-  setNewCategoryName: (val: string) => void
-  newCategoryColor: string
-  setNewCategoryColor: (val: string) => void
   isDragging: boolean
   setIsDragging: (val: boolean) => void
   handleFileDrop: (e: React.DragEvent) => void
@@ -64,15 +60,13 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   categories,
   addCategory,
   deleteCategory,
-  newCategoryName,
-  setNewCategoryName,
-  newCategoryColor,
-  setNewCategoryColor,
   isDragging,
   setIsDragging,
   handleFileDrop,
   fileInputRef
 }) => {
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
   const [sweepTasks, setSweepTasks] = useState(false)
   const [sweepHistory, setSweepHistory] = useState(false)
   const [sweepCategories, setSweepCategories] = useState(false)
