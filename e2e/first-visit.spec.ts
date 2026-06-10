@@ -12,7 +12,7 @@ test.describe('first visit', () => {
     await page.goto('/')
     await expect(page.getByRole('dialog', { name: 'Welcome to Sanctuary Study' })).toBeVisible({ timeout: 15000 })
     await page.getByRole('button', { name: 'Skip onboarding tour' }).click()
-    await expect(page.getByLabel('Add focus target')).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Add focus target' })).toBeVisible()
     await expect(page.getByPlaceholder('What do you want to focus on?')).toBeVisible()
   })
 
@@ -23,7 +23,7 @@ test.describe('first visit', () => {
       await page.getByRole('button', { name: 'Next' }).click()
     }
     await page.getByRole('button', { name: 'Create your first focus target' }).click()
-    await expect(page.getByLabel('Add focus target')).toBeFocused()
+    await expect(page.getByRole('textbox', { name: 'Add focus target' })).toBeFocused()
   })
 
   test('backdrop click does not dismiss onboarding', async ({ page }) => {
