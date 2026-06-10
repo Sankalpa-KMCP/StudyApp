@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { MAX_STUDY_BLOCK_MINUTES } from '../lib/timerConstants'
 import { Play, Pause, Check, Sparkles, Heart } from 'lucide-react'
 import { Button } from './shared/Button'
@@ -20,7 +20,6 @@ interface FocusSanctuaryProps {
   completeSession: () => void
   extendSession: () => void
   skipBreak: () => void
-  breathTime: number
   setIsZenMode: (zen: boolean) => void
   onUserGesture?: () => void
   showReflectionModal?: boolean
@@ -44,7 +43,6 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   completeSession,
   extendSession,
   skipBreak,
-  breathTime,
   setIsZenMode,
   onUserGesture,
   showReflectionModal = false,
@@ -54,6 +52,13 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   updateSetting,
 }) => {
   const [showDurationAdjust, setShowDurationAdjust] = useState(false)
+  const [breathTime, setBreathTime] = useState(0)
+
+  useEffect(() => {
+    if (timerMode === 'study') return
+    const interval = setInterval(() => setBreathTime(t => (t + 1) % 12), 1250)
+    return () => clearInterval(interval)
+  }, [timerMode])
 
   const handleDurationChange = (newMinutes: number) => {
     if (!updateSetting) return

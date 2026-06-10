@@ -258,6 +258,7 @@
 }
 
 .app-tab-panel {
+  contain: layout style;
   animation: app-tab-enter var(--motion-fast) ease-out;
 }
 

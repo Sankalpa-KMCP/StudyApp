@@ -25,7 +25,6 @@ export const Idle: Story = {
     completeSession: async () => {},
     extendSession: () => {},
     skipBreak: () => {},
-    breathTime: 3,
     setIsZenMode: () => {},
     onUserGesture: () => {},
     studyBlockDurationMinutes: 25,
