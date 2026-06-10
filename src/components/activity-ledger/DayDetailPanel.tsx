@@ -2,6 +2,8 @@ import { Clock } from 'lucide-react'
 import type { HistoryEntry } from '../../db/types'
 import type { DayData } from '../../types/app'
 import { EmptyState } from '../shared/EmptyState'
+import { PanelCard } from '../shared/PanelCard'
+import { PanelHeader } from '../shared/PanelHeader'
 import { MoodPicker } from './MoodPicker'
 
 interface DayDetailPanelProps {
@@ -35,34 +37,36 @@ export function DayDetailPanel({
   selectedDayHistory,
   activeThemeVars,
 }: DayDetailPanelProps) {
-  return (
-    <div className="rounded-2xl border border-white/5 dynamic-card p-6">
-      <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
-        <div>
-          <p className="text-[9px] font-bold text-accent-blue uppercase tracking-widest">Day Journal reflections</p>
-          <h3 className="text-sm font-bold text-text-primary mt-0.5">
-            {liveDay.dayName}, {selectedDay} {monthNames[currentMonth]} {currentYear}
-          </h3>
-        </div>
-        {isLiveMonth && selectedDay === totalDaysInMonth && (
-          <span className="flex items-center gap-1 bg-accent-green/10 border border-accent-green/20 rounded-full px-2.5 py-0.5 text-[9px] font-bold text-accent-green uppercase">
-            <span className="h-1 w-1 bg-accent-green rounded-full animate-ping" />
-            <span>Today</span>
-          </span>
-        )}
-      </div>
+  const dateTitle = `${liveDay.dayName}, ${selectedDay} ${monthNames[currentMonth]} ${currentYear}`
 
-      <div className="grid grid-cols-3 gap-4 mb-4">
+  return (
+    <PanelCard>
+      <PanelHeader
+        title="Day journal"
+        bordered={false}
+        className="mb-2"
+        action={
+          isLiveMonth && selectedDay === totalDaysInMonth ? (
+            <span className="flex items-center gap-1 bg-accent-green/10 border border-accent-green/20 rounded-full px-2.5 py-0.5 text-micro font-bold text-accent-green uppercase">
+              <span className="h-1 w-1 bg-accent-green rounded-full animate-ping" />
+              <span>Today</span>
+            </span>
+          ) : undefined
+        }
+      />
+      <p className="text-sm font-bold text-text-primary mb-4">{dateTitle}</p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         <div className="bg-white/4 p-3.5 rounded-[20px] border border-white/8">
-          <span className="text-[9px] font-bold text-white/50 uppercase tracking-wide block">Study block</span>
+          <span className="text-micro font-bold text-white/40 uppercase tracking-wide block">Study block</span>
           <span className="text-base font-extrabold text-accent-blue mt-0.5 font-mono">{liveDay.studyTime}</span>
         </div>
         <div className="bg-white/4 p-3.5 rounded-[20px] border border-white/8">
-          <span className="text-[9px] font-bold text-white/50 uppercase tracking-wide block">Break cooldown</span>
+          <span className="text-micro font-bold text-white/40 uppercase tracking-wide block">Break cooldown</span>
           <span className="text-base font-extrabold text-accent-amber mt-0.5 font-mono">{liveDay.breakTime}</span>
         </div>
         <div className="bg-white/4 p-3.5 rounded-[20px] border border-white/8">
-          <span className="text-[9px] font-bold text-white/50 uppercase tracking-wide block">Efficiency score</span>
+          <span className="text-micro font-bold text-white/40 uppercase tracking-wide block">Efficiency score</span>
           <span className="text-base font-extrabold text-accent-green mt-0.5 font-mono">{liveDay.focusScore}</span>
         </div>
       </div>
@@ -71,8 +75,8 @@ export function DayDetailPanel({
 
       <div className="mb-5">
         <div className="flex justify-between items-center mb-2.5">
-          <p className="text-[10px] font-semibold text-white/55 uppercase tracking-wider">Reflection log</p>
-          <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded-full ${
+          <p className="text-label font-semibold text-white/40 uppercase tracking-wider">Reflection log</p>
+          <span className={`text-micro font-bold font-mono px-2 py-0.5 rounded-full ${
             draftNotes.length > 450
               ? 'bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse'
               : draftNotes.length > 350
@@ -97,8 +101,8 @@ export function DayDetailPanel({
           }`}
         />
         {draftNotes.length >= 500 && (
-          <p className="text-[9px] text-red-400 font-semibold mt-1.5 leading-normal">
-            ⚠️ Character limit reached (500 maximum). Please condense your thoughts.
+          <p className="text-micro text-red-400 font-semibold mt-1.5 leading-normal">
+            Character limit reached (500 maximum). Please condense your thoughts.
           </p>
         )}
       </div>
@@ -153,6 +157,6 @@ export function DayDetailPanel({
         </div>
         )}
       </div>
-    </div>
+    </PanelCard>
   )
 }
