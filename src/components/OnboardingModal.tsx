@@ -7,17 +7,30 @@ interface OnboardingModalProps {
   onClose: () => void
 }
 
-const SLIDES = [
+interface OnboardingBullet {
+  text: string
+  helper?: string
+}
+
+interface OnboardingSlide {
+  title: string
+  description: string
+  icon: typeof Sparkles
+  color: string
+  bullets: OnboardingBullet[]
+}
+
+const SLIDES: OnboardingSlide[] = [
   {
     title: 'Welcome to Sanctuary Study',
     description: 'A premium, offline-first dashboard designed to protect your focus, track study sprints, and supercharge your active recall.',
     icon: Sparkles,
     color: 'text-accent-blue bg-accent-blue/10 border-accent-blue/20',
     bullets: [
-      '🔒 100% Local-First: Your data never leaves this device.',
-      '✨ Premium Aesthetics: Built-in dark mode and glassmorphic UI.',
-      '💨 Coherence Sync: Controlled respiration pacers for healthy breaks.',
-    ]
+      { text: '🔒 100% Local-First', helper: 'Your data never leaves this device.' },
+      { text: '✨ Premium Aesthetics', helper: 'Dark mode and glass UI built in.' },
+      { text: '🌬️ Breathing pacer during breaks', helper: 'Optional guided breathing when you rest.' },
+    ],
   },
   {
     title: 'Focus Targets & Timer',
@@ -25,10 +38,10 @@ const SLIDES = [
     icon: Clock,
     color: 'text-accent-amber bg-accent-amber/10 border-accent-amber/20',
     bullets: [
-      '📝 Focus Targets: Register tasks with subject, priority, and cycles.',
-      '🎯 Active Target: Click a task to make it active and link it to the timer.',
-      '⏳ Live Adjustments: Customize focus length directly from the timer.',
-    ]
+      { text: '📝 Focus Targets', helper: 'Add tasks with subject, priority, and cycles.' },
+      { text: '🎯 Active Target', helper: 'Click a task to link it to the live timer.' },
+      { text: '⏳ Live Adjustments', helper: 'Change focus length from the timer panel.' },
+    ],
   },
   {
     title: 'Active Recall (SM-2)',
@@ -36,10 +49,10 @@ const SLIDES = [
     icon: RefreshCw,
     color: 'text-accent-purple bg-accent-purple/10 border-accent-purple/20',
     bullets: [
-      '🔄 SR Review Toggle: Toggle spaced repetition on tasks and flashcards.',
-      '🧠 SM-2 Spaced Repetition: Grades calculate optimal next review dates.',
-      '📊 Retention Telemetry: Visually track recall statistics in Analytics.',
-    ]
+      { text: '🔄 Spaced repetition toggle', helper: 'Turn review scheduling on for tasks and cards.' },
+      { text: '🧠 SM-2 scheduling', helper: 'Grades set when you will see this again.' },
+      { text: '📊 Retention charts', helper: 'Track recall trends in Analytics.' },
+    ],
   },
   {
     title: 'Interactive Dashboard',
@@ -47,11 +60,12 @@ const SLIDES = [
     icon: BarChart3,
     color: 'text-accent-green bg-accent-green/10 border-accent-green/20',
     bullets: [
-      '🔥 Streak & Level XP: Stay motivated with gamified study progress.',
-      '📈 Advanced Insights: Check your peak day, completion rate, and subjects.',
-      '📓 Journal: Browse notes and complete logs for past focus days.',
-    ]
-  }
+      { text: '🔥 Streak & Level XP', helper: 'Stay motivated with gamified progress.' },
+      { text: '📈 Advanced Insights', helper: 'Peak day, completion rate, and subjects.' },
+      { text: '📓 Journal', helper: 'Browse notes and logs for past focus days.' },
+      { text: '📝 Quick Notes vs Journal', helper: 'Quick Notes is a scratch pad; Journal is your study log by day.' },
+    ],
+  },
 ]
 
 export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) => {
@@ -101,26 +115,28 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
         <div className={`h-12 w-12 rounded-2xl flex items-center justify-center border ${slide.color} animate-fade-in`}>
           <Icon className="h-6 w-6" />
         </div>
-        
+
         <h3 id="onboarding-modal-title" className="text-base font-bold text-white tracking-wide animate-fade-in">
           {slide.title}
         </h3>
-        
+
         <p id="onboarding-modal-desc" className="text-xs text-white/60 leading-relaxed max-w-sm animate-fade-in">
           {slide.description}
         </p>
 
         <ul className="w-full text-left space-y-2.5 pt-3 border-t border-white/5">
           {slide.bullets.map((bullet, idx) => (
-            <li key={idx} className="text-[11px] font-semibold text-white/80 flex items-start gap-2.5 bg-white/[0.02] border border-white/5 px-3 py-2 rounded-xl animate-fade-in">
-              <span className="leading-relaxed">{bullet}</span>
+            <li key={idx} className="text-[11px] font-semibold text-white/80 flex flex-col gap-0.5 bg-white/[0.02] border border-white/5 px-3 py-2 rounded-xl animate-fade-in">
+              <span className="leading-relaxed">{bullet.text}</span>
+              {bullet.helper && (
+                <span className="text-[10px] font-medium text-white/45 leading-relaxed">{bullet.helper}</span>
+              )}
             </li>
           ))}
         </ul>
       </div>
 
       <div className="flex items-center justify-between pt-3 border-t border-white/5 select-none">
-        {/* Progress Dots */}
         <div className="flex gap-1.5">
           {SLIDES.map((_, idx) => (
             <button
@@ -135,7 +151,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
           ))}
         </div>
 
-        {/* Action Buttons */}
         <div className="flex items-center gap-2">
           {currentSlide > 0 && (
             <button
