@@ -7,6 +7,8 @@ import { useFlashcardStudySession } from './flashcard/useFlashcardStudySession'
 import { FlashcardCreateForm } from './flashcard/FlashcardCreateForm'
 import { FlashcardRegistry } from './flashcard/FlashcardRegistry'
 import { FlashcardStudyModal } from './flashcard/FlashcardStudyModal'
+import { TabPageShell } from './shared/TabPageShell'
+import { MetricCard } from './shared/MetricCard'
 
 interface FlashcardStudioProps {
   categories: CategoryItem[]
@@ -67,93 +69,72 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 animate-slide-in-up">
-      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <Layers className="h-5 w-5 text-accent-blue" />
-            Active Recall Deck
-          </h2>
-          <p className="text-xs text-white/50 mt-1 select-none">
-            Utilize the SuperMemo-2 scheduler to systematically optimize cognitive retention.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+    <TabPageShell>
+      <div className="lg:col-span-12 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          onClick={() => setActiveCategoryFilter('all')}
+          className={`px-4.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ios-active-scale ${
+            activeCategoryFilter === 'all'
+              ? 'bg-white/10 text-white border-white/10'
+              : 'bg-white/[0.02] text-white/60 border-white/5 hover:text-white'
+          }`}
+        >
+          All Decks
+        </button>
+        {categories.map(cat => (
           <button
-            onClick={() => setActiveCategoryFilter('all')}
-            className={`px-4.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ios-active-scale ${
-              activeCategoryFilter === 'all'
-                ? 'bg-white/10 text-white border-white/10'
+            key={cat.id}
+            onClick={() => cat.id !== undefined && setActiveCategoryFilter(cat.id)}
+            className={`px-4.5 py-1.5 rounded-full text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ios-active-scale ${
+              activeCategoryFilter === cat.id
+                ? 'text-white border-white/10'
                 : 'bg-white/[0.02] text-white/60 border-white/5 hover:text-white'
             }`}
+            style={activeCategoryFilter === cat.id ? { backgroundColor: `${cat.color}25`, borderColor: cat.color } : {}}
           >
-            All Decks
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: cat.color }} />
+            {cat.name}
           </button>
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => cat.id !== undefined && setActiveCategoryFilter(cat.id)}
-              className={`px-4.5 py-1.5 rounded-full text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ios-active-scale ${
-                activeCategoryFilter === cat.id
-                  ? 'text-white border-white/10'
-                  : 'bg-white/[0.02] text-white/60 border-white/5 hover:text-white'
-              }`}
-              style={activeCategoryFilter === cat.id ? { backgroundColor: `${cat.color}25`, borderColor: cat.color } : {}}
-            >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: cat.color }} />
-              {cat.name}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="dynamic-card p-4 flex flex-col justify-between">
-          <span className="text-label font-mono tracking-widest text-white/40 uppercase">Total Flashcards</span>
-          <span className="text-2xl font-bold text-white mt-2 font-mono">{stats.total}</span>
-        </div>
-        <div className="dynamic-card p-4 flex flex-col justify-between">
-          <span className="text-label font-mono tracking-widest text-white/40 uppercase">Due For Review</span>
-          <span className={`text-2xl font-bold mt-2 font-mono ${stats.due > 0 ? 'text-accent-amber' : 'text-accent-green'}`}>
-            {stats.due}
-          </span>
-        </div>
-        <div className="dynamic-card p-4 flex flex-col justify-between">
-          <span className="text-label font-mono tracking-widest text-white/40 uppercase">Average Recall Grade</span>
-          <span className="text-2xl font-bold text-white mt-2 font-mono">
-            {stats.avgGrade} <span className="text-xs text-white/30">/ 5.0</span>
-          </span>
-        </div>
+      <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <MetricCard label="Total Flashcards" value={String(stats.total)} icon={Layers} />
+        <MetricCard
+          label="Due For Review"
+          value={String(stats.due)}
+          valueClassName={stats.due > 0 ? 'text-accent-amber' : 'text-accent-green'}
+        />
+        <MetricCard label="Average Recall Grade" value={`${stats.avgGrade} / 5.0`} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start flex-1 min-h-0">
-        <FlashcardCreateForm
-          categories={categories}
-          addCategory={addCategory}
-          deleteCategory={deleteCategory}
-          newQuestion={newQuestion}
-          setNewQuestion={setNewQuestion}
-          newAnswer={newAnswer}
-          setNewAnswer={setNewAnswer}
-          newCategoryId={newCategoryId}
-          setNewCategoryId={setNewCategoryId}
-          onSubmit={handleAddCard}
-          stats={stats}
-          onStudyDue={() => startStudy(true)}
-          onStudyAll={() => startStudy(false)}
-        />
-        <FlashcardRegistry
-          flashcards={flashcards}
-          filteredCards={filteredCards}
-          categoriesMap={categoriesMap}
-          activeCategoryFilter={activeCategoryFilter}
-          activeSpacingFilter={activeSpacingFilter}
-          setActiveSpacingFilter={setActiveSpacingFilter}
-          todayStr={todayStr}
-          isDue={isDue}
-          onDelete={deleteFlashcard}
-        />
-      </div>
+      <FlashcardCreateForm
+        categories={categories}
+        addCategory={addCategory}
+        deleteCategory={deleteCategory}
+        newQuestion={newQuestion}
+        setNewQuestion={setNewQuestion}
+        newAnswer={newAnswer}
+        setNewAnswer={setNewAnswer}
+        newCategoryId={newCategoryId}
+        setNewCategoryId={setNewCategoryId}
+        onSubmit={handleAddCard}
+        stats={stats}
+        onStudyDue={() => startStudy(true)}
+        onStudyAll={() => startStudy(false)}
+      />
+      <FlashcardRegistry
+        flashcards={flashcards}
+        filteredCards={filteredCards}
+        categoriesMap={categoriesMap}
+        activeCategoryFilter={activeCategoryFilter}
+        activeSpacingFilter={activeSpacingFilter}
+        setActiveSpacingFilter={setActiveSpacingFilter}
+        todayStr={todayStr}
+        isDue={isDue}
+        onDelete={deleteFlashcard}
+        onFocusCreate={() => document.getElementById('flashcard-question')?.focus()}
+      />
 
       {isStudying && currentCard && (
         <FlashcardStudyModal
@@ -168,6 +149,6 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
           onGrade={handleGrade}
         />
       )}
-    </div>
+    </TabPageShell>
   )
 }

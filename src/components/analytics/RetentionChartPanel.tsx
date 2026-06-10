@@ -17,7 +17,13 @@ export function RetentionChartPanel({ retentionData, tooltipStyle, className = '
 
   return (
     <PanelCard className={className} aria-labelledby="analytics-retention">
-      <PanelHeader title="Retention telemetry" bordered={false} className="mb-5" id="analytics-retention" />
+      <PanelHeader
+        title="Recall over time"
+        bordered={false}
+        className="mb-5"
+        id="analytics-retention"
+      />
+      <p className="text-micro text-white/40 mb-4 -mt-2">Average recall score from card reviews</p>
       {hasRetentionData ? (
         <>
         <ChartSummary>

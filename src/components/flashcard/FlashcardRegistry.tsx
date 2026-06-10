@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Layers, Trash2, Calendar } from 'lucide-react'
 import type { CategoryItem, FlashcardItem } from '../../db/types'
 import { EmptyState } from '../shared/EmptyState'
+import { PanelCard } from '../shared/PanelCard'
+import { PanelHeader } from '../shared/PanelHeader'
 
 interface FlashcardRegistryProps {
   flashcards: FlashcardItem[]
@@ -13,6 +15,7 @@ interface FlashcardRegistryProps {
   todayStr: string
   isDue: (card: FlashcardItem) => boolean
   onDelete: (id: number) => void
+  onFocusCreate?: () => void
 }
 
 export function FlashcardRegistry({
@@ -25,6 +28,7 @@ export function FlashcardRegistry({
   todayStr,
   isDue,
   onDelete,
+  onFocusCreate,
 }: FlashcardRegistryProps) {
   const VIRTUALIZE_THRESHOLD = 100
   const PAGE_SIZE = 50
@@ -33,43 +37,58 @@ export function FlashcardRegistry({
   const visibleCards = shouldVirtualize ? filteredCards.slice(0, visibleCount) : filteredCards
 
   return (
-    <div className="lg:col-span-8 flex flex-col min-h-[450px] lg:h-[600px] dynamic-card p-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 select-none">
-        <h3 className="text-sm font-semibold text-white">Flashcards Registry</h3>
-        <div className="flex bg-black/35 border border-white/5 p-1 rounded-xl">
-          {(['all', 'new', 'due', 'completed'] as const).map(status => {
-            const count = flashcards.filter(c => {
-              const matchesCategory = activeCategoryFilter === 'all' || c.categoryId === activeCategoryFilter
-              if (!matchesCategory) return false
-              if (status === 'all') return true
-              if (status === 'new') return c.latestGrade === undefined
-              if (status === 'due') return c.latestGrade !== undefined && (!c.nextReviewDate || c.nextReviewDate <= todayStr)
-              if (status === 'completed') return c.latestGrade !== undefined && c.nextReviewDate && c.nextReviewDate > todayStr
-              return true
-            }).length
+    <PanelCard className="lg:col-span-8 flex flex-col min-h-[450px] lg:h-[600px] !p-5">
+      <PanelHeader
+        title="Flashcards registry"
+        bordered={false}
+        className="mb-4"
+        action={
+          <div className="flex bg-black/35 border border-white/5 p-1 rounded-xl">
+            {(['all', 'new', 'due', 'completed'] as const).map(status => {
+              const count = flashcards.filter(c => {
+                const matchesCategory = activeCategoryFilter === 'all' || c.categoryId === activeCategoryFilter
+                if (!matchesCategory) return false
+                if (status === 'all') return true
+                if (status === 'new') return c.latestGrade === undefined
+                if (status === 'due') return c.latestGrade !== undefined && (!c.nextReviewDate || c.nextReviewDate <= todayStr)
+                if (status === 'completed') return c.latestGrade !== undefined && c.nextReviewDate && c.nextReviewDate > todayStr
+                return true
+              }).length
 
-            return (
-              <button
-                key={status}
-                type="button"
-                onClick={() => setActiveSpacingFilter(status)}
-                className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                  activeSpacingFilter === status ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white'
-                }`}
-              >
-                {status} ({count})
-              </button>
-            )
-          })}
-        </div>
-      </div>
+              return (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => setActiveSpacingFilter(status)}
+                  className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    activeSpacingFilter === status ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white'
+                  }`}
+                >
+                  {status} ({count})
+                </button>
+              )
+            })}
+          </div>
+        }
+      />
 
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-3">
         {filteredCards.length === 0 ? (
           <EmptyState
             icon={<Layers className="h-8 w-8" />}
-            title="Empty deck"
-            description="Create a flashcard above to start building your recall deck."
+            title="No flashcards yet"
+            description="Add a question and answer above to start spaced repetition practice."
+            action={
+              onFocusCreate ? (
+                <button
+                  type="button"
+                  onClick={onFocusCreate}
+                  className="rounded-full bg-accent-purple/15 border border-accent-purple/25 px-4 py-2 text-xs font-bold text-accent-purple hover:bg-accent-purple/25 transition-all"
+                >
+                  Create your first card
+                </button>
+              ) : undefined
+            }
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -131,6 +150,6 @@ export function FlashcardRegistry({
           </div>
         )}
       </div>
-    </div>
+    </PanelCard>
   )
 }
