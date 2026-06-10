@@ -2,9 +2,14 @@ import { useEffect, useRef } from 'react'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
 
-export function useFocusTrap(active: boolean) {
+export function useFocusTrap(active: boolean, onEscape?: () => void) {
   const containerRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  const onEscapeRef = useRef(onEscape)
+
+  useEffect(() => {
+    onEscapeRef.current = onEscape
+  }, [onEscape])
 
   useEffect(() => {
     if (!active) return
@@ -17,6 +22,11 @@ export function useFocusTrap(active: boolean) {
     focusables[0]?.focus()
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onEscapeRef.current) {
+        e.preventDefault()
+        onEscapeRef.current()
+        return
+      }
       if (e.key !== 'Tab' || focusables.length === 0) return
       const first = focusables[0]
       const last = focusables[focusables.length - 1]

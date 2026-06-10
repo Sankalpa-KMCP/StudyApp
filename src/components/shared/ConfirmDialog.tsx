@@ -21,7 +21,7 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  const trapRef = useFocusTrap(open)
+  const trapRef = useFocusTrap(open, onCancel)
 
   if (!open) return null
 

@@ -29,7 +29,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   updateNote,
   deleteNote
 }) => {
-  const trapRef = useFocusTrap(isOpen)
+  const trapRef = useFocusTrap(isOpen, onClose)
   const {
     searchQuery,
     setSearchQuery,

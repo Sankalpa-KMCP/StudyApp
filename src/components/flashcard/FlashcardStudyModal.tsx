@@ -1,5 +1,6 @@
 import { X, Sparkles } from 'lucide-react'
 import type { FlashcardItem } from '../../db/types'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { SM2_GRADES } from './constants'
 
 interface FlashcardStudyModalProps {
@@ -25,6 +26,8 @@ export function FlashcardStudyModal({
   onClose,
   onGrade,
 }: FlashcardStudyModalProps) {
+  const trapRef = useFocusTrap(true, onClose)
+
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 backdrop-blur-3xl transition-all duration-500"
@@ -33,7 +36,7 @@ export function FlashcardStudyModal({
       aria-modal="true"
       aria-label="Flashcard study session"
     >
-      <div className="relative w-full max-w-lg flex flex-col items-center gap-6 z-10">
+      <div ref={trapRef} className="relative w-full max-w-lg flex flex-col items-center gap-6 z-10">
         <button
           onClick={onClose}
           className="absolute -top-12 right-0 md:top-0 md:-right-12 h-10 w-10 flex items-center justify-center rounded-full bg-white/5 border border-white/8 text-white/70 hover:text-white hover:bg-white/10 cursor-pointer transition-all ios-active-scale shadow-md"
