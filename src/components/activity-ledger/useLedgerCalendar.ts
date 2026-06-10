@@ -11,7 +11,7 @@ export function useLedgerIntensityStyles(accentBlue: string) {
       const opacity = intensity === 1 ? '0.25' : intensity === 2 ? '0.6' : '1.0'
       return {
         backgroundColor: `rgba(${accentBlueRgbStr}, ${opacity})`,
-        color: intensity === 3 ? '#080b11' : '#ffffff',
+        color: intensity === 3 ? 'var(--color-on-accent)' : '#ffffff',
       }
     }
 
