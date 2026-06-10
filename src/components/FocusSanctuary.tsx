@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
+import { MAX_STUDY_BLOCK_MINUTES } from '../lib/timerConstants'
 import { Play, Pause, Check, Sparkles, Heart } from 'lucide-react'
 import { Button } from './shared/Button'
 import { PanelCard } from './shared/PanelCard'
@@ -52,6 +53,8 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   longBreakDurationMinutes,
   updateSetting,
 }) => {
+  const [showDurationAdjust, setShowDurationAdjust] = useState(false)
+
   const handleDurationChange = (newMinutes: number) => {
     if (!updateSetting) return
     if (timerMode === 'study') {
@@ -97,6 +100,12 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
           <div className="flex justify-center gap-2 mb-4">
             {(['study', 'break'] as const).map(mode => {
               const isActive = timerMode === mode
+              const modeActiveClass =
+                mode === 'study'
+                  ? 'bg-accent-blue text-white border-accent-blue/30 shadow-md shadow-accent-blue/15'
+                  : isLongBreak
+                  ? 'bg-accent-green text-white border-accent-green/30 shadow-md shadow-accent-green/15'
+                  : 'bg-accent-amber text-white border-accent-amber/30 shadow-md shadow-accent-amber/15'
               return (
                 <button
                   key={mode}
@@ -104,7 +113,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                   onClick={() => handleModeSwitch(mode)}
                   className={`px-4 py-2 rounded-full text-caption font-semibold transition-all ios-active-scale cursor-pointer ${
                     isActive
-                      ? 'bg-accent-blue text-white border border-accent-blue/30 shadow-md shadow-accent-blue/15'
+                      ? modeActiveClass
                       : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
                   }`}
                 >
@@ -114,8 +123,16 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
             })}
           </div>
 
+          <button
+            type="button"
+            onClick={() => setShowDurationAdjust(v => !v)}
+            className="md:hidden text-micro font-bold uppercase tracking-wider text-accent-blue hover:text-accent-blue/80 mb-2"
+          >
+            {showDurationAdjust ? 'Hide length controls' : 'Adjust length'}
+          </button>
+
           {/* Duration Adjuster */}
-          <div className="flex flex-col items-center gap-2 mb-5 border-t border-white/5 pt-4">
+          <div className={`flex flex-col items-center gap-2 mb-5 border-t border-white/5 pt-4 ${showDurationAdjust ? '' : 'hidden md:flex'}`}>
             <span className="text-micro uppercase font-bold text-white/40 tracking-wider">
               {timerMode === 'study' ? 'Study Block Length' : isLongBreak ? 'Long Break Length' : 'Short Break Length'}
             </span>
@@ -153,7 +170,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                 type="button"
                 disabled={
                   timerMode === 'study'
-                    ? studyBlockDurationMinutes >= 180
+                    ? studyBlockDurationMinutes >= MAX_STUDY_BLOCK_MINUTES
                     : isLongBreak
                     ? longBreakDurationMinutes >= 60
                     : shortBreakDurationMinutes >= 30
@@ -202,7 +219,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
           </div>
 
           <div className="flex flex-col items-center py-2">
-            <div className="relative flex h-60 w-60 md:h-64 md:w-64 items-center justify-center rounded-full border border-white/5 bg-black/10 overflow-hidden">
+            <div className="relative flex h-48 w-48 md:h-64 md:w-64 items-center justify-center rounded-full border border-white/5 bg-black/10 overflow-hidden">
               {/* Spherical Radial Glow */}
               <div 
                 className="absolute inset-[3%] rounded-full opacity-15 blur-2xl pointer-events-none transition-all duration-700 ease-out" 
@@ -228,7 +245,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               </svg>
 
               <div className="text-center z-10 select-none" aria-live="polite" aria-atomic="true">
-                <p className="text-6xl md:text-7xl font-bold text-white tracking-tight tabular-nums drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]" role="timer">
+                <p className="text-5xl md:text-7xl font-bold text-white tracking-tight tabular-nums drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]" role="timer">
                   {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
                 </p>
                 <span className="inline-block rounded-full bg-white/5 border border-white/5 px-3 py-0.5 text-label font-semibold uppercase tracking-wider text-white/60 mt-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
@@ -274,20 +291,23 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-3 mt-5 text-label text-white/40 font-bold uppercase tracking-wider select-none">
-              <span>Sprint Cycles:</span>
-              <div className="flex items-center gap-1.5">
-                {Array.from({ length: targetSessionsPerCycle }, (_, i) => (
-                  <span
-                    key={i}
-                    className={`h-2 w-2 rounded-full transition-all duration-300 border ${
-                      i < completedSessionsInCycle
-                        ? 'bg-accent-amber border-accent-amber'
-                        : 'bg-transparent border-white/10'
-                    }`}
-                  />
-                ))}
+            <div className="flex flex-col items-center gap-1 mt-5 select-none">
+              <div className="flex items-center gap-3 text-label text-white/40 font-bold uppercase tracking-wider">
+                <span>Sprint Cycles:</span>
+                <div className="flex items-center gap-1.5">
+                  {Array.from({ length: targetSessionsPerCycle }, (_, i) => (
+                    <span
+                      key={i}
+                      className={`h-2 w-2 rounded-full transition-all duration-300 border ${
+                        i < completedSessionsInCycle
+                          ? 'bg-accent-amber border-accent-amber'
+                          : 'bg-transparent border-white/10'
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
+              <p className="text-micro text-white/35">Dots = sessions before long break</p>
             </div>
           </div>
 
@@ -336,7 +356,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
         </PanelCard>
 
         {timerMode === 'study' && (
-          <PanelCard className="select-none flex flex-col gap-3 !p-4.5">
+          <PanelCard className="hidden md:flex select-none flex-col gap-3 !p-4.5">
             <div className="flex items-center justify-between">
               <span className="text-label font-bold tracking-wider text-white/40 uppercase bg-white/5 border border-white/5 px-2 py-0.5 rounded-full">Study tip</span>
               <div className="flex items-center gap-1.5 text-accent-purple">
