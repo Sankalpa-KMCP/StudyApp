@@ -1,16 +1,18 @@
 import type { ReactNode } from 'react'
-import { Card } from '../Card'
+import { PanelCard } from '../PanelCard'
+import { PanelHeader } from '../PanelHeader'
 
 interface SettingsCardProps {
   title: string
   children: ReactNode
+  id?: string
 }
 
-export function SettingsCard({ title, children }: SettingsCardProps) {
+export function SettingsCard({ title, children, id }: SettingsCardProps) {
   return (
-    <Card variant="default" padding="md">
-      <h3 className="text-caption font-bold uppercase tracking-widest text-white/45 mb-3">{title}</h3>
+    <PanelCard id={id}>
+      <PanelHeader title={title} bordered={false} className="mb-3" />
       {children}
-    </Card>
+    </PanelCard>
   )
 }

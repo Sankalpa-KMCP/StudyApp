@@ -5,6 +5,8 @@ import { Button } from '../shared/Button'
 
 interface BackupVaultPanelProps {
   exportStudyBackup: () => void
+  isExporting?: boolean
+  exportProgress?: number
   exportStudyLogsCSV: () => void
   exportTaskCompletionLogsCSV: () => void
   importStudyBackup: (val: string) => void
@@ -20,6 +22,8 @@ interface BackupVaultPanelProps {
 
 export function BackupVaultPanel({
   exportStudyBackup,
+  isExporting = false,
+  exportProgress = 0,
   exportStudyLogsCSV,
   exportTaskCompletionLogsCSV,
   importStudyBackup,
@@ -40,7 +44,7 @@ export function BackupVaultPanel({
   const [sweepNotes, setSweepNotes] = useState(false)
 
   return (
-    <SettingsCard title="Backup Vault">
+    <SettingsCard id="settings-backup-vault" title="Backup Vault">
       {quotaExceeded && (
         <div className="mb-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 space-y-3">
           <p className="text-xs font-bold text-amber-200 uppercase tracking-wider">Storage recovery</p>
@@ -89,9 +93,14 @@ export function BackupVaultPanel({
             <span className="text-xs font-bold text-white/95 block">Export backup vault</span>
             <span className="text-[10px] text-white/40 mt-1 leading-normal font-semibold">Prepares a JSON package and initiates browser download.</span>
           </div>
-          <Button variant="primary" onClick={exportStudyBackup} className="w-full mt-4">
-            Export Vault
+          <Button variant="primary" onClick={exportStudyBackup} disabled={isExporting} className="w-full mt-4">
+            {isExporting ? `Exporting… ${exportProgress}%` : 'Export Vault'}
           </Button>
+          {isExporting && (
+            <div className="mt-2 h-1.5 w-full rounded-full bg-white/10 overflow-hidden" aria-hidden>
+              <div className="h-full bg-accent-blue transition-all duration-300" style={{ width: `${exportProgress}%` }} />
+            </div>
+          )}
         </div>
 
         <div

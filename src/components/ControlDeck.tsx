@@ -94,9 +94,60 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
   const [newCategoryGoal, setNewCategoryGoal] = useState('')
+  const [startHereDismissed, setStartHereDismissed] = useState(
+    () => typeof window !== 'undefined' && !!localStorage.getItem('settings_start_here_dismissed'),
+  )
+
+  const scrollToSettingsSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const dismissStartHere = () => {
+    localStorage.setItem('settings_start_here_dismissed', 'true')
+    setStartHereDismissed(true)
+  }
 
   return (
     <TabPageShell>
+      {!startHereDismissed && (
+        <div className="lg:col-span-12">
+          <SettingsCard title="Start here">
+            <p className="text-[11px] text-white/50 leading-relaxed mb-3">
+              Three essentials to set up your sanctuary on day one.
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => scrollToSettingsSection('settings-timer-focus')}
+                className="text-left text-xs font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
+              >
+                Daily goal → Timer & Focus
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSettingsSection('settings-categories')}
+                className="text-left text-xs font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
+              >
+                Subject categories → organize your tasks
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSettingsSection('settings-backup-vault')}
+                className="text-left text-xs font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
+              >
+                Export backup → keep your data safe
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={dismissStartHere}
+              className="mt-4 text-[10px] font-semibold text-white/40 hover:text-white/70 transition-colors"
+            >
+              Dismiss
+            </button>
+          </SettingsCard>
+        </div>
+      )}
       {onShowOnboarding && (
         <div className="lg:col-span-12">
           <SettingsCard title="Getting Started">
@@ -139,7 +190,7 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
       </div>
 
       <div className="lg:col-span-6 flex flex-col gap-6">
-        <SettingsCard title="Subject Categories">
+        <SettingsCard id="settings-categories" title="Subject Categories">
           <div className="flex gap-2 mb-4 bg-white/5 border border-white/5 p-2 rounded-full">
             <input
               id="category-name-input"
