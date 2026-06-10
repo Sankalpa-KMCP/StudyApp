@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useStudyDataContext } from './studyDataContext'
-import { useStudyTimerContext } from './studyTimerContext'
+import { useStudyTimerContext, useStudyTimerDisplay } from './studyTimerContext'
 import { useStudyUIContext } from './studyUIContext'
 
 export function useStudyApp() {
@@ -55,7 +55,6 @@ export function useStudyUI() {
     activeToast: ui.activeToast,
     quotaExceeded: ui.quotaExceeded,
     dismissQuotaRecovery: ui.dismissQuotaRecovery,
-    breathTime: ui.breathTime,
     isDragging: ui.isDragging,
     setIsDragging: ui.setIsDragging,
     activeTaskId: timerCtx.activeTaskId,
@@ -66,18 +65,20 @@ export function useStudyUI() {
     canvasRef: ui.canvasRef,
     progress: data.progress,
     notifyFocusLockout: ui.notifyFocusLockout,
+    scheduleDelete: ui.scheduleDelete,
   }), [data.progress, timerCtx, ui])
 }
 
 export function useStudyTimer() {
   const timerCtx = useStudyTimerContext()
+  const timerDisplay = useStudyTimerDisplay()
   return useMemo(() => ({
-    timer: timerCtx.timer,
+    timer: { ...timerCtx.timerControls, ...timerDisplay },
     ensureAudio: timerCtx.ensureAudio,
     handleAddTask: timerCtx.handleAddTask,
     handleToggleTask: timerCtx.handleToggleTask,
     activateTask: timerCtx.activateTask,
-  }), [timerCtx])
+  }), [timerCtx, timerDisplay])
 }
 
 export function useStudyJournal() {

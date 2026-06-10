@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { AlertCircle, Brain } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
 import { Sidebar } from './Sidebar'
 import { AppContentHeader } from './AppContentHeader'
 import { QuotaRecoveryBanner } from './QuotaRecoveryBanner'
-import { ZenOverlay } from './ZenOverlay'
-import { ReflectionModal } from './ReflectionModal'
+import { ZenOverlayContainer } from './ZenOverlayContainer'
+import { ReflectionModalContainer } from './ReflectionModalContainer'
 import { HotkeyModal } from './HotkeyModal'
 import { QuickNotesDrawer } from './QuickNotesDrawer'
 import { MobileTabBar } from './MobileTabBar'
@@ -25,7 +25,7 @@ import { getEffectiveDailyGoal, getTodayCategoryStudyMinutes } from '../lib/stud
 import { InstallPromptBanner } from './InstallPromptBanner'
 import { usePwaInstall } from '../hooks/usePwaInstall'
 
-export function AppShell() {
+export const AppShell = memo(function AppShell() {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
 
   useEffect(() => {
@@ -55,7 +55,7 @@ export function AppShell() {
   const cardsDueCount = countDueFlashcards(flashcards.flashcards)
   const pwaInstall = usePwaInstall()
 
-  const { timer, backup } = useStudyTimerContext()
+  const { timerControls, backup } = useStudyTimerContext()
 
   const {
     activeTab,
@@ -75,8 +75,8 @@ export function AppShell() {
     scheduleDelete,
   } = useStudyUI()
 
-  const activeTimerCategory = timer.timerCategoryId !== undefined
-    ? categories.categories.find(c => c.id === timer.timerCategoryId)
+  const activeTimerCategory = timerControls.timerCategoryId !== undefined
+    ? categories.categories.find(c => c.id === timerControls.timerCategoryId)
     : undefined
   const headerStudyMinutes = activeTimerCategory?.id !== undefined
     ? getTodayCategoryStudyMinutes(recentHistory.history, activeTimerCategory.id)
@@ -111,8 +111,8 @@ export function AppShell() {
   const handleSetActiveTab = async (tab: ActiveTab) => {
     const locked =
       settings.enforce_lockout &&
-      timer.isTimerActive &&
-      timer.timerMode === 'study' &&
+      timerControls.isTimerActive &&
+      timerControls.timerMode === 'study' &&
       tab !== 'focus'
     if (locked) {
       const ok = await requestConfirm({
@@ -122,7 +122,7 @@ export function AppShell() {
         danger: true,
       })
       if (ok) {
-        timer.setIsTimerActive(false)
+        timerControls.setIsTimerActive(false)
         setActiveTab(tab)
       }
       return
@@ -190,8 +190,8 @@ export function AppShell() {
         activeTab={activeTab}
         setActiveTab={handleSetActiveTab}
         setIsHotkeyHudOpen={setIsHotkeyHudOpen}
-        isTimerActive={timer.isTimerActive}
-        timerMode={timer.timerMode}
+        isTimerActive={timerControls.isTimerActive}
+        timerMode={timerControls.timerMode}
         enforceLockout={settings.enforce_lockout}
         cardsDueCount={cardsDueCount}
         onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
@@ -222,8 +222,8 @@ export function AppShell() {
           <AppContentHeader
             activeTab={activeTab}
             currentStreak={currentStreak}
-            isTimerActive={timer.isTimerActive}
-            timerMode={timer.timerMode}
+            isTimerActive={timerControls.isTimerActive}
+            timerMode={timerControls.timerMode}
             todayStudyMinutes={headerStudyMinutes}
             dailyGoalMinutes={headerGoalMinutes}
             focusCategoryName={activeTimerCategory?.name}
@@ -244,34 +244,17 @@ export function AppShell() {
         </div>
       </main>
 
-      <ZenOverlay
+      <ZenOverlayContainer
         isZenMode={isZenMode}
         canvasRef={canvasRef}
-        remainingSeconds={timer.remainingSeconds}
-        timerMode={timer.timerMode}
         sessionTasks={tasks.tasks}
         activeTaskId={activeTaskId}
-        isTimerActive={timer.isTimerActive}
-        setIsTimerActive={timer.setIsTimerActive}
-        completeSession={timer.completeSession}
         enforceLockout={settings.enforce_lockout}
         setIsZenMode={setIsZenMode}
         pageGradient={activeThemeVars.pageGradient}
       />
 
-      <ReflectionModal
-        key={timer.pendingSessionData?.timestamp ?? 'reflection'}
-        showReflectionModal={timer.showReflectionModal}
-        pendingSessionData={timer.pendingSessionData}
-        studyBlockDurationMinutes={settings.studyBlockDurationMinutes}
-        attentionRating={timer.attentionRating}
-        setAttentionRating={timer.setAttentionRating}
-        stabilityRating={timer.stabilityRating}
-        setStabilityRating={timer.setStabilityRating}
-        localSessionNotes={timer.localSessionNotes}
-        setLocalSessionNotes={timer.setLocalSessionNotes}
-        onSubmitReflection={timer.submitReflection}
-      />
+      <ReflectionModalContainer studyBlockDurationMinutes={settings.studyBlockDurationMinutes} />
 
       <HotkeyModal isOpen={isHotkeyHudOpen} onClose={() => setIsHotkeyHudOpen(false)} />
 
@@ -314,12 +297,12 @@ export function AppShell() {
         <MobileTabBar
           activeTab={activeTab}
           setActiveTab={handleSetActiveTab}
-          isTimerActive={timer.isTimerActive}
-          timerMode={timer.timerMode}
+          isTimerActive={timerControls.isTimerActive}
+          timerMode={timerControls.timerMode}
           enforceLockout={settings.enforce_lockout}
           cardsDueCount={cardsDueCount}
         />
       )}
     </div>
   )
-}
+})

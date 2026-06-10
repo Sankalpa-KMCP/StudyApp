@@ -13,12 +13,11 @@ type ToastApi = ReturnType<typeof useAppToast>
 
 export function useStudyUIState(toast: ToastApi) {
   const { settings } = useStudyDataContext()
-  const { timer } = useStudyTimerContext()
+  const { timerControls } = useStudyTimerContext()
   const { activeToast, setActiveToast, quotaExceeded, dismissQuotaRecovery } = toast
   const { scheduleDelete } = useUndoDelete({ setActiveToast })
 
   const [isNotesOpen, setIsNotesOpen] = useState(false)
-  const [breathTime, setBreathTime] = useState(0)
   const [isZenMode, setIsZenMode] = useState(false)
   const [activeTab, setActiveTab] = useState<ActiveTab>('focus')
   const [isDragging, setIsDragging] = useState(false)
@@ -36,23 +35,18 @@ export function useStudyUIState(toast: ToastApi) {
   useKeyboardShortcuts({
     activeTab,
     isHotkeyHudOpen,
-    isTimerActive: timer.isTimerActive,
-    timerMode: timer.timerMode,
+    isTimerActive: timerControls.isTimerActive,
+    timerMode: timerControls.timerMode,
     enforceLockout: settings.enforce_lockout,
-    completingRef: timer.completingRef,
-    handleModeSwitch: timer.handleModeSwitch,
-    completeSession: timer.completeSession,
-    setIsTimerActive: timer.setIsTimerActive,
+    completingRef: timerControls.completingRef,
+    handleModeSwitch: timerControls.handleModeSwitch,
+    completeSession: timerControls.completeSession,
+    setIsTimerActive: timerControls.setIsTimerActive,
     setIsZenMode,
     setIsHotkeyHudOpen,
     setActiveToast,
     toggleSidebarCollapse: sidebarCollapse?.toggleCollapsed,
   })
-
-  useEffect(() => {
-    const interval = setInterval(() => setBreathTime(t => (t + 1) % 12), 1250)
-    return () => clearInterval(interval)
-  }, [])
 
   const UI_FONT_STACKS: Record<string, string> = {
     Inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -123,7 +117,6 @@ export function useStudyUIState(toast: ToastApi) {
     dismissQuotaRecovery,
     isNotesOpen,
     setIsNotesOpen,
-    breathTime,
     isZenMode,
     setIsZenMode,
     activeTab,
@@ -142,7 +135,6 @@ export function useStudyUIState(toast: ToastApi) {
     quotaExceeded,
     dismissQuotaRecovery,
     isNotesOpen,
-    breathTime,
     isZenMode,
     activeTab,
     isDragging,
