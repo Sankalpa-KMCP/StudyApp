@@ -205,11 +205,20 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                     key={mins}
                     type="button"
                     onClick={() => handleDurationChange(mins)}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-label font-bold border transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-accent-blue/15 text-accent-blue border-accent-blue/35'
+                        ? ''
                         : 'bg-white/[0.02] text-white/40 border-white/5 hover:text-white/70 hover:border-white/10'
                     }`}
+                    style={
+                      isSelected
+                        ? {
+                            backgroundColor: `color-mix(in srgb, ${activeColor} 15%, transparent)`,
+                            borderColor: `color-mix(in srgb, ${activeColor} 35%, transparent)`,
+                            color: activeColor,
+                          }
+                        : undefined
+                    }
                   >
                     {mins}m
                   </button>
@@ -312,7 +321,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
           </div>
 
           {timerMode !== 'study' && (
-            <div className="mt-4 border border-white/5 bg-black/20 rounded-[20px] p-3.5 flex flex-col items-center gap-3.5 shadow-md transition-all duration-300 animate-slide-in-up">
+            <div className="mt-4 glass-tier-2 p-3.5 flex flex-col items-center gap-3.5 shadow-md transition-all duration-300 animate-slide-in-up">
               <div className="flex justify-between w-full text-label tracking-wider text-white/40 uppercase font-bold">
                 <span>Respiration Pacer</span>
                 <span className="text-accent-purple font-mono">Coherence Sync</span>
@@ -364,7 +373,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                 <span className="text-label font-bold uppercase tracking-wider">Stay present</span>
               </div>
             </div>
-            <div className="bg-black/20 border border-white/5 px-3.5 py-3 rounded-[20px]">
+            <div className="glass-tier-2 px-3.5 py-3">
               <p className="text-xs font-bold text-white/90">One task at a time</p>
               <p className="text-caption text-white/50 leading-relaxed mt-1">Pick a single focus target and protect this block from context switches.</p>
             </div>

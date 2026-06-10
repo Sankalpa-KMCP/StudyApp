@@ -37,7 +37,7 @@ export function FlashcardRegistry({
   const visibleCards = shouldVirtualize ? filteredCards.slice(0, visibleCount) : filteredCards
 
   return (
-    <PanelCard className="lg:col-span-8 flex flex-col min-h-[450px] lg:h-[600px] !p-5">
+    <PanelCard className="lg:col-span-8 flex flex-col min-h-[320px] sm:min-h-[450px] lg:h-[600px] !p-5">
       <PanelHeader
         title="Flashcards registry"
         bordered={false}
@@ -60,7 +60,7 @@ export function FlashcardRegistry({
                   key={status}
                   type="button"
                   onClick={() => setActiveSpacingFilter(status)}
-                  className={`px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-micro font-bold uppercase tracking-wider transition-all cursor-pointer ${
                     activeSpacingFilter === status ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white'
                   }`}
                 >
@@ -103,7 +103,7 @@ export function FlashcardRegistry({
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
                       <span
-                        className="inline-block text-[8px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full border"
+                        className="inline-block text-micro font-bold tracking-wider uppercase px-2 py-0.5 rounded-full border"
                         style={cat ? { backgroundColor: 'transparent', borderColor: cat.color, color: cat.color } : { backgroundColor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', borderColor: 'rgba(255,255,255,0.08)' }}
                       >
                         {cat ? cat.name : 'Uncategorized'}
@@ -120,8 +120,8 @@ export function FlashcardRegistry({
                     </button>
                   </div>
                   <div className="h-px bg-white/5" />
-                  <p className="text-[10px] text-white/50 leading-normal line-clamp-2 italic">{card.answer}</p>
-                  <div className="flex items-center justify-between text-[8px] font-mono text-white/40 mt-1 select-none">
+                  <p className="text-label text-white/50 leading-normal line-clamp-2 italic">{card.answer}</p>
+                  <div className="flex items-center justify-between text-micro font-mono text-white/40 mt-1 select-none">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       Next:{' '}
