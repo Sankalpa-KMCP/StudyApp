@@ -26,6 +26,12 @@ describe('theme contrast', () => {
           const ratio = contrastRatio(blended, profile.surface)
           expect(ratio).toBeGreaterThanOrEqual(MIN_CONTRAST)
         })
+
+        it(`text ${tokenName} meets WCAG AA on surfaceCard`, () => {
+          const blendedText = blendOnSurface(tokenColor, profile.surfaceCard)
+          const ratio = contrastRatio(blendedText, profile.surfaceCard)
+          expect(ratio).toBeGreaterThanOrEqual(MIN_CONTRAST)
+        })
       }
     })
   }
