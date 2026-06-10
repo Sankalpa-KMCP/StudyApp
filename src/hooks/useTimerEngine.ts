@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useMemo, useCallback, type RefObject } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, type RefObject, type SetStateAction } from 'react'
 import { db } from '../db/db'
 import type { TaskItem } from '../db/types'
 import type { PendingSessionData } from '../types/app'
 import { addRecoveredMinutes } from '../db/repositories/dailyLogs'
 import { calculateSM2, formatHistoryTimestamp } from '../lib/studyDashboard'
 import { devLog } from '../lib/devLogger'
+import { sendFocusBlockCompleteNotification } from '../lib/focusNotifications'
 import { requestWakeLock, releaseWakeLock } from '../lib/wakeLock'
 import type { HistoryEntry } from '../db/types'
 
@@ -23,7 +24,11 @@ interface UseTimerEngineOptions {
   pushToast: (key: string, message: string) => void
   activeTaskId: number | null
   setActiveTaskId: (id: number | null) => void
-  autoPauseOnHidden: boolean
+  focusNotificationsEnabled: boolean
+}
+
+function elapsedFromAnchor(anchorWallMs: number, anchorElapsed: number): number {
+  return anchorElapsed + Math.floor((Date.now() - anchorWallMs) / 1000)
 }
 
 export function useTimerEngine({
@@ -41,11 +46,11 @@ export function useTimerEngine({
   pushToast,
   activeTaskId,
   setActiveTaskId,
-  autoPauseOnHidden,
+  focusNotificationsEnabled,
 }: UseTimerEngineOptions) {
   const [timerCategoryId, setTimerCategoryId] = useState<number | undefined>(undefined)
   const [secondsElapsed, setSecondsElapsed] = useState(0)
-  const [isTimerActive, setIsTimerActive] = useState(false)
+  const [isTimerActive, setIsTimerActiveState] = useState(false)
   const [timerMode, setTimerMode] = useState<'study' | 'break'>('study')
   const [completedSessionsInCycle, setCompletedSessionsInCycle] = useState(0)
   const [isLongBreak, setIsLongBreak] = useState(false)
@@ -59,10 +64,49 @@ export function useTimerEngine({
   const completingRef = useRef(false)
   const incStudyRef = useRef(incrementStudy)
   const incBreakRef = useRef(incrementBreak)
+  const anchorRef = useRef({ wallMs: 0, elapsed: 0 })
+  const lastMinuteLoggedRef = useRef(0)
+  const lastShadowWriteRef = useRef(0)
+  const isTimerActiveRef = useRef(isTimerActive)
+  const timerModeRef = useRef(timerMode)
+  const timerCategoryIdRef = useRef(timerCategoryId)
+  const secondsElapsedRef = useRef(secondsElapsed)
+
   useEffect(() => {
     incStudyRef.current = incrementStudy
     incBreakRef.current = incrementBreak
   }, [incrementStudy, incrementBreak])
+
+  useEffect(() => {
+    isTimerActiveRef.current = isTimerActive
+  }, [isTimerActive])
+
+  useEffect(() => {
+    timerModeRef.current = timerMode
+  }, [timerMode])
+
+  useEffect(() => {
+    timerCategoryIdRef.current = timerCategoryId
+  }, [timerCategoryId])
+
+  useEffect(() => {
+    secondsElapsedRef.current = secondsElapsed
+  }, [secondsElapsed])
+
+  const resetAnchor = useCallback((elapsed: number) => {
+    anchorRef.current = { wallMs: Date.now(), elapsed }
+    lastMinuteLoggedRef.current = Math.floor(elapsed / 60)
+  }, [])
+
+  const setIsTimerActive = useCallback((value: SetStateAction<boolean>) => {
+    setIsTimerActiveState(prev => {
+      const next = typeof value === 'function' ? value(prev) : value
+      if (next && !prev) {
+        resetAnchor(secondsElapsedRef.current)
+      }
+      return next
+    })
+  }, [resetAnchor])
 
   const targetSeconds = useMemo(() => {
     let baseMin = studyBlockDurationMinutes
@@ -73,6 +117,37 @@ export function useTimerEngine({
   }, [timerMode, isLongBreak, longBreakDurationMinutes, shortBreakDurationMinutes, extendedMinutes, studyBlockDurationMinutes])
 
   const remainingSeconds = Math.max(0, targetSeconds - secondsElapsed)
+  const progress = targetSeconds > 0 ? Math.min(1, secondsElapsed / targetSeconds) : 0
+
+  const writeSessionShadow = useCallback((force = false) => {
+    if (!isDataReady) return
+    const now = Date.now()
+    if (!force && now - lastShadowWriteRef.current < 5000) return
+    lastShadowWriteRef.current = now
+    const shadow = {
+      mode: timerModeRef.current,
+      secondsElapsed: secondsElapsedRef.current,
+      isTimerActive: isTimerActiveRef.current,
+      categoryId: timerCategoryIdRef.current,
+      timestamp: now,
+    }
+    sessionStorage.setItem('active_session_shadow', JSON.stringify(shadow))
+  }, [isDataReady])
+
+  const syncElapsedFromWall = useCallback(() => {
+    const computed = elapsedFromAnchor(anchorRef.current.wallMs, anchorRef.current.elapsed)
+    setSecondsElapsed(prev => {
+      const newMinutes = Math.floor(computed / 60)
+      const prevMinutes = Math.floor(prev / 60)
+      if (newMinutes > prevMinutes) {
+        for (let m = prevMinutes + 1; m <= newMinutes; m++) {
+          if (timerModeRef.current === 'study') void incStudyRef.current()
+          else void incBreakRef.current()
+        }
+      }
+      return computed
+    })
+  }, [])
 
   const processSessionCompletion = useCallback(async (
     elapsed: number,
@@ -96,6 +171,9 @@ export function useTimerEngine({
     })
 
     playChime()
+    if (focusNotificationsEnabled) {
+      sendFocusBlockCompleteNotification(mode)
+    }
     devLog('timer', 'session-complete', { mode, elapsed })
     if (mode === 'study') {
       const studySessionCount = parseInt(localStorage.getItem('completed_study_sessions_count') || '0') + 1
@@ -131,15 +209,16 @@ export function useTimerEngine({
     } else {
       setTimerMode('study')
     }
-  }, [addHistoryEntry, playChime, createDatabaseSnapshot, activeTaskId, setActiveTaskId, targetSessionsPerCycle])
+  }, [addHistoryEntry, playChime, createDatabaseSnapshot, activeTaskId, setActiveTaskId, targetSessionsPerCycle, focusNotificationsEnabled])
 
   const completeSession = useCallback(async () => {
     if (completingRef.current) return
     completingRef.current = true
-    const elapsed = secondsElapsed
+    const elapsed = secondsElapsedRef.current
     const mode = timerMode
     setIsTimerActive(false)
     setSecondsElapsed(0)
+    resetAnchor(0)
     setExtendedMinutes(0)
     const now = new Date()
     const timestamp = formatHistoryTimestamp(now)
@@ -155,7 +234,7 @@ export function useTimerEngine({
     }
 
     await processSessionCompletion(elapsed, mode, timestamp, timerCategoryId)
-  }, [secondsElapsed, timerMode, timerCategoryId, processSessionCompletion])
+  }, [timerMode, timerCategoryId, processSessionCompletion, setIsTimerActive, resetAnchor])
 
   const handleModeSwitch = useCallback((mode: 'study' | 'break') => {
     if (completingRef.current) return
@@ -163,10 +242,12 @@ export function useTimerEngine({
     if (mode === 'study') setIsLongBreak(false)
     if (isTimerActive) setIsTimerActive(false)
     setSecondsElapsed(0)
+    secondsElapsedRef.current = 0
+    resetAnchor(0)
     setExtendedMinutes(0)
     setTimerMode(mode)
     playChime()
-  }, [timerMode, isTimerActive, playChime])
+  }, [timerMode, isTimerActive, playChime, setIsTimerActive, resetAnchor])
 
   const extendSession = useCallback(() => {
     setExtendedMinutes(m => m + 5)
@@ -176,12 +257,14 @@ export function useTimerEngine({
   const skipBreak = useCallback(() => {
     if (timerMode !== 'break') return
     setSecondsElapsed(0)
+    secondsElapsedRef.current = 0
+    resetAnchor(0)
     setExtendedMinutes(0)
     setTimerMode('study')
     setIsTimerActive(true)
     playChime()
     pushToast('TIMER', 'BREAK SKIPPED - STUDY BLOCK STARTED')
-  }, [timerMode, playChime, pushToast])
+  }, [timerMode, playChime, pushToast, setIsTimerActive, resetAnchor])
 
   const submitRecallGrade = useCallback(async (task: TaskItem, q: number) => {
     if (task.id === undefined) return
@@ -207,23 +290,15 @@ export function useTimerEngine({
 
   useEffect(() => {
     if (!isTimerActive) return
-    const id = setInterval(() => {
-      setSecondsElapsed(s => {
-        const ns = s + 1
-        if (ns % 60 === 0) {
-          if (timerMode === 'study') void incStudyRef.current()
-          else void incBreakRef.current()
-        }
-        return ns
-      })
-    }, 1000)
+
+    const tick = () => syncElapsedFromWall()
+    tick()
+    const id = setInterval(tick, 250)
     return () => clearInterval(id)
-  }, [isTimerActive, timerMode])
+  }, [isTimerActive, syncElapsedFromWall])
 
   useEffect(() => {
     if (isTimerActive && secondsElapsed >= targetSeconds) {
-      // Auto-complete when the countdown reaches zero
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional timer boundary
       void completeSession()
     }
   }, [secondsElapsed, targetSeconds, isTimerActive, completeSession])
@@ -259,34 +334,34 @@ export function useTimerEngine({
   }, [isDataReady, addHistoryEntry, pushToast])
 
   useEffect(() => {
-    if (!isDataReady) return
-    const shadow = {
-      mode: timerMode,
-      secondsElapsed,
-      isTimerActive,
-      categoryId: timerCategoryId,
-      timestamp: Date.now(),
-    }
-    sessionStorage.setItem('active_session_shadow', JSON.stringify(shadow))
-  }, [timerMode, secondsElapsed, isTimerActive, timerCategoryId, isDataReady])
+    writeSessionShadow()
+  }, [timerMode, secondsElapsed, isTimerActive, timerCategoryId, writeSessionShadow])
 
   useEffect(() => {
     function handleVisibilityChange() {
-      if (autoPauseOnHidden && document.hidden && isTimerActive) {
-        setIsTimerActive(false)
-        pushToast('PAUSE', 'PAUSED - WORKSPACE INACTIVE')
+      if (document.hidden) {
+        writeSessionShadow(true)
+        return
+      }
+      if (isTimerActiveRef.current) {
+        syncElapsedFromWall()
+        writeSessionShadow(true)
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [isTimerActive, pushToast, autoPauseOnHidden])
+  }, [syncElapsedFromWall, writeSessionShadow])
 
   useEffect(() => {
     let activeSentinel: WakeLockSentinel | null = null
     let isMounted = true
 
     async function acquireLock() {
-      if (isTimerActive && timerMode === 'study') {
+      if (isTimerActive && timerMode === 'study' && !document.hidden) {
+        if (activeSentinel) {
+          await releaseWakeLock(activeSentinel)
+          activeSentinel = null
+        }
         const lock = await requestWakeLock()
         if (isMounted && lock) activeSentinel = lock
       }
@@ -294,8 +369,12 @@ export function useTimerEngine({
 
     void acquireLock()
 
+    const onVisibility = () => { void acquireLock() }
+    document.addEventListener('visibilitychange', onVisibility)
+
     return () => {
       isMounted = false
+      document.removeEventListener('visibilitychange', onVisibility)
       if (activeSentinel) releaseWakeLock(activeSentinel)
     }
   }, [isTimerActive, timerMode])
@@ -317,25 +396,23 @@ export function useTimerEngine({
 
   const resetTimerState = useCallback(() => {
     setSecondsElapsed(0)
+    resetAnchor(0)
     setIsTimerActive(false)
     setTimerMode('study')
     setTimerCategoryId(undefined)
     setCompletedSessionsInCycle(0)
     setIsLongBreak(false)
     setActiveTaskId(null)
-  }, [setActiveTaskId])
+  }, [setActiveTaskId, setIsTimerActive, resetAnchor])
 
-  return {
+  const controls = useMemo(() => ({
     timerCategoryId,
     setTimerCategoryId,
-    secondsElapsed,
     isTimerActive,
     setIsTimerActive,
     timerMode,
     completedSessionsInCycle,
     isLongBreak,
-    targetSeconds,
-    remainingSeconds,
     showReflectionModal,
     setShowReflectionModal,
     pendingSessionData,
@@ -355,5 +432,34 @@ export function useTimerEngine({
     submitReflection,
     resetTimerState,
     completingRef: completingRef as RefObject<boolean>,
-  }
+  }), [
+    timerCategoryId,
+    isTimerActive,
+    setIsTimerActive,
+    timerMode,
+    completedSessionsInCycle,
+    isLongBreak,
+    showReflectionModal,
+    pendingSessionData,
+    attentionRating,
+    stabilityRating,
+    localSessionNotes,
+    completeSession,
+    handleModeSwitch,
+    extendSession,
+    skipBreak,
+    processSessionCompletion,
+    submitRecallGrade,
+    submitReflection,
+    resetTimerState,
+  ])
+
+  const display = useMemo(() => ({
+    secondsElapsed,
+    remainingSeconds,
+    targetSeconds,
+    progress,
+  }), [secondsElapsed, remainingSeconds, targetSeconds, progress])
+
+  return { controls, display }
 }
