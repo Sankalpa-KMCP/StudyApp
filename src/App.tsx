@@ -641,28 +641,21 @@ function App() {
       const aggregateVol = (volRainRef.current + volCafeRef.current + volWhiteNoiseRef.current + alphaWavesRef.current)
       const isMuted = aggregateVol <= 0.01
 
-      // Speeds scale directly with sound volume levels
-      const speedFactor = isMuted ? 0 : Math.min(2.5, aggregateVol * 1.3)
-      const maxDistance = isMuted ? 40 : 100 + Math.min(50, aggregateVol * 30)
-      const maxLineAlpha = isMuted ? 0 : Math.min(0.20, aggregateVol * 0.12)
+      // Speeds and connections are constant and decoupled from sound volume levels
+      const speedFactor = 1.0
+      const maxDistance = 80
+      const maxLineAlpha = 0.12
 
       // 1. Isolate coordinate calculation loop
       particles.forEach(p => {
-        if (isMuted) {
-          const targetX = width / 2
-          const targetY = height / 2
-          p.x += (targetX - p.x) * 0.015
-          p.y += (targetY - p.y) * 0.015
-        } else {
-          p.x += p.originalVx * speedFactor
-          p.y += p.originalVy * speedFactor
+        p.x += p.originalVx * speedFactor
+        p.y += p.originalVy * speedFactor
 
-          if (p.x < 0) { p.x = 0; p.originalVx *= -1 }
-          else if (p.x > width) { p.x = width; p.originalVx *= -1 }
+        if (p.x < 0) { p.x = 0; p.originalVx *= -1 }
+        else if (p.x > width) { p.x = width; p.originalVx *= -1 }
 
-          if (p.y < 0) { p.y = 0; p.originalVy *= -1 }
-          else if (p.y > height) { p.y = height; p.originalVy *= -1 }
-        }
+        if (p.y < 0) { p.y = 0; p.originalVy *= -1 }
+        else if (p.y > height) { p.y = height; p.originalVy *= -1 }
       })
 
       // 2. Draw particle nodes
