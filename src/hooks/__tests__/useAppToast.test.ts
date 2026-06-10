@@ -22,6 +22,23 @@ describe('useAppToast', () => {
 
     expect(result.current.activeToast?.key).toBe('DATABASE')
     expect(result.current.activeToast?.message.toLowerCase()).toContain('quota')
+    expect(result.current.quotaExceeded).toBe(true)
+  })
+
+  it('dismisses quota recovery flag', () => {
+    const { result } = renderHook(() => useAppToast())
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent('dexie-error', {
+        detail: { name: 'QuotaExceededError', message: 'quota' },
+      }))
+    })
+    expect(result.current.quotaExceeded).toBe(true)
+
+    act(() => {
+      result.current.dismissQuotaRecovery()
+    })
+    expect(result.current.quotaExceeded).toBe(false)
   })
 
   it('auto-dismisses toast after timeout', () => {
