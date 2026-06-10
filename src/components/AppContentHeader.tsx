@@ -1,4 +1,4 @@
-import { Brain, Flame } from 'lucide-react'
+import { Brain, FileText, Flame } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
 import { TAB_CHROME } from '../navigation/appNav'
 import { getDailyFocusStatus } from '../lib/studyDashboard'
@@ -11,6 +11,7 @@ interface AppContentHeaderProps {
   todayStudyMinutes: number
   dailyGoalMinutes: number
   focusCategoryName?: string
+  onOpenNotes?: () => void
 }
 
 export function AppContentHeader({
@@ -21,6 +22,7 @@ export function AppContentHeader({
   todayStudyMinutes,
   dailyGoalMinutes,
   focusCategoryName,
+  onOpenNotes,
 }: AppContentHeaderProps) {
   const focusStatus = getDailyFocusStatus(todayStudyMinutes, dailyGoalMinutes)
   const goalScopeLabel = focusCategoryName ? `${focusCategoryName} goal` : 'Daily goal'
@@ -59,6 +61,16 @@ export function AppContentHeader({
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          {onOpenNotes && (
+            <button
+              type="button"
+              onClick={onOpenNotes}
+              aria-label="Quick Notes"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all ios-active-scale"
+            >
+              <FileText className="h-4 w-4" />
+            </button>
+          )}
           {focusChip}
           <div className="flex items-center gap-1 rounded-full bg-white/5 border border-white/10 px-2.5 py-1">
             <Flame className="h-3.5 w-3.5 text-accent-amber" />

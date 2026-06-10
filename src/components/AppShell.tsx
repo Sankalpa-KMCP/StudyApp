@@ -14,11 +14,16 @@ import { AnalyticsTab } from './tabs/AnalyticsTab'
 import { JournalTab } from './tabs/JournalTab'
 import { CardsTab } from './tabs/CardsTab'
 import { SettingsTab } from './tabs/SettingsTab'
+import { db } from '../db/db'
 import { useStudyData, useStudyUI } from '../context/useStudyApp'
 import { useStudyTimerContext } from '../context/studyTimerContext'
 import { useConfirm } from '../context/useConfirm'
 import { E2eCrashProbe } from './E2eCrashProbe'
 import { OnboardingModal } from './OnboardingModal'
+import { countDueFlashcards } from './flashcard/flashcardDue'
+import { getEffectiveDailyGoal, getTodayCategoryStudyMinutes } from '../lib/studyDashboard'
+import { InstallPromptBanner } from './InstallPromptBanner'
+import { usePwaInstall } from '../hooks/usePwaInstall'
 
 export function AppShell() {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
@@ -43,7 +48,12 @@ export function AppShell() {
     currentStreak,
     xpData,
     todayLog,
+    flashcards,
+    recentHistory,
   } = useStudyData()
+
+  const cardsDueCount = countDueFlashcards(flashcards.flashcards)
+  const pwaInstall = usePwaInstall()
 
   const { timer, backup } = useStudyTimerContext()
 
@@ -62,7 +72,25 @@ export function AppShell() {
     dismissQuotaRecovery,
     isNotesOpen,
     setIsNotesOpen,
+    scheduleDelete,
   } = useStudyUI()
+
+  const activeTimerCategory = timer.timerCategoryId !== undefined
+    ? categories.categories.find(c => c.id === timer.timerCategoryId)
+    : undefined
+  const headerStudyMinutes = activeTimerCategory?.id !== undefined
+    ? getTodayCategoryStudyMinutes(recentHistory.history, activeTimerCategory.id)
+    : todayLog.studyMinutes
+  const headerGoalMinutes = getEffectiveDailyGoal(activeTimerCategory, settings.dailyGoalMinutes)
+
+  const handleDeleteNote = async (id: number) => {
+    const note = quickNotes.notes.find(n => n.id === id)
+    if (!note) {
+      void quickNotes.deleteNote(id)
+      return
+    }
+    scheduleDelete('Note', () => quickNotes.deleteNote(id), async () => { await db.quick_notes.put(note) })
+  }
 
   const [onboardingDismissed, setOnboardingDismissed] = useState(
     () => typeof window !== 'undefined' && !!localStorage.getItem('sanctuary_onboarding_completed'),
@@ -149,6 +177,7 @@ export function AppShell() {
         isTimerActive={timer.isTimerActive}
         timerMode={timer.timerMode}
         enforceLockout={settings.enforce_lockout}
+        cardsDueCount={cardsDueCount}
         onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
         onShowOnboarding={openOnboarding}
       />
@@ -163,6 +192,9 @@ export function AppShell() {
             You are offline — data stays on this device
           </div>
         )}
+        {!isZenMode && pwaInstall.showBanner && (
+          <InstallPromptBanner onInstall={() => void pwaInstall.install()} onDismiss={pwaInstall.dismiss} />
+        )}
         {!isZenMode && quotaExceeded && (
           <QuotaRecoveryBanner
             onExport={() => void backup.exportStudyBackup()}
@@ -176,8 +208,10 @@ export function AppShell() {
             currentStreak={currentStreak}
             isTimerActive={timer.isTimerActive}
             timerMode={timer.timerMode}
-            todayStudyMinutes={todayLog.studyMinutes}
-            dailyGoalMinutes={settings.dailyGoalMinutes}
+            todayStudyMinutes={headerStudyMinutes}
+            dailyGoalMinutes={headerGoalMinutes}
+            focusCategoryName={activeTimerCategory?.name}
+            onOpenNotes={() => setIsNotesOpen(true)}
           />
         )}
 
@@ -235,6 +269,15 @@ export function AppShell() {
         >
           <kbd className="bg-white/10 text-white border border-white/15 rounded px-1.5 py-0.5 text-label font-sans">{activeToast.key}</kbd>
           <span>{activeToast.message}</span>
+          {activeToast.action && (
+            <button
+              type="button"
+              onClick={activeToast.action.onClick}
+              className="ml-1 rounded-full bg-white/15 px-2.5 py-0.5 text-label font-bold text-white hover:bg-white/25 ios-active-scale"
+            >
+              {activeToast.action.label}
+            </button>
+          )}
         </div>
       )}
 
@@ -247,7 +290,7 @@ export function AppShell() {
         notes={quickNotes.notes}
         addNote={quickNotes.addNote}
         updateNote={quickNotes.updateNote}
-        deleteNote={quickNotes.deleteNote}
+        deleteNote={handleDeleteNote}
       />
 
       {!isZenMode && (
@@ -257,6 +300,7 @@ export function AppShell() {
           isTimerActive={timer.isTimerActive}
           timerMode={timer.timerMode}
           enforceLockout={settings.enforce_lockout}
+          cardsDueCount={cardsDueCount}
         />
       )}
     </div>
