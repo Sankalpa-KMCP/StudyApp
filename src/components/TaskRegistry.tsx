@@ -5,6 +5,8 @@ import { TaskCreateForm } from './task-registry/TaskCreateForm'
 import { TaskList } from './task-registry/TaskList'
 import { useTaskFilters, useTodayDateString } from './task-registry/useTaskFilters'
 import { InlineCategoryManager } from './shared/InlineCategoryManager'
+import { PanelCard } from './shared/PanelCard'
+import { PanelHeader } from './shared/PanelHeader'
 
 interface TaskRegistryProps {
   tasks: TaskItem[]
@@ -69,26 +71,24 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
 
   return (
     <div className="flex flex-col gap-6 h-full w-full">
-      <div className="dynamic-card p-5 md:p-6 flex flex-col h-full shadow-2xl">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5 border-b border-white/5 pb-4">
-          <div className="select-none shrink-0">
-            <span className="text-label font-bold uppercase tracking-wider text-white/40">Study tasks</span>
-            <p className="text-sm font-bold text-white mt-1">Focus targets</p>
-          </div>
-
-          {timerMode === 'study' && (
-            <div className="min-w-[180px] flex-1 sm:max-w-xs">
-              <InlineCategoryManager
-                label="Subject"
-                categories={categories}
-                addCategory={addCategory}
-                deleteCategory={deleteCategory}
-                selectedCategoryId={timerCategoryId}
-                onSelectCategory={setTimerCategoryId}
-              />
-            </div>
-          )}
-        </div>
+      <PanelCard className="flex flex-col h-full">
+        <PanelHeader
+          title="Focus targets"
+          action={
+            timerMode === 'study' ? (
+              <div className="min-w-[180px] flex-1 sm:max-w-xs">
+                <InlineCategoryManager
+                  label="Subject"
+                  categories={categories}
+                  addCategory={addCategory}
+                  deleteCategory={deleteCategory}
+                  selectedCategoryId={timerCategoryId}
+                  onSelectCategory={setTimerCategoryId}
+                />
+              </div>
+            ) : undefined
+          }
+        />
 
         {activeTask && (
           <div className="mb-5 flex items-center gap-3.5 rounded-[20px] border border-white/5 bg-black/20 p-4 shadow-md animate-slide-in-up">
@@ -128,7 +128,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           toggleTask={toggleTask}
           submitRecallGrade={submitRecallGrade}
         />
-      </div>
+      </PanelCard>
     </div>
   )
 }
