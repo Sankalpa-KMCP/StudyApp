@@ -24,15 +24,29 @@ function DeckStory() {
     <div className="max-w-4xl p-6" style={{ background: '#0d0a1b' }}>
       <ControlDeck
         updateSetting={() => {}}
-        theme="midnight"
+        updateCategory={async () => {}}
+        theme="midnight-slate"
+        themePreset="midnight-slate"
+        lightThemePreset="paper-day"
+        uiFont="Inter"
+        uiDensity="comfortable"
         cardOpacity={0.06}
         backdropBlur={24}
+        backdropSaturate={180}
+        cardBorderOpacity={0.08}
+        accentBlueOverride={null}
+        accentPurpleOverride={null}
+        accentGreenOverride={null}
+        accentAmberOverride={null}
+        noteTagColors={['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#64748b']}
         initialEasinessFactor={2.5}
         dailyGoalMinutes={480}
         studyBlockDurationMinutes={25}
         shortBreakDurationMinutes={5}
         longBreakDurationMinutes={15}
         targetSessionsPerCycle={4}
+        recentHistoryLimit={100}
+        focusNotificationsEnabled={false}
         soundEnabled
         tactileEnabled
         developerFont="inter"
