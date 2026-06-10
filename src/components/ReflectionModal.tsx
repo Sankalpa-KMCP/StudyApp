@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import type { PendingSessionData } from '../types/app'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 
 interface ReflectionModalProps {
   showReflectionModal: boolean
@@ -27,6 +28,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
   onSubmitReflection,
 }) => {
   const [adjustedElapsed, setAdjustedElapsed] = useState<number | null>(null)
+  const trapRef = useFocusTrap(showReflectionModal && !!pendingSessionData)
 
   if (!showReflectionModal || !pendingSessionData) return null
 
@@ -37,7 +39,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="reflection-modal-title">
       <div className="absolute inset-0 bg-black/45 backdrop-blur-xl" />
-      <div key={pendingSessionData.timestamp} className="relative w-full max-w-md border border-white/10 bg-[#161620]/45 backdrop-blur-3xl rounded-[28px] p-7 shadow-[0_24px_60px_rgba(0,0,0,0.5),_inset_0_1px_1px_rgba(255,255,255,0.1)] animate-slide-in-up">
+      <div ref={trapRef} key={pendingSessionData.timestamp} className="relative w-full max-w-md border border-white/10 bg-[#161620]/45 backdrop-blur-3xl rounded-[28px] p-7 shadow-[0_24px_60px_rgba(0,0,0,0.5),_inset_0_1px_1px_rgba(255,255,255,0.1)] animate-slide-in-up">
         <div className="mb-4 pb-2 border-b border-white/10">
           <h3 id="reflection-modal-title" className="text-sm font-serif-luxury italic font-medium tracking-wider text-white">FLOW SESSION REFLECTION</h3>
           <p className="text-[10px] text-white/50 font-mono mt-1">Telemetry validation required for interval log archiving</p>

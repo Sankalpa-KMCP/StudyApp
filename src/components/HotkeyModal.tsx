@@ -1,5 +1,6 @@
 import React from 'react'
 import { X } from 'lucide-react'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 
 interface HotkeyModalProps {
   isOpen: boolean
@@ -16,6 +17,8 @@ const SHORTCUTS = [
 ]
 
 export const HotkeyModal: React.FC<HotkeyModalProps> = ({ isOpen, onClose }) => {
+  const trapRef = useFocusTrap(isOpen)
+
   if (!isOpen) return null
 
   return (
@@ -28,6 +31,7 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({ isOpen, onClose }) => 
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
       <div
+        ref={trapRef}
         className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 backdrop-blur-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)]"
         onClick={e => e.stopPropagation()}
       >
