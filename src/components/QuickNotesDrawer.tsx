@@ -16,6 +16,7 @@ interface QuickNotesDrawerProps {
   addNote: (title: string, content: string, categoryId?: number) => Promise<void>
   updateNote: (id: number, title: string, content: string, categoryId?: number, color?: string) => Promise<void>
   deleteNote: (id: number) => Promise<void>
+  noteTagColors: string[]
 }
 
 export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
@@ -27,7 +28,8 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   notes,
   addNote,
   updateNote,
-  deleteNote
+  deleteNote,
+  noteTagColors,
 }) => {
   const trapRef = useFocusTrap(isOpen, onClose)
   const {
@@ -78,16 +80,6 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
     }
     await deleteNote(id)
   }
-
-  const notePaletteColors = [
-    '#06b6d4', // cyan
-    '#3b82f6', // blue
-    '#8b5cf6', // purple
-    '#ec4899', // pink
-    '#10b981', // green
-    '#f59e0b', // amber
-    '#ef4444'  // red
-  ]
 
   if (!isOpen) return null
 
@@ -168,7 +160,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
               <div>
                 <span id="note-color-tag" className="block text-[8px] font-mono uppercase text-white/45 mb-1.5">Color Tag</span>
                 <div className="flex items-center gap-1 overflow-x-auto max-w-full" role="group" aria-labelledby="note-color-tag">
-                  {notePaletteColors.map(color => (
+                  {noteTagColors.map(color => (
                     <button
                       key={color}
                       onClick={() => handleColorChange(color)}
