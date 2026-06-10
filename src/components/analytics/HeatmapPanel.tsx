@@ -73,7 +73,7 @@ export function HeatmapPanel({ heatmapData, accentBlue, className = '' }: Heatma
                   : `rgba(${rgbStr}, 1.00)`,
               }}
             >
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-32 bg-[#161620]/95 backdrop-blur-xl border border-white/10 p-2 rounded-[12px] text-[8px] font-mono text-left pointer-events-none z-30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] leading-normal">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-32 surface-overlay border border-white/10 p-2 rounded-[12px] text-micro font-mono text-left pointer-events-none z-30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] leading-normal">
                 <div className="font-bold text-white mb-0.5 border-b border-white/10 pb-0.5">{day.dateStr}</div>
                 <div className="text-white/80">Study: {day.minutes}m</div>
                 <div className="text-accent-blue font-bold mt-0.5">

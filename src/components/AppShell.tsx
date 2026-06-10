@@ -150,21 +150,37 @@ export function AppShell() {
     )
   }
 
+  const isLight = activeThemeVars.isLight ?? false
+
   const inlineStyles = {
     '--color-surface': activeThemeVars.surface,
     '--color-surface-card': activeThemeVars.surfaceCard,
+    '--color-text-primary': activeThemeVars.textPrimary ?? '#ffffff',
+    '--color-text-secondary': activeThemeVars.textSecondary ?? 'rgba(255, 255, 255, 0.65)',
+    '--color-text-muted': activeThemeVars.textMuted ?? 'rgba(255, 255, 255, 0.55)',
+    '--color-on-accent': activeThemeVars.onAccent ?? '#080b11',
     '--color-accent-blue': activeThemeVars.accentBlue,
     '--color-accent-purple': activeThemeVars.accentPurple,
     '--color-accent-green': activeThemeVars.accentGreen,
     '--color-accent-amber': activeThemeVars.accentAmber,
     '--surface-card-rgb': activeThemeVars.surfaceCardRgb,
+    '--surface-overlay': `rgba(${activeThemeVars.surfaceCardRgb}, 0.95)`,
     '--card-opacity': settings.cardOpacity,
     '--backdrop-blur': `${settings.backdropBlur}px`,
+    '--backdrop-saturate': `${settings.backdropSaturate}%`,
+    '--color-border-card': isLight
+      ? `rgba(0, 0, 0, ${settings.cardBorderOpacity})`
+      : `rgba(255, 255, 255, ${settings.cardBorderOpacity})`,
     background: activeThemeVars.pageGradient,
   } as React.CSSProperties
 
   return (
-    <div className="min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden pb-24 md:pb-0" style={inlineStyles}>
+    <div
+      data-theme-mode={isLight ? 'light' : 'dark'}
+      data-density={settings.uiDensity}
+      className="min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden pb-24 md:pb-0"
+      style={inlineStyles}
+    >
       <E2eCrashProbe />
       <Sidebar
         isZenMode={isZenMode}
@@ -215,7 +231,7 @@ export function AppShell() {
           />
         )}
 
-        <div className={`flex-1 p-4 md:p-6 lg:p-8 flex flex-col transition-all duration-700 ${isZenMode ? 'opacity-0 scale-95 pointer-events-none' : ''}`}>
+        <div className={`app-content-main flex-1 p-4 md:p-6 lg:p-8 flex flex-col transition-all duration-700 ${isZenMode ? 'opacity-0 scale-95 pointer-events-none' : ''}`}>
           {!isZenMode && (
             <div key={activeTab} className="app-tab-panel flex-1 flex flex-col min-h-0" data-active-tab={activeTab}>
               {activeTab === 'focus' && <FocusTab />}
@@ -291,6 +307,7 @@ export function AppShell() {
         addNote={quickNotes.addNote}
         updateNote={quickNotes.updateNote}
         deleteNote={handleDeleteNote}
+        noteTagColors={settings.noteTagColors}
       />
 
       {!isZenMode && (
