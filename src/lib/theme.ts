@@ -58,5 +58,4 @@ export const TOOLTIP_STYLE = {
   outline: 'none',
 }
 
-export const DAY_NAMES_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-export const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+export { DAY_NAMES_SHORT, MONTH_NAMES } from './dateConstants'

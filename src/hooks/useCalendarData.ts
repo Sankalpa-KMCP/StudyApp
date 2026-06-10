@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import type { DailyLog, HistoryEntry, TaskItem, CategoryItem } from '../db/types'
 import type { DayData } from '../types/app'
 import { formatMinutes, getIntensity, getHistoryDayKey } from '../lib/studyDashboard'
-import { DAY_NAMES_SHORT, MONTH_NAMES } from '../lib/theme'
+import { DAY_NAMES_SHORT, MONTH_NAMES } from '../lib/dateConstants'
 
 interface UseCalendarDataOptions {
   allLogs: DailyLog[]
