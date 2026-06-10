@@ -72,9 +72,10 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
 
         <div className="flex items-center gap-4 pt-4">
           <button
+            type="button"
             onClick={() => setIsTimerActive(!isTimerActive)}
+            aria-label={isTimerActive ? 'Pause session' : 'Start session'}
             className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white border border-white/10 hover:bg-white/15 active:scale-95 cursor-pointer transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] ios-active-scale"
-            title={isTimerActive ? 'Pause session' : 'Start session'}
           >
             {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 fill-white" />}
           </button>

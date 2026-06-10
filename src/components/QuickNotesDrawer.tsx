@@ -106,7 +106,9 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
           <h3 id="quick-notes-title" className="text-xs font-bold uppercase tracking-wider text-white">Notes Workspace</h3>
         </div>
         <button
+          type="button"
           onClick={onClose}
+          aria-label="Close quick notes"
           className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
         >
           <X className="h-4.5 w-4.5" />
@@ -164,8 +166,8 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
               />
 
               <div>
-                <label className="block text-[8px] font-mono uppercase text-white/45 mb-1.5">Color Tag</label>
-                <div className="flex items-center gap-1 overflow-x-auto max-w-full">
+                <span id="note-color-tag" className="block text-[8px] font-mono uppercase text-white/45 mb-1.5">Color Tag</span>
+                <div className="flex items-center gap-1 overflow-x-auto max-w-full" role="group" aria-labelledby="note-color-tag">
                   {notePaletteColors.map(color => (
                     <button
                       key={color}
@@ -294,7 +296,16 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
                 return (
                   <div
                     key={note.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Edit note ${note.title || 'untitled'}`}
                     onClick={() => startEditing(note)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        startEditing(note)
+                      }
+                    }}
                     className="group relative p-3.5 rounded-xl border border-white/5 bg-white/[0.015] hover:bg-white/[0.03] hover:border-white/10 hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col gap-2.5 overflow-hidden"
                   >
                     {/* Left color bar glow indicator */}
