@@ -190,15 +190,17 @@ function App() {
   const [timerMode, setTimerMode] = useState<'study' | 'break'>('study')
   const [completedSessionsInCycle, setCompletedSessionsInCycle] = useState(0)
   const [isLongBreak, setIsLongBreak] = useState(false)
+  const [extendedMinutes, setExtendedMinutes] = useState(0)
 
   const targetSeconds = useMemo(() => {
+    let baseMin = 25
     if (timerMode === 'study') {
-      return 25 * 60 // 25 minutes for study
+      baseMin = 25
     } else {
-      const dur = isLongBreak ? longBreakDurationMinutes : shortBreakDurationMinutes
-      return dur * 60
+      baseMin = isLongBreak ? longBreakDurationMinutes : shortBreakDurationMinutes
     }
-  }, [timerMode, isLongBreak, longBreakDurationMinutes, shortBreakDurationMinutes])
+    return (baseMin + extendedMinutes) * 60
+  }, [timerMode, isLongBreak, longBreakDurationMinutes, shortBreakDurationMinutes, extendedMinutes])
 
   const remainingSeconds = Math.max(0, targetSeconds - secondsElapsed)
   const [isHotkeyHudOpen, setIsHotkeyHudOpen] = useState(false)
@@ -444,6 +446,7 @@ function App() {
     const mode = timerMode
     setIsTimerActive(false)
     setSecondsElapsed(0)
+    setExtendedMinutes(0)
     const now = new Date()
     const timestamp = `${monthNames[now.getMonth()]} ${now.getDate()}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
@@ -466,8 +469,14 @@ function App() {
     if (mode === 'study') setIsLongBreak(false)
     if (isTimerActive) setIsTimerActive(false)
     setSecondsElapsed(0)
+    setExtendedMinutes(0)
     setTimerMode(mode)
     playChime()
+  }
+
+  function extendSession() {
+    setExtendedMinutes(m => m + 5)
+    pushToast('TIMER', 'ADDED 5 MINUTES TO CURRENT TIMER')
   }
 
   function handleAddTask(text: string, categoryId?: number, estimatedCycles?: number, priority?: 'low' | 'medium' | 'high', isStudySubject?: boolean) {
@@ -1216,6 +1225,7 @@ function App() {
                       targetSessionsPerCycle={targetSessionsPerCycle}
                       handleModeSwitch={handleModeSwitch}
                       completeSession={completeSession}
+                      extendSession={extendSession}
                       breathTime={breathTime}
                       setIsZenMode={setIsZenMode}
                       soundEnabled={soundEnabled}

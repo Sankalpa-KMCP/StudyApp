@@ -13,6 +13,7 @@ interface FocusSanctuaryProps {
   targetSessionsPerCycle: number
   handleModeSwitch: (mode: 'study' | 'break') => void
   completeSession: () => void
+  extendSession: () => void
   breathTime: number
   setIsZenMode: (zen: boolean) => void
   soundEnabled: boolean
@@ -40,6 +41,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   targetSessionsPerCycle,
   handleModeSwitch,
   completeSession,
+  extendSession,
   breathTime,
   setIsZenMode
 }) => {
@@ -124,13 +126,21 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               </button>
 
               {(isTimerActive || secondsElapsed > 0) && (
-                <button
-                  onClick={completeSession}
-                  className="flex items-center gap-1.5 rounded-full bg-white/10 text-white border border-white/5 px-4 py-2.5 text-xs font-semibold hover:bg-white/15 transition-all ios-active-scale cursor-pointer"
-                >
-                  <Check className="h-4 w-4 text-accent-green stroke-[2.5]" />
-                  <span>Complete</span>
-                </button>
+                <>
+                  <button
+                    onClick={extendSession}
+                    className="px-4 py-2.5 rounded-full text-xs font-bold border border-accent-purple/20 bg-accent-purple/10 hover:bg-accent-purple/20 text-accent-purple transition-all ios-active-scale cursor-pointer"
+                  >
+                    +5 Min
+                  </button>
+                  <button
+                    onClick={completeSession}
+                    className="flex items-center gap-1.5 rounded-full bg-white/10 text-white border border-white/5 px-4 py-2.5 text-xs font-semibold hover:bg-white/15 transition-all ios-active-scale cursor-pointer"
+                  >
+                    <Check className="h-4 w-4 text-accent-green stroke-[2.5]" />
+                    <span>Complete</span>
+                  </button>
+                </>
               )}
             </div>
 
