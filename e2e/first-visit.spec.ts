@@ -12,8 +12,18 @@ test.describe('first visit', () => {
     await page.goto('/')
     await expect(page.getByRole('dialog', { name: 'Welcome to Sanctuary Study' })).toBeVisible({ timeout: 15000 })
     await page.getByRole('button', { name: 'Skip onboarding tour' }).click()
-    await expect(page.getByLabel('Create New Focus Target')).toBeVisible()
+    await expect(page.getByLabel('Add focus target')).toBeVisible()
     await expect(page.getByPlaceholder('What do you want to focus on?')).toBeVisible()
+  })
+
+  test('onboarding final CTA focuses task input', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByRole('dialog', { name: 'Welcome to Sanctuary Study' })).toBeVisible({ timeout: 15000 })
+    for (let i = 0; i < 3; i++) {
+      await page.getByRole('button', { name: 'Next' }).click()
+    }
+    await page.getByRole('button', { name: 'Create your first focus target' }).click()
+    await expect(page.getByLabel('Add focus target')).toBeFocused()
   })
 
   test('backdrop click does not dismiss onboarding', async ({ page }) => {

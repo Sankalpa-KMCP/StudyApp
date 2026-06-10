@@ -23,4 +23,14 @@ describe('EmptyState', () => {
     )
     expect(screen.getByTestId('icon')).toBeInTheDocument()
   })
+
+  it('renders optional action slot', () => {
+    render(
+      <EmptyState
+        title="No cards"
+        action={<button type="button">Create card</button>}
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Create card' })).toBeInTheDocument()
+  })
 })

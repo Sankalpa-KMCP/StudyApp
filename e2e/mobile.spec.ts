@@ -16,3 +16,14 @@ test('mobile tab bar navigates all main tabs', async ({ page }) => {
   await page.getByRole('button', { name: 'Analytics', exact: true }).click()
   await expect(page.getByText(/loading analytics|monthly study time/i).first()).toBeVisible({ timeout: 15000 })
 })
+
+test('mobile focus shows compact timer and task input', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
+  if (await page.getByRole('button', { name: 'Skip onboarding tour' }).isVisible()) {
+    await page.getByRole('button', { name: 'Skip onboarding tour' }).click()
+  }
+  await page.getByRole('button', { name: 'Focus', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Adjust length' })).toBeVisible()
+  await expect(page.getByPlaceholder('What do you want to focus on?')).toBeVisible()
+})
