@@ -242,9 +242,9 @@
 
 .mobile-nav-btn[data-active="true"][data-accent="settings"] {
   color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+  background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-text-primary) 5%, transparent);
 }
 
 .app-tab-panel {
