@@ -78,6 +78,37 @@ describe('useTimerEngine', () => {
     expect(setActiveTaskId).toHaveBeenCalledWith(null)
   })
 
+  it('pauses when document becomes hidden while timer is active', () => {
+    const pushToast = vi.fn()
+    const { result } = renderHook(() => useTimerEngine(createTimerOptions({ pushToast })))
+    act(() => result.current.setIsTimerActive(true))
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(result.current.isTimerActive).toBe(false)
+    expect(pushToast).toHaveBeenCalledWith('PAUSE', 'PAUSED - WORKSPACE INACTIVE')
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false })
+  })
+
+  it('rolls over midnight when computing session timestamp', async () => {
+    vi.setSystemTime(new Date('2026-06-10T23:59:50Z'))
+    const addHistoryEntry = vi.fn().mockResolvedValue(undefined)
+    const { result } = renderHook(() =>
+      useTimerEngine(createTimerOptions({
+        studyBlockDurationMinutes: 1,
+        addHistoryEntry,
+      })),
+    )
+    act(() => result.current.setIsTimerActive(true))
+    await act(async () => {
+      vi.advanceTimersByTime(15 * 1000)
+      await result.current.completeSession()
+    })
+    expect(result.current.pendingSessionData?.timestamp).toBeTruthy()
+    vi.useRealTimers()
+  })
+
   it('auto-completes when elapsed reaches target for break mode', async () => {
     const addHistoryEntry = vi.fn().mockResolvedValue(undefined)
     const { result } = renderHook(() =>
