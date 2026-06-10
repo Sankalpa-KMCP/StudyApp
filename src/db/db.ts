@@ -94,6 +94,29 @@ class StudyDashboardDB extends Dexie {
         await settingsTable.put({ key: 'studyBlockDurationMinutes', value: 25 })
       }
     })
+    this.version(7).stores({
+      tasks: '++id, text, completed, createdAt, categoryId',
+      history: '++id, timestamp, createdAt, type, durationMinutes, categoryId',
+      settings: '&key, value',
+      daily_logs: '&dateString, studyMinutes, breakMinutes',
+      categories: '++id, name, color',
+      flashcards: '++id, question, answer, categoryId, nextReviewDate',
+      quick_notes: '++id, title, content, categoryId, updatedAt',
+      snapshots: '++id, timestamp',
+    }).upgrade(async tx => {
+      const orphanedAmbientKeys = [
+        'ambientTrack',
+        'ambientVolume',
+        'ambientVolume_rain',
+        'ambientVolume_cafe',
+        'ambientVolume_whiteNoise',
+        'audio_presets',
+        'ambient_alphaWaves',
+        'noiseType',
+        'binauralTarget',
+      ]
+      await tx.table('settings').bulkDelete(orphanedAmbientKeys)
+    })
   }
 }
 

@@ -49,14 +49,6 @@ export interface DailyLog {
   mood?: string
 }
 
-export interface AudioPreset {
-  name: string
-  rain: number
-  cafe: number
-  whiteNoise: number
-  alphaWaves: number
-}
-
 export type SettingsKey =
   | 'dailyGoalMinutes'
   | 'soundEnabled'
@@ -64,25 +56,16 @@ export type SettingsKey =
   | 'longBreakDurationMinutes'
   | 'shortBreakDurationMinutes'
   | 'studyBlockDurationMinutes'
-  | 'ambientTrack'
-  | 'ambientVolume'
-  | 'ambientVolume_rain'
-  | 'ambientVolume_cafe'
-  | 'ambientVolume_whiteNoise'
   | 'theme'
   | 'cardOpacity'
   | 'backdropBlur'
-  | 'audio_presets'
-  | 'ambient_alphaWaves'
   | 'tactile_feedback'
   | 'developer_font'
   | 'enforce_lockout'
-  | 'noiseType'
-  | 'binauralTarget'
   | 'initialEasinessFactor'
   | 'autoArchiveAncientTasks'
 
-export type SettingsValue = number | boolean | string | AudioPreset[] | null
+export type SettingsValue = number | boolean | string | null
 
 export interface SettingsRow {
   key: SettingsKey

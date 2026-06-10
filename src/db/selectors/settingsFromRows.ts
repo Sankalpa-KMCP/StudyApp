@@ -40,7 +40,8 @@ function getValue<K extends keyof ParsedSettings>(
   fallback: ParsedSettings[K],
 ): ParsedSettings[K] {
   const row = rows?.find(r => r.key === key)
-  return (row?.value as ParsedSettings[K]) ?? fallback
+  if (row?.value === null || row?.value === undefined) return fallback
+  return row.value as ParsedSettings[K]
 }
 
 export function settingsFromRows(rows: SettingsRow[] | undefined): ParsedSettings {
@@ -59,7 +60,7 @@ export function settingsFromRows(rows: SettingsRow[] | undefined): ParsedSetting
     enforce_lockout: getValue(rows, 'enforce_lockout', DEFAULTS.enforce_lockout),
     initialEasinessFactor: getValue(rows, 'initialEasinessFactor', DEFAULTS.initialEasinessFactor),
     autoArchiveAncientTasks: getValue(rows, 'autoArchiveAncientTasks', DEFAULTS.autoArchiveAncientTasks),
-  }
+  } as ParsedSettings
 }
 
 export type { SettingsValue }
