@@ -8,5 +8,5 @@ test('creates a flashcard in recall deck', async ({ page }) => {
   await page.getByPlaceholder('Enter front side question...').fill('What is SM-2?')
   await page.getByPlaceholder('Enter back side answer detail...').fill('Spaced repetition algorithm')
   await page.getByRole('button', { name: /add to deck/i }).click()
-  await expect(page.getByText('What is SM-2?')).toBeVisible({ timeout: 10000 })
+  await expect(page.locator('p').filter({ hasText: 'What is SM-2?' })).toBeVisible({ timeout: 10000 })
 })
