@@ -103,8 +103,8 @@ export function AppContentHeader({
           </div>
         </div>
         {isTimerActive && (
-          <div className="flex items-center gap-1.5 pl-6">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent-blue animate-pulse" />
+          <div role="status" aria-live="polite" className="flex items-center gap-1.5 pl-6">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-blue animate-pulse" aria-hidden />
             <span className="text-micro font-semibold text-accent-blue">
               {timerMode === 'study' ? 'Study timer running' : 'Break timer running'}
             </span>
