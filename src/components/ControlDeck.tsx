@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { X } from 'lucide-react'
 import type { CategoryItem, SettingsKey, SettingsValue } from '../db/types'
 
@@ -26,6 +26,7 @@ interface ControlDeckProps {
   exportTaskCompletionLogsCSV: () => void
   importStudyBackup: (val: string) => void
   resetData: () => void
+  resetDataSelective: (options: { tasks: boolean; history: boolean; categories: boolean; cards: boolean; notes: boolean }) => void
   categories: CategoryItem[]
   addCategory: (name: string, color: string) => void
   deleteCategory: (id: number) => void
@@ -52,6 +53,7 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   exportTaskCompletionLogsCSV,
   importStudyBackup,
   resetData,
+  resetDataSelective,
   categories,
   addCategory,
   deleteCategory,
@@ -64,6 +66,12 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   handleFileDrop,
   fileInputRef
 }) => {
+  const [sweepTasks, setSweepTasks] = useState(false)
+  const [sweepHistory, setSweepHistory] = useState(false)
+  const [sweepCategories, setSweepCategories] = useState(false)
+  const [sweepCards, setSweepCards] = useState(false)
+  const [sweepNotes, setSweepNotes] = useState(false)
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full flex-1 items-start animate-fade-in">
       
@@ -354,17 +362,98 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
 
           <div className="mt-6 border-t border-red-500/15 pt-5">
             <span className="text-xs font-bold text-red-400 block mb-1">Destructive reset zone</span>
-            <p className="text-xs text-red-300/50 leading-normal mb-4">Clearing parameters sweeps databases completely.</p>
-            <button
-              onClick={() => {
-                if (confirm("DANGER: Sweeping tables deletes your stats permanently. Reset?")) {
-                  resetData()
-                }
-              }}
-              className="rounded-full bg-red-500/10 border border-red-500/20 px-4.5 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/20 transition-all ios-active-scale cursor-pointer"
-            >
-              Clear & Reset Workspace Data
-            </button>
+            <p className="text-[10px] text-white/50 leading-normal mb-4">
+              Select specific database tables to clear individually, or sweep all tables to perform a full workspace wipe.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 mb-5 bg-black/10 border border-white/5 p-4 rounded-2xl">
+              <label className="flex items-center gap-2.5 text-[10px] text-white/70 font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={sweepTasks}
+                  onChange={e => setSweepTasks(e.target.checked)}
+                  className="rounded border-white/10 bg-black/30 text-red-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                />
+                <span>Tasks & Subtasks</span>
+              </label>
+
+              <label className="flex items-center gap-2.5 text-[10px] text-white/70 font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={sweepHistory}
+                  onChange={e => setSweepHistory(e.target.checked)}
+                  className="rounded border-white/10 bg-black/30 text-red-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                />
+                <span>Study Logs & History</span>
+              </label>
+
+              <label className="flex items-center gap-2.5 text-[10px] text-white/70 font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={sweepCategories}
+                  onChange={e => setSweepCategories(e.target.checked)}
+                  className="rounded border-white/10 bg-black/30 text-red-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                />
+                <span>Subject Categories</span>
+              </label>
+
+              <label className="flex items-center gap-2.5 text-[10px] text-white/70 font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={sweepCards}
+                  onChange={e => setSweepCards(e.target.checked)}
+                  className="rounded border-white/10 bg-black/30 text-red-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                />
+                <span>Flashcard Decks</span>
+              </label>
+
+              <label className="flex items-center gap-2.5 text-[10px] text-white/70 font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={sweepNotes}
+                  onChange={e => setSweepNotes(e.target.checked)}
+                  className="rounded border-white/10 bg-black/30 text-red-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                />
+                <span>Quick Notes</span>
+              </label>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                disabled={!sweepTasks && !sweepHistory && !sweepCategories && !sweepCards && !sweepNotes}
+                onClick={() => {
+                  if (confirm("Are you sure you want to sweep the selected workspace databases? This cannot be undone.")) {
+                    resetDataSelective({
+                      tasks: sweepTasks,
+                      history: sweepHistory,
+                      categories: sweepCategories,
+                      cards: sweepCards,
+                      notes: sweepNotes
+                    })
+                    // Reset checks
+                    setSweepTasks(false)
+                    setSweepHistory(false)
+                    setSweepCategories(false)
+                    setSweepCards(false)
+                    setSweepNotes(false)
+                  }
+                }}
+                className="rounded-full bg-red-500/10 border border-red-500/20 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 disabled:opacity-40 disabled:pointer-events-none transition-all ios-active-scale cursor-pointer"
+              >
+                Sweep Selected
+              </button>
+
+              <button
+                onClick={() => {
+                  if (confirm("DANGER: Sweeping all tables deletes your workspace stats and configuration permanently. Reset everything?")) {
+                    resetData()
+                  }
+                }}
+                className="rounded-full bg-white/5 border border-white/10 px-4 py-2 text-xs font-bold text-white/80 hover:bg-white/10 transition-all ios-active-scale cursor-pointer"
+              >
+                Sweep All Tables
+              </button>
+            </div>
           </div>
         </div>
       </div>
