@@ -1,16 +1,16 @@
 import { lazy, Suspense } from 'react'
 import { TOOLTIP_STYLE } from '../../lib/theme'
-import { useStudyAnalytics, useStudyApp } from '../../context/useStudyApp'
+import { useStudyAnalytics, useStudyData, useStudyUI } from '../../context/useStudyApp'
 
 const AnalyticsStudio = lazy(() =>
   import('../AnalyticsStudio').then(m => ({ default: m.AnalyticsStudio }))
 )
 
 export function AnalyticsTab() {
-  const { tasks } = useStudyApp()
+  const { tasks } = useStudyData()
   const { currentStreak, xpData, insights, breakdownData, journal, allLogs } = useStudyAnalytics()
+  const { activeThemeVars } = useStudyUI()
   const { calendar } = journal
-  const { activeThemeVars } = useStudyApp()
 
   return (
     <Suspense fallback={<div className="text-white/50 text-sm p-8">Loading analytics...</div>}>

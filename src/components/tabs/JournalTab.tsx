@@ -1,8 +1,9 @@
 import { ActivityLedger } from '../ActivityLedger'
-import { useStudyApp, useStudyJournal } from '../../context/useStudyApp'
+import { useStudyData, useStudyJournal, useStudyUI } from '../../context/useStudyApp'
 
 export function JournalTab() {
-  const { categories, activeThemeVars } = useStudyApp()
+  const { categories } = useStudyData()
+  const { activeThemeVars } = useStudyUI()
   const { journal, todayLog } = useStudyJournal()
   const { calendar } = journal
 

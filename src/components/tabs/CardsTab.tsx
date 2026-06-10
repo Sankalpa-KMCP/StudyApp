@@ -1,12 +1,12 @@
 import { lazy, Suspense } from 'react'
-import { useStudyApp } from '../../context/useStudyApp'
+import { useStudyData } from '../../context/useStudyApp'
 
 const FlashcardStudio = lazy(() =>
   import('../FlashcardStudio').then(m => ({ default: m.FlashcardStudio })),
 )
 
 export function CardsTab() {
-  const { categories, flashcards } = useStudyApp()
+  const { categories, flashcards } = useStudyData()
 
   return (
     <Suspense fallback={<div className="p-6 text-white/50 text-sm animate-pulse">Loading recall deck…</div>}>

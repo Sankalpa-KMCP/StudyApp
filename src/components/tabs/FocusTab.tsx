@@ -1,9 +1,9 @@
 import { FocusSanctuary } from '../FocusSanctuary'
 import { TaskRegistry } from '../TaskRegistry'
-import { useStudyApp, useStudyUI, useStudyTimer } from '../../context/useStudyApp'
+import { useStudyData, useStudyUI, useStudyTimer } from '../../context/useStudyApp'
 
 export function FocusTab() {
-  const { settings, tasks, categories } = useStudyApp()
+  const { settings, tasks, categories } = useStudyData()
   const { breathTime, setIsZenMode, activeTaskId, setActiveTaskId, taskCycleCount, setTaskCycleCount, progress } = useStudyUI()
   const { timer, ensureAudio, handleAddTask, handleToggleTask } = useStudyTimer()
 
