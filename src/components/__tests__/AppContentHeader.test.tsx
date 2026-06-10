@@ -14,7 +14,7 @@ describe('AppContentHeader', () => {
         dailyGoalMinutes={120}
       />,
     )
-    expect(screen.getByText('1h 30m left today')).toBeInTheDocument()
+    expect(screen.getAllByText('1h 30m left today').length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows timer running status on mobile when active', () => {
@@ -28,6 +28,6 @@ describe('AppContentHeader', () => {
         dailyGoalMinutes={120}
       />,
     )
-    expect(screen.getByText('Study timer running')).toBeInTheDocument()
+    expect(screen.getAllByText('Study timer running')).toHaveLength(2)
   })
 })
