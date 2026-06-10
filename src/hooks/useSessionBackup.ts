@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { db } from '../db/db'
 import { parseStudyBackupPayload, validateBackupPayload } from '../lib/studyDashboard'
+import { devLog } from '../lib/devLogger'
 const MAX_SNAPSHOTS = 3
 
 export function useSessionBackup(pushToast: (key: string, message: string) => void) {
@@ -166,6 +167,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
 
       localStorage.removeItem('study_dashboard_snapshots')
       localStorage.removeItem('completed_study_sessions_count')
+      devLog('backup', 'import-success', { tasks: data.tasks.length, history: data.history.length })
       window.location.reload()
     } catch (err) {
       console.error('Failed to import vault:', err)
