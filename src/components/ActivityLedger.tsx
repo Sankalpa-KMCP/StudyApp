@@ -1,10 +1,13 @@
 import React, { useState } from 'react'
-import { Calendar } from 'lucide-react'
+import { Calendar, X } from 'lucide-react'
 import type { CategoryItem, HistoryEntry } from '../db/types'
 import type { DayData } from '../types/app'
 import { formatMinutes, getIntensity } from '../lib/studyDashboard'
 import { DayDetailPanel } from './activity-ledger/DayDetailPanel'
 import { useLedgerIntensityStyles } from './activity-ledger/useLedgerCalendar'
+import { TabPageShell } from './shared/TabPageShell'
+import { PanelCard } from './shared/PanelCard'
+import { PanelHeader } from './shared/PanelHeader'
 
 interface ActivityLedgerProps {
   selectedDay: number
@@ -63,15 +66,41 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
 }) => {
   const [draftMood, setDraftMood] = useState(initialDraftMood)
   const [draftNotes, setDraftNotes] = useState(initialDraftNotes)
+  const [journalHintDismissed, setJournalHintDismissed] = useState(
+    () => typeof window !== 'undefined' && !!localStorage.getItem('journal_hint_dismissed'),
+  )
   const { getIntensityStyle, getLegendStyle } = useLedgerIntensityStyles(activeThemeVars.accentBlue)
 
+  const showJournalHint =
+    !journalHintDismissed &&
+    todayStudyMinutes === 0 &&
+    activeMonthData.every(day => day.intensity === 0)
+
+  const dismissJournalHint = () => {
+    localStorage.setItem('journal_hint_dismissed', 'true')
+    setJournalHintDismissed(true)
+  }
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-1 items-start animate-fade-in">
+    <TabPageShell>
+      {showJournalHint && (
+        <div className="lg:col-span-12 flex items-start justify-between gap-3 rounded-2xl border border-accent-blue/20 bg-accent-blue/10 px-4 py-3">
+          <p className="text-xs text-white/75 leading-relaxed">
+            Your study sessions will appear here. Start a focus block on the Focus tab.
+          </p>
+          <button
+            type="button"
+            onClick={dismissJournalHint}
+            aria-label="Dismiss journal hint"
+            className="shrink-0 rounded-full p-1 text-white/50 hover:text-white hover:bg-white/10 transition-all"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       <div className="lg:col-span-5 flex flex-col gap-6">
-        <div className="border border-white/[0.06] dynamic-card p-6">
-          <div className="flex items-center justify-between mb-5">
-            <span className="font-serif-luxury italic tracking-wide text-white/80 text-xs uppercase">03 / HISTORICAL LEDGER</span>
-          </div>
+        <PanelCard>
+          <PanelHeader title="Historical ledger" bordered={false} className="mb-4" />
 
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
@@ -164,7 +193,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
               <span>High</span>
             </div>
           </div>
-        </div>
+        </PanelCard>
       </div>
 
       <div className="lg:col-span-7 flex flex-col gap-6">
@@ -191,6 +220,6 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
           activeThemeVars={activeThemeVars}
         />
       </div>
-    </div>
+    </TabPageShell>
   )
 }
