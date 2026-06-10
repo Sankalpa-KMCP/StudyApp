@@ -1,128 +1,49 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
 import { Brain, Flame, Keyboard } from 'lucide-react'
-import { useLiveQuery } from 'dexie-react-hooks'
 import {
   useTasks,
   useHistory,
   useSettings,
   useTodayLog,
   useCategories,
+  useAllDailyLogs,
   updateDailyReflection,
   calculateStreak,
   calculateXpLevel,
   calculateProductivityInsights,
   calculateCategoryBreakdown,
-  calculateMonthLogs,
   calculateCalendarHeatmapData,
-  calculateSM2,
   useFlashcards,
-  useQuickNotes
+  useQuickNotes,
 } from './db/hooks'
 import { db } from './db/db'
-import type { DailyLog, TaskItem } from './db/types'
-import { formatMinutes, getIntensity, hexToRgb, parseStudyBackupPayload, validateBackupPayload } from './lib/studyDashboard'
-import { requestWakeLock, releaseWakeLock } from './lib/wakeLock'
+import { hexToRgb, formatMinutes, getIntensity } from './lib/studyDashboard'
+import { THEME_PROFILES, TOOLTIP_STYLE } from './lib/theme'
+import type { ActiveTab, ToastState } from './types/app'
 
-// Custom audio hook
 import { useAmbientSynth } from './hooks/useAmbientSynth'
+import { useSessionBackup } from './hooks/useSessionBackup'
+import { useTimerEngine } from './hooks/useTimerEngine'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useZenCanvas } from './hooks/useZenCanvas'
+import { useCalendarData } from './hooks/useCalendarData'
 
-// Modular Components
 import { Sidebar } from './components/Sidebar'
 import { FocusSanctuary } from './components/FocusSanctuary'
 import { TaskRegistry } from './components/TaskRegistry'
-import { AnalyticsStudio } from './components/AnalyticsStudio'
 import { ActivityLedger } from './components/ActivityLedger'
 import { ControlDeck } from './components/ControlDeck'
 import { ZenOverlay } from './components/ZenOverlay'
 import { ReflectionModal } from './components/ReflectionModal'
 import { FlashcardStudio } from './components/FlashcardStudio'
 import { QuickNotesDrawer } from './components/QuickNotesDrawer'
+import { HotkeyModal } from './components/HotkeyModal'
+import { MobileTabBar } from './components/MobileTabBar'
 
-const THEME_PROFILES: Record<string, {
-  surface: string
-  surfaceCard: string
-  surfaceCardRgb: string
-  accentBlue: string
-  accentPurple: string
-  accentGreen: string
-  accentAmber: string
-}> = {
-  'midnight-oled': {
-    surface: '#0a0b10',
-    surfaceCard: '#11131e',
-    surfaceCardRgb: '17, 19, 30',
-    accentBlue: '#3b82f6',
-    accentPurple: '#6366f1',
-    accentGreen: '#10b981',
-    accentAmber: '#f59e0b',
-  },
-  'midnight-slate': {
-    surface: '#0f172a',
-    surfaceCard: '#1e293b',
-    surfaceCardRgb: '30, 41, 59',
-    accentBlue: '#38bdf8',
-    accentPurple: '#a78bfa',
-    accentGreen: '#34d399',
-    accentAmber: '#fbbf24',
-  },
-  'nordic-frost': {
-    surface: '#0f141c',
-    surfaceCard: '#1a2332',
-    surfaceCardRgb: '26, 35, 50',
-    accentBlue: '#88c0d0',
-    accentPurple: '#b48ead',
-    accentGreen: '#a3be8c',
-    accentAmber: '#ebcb8b',
-  },
-  'amber-retro': {
-    surface: '#0c0a09',
-    surfaceCard: '#1c1917',
-    surfaceCardRgb: '28, 25, 23',
-    accentBlue: '#f43f5e',
-    accentPurple: '#d946ef',
-    accentGreen: '#10b981',
-    accentAmber: '#f59e0b',
-  },
-  'nebula-purple': {
-    surface: '#0d0714',
-    surfaceCard: '#1c102b',
-    surfaceCardRgb: '28, 16, 43',
-    accentBlue: '#a855f7',
-    accentPurple: '#ec4899',
-    accentGreen: '#10b981',
-    accentAmber: '#f59e0b',
-  }
-}
+const AnalyticsStudio = lazy(() =>
+  import('./components/AnalyticsStudio').then(m => ({ default: m.AnalyticsStudio }))
+)
 
-
-const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-
-const tooltipStyle = {
-  backgroundColor: 'rgba(8, 10, 15, 0.85)',
-  backdropFilter: 'blur(16px)',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-  borderRadius: '12px',
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.08)',
-  color: '#e1ded7',
-  outline: 'none',
-}
-
-interface DayData {
-  date: number
-  dayName: string
-  studyTime: string
-  breakTime: string
-  focusRatio: string
-  sessionsCompleted: string
-  focusScore: string
-  intensity: 0 | 1 | 2 | 3
-}
-
-/**
- * Main application dashboard coordinator.
- * Manages states for tasks, sessions, logs, categories, settings, and workspace navigation.
- */
 function App() {
   const { tasks: sessionTasks, addTask, toggleTask, isLoading: tasksLoading } = useTasks()
   const { history: sessionHistory, addEntry: addHistoryEntry, isLoading: historyLoading } = useHistory()
@@ -132,367 +53,190 @@ function App() {
     updateSetting,
     targetSessionsPerCycle,
     longBreakDurationMinutes,
+    shortBreakDurationMinutes,
+    studyBlockDurationMinutes,
     theme,
     cardOpacity,
     backdropBlur,
-    audio_presets,
-    shortBreakDurationMinutes,
-    noiseType,
-    binauralTarget,
+    tactile_feedback,
+    developer_font,
+    enforce_lockout,
     initialEasinessFactor,
     autoArchiveAncientTasks,
-    isLoading: settingsLoading
+    isLoading: settingsLoading,
   } = useSettings()
 
   const { studyMinutes: todayStudyMinutes, breakMinutes: todayBreakMinutes, incrementStudy, incrementBreak, isLoading: todayLogLoading } = useTodayLog()
   const { flashcards, addFlashcard, deleteFlashcard, submitFlashcardGrade, isLoading: flashcardsLoading } = useFlashcards()
   const { notes: quickNotes, addNote: addQuickNote, updateNote: updateQuickNote, deleteNote: deleteQuickNote, isLoading: quickNotesLoading } = useQuickNotes()
+  const { categories, isLoading: categoriesLoading, addCategory, deleteCategory } = useCategories()
+  const { allLogs, isLoading: allLogsLoading } = useAllDailyLogs()
+
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear())
-  const { categories, isLoading: categoriesLoading, addCategory, deleteCategory } = useCategories()
   const [calendarCategoryFilter, setCalendarCategoryFilter] = useState<'all' | number>('all')
-
-  // Consolidated Single Table subscription for daily_logs
-  const allLogs = useLiveQuery(() => db.daily_logs.toArray()) as DailyLog[] | undefined
-  const allLogsLoading = allLogs === undefined
-
-  // Pure selector derivations using useMemo to eliminate observer thrashing
-  const monthLogsData = useMemo(() => {
-    return calculateMonthLogs(allLogs ?? [], currentMonth, currentYear)
-  }, [allLogs, currentMonth, currentYear])
-  const monthLogs = monthLogsData.monthLogs as DailyLog[]
-  const totalMonthHours = monthLogsData.totalMonthHours
-
-  const breakdownData = useMemo(() => {
-    return calculateCategoryBreakdown(sessionHistory ?? [], categories ?? [])
-  }, [sessionHistory, categories])
-  const categoryBreakdown = breakdownData.breakdown
-
-  const currentStreak = useMemo(() => {
-    return calculateStreak(allLogs ?? [])
-  }, [allLogs])
-
-  const xpData = useMemo(() => {
-    return calculateXpLevel(allLogs ?? [])
-  }, [allLogs])
-  const level = xpData.level
-  const xpProgressPercent = xpData.xpProgressPercent
-
-  const insights = useMemo(() => {
-    return calculateProductivityInsights(sessionHistory ?? [], sessionTasks ?? [], allLogs ?? [], categories ?? [])
-  }, [sessionHistory, sessionTasks, allLogs, categories])
-  const { topSubject, avgMin, completionRate, peakDay } = insights
-
-  const categoryDayMinutes = useMemo(() => {
-    return calculateCalendarHeatmapData(sessionHistory ?? [], currentMonth, calendarCategoryFilter)
-  }, [sessionHistory, currentMonth, calendarCategoryFilter])
-
-  const [timerCategoryId, setTimerCategoryId] = useState<number | undefined>(undefined)
   const [selectedDay, setSelectedDay] = useState(() => new Date().getDate())
-  const [secondsElapsed, setSecondsElapsed] = useState(0)
-  const [isTimerActive, setIsTimerActive] = useState(false)
-  const [timerMode, setTimerMode] = useState<'study' | 'break'>('study')
-  const [completedSessionsInCycle, setCompletedSessionsInCycle] = useState(0)
-  const [isLongBreak, setIsLongBreak] = useState(false)
-  const [extendedMinutes, setExtendedMinutes] = useState(0)
-
-  const targetSeconds = useMemo(() => {
-    let baseMin = 25
-    if (timerMode === 'study') {
-      baseMin = 25
-    } else {
-      baseMin = isLongBreak ? longBreakDurationMinutes : shortBreakDurationMinutes
-    }
-    return (baseMin + extendedMinutes) * 60
-  }, [timerMode, isLongBreak, longBreakDurationMinutes, shortBreakDurationMinutes, extendedMinutes])
-
-  const remainingSeconds = Math.max(0, targetSeconds - secondsElapsed)
+  const [breathTime, setBreathTime] = useState(0)
+  const [isZenMode, setIsZenMode] = useState(false)
+  const [activeTab, setActiveTab] = useState<ActiveTab>('focus')
+  const [isDragging, setIsDragging] = useState(false)
+  const [activeTaskId, setActiveTaskId] = useState<number | null>(null)
+  const [taskCycleCount, setTaskCycleCount] = useState(1)
+  const [activeToast, setActiveToast] = useState<ToastState | null>(null)
   const [isHotkeyHudOpen, setIsHotkeyHudOpen] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
 
-  // Multi-Channel Volume states
-  const [localVolumeRain, setLocalVolumeRain] = useState(0.5)
-  const [localVolumeCafe, setLocalVolumeCafe] = useState(0.5)
-  const [localVolumeWhiteNoise, setLocalVolumeWhiteNoise] = useState(0.5)
-  const [localAlphaWaves, setLocalAlphaWaves] = useState(0.0)
-
-  // Guided HRV Breathing state
-  const [breathTime, setBreathTime] = useState(0)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBreathTime(t => (t + 1) % 12)
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [])
-
-  // Zen Mode, Active View Router & Backups Drag/Drop
-  const [isZenMode, setIsZenMode] = useState(false)
-  const [activeTab, setActiveTab] = useState<'focus' | 'analytics' | 'journal' | 'cards' | 'settings'>('focus')
-  const [isDragging, setIsDragging] = useState(false)
-
-  const [activeTaskId, setActiveTaskId] = useState<number | null>(null)
-  const [taskCycleCount, setTaskCycleCount] = useState(1)
-  const [localTactileFeedback] = useState(false)
-  const [activeToast, setActiveToast] = useState<{ key: string; message: string; id: number } | null>(null)
-  const [localEnforceLockout, setLocalEnforceLockout] = useState(false)
-  const [showReflectionModal, setShowReflectionModal] = useState(false)
-  const [pendingSessionData, setPendingSessionData] = useState<{ elapsed: number; mode: 'study' | 'break'; timestamp: string; categoryId?: number } | null>(null)
-  const [attentionRating, setAttentionRating] = useState(4)
-  const [stabilityRating, setStabilityRating] = useState(4)
-  const [localSessionNotes, setLocalSessionNotes] = useState('')
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-
-  // Initialize and invoke custom audio synthesizer hook
-  const { playChime } = useAmbientSynth({
-    timerMode,
-    isTimerActive,
-    soundEnabled,
-    noiseType,
-    binauralTarget,
-    rainVol: localVolumeRain,
-    cafeVol: localVolumeCafe,
-    noiseVol: localVolumeWhiteNoise,
-    binauralVol: localAlphaWaves,
-    tactileEnabled: localTactileFeedback
-  })
-
-  const volRainRef = useRef(localVolumeRain)
-  const volCafeRef = useRef(localVolumeCafe)
-  const volWhiteNoiseRef = useRef(localVolumeWhiteNoise)
-  const alphaWavesRef = useRef(localAlphaWaves)
-  const waveAmplitudeRef = useRef(0)
-
-  volRainRef.current = localVolumeRain
-  volCafeRef.current = localVolumeCafe
-  volWhiteNoiseRef.current = localVolumeWhiteNoise
-  alphaWavesRef.current = localAlphaWaves
-
-  const completingRef = useRef(false)
-  const incStudyRef = useRef(incrementStudy)
-  const incBreakRef = useRef(incrementBreak)
-
-  incStudyRef.current = incrementStudy
-  incBreakRef.current = incrementBreak
-
-
-
-  const isDataReady = !(tasksLoading || historyLoading || settingsLoading || todayLogLoading || allLogsLoading || categoriesLoading || flashcardsLoading || quickNotesLoading)
-
-  const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay()
-  const totalDaysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
-  const dynamicGridCells: (number | null)[] = [
-    ...Array(firstDayIndex).fill(null),
-    ...Array.from({ length: totalDaysInMonth }, (_, i) => i + 1),
-  ]
-  const isLiveMonth = currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear()
-
-  const monthLogMap = new Map(monthLogs.map(l => [parseInt(l.dateString.split('-')[2]), l]))
-
-  const effectiveSelectedDay = Math.min(selectedDay, totalDaysInMonth)
-  const selectedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(effectiveSelectedDay).padStart(2, '0')}`
-  const selectedDayLog = monthLogMap.get(effectiveSelectedDay)
-
   const notesRef = useRef('')
   const moodRef = useRef('')
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const wakeLockSentinelRef = useRef<any>(null)
 
-  useEffect(() => {
-    notesRef.current = selectedDayLog?.notes ?? ''
-    moodRef.current = selectedDayLog?.mood ?? ''
-  }, [selectedDateStr, selectedDayLog])
+  const isDataReady = !(tasksLoading || historyLoading || settingsLoading || todayLogLoading || allLogsLoading || categoriesLoading || flashcardsLoading || quickNotesLoading)
 
   const pushToast = (key: string, message: string) => {
     setActiveToast({ key, message, id: Date.now() })
   }
 
-  const categoriesMap = new Map<number, { name: string; color: string }>()
-  for (const c of categories) {
-    if (c.id !== undefined) categoriesMap.set(c.id, { name: c.name, color: c.color })
-  }
-
-  const activeMonthData: DayData[] = Array.from({ length: totalDaysInMonth }, (_, i) => {
-    const date = i + 1
-    const startDay = new Date(currentYear, currentMonth, date).getDay()
-    const log = monthLogMap.get(date)
-    const studyMin = categoryDayMinutes !== null
-      ? (categoryDayMinutes.get(date) ?? 0)
-      : (log?.studyMinutes ?? 0)
-    const bgBreakMin = log?.breakMinutes ?? 0
-    const total = studyMin + bgBreakMin
-    const focusRatio = total > 0 ? Math.round((studyMin / total) * 100) : 0
-    return {
-      date,
-      dayName: dayNames[startDay],
-      studyTime: formatMinutes(studyMin),
-      breakTime: formatMinutes(bgBreakMin),
-      focusRatio: `${focusRatio}%`,
-      sessionsCompleted: '0',
-      focusScore: `${Math.min(Math.round((studyMin / dailyGoalMinutes) * 100), 100)}%`,
-      intensity: getIntensity(studyMin),
-    }
+  const backup = useSessionBackup(pushToast)
+  const { playChime, ensureAudio } = useAmbientSynth({
+    soundEnabled,
+    tactileEnabled: tactile_feedback,
   })
+
+  const timer = useTimerEngine({
+    isDataReady,
+    studyBlockDurationMinutes,
+    shortBreakDurationMinutes,
+    longBreakDurationMinutes,
+    targetSessionsPerCycle,
+    initialEasinessFactor,
+    incrementStudy,
+    incrementBreak,
+    addHistoryEntry,
+    playChime,
+    createDatabaseSnapshot: backup.createDatabaseSnapshot,
+    pushToast,
+    activeTaskId,
+    setActiveTaskId,
+  })
+
+  useZenCanvas(isZenMode, canvasRef)
+
+  useKeyboardShortcuts({
+    activeTab,
+    isHotkeyHudOpen,
+    isTimerActive: timer.isTimerActive,
+    timerMode: timer.timerMode,
+    enforceLockout: enforce_lockout,
+    completingRef: timer.completingRef,
+    handleModeSwitch: timer.handleModeSwitch,
+    completeSession: timer.completeSession,
+    setIsTimerActive: timer.setIsTimerActive,
+    setIsZenMode,
+    setIsHotkeyHudOpen,
+    setActiveToast,
+  })
+
+  useEffect(() => {
+    const interval = setInterval(() => setBreathTime(t => (t + 1) % 12), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--font-monospace', `'${developer_font}', monospace`)
+  }, [developer_font])
+
+  const currentStreak = useMemo(() => calculateStreak(allLogs), [allLogs])
+  const xpData = useMemo(() => calculateXpLevel(allLogs), [allLogs])
+  const insights = useMemo(
+    () => calculateProductivityInsights(sessionHistory, sessionTasks, allLogs, categories),
+    [sessionHistory, sessionTasks, allLogs, categories],
+  )
+  const breakdownData = useMemo(
+    () => calculateCategoryBreakdown(sessionHistory, categories),
+    [sessionHistory, categories],
+  )
+  const categoryDayMinutes = useMemo(
+    () => calculateCalendarHeatmapData(sessionHistory, currentMonth, currentYear, calendarCategoryFilter),
+    [sessionHistory, currentMonth, currentYear, calendarCategoryFilter],
+  )
+
+  const calendar = useCalendarData({
+    allLogs,
+    sessionHistory,
+    sessionTasks,
+    categories,
+    currentMonth,
+    currentYear,
+    selectedDay,
+    calendarCategoryFilter,
+    dailyGoalMinutes,
+    studyBlockDurationMinutes,
+    todayStudyMinutes,
+    todayBreakMinutes,
+    categoryDayMinutes,
+  })
+
+  useEffect(() => {
+    notesRef.current = calendar.selectedDayLog?.notes ?? ''
+    moodRef.current = calendar.selectedDayLog?.mood ?? ''
+  }, [calendar.selectedDateStr, calendar.selectedDayLog])
 
   const progress = dailyGoalMinutes > 0 ? Math.min(todayStudyMinutes / dailyGoalMinutes, 1) : 0
-  const progressPercent = Math.round(progress * 100)
-  const totalWeeklyBreakHours = parseFloat((todayBreakMinutes / 60).toFixed(1))
-  const todaySessionsDone = sessionTasks.filter(t => t.completed).length
-  const totalSessionsTarget = sessionTasks.length
 
-  const selectedDayHistory = useMemo(() => {
-    return sessionHistory
-      .filter(e => {
-        const parts = e.timestamp.split(' ')
-        if (parts.length < 2) return false
-        const entryMonth = monthNames.indexOf(parts[0])
-        const entryDay = parseInt(parts[1])
-        return entryMonth === currentMonth && entryDay === selectedDay
-      })
-      .sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
-  }, [sessionHistory, currentMonth, selectedDay])
+  useEffect(() => {
+    if (!activeToast) return
+    const duration = activeToast.key === 'LEVEL UP' ? 4000 : 1500
+    const t = setTimeout(() => setActiveToast(null), duration)
+    return () => clearTimeout(t)
+  }, [activeToast])
 
-  const isLastDay = selectedDay === totalDaysInMonth
-  const liveDay = isLiveMonth && isLastDay
-    ? {
-        ...activeMonthData[selectedDay - 1],
-        studyTime: formatMinutes(todayStudyMinutes),
-        breakTime: formatMinutes(todayBreakMinutes),
-        sessionsCompleted: `${todaySessionsDone} of ${totalSessionsTarget}`,
-        focusScore: `${progressPercent}%`,
-        intensity: getIntensity(todayStudyMinutes),
+  const prevLevelRef = useRef<number | null>(null)
+  useEffect(() => {
+    if (isDataReady && xpData.level !== undefined) {
+      if (prevLevelRef.current === null) {
+        prevLevelRef.current = xpData.level
+      } else if (xpData.level > prevLevelRef.current) {
+        setActiveToast({ key: 'LEVEL UP', message: `Reached Level ${xpData.level}! Keep up the focus!`, id: Date.now() })
+        prevLevelRef.current = xpData.level
       }
-    : activeMonthData[selectedDay - 1]
-
-  const today = new Date()
-  const dayOfWeek = today.getDay()
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-  const monday = new Date(today)
-  monday.setDate(today.getDate() + mondayOffset)
-
-  const weekData = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday)
-    d.setDate(monday.getDate() + i)
-    const y = d.getFullYear()
-    const m = d.getMonth()
-    const dayNum = d.getDate()
-    if (m === currentMonth && y === currentYear) {
-      const log = monthLogMap.get(dayNum)
-      return log ? { studyMin: log.studyMinutes, breakMin: log.breakMinutes } : null
     }
-    return null
-  })
+  }, [xpData.level, isDataReady])
 
-  const hasChartData = weekData.some(d => d !== null && d.studyMin > 0) || todayStudyMinutes > 0
-  const chartData = hasChartData ? weekData.map((d, i) => ({
-    day: dayNames[(monday.getDay() + i) % 7],
-    hours: d ? parseFloat((d.studyMin / 60).toFixed(1)) : 0,
-    focus: d ? Math.min(Math.round((d.studyMin / dailyGoalMinutes) * 100), 100) : 0,
-  })) : []
-
-  async function processSessionCompletion(elapsed: number, mode: 'study' | 'break', timestamp: string, categoryId?: number, attRating?: number, stabRating?: number, sessionNotes?: string) {
-    await addHistoryEntry({
-      timestamp,
-      type: mode,
-      durationMinutes: Math.floor(elapsed / 60) || 1,
-      categoryId: mode === 'study' ? categoryId : undefined,
-      sessionNotes: sessionNotes || undefined,
-      ...(attRating !== undefined ? { attentionRating: attRating } : {}),
-      ...(stabRating !== undefined ? { stabilityRating: stabRating } : {}),
-    })
-
-    playChime()
-    if (mode === 'study') {
-      const studySessionCount = parseInt(localStorage.getItem('completed_study_sessions_count') || '0') + 1
-      localStorage.setItem('completed_study_sessions_count', String(studySessionCount))
-      if (studySessionCount % 5 === 0) {
-        await createDatabaseSnapshot()
-      }
-      if (activeTaskId !== null) {
-        const task = await db.tasks.get(activeTaskId)
-        if (task) {
-          const newActual = (task.actualCycles ?? 0) + 1
-          const completed = newActual >= (task.estimatedCycles ?? 1)
-          await db.tasks.update(activeTaskId, {
-            actualCycles: newActual,
-            completed
-          })
-          if (completed) {
-            setActiveTaskId(null)
+  useEffect(() => {
+    if (isDataReady && autoArchiveAncientTasks) {
+      const archiveAncientTasks = async () => {
+        const ninetyDaysAgo = Date.now() - 7776000000
+        const allTasks = await db.tasks.toArray()
+        const targetTasks = allTasks.filter(t => t.completed && t.createdAt < ninetyDaysAgo && !t.archived)
+        if (targetTasks.length > 0) {
+          const ids = targetTasks.map(t => t.id).filter((id): id is number => id !== undefined)
+          if (ids.length > 0) {
+            await Promise.all(ids.map(id => db.tasks.update(id, { archived: true })))
+            pushToast('ARCHIVE', `AUTO-ARCHIVED ${ids.length} COMPLETED TASKS (90+ DAYS)`)
           }
         }
       }
+      void archiveAncientTasks()
     }
-    completingRef.current = false
+  }, [isDataReady, autoArchiveAncientTasks])
 
-    if (mode === 'study') {
-      const nextCount = completedSessionsInCycle + 1
-      if (nextCount >= targetSessionsPerCycle) {
-        setCompletedSessionsInCycle(0)
-        setIsLongBreak(true)
-        setTimerMode('break')
-        setTimeout(() => playChime(), 400)
+  useEffect(() => {
+    function handleDexieError(e: Event) {
+      const error = (e as CustomEvent).detail as { name?: string; message?: string }
+      const name = error?.name || 'IndexedDBError'
+      const message = error?.message || 'Database transaction failed'
+      if (name === 'QuotaExceededError' || message.toLowerCase().includes('quota') || message.toLowerCase().includes('exhausted')) {
+        pushToast('DATABASE', 'STORAGE QUOTA EXHAUSTED - TIDY UP NOTES')
       } else {
-        setCompletedSessionsInCycle(nextCount)
-        setIsLongBreak(false)
-        setTimerMode('break')
+        pushToast('DATABASE', `DB ERROR: ${name.toUpperCase()}`)
       }
-    } else {
-      setTimerMode('study')
     }
-  }
-
-  async function completeSession() {
-    if (completingRef.current) return
-    completingRef.current = true
-    const elapsed = secondsElapsed
-    const mode = timerMode
-    setIsTimerActive(false)
-    setSecondsElapsed(0)
-    setExtendedMinutes(0)
-    const now = new Date()
-    const timestamp = `${monthNames[now.getMonth()]} ${now.getDate()}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-
-    if (mode === 'study') {
-      setPendingSessionData({ elapsed, mode, timestamp, categoryId: timerCategoryId })
-      setAttentionRating(4)
-      setStabilityRating(4)
-      setLocalSessionNotes('')
-      setShowReflectionModal(true)
-      completingRef.current = false
-      return
-    }
-
-    await processSessionCompletion(elapsed, mode, timestamp, timerCategoryId)
-  }
-
-  function handleModeSwitch(mode: 'study' | 'break') {
-    if (completingRef.current) return
-    if (mode === timerMode) return
-    if (mode === 'study') setIsLongBreak(false)
-    if (isTimerActive) setIsTimerActive(false)
-    setSecondsElapsed(0)
-    setExtendedMinutes(0)
-    setTimerMode(mode)
-    playChime()
-  }
-
-  function extendSession() {
-    setExtendedMinutes(m => m + 5)
-    pushToast('TIMER', 'ADDED 5 MINUTES TO CURRENT TIMER')
-  }
-
-  function skipBreak() {
-    if (timerMode !== 'break') return
-    setSecondsElapsed(0)
-    setExtendedMinutes(0)
-    setTimerMode('study')
-    setIsTimerActive(true)
-    playChime()
-    pushToast('TIMER', 'BREAK SKIPPED - STUDY BLOCK STARTED')
-  }
+    window.addEventListener('dexie-error', handleDexieError)
+    return () => window.removeEventListener('dexie-error', handleDexieError)
+  }, [])
 
   function handleAddTask(text: string, categoryId?: number, estimatedCycles?: number, priority?: 'low' | 'medium' | 'high', isStudySubject?: boolean) {
     const trimmed = text.trim()
@@ -513,35 +257,11 @@ function App() {
     if (activeTaskId === id) setActiveTaskId(null)
   }
 
-  async function submitRecallGrade(task: TaskItem, q: number) {
-    if (task.id === undefined) return
-    const { repetitionCount, easinessFactor, intervalDays } = calculateSM2(
-      q,
-      task.repetitionCount ?? 0,
-      task.easinessFactor ?? initialEasinessFactor,
-      task.intervalDays ?? 0
-    )
-
-    const nextDate = new Date()
-    nextDate.setDate(nextDate.getDate() + intervalDays)
-    const nextReviewDate = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`
-
-    await db.tasks.update(task.id, {
-      repetitionCount,
-      easinessFactor,
-      intervalDays,
-      nextReviewDate,
-      completed: true,
-      latestGrade: q
-    })
-    playChime()
-  }
-
   function handleNotesChange(value: string) {
     notesRef.current = value
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
-      updateDailyReflection(selectedDateStr, notesRef.current, moodRef.current)
+      updateDailyReflection(calendar.selectedDateStr, notesRef.current, moodRef.current)
     }, 500)
   }
 
@@ -549,609 +269,28 @@ function App() {
     const newMood = mood === moodRef.current ? '' : mood
     moodRef.current = newMood
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    updateDailyReflection(selectedDateStr, notesRef.current, newMood)
+    updateDailyReflection(calendar.selectedDateStr, notesRef.current, newMood)
   }
 
   function goPrevMonth() {
     if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y - 1) }
-    else { setCurrentMonth(m => m - 1) }
+    else setCurrentMonth(m => m - 1)
   }
 
   function goNextMonth() {
     if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(y => y + 1) }
-    else { setCurrentMonth(m => m + 1) }
+    else setCurrentMonth(m => m + 1)
   }
 
-  // Timer Tick Interval effect
-  useEffect(() => {
-    if (!isTimerActive) return
-    const id = setInterval(() => {
-      setSecondsElapsed(s => {
-        const ns = s + 1
-        if (ns % 60 === 0) {
-          if (timerMode === 'study') {
-            incrementStudy()
-          } else {
-            incrementBreak()
-          }
-        }
-        return ns
-      })
-    }, 1000)
-    return () => clearInterval(id)
-  }, [isTimerActive, timerMode, incrementStudy, incrementBreak])
-
-  // Auto-complete focus/break cycle when seconds elapsed reaches target seconds
-  useEffect(() => {
-    if (isTimerActive && secondsElapsed >= targetSeconds) {
-      void completeSession()
+  function confirmImport(fileString: string) {
+    const warn = timer.isTimerActive || timer.showReflectionModal
+    if (warn && !confirm('Importing will replace all data and reload the page. An active timer or reflection is in progress. Continue?')) {
+      return
     }
-  }, [secondsElapsed, targetSeconds, isTimerActive, completeSession])
-
-  // Canvas particle background loop
-  useEffect(() => {
-    if (!isZenMode) return
-
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    let animationFrameId: number
-    let width = canvas.width = window.innerWidth
-    let height = canvas.height = window.innerHeight
-
-    const handleResize = () => {
-      if (!canvas) return
-      width = canvas.width = window.innerWidth
-      height = canvas.height = window.innerHeight
+    if (!warn && !confirm('Importing will replace all workspace data. Continue?')) {
+      return
     }
-    window.addEventListener('resize', handleResize)
-
-    // Setup 60 particles
-    const particleCount = 60
-    interface Particle {
-      x: number
-      y: number
-      vx: number
-      vy: number
-      radius: number
-      originalVx: number
-      originalVy: number
-    }
-    const particles: Particle[] = []
-
-    for (let i = 0; i < particleCount; i++) {
-      const x = Math.random() * width
-      const y = Math.random() * height
-      const angle = Math.random() * Math.PI * 2
-      const speed = Math.random() * 0.4 + 0.15
-      const vx = Math.cos(angle) * speed
-      const vy = Math.sin(angle) * speed
-      particles.push({
-        x,
-        y,
-        vx,
-        vy,
-        radius: Math.random() * 1.8 + 0.8,
-        originalVx: vx,
-        originalVy: vy
-      })
-    }
-    const animate = () => {
-      ctx.clearRect(0, 0, width, height)
-
-      const aggregateVol = (volRainRef.current + volCafeRef.current + volWhiteNoiseRef.current + alphaWavesRef.current)
-      const isMuted = aggregateVol <= 0.01
-
-      // Speeds and connections are constant and decoupled from sound volume levels
-      const speedFactor = 1.0
-      const maxDistance = 80
-      const maxLineAlpha = 0.12
-
-      // 1. Isolate coordinate calculation loop
-      particles.forEach(p => {
-        p.x += p.originalVx * speedFactor
-        p.y += p.originalVy * speedFactor
-
-        if (p.x < 0) { p.x = 0; p.originalVx *= -1 }
-        else if (p.x > width) { p.x = width; p.originalVx *= -1 }
-
-        if (p.y < 0) { p.y = 0; p.originalVy *= -1 }
-        else if (p.y > height) { p.y = height; p.originalVy *= -1 }
-      })
-
-      // 2. Draw particle nodes
-      particles.forEach(p => {
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
-        ctx.fillStyle = isMuted
-          ? 'rgba(255, 255, 255, 0.02)'
-          : `rgba(255, 255, 255, ${0.08 + Math.min(0.12, aggregateVol * 0.10)})`
-        ctx.fill()
-      })
-
-      // Draw connection lines if not muted
-      if (!isMuted) {
-        for (let i = 0; i < particleCount; i++) {
-          for (let j = i + 1; j < particleCount; j++) {
-            const p1 = particles[i]
-            const p2 = particles[j]
-            const dx = p1.x - p2.x
-            const dy = p1.y - p2.y
-            const dist = Math.sqrt(dx * dx + dy * dy)
-
-            if (dist < maxDistance) {
-              const alpha = (1 - dist / maxDistance) * maxLineAlpha
-              ctx.beginPath()
-              ctx.moveTo(p1.x, p1.y)
-              ctx.lineTo(p2.x, p2.y)
-              ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`
-              ctx.lineWidth = 0.5
-              ctx.stroke()
-            }
-          }
-        }
-      }
-
-      // --- Audio-Reactive Sine Wave Ribbon ---
-      const waveBaseY = height - 2
-      const targetAmp = isMuted ? 0 : Math.min(40, aggregateVol * 30)
-      waveAmplitudeRef.current += (targetAmp - waveAmplitudeRef.current) * 0.035
-
-      if (waveAmplitudeRef.current > 0.5) {
-        const waveTime = performance.now() * 0.001
-        const layers = [
-          { freq: 0.008, speed: 0.8, phase: 0,          color: 'rgba(255, 255, 255, 0.15)',   lineW: 0.75 },
-          { freq: 0.012, speed: 1.2, phase: Math.PI / 3, color: 'rgba(255, 255, 255, 0.08)',  lineW: 0.5 },
-          { freq: 0.006, speed: -0.6, phase: Math.PI / 1.5, color: 'rgba(255, 255, 255, 0.08)', lineW: 0.5 },
-        ]
-        layers.forEach((l, idx) => {
-          ctx.beginPath()
-          ctx.moveTo(0, waveBaseY)
-          const freq = l.freq * (1 + aggregateVol * 0.3)
-          const amp = waveAmplitudeRef.current * (1 - idx * 0.15)
-          for (let x = 0; x <= width; x += 3) {
-            ctx.lineTo(x, waveBaseY + Math.sin(x * freq + waveTime * l.speed + l.phase) * amp)
-          }
-          ctx.strokeStyle = l.color
-          ctx.lineWidth = l.lineW
-          ctx.stroke()
-        })
-      } else {
-        ctx.beginPath()
-        ctx.moveTo(0, waveBaseY)
-        ctx.lineTo(width, waveBaseY)
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)'
-        ctx.lineWidth = 0.5
-        ctx.stroke()
-      }
-
-      animationFrameId = requestAnimationFrame(animate)
-    }
-
-    animate()
-
-    return () => {
-      cancelAnimationFrame(animationFrameId)
-      window.removeEventListener('resize', handleResize)
-    }
-  }, [isZenMode, theme])
-
-  // keyboard triggers
-  useEffect(() => {
-    function handleGlobalKeyDown(e: KeyboardEvent) {
-      if (activeTab === 'settings' || isHotkeyHudOpen) return
-      if (completingRef.current) return
-      const target = e.target as HTMLElement
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
-      if (e.ctrlKey || e.metaKey || e.altKey) return
-      const key = e.key.toLowerCase()
-      switch (key) {
-        case ' ':
-          e.preventDefault()
-          setIsTimerActive(active => {
-            const nextActive = !active
-            setActiveToast({
-              key: 'SPACE',
-              message: nextActive ? 'FOCUS ENGINE ACTIVE' : 'FOCUS ENGINE PAUSED',
-              id: Date.now()
-            })
-            return nextActive
-          })
-          break
-        case 's':
-          handleModeSwitch('study')
-          setActiveToast({ key: 'S', message: 'SWITCHED TO DEEP WORK', id: Date.now() })
-          break
-        case 'b':
-          handleModeSwitch('break')
-          setActiveToast({ key: 'B', message: 'SWITCHED TO BREAK MODE', id: Date.now() })
-          break
-        case 'c':
-          void completeSession()
-          setActiveToast({ key: 'C', message: 'FOCUS BLOCK COMPLETED', id: Date.now() })
-          break
-        case 'z':
-          if (localEnforceLockout && isTimerActive && timerMode === 'study') {
-            setActiveToast({
-              key: 'LOCK',
-              message: 'LOCKOUT ACTIVE - COMPULSORY STUDY',
-              id: Date.now()
-            })
-            break
-          }
-          setIsZenMode(zen => {
-            const nextZen = !zen
-            setActiveToast({
-              key: 'Z',
-              message: nextZen ? 'ENTERED ZEN SANCTUARY' : 'EXITED ZEN SANCTUARY',
-              id: Date.now()
-            })
-            return nextZen
-          })
-          break
-        case '?':
-          setIsHotkeyHudOpen(o => {
-            const nextOpen = !o
-            setActiveToast({
-              key: '?',
-              message: nextOpen ? 'OPENED SHORTCUT PANEL' : 'CLOSED SHORTCUT PANEL',
-              id: Date.now()
-            })
-            return nextOpen
-          })
-          break
-      }
-    }
-
-    window.addEventListener('keydown', handleGlobalKeyDown)
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [activeTab, isHotkeyHudOpen, isTimerActive, timerMode, localEnforceLockout, handleModeSwitch, completeSession])
-
-  // HUD Toast Auto-Dismissal
-  useEffect(() => {
-    if (!activeToast) return
-    const duration = activeToast.key === 'LEVEL UP' ? 4000 : 1500
-    const timer = setTimeout(() => {
-      setActiveToast(null)
-    }, duration)
-    return () => clearTimeout(timer)
-  }, [activeToast])
-
-  // XP Level Up milestone detector
-  const prevLevelRef = useRef<number | null>(null)
-  useEffect(() => {
-    if (isDataReady && level !== undefined) {
-      if (prevLevelRef.current === null) {
-        prevLevelRef.current = level
-      } else if (level > prevLevelRef.current) {
-        setActiveToast({
-          key: 'LEVEL UP',
-          message: `Reached Level ${level}! Keep up the focus! 🎉`,
-          id: Date.now()
-        })
-        prevLevelRef.current = level
-      }
-    }
-  }, [level, isDataReady])
-
-  // Automatic Archive of Ancient Tasks
-  useEffect(() => {
-    if (isDataReady && autoArchiveAncientTasks) {
-      const archiveAncientTasks = async () => {
-        const ninetyDaysAgo = Date.now() - 7776000000
-        const allTasks = await db.tasks.toArray()
-        const targetTasks = allTasks.filter(t => t.completed && t.createdAt < ninetyDaysAgo && !t.archived)
-        if (targetTasks.length > 0) {
-          const ids = targetTasks.map(t => t.id).filter((id): id is number => id !== undefined)
-          if (ids.length > 0) {
-            await Promise.all(ids.map(id => db.tasks.update(id, { archived: true })))
-            pushToast('ARCHIVE', `AUTO-ARCHIVED ${ids.length} COMPLETED TASKS (90+ DAYS)`)
-          }
-        }
-      }
-      archiveAncientTasks()
-    }
-  }, [isDataReady, autoArchiveAncientTasks])
-
-  // Page Visibility Auto-Pause
-  useEffect(() => {
-    function handleVisibilityChange() {
-      if (document.hidden && isTimerActive) {
-        setIsTimerActive(false)
-        setActiveToast({
-          key: 'PAUSE',
-          message: 'PAUSED - WORKSPACE INACTIVE',
-          id: Date.now()
-        })
-      }
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [isTimerActive])
-
-  // Database error telemetry & warning notifications
-  useEffect(() => {
-    function handleDexieError(e: Event) {
-      const error = (e as CustomEvent).detail
-      console.warn('UI caught database telemetry error:', error)
-      const name = error?.name || 'IndexedDBError'
-      const message = error?.message || 'Database transaction failed'
-      if (name === 'QuotaExceededError' || message.toLowerCase().includes('quota') || message.toLowerCase().includes('exhausted')) {
-        pushToast('DATABASE', 'STORAGE QUOTA EXHAUSTED - TIDY UP NOTES')
-      } else {
-        pushToast('DATABASE', `DB ERROR: ${name.toUpperCase()}`)
-      }
-    }
-    window.addEventListener('dexie-error', handleDexieError)
-    return () => window.removeEventListener('dexie-error', handleDexieError)
-  }, [])
-
-  // Screen Wake Lock active toggle during active study timers
-  useEffect(() => {
-    let activeSentinel: any = null
-    let isMounted = true
-
-    async function acquireLock() {
-      if (isTimerActive && timerMode === 'study') {
-        const lock = await requestWakeLock()
-        if (isMounted && lock) {
-          activeSentinel = lock
-          wakeLockSentinelRef.current = lock
-        }
-      }
-    }
-
-    acquireLock()
-
-    return () => {
-      isMounted = false
-      if (activeSentinel) {
-        releaseWakeLock(activeSentinel)
-        wakeLockSentinelRef.current = null
-      }
-    }
-  }, [isTimerActive, timerMode])
-
-  async function resetData() {
-    await db.tasks.clear()
-    await db.history.clear()
-    await db.daily_logs.clear()
-    await db.settings.clear()
-    await db.categories.clear()
-    await db.flashcards.clear()
-    await db.quick_notes.clear()
-    localStorage.removeItem('completed_study_sessions_count')
-    localStorage.removeItem('study_dashboard_snapshots')
-    await db.settings.bulkAdd([
-      { key: 'dailyGoalMinutes', value: 480 },
-      { key: 'soundEnabled', value: true },
-      { key: 'targetSessionsPerCycle', value: 4 },
-      { key: 'longBreakDurationMinutes', value: 15 },
-      { key: 'ambientTrack', value: 'none' },
-      { key: 'ambientVolume', value: 0.5 },
-      { key: 'ambientVolume_rain', value: 0.5 },
-      { key: 'ambientVolume_cafe', value: 0.5 },
-      { key: 'ambientVolume_whiteNoise', value: 0.5 },
-      { key: 'ambient_alphaWaves', value: 0.0 },
-      { key: 'noiseType', value: 'white' },
-      { key: 'binauralTarget', value: 'alpha' }
-    ])
-    await db.categories.bulkAdd([
-      { name: 'General', color: '#64748B' },
-      { name: 'Development', color: '#3B82F6' },
-      { name: 'Mathematics', color: '#8B5CF6' },
-    ])
-    setSecondsElapsed(0)
-    setIsTimerActive(false)
-    setTimerMode('study')
-    setTimerCategoryId(undefined)
-    setCompletedSessionsInCycle(0)
-    setIsLongBreak(false)
-    setLocalVolumeRain(0.5)
-    setLocalVolumeCafe(0.5)
-    setLocalVolumeWhiteNoise(0.5)
-    setLocalAlphaWaves(0)
-    setActiveTaskId(null)
-    window.location.reload()
-  }
-
-  async function resetDataSelective(options: { tasks: boolean; history: boolean; categories: boolean; cards: boolean; notes: boolean }) {
-    try {
-      const promises: Promise<any>[] = []
-      if (options.tasks) {
-        promises.push(db.tasks.clear())
-        setActiveTaskId(null)
-      }
-      if (options.history) {
-        promises.push(db.history.clear())
-        promises.push(db.daily_logs.clear())
-        localStorage.removeItem('completed_study_sessions_count')
-      }
-      if (options.categories) {
-        promises.push(db.categories.clear())
-      }
-      if (options.cards) {
-        promises.push(db.flashcards.clear())
-      }
-      if (options.notes) {
-        promises.push(db.quick_notes.clear())
-      }
-
-      await Promise.all(promises)
-      pushToast('RESET', 'SELECTED TABLES SWEPT')
-    } catch (err) {
-      console.error('Selective reset failed:', err)
-      pushToast('RESET', 'SELECTIVE RESET FAILED')
-    }
-  }
-
-  async function createDatabaseSnapshot() {
-    try {
-      const [tasks, history, dailyLogs, settings, categories, flashcards, quickNotes] = await Promise.all([
-        db.tasks.toArray(),
-        db.history.toArray(),
-        db.daily_logs.toArray(),
-        db.settings.toArray(),
-        db.categories.toArray(),
-        db.flashcards.toArray(),
-        db.quick_notes.toArray(),
-      ])
-      const snapshot = {
-        timestamp: new Date().toISOString(),
-        tasks,
-        history,
-        dailyLogs,
-        settings,
-        categories,
-        flashcards,
-        quickNotes
-      }
-      const existingStr = localStorage.getItem('study_dashboard_snapshots')
-      const snapshots = existingStr ? JSON.parse(existingStr) : []
-      snapshots.unshift(snapshot)
-      if (snapshots.length > 3) {
-        snapshots.pop()
-      }
-      localStorage.setItem('study_dashboard_snapshots', JSON.stringify(snapshots))
-      console.log('Saved local storage emergency backup snapshot successfully.')
-    } catch (err) {
-      console.error('Failed to create database snapshot:', err)
-      pushToast('BACKUP', 'FAILED TO SAVE LOCAL SNAPSHOT')
-    }
-  }
-
-  async function exportStudyBackup() {
-    try {
-      const [tasks, history, dailyLogs, settings, categories, flashcards, quickNotes] = await Promise.all([
-        db.tasks.toArray(),
-        db.history.toArray(),
-        db.daily_logs.toArray(),
-        db.settings.toArray(),
-        db.categories.toArray(),
-        db.flashcards.toArray(),
-        db.quick_notes.toArray(),
-      ])
-      const data = { version: 1, exportedAt: new Date().toISOString(), tasks, history, dailyLogs, settings, categories, flashcards, quickNotes }
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `study-vault-${new Date().toISOString().slice(0, 10)}.studybackup`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (err) {
-      console.error('Export failed:', err)
-      pushToast('BACKUP', 'FAILED TO EXPORT VAULT')
-    }
-  }
-
-  async function exportStudyLogsCSV() {
-    try {
-      const logs = await db.daily_logs.toArray()
-      let csv = 'Date,Study Minutes,Break Minutes,Mood,Notes\n'
-      logs.forEach(l => {
-        const notes = l.notes ? `"${l.notes.replace(/"/g, '""')}"` : ''
-        csv += `${l.dateString},${l.studyMinutes},${l.breakMinutes},${l.mood || ''},${notes}\n`
-      })
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `study-logs-${new Date().toISOString().slice(0, 10)}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (err) {
-      console.error('CSV Export failed:', err)
-      pushToast('EXPORT', 'CSV EXPORT FAILED')
-    }
-  }
-
-  async function exportTaskCompletionLogsCSV() {
-    try {
-      const tasks = await db.tasks.toArray()
-      const cats = await db.categories.toArray()
-      const catMap = new Map(cats.map(c => [c.id, c.name]))
-
-      let csv = 'Task ID,Task Text,Status,Priority,Category,Created At,Estimated Cycles,Actual Cycles,Subtasks Progress,Subtasks Detail\n'
-      tasks.forEach(t => {
-        const text = t.text ? `"${t.text.replace(/"/g, '""')}"` : ''
-        const status = t.completed ? 'Completed' : 'Active'
-        const priority = t.priority || 'medium'
-        const category = t.categoryId ? (catMap.get(t.categoryId) || '') : ''
-        const dateStr = new Date(t.createdAt).toISOString().slice(0, 10)
-        const subtasksCount = t.subtasks?.length || 0
-        const subtasksCompleted = t.subtasks?.filter(s => s.completed).length || 0
-        const progress = subtasksCount > 0 ? `${subtasksCompleted}/${subtasksCount}` : 'N/A'
-        const detail = t.subtasks ? `"${t.subtasks.map(s => `[${s.completed ? 'x' : ' '}] ${s.text}`).join('; ').replace(/"/g, '""')}"` : ''
-
-        csv += `${t.id || ''},${text},${status},${priority},${category},${dateStr},${t.estimatedCycles},${t.actualCycles},${progress},${detail}\n`
-      })
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `task-logs-${new Date().toISOString().slice(0, 10)}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (err) {
-      console.error('Task CSV Export failed:', err)
-      pushToast('EXPORT', 'TASK CSV EXPORT FAILED')
-    }
-  }
-
-  async function importStudyBackup(fileString: string) {
-    try {
-      let parsedJson: any
-      try {
-        parsedJson = JSON.parse(fileString)
-      } catch {
-        pushToast('BACKUP', 'INVALID BACKUP FILE FORMAT')
-        return
-      }
-
-      if (!validateBackupPayload(parsedJson)) {
-        pushToast('BACKUP', 'VALIDATION FAILED - CORRUPT SCHEMA')
-        return
-      }
-
-      const data = parseStudyBackupPayload(fileString)
-      if (!data) {
-        pushToast('BACKUP', 'INVALID BACKUP FILE')
-        return
-      }
-
-      localStorage.removeItem('study_dashboard_snapshots')
-      localStorage.removeItem('completed_study_sessions_count')
-
-      await Promise.all([
-        db.tasks.clear(),
-        db.history.clear(),
-        db.daily_logs.clear(),
-        db.settings.clear(),
-        db.categories.clear(),
-        db.flashcards.clear(),
-        db.quick_notes.clear(),
-      ])
-
-      if (data.tasks.length > 0) await db.tasks.bulkAdd(data.tasks)
-      if (data.history.length > 0) await db.history.bulkAdd(data.history)
-      if (data.dailyLogs.length > 0) await db.daily_logs.bulkAdd(data.dailyLogs)
-      if (data.settings.length > 0) await db.settings.bulkAdd(data.settings)
-      if (data.categories.length > 0) await db.categories.bulkAdd(data.categories)
-      if (data.flashcards.length > 0) await db.flashcards.bulkAdd(data.flashcards)
-      if (data.quickNotes.length > 0) await db.quick_notes.bulkAdd(data.quickNotes)
-
-      console.log('Vault backup imported successfully. Reloading page...')
-      window.location.reload()
-    } catch (err) {
-      console.error('Failed to import vault:', err)
-      pushToast('BACKUP', 'FAILED TO IMPORT VAULT')
-      alert('Failed to import vault: Malformed backup file.')
-    }
+    void backup.importStudyBackup(fileString)
   }
 
   const handleFileDrop = (e: React.DragEvent) => {
@@ -1161,79 +300,11 @@ function App() {
     if (file) {
       const r = new FileReader()
       r.onload = () => {
-        if (typeof r.result === 'string') {
-          importStudyBackup(r.result)
-        }
+        if (typeof r.result === 'string') confirmImport(r.result)
       }
       r.readAsText(file)
     }
   }
-
-
-  // session Heartbeat sessionStorage backing
-  useEffect(() => {
-    if (!isDataReady) return
-    const shadow = {
-      mode: timerMode,
-      secondsElapsed,
-      isTimerActive,
-      categoryId: timerCategoryId,
-      timestamp: Date.now()
-    }
-    sessionStorage.setItem('active_session_shadow', JSON.stringify(shadow))
-  }, [timerMode, secondsElapsed, isTimerActive, timerCategoryId, isDataReady])
-
-  // session Heartbeat restoration on boot
-  useEffect(() => {
-    if (!isDataReady) return
-    const shadowStr = sessionStorage.getItem('active_session_shadow')
-    if (shadowStr) {
-      try {
-        const shadow = JSON.parse(shadowStr)
-        if (shadow && shadow.isTimerActive && shadow.secondsElapsed >= 60) {
-          const runRestore = async () => {
-            const elapsedMin = Math.floor(shadow.secondsElapsed / 60)
-            const now = new Date()
-            const timestamp = `${monthNames[now.getMonth()]} ${now.getDate()}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-            
-            await addHistoryEntry({
-              timestamp,
-              type: shadow.mode,
-              durationMinutes: elapsedMin,
-              categoryId: shadow.mode === 'study' ? shadow.categoryId : undefined,
-            })
-            
-            const current = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-            const existing = await db.daily_logs.get(current)
-            if (shadow.mode === 'study') {
-              if (existing) {
-                await db.daily_logs.update(current, { studyMinutes: existing.studyMinutes + elapsedMin })
-              } else {
-                await db.daily_logs.add({ dateString: current, studyMinutes: elapsedMin, breakMinutes: 0 })
-              }
-            } else {
-              if (existing) {
-                await db.daily_logs.update(current, { breakMinutes: existing.breakMinutes + elapsedMin })
-              } else {
-                await db.daily_logs.add({ dateString: current, studyMinutes: 0, breakMinutes: elapsedMin })
-              }
-            }
-            
-            setActiveToast({
-              key: 'RESTORE',
-              message: `RECOVERED ${elapsedMin}M INTERRUPTED ${shadow.mode.toUpperCase()}`,
-              id: Date.now()
-            })
-          }
-          runRestore()
-        }
-      } catch (err) {
-        console.error('Failed to restore shadow session:', err)
-      } finally {
-        sessionStorage.removeItem('active_session_shadow')
-      }
-    }
-  }, [isDataReady, addHistoryEntry])
 
   if (!isDataReady) {
     return (
@@ -1247,7 +318,6 @@ function App() {
   }
 
   const activeThemeVars = THEME_PROFILES[theme] || THEME_PROFILES['midnight-oled']
-
   const inlineStyles = {
     '--color-surface': activeThemeVars.surface,
     '--color-surface-card': activeThemeVars.surfaceCard,
@@ -1261,29 +331,22 @@ function App() {
   } as React.CSSProperties
 
   return (
-    <div className="min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden" style={inlineStyles}>
-      
-
-
-      {/* Collapsible/Floating Glassmorphic Sidebar */}
+    <div className="min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden pb-16 md:pb-0" style={inlineStyles}>
       <Sidebar
         isZenMode={isZenMode}
         currentStreak={currentStreak}
-        level={level}
-        xpProgressPercent={xpProgressPercent}
+        level={xpData.level}
+        xpProgressPercent={xpData.xpProgressPercent}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         setIsHotkeyHudOpen={setIsHotkeyHudOpen}
-        isTimerActive={isTimerActive}
-        timerMode={timerMode}
-        localEnforceLockout={localEnforceLockout}
+        isTimerActive={timer.isTimerActive}
+        timerMode={timer.timerMode}
+        enforceLockout={enforce_lockout}
         onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
       />
 
-      {/* Main Workspace Frame */}
       <main className="flex-1 flex flex-col min-w-0 z-10">
-        
-        {/* Mobile top-bar */}
         {!isZenMode && (
           <header className="flex md:hidden items-center justify-between px-4 py-3 border-b border-white/5 bg-black/10">
             <div className="flex flex-col">
@@ -1300,7 +363,8 @@ function App() {
               </div>
               <button
                 onClick={() => setIsHotkeyHudOpen(true)}
-                className="p-1 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer"
+                aria-label="Keyboard shortcuts"
+                className="p-1 rounded-lg hover:bg-white/5 text-slate-400 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
               >
                 <Keyboard className="h-4 w-4" />
               </button>
@@ -1308,50 +372,31 @@ function App() {
           </header>
         )}
 
-        <div className={`flex-1 p-4 md:p-6 lg:p-8 flex flex-col transition-all duration-700 ${
-          isZenMode ? 'opacity-0 scale-95 pointer-events-none' : ''
-        }`}>
+        <div className={`flex-1 p-4 md:p-6 lg:p-8 flex flex-col transition-all duration-700 ${isZenMode ? 'opacity-0 scale-95 pointer-events-none' : ''}`}>
           {!isZenMode && (
             <div className="flex-1 flex flex-col min-h-0">
-              
-              {/* TAB 1: FOCUS SANCTUARY */}
               {activeTab === 'focus' && (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-1 items-start">
-                  
-                  {/* Left block (Clock & sound configurations) */}
                   <div className="lg:col-span-5">
                     <FocusSanctuary
-                      timerMode={timerMode}
-                      isTimerActive={isTimerActive}
-                      setIsTimerActive={setIsTimerActive}
-                      remainingSeconds={remainingSeconds}
-                      secondsElapsed={secondsElapsed}
+                      timerMode={timer.timerMode}
+                      isTimerActive={timer.isTimerActive}
+                      setIsTimerActive={timer.setIsTimerActive}
+                      remainingSeconds={timer.remainingSeconds}
+                      secondsElapsed={timer.secondsElapsed}
                       progress={progress}
-                      isLongBreak={isLongBreak}
-                      completedSessionsInCycle={completedSessionsInCycle}
+                      isLongBreak={timer.isLongBreak}
+                      completedSessionsInCycle={timer.completedSessionsInCycle}
                       targetSessionsPerCycle={targetSessionsPerCycle}
-                      handleModeSwitch={handleModeSwitch}
-                      completeSession={completeSession}
-                      extendSession={extendSession}
-                      skipBreak={skipBreak}
+                      handleModeSwitch={timer.handleModeSwitch}
+                      completeSession={timer.completeSession}
+                      extendSession={timer.extendSession}
+                      skipBreak={timer.skipBreak}
                       breathTime={breathTime}
                       setIsZenMode={setIsZenMode}
-                      soundEnabled={soundEnabled}
-                      noiseType={noiseType}
-                      binauralTarget={binauralTarget}
-                      updateSetting={updateSetting}
-                      localVolumeRain={localVolumeRain}
-                      setLocalVolumeRain={setLocalVolumeRain}
-                      localVolumeCafe={localVolumeCafe}
-                      setLocalVolumeCafe={setLocalVolumeCafe}
-                      localVolumeWhiteNoise={localVolumeWhiteNoise}
-                      setLocalVolumeWhiteNoise={setLocalVolumeWhiteNoise}
-                      localAlphaWaves={localAlphaWaves}
-                      setLocalAlphaWaves={setLocalAlphaWaves}
+                      onUserGesture={ensureAudio}
                     />
                   </div>
-
-                  {/* Right block (Task list and reviews) */}
                   <div className="lg:col-span-7">
                     <TaskRegistry
                       tasks={sessionTasks}
@@ -1360,77 +405,75 @@ function App() {
                       setActiveTaskId={setActiveTaskId}
                       toggleTask={handleToggleTask}
                       handleAddTask={handleAddTask}
-                      submitRecallGrade={submitRecallGrade}
-                      timerCategoryId={timerCategoryId}
-                      setTimerCategoryId={setTimerCategoryId}
-                      timerMode={timerMode}
+                      submitRecallGrade={timer.submitRecallGrade}
+                      timerCategoryId={timer.timerCategoryId}
+                      setTimerCategoryId={timer.setTimerCategoryId}
+                      timerMode={timer.timerMode}
                       taskCycleCount={taskCycleCount}
                       setTaskCycleCount={setTaskCycleCount}
                     />
                   </div>
-
                 </div>
               )}
 
-              {/* TAB 2: ANALYTICS STUDIO */}
               {activeTab === 'analytics' && (
-                <AnalyticsStudio
-                  tasks={sessionTasks}
-                  monthLogs={monthLogs}
-                  allLogs={allLogs ?? []}
-                  totalMonthHours={totalMonthHours}
-                  totalWeeklyBreakHours={totalWeeklyBreakHours}
-                  totalDaysInMonth={totalDaysInMonth}
-                  currentStreak={currentStreak}
-                  level={level}
-                  chartData={chartData}
-                  categoryBreakdown={categoryBreakdown}
-                  topSubject={topSubject}
-                  avgMin={avgMin}
-                  completionRate={completionRate}
-                  peakDay={peakDay}
-                  activeThemeVars={activeThemeVars}
-                  tooltipStyle={tooltipStyle}
-                  hasChartData={hasChartData}
-                />
+                <Suspense fallback={<div className="text-white/50 text-sm p-8">Loading analytics...</div>}>
+                  <AnalyticsStudio
+                    tasks={sessionTasks}
+                    monthLogs={calendar.monthLogs}
+                    allLogs={allLogs}
+                    totalMonthHours={calendar.totalMonthHours}
+                    totalWeeklyBreakHours={calendar.totalWeeklyBreakHours}
+                    totalDaysInMonth={calendar.totalDaysInMonth}
+                    currentStreak={currentStreak}
+                    level={xpData.level}
+                    chartData={calendar.chartData}
+                    categoryBreakdown={breakdownData.breakdown}
+                    topSubject={insights.topSubject}
+                    avgMin={insights.avgMin}
+                    completionRate={insights.completionRate}
+                    peakDay={insights.peakDay}
+                    activeThemeVars={activeThemeVars}
+                    tooltipStyle={TOOLTIP_STYLE}
+                    hasChartData={calendar.hasChartData}
+                  />
+                </Suspense>
               )}
 
-              {/* TAB 3: ACTIVITY LEDGER */}
               {activeTab === 'journal' && (
                 <ActivityLedger
-                  key={selectedDateStr}
+                  key={calendar.selectedDateStr}
                   selectedDay={selectedDay}
                   setSelectedDay={setSelectedDay}
                   currentMonth={currentMonth}
                   currentYear={currentYear}
-                  monthNames={monthNames}
-                  dayNames={dayNames}
+                  monthNames={calendar.monthNames}
+                  dayNames={calendar.dayNames}
                   goPrevMonth={goPrevMonth}
                   goNextMonth={goNextMonth}
                   calendarCategoryFilter={calendarCategoryFilter}
                   setCalendarCategoryFilter={setCalendarCategoryFilter}
                   categories={categories}
                   activeThemeVars={activeThemeVars}
-                  dynamicGridCells={dynamicGridCells}
-                  activeMonthData={activeMonthData}
-                  isLiveMonth={isLiveMonth}
-                  totalDaysInMonth={totalDaysInMonth}
+                  dynamicGridCells={calendar.dynamicGridCells}
+                  activeMonthData={calendar.activeMonthData}
+                  isLiveMonth={calendar.isLiveMonth}
+                  totalDaysInMonth={calendar.totalDaysInMonth}
                   todayStudyMinutes={todayStudyMinutes}
                   todayBreakMinutes={todayBreakMinutes}
-                  progressPercent={progressPercent}
-                  liveDay={liveDay}
-                  initialDraftMood={selectedDayLog?.mood ?? ''}
+                  progressPercent={calendar.progressPercent}
+                  liveDay={calendar.liveDay}
+                  initialDraftMood={calendar.selectedDayLog?.mood ?? ''}
                   handleMoodSelect={handleMoodSelect}
-                  initialDraftNotes={selectedDayLog?.notes ?? ''}
+                  initialDraftNotes={calendar.selectedDayLog?.notes ?? ''}
                   handleNotesChange={handleNotesChange}
-                  selectedDayHistory={selectedDayHistory}
+                  selectedDayHistory={calendar.selectedDayHistory}
                   formatMinutes={formatMinutes}
                   getIntensity={getIntensity}
                   hexToRgb={hexToRgb}
                 />
               )}
 
-              {/* TAB 4: FLASHCARD STUDY DECK */}
               {activeTab === 'cards' && (
                 <FlashcardStudio
                   categories={categories}
@@ -1443,7 +486,6 @@ function App() {
                 />
               )}
 
-              {/* TAB 5: CONTROL DECK (SETTINGS) */}
               {activeTab === 'settings' && (
                 <ControlDeck
                   updateSetting={updateSetting}
@@ -1451,26 +493,22 @@ function App() {
                   cardOpacity={cardOpacity}
                   backdropBlur={backdropBlur}
                   initialEasinessFactor={initialEasinessFactor}
+                  dailyGoalMinutes={dailyGoalMinutes}
+                  studyBlockDurationMinutes={studyBlockDurationMinutes}
+                  shortBreakDurationMinutes={shortBreakDurationMinutes}
+                  longBreakDurationMinutes={longBreakDurationMinutes}
+                  targetSessionsPerCycle={targetSessionsPerCycle}
                   soundEnabled={soundEnabled}
-                  tactileEnabled={localTactileFeedback}
-                  localEnforceLockout={localEnforceLockout}
-                  setLocalEnforceLockout={setLocalEnforceLockout}
+                  tactileEnabled={tactile_feedback}
+                  developerFont={developer_font}
+                  enforceLockout={enforce_lockout}
                   autoArchiveAncientTasks={autoArchiveAncientTasks}
-                  audio_presets={audio_presets}
-                  localVolumeRain={localVolumeRain}
-                  setLocalVolumeRain={setLocalVolumeRain}
-                  localVolumeCafe={localVolumeCafe}
-                  setLocalVolumeCafe={setLocalVolumeCafe}
-                  localVolumeWhiteNoise={localVolumeWhiteNoise}
-                  setLocalVolumeWhiteNoise={setLocalVolumeWhiteNoise}
-                  localAlphaWaves={localAlphaWaves}
-                  setLocalAlphaWaves={setLocalAlphaWaves}
-                  exportStudyBackup={exportStudyBackup}
-                  exportStudyLogsCSV={exportStudyLogsCSV}
-                  exportTaskCompletionLogsCSV={exportTaskCompletionLogsCSV}
-                  importStudyBackup={importStudyBackup}
-                  resetData={resetData}
-                  resetDataSelective={resetDataSelective}
+                  exportStudyBackup={backup.exportStudyBackup}
+                  exportStudyLogsCSV={backup.exportStudyLogsCSV}
+                  exportTaskCompletionLogsCSV={backup.exportTaskCompletionLogsCSV}
+                  importStudyBackup={confirmImport}
+                  resetData={backup.resetData}
+                  resetDataSelective={backup.resetDataSelective}
                   categories={categories}
                   addCategory={addCategory}
                   deleteCategory={deleteCategory}
@@ -1481,7 +519,7 @@ function App() {
                   isDragging={isDragging}
                   setIsDragging={setIsDragging}
                   handleFileDrop={handleFileDrop}
-                  fileInputRef={fileInputRef}
+                  fileInputRef={backup.fileInputRef}
                 />
               )}
             </div>
@@ -1489,80 +527,47 @@ function App() {
         </div>
       </main>
 
-      {/* Zen Mode Cinematic Sanctuary Overlay */}
       <ZenOverlay
         isZenMode={isZenMode}
         canvasRef={canvasRef}
-        remainingSeconds={remainingSeconds}
-        timerMode={timerMode}
+        remainingSeconds={timer.remainingSeconds}
+        timerMode={timer.timerMode}
         sessionTasks={sessionTasks}
         activeTaskId={activeTaskId}
-        isTimerActive={isTimerActive}
-        setIsTimerActive={setIsTimerActive}
-        completeSession={completeSession}
-        localEnforceLockout={localEnforceLockout}
+        isTimerActive={timer.isTimerActive}
+        setIsTimerActive={timer.setIsTimerActive}
+        completeSession={timer.completeSession}
+        enforceLockout={enforce_lockout}
         setIsZenMode={setIsZenMode}
       />
 
-      {/* Post-Sprint Reflection Modal Gate */}
       <ReflectionModal
-        showReflectionModal={showReflectionModal}
-        pendingSessionData={pendingSessionData}
-        attentionRating={attentionRating}
-        setAttentionRating={setAttentionRating}
-        stabilityRating={stabilityRating}
-        setStabilityRating={setStabilityRating}
-        localSessionNotes={localSessionNotes}
-        setLocalSessionNotes={setLocalSessionNotes}
-        onSubmitReflection={async (att, stab, notes, customElapsed) => {
-          setShowReflectionModal(false)
-          const data = pendingSessionData
-          setPendingSessionData(null)
-          completingRef.current = true
-          const finalElapsed = customElapsed !== undefined ? customElapsed : data!.elapsed
-          await processSessionCompletion(finalElapsed, data!.mode, data!.timestamp, data!.categoryId, att, stab, notes)
-        }}
+        key={timer.pendingSessionData?.timestamp ?? 'reflection'}
+        showReflectionModal={timer.showReflectionModal}
+        pendingSessionData={timer.pendingSessionData}
+        studyBlockDurationMinutes={studyBlockDurationMinutes}
+        attentionRating={timer.attentionRating}
+        setAttentionRating={timer.setAttentionRating}
+        stabilityRating={timer.stabilityRating}
+        setStabilityRating={timer.setStabilityRating}
+        localSessionNotes={timer.localSessionNotes}
+        setLocalSessionNotes={timer.setLocalSessionNotes}
+        onSubmitReflection={timer.submitReflection}
       />
 
-      {/* Key Shortcut Deck Modal */}
-      {isHotkeyHudOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setIsHotkeyHudOpen(false)}>
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
-          <div className="relative w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 backdrop-blur-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)]" onClick={e => e.stopPropagation()}>
-            <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-lg font-semibold">Keyboard Shortcuts</h3>
-              <button onClick={() => setIsHotkeyHudOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-white/10 hover:text-white cursor-pointer">
-                <X />
-              </button>
-            </div>
-            <div className="space-y-3">
-              {[
-                { keys: 'Space', action: 'Toggle play / pause' },
-                { keys: 'S', action: 'Switch to Study mode' },
-                { keys: 'B', action: 'Switch to Break mode' },
-                { keys: 'C', action: 'Complete current session' },
-                { keys: '?', action: 'Toggle this shortcut panel' },
-              ].map(item => (
-                <div key={item.keys} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
-                  <span className="text-sm text-white/80">{item.action}</span>
-                  <kbd className="rounded border border-white/15 bg-white/10 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white">{item.keys}</kbd>
-                </div>
-              ))}
-            </div>
-            <p className="mt-4 text-center text-[11px] text-slate-400">Shortcuts are disabled while typing in input fields.</p>
-          </div>
-        </div>
-      )}
+      <HotkeyModal isOpen={isHotkeyHudOpen} onClose={() => setIsHotkeyHudOpen(false)} />
 
-      {/* Floating HUD Toast alerts */}
       {activeToast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),_inset_0_1px_1px_rgba(255,255,255,0.08)] rounded-full px-4 py-1.5 text-[11px] font-mono tracking-wider text-white animate-slide-down">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),_inset_0_1px_1px_rgba(255,255,255,0.08)] rounded-full px-4 py-1.5 text-[11px] font-mono tracking-wider text-white animate-slide-down"
+        >
           <kbd className="bg-white/10 text-white border border-white/15 rounded px-1.5 py-0.5 text-[9px] font-sans">{activeToast.key}</kbd>
           <span>{activeToast.message}</span>
         </div>
       )}
 
-      {/* Quick Notes sliding drawer Workspace */}
       <QuickNotesDrawer
         isOpen={isNotesOpen}
         onClose={() => setIsNotesOpen(false)}
@@ -1575,13 +580,17 @@ function App() {
         deleteNote={deleteQuickNote}
       />
 
+      {!isZenMode && (
+        <MobileTabBar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isTimerActive={timer.isTimerActive}
+          timerMode={timer.timerMode}
+          enforceLockout={enforce_lockout}
+        />
+      )}
     </div>
   )
 }
-
-// Simple placeholder close icon helper
-const X: React.FC = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-)
 
 export default App
