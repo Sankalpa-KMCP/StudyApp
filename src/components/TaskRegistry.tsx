@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Plus, Check, Target, AlertCircle } from 'lucide-react'
-import type { TaskItem, CategoryItem } from '../db/types'
+import type { TaskItem, CategoryItem, SubTask } from '../db/types'
+import { db } from '../db/db'
 
 interface TaskRegistryProps {
   tasks: TaskItem[]
@@ -72,6 +73,10 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
     setTaskText('')
     setTaskIsStudySubject(false)
   }
+
+  const handleAddSubtask = async (task: TaskItem, text: string) => {}
+  const handleToggleSubtask = async (task: TaskItem, subId: string) => {}
+  const handleDeleteSubtask = async (task: TaskItem, subId: string) => {}
 
   const activeTask = useMemo(() => {
     if (activeTaskId === null) return null
@@ -256,67 +261,121 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
                 return (
                   <div
                     key={task.id}
-                    onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
-                    className={`flex items-center justify-between gap-3.5 py-3.5 border-b border-white/5 last:border-b-0 px-3.5 rounded-2xl transition-colors duration-200 cursor-pointer ${
-                      isActive
-                        ? 'bg-white/10'
-                        : 'hover:bg-white/[0.03]'
+                    className={`flex flex-col gap-3 py-3.5 border-b border-white/5 last:border-b-0 px-3.5 rounded-2xl transition-colors duration-200 cursor-pointer ${
+                      isActive ? 'bg-white/10' : 'hover:bg-white/[0.03]'
                     }`}
+                    onClick={() => { if (!task.completed) setActiveTaskId(activeTaskId === task.id ? null : task.id!) }}
                   >
-                    <div className="flex items-center gap-3 w-full min-w-0">
-                      
-                      {/* Checkbox */}
-                      <div
-                        onClick={e => { e.stopPropagation(); toggleTask(task.id!) }}
-                        className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-all duration-250 ease-out ios-active-scale ${
-                          task.completed 
-                            ? 'border-accent-green bg-accent-green text-white shadow-sm'
-                            : 'border-white/20 hover:border-accent-blue hover:bg-white/5'
-                        }`}
-                      >
-                        {task.completed && <Check className="h-3 w-3 stroke-[2.5]" />}
-                      </div>
-                      
-                      {/* Subject tag */}
-                      {cat && (
-                        <span 
-                          className="shrink-0 text-[8px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border" 
-                          style={{ 
-                            backgroundColor: 'transparent', 
-                            borderColor: cat.color,
-                            color: cat.color
-                          }}
+                    {/* Main Row */}
+                    <div className="flex items-center justify-between gap-3.5 w-full">
+                      <div className="flex items-center gap-3 w-full min-w-0">
+                        
+                        {/* Checkbox */}
+                        <div
+                          onClick={e => { e.stopPropagation(); toggleTask(task.id!) }}
+                          className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-all duration-250 ease-out ios-active-scale ${
+                            task.completed 
+                              ? 'border-accent-green bg-accent-green text-white shadow-sm'
+                              : 'border-white/20 hover:border-accent-blue hover:bg-white/5'
+                          }`}
                         >
-                          {cat.name}
-                        </span>
-                      )}
+                          {task.completed && <Check className="h-3 w-3 stroke-[2.5]" />}
+                        </div>
+                        
+                        {/* Subject tag */}
+                        {cat && (
+                          <span 
+                            className="shrink-0 text-[8px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border" 
+                            style={{ 
+                              backgroundColor: 'transparent', 
+                              borderColor: cat.color,
+                              color: cat.color
+                            }}
+                          >
+                            {cat.name}
+                          </span>
+                        )}
 
-                      {/* Priority Indicator Tag */}
-                      {task.priority && (
-                        <span className={`shrink-0 text-[8px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                          task.priority === 'high' 
-                            ? 'bg-red-500/10 text-red-400 border-red-500/20' 
-                            : task.priority === 'low' 
-                            ? 'bg-accent-blue/10 text-accent-blue border-accent-blue/20' 
-                            : 'bg-transparent text-white/40 border-white/10'
+                        {/* Priority Indicator Tag */}
+                        {task.priority && (
+                          <span className={`shrink-0 text-[8px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                            task.priority === 'high' 
+                              ? 'bg-red-500/10 text-red-400 border-red-500/20' 
+                              : task.priority === 'low' 
+                              ? 'bg-accent-blue/10 text-accent-blue border-accent-blue/20' 
+                              : 'bg-transparent text-white/40 border-white/10'
+                          }`}>
+                            {task.priority}
+                          </span>
+                        )}
+
+                        {/* Task Content text */}
+                        <span className={`flex-1 truncate text-xs font-semibold select-none transition-colors ${
+                          isActive ? 'text-white' : 'text-white/80'
                         }`}>
-                          {task.priority}
+                          {task.text}
                         </span>
-                      )}
+                      </div>
 
-                      {/* Task Content text */}
-                      <span className={`flex-1 truncate text-xs font-semibold select-none transition-colors ${
-                        isActive ? 'text-white' : 'text-white/80'
-                      }`}>
-                        {task.text}
+                      {/* Cycles metrics */}
+                      <span className="shrink-0 text-[9px] font-mono font-bold text-white/60 flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+                        <Target className="h-3.5 w-3.5 text-white/30" />
+                        <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1}</span>
                       </span>
                     </div>
 
-                    {/* Cycles metrics */}
-                    <span className="shrink-0 text-[9px] font-mono font-bold text-white/60 flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
-                      <Target className="h-3.5 w-3.5 text-white/30" />
-                      <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1}</span>
-                    </span>
+                    {/* Subtasks Block (Expanded) */}
+                    {isActive && (
+                      <div className="pl-8 pr-2 pt-2.5 border-t border-white/5 space-y-3 cursor-default" onClick={e => e.stopPropagation()}>
+                        {task.subtasks && task.subtasks.length > 0 && (
+                          <div className="space-y-2">
+                            {task.subtasks.map(sub => (
+                              <div key={sub.id} className="flex items-center gap-2.5 text-xs">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleSubtask(task, sub.id)}
+                                  className={`h-4 w-4 shrink-0 rounded flex items-center justify-center transition-all cursor-pointer ${
+                                    sub.completed
+                                      ? 'border-accent-green bg-accent-green text-white'
+                                      : 'border-white/20 hover:border-accent-blue bg-white/5'
+                                  }`}
+                                >
+                                  {sub.completed && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                                </button>
+                                <span className={`flex-1 truncate ${sub.completed ? 'text-white/30 line-through' : 'text-white/80'}`}>
+                                  {sub.text}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSubtask(task, sub.id)}
+                                  className="text-[10px] text-white/30 hover:text-red-400 font-bold transition-colors cursor-pointer pl-1 pr-1"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Add subtask..."
+                            className="flex-1 bg-black/30 border border-white/8 rounded-lg px-2.5 py-1.5 text-[10px] text-white placeholder-white/25 outline-none"
+                            onKeyDown={async e => {
+                              if (e.key === 'Enter') {
+                                const target = e.target as HTMLInputElement;
+                                const text = target.value.trim();
+                                if (text) {
+                                  await handleAddSubtask(task, text);
+                                  target.value = '';
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
