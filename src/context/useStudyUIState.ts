@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
-import { THEME_PROFILES } from '../lib/theme'
+import { resolveThemeProfile } from '../lib/theme'
 import { useZenCanvas } from '../hooks/useZenCanvas'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useOptionalSidebarCollapse } from '../components/sidebar/useSidebarCollapseContext'
 import { useStudyDataContext } from './studyDataContext'
 import { useStudyTimerContext } from './studyTimerContext'
 import type { useAppToast } from '../hooks/useAppToast'
+import { useUndoDelete } from '../hooks/useUndoDelete'
 
 type ToastApi = ReturnType<typeof useAppToast>
 
@@ -14,6 +15,7 @@ export function useStudyUIState(toast: ToastApi) {
   const { settings } = useStudyDataContext()
   const { timer } = useStudyTimerContext()
   const { activeToast, setActiveToast, quotaExceeded, dismissQuotaRecovery } = toast
+  const { scheduleDelete } = useUndoDelete({ setActiveToast })
 
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [breathTime, setBreathTime] = useState(0)
@@ -21,6 +23,9 @@ export function useStudyUIState(toast: ToastApi) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('focus')
   const [isDragging, setIsDragging] = useState(false)
   const [isHotkeyHudOpen, setIsHotkeyHudOpen] = useState(false)
+  const [prefersDark, setPrefersDark] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches,
+  )
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
@@ -49,13 +54,46 @@ export function useStudyUIState(toast: ToastApi) {
     return () => clearInterval(interval)
   }, [])
 
+  const UI_FONT_STACKS: Record<string, string> = {
+    Inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    Outfit: "'Outfit', 'Inter', sans-serif",
+    System: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  }
+
   useEffect(() => {
     document.documentElement.style.setProperty('--font-monospace', `'${settings.developer_font}', monospace`)
   }, [settings.developer_font])
 
+  useEffect(() => {
+    const stack = UI_FONT_STACKS[settings.ui_font] ?? UI_FONT_STACKS.Inter
+    document.documentElement.style.setProperty('--font-sans-geom', stack)
+  }, [settings.ui_font])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = (e: MediaQueryListEvent) => setPrefersDark(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
   const activeThemeVars = useMemo(
-    () => THEME_PROFILES[settings.theme] || THEME_PROFILES['midnight-oled'],
-    [settings.theme],
+    () =>
+      resolveThemeProfile(settings.theme, settings.themePreset, prefersDark, settings.lightThemePreset, {
+        accentBlueOverride: settings.accentBlueOverride,
+        accentPurpleOverride: settings.accentPurpleOverride,
+        accentGreenOverride: settings.accentGreenOverride,
+        accentAmberOverride: settings.accentAmberOverride,
+      }),
+    [
+      settings.theme,
+      settings.themePreset,
+      settings.lightThemePreset,
+      settings.accentBlueOverride,
+      settings.accentPurpleOverride,
+      settings.accentGreenOverride,
+      settings.accentAmberOverride,
+      prefersDark,
+    ],
   )
 
   const notifyFocusLockout = useCallback(() => {
@@ -98,6 +136,7 @@ export function useStudyUIState(toast: ToastApi) {
     activeThemeVars,
     handleFileDrop,
     notifyFocusLockout,
+    scheduleDelete,
   }), [
     activeToast,
     quotaExceeded,
@@ -111,5 +150,6 @@ export function useStudyUIState(toast: ToastApi) {
     activeThemeVars,
     handleFileDrop,
     notifyFocusLockout,
+    scheduleDelete,
   ])
 }

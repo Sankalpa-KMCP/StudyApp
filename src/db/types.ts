@@ -2,6 +2,7 @@ export interface CategoryItem {
   id?: number
   name: string
   color: string
+  dailyGoalMinutes?: number
 }
 
 export interface SubTask {
@@ -57,6 +58,19 @@ export type SettingsKey =
   | 'shortBreakDurationMinutes'
   | 'studyBlockDurationMinutes'
   | 'theme'
+  | 'themePreset'
+  | 'lightThemePreset'
+  | 'ui_font'
+  | 'uiDensity'
+  | 'backdropSaturate'
+  | 'cardBorderOpacity'
+  | 'accentBlueOverride'
+  | 'accentPurpleOverride'
+  | 'accentGreenOverride'
+  | 'accentAmberOverride'
+  | 'noteTagColors'
+  | 'recentHistoryLimit'
+  | 'focusNotificationsEnabled'
   | 'cardOpacity'
   | 'backdropBlur'
   | 'tactile_feedback'
