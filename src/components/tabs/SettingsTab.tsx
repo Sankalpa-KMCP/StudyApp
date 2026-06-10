@@ -45,7 +45,6 @@ export function SettingsTab({ onShowOnboarding }: SettingsTabProps) {
         developerFont={settings.developer_font}
         enforceLockout={settings.enforce_lockout}
         autoArchiveAncientTasks={settings.autoArchiveAncientTasks}
-        autoPauseOnHidden={settings.auto_pause_on_hidden}
         exportStudyBackup={backup.exportStudyBackup}
         isExporting={backup.isExporting}
         exportProgress={backup.exportProgress}

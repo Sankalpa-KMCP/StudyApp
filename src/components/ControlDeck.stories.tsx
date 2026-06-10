@@ -51,7 +51,6 @@ function DeckStory() {
         tactileEnabled
         developerFont="inter"
         enforceLockout={false}
-        autoPauseOnHidden={true}
         autoArchiveAncientTasks
         exportStudyBackup={() => {}}
         exportStudyLogsCSV={() => {}}
