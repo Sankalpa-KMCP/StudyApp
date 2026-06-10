@@ -119,6 +119,10 @@ interface DayData {
   intensity: 0 | 1 | 2 | 3
 }
 
+/**
+ * Main application dashboard coordinator.
+ * Manages states for tasks, sessions, logs, categories, settings, and workspace navigation.
+ */
 function App() {
   const { tasks: sessionTasks, addTask, toggleTask, isLoading: tasksLoading } = useTasks()
   const { history: sessionHistory, addEntry: addHistoryEntry, isLoading: historyLoading } = useHistory()
