@@ -67,6 +67,30 @@ export function formatMinutes(minutes: number): string {
   return `${hours}h ${mins}m`
 }
 
+export interface DailyFocusStatus {
+  percent: number
+  goalMet: boolean
+  studiedLabel: string
+  remainingMinutes: number
+  remainingLabel: string
+}
+
+export function getDailyFocusStatus(studiedMinutes: number, goalMinutes: number): DailyFocusStatus {
+  const studied = Number.isFinite(studiedMinutes) ? Math.max(0, Math.floor(studiedMinutes)) : 0
+  const goal = Number.isFinite(goalMinutes) ? Math.max(0, Math.floor(goalMinutes)) : 0
+  const goalMet = goal > 0 && studied >= goal
+  const percent = goal > 0 ? Math.min(studied / goal, 1) : 0
+  const remainingMinutes = goal > 0 ? Math.max(goal - studied, 0) : 0
+
+  return {
+    percent,
+    goalMet,
+    studiedLabel: formatMinutes(studied),
+    remainingMinutes,
+    remainingLabel: goalMet ? 'Goal met' : goal > 0 ? `${formatMinutes(remainingMinutes)} left today` : 'No goal set',
+  }
+}
+
 export function getIntensity(minutes: number): 0 | 1 | 2 | 3 {
   if (!Number.isFinite(minutes) || minutes < 60) return 0
   if (minutes < 120) return 1
