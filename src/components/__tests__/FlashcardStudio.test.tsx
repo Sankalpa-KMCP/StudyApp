@@ -3,6 +3,10 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FlashcardStudio } from '../FlashcardStudio'
 
+vi.mock('../../context/useConfirm', () => ({
+  useConfirm: () => ({ requestConfirm: vi.fn().mockResolvedValue(true) }),
+}))
+
 const baseProps = {
   categories: [],
   addCategory: vi.fn(),

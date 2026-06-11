@@ -6,6 +6,7 @@ import { requestWakeLock, releaseWakeLock } from '../lib/wakeLock'
 import { createAnchorState } from './timer/timerAnchor'
 import { useTimerSessionShadow } from './timer/useTimerSessionShadow'
 import { useTimerCompletion } from './timer/useTimerCompletion'
+import { BREAK_ENDED } from '../lib/uxTerms'
 import { useTimerReflection } from './timer/useTimerReflection'
 import { useTimerTick } from './timer/useTimerTick'
 
@@ -115,8 +116,8 @@ export function useTimerEngine({
 
   const reflection = useTimerReflection({ completingRef, processSessionCompletion })
 
-  const completeSession = useCallback(async () => {
-    if (completingRef.current) return
+  const completeSession = useCallback(async (): Promise<'reflection' | 'completed' | 'blocked'> => {
+    if (completingRef.current) return 'blocked'
     completingRef.current = true
     const elapsed = secondsElapsedRef.current
     const mode = timerMode
@@ -128,10 +129,11 @@ export function useTimerEngine({
 
     if (mode === 'study') {
       reflection.openReflection({ elapsed, mode, timestamp, categoryId: timerCategoryId })
-      return
+      return 'reflection'
     }
 
     await processSessionCompletion(elapsed, mode, timestamp, timerCategoryId)
+    return 'completed'
   }, [timerMode, timerCategoryId, processSessionCompletion, setIsTimerActive, resetAnchor, reflection])
 
   const { syncElapsedFromWall } = useTimerTick({
@@ -179,7 +181,7 @@ export function useTimerEngine({
 
   const extendSession = useCallback(() => {
     setExtendedMinutes(m => m + 5)
-    pushToast('TIMER', 'ADDED 5 MINUTES TO CURRENT TIMER')
+    pushToast('TIMER', 'Added 5 minutes to current timer')
   }, [pushToast])
 
   const skipBreak = useCallback(() => {
@@ -191,7 +193,7 @@ export function useTimerEngine({
     setTimerMode('study')
     setIsTimerActive(true)
     playChime()
-    pushToast('TIMER', 'BREAK SKIPPED - STUDY BLOCK STARTED')
+    pushToast('TIMER', BREAK_ENDED)
   }, [timerMode, playChime, pushToast, setIsTimerActive, resetAnchor])
 
   const submitRecallGrade = useCallback(async (task: TaskItem, q: number) => {
@@ -279,6 +281,7 @@ export function useTimerEngine({
     processSessionCompletion,
     submitRecallGrade,
     submitReflection: reflection.submitReflection,
+    skipReflection: reflection.skipReflection,
     resetTimerState,
     completingRef: completingRef as RefObject<boolean>,
   }), [

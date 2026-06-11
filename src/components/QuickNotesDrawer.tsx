@@ -94,8 +94,11 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-black/20 select-none">
         <div className="flex items-center gap-2">
-          <Edit3 className="h-4 w-4 text-accent-blue" />
-          <h3 id="quick-notes-title" className="text-xs font-bold uppercase tracking-wider text-white">Notes Workspace</h3>
+          <Edit3 className="h-4 w-4 text-accent-blue shrink-0" />
+          <div className="flex flex-col min-w-0">
+          <h3 id="quick-notes-title" className="text-xs font-bold uppercase tracking-wider text-white">Quick Notes</h3>
+          <p className="text-[10px] text-white/45 font-medium normal-case tracking-normal">Scratch pad — not saved to your journal</p>
+          </div>
         </div>
         <button
           type="button"

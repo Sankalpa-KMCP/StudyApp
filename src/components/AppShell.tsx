@@ -24,6 +24,7 @@ import { buildThemeInlineStyles } from '../lib/applyThemeVars'
 import { AppShellLoadingScreen } from './app-shell/AppShellLoadingScreen'
 import { AppShellStatusBanners } from './app-shell/AppShellStatusBanners'
 import { AppToastOverlay } from './app-shell/AppToastOverlay'
+import { prefetchControlDeck } from '../lib/prefetchControlDeck'
 
 export const AppShell = memo(function AppShell() {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
@@ -71,6 +72,7 @@ export const AppShell = memo(function AppShell() {
     dismissQuotaRecovery,
     isNotesOpen,
     setIsNotesOpen,
+    notifyFocusLockout,
     scheduleDelete,
   } = useStudyUI()
 
@@ -78,7 +80,19 @@ export const AppShell = memo(function AppShell() {
     enforceLockout: settings.enforce_lockout,
     timer: timerControls,
     setActiveTab,
+    onLockedAttempt: notifyFocusLockout,
   })
+
+  useEffect(() => {
+    if (!isDataReady) return
+    const id = window.requestIdleCallback
+      ? window.requestIdleCallback(() => prefetchControlDeck())
+      : window.setTimeout(() => prefetchControlDeck(), 2000)
+    return () => {
+      if (typeof id === 'number') window.clearTimeout(id)
+      else window.cancelIdleCallback?.(id)
+    }
+  }, [isDataReady])
 
   const activeTimerCategory = timerControls.timerCategoryId !== undefined
     ? categories.categories.find(c => c.id === timerControls.timerCategoryId)
@@ -196,7 +210,7 @@ export const AppShell = memo(function AppShell() {
 
       <ReflectionModalContainer studyBlockDurationMinutes={settings.studyBlockDurationMinutes} />
       <HotkeyModal isOpen={isHotkeyHudOpen} onClose={() => setIsHotkeyHudOpen(false)} />
-      <OnboardingModal isOpen={showOnboarding} onClose={handleCloseOnboarding} />
+      <OnboardingModal isOpen={showOnboarding} onClose={handleCloseOnboarding} updateSetting={settings.updateSetting} />
       <AppToastOverlay toast={activeToast} />
 
       <QuickNotesDrawer

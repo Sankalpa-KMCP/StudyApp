@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useRef } from 'react'
 import type { ActiveTab } from '../types/app'
 import { NAV_TABS } from '../navigation/appNav'
 import { NavTabButton } from '../navigation/NavTabButton'
@@ -22,12 +22,11 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
 }) => {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
-  useEffect(() => {
-    tabRefs.current[activeTab]?.focus()
-  }, [activeTab])
-
-  const handleTabClick = (tabId: ActiveTab) => {
+  const handleTabClick = (tabId: ActiveTab) => (e: React.MouseEvent<HTMLButtonElement>) => {
     setActiveTab(tabId)
+    if (e.detail === 0) {
+      tabRefs.current[tabId]?.focus()
+    }
   }
 
   return (
@@ -50,7 +49,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
             isActive={isActive}
             isLocked={isLocked}
             badge={tab.id === 'cards' ? cardsDueCount : undefined}
-            onClick={() => handleTabClick(tab.id)}
+            onClick={handleTabClick(tab.id)}
             buttonRef={el => { tabRefs.current[tab.id] = el }}
           />
         )

@@ -2,6 +2,14 @@ import { useState } from 'react'
 import { Check, Target, AlertCircle } from 'lucide-react'
 import type { CategoryItem, TaskItem } from '../../db/types'
 import { db } from '../../db/db'
+import { SM2_HELPER } from '../../lib/uxTerms'
+
+const SM2_GRADES = [
+  { q: 1, label: 'Forgot', title: 'Forgot (Incorrect)' },
+  { q: 2, label: 'Hard', title: 'Hard (Barely)' },
+  { q: 4, label: 'Good', title: 'Good (Correct)' },
+  { q: 5, label: 'Easy', title: 'Easy (Instant)' },
+] as const
 
 interface TaskListProps {
   activeTasksList: TaskItem[]
@@ -61,7 +69,7 @@ export function TaskList({
             </span>
           </div>
 
-          <p className="text-micro text-white/40">1 = forgot, 2 = hard, 4 = good, 5 = easy</p>
+          <p className="text-micro text-white/40">{SM2_HELPER}</p>
           <div className="flex flex-col gap-1 max-h-[40vh] overflow-y-auto custom-scrollbar pr-1">
             {reviewQueueList.map(task => (
               <div key={task.id} className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2 border-b border-white/5 last:border-b-0 hover:bg-white/[0.03] px-1 rounded-xl transition-colors duration-200">
@@ -82,21 +90,17 @@ export function TaskList({
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="text-[8px] text-white/40 font-bold uppercase tracking-wider mr-1.5 hidden sm:inline select-none">Recall:</span>
-                  {[
-                    { q: 1, label: '1', title: 'Forgot (Incorrect)' },
-                    { q: 2, label: '2', title: 'Hard (Barely)' },
-                    { q: 4, label: '4', title: 'Good (Correct)' },
-                    { q: 5, label: '5', title: 'Easy (Instant)' },
-                  ].map(({ q, label, title }) => (
+                  {SM2_GRADES.map(({ q, label, title }) => (
                     <button
                       key={q}
                       type="button"
                       title={title}
                       aria-label={`Recall grade ${q} (${title}) for ${task.text}`}
                       onClick={() => submitRecallGrade(task, q)}
-                      className="h-6 w-6 rounded-full text-[9px] font-bold font-mono bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 transition-all ios-active-scale cursor-pointer flex items-center justify-center"
+                      className="min-h-11 min-w-11 sm:min-h-6 sm:min-w-6 rounded-full text-[9px] sm:text-[9px] font-bold bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 transition-all ios-active-scale cursor-pointer flex items-center justify-center px-1"
                     >
-                      {label}
+                      <span className="sm:hidden">{label}</span>
+                      <span className="hidden sm:inline font-mono">{q}</span>
                     </button>
                   ))}
                 </div>
@@ -114,7 +118,7 @@ export function TaskList({
             </div>
             <p className="text-sm font-bold text-white/70">No focus targets yet</p>
             <p className="text-label text-white/45 mt-1.5 font-medium max-w-xs leading-relaxed">
-              Type a focus target and press Enter—the timer starts automatically.
+              Add a focus target below to link it to your study block.
             </p>
           </div>
         ) : (
@@ -140,32 +144,19 @@ export function TaskList({
               return (
                 <div
                   key={task.id}
-                  role="button"
-                  tabIndex={task.completed ? -1 : 0}
-                  aria-label={`Task ${task.text}`}
                   aria-current={isActive ? 'true' : undefined}
-                  className={`dynamic-card flex flex-col gap-3 py-4 px-4 transition-all duration-300 cursor-pointer mb-2 ${
+                  className={`dynamic-card flex flex-col gap-3 py-4 px-4 transition-all duration-300 mb-2 ${
                     isActive
                       ? 'shadow-lg border-white/12 -translate-y-[1px] ring-1 ring-accent-blue/25 border-l-[4px] border-l-accent-blue'
                       : 'hover:-translate-y-[2px]'
                   } ${isActive ? '' : priorityBorder}`}
-                  onClick={e => {
-                    if ((e.target as HTMLElement).closest('[data-subtask-panel]')) return
-                    toggleActive()
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      toggleActive()
-                    }
-                  }}
                 >
                   <div className="flex items-center justify-between gap-3.5 w-full">
                     <div className="flex items-center gap-3 w-full min-w-0">
                       <button
                         type="button"
                         aria-label={task.completed ? 'Mark task incomplete' : 'Mark task complete'}
-                        onClick={e => { e.stopPropagation(); toggleTask(task.id!) }}
+                        onClick={() => toggleTask(task.id!)}
                         className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-all duration-250 ease-out ios-active-scale ${
                           task.completed
                             ? 'border-accent-green bg-accent-green text-white shadow-sm'
@@ -200,10 +191,25 @@ export function TaskList({
                         {task.text}
                       </span>
                     </div>
-                    <span className="shrink-0 text-[9px] font-mono font-bold text-white/60 flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
-                      <Target className="h-3.5 w-3.5 text-white/30" />
-                      <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1}</span>
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        disabled={task.completed}
+                        aria-label={isActive ? `Deselect ${task.text}` : `Select ${task.text} for timer`}
+                        aria-pressed={isActive}
+                        onClick={toggleActive}
+                        className={`min-h-9 min-w-9 flex items-center justify-center rounded-full border transition-all ios-active-scale cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                          isActive
+                            ? 'border-accent-blue bg-accent-blue/15 text-accent-blue'
+                            : 'border-white/10 bg-white/5 text-white/50 hover:border-accent-blue/40 hover:text-accent-blue'
+                        }`}
+                      >
+                        <Target className="h-4 w-4" />
+                      </button>
+                      <span className="text-[9px] font-mono font-bold text-white/60 flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+                        <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1}</span>
+                      </span>
+                    </div>
                   </div>
 
                   {isActive && (

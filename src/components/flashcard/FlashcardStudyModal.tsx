@@ -2,6 +2,7 @@ import { X, Sparkles } from 'lucide-react'
 import type { FlashcardItem } from '../../db/types'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { Button } from '../shared/Button'
+import { SM2_HELPER } from '../../lib/uxTerms'
 import { SM2_GRADES } from './constants'
 
 interface FlashcardStudyModalProps {
@@ -51,7 +52,7 @@ export function FlashcardStudyModal({
             <div className="h-1.5 w-full bg-white/5 border border-white/8 rounded-full overflow-hidden mt-3">
               <div
                 className="h-full bg-accent-blue transition-all duration-300"
-                style={{ width: `${(currentQueueIndex / studyQueue.length) * 100}%` }}
+                style={{ width: `${((currentQueueIndex + 1) / studyQueue.length) * 100}%` }}
               />
             </div>
           </div>
@@ -100,16 +101,18 @@ export function FlashcardStudyModal({
             </div>
 
             <div className={`w-full max-w-md transition-all duration-300 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-              <p className="text-caption font-mono text-center text-white/40 mb-3 select-none uppercase tracking-wider font-bold">Rate recall strength</p>
+              <p className="text-caption font-mono text-center text-white/40 mb-1 select-none uppercase tracking-wider font-bold">Rate recall strength</p>
+              <p className="text-micro text-center text-white/35 mb-3">{SM2_HELPER}</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                 {SM2_GRADES.map(grade => (
                   <button
                     key={grade.value}
                     onClick={() => onGrade(grade.value)}
-                    className={`p-3 rounded-[20px] border border-white/8 bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1 transition-all duration-200 ios-active-scale cursor-pointer ${grade.color}`}
+                    aria-label={`Recall grade ${grade.value} (${grade.label})`}
+                    className={`min-h-11 p-3 rounded-[20px] border border-white/8 bg-white/5 hover:bg-white/10 flex flex-col items-center justify-center gap-1 transition-all duration-200 ios-active-scale cursor-pointer ${grade.color}`}
                   >
-                    <span className="text-sm font-bold font-mono">{grade.value}</span>
-                    <span className="text-label font-bold tracking-tight uppercase leading-tight font-mono">{grade.label}</span>
+                    <span className="text-sm font-bold">{grade.label}</span>
+                    <span className="text-label font-bold tracking-tight uppercase leading-tight font-mono text-white/40">{grade.value}</span>
                   </button>
                 ))}
               </div>

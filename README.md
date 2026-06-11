@@ -76,7 +76,7 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `dailyGoalMinutes` | 480 | Daily study target |
+| `dailyGoalMinutes` | 120 | Daily study target |
 | `studyBlockDurationMinutes` | 25 | Focus block length |
 | `shortBreakDurationMinutes` | 5 | Short break length |
 | `longBreakDurationMinutes` | 15 | Long break length |
@@ -113,19 +113,21 @@ Data hooks live in [`src/db/hooks/`](src/db/hooks/) (repositories + per-domain h
 
 ```bash
 npm ci
-npm run dev            # Vite dev server at http://localhost:5173
-npm run build          # Production build to dist/
-npm test               # Vitest unit tests
-npm run test:coverage  # Coverage gate (80% lines, 74% branches)
-npm run test:coverage:components  # Shared/analytics component gate (50%)
-npm run test:coverage:settings  # Control-deck / settings widget gate (60% lines, 45% branches)
-npm run check:bundle   # Gzip budget on main chunk (~512 KB)
-npm run test:watch     # Vitest watch mode
-npm run test:e2e       # Playwright user journeys
-npm run storybook      # Component stories on port 6006
+npm run dev
+npm run build
+npm test
+npm run test:coverage
+npm run test:coverage:components
+npm run test:coverage:settings
+npm run check:bundle
+npm run test:watch
+npm run test:e2e
+npm run storybook
 npm run build-storybook
-npm run lint           # ESLint + jsx-a11y
+npm run lint
 ```
+
+`npm run dev` serves the app at http://localhost:5173. On Windows, run commands without trailing `#` comments — CMD does not treat `#` as a comment and will pass those words to Vite as extra args.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for migrations, settings, and E2E conventions.
 

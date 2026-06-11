@@ -46,7 +46,7 @@ describe('TaskRegistry', () => {
     expect(handleAddTask).toHaveBeenCalledWith('My task', 2, 1, 'medium', false)
   })
 
-  it('activates a task when a row is clicked', async () => {
+  it('activates a task when the target control is clicked', async () => {
     const user = userEvent.setup()
     const activateTask = vi.fn()
     const task = { id: 1, text: 'Existing task', completed: false, createdAt: Date.now(), estimatedCycles: 1, actualCycles: 0 }
@@ -57,7 +57,7 @@ describe('TaskRegistry', () => {
         activateTask={activateTask}
       />,
     )
-    await user.click(screen.getByRole('button', { name: 'Task Existing task' }))
+    await user.click(screen.getByRole('button', { name: 'Select Existing task for timer' }))
     expect(activateTask).toHaveBeenCalledWith(task)
   })
 

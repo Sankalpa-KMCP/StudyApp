@@ -1,10 +1,20 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import type { FlashcardItem } from '../../db/types'
+import { END_FLASHCARD_SESSION, END_FLASHCARD_SESSION_BODY } from '../../lib/uxTerms'
+
+type RequestConfirm = (options: {
+  title: string
+  message: string
+  confirmLabel?: string
+  cancelLabel?: string
+  variant?: 'danger' | 'default'
+}) => Promise<boolean>
 
 export function useFlashcardStudySession(
   filteredCards: FlashcardItem[],
   isDue: (card: FlashcardItem) => boolean,
   submitFlashcardGrade: (id: number, grade: number) => Promise<void>,
+  requestConfirm?: RequestConfirm,
 ) {
   const [isStudying, setIsStudying] = useState(false)
   const [studyQueue, setStudyQueue] = useState<FlashcardItem[]>([])
@@ -38,11 +48,27 @@ export function useFlashcardStudySession(
     }
   }
 
-  const closeStudy = () => {
+  const resetStudy = useCallback(() => {
     setIsStudying(false)
     setStudyQueue([])
     setSessionCompleted(false)
-  }
+    setCardsGradedCount(0)
+    setCurrentQueueIndex(0)
+    setIsFlipped(false)
+  }, [])
+
+  const closeStudy = useCallback(async () => {
+    if (cardsGradedCount > 0 && !sessionCompleted && requestConfirm) {
+      const ok = await requestConfirm({
+        title: END_FLASHCARD_SESSION,
+        message: END_FLASHCARD_SESSION_BODY,
+        confirmLabel: 'End session',
+        cancelLabel: 'Keep studying',
+      })
+      if (!ok) return
+    }
+    resetStudy()
+  }, [cardsGradedCount, sessionCompleted, requestConfirm, resetStudy])
 
   return {
     isStudying,

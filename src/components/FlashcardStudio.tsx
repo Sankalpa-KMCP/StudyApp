@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Layers } from 'lucide-react'
 import type { CategoryItem, FlashcardItem } from '../db/types'
+import { useConfirm } from '../context/useConfirm'
 import { useCategoriesMap } from '../hooks/useCategoriesMap'
 import { useFlashcardFilters } from './flashcard/useFlashcardFilters'
 import { useFlashcardStudySession } from './flashcard/useFlashcardStudySession'
@@ -45,6 +46,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
   } = useFlashcardFilters(flashcards)
 
   const categoriesMap = useCategoriesMap(categories)
+  const { requestConfirm } = useConfirm()
 
   const {
     isStudying,
@@ -58,7 +60,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
     startStudy,
     handleGrade,
     closeStudy,
-  } = useFlashcardStudySession(filteredCards, isDue, submitFlashcardGrade)
+  } = useFlashcardStudySession(filteredCards, isDue, submitFlashcardGrade, requestConfirm)
 
   const handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -147,7 +149,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
           studyQueue={studyQueue}
           currentQueueIndex={currentQueueIndex}
           currentCard={currentCard}
-          onClose={closeStudy}
+          onClose={() => { void closeStudy() }}
           onGrade={handleGrade}
         />
       )}

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { ARCHIVED_TASKS } from '../lib/uxTerms'
 import { db } from '../db/db'
 import type { TaskItem } from '../db/types'
 
@@ -47,7 +48,7 @@ export function useTaskActions({
           const ids = targetTasks.map(t => t.id).filter((id): id is number => id !== undefined)
           if (ids.length > 0) {
             await Promise.all(ids.map(id => db.tasks.update(id, { archived: true })))
-            pushToast('ARCHIVE', `AUTO-ARCHIVED ${ids.length} COMPLETED TASKS (90+ DAYS)`)
+            pushToast('ARCHIVE', ARCHIVED_TASKS(ids.length))
           }
         }
       }

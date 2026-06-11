@@ -78,6 +78,7 @@ export function BackupVaultPanel() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-2xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] p-4 flex flex-col justify-between">
           <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-accent-blue mb-2 block">Step 1 — Export</span>
             <span className="settings-label block">Export backup vault</span>
             <span className="settings-muted mt-1 leading-normal font-semibold block">Prepares a JSON package and initiates browser download.</span>
           </div>
@@ -109,6 +110,7 @@ export function BackupVaultPanel() {
             isDragging ? 'border-accent-purple bg-accent-purple/10' : 'border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] hover:border-[color-mix(in_srgb,var(--color-text-primary)_20%,transparent)]'
           }`}
         >
+          <span className="text-[10px] font-bold uppercase tracking-wider text-accent-purple mb-2">Step 2 — Import</span>
           <span className="text-2xl mb-1.5">📥</span>
           <span className="settings-label">Drag backup here</span>
           <span className="settings-muted mt-0.5">or browse files to restore</span>
@@ -162,6 +164,7 @@ export function BackupVaultPanel() {
       />
 
       <div className="mt-6 border-t border-red-500/15 pt-5">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-red-400/90 mb-2 block">Step 3 — Reset</span>
         <span className="text-xs font-bold text-red-400 block mb-1">Destructive reset zone</span>
         <p className="settings-muted leading-normal mb-4">
           Select specific database tables to clear individually, or sweep all tables to perform a full workspace wipe.

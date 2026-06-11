@@ -69,13 +69,15 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
   return (
     <TabPageShell>
       <TabSection label="Overview">
-        <SummaryMetricsRow
-          monthLogs={monthLogs}
-          totalMonthHours={totalMonthHours}
-          totalWeeklyBreakHours={totalWeeklyBreakHours}
-          totalDaysInMonth={totalDaysInMonth}
-          currentStreak={currentStreak}
-        />
+        {!isFullyEmpty && (
+          <SummaryMetricsRow
+            monthLogs={monthLogs}
+            totalMonthHours={totalMonthHours}
+            totalWeeklyBreakHours={totalWeeklyBreakHours}
+            totalDaysInMonth={totalDaysInMonth}
+            currentStreak={currentStreak}
+          />
+        )}
       </TabSection>
 
       <TabSection label="Trends">

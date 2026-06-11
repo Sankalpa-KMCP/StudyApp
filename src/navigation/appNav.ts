@@ -19,7 +19,7 @@ export const NAV_TABS: {
 ]
 
 export const TAB_CHROME: Record<ActiveTab, { title: string; subtitle: string }> = {
-  focus: { title: 'Focus', subtitle: 'Timer, targets, and sanctuary mode' },
+  focus: { title: 'Focus', subtitle: 'Timer, focus targets, and focus mode' },
   cards: { title: 'Cards', subtitle: 'Flashcards & spaced repetition' },
   analytics: { title: 'Analytics', subtitle: 'Study insights and retention trends' },
   journal: { title: 'Journal', subtitle: 'Daily logs and session history' },

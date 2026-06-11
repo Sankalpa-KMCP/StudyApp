@@ -100,7 +100,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
       )}
       <div className="lg:col-span-5 flex flex-col gap-6">
         <PanelCard>
-          <PanelHeader title="Historical ledger" bordered={false} className="mb-4" />
+          <PanelHeader title="Study log by day" bordered={false} className="mb-4" />
 
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">

@@ -36,7 +36,7 @@ describe('Sidebar', () => {
 
   it('renders expanded by default when localStorage is empty', () => {
     const { container } = renderSidebar()
-    expect(screen.getByText('Study Dashboard')).toBeVisible()
+    expect(screen.getByText('Study Dash')).toBeVisible()
     expect(screen.getByText('Getting Started Tour')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Collapse sidebar', hidden: true })).toBeInTheDocument()
     const shell = container.querySelector('.sidebar-shell')
@@ -119,7 +119,7 @@ describe('Sidebar', () => {
       expect(shell).toHaveAttribute('data-collapsed', 'false')
     })
     expect(container.querySelector('.sidebar-shell')).toBe(shell)
-    expect(screen.getByText('Study Dashboard')).toBeVisible()
+    expect(screen.getByText('Study Dash')).toBeVisible()
     expect(screen.getByText('Getting Started Tour')).toBeVisible()
     expect(container.querySelector('.nav-tab[data-active="true"]')).toBeInTheDocument()
   })

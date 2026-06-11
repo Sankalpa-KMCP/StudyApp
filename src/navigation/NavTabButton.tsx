@@ -1,4 +1,6 @@
+import { Lock } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
+import { FOCUS_LOCKOUT } from '../lib/uxTerms'
 
 export type NavTabButtonVariant = 'sidebar-expanded' | 'sidebar-rail' | 'mobile'
 
@@ -12,7 +14,7 @@ interface NavTabButtonProps {
   isActive: boolean
   isLocked: boolean
   badge?: number
-  onClick: () => void
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
   onMouseEnter?: (e: React.MouseEvent<HTMLButtonElement>) => void
   onMouseLeave?: () => void
   buttonRef?: (el: HTMLButtonElement | null) => void
@@ -49,8 +51,12 @@ export function NavTabButton({
   onMouseLeave,
   buttonRef,
 }: NavTabButtonProps) {
-  const lockedClass = isLocked ? 'opacity-40' : 'cursor-pointer'
+  const lockedClass = isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
   const ariaLabel = badge > 0 ? `${label}, ${badge} due for review` : label
+
+  const lockIcon = isLocked ? (
+    <Lock className="h-3 w-3 shrink-0 text-white/40" aria-hidden />
+  ) : null
 
   if (variant === 'sidebar-rail') {
     return (
@@ -62,12 +68,16 @@ export function NavTabButton({
         data-active={isActive ? 'true' : 'false'}
         aria-current={isActive ? 'page' : undefined}
         aria-label={ariaLabel}
+        aria-disabled={isLocked ? 'true' : undefined}
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         className={`sidebar-rail-btn relative h-10 w-10 flex items-center justify-center rounded-[14px] font-semibold text-xs transition-all duration-200 ios-active-scale border ${lockedClass}`}
       >
         <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? iconColor : 'text-white/60'}`} />
+        {isLocked && (
+          <span className="absolute -bottom-0.5 -right-0.5">{lockIcon}</span>
+        )}
         {badge > 0 && (
           <NavTabBadge count={badge} className="absolute -top-1 -right-1 min-w-[18px] text-center px-1" />
         )}
@@ -85,13 +95,17 @@ export function NavTabButton({
         data-active={isActive ? 'true' : 'false'}
         aria-current={isActive ? 'page' : undefined}
         aria-label={ariaLabel}
+        aria-disabled={isLocked ? 'true' : undefined}
         onClick={onClick}
         className={`mobile-nav-btn relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-label font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue ${lockedClass}`}
       >
         {badge > 0 && (
           <NavTabBadge count={badge} className="absolute top-0 right-1 z-20" />
         )}
-        <Icon className={`relative z-10 h-5 w-5 ${isActive ? iconColor : 'text-white/50'}`} />
+        <span className="relative z-10 flex items-center gap-0.5">
+          {isLocked && lockIcon}
+          <Icon className={`h-5 w-5 ${isActive ? iconColor : 'text-white/50'}`} />
+        </span>
         <span className="relative z-10">{label}</span>
       </button>
     )
@@ -106,12 +120,16 @@ export function NavTabButton({
       data-active={isActive ? 'true' : 'false'}
       aria-current={isActive ? 'page' : undefined}
       aria-label={ariaLabel}
-      title={isLocked ? 'Focus lockout active' : label}
+      aria-disabled={isLocked ? 'true' : undefined}
+      title={isLocked ? `${FOCUS_LOCKOUT} active` : label}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className={`nav-tab w-full ios-active-scale ${lockedClass}`}
     >
       <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? iconColor : 'text-white/60'}`} />
       <span className="whitespace-nowrap">{label}</span>
+      {isLocked && lockIcon}
       <NavTabBadge count={badge} className="ml-auto" />
     </button>
   )

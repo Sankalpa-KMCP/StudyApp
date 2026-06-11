@@ -39,7 +39,7 @@ describe('control-deck panel smoke tests', () => {
         <ZenLockoutPanel />
       </SettingsPanelProvider>,
     )
-    expect(screen.getByText('Zen Lockout')).toBeInTheDocument()
+    expect(screen.getByText('Focus lockout')).toBeInTheDocument()
     expect(screen.getByText('Automated Archiving')).toBeInTheDocument()
   })
 

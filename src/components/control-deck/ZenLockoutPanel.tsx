@@ -1,3 +1,4 @@
+import { FOCUS_LOCKOUT } from '../../lib/uxTerms'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
@@ -7,7 +8,7 @@ export function ZenLockoutPanel() {
 
   return (
     <>
-      <SettingsCard id="settings-zen-lockout" title="Zen Lockout">
+      <SettingsCard id="settings-zen-lockout" title={FOCUS_LOCKOUT}>
         <p className="settings-muted leading-relaxed mb-4">
           Hides tab and escape navigation menus during study blocks to enforce strict focus.
         </p>

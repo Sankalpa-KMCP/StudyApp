@@ -5,7 +5,16 @@ import { Button } from './shared/Button'
 import { PanelCard } from './shared/PanelCard'
 import { PanelHeader } from './shared/PanelHeader'
 import { SelectionChip } from './shared/SelectionChip'
-import type { SettingsKey, SettingsValue } from '../db/types'
+import {
+  END_BREAK_EARLY,
+  FOCUS_MODE,
+  HOTKEY_HINT,
+  NO_FOCUS_TARGET,
+  SESSIONS_BEFORE_LONG_BREAK,
+  STUDY_BLOCK_COMPLETE,
+  WORKING_ON,
+} from '../lib/uxTerms'
+import type { SettingsKey, SettingsValue, TaskItem } from '../db/types'
 
 interface FocusSanctuaryProps {
   timerMode: 'study' | 'break'
@@ -28,6 +37,8 @@ interface FocusSanctuaryProps {
   shortBreakDurationMinutes: number
   longBreakDurationMinutes: number
   updateSetting: (key: SettingsKey, val: SettingsValue) => void
+  activeTask?: TaskItem | null
+  onSkipBreak?: () => void
 }
 
 export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
@@ -51,6 +62,8 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   shortBreakDurationMinutes,
   longBreakDurationMinutes,
   updateSetting,
+  activeTask = null,
+  onSkipBreak,
 }) => {
   const [showDurationAdjust, setShowDurationAdjust] = useState(false)
   const [breathTime, setBreathTime] = useState(0)
@@ -88,7 +101,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   return (
     <div className="grid grid-cols-1 gap-6 w-full flex-1 items-start">
       <div className="sr-only" aria-live="assertive" aria-atomic="true">
-        {showReflectionModal && timerMode === 'study' ? 'Study block complete' : ''}
+        {showReflectionModal && timerMode === 'study' ? STUDY_BLOCK_COMPLETE : ''}
       </div>
 
       <div className="flex flex-col gap-6 w-full">
@@ -98,7 +111,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
             action={
               <Button size="sm" onClick={() => setIsZenMode(true)} className="gap-1.5">
                 <Sparkles className="h-3.5 w-3.5 text-accent-blue" />
-                <span>Sanctuary Mode</span>
+                <span>{FOCUS_MODE}</span>
               </Button>
             }
           />
@@ -119,6 +132,12 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               )
             })}
           </div>
+
+          <p className="text-center text-caption text-muted mb-3 select-none">
+            {activeTask
+              ? `${WORKING_ON}: ${activeTask.text}`
+              : NO_FOCUS_TARGET}
+          </p>
 
           <button
             type="button"
@@ -251,10 +270,10 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               <div className="flex items-center gap-3 flex-wrap justify-center w-full">
               {timerMode === 'break' && (
                 <button
-                  onClick={skipBreak}
+                  onClick={onSkipBreak ?? skipBreak}
                   className="px-4 py-2.5 rounded-full text-xs font-bold border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all ios-active-scale cursor-pointer"
                 >
-                  Skip Break
+                  {END_BREAK_EARLY}
                 </button>
               )}
 
@@ -312,11 +331,12 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                   </button>
                 </div>
               )}
+              <p className="text-micro text-muted/80 hidden md:block">{HOTKEY_HINT}</p>
             </div>
 
             <div className="flex flex-col items-center gap-1 mt-5 select-none">
               <div className="flex items-center gap-3 text-label text-white/40 font-bold uppercase tracking-wider">
-                <span>Sprint Cycles:</span>
+                <span>{SESSIONS_BEFORE_LONG_BREAK}:</span>
                 <div className="flex items-center gap-1.5">
                   {Array.from({ length: targetSessionsPerCycle }, (_, i) => (
                     <span
@@ -338,7 +358,6 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
             <div className="mt-4 glass-tier-2 p-3.5 flex flex-col items-center gap-3.5 shadow-md transition-all duration-300 animate-slide-in-up">
               <div className="flex justify-between w-full text-label tracking-wider text-white/40 uppercase font-bold">
                 <span>Respiration Pacer</span>
-                <span className="text-accent-purple font-mono">Coherence Sync</span>
               </div>
 
               <div className="flex items-center gap-4.5 w-full justify-center">

@@ -11,7 +11,7 @@ interface UseTimerTickOptions {
   incStudyRef: MutableRefObject<() => Promise<void>>
   incBreakRef: MutableRefObject<() => Promise<void>>
   setSecondsElapsed: React.Dispatch<React.SetStateAction<number>>
-  completeSession: () => Promise<void>
+  completeSession: () => Promise<void | 'reflection' | 'completed' | 'blocked'>
 }
 
 export function useTimerTick({

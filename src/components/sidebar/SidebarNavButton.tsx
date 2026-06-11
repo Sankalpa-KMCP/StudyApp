@@ -1,6 +1,7 @@
 import type { ActiveTab } from '../../types/app'
 import { NavTabButton } from '../../navigation/NavTabButton'
 import { useSidebarFlyout } from './useSidebarFlyout'
+import { prefetchControlDeck } from '../../lib/prefetchControlDeck'
 
 interface SidebarNavButtonProps {
   variant: 'expanded' | 'rail'
@@ -30,6 +31,7 @@ export function SidebarNavButton({
   const flyout = useSidebarFlyout()
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (tabId === 'settings') prefetchControlDeck()
     if (variant === 'rail') flyout.showFlyout(label, e.currentTarget)
   }
 
@@ -49,7 +51,7 @@ export function SidebarNavButton({
       isLocked={isLocked}
       badge={badge}
       onClick={onClick}
-      onMouseEnter={variant === 'rail' ? handleMouseEnter : undefined}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={variant === 'rail' ? handleMouseLeave : undefined}
     />
   )

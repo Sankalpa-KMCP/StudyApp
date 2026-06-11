@@ -7,12 +7,15 @@ interface HotkeyModalProps {
   onClose: () => void
 }
 
+import { FOCUS_MODE } from '../lib/uxTerms'
+
 const SHORTCUTS = [
   { keys: 'Space', action: 'Toggle play / pause' },
-  { keys: 'S', action: 'Switch to Study mode' },
-  { keys: 'B', action: 'Switch to Break mode' },
-  { keys: 'C', action: 'Complete current session' },
-  { keys: 'Z', action: 'Toggle Zen Sanctuary' },
+  { keys: 'S', action: 'Switch to study mode' },
+  { keys: 'B', action: 'Switch to break mode' },
+  { keys: 'C / Shift+C', action: 'Complete study block (Shift+C ends early)' },
+  { keys: 'Z', action: `Toggle ${FOCUS_MODE.toLowerCase()}` },
+  { keys: '1–5', action: 'Jump to Focus, Cards, Analytics, Journal, Settings' },
   { keys: '?', action: 'Toggle this shortcut panel' },
   { keys: '[', action: 'Toggle sidebar collapse (desktop)' },
 ]
@@ -25,7 +28,7 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({ isOpen, onClose }) => 
     ariaDescribedby="hotkey-modal-desc"
     panelClassName="max-w-sm bg-white/5 p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)]"
   >
-    <p id="hotkey-modal-desc" className="sr-only">Keyboard shortcuts for timer controls, zen mode, and this help panel.</p>
+    <p id="hotkey-modal-desc" className="sr-only">Keyboard shortcuts for timer controls, focus mode, and this help panel.</p>
     <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-3">
       <h3 id="hotkey-modal-title" className="text-lg font-semibold">Keyboard Shortcuts</h3>
       <button
@@ -47,7 +50,7 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({ isOpen, onClose }) => 
     </div>
     <p className="mt-4 text-center text-label text-slate-400">Shortcuts are disabled while typing in input fields.</p>
     <p className="mt-2 text-center text-label text-slate-500">
-      Tab through sidebar or bottom navigation to reach every section without a mouse.
+      Timer shortcuts still work on Settings while a study block is active. Tab through navigation to reach every section without a mouse.
     </p>
   </ModalShell>
 )

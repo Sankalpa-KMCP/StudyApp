@@ -27,8 +27,7 @@ export function useTimerReflection({ completingRef, processSessionCompletion }: 
     setStabilityRating(4)
     setLocalSessionNotes('')
     setShowReflectionModal(true)
-    completingRef.current = false
-  }, [completingRef])
+  }, [])
 
   const submitReflection = useCallback(async (
     att: number,
@@ -45,6 +44,10 @@ export function useTimerReflection({ completingRef, processSessionCompletion }: 
     await processSessionCompletion(finalElapsed, data.mode, data.timestamp, data.categoryId, att, stab, notes)
   }, [pendingSessionData, processSessionCompletion, completingRef])
 
+  const skipReflection = useCallback(async (customElapsed?: number) => {
+    await submitReflection(4, 4, '', customElapsed)
+  }, [submitReflection])
+
   return {
     showReflectionModal,
     setShowReflectionModal,
@@ -58,5 +61,6 @@ export function useTimerReflection({ completingRef, processSessionCompletion }: 
     setLocalSessionNotes,
     openReflection,
     submitReflection,
+    skipReflection,
   }
 }

@@ -25,5 +25,6 @@ export const Open: Story = {
     localSessionNotes: '',
     setLocalSessionNotes: () => {},
     onSubmitReflection: async () => {},
+    onSkipReflection: () => {},
   },
 }

@@ -1,15 +1,20 @@
 import React, { useState } from 'react'
-import { Sparkles, Clock, RefreshCw, BarChart3, ChevronRight, Check } from 'lucide-react'
+import { Sparkles, Clock, Target, ChevronRight, Check, Lock, Heart, RefreshCw } from 'lucide-react'
 import { ModalShell } from './shared/ModalShell'
+import { SelectionChip } from './shared/SelectionChip'
+import { PRODUCT_NAME } from '../lib/uxTerms'
+import type { SettingsKey, SettingsValue } from '../db/types'
 
 interface OnboardingModalProps {
   isOpen: boolean
   onClose: () => void
+  updateSetting?: (key: SettingsKey, val: SettingsValue) => void
 }
 
 interface OnboardingBullet {
   text: string
   helper?: string
+  icon: typeof Sparkles
 }
 
 interface OnboardingSlide {
@@ -18,73 +23,62 @@ interface OnboardingSlide {
   icon: typeof Sparkles
   color: string
   bullets: OnboardingBullet[]
+  showGoalPicker?: boolean
 }
+
+const GOAL_OPTIONS = [120, 240, 480] as const
 
 const SLIDES: OnboardingSlide[] = [
   {
-    title: 'Welcome to Sanctuary Study',
-    description: 'A premium, offline-first dashboard designed to protect your focus, track study sprints, and supercharge your active recall.',
+    title: `Welcome to ${PRODUCT_NAME}`,
+    description: 'A premium, offline-first workspace to protect your focus, track study blocks, and strengthen active recall.',
     icon: Sparkles,
     color: 'text-accent-blue bg-accent-blue/10 border-accent-blue/20',
     bullets: [
-      { text: '🔒 100% Local-First', helper: 'Your data never leaves this device.' },
-      { text: '✨ Premium Aesthetics', helper: 'Dark mode and glass UI built in.' },
-      { text: '🌬️ Breathing pacer during breaks', helper: 'Optional guided breathing when you rest.' },
+      { text: '100% local-first', helper: 'Your data never leaves this device.', icon: Lock },
+      { text: 'Premium aesthetics', helper: 'Dark mode and glass UI built in.', icon: Sparkles },
+      { text: 'Breathing pacer during breaks', helper: 'Optional guided breathing when you rest.', icon: Heart },
     ],
   },
   {
-    title: 'Focus Targets & Timer',
-    description: 'Set your sights on one task at a time to optimize productivity and eliminate distractions.',
+    title: 'Your focus loop',
+    description: 'Pick one focus target, run a study block, reflect, and review with spaced repetition.',
     icon: Clock,
     color: 'text-accent-amber bg-accent-amber/10 border-accent-amber/20',
     bullets: [
-      { text: '📝 Focus Targets', helper: 'Add tasks with subject, priority, and cycles.' },
-      { text: '🎯 Active Target', helper: 'Click a task to link it to the live timer.' },
-      { text: '⏳ Live Adjustments', helper: 'Change focus length from the timer panel.' },
+      { text: 'Focus targets', helper: 'Add tasks with subject, priority, and cycles.', icon: Target },
+      { text: 'Study blocks & breaks', helper: 'Adjust block length from the timer panel.', icon: Clock },
+      { text: 'Focus lockout', helper: 'Optional nav lockout during active study blocks.', icon: RefreshCw },
     ],
-  },
-  {
-    title: 'Active Recall (SM-2)',
-    description: 'Retain information efficiently with integrated spaced repetition scheduling.',
-    icon: RefreshCw,
-    color: 'text-accent-purple bg-accent-purple/10 border-accent-purple/20',
-    bullets: [
-      { text: '🔄 Spaced repetition toggle', helper: 'Turn review scheduling on for tasks and cards.' },
-      { text: '🧠 SM-2 scheduling', helper: 'Grades set when you will see this again.' },
-      { text: '📊 Retention charts', helper: 'Track recall trends in Analytics.' },
-    ],
-  },
-  {
-    title: 'Interactive Dashboard',
-    description: 'Review your study history, daily logs, level XP, and category breakdown.',
-    icon: BarChart3,
-    color: 'text-accent-green bg-accent-green/10 border-accent-green/20',
-    bullets: [
-      { text: '🔥 Streak & Level XP', helper: 'Stay motivated with gamified progress.' },
-      { text: '📈 Advanced Insights', helper: 'Peak day, completion rate, and subjects.' },
-      { text: '📓 Journal', helper: 'Browse notes and logs for past focus days.' },
-      { text: '📝 Quick Notes vs Journal', helper: 'Quick Notes is a scratch pad; Journal is your study log by day.' },
-    ],
+    showGoalPicker: true,
   },
 ]
 
-export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) => {
+export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, updateSetting }) => {
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [dailyGoalMinutes, setDailyGoalMinutes] = useState<number | null>(null)
+
+  const handleFinish = () => {
+    if (dailyGoalMinutes != null && updateSetting) {
+      updateSetting('dailyGoalMinutes', dailyGoalMinutes)
+    }
+    onClose()
+    requestAnimationFrame(() => {
+      const input = document.getElementById('task-input') ?? document.getElementById('task-input-mobile')
+      input?.focus()
+      if (!localStorage.getItem('sanctuary_first_task_hint')) {
+        localStorage.setItem('sanctuary_first_task_hint', 'shown')
+        input?.classList.add('ring-2', 'ring-accent-blue/40')
+        window.setTimeout(() => input?.classList.remove('ring-2', 'ring-accent-blue/40'), 2500)
+      }
+    })
+  }
 
   const handleNext = () => {
     if (currentSlide < SLIDES.length - 1) {
       setCurrentSlide(s => s + 1)
     } else {
-      onClose()
-      requestAnimationFrame(() => {
-        const input = document.getElementById('task-input')
-        input?.focus()
-        if (!localStorage.getItem('sanctuary_first_task_hint')) {
-          localStorage.setItem('sanctuary_first_task_hint', 'shown')
-          input?.classList.add('ring-2', 'ring-accent-blue/40')
-          window.setTimeout(() => input?.classList.remove('ring-2', 'ring-accent-blue/40'), 2500)
-        }
-      })
+      handleFinish()
     }
   }
 
@@ -113,7 +107,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
         </div>
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleFinish}
           aria-label="Skip onboarding tour"
           className="text-xs text-white/40 hover:text-white/80 transition-colors font-semibold cursor-pointer"
         >
@@ -135,15 +129,40 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
         </p>
 
         <ul className="w-full text-left space-y-2.5 pt-3 border-t border-white/5">
-          {slide.bullets.map((bullet, idx) => (
-            <li key={idx} className="text-[11px] font-semibold text-white/80 flex flex-col gap-0.5 bg-white/[0.02] border border-white/5 px-3 py-2 rounded-xl animate-fade-in">
-              <span className="leading-relaxed">{bullet.text}</span>
-              {bullet.helper && (
-                <span className="text-[10px] font-medium text-white/45 leading-relaxed">{bullet.helper}</span>
-              )}
-            </li>
-          ))}
+          {slide.bullets.map((bullet, idx) => {
+            const BulletIcon = bullet.icon
+            return (
+              <li key={idx} className="text-[11px] font-semibold text-white/80 flex gap-2.5 items-start bg-white/[0.02] border border-white/5 px-3 py-2 rounded-xl animate-fade-in">
+                <BulletIcon className="h-4 w-4 shrink-0 mt-0.5 text-accent-blue" />
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="leading-relaxed">{bullet.text}</span>
+                  {bullet.helper && (
+                    <span className="text-[10px] font-medium text-white/45 leading-relaxed">{bullet.helper}</span>
+                  )}
+                </div>
+              </li>
+            )
+          })}
         </ul>
+
+        {slide.showGoalPicker && (
+          <div className="w-full pt-3 border-t border-white/5 text-left">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/45 mb-2">Set your daily goal (optional)</p>
+            <div className="flex flex-wrap gap-2">
+              {GOAL_OPTIONS.map(mins => (
+                <SelectionChip
+                  key={mins}
+                  selected={dailyGoalMinutes === mins}
+                  accent="blue"
+                  size="sm"
+                  onClick={() => setDailyGoalMinutes(dailyGoalMinutes === mins ? null : mins)}
+                >
+                  {mins} min
+                </SelectionChip>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between pt-3 border-t border-white/5 select-none">

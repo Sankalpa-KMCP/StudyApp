@@ -96,6 +96,27 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           submitRecallGrade={submitRecallGrade}
         />
       </PanelCard>
+
+      <div className="lg:hidden fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] left-4 right-4 z-20 flex gap-2 p-2 rounded-2xl glass-panel border border-white/10 shadow-2xl">
+        <input
+          id="task-input-mobile"
+          type="text"
+          value={taskText}
+          onChange={e => setTaskText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') submitNewTask() }}
+          placeholder="Add focus target…"
+          aria-label="Add focus target"
+          className="flex-1 min-w-0 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-xs text-white placeholder-white/30 outline-none focus:border-accent-blue/40"
+        />
+        <button
+          type="button"
+          onClick={submitNewTask}
+          disabled={!taskText.trim()}
+          className="shrink-0 rounded-xl bg-accent-blue px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40 transition-all ios-active-scale"
+        >
+          Add
+        </button>
+      </div>
     </div>
   )
 }

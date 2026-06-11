@@ -6,15 +6,19 @@ import { useZenCanvas } from '../hooks/useZenCanvas'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useOptionalSidebarCollapse } from '../components/sidebar/useSidebarCollapseContext'
 import { useStudyDataContext } from './studyDataContext'
-import { useStudyTimerContext } from './studyTimerContext'
+import { useStudyTimerContext, useStudyTimerDisplay } from './studyTimerContext'
+import { useConfirm } from './useConfirm'
 import type { useAppToast } from '../hooks/useAppToast'
 import { useUndoDelete } from '../hooks/useUndoDelete'
+import { PAUSE_TIMER_TO_LEAVE } from '../lib/uxTerms'
 
 type ToastApi = ReturnType<typeof useAppToast>
 
 export function useStudyUIState(toast: ToastApi) {
   const { settings } = useStudyDataContext()
   const { timerControls } = useStudyTimerContext()
+  const timerDisplay = useStudyTimerDisplay()
+  const { requestConfirm } = useConfirm()
   const { activeToast, setActiveToast, quotaExceeded, dismissQuotaRecovery } = toast
   const { scheduleDelete } = useUndoDelete({ setActiveToast })
 
@@ -39,6 +43,8 @@ export function useStudyUIState(toast: ToastApi) {
     isTimerActive: timerControls.isTimerActive,
     timerMode: timerControls.timerMode,
     enforceLockout: settings.enforce_lockout,
+    showReflectionModal: timerControls.showReflectionModal,
+    secondsElapsed: timerDisplay.secondsElapsed,
     completingRef: timerControls.completingRef,
     handleModeSwitch: timerControls.handleModeSwitch,
     completeSession: timerControls.completeSession,
@@ -46,7 +52,9 @@ export function useStudyUIState(toast: ToastApi) {
     setIsZenMode,
     setIsHotkeyHudOpen,
     setActiveToast,
+    setActiveTab,
     toggleSidebarCollapse: sidebarCollapse?.toggleCollapsed,
+    requestConfirm,
   })
 
   const UI_FONT_STACKS: Record<string, string> = {
@@ -109,7 +117,7 @@ export function useStudyUIState(toast: ToastApi) {
   const notifyFocusLockout = useCallback(() => {
     setActiveToast({
       key: 'LOCK',
-      message: 'Focus lockout — complete your session first',
+      message: PAUSE_TIMER_TO_LEAVE,
       id: Date.now(),
     })
   }, [setActiveToast])

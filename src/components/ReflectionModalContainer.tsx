@@ -21,6 +21,7 @@ export function ReflectionModalContainer({ studyBlockDurationMinutes }: Reflecti
       localSessionNotes={timer.localSessionNotes}
       setLocalSessionNotes={timer.setLocalSessionNotes}
       onSubmitReflection={timer.submitReflection}
+      onSkipReflection={timer.skipReflection}
     />
   )
 }

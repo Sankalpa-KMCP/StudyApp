@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
 import { useConfirm } from '../context/useConfirm'
+import { FOCUS_LOCKOUT } from '../lib/uxTerms'
 
 interface FocusLockoutTimer {
   isTimerActive: boolean
@@ -12,12 +13,14 @@ interface UseFocusLockoutNavigationOptions {
   enforceLockout: boolean
   timer: FocusLockoutTimer
   setActiveTab: (tab: ActiveTab) => void
+  onLockedAttempt?: () => void
 }
 
 export function useFocusLockoutNavigation({
   enforceLockout,
   timer,
   setActiveTab,
+  onLockedAttempt,
 }: UseFocusLockoutNavigationOptions) {
   const { requestConfirm } = useConfirm()
 
@@ -28,10 +31,11 @@ export function useFocusLockoutNavigation({
       timer.timerMode === 'study' &&
       tab !== 'focus'
     if (locked) {
+      onLockedAttempt?.()
       const ok = await requestConfirm({
-        title: 'Focus Lockout Active',
-        message: 'Your lockout setting is active to prevent distractions. Pause your study timer to navigate to other tabs.',
-        confirmLabel: 'Pause & Navigate',
+        title: `${FOCUS_LOCKOUT} active`,
+        message: 'Your lockout setting prevents leaving Focus during an active study block. Pause the timer to navigate away.',
+        confirmLabel: 'Pause & navigate',
         danger: true,
       })
       if (ok) {
@@ -41,7 +45,7 @@ export function useFocusLockoutNavigation({
       return
     }
     setActiveTab(tab)
-  }, [enforceLockout, timer, setActiveTab, requestConfirm])
+  }, [enforceLockout, timer, setActiveTab, requestConfirm, onLockedAttempt])
 
   return handleSetActiveTab
 }
