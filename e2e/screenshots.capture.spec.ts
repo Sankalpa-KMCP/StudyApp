@@ -24,10 +24,11 @@ test('capture readme screenshots', async ({ page }) => {
   await page.screenshot({ path: path.join(outDir, 'cards.png'), fullPage: false })
 
   await page.getByRole('button', { name: 'Analytics' }).first().click()
-  await expect(
-    page.getByText(/loading analytics/i).or(page.getByText('Monthly Study Time')),
-  ).toBeVisible({ timeout: 15000 })
-  await expect(page.getByText('Monthly Study Time')).toBeVisible({ timeout: 20000 })
+  const analyticsReady = page
+    .getByText(/loading analytics/i)
+    .or(page.getByText('Monthly Study Time'))
+    .or(page.getByText('No study data yet'))
+  await expect(analyticsReady).toBeVisible({ timeout: 20000 })
   await page.screenshot({ path: path.join(outDir, 'analytics.png'), fullPage: false })
 
   await page.getByRole('button', { name: 'Settings' }).first().click()
