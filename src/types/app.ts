@@ -14,6 +14,11 @@ export interface ThemeProfile {
   accentPurple: string
   accentGreen: string
   accentAmber: string
+  isLight?: boolean
+  textPrimary?: string
+  textSecondary?: string
+  textMuted?: string
+  onAccent?: string
 }
 
 export interface DayData {
@@ -29,8 +34,15 @@ export interface DayData {
 
 export type ActiveTab = 'focus' | 'analytics' | 'journal' | 'cards' | 'settings'
 
+export interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
 export interface ToastState {
   key: string
   message: string
   id: number
+  action?: ToastAction
+  durationMs?: number
 }

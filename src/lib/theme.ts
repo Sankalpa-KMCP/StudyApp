@@ -1,5 +1,12 @@
 import type { ThemeProfile } from '../types/app'
 
+export interface ThemeAccentOverrides {
+  accentBlueOverride?: string | null
+  accentPurpleOverride?: string | null
+  accentGreenOverride?: string | null
+  accentAmberOverride?: string | null
+}
+
 export const THEME_PROFILES: Record<string, ThemeProfile> = {
   'midnight-oled': {
     surface: '#0a0b10',
@@ -10,6 +17,7 @@ export const THEME_PROFILES: Record<string, ThemeProfile> = {
     accentPurple: '#818cf8',
     accentGreen: '#10b981',
     accentAmber: '#f59e0b',
+    isLight: false,
   },
   'midnight-slate': {
     surface: '#0f172a',
@@ -20,6 +28,7 @@ export const THEME_PROFILES: Record<string, ThemeProfile> = {
     accentPurple: '#a78bfa',
     accentGreen: '#34d399',
     accentAmber: '#fbbf24',
+    isLight: false,
   },
   'nordic-frost': {
     surface: '#0f141c',
@@ -30,6 +39,7 @@ export const THEME_PROFILES: Record<string, ThemeProfile> = {
     accentPurple: '#d4a8cf',
     accentGreen: '#8fcc7a',
     accentAmber: '#e8c070',
+    isLight: false,
   },
   'amber-retro': {
     surface: '#0c0a09',
@@ -40,6 +50,7 @@ export const THEME_PROFILES: Record<string, ThemeProfile> = {
     accentPurple: '#e879f9',
     accentGreen: '#34d399',
     accentAmber: '#fbbf24',
+    isLight: false,
   },
   'nebula-purple': {
     surface: '#0d0714',
@@ -50,7 +61,75 @@ export const THEME_PROFILES: Record<string, ThemeProfile> = {
     accentPurple: '#ec4899',
     accentGreen: '#10b981',
     accentAmber: '#f59e0b',
+    isLight: false,
   },
+  'paper-day': {
+    surface: '#f5f3ef',
+    surfaceCard: '#ffffff',
+    surfaceCardRgb: '255, 255, 255',
+    pageGradient: 'linear-gradient(180deg, #faf9f7 0%, #ebe8e3 100%)',
+    accentBlue: '#0055b3',
+    accentPurple: '#6d28d9',
+    accentGreen: '#047857',
+    accentAmber: '#b45309',
+    isLight: true,
+    textPrimary: '#1a1a2e',
+    textSecondary: 'rgba(26, 26, 46, 0.72)',
+    textMuted: 'rgba(26, 26, 46, 0.62)',
+    onAccent: '#ffffff',
+  },
+  'mist-slate': {
+    surface: '#e8ecf1',
+    surfaceCard: '#f4f6f9',
+    surfaceCardRgb: '244, 246, 249',
+    pageGradient: 'linear-gradient(180deg, #eef2f6 0%, #dde3ea 100%)',
+    accentBlue: '#1d4ed8',
+    accentPurple: '#7e22ce',
+    accentGreen: '#166534',
+    accentAmber: '#9a3412',
+    isLight: true,
+    textPrimary: '#0f172a',
+    textSecondary: 'rgba(15, 23, 42, 0.72)',
+    textMuted: 'rgba(15, 23, 42, 0.62)',
+    onAccent: '#ffffff',
+  },
+}
+
+export const DEFAULT_LIGHT_THEME_PRESET = 'paper-day'
+
+export function resolveThemeId(
+  theme: string,
+  themePreset: string,
+  prefersDark: boolean,
+  lightThemePreset: string = DEFAULT_LIGHT_THEME_PRESET,
+): string {
+  if (theme === 'system') {
+    return prefersDark ? themePreset : lightThemePreset
+  }
+  return theme
+}
+
+function applyAccentOverrides(profile: ThemeProfile, overrides?: ThemeAccentOverrides): ThemeProfile {
+  if (!overrides) return profile
+  return {
+    ...profile,
+    accentBlue: overrides.accentBlueOverride || profile.accentBlue,
+    accentPurple: overrides.accentPurpleOverride || profile.accentPurple,
+    accentGreen: overrides.accentGreenOverride || profile.accentGreen,
+    accentAmber: overrides.accentAmberOverride || profile.accentAmber,
+  }
+}
+
+export function resolveThemeProfile(
+  theme: string,
+  themePreset: string,
+  prefersDark: boolean,
+  lightThemePreset: string = DEFAULT_LIGHT_THEME_PRESET,
+  overrides?: ThemeAccentOverrides,
+): ThemeProfile {
+  const id = resolveThemeId(theme, themePreset, prefersDark, lightThemePreset)
+  const base = THEME_PROFILES[id] || THEME_PROFILES['midnight-oled']
+  return applyAccentOverrides(base, overrides)
 }
 
 export const TOOLTIP_STYLE = {
