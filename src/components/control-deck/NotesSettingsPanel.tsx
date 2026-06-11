@@ -1,20 +1,30 @@
-import type { SettingsKey, SettingsValue } from '../../db/types'
+import { useConfirm } from '../../context/useConfirm'
+import { STUDY_NOTES_RESET_KEYS } from '../../lib/settingsSections'
+import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 
-interface NotesSettingsPanelProps {
-  noteTagColors: string[]
-  updateSetting: (key: SettingsKey, val: SettingsValue) => void
-}
+export function NotesSettingsPanel() {
+  const { noteTagColors, updateSetting, resetKeys } = useSettingsPanel()
+  const { requestConfirm } = useConfirm()
 
-export function NotesSettingsPanel({ noteTagColors, updateSetting }: NotesSettingsPanelProps) {
   const handleColorChange = (index: number, color: string) => {
     const next = [...noteTagColors]
     next[index] = color
     updateSetting('noteTagColors', JSON.stringify(next))
   }
 
+  const handleReset = async () => {
+    const ok = await requestConfirm({
+      title: 'Reset note tag colors?',
+      message: 'Restores the default palette for Quick Notes tags.',
+      confirmLabel: 'Reset',
+    })
+    if (!ok) return
+    void resetKeys(STUDY_NOTES_RESET_KEYS, 'Note tag colors restored')
+  }
+
   return (
-    <SettingsCard title="Notes">
+    <SettingsCard id="settings-notes" title="Notes" onResetDefaults={() => void handleReset()}>
       <p className="settings-muted mb-3">Customize Quick Notes tag colors (up to 8).</p>
       <div className="flex flex-wrap gap-3">
         {noteTagColors.map((color, index) => (
