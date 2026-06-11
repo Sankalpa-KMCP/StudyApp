@@ -18,7 +18,7 @@ export function SidebarShell({ collapsed, transitioning, ...modeProps }: Sidebar
   return (
     <aside
       data-collapsed={collapsed}
-      className={`sidebar-shell glass-panel w-full shrink-0 overflow-hidden border-b md:border-b-0 md:border-r border-white/[0.08] md:m-4 md:mr-0 rounded-b-2xl md:rounded-[28px] p-4 z-30 shadow-2xl flex flex-col ${
+      className={`sidebar-shell glass-panel hidden md:flex w-full shrink-0 overflow-hidden border-b md:border-b-0 md:border-r border-white/[0.08] md:m-4 md:mr-0 rounded-b-2xl md:rounded-[28px] p-4 z-30 shadow-2xl flex-col ${
         collapsed ? 'sidebar-shell--rail md:p-3' : 'sidebar-shell--expanded md:p-6'
       }`}
     >
