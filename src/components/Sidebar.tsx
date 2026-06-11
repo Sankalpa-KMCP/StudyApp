@@ -17,6 +17,9 @@ interface SidebarProps {
   onShowOnboarding: () => void
 }
 
+const COLLAPSED_FLYOUT =
+  'absolute left-[calc(100%+0.5rem)] top-1/2 -translate-y-1/2 z-50 glass-panel px-2.5 py-1 rounded-lg text-xs font-semibold text-white/90 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 shadow-lg'
+
 const NAV_TABS: { id: ActiveTab; label: string; icon: React.FC<{ className?: string }>; color: string }[] = [
   { id: 'focus', label: 'Focus', icon: Clock, color: 'text-accent-blue' },
   { id: 'cards', label: 'Cards', icon: Layers, color: 'text-accent-purple' },
@@ -99,7 +102,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className={`glass-panel w-full shrink-0 border-b md:border-b-0 md:border-r border-white/[0.08] md:m-4 md:mr-0 rounded-b-2xl md:rounded-[28px] p-4 flex flex-col justify-between gap-4 md:gap-6 transition-all duration-300 z-20 shadow-2xl ${
+      ref={asideRef}
+      onTransitionEnd={handleAsideTransitionEnd}
+      className={`glass-panel w-full shrink-0 overflow-x-visible overflow-y-hidden border-b md:border-b-0 md:border-r border-white/[0.08] md:m-4 md:mr-0 rounded-b-2xl md:rounded-[28px] p-4 flex flex-col justify-between gap-4 md:gap-6 transition-[width,padding] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] z-30 shadow-2xl ${
         collapsed ? 'md:w-[4.25rem] md:p-3' : 'md:w-64 md:p-6'
       }`}
     >
@@ -174,9 +179,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 type="button"
                 aria-current={isActive ? 'page' : undefined}
                 aria-label={tab.label}
-                title={isLocked ? 'Focus lockout active' : tab.label}
+                title={collapsed ? undefined : isLocked ? 'Focus lockout active' : tab.label}
                 onClick={() => handleTabClick(tab.id)}
-                className={`relative z-10 w-full flex items-center rounded-[14px] font-semibold text-xs transition-colors duration-200 ios-active-scale border ${
+                className={`${collapsed ? 'group' : ''} relative z-10 w-full flex items-center rounded-[14px] font-semibold text-xs transition-colors duration-200 ios-active-scale border ${
                   collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3.5 py-2.5 border-transparent bg-transparent'
                 } ${
                   collapsed && isActive
@@ -190,6 +195,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? tab.color : 'text-white/60'}`} />
                 {!collapsed && <span>{tab.label}</span>}
+                {collapsed && (
+                  <span className={COLLAPSED_FLYOUT} aria-hidden="true">
+                    {tab.label}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -198,13 +208,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
             type="button"
             onClick={onToggleNotes}
             aria-label="Quick Notes"
-            title="Quick Notes"
-            className={`w-full flex items-center rounded-[14px] border border-transparent bg-transparent text-white/60 hover:bg-white/[0.04] hover:text-white transition-all duration-200 ios-active-scale cursor-pointer ${
+            title={collapsed ? undefined : 'Quick Notes'}
+            className={`${collapsed ? 'group' : ''} relative w-full flex items-center rounded-[14px] border border-transparent bg-transparent text-white/60 hover:bg-white/[0.04] hover:text-white transition-all duration-200 ios-active-scale cursor-pointer ${
               collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3.5 py-2.5'
             }`}
           >
             <FileText className="h-4.5 w-4.5 text-accent-blue shrink-0" />
             {!collapsed && <span>Quick Notes</span>}
+            {collapsed && (
+              <span className={COLLAPSED_FLYOUT} aria-hidden="true">
+                Quick Notes
+              </span>
+            )}
           </button>
         </nav>
       </div>
