@@ -1,6 +1,8 @@
+import { useCallback } from 'react'
 import { X, Sparkles } from 'lucide-react'
 import type { FlashcardItem } from '../../db/types'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useFlashcardStudyKeyboard } from '../../hooks/useFlashcardStudyKeyboard'
 import { Button } from '../shared/Button'
 import { SM2_HELPER } from '../../lib/uxTerms'
 import { SM2_GRADES } from './constants'
@@ -29,6 +31,17 @@ export function FlashcardStudyModal({
   onGrade,
 }: FlashcardStudyModalProps) {
   const trapRef = useFocusTrap(true, onClose)
+
+  const handleFlip = useCallback(() => setIsFlipped(f => !f), [setIsFlipped])
+
+  useFlashcardStudyKeyboard({
+    enabled: true,
+    isFlipped,
+    sessionCompleted,
+    onFlip: handleFlip,
+    onGrade,
+    onClose,
+  })
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Flashcard study session">
@@ -78,11 +91,11 @@ export function FlashcardStudyModal({
                 role="button"
                 tabIndex={0}
                 aria-label={isFlipped ? 'Show question' : 'Reveal answer'}
-                onClick={() => setIsFlipped(f => !f)}
+                onClick={handleFlip}
                 onKeyDown={e => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
-                    setIsFlipped(f => !f)
+                    handleFlip()
                   }
                 }}
                 className={`flashcard-inner ${isFlipped ? 'flipped' : ''}`}

@@ -20,6 +20,12 @@ const SHORTCUTS = [
   { keys: '[', action: 'Toggle sidebar collapse (desktop)' },
 ]
 
+const FLASHCARD_SHORTCUTS = [
+  { keys: 'Space', action: 'Flip card' },
+  { keys: '1 / 2 / 4 / 5', action: 'Grade recall (when answer is visible)' },
+  { keys: 'Escape', action: 'End study session (with confirm)' },
+]
+
 export const HotkeyModal: React.FC<HotkeyModalProps> = ({ isOpen, onClose }) => (
   <ModalShell
     open={isOpen}
@@ -47,6 +53,18 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({ isOpen, onClose }) => 
           <kbd className="rounded border border-white/15 bg-white/10 px-2 py-0.5 font-mono text-label font-bold uppercase text-white">{item.keys}</kbd>
         </div>
       ))}
+    </div>
+    <div className="mt-5 border-t border-white/10 pt-4">
+      <p className="text-label font-bold uppercase tracking-wider text-slate-400 mb-3">During flashcard study</p>
+      <div className="space-y-2">
+        {FLASHCARD_SHORTCUTS.map(item => (
+          <div key={item.keys} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2">
+            <span className="text-xs text-white/70">{item.action}</span>
+            <kbd className="rounded border border-white/15 bg-white/10 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white">{item.keys}</kbd>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-center text-[10px] text-slate-500">Flashcard shortcuts apply only while the study modal is open.</p>
     </div>
     <p className="mt-4 text-center text-label text-slate-400">Shortcuts are disabled while typing in input fields.</p>
     <p className="mt-2 text-center text-label text-slate-500">
