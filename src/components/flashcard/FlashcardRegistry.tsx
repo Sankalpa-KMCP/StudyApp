@@ -61,7 +61,7 @@ export function FlashcardRegistry({
                   type="button"
                   onClick={() => setActiveSpacingFilter(status)}
                   className={`px-2.5 py-1 rounded-lg text-micro font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    activeSpacingFilter === status ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white'
+                    activeSpacingFilter === status ? 'bg-white/10 text-text-primary shadow-sm' : 'text-muted hover:text-text-primary'
                   }`}
                 >
                   {status} ({count})
@@ -108,20 +108,20 @@ export function FlashcardRegistry({
                       >
                         {cat ? cat.name : 'Uncategorized'}
                       </span>
-                      <p className="text-xs font-semibold text-white leading-normal pr-4 line-clamp-2">{card.question}</p>
+                      <p className="text-xs font-semibold text-text-primary leading-normal pr-4 line-clamp-2">{card.question}</p>
                     </div>
                     <button
                       type="button"
                       aria-label={`Delete flashcard ${card.question}`}
                       onClick={() => card.id !== undefined && onDelete(card.id)}
-                      className="text-white/40 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-white/5 cursor-pointer"
+                      className="text-muted hover:text-red-400 opacity-100 sm:opacity-60 sm:group-hover:opacity-100 transition-opacity p-1.5 min-h-9 min-w-9 flex items-center justify-center rounded-full hover:bg-white/5 cursor-pointer"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                   <div className="h-px bg-white/5" />
-                  <p className="text-label text-white/50 leading-normal line-clamp-2 italic">{card.answer}</p>
-                  <div className="flex items-center justify-between text-micro font-mono text-white/40 mt-1 select-none">
+                  <p className="text-label text-muted leading-normal line-clamp-2 italic">{card.answer}</p>
+                  <div className="flex items-center justify-between text-micro font-mono text-muted mt-1 select-none">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       Next:{' '}

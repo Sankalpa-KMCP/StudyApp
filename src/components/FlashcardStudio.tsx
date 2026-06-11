@@ -62,6 +62,17 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
     closeStudy,
   } = useFlashcardStudySession(filteredCards, isDue, submitFlashcardGrade, requestConfirm)
 
+  const handleDeleteFlashcard = async (id: number) => {
+    const card = flashcards.find(c => c.id === id)
+    const ok = await requestConfirm({
+      title: 'Delete flashcard?',
+      message: card ? `"${card.question.slice(0, 80)}${card.question.length > 80 ? '…' : ''}" will be removed permanently.` : 'This card will be removed permanently.',
+      confirmLabel: 'Delete',
+      danger: true,
+    })
+    if (ok) await deleteFlashcard(id)
+  }
+
   const handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newQuestion.trim() || !newAnswer.trim()) return
@@ -136,7 +147,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
         setActiveSpacingFilter={setActiveSpacingFilter}
         todayStr={todayStr}
         isDue={isDue}
-        onDelete={deleteFlashcard}
+        onDelete={id => { void handleDeleteFlashcard(id) }}
         onFocusCreate={() => document.getElementById('flashcard-question')?.focus()}
       />
 
