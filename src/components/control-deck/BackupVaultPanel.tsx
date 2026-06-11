@@ -1,41 +1,29 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useConfirm } from '../../context/useConfirm'
+import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { Button } from '../shared/Button'
 
-interface BackupVaultPanelProps {
-  exportStudyBackup: () => void
-  isExporting?: boolean
-  exportProgress?: number
-  exportStudyLogsCSV: () => void
-  exportTaskCompletionLogsCSV: () => void
-  importStudyBackup: (val: string) => void
-  resetData: () => void
-  resetDataSelective: (options: { tasks: boolean; history: boolean; categories: boolean; cards: boolean; notes: boolean }) => void
-  clearSnapshots: () => void
-  quotaExceeded?: boolean
-  isDragging: boolean
-  setIsDragging: (val: boolean) => void
-  handleFileDrop: (e: React.DragEvent) => void
-  fileInputRef: React.RefObject<HTMLInputElement | null>
-}
-
-export function BackupVaultPanel({
-  exportStudyBackup,
-  isExporting = false,
-  exportProgress = 0,
-  exportStudyLogsCSV,
-  exportTaskCompletionLogsCSV,
-  importStudyBackup,
-  resetData,
-  resetDataSelective,
-  clearSnapshots,
-  quotaExceeded = false,
-  isDragging,
-  setIsDragging,
-  handleFileDrop,
-  fileInputRef,
-}: BackupVaultPanelProps) {
+export function BackupVaultPanel() {
+  const {
+    backup,
+    quotaExceeded,
+    isDragging,
+    setIsDragging,
+    handleFileDrop,
+  } = useSettingsPanel()
+  const {
+    exportStudyBackup,
+    isExporting = false,
+    exportProgress = 0,
+    exportStudyLogsCSV,
+    exportTaskCompletionLogsCSV,
+    importStudyBackup,
+    resetData,
+    resetDataSelective,
+    clearSnapshots,
+    fileInputRef,
+  } = backup
   const { requestConfirm } = useConfirm()
   const [sweepTasks, setSweepTasks] = useState(false)
   const [sweepHistory, setSweepHistory] = useState(false)
