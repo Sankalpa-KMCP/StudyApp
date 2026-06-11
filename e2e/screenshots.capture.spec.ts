@@ -31,6 +31,8 @@ test('capture readme screenshots', async ({ page }) => {
   await page.screenshot({ path: path.join(outDir, 'analytics.png'), fullPage: false })
 
   await page.getByRole('button', { name: 'Settings' }).first().click()
-  await expect(page.getByText(/loading settings|zen lockout/i).first()).toBeVisible({ timeout: 15000 })
+  await expect(page.locator('#settings-timer-focus')).toBeVisible({ timeout: 20000 })
+  await expect(page.locator('#settings-sound-feedback')).toBeVisible({ timeout: 20000 })
+  await page.waitForTimeout(300)
   await page.screenshot({ path: path.join(outDir, 'settings.png'), fullPage: false })
 })
