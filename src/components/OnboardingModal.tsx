@@ -76,6 +76,15 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
       setCurrentSlide(s => s + 1)
     } else {
       onClose()
+      requestAnimationFrame(() => {
+        const input = document.getElementById('task-input')
+        input?.focus()
+        if (!localStorage.getItem('sanctuary_first_task_hint')) {
+          localStorage.setItem('sanctuary_first_task_hint', 'shown')
+          input?.classList.add('ring-2', 'ring-accent-blue/40')
+          window.setTimeout(() => input?.classList.remove('ring-2', 'ring-accent-blue/40'), 2500)
+        }
+      })
     }
   }
 
@@ -166,7 +175,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
             onClick={handleNext}
             className="flex items-center gap-1 px-4 py-1.5 rounded-lg text-[10px] font-bold bg-accent-blue hover:bg-accent-blue/90 border border-white/10 text-white transition-all cursor-pointer shadow-md shadow-accent-blue/15"
           >
-            <span>{currentSlide === SLIDES.length - 1 ? 'Start Studying' : 'Next'}</span>
+            <span>{currentSlide === SLIDES.length - 1 ? 'Create your first focus target' : 'Next'}</span>
             {currentSlide === SLIDES.length - 1 ? <Check className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
           </button>
         </div>
