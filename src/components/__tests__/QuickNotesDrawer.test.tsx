@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QuickNotesDrawer } from '../QuickNotesDrawer'
+import { ConfirmProvider } from '../../context/ConfirmProvider'
 import type { CategoryItem, QuickNoteItem } from '../../db/types'
 
 const categories: CategoryItem[] = [{ id: 1, name: 'General', color: '#64748B' }]
@@ -25,7 +26,7 @@ const baseProps = {
 describe('QuickNotesDrawer', () => {
   it('renders notes and filters by search', async () => {
     const user = userEvent.setup()
-    render(<QuickNotesDrawer {...baseProps} />)
+    render(<ConfirmProvider><QuickNotesDrawer {...baseProps} /></ConfirmProvider>)
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByText('Alpha note')).toBeInTheDocument()
 
@@ -36,7 +37,7 @@ describe('QuickNotesDrawer', () => {
   it('creates a note from the add button', async () => {
     const user = userEvent.setup()
     const addNote = vi.fn().mockResolvedValue(undefined)
-    render(<QuickNotesDrawer {...baseProps} addNote={addNote} />)
+    render(<ConfirmProvider><QuickNotesDrawer {...baseProps} addNote={addNote} /></ConfirmProvider>)
 
     await user.click(screen.getByRole('button', { name: /create note/i }))
     expect(addNote).toHaveBeenCalled()

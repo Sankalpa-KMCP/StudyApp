@@ -1,6 +1,13 @@
 import { useState } from 'react'
 import type { CategoryItem } from '../../db/types'
 
+type RequestConfirm = (options: {
+  title: string
+  message: string
+  confirmLabel?: string
+  danger?: boolean
+}) => Promise<boolean>
+
 interface InlineCategoryManagerProps {
   categories: CategoryItem[]
   addCategory: (name: string, color: string) => Promise<number | void> | number | void
@@ -9,6 +16,7 @@ interface InlineCategoryManagerProps {
   onSelectCategory?: (id: number | undefined) => void
   showSelector?: boolean
   label?: string
+  requestConfirm?: RequestConfirm
 }
 
 export function InlineCategoryManager({
@@ -19,10 +27,29 @@ export function InlineCategoryManager({
   onSelectCategory,
   showSelector = true,
   label = 'Category',
+  requestConfirm,
 }: InlineCategoryManagerProps) {
   const [showManager, setShowManager] = useState(false)
   const [inlineName, setInlineName] = useState('')
   const [inlineColor, setInlineColor] = useState('#3B82F6')
+
+  const handleDelete = async (c: CategoryItem) => {
+    if (c.id === undefined) return
+    if (requestConfirm) {
+      const ok = await requestConfirm({
+        title: `Delete "${c.name}"?`,
+        message: 'Tasks linked to this category will keep their data but lose the category label.',
+        confirmLabel: 'Delete',
+        danger: true,
+      })
+      if (!ok) return
+    }
+    try {
+      await deleteCategory(c.id)
+    } catch {
+      // last category — repo throws
+    }
+  }
 
   return (
     <div>
@@ -79,9 +106,8 @@ export function InlineCategoryManager({
                 </div>
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (c.id !== undefined) await deleteCategory(c.id)
-                  }}
+                  onClick={() => void handleDelete(c)}
+                  aria-label={`Delete category ${c.name}`}
                   className="text-muted hover:text-red-400 font-bold transition-colors cursor-pointer"
                 >
                   ✕
