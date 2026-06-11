@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Search } from 'lucide-react'
 import type { TaskItem, CategoryItem } from '../db/types'
 import { TaskCreateForm } from './task-registry/TaskCreateForm'
 import { TaskList } from './task-registry/TaskList'
@@ -50,9 +51,10 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
   const [taskText, setTaskText] = useState('')
   const [taskPriority, setTaskPriority] = useState<'low' | 'medium' | 'high'>('medium')
   const [taskIsStudySubject, setTaskIsStudySubject] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const todayStr = useTodayDateString()
-  const { categoriesMap, activeTasksList, reviewQueueList } = useTaskFilters(tasks, categories, todayStr)
+  const { categoriesMap, activeTasksList, reviewQueueList, completedTasksList } = useTaskFilters(tasks, categories, todayStr)
 
   const submitNewTask = () => {
     const trimmed = taskText.trim()
@@ -85,15 +87,31 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           onSubmit={submitNewTask}
         />
 
+        {(activeTasksList.length > 0 || completedTasksList.length > 0) && (
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted pointer-events-none" aria-hidden />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search targets…"
+              aria-label="Search focus targets"
+              className="w-full rounded-full border border-white/8 bg-white/[0.03] pl-9 pr-4 py-2 text-xs text-text-primary placeholder:text-muted outline-none focus:border-accent-blue/40"
+            />
+          </div>
+        )}
+
         <TaskList
           activeTasksList={activeTasksList}
           reviewQueueList={reviewQueueList}
+          completedTasksList={completedTasksList}
           categoriesMap={categoriesMap}
           activeTaskId={activeTaskId}
           setActiveTaskId={setActiveTaskId}
           onActivateTask={activateTask}
           toggleTask={toggleTask}
           submitRecallGrade={submitRecallGrade}
+          searchQuery={searchQuery}
         />
       </PanelCard>
 

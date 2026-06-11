@@ -17,6 +17,7 @@ function makeTasks(count: number): TaskItem[] {
 
 const baseProps = {
   reviewQueueList: [] as TaskItem[],
+  completedTasksList: [] as TaskItem[],
   categoriesMap: new Map(),
   activeTaskId: null,
   setActiveTaskId: vi.fn(),
