@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Brain, Clock, BarChart3, Calendar, Settings, Keyboard, Flame, Layers, FileText } from 'lucide-react'
+import { Brain, Clock, BarChart3, Calendar, Settings, Keyboard, Flame, Layers, FileText, Sparkles } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
 
 interface SidebarProps {
@@ -37,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   timerMode,
   enforceLockout,
   onToggleNotes,
-  onShowOnboarding: _onShowOnboarding,
+  onShowOnboarding,
 }) => {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const [indicatorStyle, setIndicatorStyle] = useState<React.CSSProperties>({
@@ -157,6 +157,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="hidden md:flex flex-col gap-3.5 border-t border-white/5 pt-4 select-none">
+        <button
+          onClick={onShowOnboarding}
+          className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-200 cursor-pointer"
+        >
+          <Sparkles className="h-4 w-4 text-accent-blue" />
+          <span>Getting Started Tour</span>
+        </button>
         <button
           onClick={() => setIsHotkeyHudOpen(true)}
           className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white/50 hover:bg-white/[0.04] hover:text-white transition-all duration-200 cursor-pointer"
