@@ -6,7 +6,11 @@ const ControlDeck = lazy(() =>
   import('../ControlDeck').then(m => ({ default: m.ControlDeck })),
 )
 
-export function SettingsTab() {
+interface SettingsTabProps {
+  onShowOnboarding?: () => void
+}
+
+export function SettingsTab({ onShowOnboarding }: SettingsTabProps) {
   const { settings, backup, confirmImport, handleFileDrop, categories } = useStudySettings()
   const { isDragging, setIsDragging, quotaExceeded } = useStudyUI()
 
@@ -15,6 +19,7 @@ export function SettingsTab() {
       <ControlDeck
         updateSetting={settings.updateSetting}
         theme={settings.theme}
+        themePreset={settings.themePreset}
         cardOpacity={settings.cardOpacity}
         backdropBlur={settings.backdropBlur}
         initialEasinessFactor={settings.initialEasinessFactor}
@@ -23,6 +28,8 @@ export function SettingsTab() {
         shortBreakDurationMinutes={settings.shortBreakDurationMinutes}
         longBreakDurationMinutes={settings.longBreakDurationMinutes}
         targetSessionsPerCycle={settings.targetSessionsPerCycle}
+        recentHistoryLimit={settings.recentHistoryLimit}
+        focusNotificationsEnabled={settings.focusNotificationsEnabled}
         soundEnabled={settings.soundEnabled}
         tactileEnabled={settings.tactile_feedback}
         developerFont={settings.developer_font}
@@ -30,6 +37,8 @@ export function SettingsTab() {
         autoArchiveAncientTasks={settings.autoArchiveAncientTasks}
         autoPauseOnHidden={settings.auto_pause_on_hidden}
         exportStudyBackup={backup.exportStudyBackup}
+        isExporting={backup.isExporting}
+        exportProgress={backup.exportProgress}
         exportStudyLogsCSV={backup.exportStudyLogsCSV}
         exportTaskCompletionLogsCSV={backup.exportTaskCompletionLogsCSV}
         importStudyBackup={confirmImport}
@@ -38,12 +47,14 @@ export function SettingsTab() {
         clearSnapshots={backup.clearSnapshots}
         quotaExceeded={quotaExceeded}
         categories={categories.categories}
+        updateCategory={categories.updateCategory}
         addCategory={categories.addCategory}
         deleteCategory={categories.deleteCategory}
         isDragging={isDragging}
         setIsDragging={setIsDragging}
         handleFileDrop={handleFileDrop}
         fileInputRef={backup.fileInputRef}
+        onShowOnboarding={onShowOnboarding}
       />
     </Suspense>
   )

@@ -222,7 +222,7 @@ export function AppShell() {
               {activeTab === 'analytics' && <AnalyticsTab />}
               {activeTab === 'journal' && <JournalTab />}
               {activeTab === 'cards' && <CardsTab />}
-              {activeTab === 'settings' && <SettingsTab />}
+              {activeTab === 'settings' && <SettingsTab onShowOnboarding={openOnboarding} />}
             </div>
           )}
         </div>

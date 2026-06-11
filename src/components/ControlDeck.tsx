@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { X } from 'lucide-react'
+import { Sparkles, X } from 'lucide-react'
 import type { CategoryItem, SettingsKey, SettingsValue } from '../db/types'
 import { AestheticsPanel } from './control-deck/AestheticsPanel'
 import { TimerFocusPanel } from './control-deck/TimerFocusPanel'
@@ -12,7 +12,9 @@ import { SettingsCard } from './shared/settings/SettingsCard'
 
 interface ControlDeckProps {
   updateSetting: (key: SettingsKey, val: SettingsValue) => void
+  updateCategory: (id: number, updates: { dailyGoalMinutes?: number }) => void | Promise<void>
   theme: string
+  themePreset: string
   cardOpacity: number
   backdropBlur: number
   initialEasinessFactor: number
@@ -21,6 +23,8 @@ interface ControlDeckProps {
   shortBreakDurationMinutes: number
   longBreakDurationMinutes: number
   targetSessionsPerCycle: number
+  recentHistoryLimit: number
+  focusNotificationsEnabled: boolean
   soundEnabled: boolean
   tactileEnabled: boolean
   developerFont: string
@@ -28,6 +32,8 @@ interface ControlDeckProps {
   autoArchiveAncientTasks: boolean
   autoPauseOnHidden: boolean
   exportStudyBackup: () => void
+  isExporting?: boolean
+  exportProgress?: number
   exportStudyLogsCSV: () => void
   exportTaskCompletionLogsCSV: () => void
   importStudyBackup: (val: string) => void
@@ -36,17 +42,20 @@ interface ControlDeckProps {
   clearSnapshots: () => void
   quotaExceeded?: boolean
   categories: CategoryItem[]
-  addCategory: (name: string, color: string) => void | Promise<number>
+  addCategory: (name: string, color: string, dailyGoalMinutes?: number) => void | Promise<number>
   deleteCategory: (id: number) => void
   isDragging: boolean
   setIsDragging: (val: boolean) => void
   handleFileDrop: (e: React.DragEvent) => void
   fileInputRef: React.RefObject<HTMLInputElement | null>
+  onShowOnboarding?: () => void
 }
 
 export const ControlDeck: React.FC<ControlDeckProps> = ({
   updateSetting,
+  updateCategory,
   theme,
+  themePreset,
   cardOpacity,
   backdropBlur,
   initialEasinessFactor,
@@ -55,6 +64,8 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   shortBreakDurationMinutes,
   longBreakDurationMinutes,
   targetSessionsPerCycle,
+  recentHistoryLimit,
+  focusNotificationsEnabled,
   soundEnabled,
   tactileEnabled,
   developerFont,
@@ -62,6 +73,8 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   autoArchiveAncientTasks,
   autoPauseOnHidden,
   exportStudyBackup,
+  isExporting,
+  exportProgress,
   exportStudyLogsCSV,
   exportTaskCompletionLogsCSV,
   importStudyBackup,
@@ -76,20 +89,38 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   setIsDragging,
   handleFileDrop,
   fileInputRef,
+  onShowOnboarding,
 }) => {
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
+  const [newCategoryGoal, setNewCategoryGoal] = useState('')
 
   return (
     <TabPageShell>
+      {onShowOnboarding && (
+        <div className="lg:col-span-12">
+          <SettingsCard title="Getting Started">
+            <button
+              type="button"
+              onClick={onShowOnboarding}
+              className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left text-xs font-semibold text-white/80 hover:bg-white/[0.06] transition-all ios-active-scale"
+            >
+              <Sparkles className="h-4 w-4 text-accent-blue shrink-0" />
+              <span>Replay the Getting Started tour</span>
+            </button>
+          </SettingsCard>
+        </div>
+      )}
       <div className="lg:col-span-6 flex flex-col gap-6">
-        <AestheticsPanel theme={theme} cardOpacity={cardOpacity} backdropBlur={backdropBlur} updateSetting={updateSetting} />
+        <AestheticsPanel theme={theme} themePreset={themePreset} cardOpacity={cardOpacity} backdropBlur={backdropBlur} updateSetting={updateSetting} />
         <TimerFocusPanel
           dailyGoalMinutes={dailyGoalMinutes}
           studyBlockDurationMinutes={studyBlockDurationMinutes}
           shortBreakDurationMinutes={shortBreakDurationMinutes}
           longBreakDurationMinutes={longBreakDurationMinutes}
           targetSessionsPerCycle={targetSessionsPerCycle}
+          recentHistoryLimit={recentHistoryLimit}
+          focusNotificationsEnabled={focusNotificationsEnabled}
           updateSetting={updateSetting}
         />
         <SoundFeedbackPanel
@@ -122,10 +153,23 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
                 if (e.key === 'Enter') {
                   const val = newCategoryName.trim()
                   if (!val) return
-                  addCategory(val, newCategoryColor)
+                  const goal = newCategoryGoal.trim() ? Number(newCategoryGoal) : undefined
+                  addCategory(val, newCategoryColor, goal)
                   setNewCategoryName('')
+                  setNewCategoryGoal('')
                 }
               }}
+            />
+            <input
+              value={newCategoryGoal}
+              onChange={e => setNewCategoryGoal(e.target.value)}
+              type="number"
+              min={15}
+              max={960}
+              step={15}
+              placeholder="Goal (min)"
+              aria-label="Category daily goal minutes"
+              className="w-24 rounded-full bg-transparent px-3 py-1.5 text-xs text-white placeholder-white/20 outline-none transition-all"
             />
             <input
               type="color"
@@ -137,8 +181,10 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
               onClick={() => {
                 const val = newCategoryName.trim()
                 if (!val) return
-                addCategory(val, newCategoryColor)
+                const goal = newCategoryGoal.trim() ? Number(newCategoryGoal) : undefined
+                addCategory(val, newCategoryColor, goal)
                 setNewCategoryName('')
+                setNewCategoryGoal('')
               }}
               className="rounded-full bg-accent-blue hover:bg-accent-blue/90 text-white px-4 py-1.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
             >
@@ -173,6 +219,23 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
                 <div key={cat.id} className="flex items-center gap-2.5 rounded-[16px] bg-black/20 border border-white/5 px-3.5 py-2.5">
                   <span className="h-3 w-3 shrink-0 rounded-full border border-white/5" style={{ backgroundColor: cat.color }} />
                   <span className="flex-1 text-xs font-bold text-white/80 truncate">{cat.name}</span>
+                  <input
+                    type="number"
+                    min={15}
+                    max={960}
+                    step={15}
+                    aria-label={`Daily goal minutes for ${cat.name}`}
+                    placeholder="Goal"
+                    value={cat.dailyGoalMinutes ?? ''}
+                    onChange={e => {
+                      const raw = e.target.value
+                      if (cat.id === undefined) return
+                      void updateCategory(cat.id, {
+                        dailyGoalMinutes: raw ? Number(raw) : undefined,
+                      })
+                    }}
+                    className="w-16 rounded-lg bg-black/30 border border-white/10 px-2 py-1 text-[10px] text-white outline-none"
+                  />
                   <button
                     onClick={async () => {
                       try {
@@ -194,6 +257,8 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
 
         <BackupVaultPanel
           exportStudyBackup={exportStudyBackup}
+          isExporting={isExporting}
+          exportProgress={exportProgress}
           exportStudyLogsCSV={exportStudyLogsCSV}
           exportTaskCompletionLogsCSV={exportTaskCompletionLogsCSV}
           importStudyBackup={importStudyBackup}
