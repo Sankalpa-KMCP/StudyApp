@@ -28,5 +28,9 @@ export const Idle: Story = {
     breathTime: 3,
     setIsZenMode: () => {},
     onUserGesture: () => {},
+    studyBlockDurationMinutes: 25,
+    shortBreakDurationMinutes: 5,
+    longBreakDurationMinutes: 15,
+    updateSetting: () => {},
   },
 }
