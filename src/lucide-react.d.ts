@@ -39,5 +39,7 @@ export const Database: Icon
   export const Heart: Icon
   export const AlertCircle: Icon
   export const Lock: Icon
+  export const ChevronRight: Icon
+  export const RefreshCw: Icon
 }
 
