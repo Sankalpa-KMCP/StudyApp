@@ -3,6 +3,7 @@ import { AlertCircle, Brain } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
 import { Sidebar } from './Sidebar'
 import { AppContentHeader } from './AppContentHeader'
+import { QuotaRecoveryBanner } from './QuotaRecoveryBanner'
 import { ZenOverlay } from './ZenOverlay'
 import { ReflectionModal } from './ReflectionModal'
 import { HotkeyModal } from './HotkeyModal'
@@ -41,9 +42,10 @@ export function AppShell() {
     categories,
     currentStreak,
     xpData,
+    todayLog,
   } = useStudyData()
 
-  const { timer } = useStudyTimerContext()
+  const { timer, backup } = useStudyTimerContext()
 
   const {
     activeTab,
@@ -56,6 +58,8 @@ export function AppShell() {
     activeThemeVars,
     canvasRef,
     activeToast,
+    quotaExceeded,
+    dismissQuotaRecovery,
     isNotesOpen,
     setIsNotesOpen,
   } = useStudyUI()
@@ -159,12 +163,21 @@ export function AppShell() {
             You are offline — data stays on this device
           </div>
         )}
+        {!isZenMode && quotaExceeded && (
+          <QuotaRecoveryBanner
+            onExport={() => void backup.exportStudyBackup()}
+            onOpenRecovery={() => handleSetActiveTab('settings')}
+            onDismiss={dismissQuotaRecovery}
+          />
+        )}
         {!isZenMode && (
           <AppContentHeader
             activeTab={activeTab}
             currentStreak={currentStreak}
             isTimerActive={timer.isTimerActive}
             timerMode={timer.timerMode}
+            todayStudyMinutes={todayLog.studyMinutes}
+            dailyGoalMinutes={settings.dailyGoalMinutes}
           />
         )}
 
@@ -222,15 +235,6 @@ export function AppShell() {
         >
           <kbd className="bg-white/10 text-white border border-white/15 rounded px-1.5 py-0.5 text-label font-sans">{activeToast.key}</kbd>
           <span>{activeToast.message}</span>
-          {activeToast.key === 'DATABASE' && activeToast.message.toLowerCase().includes('quota') && (
-            <button
-              type="button"
-              onClick={() => handleSetActiveTab('settings')}
-              className="rounded-full bg-white/15 px-2.5 py-0.5 text-label font-sans font-bold hover:bg-white/25"
-            >
-              Open backup
-            </button>
-          )}
         </div>
       )}
 
