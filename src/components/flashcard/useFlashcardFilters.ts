@@ -1,14 +1,15 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { FlashcardItem } from '../../db/types'
+import { isFlashcardDue, todayISO } from './flashcardDue'
 
 export function useFlashcardFilters(flashcards: FlashcardItem[]) {
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<'all' | number>('all')
   const [activeSpacingFilter, setActiveSpacingFilter] = useState<'all' | 'due' | 'new' | 'completed'>('all')
 
-  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const todayStr = useMemo(() => todayISO(), [])
 
   const isDue = useCallback(
-    (card: FlashcardItem) => !card.nextReviewDate || card.nextReviewDate <= todayStr,
+    (card: FlashcardItem) => isFlashcardDue(card, todayStr),
     [todayStr],
   )
 

@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { ToastState } from '../types/app'
+import type { ToastAction, ToastState } from '../types/app'
 
 export function useAppToast() {
   const [activeToast, setActiveToast] = useState<ToastState | null>(null)
   const [quotaExceeded, setQuotaExceeded] = useState(false)
 
-  const pushToast = useCallback((key: string, message: string) => {
-    setActiveToast({ key, message, id: Date.now() })
+  const pushToast = useCallback((key: string, message: string, options?: { action?: ToastAction; durationMs?: number }) => {
+    setActiveToast({ key, message, id: Date.now(), ...options })
   }, [])
 
   const dismissQuotaRecovery = useCallback(() => {
@@ -15,7 +15,7 @@ export function useAppToast() {
 
   useEffect(() => {
     if (!activeToast) return
-    const duration = activeToast.key === 'LEVEL UP' ? 4000 : 1500
+    const duration = activeToast.durationMs ?? (activeToast.key === 'LEVEL UP' ? 4000 : activeToast.action ? 5000 : 1500)
     const t = setTimeout(() => setActiveToast(null), duration)
     return () => clearTimeout(t)
   }, [activeToast])

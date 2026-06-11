@@ -1,0 +1,49 @@
+name: Update README Screenshots
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - 'docs/screenshots/**'
+
+permissions:
+  contents: write
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Capture screenshots
+        run: |
+          npm run preview -- --port 4173 &
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4173/StudyApp/ > /dev/null; then break; fi
+            sleep 1
+          done
+          SCREENSHOT_BASE_URL=http://localhost:4173/StudyApp npm run screenshots:ci
+
+      - name: Commit screenshots
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots
+          git diff --staged --quiet || git commit -m "chore: update README screenshots"
+          git push

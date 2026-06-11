@@ -12,7 +12,13 @@ flowchart TB
     dbHooks[db/hooks]
   end
   subgraph hooks [Hooks]
-    timer[useTimerEngine]
+    subgraph timerHooks [timer/*]
+      timerEngine[useTimerEngine]
+      timerShadow[useTimerSessionShadow]
+      timerTick[useTimerTick]
+      timerComplete[useTimerCompletion]
+      timerReflect[useTimerReflection]
+    end
     backup[useSessionBackup]
     journal[useJournalCalendar]
   end
@@ -32,7 +38,7 @@ flowchart TB
   db --> repos
   repos --> dbHooks
   dbHooks --> dataP
-  timer --> timerP
+  timerEngine --> timerP
   backup --> timerP
   journal --> dataP
   confirmP --> dataP
@@ -54,6 +60,25 @@ flowchart TB
 | Integration | Vitest + providers | `src/context/__tests__` |
 | E2E | Playwright | `e2e/` |
 | Visual / a11y | Storybook + addon-a11y | `src/**/*.stories.tsx` |
+
+## Testing and coverage
+
+Coverage is **gated by tier**, not universal across the entire UI. Full-app line coverage is intentionally not the goal — E2E and component tests cover integration paths; tier gates protect critical logic.
+
+```mermaid
+flowchart LR
+  tier1[Core gate 80/74%] --> lib[lib + db + timer hooks]
+  tier2[Component gate 65/50%] --> shared[shared + analytics UI]
+  tier3[Settings gate 60/45%] --> settings[settings lib + control-deck]
+  e2e[E2E journeys] --> tabs[Full tab flows]
+```
+
+| Tier | Command | Thresholds | Scope |
+|------|---------|------------|-------|
+| Core | `npm run test:coverage` | 80% lines / 74% branches | `lib`, `db`, timer/backup hooks |
+| Component | `npm run test:coverage:components` | 65% lines / 50% branches | Shared primitives and analytics UI |
+| Settings | `npm run test:coverage:settings` | 60% lines / 45% branches | Control-deck panels and settings widgets |
+| E2E | `npm run test:e2e` | Journey-based | Tab flows, settings, focus, backup |
 
 ## Data flow
 

@@ -14,9 +14,14 @@ const baseProps = {
 }
 
 describe('FlashcardStudio', () => {
-  it('renders active recall deck heading', () => {
+  it('does not render duplicate page title heading', () => {
     render(<FlashcardStudio {...baseProps} />)
-    expect(screen.getByText('Active Recall Deck')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Active Recall Deck' })).not.toBeInTheDocument()
+  })
+
+  it('wraps content in TabPageShell stack layout', () => {
+    const { container } = render(<FlashcardStudio {...baseProps} />)
+    expect(container.querySelector('.tab-page-shell')).toBeInTheDocument()
   })
 
   it('creates a flashcard when the form is submitted', async () => {

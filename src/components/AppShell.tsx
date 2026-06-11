@@ -1,9 +1,6 @@
 import { memo, useEffect, useState } from 'react'
-import { AlertCircle, Brain } from 'lucide-react'
-import type { ActiveTab } from '../types/app'
 import { Sidebar } from './Sidebar'
 import { AppContentHeader } from './AppContentHeader'
-import { QuotaRecoveryBanner } from './QuotaRecoveryBanner'
 import { ZenOverlayContainer } from './ZenOverlayContainer'
 import { ReflectionModalContainer } from './ReflectionModalContainer'
 import { HotkeyModal } from './HotkeyModal'
@@ -17,14 +14,16 @@ import { SettingsTab } from './tabs/SettingsTab'
 import { db } from '../db/db'
 import { useStudyData, useStudyUI } from '../context/useStudyApp'
 import { useStudyTimerContext } from '../context/studyTimerContext'
-import { useConfirm } from '../context/useConfirm'
 import { E2eCrashProbe } from './E2eCrashProbe'
 import { OnboardingModal } from './OnboardingModal'
 import { countDueFlashcards } from './flashcard/flashcardDue'
 import { getEffectiveDailyGoal, getTodayCategoryStudyMinutes } from '../lib/studyDashboard'
-import { InstallPromptBanner } from './InstallPromptBanner'
 import { usePwaInstall } from '../hooks/usePwaInstall'
+import { useFocusLockoutNavigation } from '../hooks/useFocusLockoutNavigation'
 import { buildThemeInlineStyles } from '../lib/applyThemeVars'
+import { AppShellLoadingScreen } from './app-shell/AppShellLoadingScreen'
+import { AppShellStatusBanners } from './app-shell/AppShellStatusBanners'
+import { AppToastOverlay } from './app-shell/AppToastOverlay'
 
 export const AppShell = memo(function AppShell() {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
@@ -55,7 +54,6 @@ export const AppShell = memo(function AppShell() {
 
   const cardsDueCount = countDueFlashcards(flashcards.flashcards)
   const pwaInstall = usePwaInstall()
-
   const { timerControls, backup } = useStudyTimerContext()
 
   const {
@@ -75,6 +73,12 @@ export const AppShell = memo(function AppShell() {
     setIsNotesOpen,
     scheduleDelete,
   } = useStudyUI()
+
+  const handleSetActiveTab = useFocusLockoutNavigation({
+    enforceLockout: settings.enforce_lockout,
+    timer: timerControls,
+    setActiveTab,
+  })
 
   const activeTimerCategory = timerControls.timerCategoryId !== undefined
     ? categories.categories.find(c => c.id === timerControls.timerCategoryId)
@@ -107,52 +111,11 @@ export const AppShell = memo(function AppShell() {
 
   const openOnboarding = () => setOnboardingForced(true)
 
-  const { requestConfirm } = useConfirm()
-
-  const handleSetActiveTab = async (tab: ActiveTab) => {
-    const locked =
-      settings.enforce_lockout &&
-      timerControls.isTimerActive &&
-      timerControls.timerMode === 'study' &&
-      tab !== 'focus'
-    if (locked) {
-      const ok = await requestConfirm({
-        title: 'Focus Lockout Active',
-        message: 'Your lockout setting is active to prevent distractions. Pause your study timer to navigate to other tabs.',
-        confirmLabel: 'Pause & Navigate',
-        danger: true,
-      })
-      if (ok) {
-        timerControls.setIsTimerActive(false)
-        setActiveTab(tab)
-      }
-      return
-    }
-    setActiveTab(tab)
-  }
-
   if (!isDataReady) {
-    return (
-      <div
-        className="flex min-h-screen items-center justify-center"
-        style={{ background: activeThemeVars.pageGradient }}
-      >
-        <div className="dynamic-card flex flex-col items-center gap-5 px-8 py-7 shadow-2xl">
-          <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-gradient-to-tr from-accent-blue to-accent-purple shadow-md shadow-accent-blue/10">
-            <Brain className="h-6 w-6 text-white" />
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-            <p className="text-sm text-white/60 font-semibold tracking-wide">Loading Study Dashboard</p>
-            <p className="text-caption text-white/35">Preparing your local sanctuary...</p>
-          </div>
-        </div>
-      </div>
-    )
+    return <AppShellLoadingScreen pageGradient={activeThemeVars.pageGradient} />
   }
 
   const isLight = activeThemeVars.isLight ?? false
-
   const inlineStyles = buildThemeInlineStyles(activeThemeVars, {
     cardOpacity: settings.cardOpacity,
     backdropBlur: settings.backdropBlur,
@@ -185,25 +148,17 @@ export const AppShell = memo(function AppShell() {
       />
 
       <main className="flex-1 flex flex-col min-w-0 z-10">
-        {isOffline && (
-          <div
-            role="status"
-            className="flex items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-label font-semibold text-amber-200"
-          >
-            <AlertCircle className="h-3.5 w-3.5" aria-hidden />
-            You are offline — data stays on this device
-          </div>
-        )}
-        {!isZenMode && pwaInstall.showBanner && (
-          <InstallPromptBanner onInstall={() => void pwaInstall.install()} onDismiss={pwaInstall.dismiss} />
-        )}
-        {!isZenMode && quotaExceeded && (
-          <QuotaRecoveryBanner
-            onExport={() => void backup.exportStudyBackup()}
-            onOpenRecovery={() => handleSetActiveTab('settings')}
-            onDismiss={dismissQuotaRecovery}
-          />
-        )}
+        <AppShellStatusBanners
+          isOffline={isOffline}
+          isZenMode={isZenMode}
+          showPwaBanner={pwaInstall.showBanner}
+          quotaExceeded={quotaExceeded}
+          onPwaInstall={() => void pwaInstall.install()}
+          onPwaDismiss={pwaInstall.dismiss}
+          onExportBackup={() => void backup.exportStudyBackup()}
+          onOpenRecovery={() => void handleSetActiveTab('settings')}
+          onDismissQuota={dismissQuotaRecovery}
+        />
         {!isZenMode && (
           <AppContentHeader
             activeTab={activeTab}
@@ -241,30 +196,9 @@ export const AppShell = memo(function AppShell() {
       />
 
       <ReflectionModalContainer studyBlockDurationMinutes={settings.studyBlockDurationMinutes} />
-
       <HotkeyModal isOpen={isHotkeyHudOpen} onClose={() => setIsHotkeyHudOpen(false)} />
-
       <OnboardingModal isOpen={showOnboarding} onClose={handleCloseOnboarding} />
-
-      {activeToast && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),_inset_0_1px_1px_rgba(255,255,255,0.08)] rounded-full px-4 py-1.5 text-label font-mono tracking-wider text-white animate-slide-down"
-        >
-          <kbd className="bg-white/10 text-white border border-white/15 rounded px-1.5 py-0.5 text-label font-sans">{activeToast.key}</kbd>
-          <span>{activeToast.message}</span>
-          {activeToast.action && (
-            <button
-              type="button"
-              onClick={activeToast.action.onClick}
-              className="ml-1 rounded-full bg-white/15 px-2.5 py-0.5 text-label font-bold text-white hover:bg-white/25 ios-active-scale"
-            >
-              {activeToast.action.label}
-            </button>
-          )}
-        </div>
-      )}
+      <AppToastOverlay toast={activeToast} />
 
       <QuickNotesDrawer
         isOpen={isNotesOpen}

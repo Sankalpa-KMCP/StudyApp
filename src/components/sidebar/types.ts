@@ -11,6 +11,7 @@ export interface SidebarProps {
   isTimerActive: boolean
   timerMode: 'study' | 'break'
   enforceLockout: boolean
+  cardsDueCount?: number
   onToggleNotes: () => void
   onShowOnboarding: () => void
 }

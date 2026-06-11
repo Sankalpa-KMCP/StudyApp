@@ -9,6 +9,7 @@ interface MobileTabBarProps {
   isTimerActive: boolean
   timerMode: 'study' | 'break'
   enforceLockout: boolean
+  cardsDueCount?: number
 }
 
 export const MobileTabBar: React.FC<MobileTabBarProps> = ({
@@ -17,6 +18,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
   isTimerActive,
   timerMode,
   enforceLockout,
+  cardsDueCount = 0,
 }) => {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
@@ -47,6 +49,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
             accent={tab.accent}
             isActive={isActive}
             isLocked={isLocked}
+            badge={tab.id === 'cards' ? cardsDueCount : undefined}
             onClick={() => handleTabClick(tab.id)}
             buttonRef={el => { tabRefs.current[tab.id] = el }}
           />

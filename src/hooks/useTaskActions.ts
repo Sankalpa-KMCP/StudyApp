@@ -20,7 +20,7 @@ interface UseTaskActionsOptions {
   taskCycleCount: number
   autoArchiveAncientTasks: boolean
   isDataReady: boolean
-  pushToast: (key: string, message: string) => void
+  pushToast: (key: string, message: string, options?: { action?: { label: string; onClick: () => void }; durationMs?: number }) => void
 }
 
 export function useTaskActions({
@@ -86,6 +86,13 @@ export function useTaskActions({
       if (!task.completed) {
         playChime()
         await toggleTask(id)
+        pushToast('UNDO', 'Task completed', {
+          durationMs: 5000,
+          action: {
+            label: 'Undo',
+            onClick: () => { void db.tasks.update(id, { completed: false, nextReviewDate: undefined }) },
+          },
+        })
       } else {
         await db.tasks.update(id, { completed: false, nextReviewDate: undefined })
       }

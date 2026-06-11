@@ -1,6 +1,6 @@
 import { Clock, Coffee, Calendar, Flame } from 'lucide-react'
 import type { DailyLog } from '../../db/types'
-import { Card } from '../shared/Card'
+import { MetricCard } from '../shared/MetricCard'
 
 interface SummaryMetricsRowProps {
   monthLogs: DailyLog[]
@@ -28,20 +28,9 @@ export function SummaryMetricsRow({
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {items.map(item => {
-        const Icon = item.icon
-        return (
-          <Card key={item.label} variant="elevated" padding="md" className="flex items-center justify-between">
-            <div>
-              <p className="text-caption text-white/50 font-semibold uppercase tracking-wider">{item.label}</p>
-              <p className="text-xl font-bold text-white mt-1 font-mono">{item.value}</p>
-            </div>
-            <div className="h-11 w-11 rounded-full flex items-center justify-center border border-white/10 bg-white/5 shadow-inner">
-              <Icon className="h-5 w-5 text-white" />
-            </div>
-          </Card>
-        )
-      })}
+      {items.map(item => (
+        <MetricCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
+      ))}
     </div>
   )
 }

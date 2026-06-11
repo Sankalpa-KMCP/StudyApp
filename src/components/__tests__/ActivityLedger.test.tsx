@@ -48,7 +48,7 @@ const baseProps = {
 describe('ActivityLedger', () => {
   it('renders day journal section', () => {
     render(<ActivityLedger {...baseProps} />)
-    expect(screen.getByText('Day Journal reflections')).toBeInTheDocument()
+    expect(screen.getByText('Day journal')).toBeInTheDocument()
   })
 
   it('selects a mood when mood button is clicked', async () => {

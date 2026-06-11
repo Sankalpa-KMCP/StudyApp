@@ -3,6 +3,7 @@ import { MAX_STUDY_BLOCK_MINUTES } from './timerConstants'
 
 const UI_FONT_OPTIONS = ['Inter', 'Outfit', 'System'] as const
 const UI_DENSITY_OPTIONS = ['comfortable', 'compact'] as const
+const AMBIENT_PRESET_OPTIONS = ['rain', 'white-noise'] as const
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
 
 interface NumericRule {
@@ -75,7 +76,8 @@ export function validateSetting(key: SettingsKey, value: SettingsValue): Validat
     key === 'focusNotificationsEnabled' ||
     key === 'tactile_feedback' ||
     key === 'enforce_lockout' ||
-    key === 'autoArchiveAncientTasks'
+    key === 'autoArchiveAncientTasks' ||
+    key === 'ambientSoundEnabled'
   ) {
     if (typeof value !== 'boolean') return { ok: false, reason: `${key} must be a boolean` }
     return { ok: true, value }
@@ -84,6 +86,13 @@ export function validateSetting(key: SettingsKey, value: SettingsValue): Validat
   if (key === 'uiDensity') {
     if (typeof value !== 'string' || !UI_DENSITY_OPTIONS.includes(value as (typeof UI_DENSITY_OPTIONS)[number])) {
       return { ok: false, reason: 'uiDensity must be comfortable or compact' }
+    }
+    return { ok: true, value }
+  }
+
+  if (key === 'ambientSoundPreset') {
+    if (typeof value !== 'string' || !AMBIENT_PRESET_OPTIONS.includes(value as (typeof AMBIENT_PRESET_OPTIONS)[number])) {
+      return { ok: false, reason: 'ambientSoundPreset must be rain or white-noise' }
     }
     return { ok: true, value }
   }

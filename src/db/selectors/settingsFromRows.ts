@@ -39,6 +39,8 @@ export interface ParsedSettings {
   enforce_lockout: boolean
   initialEasinessFactor: number
   autoArchiveAncientTasks: boolean
+  ambientSoundEnabled: boolean
+  ambientSoundPreset: 'rain' | 'white-noise'
 }
 
 export const SETTINGS_DEFAULTS: ParsedSettings = {
@@ -69,6 +71,8 @@ export const SETTINGS_DEFAULTS: ParsedSettings = {
   enforce_lockout: false,
   initialEasinessFactor: 2.5,
   autoArchiveAncientTasks: false,
+  ambientSoundEnabled: false,
+  ambientSoundPreset: 'rain',
 }
 
 function parseNoteTagColors(raw: string): string[] {
@@ -121,6 +125,8 @@ export function settingsFromRows(rows: SettingsRow[] | undefined): ParsedSetting
     enforce_lockout: getValue(rows, 'enforce_lockout', SETTINGS_DEFAULTS.enforce_lockout),
     initialEasinessFactor: getValue(rows, 'initialEasinessFactor', SETTINGS_DEFAULTS.initialEasinessFactor),
     autoArchiveAncientTasks: getValue(rows, 'autoArchiveAncientTasks', SETTINGS_DEFAULTS.autoArchiveAncientTasks),
+    ambientSoundEnabled: getValue(rows, 'ambientSoundEnabled', SETTINGS_DEFAULTS.ambientSoundEnabled),
+    ambientSoundPreset: getValue(rows, 'ambientSoundPreset', SETTINGS_DEFAULTS.ambientSoundPreset),
   } as ParsedSettings
 }
 

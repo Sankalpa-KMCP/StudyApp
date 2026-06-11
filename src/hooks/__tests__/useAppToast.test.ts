@@ -41,6 +41,34 @@ describe('useAppToast', () => {
     expect(result.current.quotaExceeded).toBe(false)
   })
 
+  it('honors undo toast duration and action options', () => {
+    const onUndo = vi.fn()
+    const { result } = renderHook(() => useAppToast())
+
+    act(() => {
+      result.current.pushToast('UNDO', 'Deleted', {
+        durationMs: 5000,
+        action: { label: 'Undo', onClick: onUndo },
+      })
+    })
+
+    expect(result.current.activeToast?.action?.label).toBe('Undo')
+    act(() => {
+      result.current.activeToast?.action?.onClick()
+    })
+    expect(onUndo).toHaveBeenCalled()
+
+    act(() => {
+      vi.advanceTimersByTime(4500)
+    })
+    expect(result.current.activeToast).not.toBeNull()
+
+    act(() => {
+      vi.advanceTimersByTime(600)
+    })
+    expect(result.current.activeToast).toBeNull()
+  })
+
   it('auto-dismisses toast after timeout', () => {
     const { result } = renderHook(() => useAppToast())
 

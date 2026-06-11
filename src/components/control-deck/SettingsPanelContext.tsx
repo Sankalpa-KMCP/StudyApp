@@ -64,6 +64,8 @@ interface SettingsPanelContextValue {
   developer_font: string
   enforce_lockout: boolean
   autoArchiveAncientTasks: boolean
+  ambientSoundEnabled: boolean
+  ambientSoundPreset: 'rain' | 'white-noise'
   backup: SettingsBackupApi
   categories: SettingsCategoriesApi
   isDragging: boolean
@@ -114,6 +116,8 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     developer_font: updater.developer_font,
     enforce_lockout: updater.enforce_lockout,
     autoArchiveAncientTasks: updater.autoArchiveAncientTasks,
+    ambientSoundEnabled: updater.ambientSoundEnabled,
+    ambientSoundPreset: updater.ambientSoundPreset,
     isLoading: updater.isLoading,
     updateSetting: (key, val) => { void updater.updateSettingSafe(key, val) },
     updateSettingSafe: updater.updateSettingSafe,

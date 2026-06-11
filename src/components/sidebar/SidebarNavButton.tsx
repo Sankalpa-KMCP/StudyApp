@@ -11,6 +11,7 @@ interface SidebarNavButtonProps {
   accent: ActiveTab
   isActive: boolean
   isLocked: boolean
+  badge?: number
   onClick: () => void
 }
 
@@ -23,6 +24,7 @@ export function SidebarNavButton({
   accent,
   isActive,
   isLocked,
+  badge,
   onClick,
 }: SidebarNavButtonProps) {
   const flyout = useSidebarFlyout()
@@ -45,6 +47,7 @@ export function SidebarNavButton({
       accent={accent}
       isActive={isActive}
       isLocked={isLocked}
+      badge={badge}
       onClick={onClick}
       onMouseEnter={variant === 'rail' ? handleMouseEnter : undefined}
       onMouseLeave={variant === 'rail' ? handleMouseLeave : undefined}

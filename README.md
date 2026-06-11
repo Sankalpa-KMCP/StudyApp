@@ -20,6 +20,13 @@ A local-first, privacy-focused study dashboard with Pomodoro timing, task tracki
 - **Absolute Privacy:** No telemetry, tracking, or remote APIs.
 - **Self-Contained:** Runs entirely in the browser or as a Tauri desktop app.
 
+### Known limits
+
+- **English-only UI** — no localization layer in this build.
+- **Local-first** — no cloud sync; use `.studybackup` vault export/import for cross-device transfer.
+- **Private license** — not open source (see [License](#license)).
+- **Ambient soundscapes** — basic rain and white-noise presets during study blocks, not a full soundscape library.
+
 ---
 
 ## Features
@@ -61,7 +68,7 @@ A local-first, privacy-focused study dashboard with Pomodoro timing, task tracki
 
 ## Audio
 
-The app plays **short session chimes** when blocks complete (toggle in Settings). Ambient soundscapes are not included in this build.
+The app plays **short session chimes** when blocks complete (toggle in Settings). **Optional ambient loops** (rain or white noise) play during active study blocks only — independent of chimes and toggled in Sound & Feedback.
 
 ---
 
@@ -109,8 +116,9 @@ npm ci
 npm run dev            # Vite dev server at http://localhost:5173
 npm run build          # Production build to dist/
 npm test               # Vitest unit tests
-npm run test:coverage  # Coverage gate (80% lines, 65% branches)
+npm run test:coverage  # Coverage gate (80% lines, 74% branches)
 npm run test:coverage:components  # Shared/analytics component gate (50%)
+npm run test:coverage:settings  # Control-deck / settings widget gate (60% lines, 45% branches)
 npm run check:bundle   # Gzip budget on main chunk (~512 KB)
 npm run test:watch     # Vitest watch mode
 npm run test:e2e       # Playwright user journeys
@@ -128,8 +136,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for migrations, settings, and E2E convent
 | Unit / hooks | `npm test` | `src/lib/__tests__`, `src/db/__tests__`, `src/hooks/__tests__` |
 | Component | `npm test` | `src/components/**/__tests__` |
 | Context / integration | `npm test` | `src/context/__tests__` |
-| Coverage gate | `npm run test:coverage` | 80% lines / 65% branches on scoped modules |
-| Component gate | `npm run test:coverage:components` | 50% on shared primitives and analytics |
+| Coverage gate | `npm run test:coverage` | 80% lines / 74% branches on scoped modules |
+| Component gate | `npm run test:coverage:components` | 65% lines / 50% branches on shared primitives and analytics |
+| Settings gate | `npm run test:coverage:settings` | 60% lines / 45% branches on control-deck and settings widgets |
 | E2E | `npm run test:e2e` | `e2e/` including analytics, journal, zen, mobile, invalid backup |
 | Storybook + a11y | `npm run storybook` | `@storybook/addon-a11y` on all stories |
 

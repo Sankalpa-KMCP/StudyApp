@@ -2,6 +2,8 @@ import type { FormEvent } from 'react'
 import { Plus, GraduationCap, Layers } from 'lucide-react'
 import type { CategoryItem } from '../../db/types'
 import { InlineCategoryManager } from '../shared/InlineCategoryManager'
+import { PanelCard } from '../shared/PanelCard'
+import { PanelHeader } from '../shared/PanelHeader'
 
 interface FlashcardCreateFormProps {
   categories: CategoryItem[]
@@ -36,8 +38,8 @@ export function FlashcardCreateForm({
 }: FlashcardCreateFormProps) {
   return (
     <div className="lg:col-span-4 space-y-6">
-      <div className="dynamic-card p-5">
-        <h3 className="text-sm font-semibold mb-4 text-white">Create New Flashcard</h3>
+      <PanelCard>
+        <PanelHeader title="Create new flashcard" bordered={false} className="mb-4" />
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label htmlFor="flashcard-question" className="block text-[10px] font-bold uppercase text-white/45 mb-1.5 select-none">Question / Term</label>
@@ -79,10 +81,10 @@ export function FlashcardCreateForm({
             Add to Deck
           </button>
         </form>
-      </div>
+      </PanelCard>
 
-      <div className="dynamic-card p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-white">Study Decks</h3>
+      <PanelCard className="space-y-3">
+        <PanelHeader title="Study decks" bordered={false} className="mb-0" />
         <p className="text-[11px] text-white/40 select-none leading-relaxed">
           Reviewing cards periodically trains active recall. Shuffle is active by default.
         </p>
@@ -112,7 +114,7 @@ export function FlashcardCreateForm({
             <span>Study All ({stats.total})</span>
           </button>
         </div>
-      </div>
+      </PanelCard>
     </div>
   )
 }
