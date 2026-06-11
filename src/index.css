@@ -71,7 +71,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: var(--font-sans-geom);
-  background: radial-gradient(circle at 50% 0%, #1c1533 0%, #0d0a1b 45%, #05040a 100%) !important;
+  background-color: #05040a !important;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(175, 82, 222, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(0, 122, 255, 0.12) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(52, 199, 89, 0.06) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, rgba(255, 149, 0, 0.04) 0px, transparent 40%) !important;
   color: var(--color-text-primary);
   overflow-x: hidden;
   min-height: 100vh;
