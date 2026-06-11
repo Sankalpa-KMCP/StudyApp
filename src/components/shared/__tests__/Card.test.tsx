@@ -15,7 +15,7 @@ describe('Card', () => {
       </Card>,
     )
     const card = container.firstChild as HTMLElement
-    expect(card.className).toContain('dynamic-card')
+    expect(card.className).toContain('dynamic-card-static')
     expect(card.className).toContain('shadow-2xl')
     expect(card.className).toContain('p-6')
   })

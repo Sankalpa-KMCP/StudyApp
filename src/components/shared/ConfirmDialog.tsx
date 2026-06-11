@@ -36,8 +36,8 @@ export function ConfirmDialog({
       trapRef={trapRef}
       panelClassName="p-6"
     >
-      <h2 id="confirm-dialog-title" className="text-sm font-bold text-white mb-2">{title}</h2>
-      <p id="confirm-dialog-desc" className="text-caption text-white/60 leading-relaxed mb-6">{message}</p>
+      <h2 id="confirm-dialog-title" className="text-sm font-bold text-primary mb-2">{title}</h2>
+      <p id="confirm-dialog-desc" className="text-caption text-secondary leading-relaxed mb-6">{message}</p>
       <div className="flex justify-end gap-3">
         <Button variant="secondary" size="md" onClick={onCancel}>
           {cancelLabel}

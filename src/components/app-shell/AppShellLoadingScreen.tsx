@@ -10,7 +10,7 @@ export function AppShellLoadingScreen({ pageGradient }: AppShellLoadingScreenPro
       className="flex min-h-screen items-center justify-center"
       style={{ background: pageGradient }}
     >
-      <div className="dynamic-card flex flex-col items-center gap-5 px-8 py-7 shadow-2xl">
+      <div className="dynamic-card-static flex flex-col items-center gap-5 px-8 py-7 shadow-2xl">
         <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-gradient-to-tr from-accent-blue to-accent-purple shadow-md shadow-accent-blue/10">
           <Brain className="h-6 w-6 text-white" />
         </div>

@@ -5,6 +5,7 @@ type CardVariant = 'default' | 'elevated' | 'inset'
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: CardVariant
   padding?: 'none' | 'sm' | 'md' | 'lg'
+  interactive?: boolean
   children: ReactNode
 }
 
@@ -15,21 +16,23 @@ const paddingClass = {
   lg: 'p-6 md:p-8',
 } as const
 
-const variantClass: Record<CardVariant, string> = {
-  default: 'dynamic-card',
-  elevated: 'dynamic-card shadow-2xl',
-  inset: 'glass-tier-2',
+function cardShellClass(variant: CardVariant, interactive: boolean): string {
+  if (variant === 'inset') return 'glass-tier-2'
+  const hoverClass = interactive ? 'dynamic-card-interactive' : 'dynamic-card-static'
+  const shadow = variant === 'elevated' ? ' shadow-2xl' : ''
+  return `${hoverClass}${shadow}`
 }
 
 export function Card({
   variant = 'default',
   padding = 'md',
+  interactive = false,
   className = '',
   children,
   ...props
 }: CardProps) {
   return (
-    <div className={`${variantClass[variant]} ${paddingClass[padding]} ${className}`.trim()} {...props}>
+    <div className={`${cardShellClass(variant, interactive)} ${paddingClass[padding]} ${className}`.trim()} {...props}>
       {children}
     </div>
   )
