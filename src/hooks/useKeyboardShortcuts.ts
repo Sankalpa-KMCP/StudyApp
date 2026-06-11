@@ -14,6 +14,7 @@ interface UseKeyboardShortcutsOptions {
   setIsZenMode: React.Dispatch<React.SetStateAction<boolean>>
   setIsHotkeyHudOpen: React.Dispatch<React.SetStateAction<boolean>>
   setActiveToast: React.Dispatch<React.SetStateAction<ToastState | null>>
+  toggleSidebarCollapse?: () => void
 }
 
 export function useKeyboardShortcuts({
@@ -29,6 +30,7 @@ export function useKeyboardShortcuts({
   setIsZenMode,
   setIsHotkeyHudOpen,
   setActiveToast,
+  toggleSidebarCollapse,
 }: UseKeyboardShortcutsOptions) {
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {
@@ -89,6 +91,16 @@ export function useKeyboardShortcuts({
             return nextOpen
           })
           break
+        case '[':
+          if (toggleSidebarCollapse && window.matchMedia('(min-width: 768px)').matches) {
+            toggleSidebarCollapse()
+            setActiveToast({
+              key: '[',
+              message: 'SIDEBAR TOGGLED',
+              id: Date.now(),
+            })
+          }
+          break
       }
     }
 
@@ -107,5 +119,6 @@ export function useKeyboardShortcuts({
     setIsZenMode,
     setIsHotkeyHudOpen,
     setActiveToast,
+    toggleSidebarCollapse,
   ])
 }

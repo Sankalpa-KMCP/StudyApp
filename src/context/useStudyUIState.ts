@@ -3,6 +3,7 @@ import type { ActiveTab } from '../types/app'
 import { THEME_PROFILES } from '../lib/theme'
 import { useZenCanvas } from '../hooks/useZenCanvas'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { useOptionalSidebarCollapse } from '../components/sidebar/useSidebarCollapseContext'
 import { useStudyDataContext } from './studyDataContext'
 import { useStudyTimerContext } from './studyTimerContext'
 import type { useAppToast } from '../hooks/useAppToast'
@@ -25,6 +26,8 @@ export function useStudyUIState(toast: ToastApi) {
 
   useZenCanvas(isZenMode, canvasRef)
 
+  const sidebarCollapse = useOptionalSidebarCollapse()
+
   useKeyboardShortcuts({
     activeTab,
     isHotkeyHudOpen,
@@ -38,6 +41,7 @@ export function useStudyUIState(toast: ToastApi) {
     setIsZenMode,
     setIsHotkeyHudOpen,
     setActiveToast,
+    toggleSidebarCollapse: sidebarCollapse?.toggleCollapsed,
   })
 
   useEffect(() => {
