@@ -30,9 +30,9 @@ describe('AestheticsPanel', () => {
     expect(updateSetting).toHaveBeenCalledWith('accentBlueOverride', null)
   })
 
-  it('shows dark and light preset dropdowns in system mode', () => {
+  it('shows system dark and light preset swatches in system mode', () => {
     render(<AestheticsPanel {...baseProps} theme="system" />)
-    expect(screen.getByText('Dark preset')).toBeInTheDocument()
-    expect(screen.getByText('Light preset')).toBeInTheDocument()
+    expect(screen.getByText('System dark preset')).toBeInTheDocument()
+    expect(screen.getByText('System light preset')).toBeInTheDocument()
   })
 })

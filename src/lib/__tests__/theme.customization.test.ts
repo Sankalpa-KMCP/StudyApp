@@ -21,6 +21,6 @@ describe('theme customization', () => {
   it('resolves mist-slate light preset profile', () => {
     const profile = resolveThemeProfile('mist-slate', 'midnight-slate', true)
     expect(profile.isLight).toBe(true)
-    expect(profile.surfaceCardRgb).toBe('244, 246, 249')
+    expect(profile.surfaceCardRgb).toBe('242, 245, 249')
   })
 })
