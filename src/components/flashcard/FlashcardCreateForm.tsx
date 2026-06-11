@@ -1,9 +1,10 @@
 import type { FormEvent } from 'react'
-import { Plus, GraduationCap, Layers } from 'lucide-react'
+import { GraduationCap, Layers } from 'lucide-react'
 import type { CategoryItem } from '../../db/types'
 import { InlineCategoryManager } from '../shared/InlineCategoryManager'
 import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
+import { Button } from '../shared/Button'
 
 interface FlashcardCreateFormProps {
   categories: CategoryItem[]
@@ -73,13 +74,9 @@ export function FlashcardCreateForm({
             selectedCategoryId={newCategoryId}
             onSelectCategory={setNewCategoryId}
           />
-          <button
-            type="submit"
-            className="w-full py-2.5 rounded-full text-xs font-semibold bg-white/5 border border-white/8 text-white hover:bg-white/10 transition-all ios-active-scale cursor-pointer flex items-center justify-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
+          <Button type="submit" variant="primary" className="w-full gap-2">
             Add to Deck
-          </button>
+          </Button>
         </form>
       </PanelCard>
 
