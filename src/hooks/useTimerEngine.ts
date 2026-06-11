@@ -52,6 +52,7 @@ export function useTimerEngine({
   const [completedSessionsInCycle, setCompletedSessionsInCycle] = useState(0)
   const [isLongBreak, setIsLongBreak] = useState(false)
   const [extendedMinutes, setExtendedMinutes] = useState(0)
+  const [wakeLockActive, setWakeLockActive] = useState(false)
 
   const completingRef = useRef(false)
   const incStudyRef = useRef(incrementStudy)
@@ -229,7 +230,12 @@ export function useTimerEngine({
           activeSentinel = null
         }
         const lock = await requestWakeLock()
-        if (isMounted && lock) activeSentinel = lock
+        if (isMounted) {
+          activeSentinel = lock
+          setWakeLockActive(!!lock)
+        }
+      } else if (isMounted) {
+        setWakeLockActive(false)
       }
     }
 
@@ -242,6 +248,7 @@ export function useTimerEngine({
       isMounted = false
       document.removeEventListener('visibilitychange', onVisibility)
       if (activeSentinel) releaseWakeLock(activeSentinel)
+      setWakeLockActive(false)
     }
   }, [isTimerActive, timerMode])
 
@@ -283,6 +290,7 @@ export function useTimerEngine({
     submitReflection: reflection.submitReflection,
     skipReflection: reflection.skipReflection,
     resetTimerState,
+    wakeLockActive,
     completingRef: completingRef as RefObject<boolean>,
   }), [
     timerCategoryId,
@@ -299,6 +307,7 @@ export function useTimerEngine({
     processSessionCompletion,
     submitRecallGrade,
     resetTimerState,
+    wakeLockActive,
   ])
 
   const display = useMemo(() => ({

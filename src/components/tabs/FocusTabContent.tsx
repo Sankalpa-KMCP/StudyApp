@@ -50,6 +50,7 @@ export function FocusTabContent() {
           longBreakDurationMinutes={settings.longBreakDurationMinutes}
           updateSetting={settings.updateSetting}
           activeTask={activeTask}
+          wakeLockActive={timer.wakeLockActive}
         />
       </div>
       <div className="lg:col-span-7 order-2">
