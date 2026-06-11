@@ -30,6 +30,11 @@ export const Database: Icon
   export const Sparkles: Icon
   export const ChevronLeft: Icon
   export const ChevronDown: Icon
+  export const ChevronUp: Icon
+  export const Moon: Icon
+  export const Wind: Icon
+  export const Timer: Icon
+  export const Sun: Icon
   export const Layers: Icon
   export const GraduationCap: Icon
   export const Edit3: Icon
