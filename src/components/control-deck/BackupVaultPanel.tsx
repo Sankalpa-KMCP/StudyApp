@@ -51,7 +51,7 @@ export function BackupVaultPanel({
           <p className="text-[11px] text-amber-100/80 leading-relaxed">
             Your device storage is full. Export first, then clear snapshots or study history to free space.
           </p>
-          <ol className="space-y-2 text-[11px] text-white/70 list-decimal list-inside">
+          <ol className="space-y-2 text-[11px] settings-muted list-decimal list-inside">
             <li>Export your backup vault before deleting anything.</li>
             <li>Clear local auto-snapshots (safe if you have an export).</li>
             <li>Sweep study logs and history if you still need room.</li>
@@ -83,21 +83,21 @@ export function BackupVaultPanel({
         </div>
       )}
 
-      <p className="text-xs text-white/50 mb-5 leading-relaxed">
+      <p className="settings-muted mb-5 leading-relaxed">
         Export backup data bundle to sync tables or local study logs across devices.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-white/5 bg-black/20 p-4 flex flex-col justify-between">
+        <div className="rounded-2xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] p-4 flex flex-col justify-between">
           <div>
-            <span className="text-xs font-bold text-white/95 block">Export backup vault</span>
-            <span className="text-[10px] text-white/40 mt-1 leading-normal font-semibold">Prepares a JSON package and initiates browser download.</span>
+            <span className="settings-label block">Export backup vault</span>
+            <span className="settings-muted mt-1 leading-normal font-semibold block">Prepares a JSON package and initiates browser download.</span>
           </div>
           <Button variant="primary" onClick={exportStudyBackup} disabled={isExporting} className="w-full mt-4">
             {isExporting ? `Exporting… ${exportProgress}%` : 'Export Vault'}
           </Button>
           {isExporting && (
-            <div className="mt-2 h-1.5 w-full rounded-full bg-white/10 overflow-hidden" aria-hidden>
+            <div className="mt-2 h-1.5 w-full rounded-full bg-[color-mix(in_srgb,var(--color-text-primary)_10%,transparent)] overflow-hidden" aria-hidden>
               <div className="h-full bg-accent-blue transition-all duration-300" style={{ width: `${exportProgress}%` }} />
             </div>
           )}
@@ -118,22 +118,22 @@ export function BackupVaultPanel({
           }}
           aria-label="Import backup file"
           className={`flex flex-col items-center justify-center border border-dashed rounded-2xl p-4 text-center transition-all cursor-pointer min-h-[120px] ${
-            isDragging ? 'border-accent-purple bg-accent-purple/10' : 'border-white/10 bg-black/20 hover:border-white/20'
+            isDragging ? 'border-accent-purple bg-accent-purple/10' : 'border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] hover:border-[color-mix(in_srgb,var(--color-text-primary)_20%,transparent)]'
           }`}
         >
           <span className="text-2xl mb-1.5">📥</span>
-          <span className="text-xs font-bold text-white/90">Drag backup here</span>
-          <span className="text-[9px] text-white/40 mt-0.5">or browse files to restore</span>
+          <span className="settings-label">Drag backup here</span>
+          <span className="settings-muted mt-0.5">or browse files to restore</span>
         </div>
       </div>
 
-      <div className="mt-5 border-t border-white/5 pt-5">
-        <span className="text-xs font-bold text-white/90 block mb-3">CSV Reports Export</span>
+      <div className="mt-5 border-t border-[var(--color-border-card)] pt-5">
+        <span className="settings-label block mb-3">CSV Reports Export</span>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="rounded-2xl border border-white/5 bg-black/20 p-4 flex flex-col justify-between">
+          <div className="rounded-2xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] p-4 flex flex-col justify-between">
             <div>
-              <span className="text-xs font-bold text-white/95 block">Study Logs (CSV)</span>
-              <span className="text-[10px] text-white/40 mt-1 leading-normal font-semibold">Export daily study and break durations, mood, and reflection notes.</span>
+              <span className="settings-label block">Study Logs (CSV)</span>
+              <span className="settings-muted mt-1 leading-normal font-semibold block">Export daily study and break durations, mood, and reflection notes.</span>
             </div>
             <button
               onClick={exportStudyLogsCSV}
@@ -142,10 +142,10 @@ export function BackupVaultPanel({
               Export CSV Logs
             </button>
           </div>
-          <div className="rounded-2xl border border-white/5 bg-black/20 p-4 flex flex-col justify-between">
+          <div className="rounded-2xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] p-4 flex flex-col justify-between">
             <div>
-              <span className="text-xs font-bold text-white/95 block">Task Completion (CSV)</span>
-              <span className="text-[10px] text-white/40 mt-1 leading-normal font-semibold">Export tasks registry data, completion status, estimates, and subtask progress.</span>
+              <span className="settings-label block">Task Completion (CSV)</span>
+              <span className="settings-muted mt-1 leading-normal font-semibold block">Export tasks registry data, completion status, estimates, and subtask progress.</span>
             </div>
             <button
               onClick={exportTaskCompletionLogsCSV}
@@ -175,10 +175,10 @@ export function BackupVaultPanel({
 
       <div className="mt-6 border-t border-red-500/15 pt-5">
         <span className="text-xs font-bold text-red-400 block mb-1">Destructive reset zone</span>
-        <p className="text-[10px] text-white/50 leading-normal mb-4">
+        <p className="settings-muted leading-normal mb-4">
           Select specific database tables to clear individually, or sweep all tables to perform a full workspace wipe.
         </p>
-        <div className="grid grid-cols-2 gap-3 mb-5 bg-black/10 border border-white/5 p-4 rounded-2xl">
+        <div className="grid grid-cols-2 gap-3 mb-5 bg-[color-mix(in_srgb,var(--color-surface-card)_30%,transparent)] border border-[var(--color-border-card)] p-4 rounded-2xl">
           {[
             { label: 'Tasks & Subtasks', checked: sweepTasks, set: setSweepTasks },
             { label: 'Study Logs & History', checked: sweepHistory, set: setSweepHistory },
@@ -186,12 +186,12 @@ export function BackupVaultPanel({
             { label: 'Flashcard Decks', checked: sweepCards, set: setSweepCards },
             { label: 'Quick Notes', checked: sweepNotes, set: setSweepNotes },
           ].map(item => (
-            <label key={item.label} className="flex items-center gap-2.5 text-[10px] text-white/70 font-semibold cursor-pointer select-none">
+            <label key={item.label} className="flex items-center gap-2.5 settings-muted font-semibold cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={item.checked}
                 onChange={e => item.set(e.target.checked)}
-                className="rounded border-white/10 bg-black/30 text-red-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                className="rounded border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_50%,transparent)] text-red-500 focus:ring-0 cursor-pointer h-3.5 w-3.5"
               />
               <span>{item.label}</span>
             </label>
@@ -236,7 +236,7 @@ export function BackupVaultPanel({
               if (!ok) return
               resetData()
             }}
-            className="rounded-full bg-white/5 border border-white/10 px-4 py-2 text-xs font-bold text-white/80 hover:bg-white/10 transition-all ios-active-scale cursor-pointer"
+            className="rounded-full bg-[color-mix(in_srgb,var(--color-surface-card)_50%,transparent)] border border-[var(--color-border-card)] px-4 py-2 text-xs font-bold settings-label hover:bg-[color-mix(in_srgb,var(--color-surface-card)_70%,transparent)] transition-all ios-active-scale cursor-pointer"
           >
             Sweep All Tables
           </button>
