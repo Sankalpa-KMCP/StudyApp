@@ -81,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   if (isZenMode) return null
 
   return (
-    <aside className="w-full md:w-64 shrink-0 bg-white/[0.03] border-b md:border-b-0 md:border-r border-white/[0.08] md:m-4 md:mr-0 rounded-b-2xl md:rounded-[28px] p-4 md:p-6 flex flex-col justify-between gap-4 md:gap-6 transition-all duration-300 z-20 shadow-2xl backdrop-blur-3xl">
+    <aside className="glass-panel w-full md:w-64 shrink-0 border-b md:border-b-0 md:border-r border-white/[0.08] md:m-4 md:mr-0 rounded-b-2xl md:rounded-[28px] p-4 md:p-6 flex flex-col justify-between gap-4 md:gap-6 transition-all duration-300 z-20 shadow-2xl">
       <div className="flex flex-col gap-4 md:gap-6">
         <div className="flex items-center gap-3 px-1 py-0.5 select-none">
           <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-gradient-to-tr from-accent-blue to-accent-purple shadow-md shadow-accent-blue/10">
@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        <div className="hidden md:block bg-black/20 border border-white/5 p-4 rounded-[20px] space-y-3.5 select-none">
+        <div className="hidden md:block dynamic-card p-4 space-y-3.5 select-none">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="h-4 w-4 text-accent-amber" />
