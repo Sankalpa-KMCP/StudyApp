@@ -217,7 +217,6 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
       { key: 'tactile_feedback', value: false },
       { key: 'developer_font', value: 'JetBrains Mono' },
       { key: 'enforce_lockout', value: false },
-      { key: 'auto_pause_on_hidden', value: false },
     ])
     await db.categories.bulkAdd([
       { name: 'General', color: '#64748B' },

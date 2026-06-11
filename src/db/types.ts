@@ -78,7 +78,6 @@ export type SettingsKey =
   | 'enforce_lockout'
   | 'initialEasinessFactor'
   | 'autoArchiveAncientTasks'
-  | 'auto_pause_on_hidden'
 
 export type SettingsValue = number | boolean | string | null
 

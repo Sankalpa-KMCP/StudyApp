@@ -41,7 +41,6 @@ interface ControlDeckProps {
   developerFont: string
   enforceLockout: boolean
   autoArchiveAncientTasks: boolean
-  autoPauseOnHidden: boolean
   exportStudyBackup: () => void
   isExporting?: boolean
   exportProgress?: number
@@ -92,7 +91,6 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   developerFont,
   enforceLockout,
   autoArchiveAncientTasks,
-  autoPauseOnHidden,
   exportStudyBackup,
   isExporting,
   exportProgress,
@@ -255,7 +253,6 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
         <ZenLockoutPanel
           enforceLockout={enforceLockout}
           autoArchiveAncientTasks={autoArchiveAncientTasks}
-          autoPauseOnHidden={autoPauseOnHidden}
           updateSetting={updateSetting}
         />
       </div>
