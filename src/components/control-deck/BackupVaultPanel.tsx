@@ -10,6 +10,8 @@ interface BackupVaultPanelProps {
   importStudyBackup: (val: string) => void
   resetData: () => void
   resetDataSelective: (options: { tasks: boolean; history: boolean; categories: boolean; cards: boolean; notes: boolean }) => void
+  clearSnapshots: () => void
+  quotaExceeded?: boolean
   isDragging: boolean
   setIsDragging: (val: boolean) => void
   handleFileDrop: (e: React.DragEvent) => void
@@ -23,6 +25,8 @@ export function BackupVaultPanel({
   importStudyBackup,
   resetData,
   resetDataSelective,
+  clearSnapshots,
+  quotaExceeded = false,
   isDragging,
   setIsDragging,
   handleFileDrop,
@@ -37,6 +41,44 @@ export function BackupVaultPanel({
 
   return (
     <SettingsCard title="Backup Vault">
+      {quotaExceeded && (
+        <div className="mb-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 space-y-3">
+          <p className="text-xs font-bold text-amber-200 uppercase tracking-wider">Storage recovery</p>
+          <p className="text-[11px] text-amber-100/80 leading-relaxed">
+            Your device storage is full. Export first, then clear snapshots or study history to free space.
+          </p>
+          <ol className="space-y-2 text-[11px] text-white/70 list-decimal list-inside">
+            <li>Export your backup vault before deleting anything.</li>
+            <li>Clear local auto-snapshots (safe if you have an export).</li>
+            <li>Sweep study logs and history if you still need room.</li>
+          </ol>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button variant="primary" size="sm" onClick={exportStudyBackup}>
+              1. Export vault
+            </Button>
+            <Button variant="secondary" size="sm" onClick={clearSnapshots}>
+              2. Clear snapshots
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={async () => {
+                const ok = await requestConfirm({
+                  title: 'Sweep study logs & history?',
+                  message: 'This deletes session history and daily logs. Export a backup first if you need them.',
+                  confirmLabel: 'Sweep logs',
+                  danger: true,
+                })
+                if (!ok) return
+                resetDataSelective({ tasks: false, history: true, categories: false, cards: false, notes: false })
+              }}
+            >
+              3. Sweep logs
+            </Button>
+          </div>
+        </div>
+      )}
+
       <p className="text-xs text-white/50 mb-5 leading-relaxed">
         Export backup data bundle to sync tables or local study logs across devices.
       </p>

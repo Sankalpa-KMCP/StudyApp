@@ -45,6 +45,7 @@ function DeckStory() {
         importStudyBackup={() => {}}
         resetData={() => {}}
         resetDataSelective={() => {}}
+        clearSnapshots={() => {}}
         categories={[{ id: 1, name: 'Math', color: '#3B82F6' }]}
         addCategory={() => {}}
         deleteCategory={() => {}}
