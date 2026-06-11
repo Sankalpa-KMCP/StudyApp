@@ -24,6 +24,7 @@ import { countDueFlashcards } from './flashcard/flashcardDue'
 import { getEffectiveDailyGoal, getTodayCategoryStudyMinutes } from '../lib/studyDashboard'
 import { InstallPromptBanner } from './InstallPromptBanner'
 import { usePwaInstall } from '../hooks/usePwaInstall'
+import { buildThemeInlineStyles } from '../lib/applyThemeVars'
 
 export const AppShell = memo(function AppShell() {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
@@ -152,27 +153,12 @@ export const AppShell = memo(function AppShell() {
 
   const isLight = activeThemeVars.isLight ?? false
 
-  const inlineStyles = {
-    '--color-surface': activeThemeVars.surface,
-    '--color-surface-card': activeThemeVars.surfaceCard,
-    '--color-text-primary': activeThemeVars.textPrimary ?? '#ffffff',
-    '--color-text-secondary': activeThemeVars.textSecondary ?? 'rgba(255, 255, 255, 0.65)',
-    '--color-text-muted': activeThemeVars.textMuted ?? 'rgba(255, 255, 255, 0.55)',
-    '--color-on-accent': activeThemeVars.onAccent ?? '#080b11',
-    '--color-accent-blue': activeThemeVars.accentBlue,
-    '--color-accent-purple': activeThemeVars.accentPurple,
-    '--color-accent-green': activeThemeVars.accentGreen,
-    '--color-accent-amber': activeThemeVars.accentAmber,
-    '--surface-card-rgb': activeThemeVars.surfaceCardRgb,
-    '--surface-overlay': `rgba(${activeThemeVars.surfaceCardRgb}, 0.95)`,
-    '--card-opacity': settings.cardOpacity,
-    '--backdrop-blur': `${settings.backdropBlur}px`,
-    '--backdrop-saturate': `${settings.backdropSaturate}%`,
-    '--color-border-card': isLight
-      ? `rgba(0, 0, 0, ${settings.cardBorderOpacity})`
-      : `rgba(255, 255, 255, ${settings.cardBorderOpacity})`,
-    background: activeThemeVars.pageGradient,
-  } as React.CSSProperties
+  const inlineStyles = buildThemeInlineStyles(activeThemeVars, {
+    cardOpacity: settings.cardOpacity,
+    backdropBlur: settings.backdropBlur,
+    backdropSaturate: settings.backdropSaturate,
+    cardBorderOpacity: settings.cardBorderOpacity,
+  })
 
   return (
     <div

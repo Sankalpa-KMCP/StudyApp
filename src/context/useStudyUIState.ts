@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
+import { applyThemeToDocument } from '../lib/applyThemeVars'
 import { resolveThemeProfile } from '../lib/theme'
 import { useZenCanvas } from '../hooks/useZenCanvas'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
@@ -89,6 +90,21 @@ export function useStudyUIState(toast: ToastApi) {
       prefersDark,
     ],
   )
+
+  useEffect(() => {
+    applyThemeToDocument(activeThemeVars, {
+      cardOpacity: settings.cardOpacity,
+      backdropBlur: settings.backdropBlur,
+      backdropSaturate: settings.backdropSaturate,
+      cardBorderOpacity: settings.cardBorderOpacity,
+    })
+  }, [
+    activeThemeVars,
+    settings.cardOpacity,
+    settings.backdropBlur,
+    settings.backdropSaturate,
+    settings.cardBorderOpacity,
+  ])
 
   const notifyFocusLockout = useCallback(() => {
     setActiveToast({
