@@ -1,4 +1,5 @@
 import type { SettingsKey, SettingsValue } from '../../db/types'
+import { MAX_STUDY_BLOCK_MINUTES } from '../../lib/timerConstants'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
@@ -34,7 +35,7 @@ export function TimerFocusPanel({
 
   const fields = [
     { key: 'dailyGoalMinutes' as const, label: 'Daily goal (minutes)', value: dailyGoalMinutes, min: 30, max: 960, step: 30 },
-    { key: 'studyBlockDurationMinutes' as const, label: 'Study block (minutes)', value: studyBlockDurationMinutes, min: 5, max: 120, step: 5 },
+    { key: 'studyBlockDurationMinutes' as const, label: 'Study block (minutes)', value: studyBlockDurationMinutes, min: 5, max: MAX_STUDY_BLOCK_MINUTES, step: 5 },
     { key: 'shortBreakDurationMinutes' as const, label: 'Short break (minutes)', value: shortBreakDurationMinutes, min: 1, max: 30, step: 1 },
     { key: 'longBreakDurationMinutes' as const, label: 'Long break (minutes)', value: longBreakDurationMinutes, min: 5, max: 60, step: 5 },
     { key: 'targetSessionsPerCycle' as const, label: 'Sessions before long break', value: targetSessionsPerCycle, min: 1, max: 10, step: 1 },
