@@ -36,6 +36,8 @@ export function useStudyData() {
     isDataReady: ctx.isDataReady,
     currentStreak: ctx.currentStreak,
     xpData: ctx.xpData,
+    pendingLevelUp: ctx.pendingLevelUp,
+    dismissLevelUp: ctx.dismissLevelUp,
   }), [ctx])
 }
 

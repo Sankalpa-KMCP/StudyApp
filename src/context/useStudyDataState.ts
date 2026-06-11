@@ -7,14 +7,13 @@ import type { useAppToast } from '../hooks/useAppToast'
 
 type PushToast = ReturnType<typeof useAppToast>['pushToast']
 
-export function useStudyDataState(pushToast: PushToast) {
+export function useStudyDataState(_pushToast: PushToast) {
   const data = useDashboardData()
   const { tasks, history, recentHistory, settings, todayLog, flashcards, quickNotes, categories, allLogs, isDataReady } = data
 
-  const { currentStreak, xpData } = useGamification({
+  const { currentStreak, xpData, pendingLevelUp, dismissLevelUp } = useGamification({
     allLogs: allLogs.allLogs,
     isDataReady,
-    pushToast,
   })
 
   const { insights, breakdownData } = useAnalytics({
@@ -50,6 +49,8 @@ export function useStudyDataState(pushToast: PushToast) {
     allLogs,
     currentStreak,
     xpData,
+    pendingLevelUp,
+    dismissLevelUp,
     insights,
     breakdownData,
     journal,
@@ -67,6 +68,8 @@ export function useStudyDataState(pushToast: PushToast) {
     allLogs,
     currentStreak,
     xpData,
+    pendingLevelUp,
+    dismissLevelUp,
     insights,
     breakdownData,
     journal,

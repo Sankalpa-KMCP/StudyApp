@@ -1,23 +1,25 @@
-import { describe, it, expect, vi } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { useGamification } from '../useGamification'
 
 describe('useGamification', () => {
-  it('fires level-up toast when XP level increases', async () => {
-    const pushToast = vi.fn()
+  it('sets pendingLevelUp when XP level increases', async () => {
     const logs = [{ dateString: '2026-06-10', studyMinutes: 100, breakMinutes: 0 }]
 
-    const { rerender } = renderHook(
-      ({ allLogs }) => useGamification({ allLogs, isDataReady: true, pushToast }),
+    const { result, rerender } = renderHook(
+      ({ allLogs }) => useGamification({ allLogs, isDataReady: true }),
       { initialProps: { allLogs: logs } },
     )
 
-    await waitFor(() => expect(pushToast).not.toHaveBeenCalled())
+    await waitFor(() => expect(result.current.pendingLevelUp).toBeNull())
 
     rerender({ allLogs: [{ dateString: '2026-06-10', studyMinutes: 500, breakMinutes: 0 }] })
 
     await waitFor(() => {
-      expect(pushToast).toHaveBeenCalledWith('LEVEL UP', expect.stringContaining('Level'))
+      expect(result.current.pendingLevelUp).toBeGreaterThan(1)
     })
+
+    act(() => result.current.dismissLevelUp())
+    expect(result.current.pendingLevelUp).toBeNull()
   })
 })

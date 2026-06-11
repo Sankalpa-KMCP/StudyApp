@@ -1,28 +1,30 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { calculateStreak, calculateXpLevel } from '../lib/studyDashboard'
 import type { DailyLog } from '../db/types'
 
 interface UseGamificationOptions {
   allLogs: DailyLog[]
   isDataReady: boolean
-  pushToast: (key: string, message: string) => void
 }
 
-export function useGamification({ allLogs, isDataReady, pushToast }: UseGamificationOptions) {
+export function useGamification({ allLogs, isDataReady }: UseGamificationOptions) {
   const currentStreak = useMemo(() => calculateStreak(allLogs), [allLogs])
   const xpData = useMemo(() => calculateXpLevel(allLogs), [allLogs])
   const prevLevelRef = useRef<number | null>(null)
+  const [pendingLevelUp, setPendingLevelUp] = useState<number | null>(null)
 
   useEffect(() => {
     if (isDataReady && xpData.level !== undefined) {
       if (prevLevelRef.current === null) {
         prevLevelRef.current = xpData.level
       } else if (xpData.level > prevLevelRef.current) {
-        pushToast('LEVEL UP', `Reached Level ${xpData.level}! Keep up the focus!`)
+        setPendingLevelUp(xpData.level)
         prevLevelRef.current = xpData.level
       }
     }
-  }, [xpData.level, isDataReady, pushToast])
+  }, [xpData.level, isDataReady])
 
-  return { currentStreak, xpData }
+  const dismissLevelUp = () => setPendingLevelUp(null)
+
+  return { currentStreak, xpData, pendingLevelUp, dismissLevelUp }
 }

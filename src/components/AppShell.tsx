@@ -24,6 +24,7 @@ import { buildThemeInlineStyles } from '../lib/applyThemeVars'
 import { AppShellLoadingScreen } from './app-shell/AppShellLoadingScreen'
 import { AppShellStatusBanners } from './app-shell/AppShellStatusBanners'
 import { AppToastOverlay } from './app-shell/AppToastOverlay'
+import { LevelUpModal } from './LevelUpModal'
 import { prefetchControlDeck } from '../lib/prefetchControlDeck'
 
 export const AppShell = memo(function AppShell() {
@@ -48,6 +49,8 @@ export const AppShell = memo(function AppShell() {
     categories,
     currentStreak,
     xpData,
+    pendingLevelUp,
+    dismissLevelUp,
     todayLog,
     flashcards,
     recentHistory,
@@ -210,8 +213,26 @@ export const AppShell = memo(function AppShell() {
 
       <ReflectionModalContainer studyBlockDurationMinutes={settings.studyBlockDurationMinutes} />
       <HotkeyModal isOpen={isHotkeyHudOpen} onClose={() => setIsHotkeyHudOpen(false)} />
-      <OnboardingModal isOpen={showOnboarding} onClose={handleCloseOnboarding} updateSetting={settings.updateSetting} />
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onClose={handleCloseOnboarding}
+        updateSetting={settings.updateSetting}
+        onOpenBackup={() => {
+          void handleSetActiveTab('settings')
+          requestAnimationFrame(() => {
+            document.getElementById('settings-backup-vault')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          })
+        }}
+        onReplayTour={openOnboarding}
+      />
       <AppToastOverlay toast={activeToast} />
+      {pendingLevelUp !== null && (
+        <LevelUpModal
+          level={pendingLevelUp}
+          xpProgressPercent={xpData.xpProgressPercent}
+          onDismiss={dismissLevelUp}
+        />
+      )}
 
       <QuickNotesDrawer
         isOpen={isNotesOpen}
