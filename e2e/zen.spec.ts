@@ -28,5 +28,6 @@ test('focus lockout blocks exit when enforce lockout is on', async ({ page }) =>
   await page.getByRole('button', { name: /focus mode/i }).click()
 
   await expect(page.getByText(/deep study/i)).toBeVisible({ timeout: 10000 })
-  await expect(page.getByRole('button', { name: /exit/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /exit/i })).toBeVisible()
+  await expect(page.getByText('(Locked)')).toBeVisible()
 })

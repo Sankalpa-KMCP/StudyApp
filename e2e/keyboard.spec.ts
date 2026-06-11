@@ -12,8 +12,11 @@ test('keyboard shortcuts modal opens and closes with Escape', async ({ page }) =
 test('space toggles timer on focus tab', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
-  await page.getByRole('button', { name: /focus/i }).filter({ visible: true }).first().click()
-  const playButton = page.getByRole('button', { name: /start|pause|resume timer/i }).first()
+  const onboarding = page.getByRole('dialog', { name: /welcome to study dashboard/i })
+  if (await onboarding.isVisible().catch(() => false)) {
+    await page.getByRole('button', { name: 'Skip onboarding tour' }).click()
+  }
+  const playButton = page.getByRole('button', { name: /^(Start timer|Pause timer)$/i })
   await expect(playButton).toBeVisible({ timeout: 10000 })
   const labelBefore = await playButton.getAttribute('aria-label')
   await page.keyboard.press('Space')
