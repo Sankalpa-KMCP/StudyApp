@@ -113,7 +113,7 @@ export function TaskList({
             </div>
             <p className="text-sm font-bold text-white/70">No focus targets yet</p>
             <p className="text-label text-white/45 mt-1.5 font-medium max-w-xs leading-relaxed">
-              Create your first task above and hit Enter to start tracking your study blocks! Once started, click the play button on the timer card.
+              Type a focus target and press Enter—the timer starts automatically.
             </p>
           </div>
         ) : (
