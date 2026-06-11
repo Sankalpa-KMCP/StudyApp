@@ -105,7 +105,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-accent-blue" />
-              <span className="text-sm font-bold text-slate-200">{monthNames[currentMonth]} {currentYear}</span>
+              <span className="text-sm font-bold text-text-primary">{monthNames[currentMonth]} {currentYear}</span>
             </div>
             <div className="flex items-center gap-2">
               <button type="button" aria-label="Previous month" onClick={goPrevMonth} className="h-7 w-7 rounded-full border border-white/8 bg-white/5 hover:bg-white/10 text-sm transition-all flex items-center justify-center cursor-pointer active:scale-90 ios-active-scale">‹</button>
@@ -126,7 +126,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
 
           <div className="grid grid-cols-7 gap-1.5 mb-2 text-center">
             {dayNames.map(d => (
-              <div key={d} className="text-label font-bold text-slate-400 uppercase tracking-widest">{d}</div>
+              <div key={d} className="text-label font-bold text-text-secondary uppercase tracking-widest">{d}</div>
             ))}
           </div>
 
@@ -148,14 +148,14 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                   onClick={() => setSelectedDay(cell)}
                   className={`group relative aspect-square min-h-[40px] rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300 ease-out cursor-pointer ios-active-scale active:scale-95 ${
                     cell === selectedDay
-                      ? 'ring-2 ring-accent-blue text-text-primary scale-110 z-10 shadow-md shadow-accent-blue/15'
+                      ? 'ring-2 ring-accent-blue text-on-accent scale-110 z-10 shadow-md shadow-accent-blue/15'
                       : 'hover:scale-105 hover:z-10 hover:ring-1 hover:ring-white/20'
                   }`}
-                  style={cell === selectedDay ? { backgroundColor: activeThemeVars.accentBlue, color: '#080b11' } : getIntensityStyle(intensity)}
+                  style={cell === selectedDay ? { backgroundColor: activeThemeVars.accentBlue } : getIntensityStyle(intensity)}
                 >
                   <span>{cell}</span>
                   {dayData && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-36 bg-[#161620]/90 backdrop-blur-xl border border-white/10 p-2.5 rounded-[16px] text-[9px] font-mono text-left pointer-events-none z-30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] leading-normal animate-slide-in-up">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-36 surface-overlay border border-white/10 p-2.5 rounded-[16px] text-micro font-mono text-left pointer-events-none z-30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] leading-normal animate-slide-in-up">
                       <div className="font-bold text-white mb-1 border-b border-white/10 pb-0.5">
                         {monthNames[currentMonth]} {cell}, {currentYear}
                       </div>
@@ -171,7 +171,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
             })}
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-label text-slate-400 border-t border-white/5 pt-4">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-label text-text-secondary border-t border-white/5 pt-4">
             <div className="flex items-center gap-3">
               {[
                 { label: '0-1h', intensity: 0 as const },

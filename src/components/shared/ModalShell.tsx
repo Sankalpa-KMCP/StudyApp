@@ -49,7 +49,7 @@ export function ModalShell({
         aria-labelledby={ariaLabelledby}
         aria-describedby={ariaDescribedby}
         aria-label={ariaLabel}
-        className={`relative w-full max-w-md rounded-2xl border border-white/10 bg-[#161620]/95 backdrop-blur-xl shadow-2xl ${panelClassName}`.trim()}
+        className={`relative w-full max-w-md rounded-2xl border border-white/10 surface-overlay shadow-2xl ${panelClassName}`.trim()}
       >
         {children}
       </div>
