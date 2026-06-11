@@ -7,7 +7,7 @@ import { useFlashcardStudySession } from './flashcard/useFlashcardStudySession'
 import { FlashcardCreateForm } from './flashcard/FlashcardCreateForm'
 import { FlashcardRegistry } from './flashcard/FlashcardRegistry'
 import { FlashcardStudyModal } from './flashcard/FlashcardStudyModal'
-import { TabPageShell } from './shared/TabPageShell'
+import { TabPageShell, TabSection } from './shared/TabPageShell'
 import { MetricCard } from './shared/MetricCard'
 
 interface FlashcardStudioProps {
@@ -70,10 +70,11 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
 
   return (
     <TabPageShell>
-      <div className="lg:col-span-12 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+      <TabSection label="Filter by subject">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
         <button
           onClick={() => setActiveCategoryFilter('all')}
-          className={`px-4.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ios-active-scale ${
+          className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ios-active-scale ${
             activeCategoryFilter === 'all'
               ? 'bg-white/10 text-white border-white/10'
               : 'bg-white/[0.02] text-white/60 border-white/5 hover:text-white'
@@ -85,7 +86,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
           <button
             key={cat.id}
             onClick={() => cat.id !== undefined && setActiveCategoryFilter(cat.id)}
-            className={`px-4.5 py-1.5 rounded-full text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ios-active-scale ${
+            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ios-active-scale ${
               activeCategoryFilter === cat.id
                 ? 'text-white border-white/10'
                 : 'bg-white/[0.02] text-white/60 border-white/5 hover:text-white'
@@ -97,6 +98,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
           </button>
         ))}
       </div>
+      </TabSection>
 
       <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard label="Total Flashcards" value={String(stats.total)} icon={Layers} />
