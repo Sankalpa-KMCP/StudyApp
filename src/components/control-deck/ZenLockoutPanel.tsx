@@ -1,17 +1,13 @@
-import type { SettingsKey, SettingsValue } from '../../db/types'
+import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
 
-interface ZenLockoutPanelProps {
-  enforceLockout: boolean
-  autoArchiveAncientTasks: boolean
-  updateSetting: (key: SettingsKey, val: SettingsValue) => void
-}
+export function ZenLockoutPanel() {
+  const { enforce_lockout: enforceLockout, autoArchiveAncientTasks, updateSetting } = useSettingsPanel()
 
-export function ZenLockoutPanel({ enforceLockout, autoArchiveAncientTasks, updateSetting }: ZenLockoutPanelProps) {
   return (
     <>
-      <SettingsCard title="Zen Lockout">
+      <SettingsCard id="settings-zen-lockout" title="Zen Lockout">
         <p className="settings-muted leading-relaxed mb-4">
           Hides tab and escape navigation menus during study blocks to enforce strict focus.
         </p>
