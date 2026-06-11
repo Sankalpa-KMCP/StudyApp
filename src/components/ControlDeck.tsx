@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
-import { Sparkles, X } from 'lucide-react'
-import type { CategoryItem, SettingsKey, SettingsValue } from '../db/types'
+import { useState } from 'react'
+import { Sparkles } from 'lucide-react'
+import { useConfirm } from '../context/useConfirm'
 import { AestheticsPanel } from './control-deck/AestheticsPanel'
 import { NotesSettingsPanel } from './control-deck/NotesSettingsPanel'
 import { TimerFocusPanel } from './control-deck/TimerFocusPanel'
@@ -8,113 +8,19 @@ import { SoundFeedbackPanel } from './control-deck/SoundFeedbackPanel'
 import { AlgorithmPanel } from './control-deck/AlgorithmPanel'
 import { ZenLockoutPanel } from './control-deck/ZenLockoutPanel'
 import { BackupVaultPanel } from './control-deck/BackupVaultPanel'
-import { TabPageShell } from './shared/TabPageShell'
+import { CategoriesPanel } from './control-deck/CategoriesPanel'
+import { SettingsPanelProvider, useSettingsPanel } from './control-deck/SettingsPanelContext'
+import { SettingsShell, SettingsSection, scrollToSettingsSection } from './control-deck/SettingsShell'
 import { SettingsCard } from './shared/settings/SettingsCard'
 
 interface ControlDeckProps {
-  updateSetting: (key: SettingsKey, val: SettingsValue) => void
-  updateCategory: (id: number, updates: { name?: string; color?: string; dailyGoalMinutes?: number }) => void | Promise<void>
-  theme: string
-  themePreset: string
-  lightThemePreset: string
-  uiFont: string
-  uiDensity: 'comfortable' | 'compact'
-  cardOpacity: number
-  backdropBlur: number
-  backdropSaturate: number
-  cardBorderOpacity: number
-  accentBlueOverride: string | null
-  accentPurpleOverride: string | null
-  accentGreenOverride: string | null
-  accentAmberOverride: string | null
-  noteTagColors: string[]
-  initialEasinessFactor: number
-  dailyGoalMinutes: number
-  studyBlockDurationMinutes: number
-  shortBreakDurationMinutes: number
-  longBreakDurationMinutes: number
-  targetSessionsPerCycle: number
-  recentHistoryLimit: number
-  focusNotificationsEnabled: boolean
-  soundEnabled: boolean
-  tactileEnabled: boolean
-  developerFont: string
-  enforceLockout: boolean
-  autoArchiveAncientTasks: boolean
-  exportStudyBackup: () => void
-  isExporting?: boolean
-  exportProgress?: number
-  exportStudyLogsCSV: () => void
-  exportTaskCompletionLogsCSV: () => void
-  importStudyBackup: (val: string) => void
-  resetData: () => void
-  resetDataSelective: (options: { tasks: boolean; history: boolean; categories: boolean; cards: boolean; notes: boolean }) => void
-  clearSnapshots: () => void
-  quotaExceeded?: boolean
-  categories: CategoryItem[]
-  addCategory: (name: string, color: string, dailyGoalMinutes?: number) => void | Promise<number>
-  deleteCategory: (id: number) => void
-  isDragging: boolean
-  setIsDragging: (val: boolean) => void
-  handleFileDrop: (e: React.DragEvent) => void
-  fileInputRef: React.RefObject<HTMLInputElement | null>
   onShowOnboarding?: () => void
 }
 
-export const ControlDeck: React.FC<ControlDeckProps> = ({
-  updateSetting,
-  updateCategory,
-  theme,
-  themePreset,
-  lightThemePreset,
-  uiFont,
-  uiDensity,
-  cardOpacity,
-  backdropBlur,
-  backdropSaturate,
-  cardBorderOpacity,
-  accentBlueOverride,
-  accentPurpleOverride,
-  accentGreenOverride,
-  accentAmberOverride,
-  noteTagColors,
-  initialEasinessFactor,
-  dailyGoalMinutes,
-  studyBlockDurationMinutes,
-  shortBreakDurationMinutes,
-  longBreakDurationMinutes,
-  targetSessionsPerCycle,
-  recentHistoryLimit,
-  focusNotificationsEnabled,
-  soundEnabled,
-  tactileEnabled,
-  developerFont,
-  enforceLockout,
-  autoArchiveAncientTasks,
-  exportStudyBackup,
-  isExporting,
-  exportProgress,
-  exportStudyLogsCSV,
-  exportTaskCompletionLogsCSV,
-  importStudyBackup,
-  resetData,
-  resetDataSelective,
-  clearSnapshots,
-  quotaExceeded = false,
-  categories,
-  addCategory,
-  deleteCategory,
-  isDragging,
-  setIsDragging,
-  handleFileDrop,
-  fileInputRef,
-  onShowOnboarding,
-}) => {
-  const [newCategoryName, setNewCategoryName] = useState('')
-  const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
-  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null)
-  const [editingCategoryName, setEditingCategoryName] = useState('')
-  const [newCategoryGoal, setNewCategoryGoal] = useState('')
+function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
+  const { dailyGoalMinutes, resetSectionDefaults } = useSettingsPanel()
+  const { requestConfirm } = useConfirm()
+
   const [startHereDismissed, setStartHereDismissed] = useState(
     () => typeof window !== 'undefined' && !!localStorage.getItem('settings_start_here_dismissed'),
   )
@@ -123,319 +29,138 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   )
   const showHighGoalNudge = !goalNudgeDismissed && dailyGoalMinutes >= 480
 
-  const scrollToSettingsSection = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
   const dismissStartHere = () => {
     localStorage.setItem('settings_start_here_dismissed', 'true')
     setStartHereDismissed(true)
   }
 
-  return (
-    <TabPageShell>
+  const handleSectionReset = async (sectionId: 'appearance' | 'focus' | 'study' | 'data') => {
+    const ok = await requestConfirm({
+      title: 'Reset section defaults?',
+      message: 'Restores all settings in this section to their original values.',
+      confirmLabel: 'Reset',
+    })
+    if (!ok) return
+    void resetSectionDefaults(sectionId)
+  }
+
+  const banners = (
+    <>
       {showHighGoalNudge && (
-        <div className="lg:col-span-12">
-          <SettingsCard title="Daily goal tip">
-            <p className="text-xs text-white/70 leading-relaxed">
-              8h is a lot for day one—try 2h? You can lower your daily goal in Timer &amp; Focus.
-            </p>
-            <div className="flex flex-wrap gap-2 mt-3">
-              <button
-                type="button"
-                onClick={() => scrollToSettingsSection('settings-timer-focus')}
-                className="text-xs font-semibold text-accent-blue hover:text-accent-blue/80"
-              >
-                Adjust daily goal
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  localStorage.setItem('goal_nudge_dismissed', 'true')
-                  setGoalNudgeDismissed(true)
-                }}
-                className="text-xs font-semibold text-white/40 hover:text-white/70"
-              >
-                Dismiss
-              </button>
-            </div>
-          </SettingsCard>
-        </div>
-      )}
-      {!startHereDismissed && (
-        <div className="lg:col-span-12">
-          <SettingsCard title="Start here">
-            <p className="text-[11px] text-white/50 leading-relaxed mb-3">
-              Three essentials to set up your sanctuary on day one.
-            </p>
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => scrollToSettingsSection('settings-timer-focus')}
-                className="text-left text-xs font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
-              >
-                Daily goal → Timer & Focus
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToSettingsSection('settings-categories')}
-                className="text-left text-xs font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
-              >
-                Subject categories → organize your tasks
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToSettingsSection('settings-backup-vault')}
-                className="text-left text-xs font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
-              >
-                Export backup → keep your data safe
-              </button>
-            </div>
+        <SettingsCard title="Daily goal tip">
+          <p className="settings-muted leading-relaxed">
+            8h is a lot for day one—try 2h? You can lower your daily goal in Timer &amp; Focus.
+          </p>
+          <div className="flex flex-wrap gap-2 mt-3">
             <button
               type="button"
-              onClick={dismissStartHere}
-              className="mt-4 text-[10px] font-semibold text-white/40 hover:text-white/70 transition-colors"
+              onClick={() => scrollToSettingsSection('settings-focus')}
+              className="text-xs font-semibold text-accent-blue hover:text-accent-blue/80"
+            >
+              Adjust daily goal
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem('goal_nudge_dismissed', 'true')
+                setGoalNudgeDismissed(true)
+              }}
+              className="text-xs font-semibold settings-muted hover:text-[var(--color-text-primary)]"
             >
               Dismiss
             </button>
-          </SettingsCard>
-        </div>
-      )}
-      {onShowOnboarding && (
-        <div className="lg:col-span-12">
-          <SettingsCard title="Getting Started">
-            <button
-              type="button"
-              onClick={onShowOnboarding}
-              className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left text-xs font-semibold text-white/80 hover:bg-white/[0.06] transition-all ios-active-scale"
-            >
-              <Sparkles className="h-4 w-4 text-accent-blue shrink-0" />
-              <span>Replay the Getting Started tour</span>
-            </button>
-          </SettingsCard>
-        </div>
-      )}
-      <div className="lg:col-span-6 flex flex-col gap-6">
-        <AestheticsPanel
-          theme={theme}
-          themePreset={themePreset}
-          lightThemePreset={lightThemePreset}
-          uiFont={uiFont}
-          uiDensity={uiDensity}
-          cardOpacity={cardOpacity}
-          backdropBlur={backdropBlur}
-          backdropSaturate={backdropSaturate}
-          cardBorderOpacity={cardBorderOpacity}
-          accentBlueOverride={accentBlueOverride}
-          accentPurpleOverride={accentPurpleOverride}
-          accentGreenOverride={accentGreenOverride}
-          accentAmberOverride={accentAmberOverride}
-          updateSetting={updateSetting}
-        />
-        <NotesSettingsPanel noteTagColors={noteTagColors} updateSetting={updateSetting} />
-        <TimerFocusPanel
-          dailyGoalMinutes={dailyGoalMinutes}
-          studyBlockDurationMinutes={studyBlockDurationMinutes}
-          shortBreakDurationMinutes={shortBreakDurationMinutes}
-          longBreakDurationMinutes={longBreakDurationMinutes}
-          targetSessionsPerCycle={targetSessionsPerCycle}
-          recentHistoryLimit={recentHistoryLimit}
-          focusNotificationsEnabled={focusNotificationsEnabled}
-          updateSetting={updateSetting}
-        />
-        <SoundFeedbackPanel
-          soundEnabled={soundEnabled}
-          tactileEnabled={tactileEnabled}
-          developerFont={developerFont}
-          updateSetting={updateSetting}
-        />
-        <AlgorithmPanel initialEasinessFactor={initialEasinessFactor} updateSetting={updateSetting} />
-        <ZenLockoutPanel
-          enforceLockout={enforceLockout}
-          autoArchiveAncientTasks={autoArchiveAncientTasks}
-          updateSetting={updateSetting}
-        />
-      </div>
-
-      <div className="lg:col-span-6 flex flex-col gap-6">
-        <SettingsCard id="settings-categories" title="Subject Categories">
-          <div className="flex gap-2 mb-4 bg-white/5 border border-white/5 p-2 rounded-full">
-            <input
-              id="category-name-input"
-              value={newCategoryName}
-              onChange={e => setNewCategoryName(e.target.value)}
-              type="text"
-              placeholder="Label (e.g. Science)"
-              aria-label="Category name"
-              className="flex-1 rounded-full bg-transparent px-3 py-1.5 text-xs text-white placeholder-white/20 outline-none transition-all"
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  const val = newCategoryName.trim()
-                  if (!val) return
-                  const goal = newCategoryGoal.trim() ? Number(newCategoryGoal) : undefined
-                  addCategory(val, newCategoryColor, goal)
-                  setNewCategoryName('')
-                  setNewCategoryGoal('')
-                }
-              }}
-            />
-            <input
-              value={newCategoryGoal}
-              onChange={e => setNewCategoryGoal(e.target.value)}
-              type="number"
-              min={15}
-              max={960}
-              step={15}
-              placeholder="Goal (min)"
-              aria-label="Category daily goal minutes"
-              className="w-24 rounded-full bg-transparent px-3 py-1.5 text-xs text-white placeholder-white/20 outline-none transition-all"
-            />
-            <input
-              type="color"
-              value={newCategoryColor}
-              onChange={e => setNewCategoryColor(e.target.value)}
-              className="h-8 w-8 cursor-pointer rounded-full border border-white/10 bg-[#0c0f17] p-0.5"
-            />
-            <button
-              onClick={() => {
-                const val = newCategoryName.trim()
-                if (!val) return
-                const goal = newCategoryGoal.trim() ? Number(newCategoryGoal) : undefined
-                addCategory(val, newCategoryColor, goal)
-                setNewCategoryName('')
-                setNewCategoryGoal('')
-              }}
-              className="rounded-full bg-accent-blue hover:bg-accent-blue/90 text-white px-4 py-1.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
-            >
-              Add
-            </button>
-          </div>
-          <div className="flex items-center gap-2.5 mb-4.5 px-2 select-none">
-            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Swatches:</span>
-            <div className="flex flex-wrap gap-2">
-              {['#3B82F6', '#8B5CF6', '#EC4899', '#EF4444', '#F59E0B', '#10B981', '#64748B'].map(color => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setNewCategoryColor(color)}
-                  className={`h-5.5 w-5.5 rounded-full border cursor-pointer transition-all duration-200 hover:scale-110 ${
-                    newCategoryColor.toLowerCase() === color.toLowerCase()
-                      ? 'border-white scale-105 shadow-md shadow-white/10'
-                      : 'border-white/10 hover:border-white/30'
-                  }`}
-                  style={{ backgroundColor: color }}
-                  title={color}
-                  aria-label={`Category color ${color}`}
-                />
-              ))}
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto max-h-[260px] custom-scrollbar space-y-2 pr-1">
-            {categories.length === 0 ? (
-              <p className="text-xs italic text-white/30 text-center py-4">No categories configured yet.</p>
-            ) : (
-              categories.map(cat => (
-                <div key={cat.id} className="flex items-center gap-2.5 rounded-[16px] bg-black/20 border border-white/5 px-3.5 py-2.5">
-                  <label className="relative h-3 w-3 shrink-0 cursor-pointer" title="Change category color">
-                    <span className="block h-3 w-3 rounded-full border border-white/5" style={{ backgroundColor: cat.color }} />
-                    <input
-                      type="color"
-                      value={cat.color}
-                      onChange={e => {
-                        if (cat.id === undefined) return
-                        void updateCategory(cat.id, { color: e.target.value })
-                      }}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      aria-label={`Color for ${cat.name}`}
-                    />
-                  </label>
-                  {editingCategoryId === cat.id ? (
-                    <input
-                      type="text"
-                      value={editingCategoryName}
-                      onChange={e => setEditingCategoryName(e.target.value)}
-                      onBlur={() => {
-                        if (cat.id === undefined) return
-                        const trimmed = editingCategoryName.trim()
-                        if (trimmed && trimmed !== cat.name) {
-                          void updateCategory(cat.id, { name: trimmed })
-                        }
-                        setEditingCategoryId(null)
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-                        if (e.key === 'Escape') setEditingCategoryId(null)
-                      }}
-                      autoFocus
-                      className="flex-1 min-w-0 rounded-lg bg-black/30 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-accent-blue/40"
-                      aria-label={`Edit name for ${cat.name}`}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (cat.id === undefined) return
-                        setEditingCategoryId(cat.id)
-                        setEditingCategoryName(cat.name)
-                      }}
-                      className="flex-1 text-left text-xs font-bold text-white/80 truncate hover:text-white transition-colors cursor-pointer"
-                    >
-                      {cat.name}
-                    </button>
-                  )}
-                  <input
-                    type="number"
-                    min={15}
-                    max={960}
-                    step={15}
-                    aria-label={`Daily goal minutes for ${cat.name}`}
-                    placeholder="Goal"
-                    value={cat.dailyGoalMinutes ?? ''}
-                    onChange={e => {
-                      const raw = e.target.value
-                      if (cat.id === undefined) return
-                      void updateCategory(cat.id, {
-                        dailyGoalMinutes: raw ? Number(raw) : undefined,
-                      })
-                    }}
-                    className="w-16 rounded-lg bg-black/30 border border-white/10 px-2 py-1 text-[10px] text-white outline-none"
-                  />
-                  <button
-                    onClick={async () => {
-                      try {
-                        await deleteCategory(cat.id!)
-                      } catch {
-                        alert('Cannot delete the last category.')
-                      }
-                    }}
-                    aria-label={`Delete category ${cat.name}`}
-                    className="flex h-6 w-6 items-center justify-center rounded-full text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all ios-active-scale cursor-pointer"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))
-            )}
           </div>
         </SettingsCard>
+      )}
+      {!startHereDismissed && (
+        <SettingsCard title="Start here">
+          <p className="settings-muted leading-relaxed mb-3">
+            Three essentials to set up your sanctuary on day one.
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => scrollToSettingsSection('settings-focus')}
+              className="text-left text-xs font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
+            >
+              Daily goal → Timer & Focus
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSettingsSection('settings-study')}
+              className="text-left text-xs font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
+            >
+              Subject categories → organize your tasks
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSettingsSection('settings-data')}
+              className="text-left text-xs font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
+            >
+              Export backup → keep your data safe
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={dismissStartHere}
+            className="mt-4 text-micro font-semibold settings-muted hover:text-[var(--color-text-primary)] transition-colors"
+          >
+            Dismiss
+          </button>
+        </SettingsCard>
+      )}
+      {onShowOnboarding && (
+        <SettingsCard id="settings-getting-started" title="Getting Started">
+          <button
+            type="button"
+            onClick={onShowOnboarding}
+            className="flex w-full items-center gap-3 rounded-xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] px-4 py-3 text-left text-xs font-semibold text-[var(--color-text-primary)] hover:bg-[color-mix(in_srgb,var(--color-surface-card)_60%,transparent)] transition-all ios-active-scale"
+          >
+            <Sparkles className="h-4 w-4 text-accent-blue shrink-0" />
+            <span>Replay the Getting Started tour</span>
+          </button>
+        </SettingsCard>
+      )}
+    </>
+  )
 
-        <BackupVaultPanel
-          exportStudyBackup={exportStudyBackup}
-          isExporting={isExporting}
-          exportProgress={exportProgress}
-          exportStudyLogsCSV={exportStudyLogsCSV}
-          exportTaskCompletionLogsCSV={exportTaskCompletionLogsCSV}
-          importStudyBackup={importStudyBackup}
-          resetData={resetData}
-          resetDataSelective={resetDataSelective}
-          clearSnapshots={clearSnapshots}
-          quotaExceeded={quotaExceeded}
-          isDragging={isDragging}
-          setIsDragging={setIsDragging}
-          handleFileDrop={handleFileDrop}
-          fileInputRef={fileInputRef}
-        />
-      </div>
-    </TabPageShell>
+  return (
+    <SettingsShell banners={banners}>
+      <SettingsSection id="appearance" label="Appearance">
+        <AestheticsPanel />
+      </SettingsSection>
+
+      <SettingsSection
+        id="focus"
+        label="Focus"
+        onResetDefaults={() => void handleSectionReset('focus')}
+      >
+        <TimerFocusPanel />
+        <SoundFeedbackPanel />
+        <ZenLockoutPanel />
+      </SettingsSection>
+
+      <SettingsSection
+        id="study"
+        label="Study"
+        onResetDefaults={() => void handleSectionReset('study')}
+      >
+        <NotesSettingsPanel />
+        <AlgorithmPanel />
+        <CategoriesPanel />
+      </SettingsSection>
+
+      <SettingsSection id="data" label="Data">
+        <BackupVaultPanel />
+      </SettingsSection>
+    </SettingsShell>
+  )
+}
+
+export function ControlDeck({ onShowOnboarding }: ControlDeckProps) {
+  return (
+    <SettingsPanelProvider>
+      <ControlDeckContent onShowOnboarding={onShowOnboarding} />
+    </SettingsPanelProvider>
   )
 }
