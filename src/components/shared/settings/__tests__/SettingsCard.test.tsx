@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { SettingsCard } from '../SettingsCard'
 
 describe('SettingsCard', () => {
-  it('renders title and children inside Card', () => {
+  it('renders title and children inside PanelCard', () => {
     render(
       <SettingsCard title="Timer">
         <p>Child content</p>
