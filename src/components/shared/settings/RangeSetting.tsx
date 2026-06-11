@@ -11,9 +11,9 @@ interface RangeSettingProps {
 export function RangeSetting({ label, value, min, max, step = 1, unit = '', onChange }: RangeSettingProps) {
   return (
     <div className="space-y-2">
-      <div className="flex justify-between items-center text-caption font-semibold text-white/60">
+      <div className="flex justify-between items-center settings-label">
         <span>{label}</span>
-        <span className="font-mono text-white bg-white/10 border border-white/10 rounded-full px-2 py-0.5 text-label">{value}{unit}</span>
+        <span className="font-mono text-[var(--color-text-primary)] bg-[color-mix(in_srgb,var(--color-surface-card)_80%,transparent)] border border-[var(--color-border-card)] rounded-full px-2 py-0.5 text-label">{value}{unit}</span>
       </div>
       <input
         type="range"
