@@ -1,18 +1,31 @@
-import type { SettingsKey, SettingsValue } from '../../db/types'
+import { useConfirm } from '../../context/useConfirm'
+import { STUDY_ALGORITHM_RESET_KEYS } from '../../lib/settingsSections'
+import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
 
-interface AlgorithmPanelProps {
-  initialEasinessFactor: number
-  updateSetting: (key: SettingsKey, val: SettingsValue) => void
-}
+export function AlgorithmPanel() {
+  const { initialEasinessFactor, updateSetting, resetKeys } = useSettingsPanel()
+  const { requestConfirm } = useConfirm()
 
-export function AlgorithmPanel({ initialEasinessFactor, updateSetting }: AlgorithmPanelProps) {
+  const handleReset = async () => {
+    const ok = await requestConfirm({
+      title: 'Reset algorithm settings?',
+      message: 'Restores the default initial easiness factor (2.5).',
+      confirmLabel: 'Reset',
+    })
+    if (!ok) return
+    void resetKeys(STUDY_ALGORITHM_RESET_KEYS, 'Algorithm settings restored')
+  }
+
   return (
-    <SettingsCard title="Algorithm Settings">
-      <p className="settings-muted leading-relaxed mb-4">
-        Adjust default SM-2 memory parameters for initial recall intervals. Higher EF means cards stay easier longer after a good grade (e.g. 2.5 is typical).
-      </p>
+    <SettingsCard
+      id="settings-algorithm"
+      title="Algorithm Settings"
+      defaultCollapsed
+      onResetDefaults={() => void handleReset()}
+      description="Adjust default SM-2 memory parameters for initial recall intervals. Higher EF means cards stay easier longer after a good grade (e.g. 2.5 is typical)."
+    >
       <RangeSetting
         label="Initial Easiness Factor (EF)"
         value={initialEasinessFactor}
