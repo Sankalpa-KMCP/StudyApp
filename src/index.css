@@ -38,11 +38,17 @@
   --font-monospace: 'JetBrains Mono', monospace;
   --font-sans-geom: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --color-on-accent: #080b11;
+  --color-nav-active-text: #ffffff;
   --card-opacity: 0.7;
   --backdrop-blur: 28px;
   --backdrop-saturate: 180%;
   --card-border-opacity: 0.08;
   --surface-card-rgb: 22, 22, 32;
+  --surface-card-hover-rgb: 30, 30, 44;
+  --body-base: #05040a;
+  --body-ambient: none;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.12);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
   --motion-fast: 150ms;
   --motion-normal: 250ms;
   --motion-slow: 400ms;
@@ -147,7 +153,7 @@
 
 .sidebar-rail-btn:hover {
   background-color: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   transform: scale(1.04);
 }
 
@@ -155,7 +161,7 @@
   background-color: color-mix(in srgb, var(--color-accent-blue) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent-blue) 25%, transparent);
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-blue) 15%, transparent);
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   font-weight: 700;
 }
 
@@ -163,7 +169,7 @@
   background-color: color-mix(in srgb, var(--color-accent-purple) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent-purple) 25%, transparent);
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-purple) 15%, transparent);
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   font-weight: 700;
 }
 
@@ -171,7 +177,7 @@
   background-color: color-mix(in srgb, var(--color-accent-green) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent-green) 25%, transparent);
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-green) 15%, transparent);
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   font-weight: 700;
 }
 
@@ -179,7 +185,7 @@
   background-color: color-mix(in srgb, var(--color-accent-amber) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent-amber) 25%, transparent);
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-amber) 15%, transparent);
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   font-weight: 700;
 }
 
@@ -187,7 +193,7 @@
   background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   border-color: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-text-primary) 6%, transparent);
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   font-weight: 700;
 }
 
@@ -223,35 +229,35 @@
 }
 
 .mobile-nav-btn[data-active="true"][data-accent="focus"] {
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   background-color: color-mix(in srgb, var(--color-accent-blue) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent-blue) 25%, transparent);
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-blue) 12%, transparent);
 }
 
 .mobile-nav-btn[data-active="true"][data-accent="cards"] {
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   background-color: color-mix(in srgb, var(--color-accent-purple) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent-purple) 25%, transparent);
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-purple) 12%, transparent);
 }
 
 .mobile-nav-btn[data-active="true"][data-accent="analytics"] {
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   background-color: color-mix(in srgb, var(--color-accent-green) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent-green) 25%, transparent);
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-green) 12%, transparent);
 }
 
 .mobile-nav-btn[data-active="true"][data-accent="journal"] {
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   background-color: color-mix(in srgb, var(--color-accent-amber) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent-amber) 25%, transparent);
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-amber) 12%, transparent);
 }
 
 .mobile-nav-btn[data-active="true"][data-accent="settings"] {
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   border-color: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
   box-shadow: 0 0 10px color-mix(in srgb, var(--color-text-primary) 5%, transparent);
@@ -278,15 +284,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: var(--font-sans-geom);
-  background-color: #05040a !important;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(175, 82, 222, 0.12) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(0, 122, 255, 0.12) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(52, 199, 89, 0.06) 0px, transparent 50%),
-    radial-gradient(at 80% 50%, rgba(255, 149, 0, 0.04) 0px, transparent 40%) !important;
+  background-color: var(--body-base) !important;
+  background-image: var(--body-ambient) !important;
   color: var(--color-text-primary);
   overflow-x: hidden;
   min-height: 100vh;
+  transition: background-color 300ms ease, color 300ms ease;
 }
 
 /* Custom Scrollbars */
@@ -298,11 +301,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--scrollbar-thumb);
   border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Slide in transitions */
@@ -360,7 +363,7 @@ body {
 
 .dynamic-card:hover {
   background-color: color-mix(in srgb, var(--color-surface-card-hover) calc(var(--card-opacity, 0.7) * 100%), transparent) !important;
-  border-color: rgba(255, 255, 255, 0.16) !important;
+  border-color: var(--color-border-card) !important;
   box-shadow: var(--shadow-elevated) !important;
   transform: translateY(-2px) scale(1.005) !important;
 }
@@ -372,21 +375,21 @@ body {
 }
 
 .glass-tier-2 {
-  background-color: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background-color: color-mix(in srgb, var(--color-surface-card) 40%, transparent) !important;
+  border: 1px solid var(--color-border-card) !important;
   border-radius: 20px;
 }
 
 .glass-tier-3 {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background-color: color-mix(in srgb, var(--color-surface-card) 55%, transparent) !important;
+  border: 1px solid var(--color-border-card) !important;
 }
 
 /* iOS range slider controls */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  background: rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
   border-radius: 99px;
   height: 6px;
   outline: none;
@@ -397,8 +400,8 @@ input[type="range"]::-webkit-slider-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #ffffff;
-  border: 0.5px solid rgba(0, 0, 0, 0.15);
+  background: var(--color-text-primary);
+  border: 0.5px solid color-mix(in srgb, var(--color-text-primary) 20%, transparent);
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
   transition: transform 0.1s ease;
@@ -432,12 +435,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .nav-tab:hover {
   color: var(--color-text-primary);
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
   transform: translateX(2px);
 }
 
 .nav-tab[data-active="true"][data-accent="focus"] {
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   background-color: color-mix(in srgb, var(--color-accent-blue) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent-blue) 20%, transparent);
   box-shadow: 0 0 16px color-mix(in srgb, var(--color-accent-blue) 10%, transparent);
@@ -445,7 +448,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .nav-tab[data-active="true"][data-accent="cards"] {
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   background-color: color-mix(in srgb, var(--color-accent-purple) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent-purple) 20%, transparent);
   box-shadow: 0 0 16px color-mix(in srgb, var(--color-accent-purple) 10%, transparent);
@@ -453,7 +456,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .nav-tab[data-active="true"][data-accent="analytics"] {
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   background-color: color-mix(in srgb, var(--color-accent-green) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent-green) 20%, transparent);
   box-shadow: 0 0 16px color-mix(in srgb, var(--color-accent-green) 10%, transparent);
@@ -461,7 +464,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .nav-tab[data-active="true"][data-accent="journal"] {
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   background-color: color-mix(in srgb, var(--color-accent-amber) 12%, transparent);
   border-color: color-mix(in srgb, var(--color-accent-amber) 20%, transparent);
   box-shadow: 0 0 16px color-mix(in srgb, var(--color-accent-amber) 10%, transparent);
@@ -469,7 +472,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .nav-tab[data-active="true"][data-accent="settings"] {
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
   background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   border-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
   box-shadow: 0 0 12px color-mix(in srgb, var(--color-text-primary) 5%, transparent);
@@ -524,11 +527,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 /* Muted Gradients / Typography overrides */
 .text-gradient-metallic {
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
 }
 
 .text-gradient-accent {
-  color: #ffffff;
+  color: var(--color-nav-active-text, var(--color-text-primary));
 }
 
 .text-gradient-amber {
@@ -666,6 +669,42 @@ input[type="range"]::-webkit-slider-thumb:hover {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
+.settings-label {
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+.settings-muted {
+  color: var(--color-text-muted);
+  font-size: var(--text-micro);
+}
+
+.settings-input,
+.settings-select {
+  width: 100%;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border-card);
+  background-color: color-mix(in srgb, var(--color-surface-card) 50%, transparent);
+  color: var(--color-text-primary);
+  padding: 0.625rem 1rem;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.settings-input:hover,
+.settings-select:hover {
+  background-color: color-mix(in srgb, var(--color-surface-card) 70%, transparent);
+}
+
+.settings-input:focus-visible,
+.settings-select:focus-visible {
+  border-color: color-mix(in srgb, var(--color-accent-blue) 40%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -674,6 +713,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  body {
+    transition: none !important;
   }
 
   .flashcard-inner {
