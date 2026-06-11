@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { TOOLTIP_STYLE } from '../../lib/theme'
+import { tooltipStyle } from '../../lib/theme'
 import { TabLoadingFallback } from '../shared/TabLoadingFallback'
 import { useStudyAnalytics, useStudyData, useStudyUI } from '../../context/useStudyApp'
 
@@ -32,7 +32,7 @@ export function AnalyticsTab() {
         completionRate={insights.completionRate}
         peakDay={insights.peakDay}
         activeThemeVars={activeThemeVars}
-        tooltipStyle={TOOLTIP_STYLE}
+        tooltipStyle={tooltipStyle(activeThemeVars)}
         hasChartData={calendar.hasChartData}
       />
     </Suspense>
