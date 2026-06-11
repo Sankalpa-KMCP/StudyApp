@@ -61,6 +61,7 @@ export const SECTION_DEFAULT_KEYS: Record<SettingsSectionId, SettingsKey[]> = {
     'longBreakDurationMinutes',
     'targetSessionsPerCycle',
     'recentHistoryLimit',
+    'historyRetentionDays',
     'focusNotificationsEnabled',
     'soundEnabled',
     'tactile_feedback',
@@ -71,7 +72,7 @@ export const SECTION_DEFAULT_KEYS: Record<SettingsSectionId, SettingsKey[]> = {
     'autoArchiveAncientTasks',
   ],
   study: ['initialEasinessFactor', 'noteTagColors', 'autoArchiveAncientTasks'],
-  data: [],
+  data: ['historyRetentionDays'],
 }
 
 export const STUDY_NOTES_RESET_KEYS: SettingsKey[] = ['noteTagColors']
@@ -121,3 +122,10 @@ export function getDefaultForKey(key: SettingsKey): SettingsValue {
   }
   return value as SettingsValue
 }
+
+export function scrollToSettingsSection(id: string) {
+  if (typeof document !== 'undefined') {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+

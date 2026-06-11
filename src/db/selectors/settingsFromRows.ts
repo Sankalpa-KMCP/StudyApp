@@ -41,6 +41,7 @@ export interface ParsedSettings {
   autoArchiveAncientTasks: boolean
   ambientSoundEnabled: boolean
   ambientSoundPreset: 'rain' | 'white-noise'
+  historyRetentionDays: number
 }
 
 export const SETTINGS_DEFAULTS: ParsedSettings = {
@@ -73,6 +74,7 @@ export const SETTINGS_DEFAULTS: ParsedSettings = {
   autoArchiveAncientTasks: false,
   ambientSoundEnabled: false,
   ambientSoundPreset: 'rain',
+  historyRetentionDays: 0,
 }
 
 function parseNoteTagColors(raw: string): string[] {
@@ -127,6 +129,7 @@ export function settingsFromRows(rows: SettingsRow[] | undefined): ParsedSetting
     autoArchiveAncientTasks: getValue(rows, 'autoArchiveAncientTasks', SETTINGS_DEFAULTS.autoArchiveAncientTasks),
     ambientSoundEnabled: getValue(rows, 'ambientSoundEnabled', SETTINGS_DEFAULTS.ambientSoundEnabled),
     ambientSoundPreset: getValue(rows, 'ambientSoundPreset', SETTINGS_DEFAULTS.ambientSoundPreset),
+    historyRetentionDays: getValue(rows, 'historyRetentionDays', SETTINGS_DEFAULTS.historyRetentionDays),
   } as ParsedSettings
 }
 

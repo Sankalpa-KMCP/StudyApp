@@ -19,6 +19,7 @@ const NUMERIC_RULES: Partial<Record<SettingsKey, NumericRule>> = {
   longBreakDurationMinutes: { min: 5, max: 60, step: 5 },
   targetSessionsPerCycle: { min: 1, max: 10, step: 1 },
   recentHistoryLimit: { min: 50, max: 500, step: 25 },
+  historyRetentionDays: { min: 0, max: 365, step: 30 },
   cardOpacity: { min: 0.2, max: 0.9, step: 0.05 },
   backdropBlur: { min: 4, max: 24, step: 1 },
   backdropSaturate: { min: 100, max: 200, step: 5 },

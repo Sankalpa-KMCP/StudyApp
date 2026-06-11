@@ -80,6 +80,7 @@ export type SettingsKey =
   | 'autoArchiveAncientTasks'
   | 'ambientSoundEnabled'
   | 'ambientSoundPreset'
+  | 'historyRetentionDays'
 
 export type SettingsValue = number | boolean | string | null
 
