@@ -14,6 +14,7 @@ interface SidebarProps {
   timerMode: 'study' | 'break'
   enforceLockout: boolean
   onToggleNotes: () => void
+  onShowOnboarding: () => void
 }
 
 const NAV_TABS: { id: ActiveTab; label: string; icon: React.FC<{ className?: string }>; color: string }[] = [
@@ -36,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   timerMode,
   enforceLockout,
   onToggleNotes,
+  onShowOnboarding: _onShowOnboarding,
 }) => {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const [indicatorStyle, setIndicatorStyle] = useState<React.CSSProperties>({
