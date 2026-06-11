@@ -30,22 +30,22 @@ export function SidebarExpandedContent({
       <div className="flex flex-col gap-4 md:gap-6">
         <SidebarHeader collapsed={false} onToggleCollapse={onToggleCollapse} />
 
-        <div className="hidden md:block dynamic-card space-y-3.5 select-none p-4 animate-slide-in-up">
+        <div className="hidden md:block dynamic-card-static space-y-3.5 select-none p-4 animate-slide-in-up">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="h-4 w-4 text-accent-amber" />
-              <span className="text-xs font-semibold text-white">{currentStreak} Day Streak</span>
+              <span className="text-xs font-semibold text-primary">{currentStreak} Day Streak</span>
             </div>
-            <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-label font-bold text-white">
+            <span className="rounded-full surface-track px-2.5 py-0.5 text-label font-bold text-primary">
               LVL {level}
             </span>
           </div>
           <div className="space-y-1.5">
-            <div className="flex justify-between text-label font-bold text-white/40 uppercase tracking-wider">
+            <div className="flex justify-between text-label font-bold text-muted uppercase tracking-wider">
               <span>XP Progress</span>
               <span>{Math.round(xpProgressPercent)}%</span>
             </div>
-            <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+            <div className="h-2 w-full rounded-full surface-track overflow-hidden">
               <div
                 className="h-full bg-accent-blue rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${xpProgressPercent}%` }}
@@ -54,7 +54,7 @@ export function SidebarExpandedContent({
           </div>
         </div>
 
-        <p className="hidden md:block px-1 text-label font-bold uppercase tracking-wider text-white/30 select-none">Workspace</p>
+        <p className="hidden md:block px-1 text-label font-bold uppercase tracking-wider text-muted select-none">Workspace</p>
         <nav className="hidden md:flex flex-col gap-1">
           {NAV_TABS.map(tab => {
             const isActive = activeTab === tab.id
@@ -76,7 +76,7 @@ export function SidebarExpandedContent({
             )
           })}
 
-          <p className="hidden md:block px-1 pt-2 text-label font-bold uppercase tracking-wider text-white/30 select-none">Tools</p>
+          <p className="hidden md:block px-1 pt-2 text-label font-bold uppercase tracking-wider text-muted select-none">Tools</p>
           <SidebarActionButton
             variant="expanded"
             label="Quick Notes"
@@ -87,7 +87,7 @@ export function SidebarExpandedContent({
         </nav>
       </div>
 
-      <div className="hidden md:flex flex-col border-t border-white/5 pt-4 gap-3.5 select-none">
+      <div className="hidden md:flex flex-col border-t border-card pt-4 gap-3.5 select-none">
         <SidebarActionButton
           variant="expanded"
           label="Getting Started Tour"
@@ -100,13 +100,13 @@ export function SidebarExpandedContent({
           variant="expanded"
           label="Keyboard Shortcuts"
           icon={Keyboard}
-          iconClassName="text-white/40"
+          iconClassName="text-muted"
           onClick={() => setIsHotkeyHudOpen(true)}
           compact
         />
         <div className="text-center space-y-0.5">
-          <p className="text-label text-white/30 font-mono">Study Dashboard Engine</p>
-          <p className="text-label text-white/40 font-mono font-medium">Created by Sankalpa KMCP</p>
+          <p className="text-label text-muted font-mono">Study Dashboard Engine</p>
+          <p className="text-label text-secondary font-mono font-medium">Created by Sankalpa KMCP</p>
         </div>
       </div>
     </div>
