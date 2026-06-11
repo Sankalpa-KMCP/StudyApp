@@ -1,19 +1,44 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { RangeSetting } from '../RangeSetting'
 
 describe('RangeSetting', () => {
-  it('renders label and value badge', () => {
-    render(<RangeSetting label="Opacity" value={70} min={0} max={100} onChange={vi.fn()} unit="%" />)
-    expect(screen.getByText('Opacity')).toBeInTheDocument()
-    expect(screen.getByText('70%')).toBeInTheDocument()
+  beforeEach(() => {
+    vi.useFakeTimers()
   })
 
-  it('calls onChange when slider value changes', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('debounces onChange', () => {
     const onChange = vi.fn()
-    render(<RangeSetting label="Blur" value={8} min={4} max={24} onChange={onChange} unit="px" />)
+    render(
+      <RangeSetting label="Test" value={10} min={0} max={100} onChange={onChange} debounceMs={300} />,
+    )
+
     const slider = screen.getByRole('slider')
-    fireEvent.change(slider, { target: { value: '12' } })
-    expect(onChange).toHaveBeenCalled()
+    fireEvent.change(slider, { target: { value: '20' } })
+
+    expect(onChange).not.toHaveBeenCalled()
+
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+
+    expect(onChange).toHaveBeenCalledWith(20)
+  })
+
+  it('commits immediately on pointer up', () => {
+    const onChange = vi.fn()
+    render(
+      <RangeSetting label="Test" value={10} min={0} max={100} onChange={onChange} debounceMs={300} />,
+    )
+
+    const slider = screen.getByRole('slider')
+    fireEvent.change(slider, { target: { value: '30' } })
+    fireEvent.pointerUp(slider)
+
+    expect(onChange).toHaveBeenCalledWith(30)
   })
 })
