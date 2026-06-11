@@ -4,6 +4,7 @@ import { Play, Pause, Check, Sparkles, Heart } from 'lucide-react'
 import { Button } from './shared/Button'
 import { PanelCard } from './shared/PanelCard'
 import { PanelHeader } from './shared/PanelHeader'
+import { SelectionChip } from './shared/SelectionChip'
 import type { SettingsKey, SettingsValue } from '../db/types'
 
 interface FocusSanctuaryProps {
@@ -104,26 +105,17 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
 
           <div className="flex justify-center gap-2 mb-4">
             {(['study', 'break'] as const).map(mode => {
-              const isActive = timerMode === mode
-              const modeActiveClass =
-                mode === 'study'
-                  ? 'bg-accent-blue text-white border-accent-blue/30 shadow-md shadow-accent-blue/15'
-                  : isLongBreak
-                  ? 'bg-accent-green text-white border-accent-green/30 shadow-md shadow-accent-green/15'
-                  : 'bg-accent-amber text-white border-accent-amber/30 shadow-md shadow-accent-amber/15'
+              const breakAccent = isLongBreak ? 'green' : 'amber'
               return (
-                <button
+                <SelectionChip
                   key={mode}
-                  type="button"
+                  selected={timerMode === mode}
+                  accent={mode === 'study' ? 'blue' : breakAccent}
+                  size="md"
                   onClick={() => handleModeSwitch(mode)}
-                  className={`px-4 py-2 rounded-full text-caption font-semibold transition-all ios-active-scale cursor-pointer ${
-                    isActive
-                      ? modeActiveClass
-                      : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
-                  }`}
                 >
                   {mode === 'study' ? 'Study' : 'Break'}
-                </button>
+                </SelectionChip>
               )
             })}
           </div>
@@ -137,8 +129,8 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
           </button>
 
           {/* Duration Adjuster */}
-          <div className={`flex flex-col items-center gap-2 mb-5 border-t border-white/5 pt-4 ${showDurationAdjust ? '' : 'hidden md:flex'}`}>
-            <span className="text-micro uppercase font-bold text-white/40 tracking-wider">
+          <div className={`flex flex-col items-center gap-2 mb-5 border-t border-card pt-4 ${showDurationAdjust ? '' : 'hidden md:flex'}`}>
+            <span className="text-micro uppercase font-bold text-muted tracking-wider">
               {timerMode === 'study' ? 'Study Block Length' : isLongBreak ? 'Long Break Length' : 'Short Break Length'}
             </span>
             <div className="flex items-center gap-3">
@@ -160,11 +152,11 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                       : shortBreakDurationMinutes
                   handleDurationChange(current - (timerMode === 'study' ? 5 : 1))
                 }}
-                className="h-7 w-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-sm text-white/80 hover:bg-white/10 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer font-bold select-none"
+                className="h-7 w-7 rounded-full surface-subtle border border-card flex items-center justify-center text-sm text-secondary hover:surface-track active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer font-bold select-none"
               >
                 -
               </button>
-              <span className="text-sm font-mono font-bold text-white min-w-[60px] text-center">
+              <span className="text-sm font-mono font-bold text-primary min-w-[60px] text-center">
                 {timerMode === 'study'
                   ? studyBlockDurationMinutes
                   : isLongBreak
@@ -189,14 +181,14 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                       : shortBreakDurationMinutes
                   handleDurationChange(current + (timerMode === 'study' ? 5 : 1))
                 }}
-                className="h-7 w-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-sm text-white/80 hover:bg-white/10 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer font-bold select-none"
+                className="h-7 w-7 rounded-full surface-subtle border border-card flex items-center justify-center text-sm text-secondary hover:surface-track active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer font-bold select-none"
               >
                 +
               </button>
             </div>
             
             {/* Quick Presets */}
-            <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap justify-center">
               {(timerMode === 'study' ? [15, 25, 45, 60] : isLongBreak ? [10, 15, 20, 30] : [3, 5, 10, 15]).map(mins => {
                 const currentVal =
                   timerMode === 'study'
@@ -204,36 +196,23 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                     : isLongBreak
                     ? longBreakDurationMinutes
                     : shortBreakDurationMinutes
-                const isSelected = currentVal === mins
                 return (
-                  <button
+                  <SelectionChip
                     key={mins}
-                    type="button"
+                    selected={currentVal === mins}
+                    accentColor={activeColor}
+                    size="sm"
                     onClick={() => handleDurationChange(mins)}
-                    className={`px-2.5 py-1 rounded-lg text-label font-bold border transition-all cursor-pointer ${
-                      isSelected
-                        ? ''
-                        : 'bg-white/[0.02] text-white/40 border-white/5 hover:text-white/70 hover:border-white/10'
-                    }`}
-                    style={
-                      isSelected
-                        ? {
-                            backgroundColor: `color-mix(in srgb, ${activeColor} 15%, transparent)`,
-                            borderColor: `color-mix(in srgb, ${activeColor} 35%, transparent)`,
-                            color: activeColor,
-                          }
-                        : undefined
-                    }
                   >
                     {mins}m
-                  </button>
+                  </SelectionChip>
                 )
               })}
             </div>
           </div>
 
           <div className="flex flex-col items-center py-2">
-            <div className="relative flex h-48 w-48 md:h-64 md:w-64 items-center justify-center rounded-full border border-white/5 bg-black/10 overflow-hidden">
+            <div className="relative flex h-48 w-48 md:h-64 md:w-64 focus-timer-ring items-center justify-center rounded-full border border-card surface-subtle overflow-hidden">
               {/* Spherical Radial Glow */}
               <div 
                 className="absolute inset-[3%] rounded-full opacity-15 blur-2xl pointer-events-none transition-all duration-700 ease-out" 
@@ -259,16 +238,17 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               </svg>
 
               <div className="text-center z-10 select-none" aria-live="polite" aria-atomic="true">
-                <p className="text-5xl md:text-7xl font-bold text-white tracking-tight tabular-nums drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]" role="timer">
+                <p className="text-5xl md:text-7xl font-bold text-primary tracking-tight tabular-nums drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]" role="timer">
                   {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
                 </p>
-                <span className="inline-block rounded-full bg-white/5 border border-white/5 px-3 py-0.5 text-label font-semibold uppercase tracking-wider text-white/60 mt-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+                <span className="inline-block rounded-full surface-subtle border border-card px-3 py-0.5 text-label font-semibold uppercase tracking-wider text-muted mt-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
                   {timerMode === 'study' ? 'Study Block' : isLongBreak ? 'Long Break' : 'Short Break'}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 mt-7 select-none flex-wrap justify-center">
+            <div className="flex flex-col items-center gap-3 mt-7 select-none w-full max-w-xs">
+              <div className="flex items-center gap-3 flex-wrap justify-center w-full">
               {timerMode === 'break' && (
                 <button
                   onClick={skipBreak}
@@ -281,27 +261,56 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               <button
                 onClick={() => { onUserGesture?.(); setIsTimerActive(a => !a) }}
                 aria-label={isTimerActive ? 'Pause timer' : 'Start timer'}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-blue text-white hover:bg-accent-blue/90 transition-all ios-active-scale cursor-pointer shadow-md shadow-accent-blue/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className={`hidden md:flex h-14 w-14 items-center justify-center rounded-full text-on-accent hover:opacity-90 transition-all ios-active-scale cursor-pointer shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue ${!isTimerActive ? 'timer-cta-idle' : ''}`}
+                style={{ backgroundColor: activeColor, ['--timer-cta-color' as string]: activeColor }}
               >
-                {isTimerActive ? <Pause className="h-4.5 w-4.5" /> : <Play className="h-4.5 w-4.5" />}
+                {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
               </button>
 
               {(isTimerActive || secondsElapsed > 0) && (
                 <>
                   <button
                     onClick={extendSession}
-                    className="px-4 py-2.5 rounded-full text-xs font-bold border border-accent-purple/20 bg-accent-purple/10 hover:bg-accent-purple/20 text-accent-purple transition-all ios-active-scale cursor-pointer"
+                    className="hidden md:inline-flex px-4 py-2.5 rounded-full text-xs font-bold border border-accent-purple/20 bg-accent-purple/10 hover:bg-accent-purple/20 text-accent-purple transition-all ios-active-scale cursor-pointer"
                   >
                     +5 Min
                   </button>
                   <button
                     onClick={completeSession}
-                    className="flex items-center gap-1.5 rounded-full bg-white/10 text-white border border-white/5 px-4 py-2.5 text-xs font-semibold hover:bg-white/15 transition-all ios-active-scale cursor-pointer"
+                    className="hidden md:flex items-center gap-1.5 rounded-full surface-track text-primary border border-card px-4 py-2.5 text-xs font-semibold hover:surface-subtle transition-all ios-active-scale cursor-pointer"
                   >
                     <Check className="h-4 w-4 text-accent-green stroke-[2.5]" />
                     <span>Complete</span>
                   </button>
                 </>
+              )}
+              </div>
+
+              <button
+                onClick={() => { onUserGesture?.(); setIsTimerActive(a => !a) }}
+                aria-label={isTimerActive ? 'Pause timer' : 'Start timer'}
+                className={`md:hidden w-full py-3.5 rounded-full text-sm font-bold text-on-accent transition-all ios-active-scale cursor-pointer shadow-md ${!isTimerActive ? 'timer-cta-idle' : ''}`}
+                style={{ backgroundColor: activeColor, ['--timer-cta-color' as string]: activeColor }}
+              >
+                {isTimerActive ? 'Pause focus' : 'Start focus'}
+              </button>
+
+              {(isTimerActive || secondsElapsed > 0) && (
+                <div className="flex md:hidden items-center gap-2 w-full">
+                  <button
+                    onClick={extendSession}
+                    className="flex-1 px-4 py-2.5 rounded-full text-xs font-bold border border-accent-purple/20 bg-accent-purple/10 text-accent-purple transition-all ios-active-scale cursor-pointer"
+                  >
+                    +5 Min
+                  </button>
+                  <button
+                    onClick={completeSession}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-full surface-track text-primary border border-card px-4 py-2.5 text-xs font-semibold transition-all ios-active-scale cursor-pointer"
+                  >
+                    <Check className="h-4 w-4 text-accent-green stroke-[2.5]" />
+                    <span>Complete</span>
+                  </button>
+                </div>
               )}
             </div>
 
