@@ -76,6 +76,12 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
 }
 
+.sidebar-rail {
+  background-color: rgba(18, 18, 26, 0.88) !important;
+  backdrop-filter: blur(32px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
+}
+
 body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
