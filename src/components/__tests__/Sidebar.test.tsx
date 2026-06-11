@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Sidebar } from '../Sidebar'
 
@@ -29,39 +29,50 @@ describe('Sidebar', () => {
     expect(screen.getByText('Study Dashboard')).toBeVisible()
     expect(screen.getByText('Getting Started Tour')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Collapse sidebar', hidden: true })).toBeInTheDocument()
-    expect(container.querySelector('[data-collapsed="false"]')).toBeInTheDocument()
-    expect(container.querySelector('.sidebar-shell--expanded')).toBeInTheDocument()
+    const shell = container.querySelector('.sidebar-shell')
+    expect(shell).toBeInTheDocument()
+    expect(shell).toHaveAttribute('data-collapsed', 'false')
+    expect(shell).toHaveClass('sidebar-shell--expanded')
   })
 
   it('collapses to icon rail and persists preference in localStorage', async () => {
     const user = userEvent.setup()
-    render(<Sidebar {...baseProps} />)
+    const { container } = render(<Sidebar {...baseProps} />)
+    const shell = container.querySelector('.sidebar-shell')
+    expect(shell).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'Collapse sidebar', hidden: true }))
 
-    expect(localStorage.getItem('sidebar_collapsed')).toBe('true')
+    await waitFor(() => {
+      expect(localStorage.getItem('sidebar_collapsed')).toBe('true')
+      expect(shell).toHaveAttribute('data-collapsed', 'true')
+    })
+    expect(container.querySelector('.sidebar-shell')).toBe(shell)
     expect(screen.getByRole('button', { name: 'Expand sidebar', hidden: true })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Focus', hidden: true })).toBeInTheDocument()
-    expect(document.querySelector('[data-collapsed="true"]')).toBeInTheDocument()
   })
 
   it('renders rail with grid-centered nav and no inline labels when collapsed', async () => {
     const user = userEvent.setup()
     const { container } = render(<Sidebar {...baseProps} />)
+    const shell = container.querySelector('.sidebar-shell')
 
     await user.click(screen.getByRole('button', { name: 'Collapse sidebar', hidden: true }))
 
-    const rail = container.querySelector('[data-collapsed="true"]')
-    expect(rail).toBeInTheDocument()
-    expect(rail).toHaveClass('sidebar-shell--rail')
+    await waitFor(() => {
+      expect(shell).toHaveAttribute('data-collapsed', 'true')
+    })
+
+    expect(shell).toHaveClass('sidebar-shell--rail')
     expect(container.querySelector('.sidebar-indicator')).not.toBeInTheDocument()
 
-    const nav = rail?.querySelector('nav')
+    const nav = shell?.querySelector('nav')
     expect(nav).toHaveClass('justify-items-center')
 
     const focusButton = screen.getByRole('button', { name: 'Focus', hidden: true })
     expect(focusButton).toHaveClass('h-10')
     expect(focusButton).toHaveClass('w-10')
+    expect(focusButton).toHaveAttribute('data-active', 'true')
     expect(focusButton.querySelectorAll('span')).toHaveLength(0)
     expect(focusButton.querySelector('svg')).toBeInTheDocument()
   })
@@ -70,13 +81,15 @@ describe('Sidebar', () => {
     localStorage.setItem('sidebar_collapsed', 'true')
     const { container } = render(<Sidebar {...baseProps} activeTab="cards" />)
 
-    const rail = container.querySelector('[data-collapsed="true"]')
-    const nav = rail?.querySelector('nav')
+    const shell = container.querySelector('.sidebar-shell')
+    const nav = shell?.querySelector('nav')
     expect(nav).toHaveClass('justify-items-center')
 
     const cardsButton = screen.getByRole('button', { name: 'Cards', hidden: true })
     expect(cardsButton).toHaveClass('h-10')
     expect(cardsButton).toHaveClass('w-10')
+    expect(cardsButton).toHaveAttribute('data-active', 'true')
+    expect(cardsButton).toHaveAttribute('data-accent', 'cards')
     expect(cardsButton.querySelectorAll('span:not([aria-hidden="true"])')).toHaveLength(0)
     expect(cardsButton.querySelector('svg')).toBeInTheDocument()
   })
@@ -85,15 +98,19 @@ describe('Sidebar', () => {
     localStorage.setItem('sidebar_collapsed', 'true')
     const user = userEvent.setup()
     const { container } = render(<Sidebar {...baseProps} />)
+    const shell = container.querySelector('.sidebar-shell')
 
-    expect(container.querySelector('[data-collapsed="true"]')).toBeInTheDocument()
+    expect(shell).toHaveAttribute('data-collapsed', 'true')
 
     await user.click(screen.getByRole('button', { name: 'Expand sidebar', hidden: true }))
 
-    expect(localStorage.getItem('sidebar_collapsed')).toBe('false')
+    await waitFor(() => {
+      expect(localStorage.getItem('sidebar_collapsed')).toBe('false')
+      expect(shell).toHaveAttribute('data-collapsed', 'false')
+    })
+    expect(container.querySelector('.sidebar-shell')).toBe(shell)
     expect(screen.getByText('Study Dashboard')).toBeVisible()
     expect(screen.getByText('Getting Started Tour')).toBeVisible()
-    expect(container.querySelector('[data-collapsed="false"]')).toBeInTheDocument()
-    expect(container.querySelector('.nav-tab.active')).toBeInTheDocument()
+    expect(container.querySelector('.nav-tab[data-active="true"]')).toBeInTheDocument()
   })
 })
