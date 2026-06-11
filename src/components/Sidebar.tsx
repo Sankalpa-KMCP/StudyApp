@@ -150,10 +150,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         <nav className="relative hidden md:flex flex-col gap-1">
-          <div
-            className="sidebar-indicator pointer-events-none"
-            style={indicatorStyle}
-          />
+          {!collapsed && (
+            <div
+              className="sidebar-indicator pointer-events-none"
+              style={indicatorStyle}
+            />
+          )}
 
           {NAV_TABS.map(tab => {
             const Icon = tab.icon
@@ -168,12 +170,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 aria-label={tab.label}
                 title={isLocked ? 'Focus lockout active' : tab.label}
                 onClick={() => handleTabClick(tab.id)}
-                className={`relative z-10 w-full flex items-center rounded-[14px] font-semibold text-xs transition-colors duration-200 ios-active-scale bg-transparent border border-transparent ${
-                  collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3.5 py-2.5'
+                className={`relative z-10 w-full flex items-center rounded-[14px] font-semibold text-xs transition-colors duration-200 ios-active-scale border ${
+                  collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3.5 py-2.5 border-transparent bg-transparent'
                 } ${
-                  isActive
-                    ? 'text-white font-bold'
-                    : 'text-white/60 hover:text-white'
+                  collapsed && isActive
+                    ? 'bg-accent-blue/12 border-accent-blue/25 shadow-sm text-white font-bold'
+                    : collapsed
+                      ? 'border-transparent bg-transparent text-white/60 hover:bg-white/[0.06] hover:text-white'
+                      : isActive
+                        ? 'border-transparent bg-transparent text-white font-bold'
+                        : 'border-transparent bg-transparent text-white/60 hover:text-white'
                 } ${isLocked ? 'opacity-40' : 'cursor-pointer'}`}
               >
                 <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? tab.color : 'text-white/60'}`} />
