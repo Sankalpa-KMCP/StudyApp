@@ -97,6 +97,10 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   const [startHereDismissed, setStartHereDismissed] = useState(
     () => typeof window !== 'undefined' && !!localStorage.getItem('settings_start_here_dismissed'),
   )
+  const [goalNudgeDismissed, setGoalNudgeDismissed] = useState(
+    () => typeof window !== 'undefined' && !!localStorage.getItem('goal_nudge_dismissed'),
+  )
+  const showHighGoalNudge = !goalNudgeDismissed && dailyGoalMinutes >= 480
 
   const scrollToSettingsSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -109,6 +113,34 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
 
   return (
     <TabPageShell>
+      {showHighGoalNudge && (
+        <div className="lg:col-span-12">
+          <SettingsCard title="Daily goal tip">
+            <p className="text-xs text-white/70 leading-relaxed">
+              8h is a lot for day one—try 2h? You can lower your daily goal in Timer &amp; Focus.
+            </p>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <button
+                type="button"
+                onClick={() => scrollToSettingsSection('settings-timer-focus')}
+                className="text-xs font-semibold text-accent-blue hover:text-accent-blue/80"
+              >
+                Adjust daily goal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem('goal_nudge_dismissed', 'true')
+                  setGoalNudgeDismissed(true)
+                }}
+                className="text-xs font-semibold text-white/40 hover:text-white/70"
+              >
+                Dismiss
+              </button>
+            </div>
+          </SettingsCard>
+        </div>
+      )}
       {!startHereDismissed && (
         <div className="lg:col-span-12">
           <SettingsCard title="Start here">
