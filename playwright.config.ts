@@ -20,7 +20,10 @@ export default defineConfig({
       origins: [
         {
           origin: 'http://localhost:5173',
-          localStorage: [{ name: 'sanctuary_onboarding_completed', value: 'true' }],
+          localStorage: [
+            { name: 'sanctuary_onboarding_completed', value: 'true' },
+            { name: 'sidebar_collapsed', value: 'false' },
+          ],
         },
       ],
     },
