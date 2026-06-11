@@ -9,8 +9,8 @@ export function ToggleSetting({ label, description, checked, onChange }: ToggleS
   return (
     <label className="flex items-center justify-between gap-3 cursor-pointer select-none">
       <div>
-        <div className="text-xs font-semibold text-white/80">{label}</div>
-        {description && <div className="text-[10px] text-white/40 mt-0.5">{description}</div>}
+        <div className="settings-label">{label}</div>
+        {description && <div className="settings-muted mt-0.5">{description}</div>}
       </div>
       <button
         type="button"
@@ -18,10 +18,10 @@ export function ToggleSetting({ label, description, checked, onChange }: ToggleS
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={`relative h-6 w-11 rounded-full transition-colors ${checked ? 'bg-accent-blue' : 'bg-white/15'}`}
+        className={`relative h-6 w-11 rounded-full transition-colors ${checked ? 'bg-accent-blue' : 'bg-[color-mix(in_srgb,var(--color-text-primary)_15%,transparent)]'}`}
       >
         <span
-          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : ''}`}
+          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-[var(--color-text-primary)] transition-transform ${checked ? 'translate-x-5 !bg-white' : ''}`}
         />
       </button>
     </label>
