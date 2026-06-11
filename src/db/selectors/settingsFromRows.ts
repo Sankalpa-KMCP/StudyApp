@@ -8,6 +8,9 @@ export interface ParsedSettings {
   shortBreakDurationMinutes: number
   studyBlockDurationMinutes: number
   theme: string
+  themePreset: string
+  recentHistoryLimit: number
+  focusNotificationsEnabled: boolean
   cardOpacity: number
   backdropBlur: number
   tactile_feedback: boolean
@@ -19,13 +22,16 @@ export interface ParsedSettings {
 }
 
 const DEFAULTS: ParsedSettings = {
-  dailyGoalMinutes: 480,
+  dailyGoalMinutes: 120,
   soundEnabled: true,
   targetSessionsPerCycle: 4,
   longBreakDurationMinutes: 15,
   shortBreakDurationMinutes: 5,
   studyBlockDurationMinutes: 25,
   theme: 'midnight-slate',
+  themePreset: 'midnight-slate',
+  recentHistoryLimit: 100,
+  focusNotificationsEnabled: false,
   cardOpacity: 0.7,
   backdropBlur: 8,
   tactile_feedback: false,
@@ -55,6 +61,9 @@ export function settingsFromRows(rows: SettingsRow[] | undefined): ParsedSetting
     shortBreakDurationMinutes: getValue(rows, 'shortBreakDurationMinutes', DEFAULTS.shortBreakDurationMinutes),
     studyBlockDurationMinutes: getValue(rows, 'studyBlockDurationMinutes', DEFAULTS.studyBlockDurationMinutes),
     theme: getValue(rows, 'theme', DEFAULTS.theme),
+    themePreset: getValue(rows, 'themePreset', DEFAULTS.themePreset),
+    recentHistoryLimit: getValue(rows, 'recentHistoryLimit', DEFAULTS.recentHistoryLimit),
+    focusNotificationsEnabled: getValue(rows, 'focusNotificationsEnabled', DEFAULTS.focusNotificationsEnabled),
     cardOpacity: getValue(rows, 'cardOpacity', DEFAULTS.cardOpacity),
     backdropBlur: getValue(rows, 'backdropBlur', DEFAULTS.backdropBlur),
     tactile_feedback: getValue(rows, 'tactile_feedback', DEFAULTS.tactile_feedback),

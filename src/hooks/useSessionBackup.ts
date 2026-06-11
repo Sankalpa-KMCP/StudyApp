@@ -1,6 +1,7 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { db } from '../db/db'
 import { exportStudyBackupFile } from '../lib/backupExport'
+import { verifyBackupChecksum } from '../lib/backupChecksum'
 import { parseStudyBackupPayload, validateBackupPayload } from '../lib/studyDashboard'
 import { devLog } from '../lib/devLogger'
 const MAX_SNAPSHOTS = 3
@@ -13,6 +14,8 @@ function escapeCsvField(value: string): string {
 
 export function useSessionBackup(pushToast: (key: string, message: string) => void) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState(0)
 
   async function createDatabaseSnapshot() {
     try {
@@ -52,10 +55,15 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
 
   async function exportStudyBackup() {
     try {
-      await exportStudyBackupFile('study-vault')
+      setIsExporting(true)
+      setExportProgress(0)
+      await exportStudyBackupFile('study-vault', setExportProgress)
     } catch (err) {
       console.error('Export failed:', err)
       pushToast('BACKUP', 'FAILED TO EXPORT VAULT')
+    } finally {
+      setIsExporting(false)
+      setExportProgress(0)
     }
   }
 
@@ -145,6 +153,12 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
         return
       }
 
+      const checksumValid = await verifyBackupChecksum(data)
+      if (!checksumValid) {
+        pushToast('BACKUP', 'CHECKSUM MISMATCH - FILE MAY BE CORRUPT')
+        return
+      }
+
       await db.transaction('rw', [db.tasks, db.history, db.daily_logs, db.settings, db.categories, db.flashcards, db.quick_notes, db.snapshots], async () => {
         await Promise.all([
           db.tasks.clear(),
@@ -189,7 +203,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
     localStorage.removeItem('completed_study_sessions_count')
     localStorage.removeItem('study_dashboard_snapshots')
     await db.settings.bulkAdd([
-      { key: 'dailyGoalMinutes', value: 480 },
+      { key: 'dailyGoalMinutes', value: 120 },
       { key: 'soundEnabled', value: true },
       { key: 'targetSessionsPerCycle', value: 4 },
       { key: 'longBreakDurationMinutes', value: 15 },
@@ -235,6 +249,8 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
 
   return {
     fileInputRef,
+    isExporting,
+    exportProgress,
     createDatabaseSnapshot,
     exportStudyBackup,
     clearSnapshots,
