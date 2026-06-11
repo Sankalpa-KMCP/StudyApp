@@ -3,11 +3,10 @@ import { render, screen } from '@testing-library/react'
 import { AppContentHeader } from '../AppContentHeader'
 
 describe('AppContentHeader', () => {
-  it('shows simplified mobile goal chip label', () => {
+  it('shows simplified goal chip label', () => {
     render(
       <AppContentHeader
         activeTab="focus"
-        currentStreak={3}
         isTimerActive={false}
         timerMode="study"
         todayStudyMinutes={30}
@@ -21,7 +20,6 @@ describe('AppContentHeader', () => {
     render(
       <AppContentHeader
         activeTab="focus"
-        currentStreak={1}
         isTimerActive
         timerMode="study"
         todayStudyMinutes={0}
@@ -29,5 +27,18 @@ describe('AppContentHeader', () => {
       />,
     )
     expect(screen.getAllByText('Study timer running')).toHaveLength(2)
+  })
+
+  it('does not show streak chip in header', () => {
+    render(
+      <AppContentHeader
+        activeTab="focus"
+        isTimerActive={false}
+        timerMode="study"
+        todayStudyMinutes={0}
+        dailyGoalMinutes={120}
+      />,
+    )
+    expect(screen.queryByText(/day streak/i)).not.toBeInTheDocument()
   })
 })

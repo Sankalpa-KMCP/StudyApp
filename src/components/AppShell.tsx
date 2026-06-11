@@ -162,7 +162,6 @@ export const AppShell = memo(function AppShell() {
         {!isZenMode && (
           <AppContentHeader
             activeTab={activeTab}
-            currentStreak={currentStreak}
             isTimerActive={timerControls.isTimerActive}
             timerMode={timerControls.timerMode}
             todayStudyMinutes={headerStudyMinutes}
