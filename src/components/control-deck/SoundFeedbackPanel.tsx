@@ -1,19 +1,14 @@
-import type { SettingsKey, SettingsValue } from '../../db/types'
+import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
 
 const FONT_OPTIONS = ['JetBrains Mono', 'Inter', 'Outfit'] as const
 
-interface SoundFeedbackPanelProps {
-  soundEnabled: boolean
-  tactileEnabled: boolean
-  developerFont: string
-  updateSetting: (key: SettingsKey, val: SettingsValue) => void
-}
+export function SoundFeedbackPanel() {
+  const { soundEnabled, tactile_feedback: tactileEnabled, developer_font: developerFont, updateSetting } = useSettingsPanel()
 
-export function SoundFeedbackPanel({ soundEnabled, tactileEnabled, developerFont, updateSetting }: SoundFeedbackPanelProps) {
   return (
-    <SettingsCard title="Sound & Feedback">
+    <SettingsCard id="settings-sound-feedback" title="Sound & Feedback">
       <div className="space-y-3">
         <ToggleSetting label="Session chimes" checked={soundEnabled} onChange={v => updateSetting('soundEnabled', v)} />
         <ToggleSetting label="Tactile click feedback" checked={tactileEnabled} onChange={v => updateSetting('tactile_feedback', v)} />
