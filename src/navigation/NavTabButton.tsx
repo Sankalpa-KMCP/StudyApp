@@ -36,6 +36,14 @@ function NavTabBadge({ count, className = '' }: { count: number; className?: str
   )
 }
 
+function buildAriaLabel(label: string, badge: number, isLocked: boolean): string {
+  let aria = badge > 0 ? `${label}, ${badge} due for review` : label
+  if (isLocked) {
+    aria = `${aria}, focus lockout active — pause timer to navigate`
+  }
+  return aria
+}
+
 export function NavTabButton({
   variant,
   tabId,
@@ -52,23 +60,27 @@ export function NavTabButton({
   buttonRef,
 }: NavTabButtonProps) {
   const lockedClass = isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-  const ariaLabel = badge > 0 ? `${label}, ${badge} due for review` : label
+  const ariaLabel = buildAriaLabel(label, badge, isLocked)
 
   const lockIcon = isLocked ? (
     <Lock className="h-3 w-3 shrink-0 text-white/40" aria-hidden />
   ) : null
+
+  const sharedDataAttrs = {
+    'data-tab': tabId,
+    'data-accent': accent,
+    'data-active': isActive ? 'true' : 'false',
+    ...(isLocked ? { 'data-locked': 'true' as const } : {}),
+  }
 
   if (variant === 'sidebar-rail') {
     return (
       <button
         ref={buttonRef}
         type="button"
-        data-tab={tabId}
-        data-accent={accent}
-        data-active={isActive ? 'true' : 'false'}
+        {...sharedDataAttrs}
         aria-current={isActive ? 'page' : undefined}
         aria-label={ariaLabel}
-        aria-disabled={isLocked ? 'true' : undefined}
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
@@ -90,12 +102,9 @@ export function NavTabButton({
       <button
         ref={buttonRef}
         type="button"
-        data-tab={tabId}
-        data-accent={accent}
-        data-active={isActive ? 'true' : 'false'}
+        {...sharedDataAttrs}
         aria-current={isActive ? 'page' : undefined}
         aria-label={ariaLabel}
-        aria-disabled={isLocked ? 'true' : undefined}
         onClick={onClick}
         className={`mobile-nav-btn relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-label font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue ${lockedClass}`}
       >
@@ -115,12 +124,9 @@ export function NavTabButton({
     <button
       ref={buttonRef}
       type="button"
-      data-tab={tabId}
-      data-accent={accent}
-      data-active={isActive ? 'true' : 'false'}
+      {...sharedDataAttrs}
       aria-current={isActive ? 'page' : undefined}
       aria-label={ariaLabel}
-      aria-disabled={isLocked ? 'true' : undefined}
       title={isLocked ? `${FOCUS_LOCKOUT} active` : label}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
