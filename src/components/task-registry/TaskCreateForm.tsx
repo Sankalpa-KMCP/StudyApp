@@ -1,12 +1,19 @@
-import React from 'react'
-import { Plus } from 'lucide-react'
+import React, { useState } from 'react'
+import { ChevronDown, Plus } from 'lucide-react'
 import type { CategoryItem } from '../../db/types'
+import { InlineCategoryManager } from '../shared/InlineCategoryManager'
+
+const OPTIONS_EXPANDED_KEY = 'focus_task_options_expanded'
 
 interface TaskCreateFormProps {
   taskText: string
   setTaskText: (v: string) => void
   sessionCategoryId: number | undefined
+  onSelectCategory: (id: number | undefined) => void
   categories: CategoryItem[]
+  addCategory: (name: string, color: string) => Promise<number> | number
+  deleteCategory: (id: number) => Promise<void> | void
+  timerMode: 'study' | 'break'
   taskPriority: 'low' | 'medium' | 'high'
   setTaskPriority: (v: 'low' | 'medium' | 'high') => void
   taskCycleCount: number
@@ -20,7 +27,11 @@ export function TaskCreateForm({
   taskText,
   setTaskText,
   sessionCategoryId,
+  onSelectCategory,
   categories,
+  addCategory,
+  deleteCategory,
+  timerMode,
   taskPriority,
   setTaskPriority,
   taskCycleCount,
@@ -29,7 +40,18 @@ export function TaskCreateForm({
   setTaskIsStudySubject,
   onSubmit,
 }: TaskCreateFormProps) {
-  const sessionCategory = categories.find(c => c.id === sessionCategoryId)
+  const [showOptions, setShowOptions] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return sessionStorage.getItem(OPTIONS_EXPANDED_KEY) === 'true'
+  })
+
+  const toggleOptions = () => {
+    setShowOptions(prev => {
+      const next = !prev
+      sessionStorage.setItem(OPTIONS_EXPANDED_KEY, String(next))
+      return next
+    })
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') onSubmit()
@@ -37,8 +59,22 @@ export function TaskCreateForm({
 
   return (
     <div className="flex flex-col gap-4 mb-6 bg-white/[0.02] border border-white/5 p-4 rounded-[24px]">
+      <div className={timerMode === 'break' ? 'opacity-70 pointer-events-none' : ''}>
+        <InlineCategoryManager
+          label="Session subject"
+          categories={categories}
+          addCategory={addCategory}
+          deleteCategory={deleteCategory}
+          selectedCategoryId={sessionCategoryId}
+          onSelectCategory={onSelectCategory}
+        />
+        {timerMode === 'break' && (
+          <p className="text-micro text-white/40 mt-1">Subject locked during break mode.</p>
+        )}
+      </div>
+
       <div className="flex flex-col gap-1">
-        <label htmlFor="task-input" className="text-[10px] font-bold uppercase tracking-wider text-white/40">
+        <label htmlFor="task-input" className="text-micro font-bold uppercase tracking-wider text-white/40">
           Add focus target
         </label>
         <div className="flex gap-2">
@@ -54,7 +90,7 @@ export function TaskCreateForm({
           <button
             type="button"
             onClick={onSubmit}
-            aria-label="Add task"
+            aria-label="Add focus target"
             className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-accent-blue hover:bg-accent-blue/90 text-white transition-all ios-active-scale cursor-pointer shadow-md shadow-accent-blue/15"
           >
             <Plus className="h-5 w-5" />
@@ -62,38 +98,47 @@ export function TaskCreateForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 border-t border-white/5">
-        {/* Left Side Controls: Priority & Estimated Cycles */}
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Priority Level</span>
-            <div className="flex gap-1.5">
-              {(['low', 'medium', 'high'] as const).map(p => {
-                const isActive = taskPriority === p
-                const colors = {
-                  low: 'hover:border-accent-blue/40 text-accent-blue bg-accent-blue/5 border-accent-blue/20',
-                  medium: 'hover:border-accent-amber/40 text-accent-amber bg-accent-amber/5 border-accent-amber/20',
-                  high: 'hover:border-red-500/40 text-red-400 bg-red-500/5 border-red-500/20',
-                }
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setTaskPriority(p)}
-                    className={`flex-1 py-1.5 rounded-lg text-caption font-semibold border capitalize transition-all cursor-pointer ${
-                      isActive ? colors[p] : 'bg-transparent border-white/10 text-white/50 hover:bg-white/5 hover:text-white/70'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+      <button
+        type="button"
+        onClick={toggleOptions}
+        className="flex items-center justify-between w-full text-left text-micro font-bold uppercase tracking-wider text-white/45 hover:text-white/70 transition-colors"
+        aria-expanded={showOptions}
+      >
+        <span>Options</span>
+        <ChevronDown className={`h-4 w-4 transition-transform ${showOptions ? 'rotate-180' : ''}`} />
+      </button>
 
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Estimated Pomodoro Cycles</span>
-            <div className="flex items-center gap-1.5">
+      {showOptions && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 border-t border-white/5">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-micro font-bold uppercase tracking-wider text-white/40">Priority Level</span>
+              <div className="flex gap-1.5">
+                {(['low', 'medium', 'high'] as const).map(p => {
+                  const isActive = taskPriority === p
+                  const colors = {
+                    low: 'hover:border-accent-blue/40 text-accent-blue bg-accent-blue/5 border-accent-blue/20',
+                    medium: 'hover:border-accent-amber/40 text-accent-amber bg-accent-amber/5 border-accent-amber/20',
+                    high: 'hover:border-red-500/40 text-red-400 bg-red-500/5 border-red-500/20',
+                  }
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setTaskPriority(p)}
+                      className={`flex-1 py-1.5 rounded-lg text-caption font-semibold border capitalize transition-all cursor-pointer ${
+                        isActive ? colors[p] : 'bg-transparent border-white/10 text-white/50 hover:bg-white/5 hover:text-white/70'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-micro font-bold uppercase tracking-wider text-white/40">Estimated Pomodoro Cycles</span>
               <select
                 value={taskCycleCount}
                 onChange={e => setTaskCycleCount(Number(e.target.value))}
@@ -103,39 +148,12 @@ export function TaskCreateForm({
                   <option key={n} value={n} className="bg-[#11131e]">🎯 {n} {n === 1 ? 'Cycle' : 'Cycles'}</option>
                 ))}
               </select>
-            </div>
-            <p className="text-[10px] text-white/40 leading-relaxed">One cycle = one focus block (default 25 min).</p>
-          </div>
-        </div>
-
-        {/* Right Side Controls: Subject & Spaced Repetition */}
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Associated Subject</span>
-            <div className="flex items-center">
-              {sessionCategory ? (
-                <div
-                  className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider px-3.5 py-2.5 rounded-lg border w-full"
-                  style={{
-                    backgroundColor: `${sessionCategory.color}08`,
-                    borderColor: `${sessionCategory.color}25`,
-                    color: sessionCategory.color,
-                  }}
-                >
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: sessionCategory.color }} />
-                  <span>{sessionCategory.name}</span>
-                </div>
-              ) : (
-                <div className="text-xs font-semibold text-white/40 px-3.5 py-2.5 rounded-lg border border-white/5 bg-black/20 w-full flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-white/10" />
-                  <span>No subject (Select above to link)</span>
-                </div>
-              )}
+              <p className="text-micro text-white/40 leading-relaxed">One cycle = one focus block (default 25 min).</p>
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Recall Scheduling</span>
+            <span className="text-micro font-bold uppercase tracking-wider text-white/40">Recall Scheduling</span>
             <button
               type="button"
               onClick={() => setTaskIsStudySubject(!taskIsStudySubject)}
@@ -145,9 +163,7 @@ export function TaskCreateForm({
                   : 'bg-black/20 text-white/50 border-white/5 hover:border-white/10 hover:text-white/70'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <span>🔄 Spaced Repetition (SM-2)</span>
-              </div>
+              <span>🔄 Spaced Repetition (SM-2)</span>
               <div className={`h-4.5 w-8 rounded-full transition-all relative p-0.5 border ${
                 taskIsStudySubject ? 'bg-accent-purple border-accent-purple/40' : 'bg-white/5 border-white/10'
               }`}>
@@ -158,7 +174,7 @@ export function TaskCreateForm({
             </button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

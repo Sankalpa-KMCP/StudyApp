@@ -1,10 +1,8 @@
-import React, { useMemo, useState } from 'react'
-import { Target } from 'lucide-react'
+import React, { useState } from 'react'
 import type { TaskItem, CategoryItem } from '../db/types'
 import { TaskCreateForm } from './task-registry/TaskCreateForm'
 import { TaskList } from './task-registry/TaskList'
 import { useTaskFilters, useTodayDateString } from './task-registry/useTaskFilters'
-import { InlineCategoryManager } from './shared/InlineCategoryManager'
 import { PanelCard } from './shared/PanelCard'
 import { PanelHeader } from './shared/PanelHeader'
 
@@ -64,51 +62,20 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
     setTaskIsStudySubject(false)
   }
 
-  const activeTask = useMemo(() => {
-    if (activeTaskId === null) return null
-    return tasks.find(t => t.id === activeTaskId && !t.completed) || null
-  }, [activeTaskId, tasks])
-
   return (
-    <div className="flex flex-col gap-6 h-full w-full">
-      <PanelCard className="flex flex-col h-full">
-        <PanelHeader
-          title="Focus targets"
-          action={
-            timerMode === 'study' ? (
-              <div className="min-w-[180px] flex-1 sm:max-w-xs">
-                <InlineCategoryManager
-                  label="Subject"
-                  categories={categories}
-                  addCategory={addCategory}
-                  deleteCategory={deleteCategory}
-                  selectedCategoryId={timerCategoryId}
-                  onSelectCategory={setTimerCategoryId}
-                />
-              </div>
-            ) : undefined
-          }
-        />
-
-        {activeTask && (
-          <div className="mb-5 flex items-center gap-3.5 rounded-[20px] border border-white/5 bg-black/20 p-4 shadow-md animate-slide-in-up">
-            <div className="h-2 w-2 rounded-full bg-accent-blue" />
-            <div className="flex-1 min-w-0">
-              <p className="text-label uppercase font-bold text-white/40">Active target</p>
-              <p className="truncate text-xs font-bold text-white mt-0.5 whitespace-pre-wrap">{activeTask.text}</p>
-            </div>
-            <span className="whitespace-nowrap text-xs font-mono font-bold text-white/75 flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full border border-white/5">
-              <Target className="h-3.5 w-3.5 text-white/40" />
-              <span>{activeTask.actualCycles ?? 0}/{activeTask.estimatedCycles ?? 1}</span>
-            </span>
-          </div>
-        )}
+    <div className="flex flex-col gap-6 h-full w-full min-h-0">
+      <PanelCard className="flex flex-col h-full min-h-0">
+        <PanelHeader title="Focus targets" bordered={false} className="mb-4" />
 
         <TaskCreateForm
           taskText={taskText}
           setTaskText={setTaskText}
           sessionCategoryId={timerCategoryId}
+          onSelectCategory={setTimerCategoryId}
           categories={categories}
+          addCategory={addCategory}
+          deleteCategory={deleteCategory}
+          timerMode={timerMode}
           taskPriority={taskPriority}
           setTaskPriority={setTaskPriority}
           taskCycleCount={taskCycleCount}
