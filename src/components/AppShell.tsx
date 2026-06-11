@@ -58,6 +58,20 @@ export function AppShell() {
     setIsNotesOpen,
   } = useStudyUI()
 
+  const [showOnboarding, setShowOnboarding] = useState(false)
+
+  useEffect(() => {
+    const completed = localStorage.getItem('sanctuary_onboarding_completed')
+    if (!completed && isDataReady) {
+      setShowOnboarding(true)
+    }
+  }, [isDataReady])
+
+  const handleCloseOnboarding = () => {
+    localStorage.setItem('sanctuary_onboarding_completed', 'true')
+    setShowOnboarding(false)
+  }
+
   const { requestConfirm } = useConfirm()
 
   const handleSetActiveTab = async (tab: ActiveTab) => {
