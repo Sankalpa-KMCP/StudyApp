@@ -41,6 +41,7 @@ export function JournalTab() {
         initialDraftNotes={calendar.selectedDayLog?.notes ?? ''}
         handleNotesChange={journal.handleNotesChange}
         selectedDayHistory={calendar.selectedDayHistory}
+        saveStatus={journal.saveStatus}
       />
     </Suspense>
   )

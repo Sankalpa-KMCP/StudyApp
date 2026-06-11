@@ -4,6 +4,8 @@ import { calculateCalendarHeatmapData } from '../lib/studyDashboard'
 import { useCalendarData } from './useCalendarData'
 import type { TaskItem } from '../db/types'
 
+export type JournalSaveStatus = 'idle' | 'saving' | 'saved'
+
 interface UseJournalCalendarOptions {
   sessionTasks: TaskItem[]
   dailyGoalMinutes: number
@@ -23,10 +25,13 @@ export function useJournalCalendar({
   const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear())
   const [calendarCategoryFilter, setCalendarCategoryFilter] = useState<'all' | number>('all')
   const [selectedDay, setSelectedDay] = useState(() => new Date().getDate())
+  const [saveStatus, setSaveStatus] = useState<JournalSaveStatus>('idle')
 
   const notesRef = useRef('')
   const moodRef = useRef('')
+  const dateStrRef = useRef('')
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savedIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { monthLogs, totalMonthHours } = useMonthLogsQuery(
     currentMonth,
@@ -55,10 +60,30 @@ export function useJournalCalendar({
     categoryDayMinutes,
   })
 
+  const markSaved = () => {
+    setSaveStatus('saved')
+    if (savedIdleTimerRef.current) clearTimeout(savedIdleTimerRef.current)
+    savedIdleTimerRef.current = setTimeout(() => setSaveStatus('idle'), 1500)
+  }
+
   useEffect(() => {
+    const prevDate = dateStrRef.current
+    const nextDate = calendar.selectedDateStr
+    if (prevDate && prevDate !== nextDate && saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+      void updateDailyReflection(prevDate, notesRef.current, moodRef.current)
+    }
+    dateStrRef.current = nextDate
     notesRef.current = calendar.selectedDayLog?.notes ?? ''
     moodRef.current = calendar.selectedDayLog?.mood ?? ''
+    setSaveStatus('idle')
   }, [calendar.selectedDateStr, calendar.selectedDayLog])
+
+  useEffect(() => () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    if (savedIdleTimerRef.current) clearTimeout(savedIdleTimerRef.current)
+  }, [])
 
   function goPrevMonth() {
     if (currentMonth === 0) {
@@ -80,17 +105,20 @@ export function useJournalCalendar({
 
   function handleNotesChange(value: string) {
     notesRef.current = value
+    setSaveStatus('saving')
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    const dateStr = calendar.selectedDateStr
     saveTimerRef.current = setTimeout(() => {
-      updateDailyReflection(calendar.selectedDateStr, notesRef.current, moodRef.current)
+      void updateDailyReflection(dateStr, notesRef.current, moodRef.current).then(markSaved)
     }, 500)
   }
 
   function handleMoodSelect(mood: string) {
     const newMood = mood === moodRef.current ? '' : mood
     moodRef.current = newMood
+    setSaveStatus('saving')
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    updateDailyReflection(calendar.selectedDateStr, notesRef.current, newMood)
+    void updateDailyReflection(calendar.selectedDateStr, notesRef.current, newMood).then(markSaved)
   }
 
   return {
@@ -104,6 +132,7 @@ export function useJournalCalendar({
     goNextMonth,
     handleNotesChange,
     handleMoodSelect,
+    saveStatus,
     calendar,
   }
 }

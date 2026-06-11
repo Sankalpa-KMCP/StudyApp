@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { useJournalCalendar } from '../useJournalCalendar'
 import { resetDatabase } from '../../test/dbTestUtils'
+import * as hooks from '../../db/hooks'
 
 const baseOptions = {
   sessionTasks: [],
@@ -31,5 +32,20 @@ describe('useJournalCalendar', () => {
     act(() => result.current.goPrevMonth())
     expect(result.current.currentMonth).toBe(startMonth)
     expect(result.current.currentYear).toBe(startYear)
+  })
+
+  it('transitions saveStatus when notes change', async () => {
+    vi.spyOn(hooks, 'updateDailyReflection').mockResolvedValue(undefined)
+
+    const { result } = renderHook(() => useJournalCalendar(baseOptions))
+
+    act(() => result.current.handleNotesChange('Test note'))
+    expect(result.current.saveStatus).toBe('saving')
+
+    await waitFor(() => expect(result.current.saveStatus).toBe('saved'), { timeout: 2000 })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 })

@@ -1,6 +1,7 @@
 import { Clock } from 'lucide-react'
 import type { HistoryEntry } from '../../db/types'
 import type { DayData } from '../../types/app'
+import type { JournalSaveStatus } from '../../hooks/useJournalCalendar'
 import { EmptyState } from '../shared/EmptyState'
 import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
@@ -20,6 +21,7 @@ interface DayDetailPanelProps {
   onNotesChange: (notes: string) => void
   selectedDayHistory: HistoryEntry[]
   activeThemeVars: { accentBlue: string; accentAmber: string }
+  saveStatus: JournalSaveStatus
 }
 
 export function DayDetailPanel({
@@ -36,6 +38,7 @@ export function DayDetailPanel({
   onNotesChange,
   selectedDayHistory,
   activeThemeVars,
+  saveStatus,
 }: DayDetailPanelProps) {
   const dateTitle = `${liveDay.dayName}, ${selectedDay} ${monthNames[currentMonth]} ${currentYear}`
 
@@ -58,15 +61,15 @@ export function DayDetailPanel({
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         <div className="bg-white/4 p-3.5 rounded-[20px] border border-white/8">
-          <span className="text-micro font-bold text-white/40 uppercase tracking-wide block">Study block</span>
+          <span className="text-micro font-bold text-muted uppercase tracking-wide block">Study block</span>
           <span className="text-base font-extrabold text-accent-blue mt-0.5 font-mono">{liveDay.studyTime}</span>
         </div>
         <div className="bg-white/4 p-3.5 rounded-[20px] border border-white/8">
-          <span className="text-micro font-bold text-white/40 uppercase tracking-wide block">Break cooldown</span>
+          <span className="text-micro font-bold text-muted uppercase tracking-wide block">Break cooldown</span>
           <span className="text-base font-extrabold text-accent-amber mt-0.5 font-mono">{liveDay.breakTime}</span>
         </div>
         <div className="bg-white/4 p-3.5 rounded-[20px] border border-white/8">
-          <span className="text-micro font-bold text-white/40 uppercase tracking-wide block">Efficiency score</span>
+          <span className="text-micro font-bold text-muted uppercase tracking-wide block">Efficiency score</span>
           <span className="text-base font-extrabold text-accent-green mt-0.5 font-mono">{liveDay.focusScore}</span>
         </div>
       </div>
@@ -75,16 +78,24 @@ export function DayDetailPanel({
 
       <div className="mb-5">
         <div className="flex justify-between items-center mb-2.5">
-          <p className="text-label font-semibold text-white/40 uppercase tracking-wider">Reflection log</p>
-          <span className={`text-micro font-bold font-mono px-2 py-0.5 rounded-full ${
-            draftNotes.length > 450
-              ? 'bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse'
-              : draftNotes.length > 350
-              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-              : 'text-white/40'
-          }`}>
-            {draftNotes.length} / 500
-          </span>
+          <p className="text-label font-semibold text-muted uppercase tracking-wider">Reflection log</p>
+          <div className="flex items-center gap-2">
+            {saveStatus === 'saving' && (
+              <span className="text-micro font-mono text-muted animate-pulse">Saving…</span>
+            )}
+            {saveStatus === 'saved' && (
+              <span className="text-micro font-mono text-accent-green">Saved</span>
+            )}
+            <span className={`text-micro font-bold font-mono px-2 py-0.5 rounded-full ${
+              draftNotes.length > 450
+                ? 'bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse'
+                : draftNotes.length > 350
+                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                : 'text-muted'
+            }`}>
+              {draftNotes.length} / 500
+            </span>
+          </div>
         </div>
         <textarea
           value={draftNotes}
@@ -92,7 +103,7 @@ export function DayDetailPanel({
           maxLength={500}
           placeholder="How did you perform? Note down any wins, hurdles, or focal points for today..."
           rows={3}
-          className={`w-full resize-none rounded-2xl border bg-white/4 focus:bg-white/8 px-4 py-3 text-xs text-text-primary placeholder:text-white/35 outline-none transition-all duration-200 ${
+          className={`w-full resize-none rounded-2xl border bg-white/4 focus:bg-white/8 px-4 py-3 text-xs text-text-primary placeholder:text-muted outline-none transition-all duration-200 ${
             draftNotes.length >= 500
               ? 'border-red-500/40 focus:border-red-500/60'
               : draftNotes.length > 450
@@ -108,7 +119,7 @@ export function DayDetailPanel({
       </div>
 
       <div className="border-t border-white/8 pt-5">
-        <p className="text-caption font-semibold text-white/55 uppercase tracking-wider mb-3">Session timeline (24h)</p>
+        <p className="text-caption font-semibold text-muted uppercase tracking-wider mb-3">Session timeline (24h)</p>
         {selectedDayHistory.length === 0 ? (
           <EmptyState
             icon={<Clock className="h-8 w-8" />}
@@ -147,7 +158,7 @@ export function DayDetailPanel({
               )
             })}
           </div>
-          <div className="flex justify-between text-label text-white/40 font-mono mt-2 px-1.5 select-none font-bold">
+          <div className="flex justify-between text-label text-muted font-mono mt-2 px-1.5 select-none font-bold">
             <span>00:00</span>
             <span>06:00</span>
             <span>12:00</span>
