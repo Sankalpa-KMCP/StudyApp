@@ -52,6 +52,7 @@ export function useStudyUI() {
     setIsNotesOpen: ui.setIsNotesOpen,
     isHotkeyHudOpen: ui.isHotkeyHudOpen,
     setIsHotkeyHudOpen: ui.setIsHotkeyHudOpen,
+    pushToast: ui.pushToast,
     activeToast: ui.activeToast,
     quotaExceeded: ui.quotaExceeded,
     dismissQuotaRecovery: ui.dismissQuotaRecovery,

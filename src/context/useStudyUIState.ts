@@ -128,6 +128,7 @@ export function useStudyUIState(toast: ToastApi) {
   }
 
   return useMemo(() => ({
+    pushToast: toast.pushToast,
     activeToast,
     quotaExceeded,
     dismissQuotaRecovery,
@@ -147,6 +148,7 @@ export function useStudyUIState(toast: ToastApi) {
     notifyFocusLockout,
     scheduleDelete,
   }), [
+    toast.pushToast,
     activeToast,
     quotaExceeded,
     dismissQuotaRecovery,
