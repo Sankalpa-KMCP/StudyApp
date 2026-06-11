@@ -73,11 +73,8 @@ describe('Sidebar', () => {
     )
     expect(inlineLabels).toHaveLength(0)
 
-    const flexChildren = [...cardsButton.children].filter(
-      el => el.getAttribute('aria-hidden') !== 'true',
-    )
-    expect(flexChildren).toHaveLength(1)
-    expect(flexChildren[0].querySelector('svg')).toBeInTheDocument()
+    expect(cardsButton.querySelector('svg')).toBeInTheDocument()
+    expect(cardsButton.querySelectorAll('span:not([aria-hidden="true"])')).toHaveLength(0)
   })
 
   it('expands from icon rail and clears collapsed preference', async () => {
