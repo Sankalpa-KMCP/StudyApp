@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Sparkles, X } from 'lucide-react'
 import type { CategoryItem, SettingsKey, SettingsValue } from '../db/types'
 import { AestheticsPanel } from './control-deck/AestheticsPanel'
+import { NotesSettingsPanel } from './control-deck/NotesSettingsPanel'
 import { TimerFocusPanel } from './control-deck/TimerFocusPanel'
 import { SoundFeedbackPanel } from './control-deck/SoundFeedbackPanel'
 import { AlgorithmPanel } from './control-deck/AlgorithmPanel'
@@ -12,11 +13,21 @@ import { SettingsCard } from './shared/settings/SettingsCard'
 
 interface ControlDeckProps {
   updateSetting: (key: SettingsKey, val: SettingsValue) => void
-  updateCategory: (id: number, updates: { dailyGoalMinutes?: number }) => void | Promise<void>
+  updateCategory: (id: number, updates: { name?: string; color?: string; dailyGoalMinutes?: number }) => void | Promise<void>
   theme: string
   themePreset: string
+  lightThemePreset: string
+  uiFont: string
+  uiDensity: 'comfortable' | 'compact'
   cardOpacity: number
   backdropBlur: number
+  backdropSaturate: number
+  cardBorderOpacity: number
+  accentBlueOverride: string | null
+  accentPurpleOverride: string | null
+  accentGreenOverride: string | null
+  accentAmberOverride: string | null
+  noteTagColors: string[]
   initialEasinessFactor: number
   dailyGoalMinutes: number
   studyBlockDurationMinutes: number
@@ -56,8 +67,18 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
   updateCategory,
   theme,
   themePreset,
+  lightThemePreset,
+  uiFont,
+  uiDensity,
   cardOpacity,
   backdropBlur,
+  backdropSaturate,
+  cardBorderOpacity,
+  accentBlueOverride,
+  accentPurpleOverride,
+  accentGreenOverride,
+  accentAmberOverride,
+  noteTagColors,
   initialEasinessFactor,
   dailyGoalMinutes,
   studyBlockDurationMinutes,
@@ -93,6 +114,8 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
 }) => {
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null)
+  const [editingCategoryName, setEditingCategoryName] = useState('')
   const [newCategoryGoal, setNewCategoryGoal] = useState('')
   const [startHereDismissed, setStartHereDismissed] = useState(
     () => typeof window !== 'undefined' && !!localStorage.getItem('settings_start_here_dismissed'),
@@ -195,7 +218,23 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
         </div>
       )}
       <div className="lg:col-span-6 flex flex-col gap-6">
-        <AestheticsPanel theme={theme} themePreset={themePreset} cardOpacity={cardOpacity} backdropBlur={backdropBlur} updateSetting={updateSetting} />
+        <AestheticsPanel
+          theme={theme}
+          themePreset={themePreset}
+          lightThemePreset={lightThemePreset}
+          uiFont={uiFont}
+          uiDensity={uiDensity}
+          cardOpacity={cardOpacity}
+          backdropBlur={backdropBlur}
+          backdropSaturate={backdropSaturate}
+          cardBorderOpacity={cardBorderOpacity}
+          accentBlueOverride={accentBlueOverride}
+          accentPurpleOverride={accentPurpleOverride}
+          accentGreenOverride={accentGreenOverride}
+          accentAmberOverride={accentAmberOverride}
+          updateSetting={updateSetting}
+        />
+        <NotesSettingsPanel noteTagColors={noteTagColors} updateSetting={updateSetting} />
         <TimerFocusPanel
           dailyGoalMinutes={dailyGoalMinutes}
           studyBlockDurationMinutes={studyBlockDurationMinutes}
@@ -300,8 +339,53 @@ export const ControlDeck: React.FC<ControlDeckProps> = ({
             ) : (
               categories.map(cat => (
                 <div key={cat.id} className="flex items-center gap-2.5 rounded-[16px] bg-black/20 border border-white/5 px-3.5 py-2.5">
-                  <span className="h-3 w-3 shrink-0 rounded-full border border-white/5" style={{ backgroundColor: cat.color }} />
-                  <span className="flex-1 text-xs font-bold text-white/80 truncate">{cat.name}</span>
+                  <label className="relative h-3 w-3 shrink-0 cursor-pointer" title="Change category color">
+                    <span className="block h-3 w-3 rounded-full border border-white/5" style={{ backgroundColor: cat.color }} />
+                    <input
+                      type="color"
+                      value={cat.color}
+                      onChange={e => {
+                        if (cat.id === undefined) return
+                        void updateCategory(cat.id, { color: e.target.value })
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      aria-label={`Color for ${cat.name}`}
+                    />
+                  </label>
+                  {editingCategoryId === cat.id ? (
+                    <input
+                      type="text"
+                      value={editingCategoryName}
+                      onChange={e => setEditingCategoryName(e.target.value)}
+                      onBlur={() => {
+                        if (cat.id === undefined) return
+                        const trimmed = editingCategoryName.trim()
+                        if (trimmed && trimmed !== cat.name) {
+                          void updateCategory(cat.id, { name: trimmed })
+                        }
+                        setEditingCategoryId(null)
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                        if (e.key === 'Escape') setEditingCategoryId(null)
+                      }}
+                      autoFocus
+                      className="flex-1 min-w-0 rounded-lg bg-black/30 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-accent-blue/40"
+                      aria-label={`Edit name for ${cat.name}`}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (cat.id === undefined) return
+                        setEditingCategoryId(cat.id)
+                        setEditingCategoryName(cat.name)
+                      }}
+                      className="flex-1 text-left text-xs font-bold text-white/80 truncate hover:text-white transition-colors cursor-pointer"
+                    >
+                      {cat.name}
+                    </button>
+                  )}
                   <input
                     type="number"
                     min={15}
