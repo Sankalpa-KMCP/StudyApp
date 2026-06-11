@@ -22,6 +22,13 @@ describe('settingsValidation', () => {
   it('accepts boolean settings', () => {
     expect(validateSetting('soundEnabled', true)).toEqual({ ok: true, value: true })
     expect(validateSetting('soundEnabled', 'yes')).toEqual({ ok: false, reason: 'soundEnabled must be a boolean' })
+    expect(validateSetting('ambientSoundEnabled', false)).toEqual({ ok: true, value: false })
+  })
+
+  it('validates ambientSoundPreset enum', () => {
+    expect(validateSetting('ambientSoundPreset', 'rain')).toEqual({ ok: true, value: 'rain' })
+    expect(validateSetting('ambientSoundPreset', 'white-noise')).toEqual({ ok: true, value: 'white-noise' })
+    expect(validateSetting('ambientSoundPreset', 'ocean').ok).toBe(false)
   })
 
   it('accepts null accent overrides', () => {

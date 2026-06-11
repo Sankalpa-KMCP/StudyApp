@@ -15,6 +15,7 @@ export function useCategories() {
   return {
     categories: categories ?? [],
     addCategory: categoryRepo.addCategory,
+    updateCategory: categoryRepo.updateCategory,
     deleteCategory: categoryRepo.deleteCategory,
     isLoading: categories === undefined,
   }

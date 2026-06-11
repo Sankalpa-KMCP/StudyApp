@@ -78,6 +78,8 @@ export type SettingsKey =
   | 'enforce_lockout'
   | 'initialEasinessFactor'
   | 'autoArchiveAncientTasks'
+  | 'ambientSoundEnabled'
+  | 'ambientSoundPreset'
 
 export type SettingsValue = number | boolean | string | null
 

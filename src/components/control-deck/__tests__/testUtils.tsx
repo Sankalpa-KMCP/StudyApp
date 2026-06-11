@@ -2,6 +2,10 @@ import type { ReactNode } from 'react'
 import { vi } from 'vitest'
 import { SettingsPanelProvider } from '../SettingsPanelContext'
 
+vi.mock('../../../context/useConfirm', () => ({
+  useConfirm: () => ({ requestConfirm: vi.fn().mockResolvedValue(false) }),
+}))
+
 vi.mock('../../../context/studyDataContext', () => ({
   useStudyDataContext: () => ({
     categories: {
@@ -22,6 +26,7 @@ vi.mock('../../../context/studyTimerContext', () => ({
       exportProgress: 0,
       exportStudyLogsCSV: vi.fn(),
       exportTaskCompletionLogsCSV: vi.fn(),
+      importStudyBackup: vi.fn(),
       resetData: vi.fn(),
       resetDataSelective: vi.fn(),
       clearSnapshots: vi.fn(),
@@ -69,6 +74,8 @@ vi.mock('../../../hooks/useSettingsUpdater', () => ({
     soundEnabled: true,
     tactile_feedback: false,
     developer_font: 'JetBrains Mono',
+    ambientSoundEnabled: false,
+    ambientSoundPreset: 'rain' as const,
     enforce_lockout: false,
     autoArchiveAncientTasks: false,
     isLoading: false,

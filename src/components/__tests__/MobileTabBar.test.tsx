@@ -30,4 +30,11 @@ describe('MobileTabBar', () => {
     expect(cardsButton).toHaveAttribute('data-active', 'true')
     expect(cardsButton).toHaveClass('mobile-nav-btn')
   })
+
+  it('shows due-count badge on Cards tab when cardsDueCount > 0', () => {
+    render(<MobileTabBar {...baseProps} cardsDueCount={3} />)
+    const cardsButton = screen.getByRole('button', { name: 'Cards, 3 due for review' })
+    expect(cardsButton).toBeInTheDocument()
+    expect(cardsButton).toHaveTextContent('3')
+  })
 })

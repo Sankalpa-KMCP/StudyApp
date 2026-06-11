@@ -15,7 +15,8 @@ describe('backupExport', () => {
     await seedTask('Backup task')
     const payload = await collectStudyBackupPayload()
 
-    expect(payload.version).toBe(2)
+    expect(payload.version).toBe(3)
+    expect(payload.checksumSha256).toMatch(/^[a-f0-9]{64}$/)
     expect(payload.exportedAt).toBeTruthy()
     expect(payload.tasks).toHaveLength(1)
     expect(Array.isArray(payload.history)).toBe(true)

@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:coverage:components": "vitest run --config vitest.components.config.ts --coverage",
+    "test:coverage:settings": "vitest run --config vitest.settings.config.ts --coverage",
     "check:bundle": "node scripts/check-bundle-size.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

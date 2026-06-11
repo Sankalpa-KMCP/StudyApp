@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { db } from '../../db/db'
 import { resetDatabase, seedTask } from '../../test/dbTestUtils'
+import { computeBackupChecksum } from '../../lib/backupChecksum'
 import { parseStudyBackupPayload, validateBackupPayload } from '../../lib/studyDashboard'
 import { useSessionBackup } from '../useSessionBackup'
 
@@ -160,6 +161,31 @@ describe('useSessionBackup hook', () => {
     const { result } = renderHook(() => useSessionBackup(pushToast))
     await result.current.exportTaskCompletionLogsCSV()
     expect(capturedAnchor?.download).toMatch(/^task-logs-/)
+  })
+
+  it('rejects import when checksum does not match', async () => {
+    await seedTask('Keep on bad checksum')
+    const payload = {
+      version: 3,
+      exportedAt: new Date().toISOString(),
+      tasks: [{ text: 'Imported task', completed: false, createdAt: Date.now(), estimatedCycles: 1, actualCycles: 0 }],
+      history: [],
+      dailyLogs: [],
+      settings: [],
+      categories: [],
+      flashcards: [],
+      quickNotes: [],
+    }
+    const checksumSha256 = await computeBackupChecksum(payload)
+    const tampered = { ...payload, checksumSha256: '0'.repeat(64) }
+    void checksumSha256
+
+    const { result } = renderHook(() => useSessionBackup(pushToast))
+    await result.current.importStudyBackup(JSON.stringify(tampered))
+
+    expect(pushToast).toHaveBeenCalledWith('BACKUP', 'CHECKSUM MISMATCH - FILE MAY BE CORRUPT')
+    expect(await db.tasks.toArray()).toHaveLength(1)
+    expect((await db.tasks.toArray())[0].text).toBe('Keep on bad checksum')
   })
 
   it('resetDataSelective clears only chosen tables', async () => {

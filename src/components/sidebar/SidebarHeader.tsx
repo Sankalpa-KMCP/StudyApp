@@ -31,8 +31,8 @@ export function SidebarHeader({ collapsed, onToggleCollapse }: SidebarHeaderProp
         <Brain className="h-5.5 w-5.5 text-white" />
       </div>
       <div className="min-w-0 flex-1 overflow-hidden">
-        <h1 className="text-sm font-bold text-white tracking-wide leading-none whitespace-nowrap">Study Dashboard</h1>
-        <p className="text-caption text-white/50 font-medium mt-1.5 leading-none whitespace-nowrap">by Sankalpa KMCP</p>
+        <h1 className="text-sm font-bold text-white tracking-wide leading-none truncate" title="Study Dashboard">Study Dashboard</h1>
+        <p className="text-caption text-white/50 font-medium mt-1.5 leading-none truncate" title="by Sankalpa KMCP">by Sankalpa KMCP</p>
       </div>
       <button
         type="button"

@@ -9,7 +9,7 @@
       "assertions": {
         "categories:performance": ["error", { "minScore": 0.9 }],
         "categories:accessibility": ["error", { "minScore": 0.95 }],
-        "installable-manifest": "off"
+        "installable-manifest": ["error", { "minScore": 0.9 }]
       }
     }
   }

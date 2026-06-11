@@ -39,6 +39,7 @@ export default defineConfig({
       },
     },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
     {
       name: 'visual',
       testMatch: 'visual-regression.spec.ts',

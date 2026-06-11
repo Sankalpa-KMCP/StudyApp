@@ -10,13 +10,11 @@ import {
   useQuickNotes,
 } from '../db/hooks'
 
-const RECENT_HISTORY_LIMIT = 100
-
 export function useDashboardData() {
   const tasks = useTasks()
-  const history = useHistoryMutations()
-  const recentHistory = useRecentHistory(RECENT_HISTORY_LIMIT)
   const settings = useSettings()
+  const history = useHistoryMutations()
+  const recentHistory = useRecentHistory(settings.recentHistoryLimit)
   const todayLog = useTodayLog()
   const flashcards = useFlashcards()
   const quickNotes = useQuickNotes()

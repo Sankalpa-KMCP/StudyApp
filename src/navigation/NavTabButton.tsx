@@ -11,10 +11,27 @@ interface NavTabButtonProps {
   accent: ActiveTab
   isActive: boolean
   isLocked: boolean
+  badge?: number
   onClick: () => void
   onMouseEnter?: (e: React.MouseEvent<HTMLButtonElement>) => void
   onMouseLeave?: () => void
   buttonRef?: (el: HTMLButtonElement | null) => void
+}
+
+function formatBadge(count: number): string {
+  return count > 99 ? '99+' : String(count)
+}
+
+function NavTabBadge({ count, className = '' }: { count: number; className?: string }) {
+  if (count <= 0) return null
+  return (
+    <span
+      className={`rounded-full bg-accent-amber/15 border border-accent-amber/25 px-1.5 py-0.5 text-[10px] font-bold leading-none text-accent-amber ${className}`}
+      aria-hidden
+    >
+      {formatBadge(count)}
+    </span>
+  )
 }
 
 export function NavTabButton({
@@ -26,12 +43,14 @@ export function NavTabButton({
   accent,
   isActive,
   isLocked,
+  badge = 0,
   onClick,
   onMouseEnter,
   onMouseLeave,
   buttonRef,
 }: NavTabButtonProps) {
   const lockedClass = isLocked ? 'opacity-40' : 'cursor-pointer'
+  const ariaLabel = badge > 0 ? `${label}, ${badge} due for review` : label
 
   if (variant === 'sidebar-rail') {
     return (
@@ -42,13 +61,16 @@ export function NavTabButton({
         data-accent={accent}
         data-active={isActive ? 'true' : 'false'}
         aria-current={isActive ? 'page' : undefined}
-        aria-label={label}
+        aria-label={ariaLabel}
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className={`sidebar-rail-btn h-10 w-10 flex items-center justify-center rounded-[14px] font-semibold text-xs transition-all duration-200 ios-active-scale border ${lockedClass}`}
+        className={`sidebar-rail-btn relative h-10 w-10 flex items-center justify-center rounded-[14px] font-semibold text-xs transition-all duration-200 ios-active-scale border ${lockedClass}`}
       >
         <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? iconColor : 'text-white/60'}`} />
+        {badge > 0 && (
+          <NavTabBadge count={badge} className="absolute -top-1 -right-1 min-w-[18px] text-center px-1" />
+        )}
       </button>
     )
   }
@@ -62,10 +84,13 @@ export function NavTabButton({
         data-accent={accent}
         data-active={isActive ? 'true' : 'false'}
         aria-current={isActive ? 'page' : undefined}
-        aria-label={label}
+        aria-label={ariaLabel}
         onClick={onClick}
         className={`mobile-nav-btn relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-label font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue ${lockedClass}`}
       >
+        {badge > 0 && (
+          <NavTabBadge count={badge} className="absolute top-0 right-1 z-20" />
+        )}
         <Icon className={`relative z-10 h-5 w-5 ${isActive ? iconColor : 'text-white/50'}`} />
         <span className="relative z-10">{label}</span>
       </button>
@@ -80,13 +105,14 @@ export function NavTabButton({
       data-accent={accent}
       data-active={isActive ? 'true' : 'false'}
       aria-current={isActive ? 'page' : undefined}
-      aria-label={label}
+      aria-label={ariaLabel}
       title={isLocked ? 'Focus lockout active' : label}
       onClick={onClick}
       className={`nav-tab w-full ios-active-scale ${lockedClass}`}
     >
       <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? iconColor : 'text-white/60'}`} />
       <span className="whitespace-nowrap">{label}</span>
+      <NavTabBadge count={badge} className="ml-auto" />
     </button>
   )
 }

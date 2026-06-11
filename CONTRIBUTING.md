@@ -12,8 +12,9 @@ npm run dev
 | Command | Purpose |
 |---------|---------|
 | `npm test` | Vitest unit and component tests |
-| `npm run test:coverage` | Main coverage gate (80% lines, 65% branches) |
-| `npm run test:coverage:components` | Shared/analytics component gate (50%) |
+| `npm run test:coverage` | Main coverage gate (80% lines, 74% branches) |
+| `npm run test:coverage:components` | Shared/analytics component gate (65% lines, 50% branches) |
+| `npm run test:coverage:settings` | Control-deck / settings widget gate (60% lines, 45% branches) |
 | `npm run test:e2e` | Playwright user journeys (Chromium, mobile, Firefox smoke) |
 | `npm run lint` | ESLint including jsx-a11y rules (errors on CI) |
 | `npm run check:bundle` | Gzip budget on main JS chunk (~512 KB) |
@@ -25,7 +26,9 @@ npm run dev
 npm run screenshots
 ```
 
-Commits the four tab captures used in README (`focus`, `cards`, `analytics`, `settings`).
+Regenerates the four tab captures used in README (`focus`, `cards`, `analytics`, `settings`) into `docs/screenshots/`.
+
+On pushes to `master` (excluding screenshot-only commits), CI rebuilds the app, captures against the production preview URL, and auto-commits updated PNGs when they change.
 
 ## List virtualization
 

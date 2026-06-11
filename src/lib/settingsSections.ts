@@ -65,6 +65,8 @@ export const SECTION_DEFAULT_KEYS: Record<SettingsSectionId, SettingsKey[]> = {
     'soundEnabled',
     'tactile_feedback',
     'developer_font',
+    'ambientSoundEnabled',
+    'ambientSoundPreset',
     'enforce_lockout',
     'autoArchiveAncientTasks',
   ],

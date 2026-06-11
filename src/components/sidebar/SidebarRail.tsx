@@ -13,6 +13,7 @@ export function SidebarRailContent({
   isTimerActive,
   timerMode,
   enforceLockout,
+  cardsDueCount = 0,
   onToggleNotes,
   onShowOnboarding,
   onToggleCollapse,
@@ -41,6 +42,7 @@ export function SidebarRailContent({
                 accent={tab.accent}
                 isActive={isActive}
                 isLocked={isLocked}
+                badge={tab.id === 'cards' ? cardsDueCount : undefined}
                 onClick={() => handleTabClick(tab.id)}
               />
             )
