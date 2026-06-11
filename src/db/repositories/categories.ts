@@ -1,7 +1,7 @@
 import { db } from '../db'
 
-export async function addCategory(name: string, color: string) {
-  await db.categories.add({ name, color })
+export async function addCategory(name: string, color: string): Promise<number> {
+  return db.categories.add({ name, color })
 }
 
 export async function deleteCategory(id: number) {
