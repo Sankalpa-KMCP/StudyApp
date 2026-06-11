@@ -34,7 +34,7 @@ export function HeatmapPanel({ heatmapData, accentBlue, className = '' }: Heatma
         className="mb-0"
         id="analytics-heatmap"
         action={
-          <div className="flex items-center gap-1.5 text-[10px] text-white/40 font-semibold select-none">
+          <div className="flex items-center gap-1.5 text-micro text-white/40 font-semibold select-none">
             <span>Less</span>
             <div className="h-2.5 w-2.5 rounded-[2px] bg-white/5" />
             <div className="h-2.5 w-2.5 rounded-[2px]" style={{ backgroundColor: `rgba(${rgbStr}, 0.20)` }} />

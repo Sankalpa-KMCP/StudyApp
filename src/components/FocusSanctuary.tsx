@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react'
 import { Play, Pause, Check, Sparkles, Heart } from 'lucide-react'
 import { Button } from './shared/Button'
+import { PanelCard } from './shared/PanelCard'
+import { PanelHeader } from './shared/PanelHeader'
 import type { SettingsKey, SettingsValue } from '../db/types'
 
 interface FocusSanctuaryProps {
@@ -75,24 +77,22 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   }, [breathTime])
 
   return (
-    <div className="grid grid-cols-1 gap-6 w-full flex-1 items-start animate-fade-in">
+    <div className="grid grid-cols-1 gap-6 w-full flex-1 items-start">
       <div className="sr-only" aria-live="assertive" aria-atomic="true">
         {showReflectionModal && timerMode === 'study' ? 'Study block complete' : ''}
       </div>
 
       <div className="flex flex-col gap-6 w-full">
-        <div className="flex flex-col dynamic-card p-5 md:p-6 shadow-2xl">
-          <div className="flex items-center justify-between mb-5 border-b border-white/5 pb-3 select-none">
-            <span className="text-label font-bold uppercase tracking-wider text-white/50">Focus Timer</span>
-            <Button
-              size="sm"
-              onClick={() => setIsZenMode(true)}
-              className="gap-1.5"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-accent-blue" />
-              <span>Sanctuary Mode</span>
-            </Button>
-          </div>
+        <PanelCard className="flex flex-col">
+          <PanelHeader
+            title="Focus Timer"
+            action={
+              <Button size="sm" onClick={() => setIsZenMode(true)} className="gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-accent-blue" />
+                <span>Sanctuary Mode</span>
+              </Button>
+            }
+          />
 
           <div className="flex justify-center gap-2 mb-4">
             {(['study', 'break'] as const).map(mode => {
@@ -116,7 +116,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
 
           {/* Duration Adjuster */}
           <div className="flex flex-col items-center gap-2 mb-5 border-t border-white/5 pt-4">
-            <span className="text-[10px] uppercase font-bold text-white/40 tracking-wider">
+            <span className="text-micro uppercase font-bold text-white/40 tracking-wider">
               {timerMode === 'study' ? 'Study Block Length' : isLongBreak ? 'Long Break Length' : 'Short Break Length'}
             </span>
             <div className="flex items-center gap-3">
@@ -333,10 +333,10 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               </div>
             </div>
           )}
-        </div>
+        </PanelCard>
 
         {timerMode === 'study' && (
-          <div className="dynamic-card p-4.5 select-none shadow-2xl flex flex-col gap-3">
+          <PanelCard className="select-none flex flex-col gap-3 !p-4.5">
             <div className="flex items-center justify-between">
               <span className="text-label font-bold tracking-wider text-white/40 uppercase bg-white/5 border border-white/5 px-2 py-0.5 rounded-full">Study tip</span>
               <div className="flex items-center gap-1.5 text-accent-purple">
@@ -348,7 +348,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               <p className="text-xs font-bold text-white/90">One task at a time</p>
               <p className="text-caption text-white/50 leading-relaxed mt-1">Pick a single focus target and protect this block from context switches.</p>
             </div>
-          </div>
+          </PanelCard>
         )}
       </div>
     </div>
