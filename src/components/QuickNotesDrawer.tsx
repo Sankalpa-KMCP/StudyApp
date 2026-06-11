@@ -5,6 +5,8 @@ import { useFocusTrap } from '../hooks/useFocusTrap'
 import { InlineCategoryManager } from './shared/InlineCategoryManager'
 import { useNoteFilters } from './quick-notes/useNoteFilters'
 import { useNoteEditor } from './quick-notes/useNoteEditor'
+import { useConfirm } from '../context/useConfirm'
+import { QUICK_NOTES_HELPER } from '../lib/uxTerms'
 
 interface QuickNotesDrawerProps {
   isOpen: boolean
@@ -31,6 +33,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   deleteNote,
   noteTagColors,
 }) => {
+  const { requestConfirm } = useConfirm()
   const trapRef = useFocusTrap(isOpen, onClose)
   const {
     searchQuery,
@@ -97,7 +100,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
           <Edit3 className="h-4 w-4 text-accent-blue shrink-0" />
           <div className="flex flex-col min-w-0">
           <h3 id="quick-notes-title" className="text-xs font-bold uppercase tracking-wider text-white">Quick Notes</h3>
-          <p className="text-[10px] text-white/45 font-medium normal-case tracking-normal">Scratch pad — not saved to your journal</p>
+          <p className="text-[10px] text-white/45 font-medium normal-case tracking-normal">{QUICK_NOTES_HELPER}</p>
           </div>
         </div>
         <button
@@ -156,6 +159,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
                 categories={categories}
                 addCategory={addCategory}
                 deleteCategory={deleteCategory}
+                requestConfirm={requestConfirm}
                 selectedCategoryId={editCategoryId}
                 onSelectCategory={handleCategoryChange}
               />

@@ -39,6 +39,8 @@ export const SM2_HELPER = 'SM-2 recall grades — 3 is handled by the algorithm'
 
 export const QUICK_NOTES_HELPER = 'Scratch pad — not saved to your journal'
 export const JOURNAL_HELPER = 'Study log by day'
+export const JOURNAL_PANEL_HELPER = 'Sessions, mood, and notes'
+export const JOURNAL_TAB_SUBTITLE = 'Study log by day — sessions, mood, and notes'
 
 export const ARCHIVED_TASKS = (count: number) =>
   count === 1 ? 'Archived 1 completed task' : `Archived ${count} completed tasks`

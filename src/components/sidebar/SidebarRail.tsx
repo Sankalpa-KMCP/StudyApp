@@ -5,6 +5,7 @@ import type { SidebarModeProps } from './types'
 import { SidebarHeader } from './SidebarHeader'
 import { SidebarNavButton } from './SidebarNavButton'
 import { SidebarActionButton } from './SidebarActionButton'
+import { QUICK_NOTES_HELPER } from '../../lib/uxTerms'
 
 export function SidebarRailContent({
   activeTab,
@@ -51,6 +52,7 @@ export function SidebarRailContent({
           <SidebarActionButton
             variant="rail"
             label="Quick Notes"
+            subtitle={QUICK_NOTES_HELPER}
             icon={FileText}
             iconClassName="text-accent-blue"
             onClick={onToggleNotes}

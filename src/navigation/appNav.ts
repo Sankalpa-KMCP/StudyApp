@@ -1,6 +1,7 @@
 import type React from 'react'
 import { Clock, BarChart3, Calendar, Settings, Layers } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
+import { JOURNAL_TAB_SUBTITLE } from '../lib/uxTerms'
 
 export const SIDEBAR_COLLAPSED_KEY = 'sidebar_collapsed'
 
@@ -22,7 +23,7 @@ export const TAB_CHROME: Record<ActiveTab, { title: string; subtitle: string }> 
   focus: { title: 'Focus', subtitle: 'Timer, focus targets, and focus mode' },
   cards: { title: 'Cards', subtitle: 'Flashcards & spaced repetition' },
   analytics: { title: 'Analytics', subtitle: 'Study insights and retention trends' },
-  journal: { title: 'Journal', subtitle: 'Daily logs and session history' },
+  journal: { title: 'Journal', subtitle: JOURNAL_TAB_SUBTITLE },
   settings: { title: 'Settings', subtitle: 'Preferences, backup, and themes' },
 }
 

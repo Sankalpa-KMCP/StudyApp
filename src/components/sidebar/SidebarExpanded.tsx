@@ -5,6 +5,7 @@ import type { SidebarModeProps } from './types'
 import { SidebarHeader } from './SidebarHeader'
 import { SidebarNavButton } from './SidebarNavButton'
 import { SidebarActionButton } from './SidebarActionButton'
+import { QUICK_NOTES_HELPER } from '../../lib/uxTerms'
 
 export function SidebarExpandedContent({
   currentStreak,
@@ -80,6 +81,7 @@ export function SidebarExpandedContent({
           <SidebarActionButton
             variant="expanded"
             label="Quick Notes"
+            subtitle={QUICK_NOTES_HELPER}
             icon={FileText}
             iconClassName="text-accent-blue"
             onClick={onToggleNotes}
