@@ -346,7 +346,9 @@ body {
 }
 
 /* iOS glassmorphism cards */
-.dynamic-card {
+.dynamic-card,
+.dynamic-card-static,
+.dynamic-card-interactive {
   position: relative;
   background-color: color-mix(in srgb, var(--color-surface-card) calc(var(--card-opacity, 0.7) * 100%), transparent) !important;
   border: 1px solid var(--color-border-card) !important;
@@ -361,7 +363,7 @@ body {
   transform: none;
 }
 
-.dynamic-card:hover {
+.dynamic-card-interactive:hover {
   background-color: color-mix(in srgb, var(--color-surface-card-hover) calc(var(--card-opacity, 0.7) * 100%), transparent) !important;
   border-color: var(--color-border-card) !important;
   box-shadow: var(--shadow-elevated) !important;
@@ -369,7 +371,7 @@ body {
 }
 
 @media (hover: none) {
-  .dynamic-card:hover {
+  .dynamic-card-interactive:hover {
     transform: none !important;
   }
 }
@@ -531,7 +533,14 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .text-gradient-accent {
-  color: var(--color-nav-active-text, var(--color-text-primary));
+  background: linear-gradient(
+    135deg,
+    var(--color-text-primary) 0%,
+    color-mix(in srgb, var(--color-accent-blue) 35%, var(--color-text-primary)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .text-gradient-amber {
@@ -625,6 +634,31 @@ input[type="range"]::-webkit-slider-thumb:hover {
   gap: 1rem;
 }
 
+[data-density="compact"] .tab-page-shell > div {
+  gap: 0.75rem;
+}
+
+[data-density="compact"] .focus-task-form {
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+[data-density="compact"] .focus-timer-ring {
+  height: 10rem;
+  width: 10rem;
+}
+
+@media (min-width: 768px) {
+  [data-density="compact"] .app-content-main {
+    padding: 1rem 1.5rem;
+  }
+
+  [data-density="compact"] header {
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+  }
+}
+
 @media (max-width: 767px) {
   [data-density="compact"] .app-content-main {
     padding: 0.75rem;
@@ -678,6 +712,41 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .settings-muted {
   color: var(--color-text-muted);
   font-size: var(--text-micro);
+}
+
+.text-primary {
+  color: var(--color-text-primary);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.border-card {
+  border-color: var(--color-border-card);
+}
+
+.surface-subtle {
+  background-color: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+}
+
+.surface-track {
+  background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+}
+
+@keyframes timer-cta-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--timer-cta-color, var(--color-accent-blue)) 35%, transparent); }
+  50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--timer-cta-color, var(--color-accent-blue)) 0%, transparent); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .timer-cta-idle {
+    animation: timer-cta-pulse 2.5s ease-in-out infinite;
+  }
 }
 
 .settings-input,
