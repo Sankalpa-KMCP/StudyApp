@@ -12,6 +12,7 @@ interface TrendsChartsPanelProps {
   hasChartData: boolean
   activeThemeVars: ThemeProfile
   tooltipStyle: CSSProperties
+  suppressEmptyState?: boolean
 }
 
 export function TrendsChartsPanel({
@@ -19,6 +20,7 @@ export function TrendsChartsPanel({
   hasChartData,
   activeThemeVars,
   tooltipStyle,
+  suppressEmptyState = false,
 }: TrendsChartsPanelProps) {
   const weekHours = chartData.reduce((sum, row) => sum + row.hours, 0)
   const topDay = chartData.reduce<{ day: string; hours: number } | null>((best, row) => {
@@ -53,7 +55,7 @@ export function TrendsChartsPanel({
             </ResponsiveContainer>
           </div>
           </>
-        ) : (
+        ) : suppressEmptyState ? null : (
           <EmptyState
             icon={<BarChart3 className="h-8 w-8" />}
             title="No study data yet"
@@ -83,7 +85,7 @@ export function TrendsChartsPanel({
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          ) : (
+          ) : suppressEmptyState ? null : (
             <EmptyState
               icon={<BarChart3 className="h-8 w-8" />}
               title="No efficiency data"

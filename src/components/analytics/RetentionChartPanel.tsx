@@ -9,9 +9,10 @@ interface RetentionChartPanelProps {
   retentionData: Array<{ date: string; avgGrade: number }>
   tooltipStyle: CSSProperties
   className?: string
+  suppressEmptyState?: boolean
 }
 
-export function RetentionChartPanel({ retentionData, tooltipStyle, className = '' }: RetentionChartPanelProps) {
+export function RetentionChartPanel({ retentionData, tooltipStyle, className = '', suppressEmptyState = false }: RetentionChartPanelProps) {
   const hasRetentionData = retentionData.length > 0
   const latestGrade = hasRetentionData ? retentionData[retentionData.length - 1]?.avgGrade : 0
 
@@ -41,7 +42,7 @@ export function RetentionChartPanel({ retentionData, tooltipStyle, className = '
           </ResponsiveContainer>
         </div>
         </>
-      ) : (
+      ) : suppressEmptyState ? null : (
         <EmptyState
           icon={<span className="text-2xl">📈</span>}
           title="No retention data yet"

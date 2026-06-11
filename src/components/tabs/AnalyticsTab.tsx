@@ -10,7 +10,7 @@ const AnalyticsStudio = lazy(() =>
 export function AnalyticsTab() {
   const { tasks, flashcards } = useStudyData()
   const { currentStreak, xpData, insights, breakdownData, journal, allLogs } = useStudyAnalytics()
-  const { activeThemeVars } = useStudyUI()
+  const { activeThemeVars, setActiveTab } = useStudyUI()
   const { calendar } = journal
 
   return (
@@ -34,6 +34,7 @@ export function AnalyticsTab() {
         activeThemeVars={activeThemeVars}
         tooltipStyle={tooltipStyle(activeThemeVars)}
         hasChartData={calendar.hasChartData}
+        onStartFocus={() => setActiveTab('focus')}
       />
     </Suspense>
   )

@@ -13,9 +13,10 @@ interface HeatmapPanelProps {
   heatmapData: HeatmapDay[]
   accentBlue: string
   className?: string
+  suppressEmptyState?: boolean
 }
 
-export function HeatmapPanel({ heatmapData, accentBlue, className = '' }: HeatmapPanelProps) {
+export function HeatmapPanel({ heatmapData, accentBlue, className = '', suppressEmptyState = false }: HeatmapPanelProps) {
   const rgbStr = useMemo(() => {
     const rgb = hexToRgb(accentBlue) || { r: 59, g: 130, b: 246 }
     return `${rgb.r}, ${rgb.g}, ${rgb.b}`
@@ -47,10 +48,12 @@ export function HeatmapPanel({ heatmapData, accentBlue, className = '' }: Heatma
       />
 
       {totalStudyMinutes === 0 ? (
+        suppressEmptyState ? null : (
         <EmptyState
           title="No study history yet"
           description="Complete a focus block to fill your year map."
         />
+        )
       ) : (
       <div className="relative w-full overflow-x-auto custom-scrollbar p-2 bg-black/20 border border-white/5 rounded-2xl">
         <div className="grid grid-flow-col grid-rows-7 gap-1 min-w-[650px] justify-start">
