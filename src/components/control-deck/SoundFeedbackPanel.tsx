@@ -18,17 +18,17 @@ export function SoundFeedbackPanel({ soundEnabled, tactileEnabled, developerFont
         <ToggleSetting label="Session chimes" checked={soundEnabled} onChange={v => updateSetting('soundEnabled', v)} />
         <ToggleSetting label="Tactile click feedback" checked={tactileEnabled} onChange={v => updateSetting('tactile_feedback', v)} />
         <div>
-          <span className="text-xs font-semibold text-white/80 block mb-2">Monospace font</span>
+          <span className="settings-label block mb-2">Monospace font</span>
           <select
             value={developerFont}
             onChange={e => updateSetting('developer_font', e.target.value)}
-            className="w-full rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-white outline-none cursor-pointer"
+            className="settings-select"
           >
             {FONT_OPTIONS.map(f => (
-              <option key={f} value={f} className="bg-[#11131e] text-white">{f}</option>
+              <option key={f} value={f}>{f}</option>
             ))}
           </select>
-          <p className="text-micro text-white/40 mt-1.5">Timer and metrics use the loaded monospace fonts above.</p>
+          <p className="settings-muted mt-1.5">Timer and metrics use the loaded monospace fonts above.</p>
         </div>
       </div>
     </SettingsCard>

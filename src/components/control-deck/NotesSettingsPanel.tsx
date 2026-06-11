@@ -15,7 +15,7 @@ export function NotesSettingsPanel({ noteTagColors, updateSetting }: NotesSettin
 
   return (
     <SettingsCard title="Notes">
-      <p className="text-micro text-white/45 mb-3">Customize Quick Notes tag colors (up to 8).</p>
+      <p className="settings-muted mb-3">Customize Quick Notes tag colors (up to 8).</p>
       <div className="flex flex-wrap gap-3">
         {noteTagColors.map((color, index) => (
           <div key={index} className="flex flex-col items-center gap-1">
@@ -23,10 +23,10 @@ export function NotesSettingsPanel({ noteTagColors, updateSetting }: NotesSettin
               type="color"
               value={color}
               onChange={e => handleColorChange(index, e.target.value)}
-              className="h-8 w-8 rounded-lg border border-white/10 bg-transparent cursor-pointer"
+              className="h-8 w-8 rounded-lg border border-[var(--color-border-card)] bg-transparent cursor-pointer"
               aria-label={`Note tag color ${index + 1}`}
             />
-            <span className="text-micro text-white/35 font-mono">{index + 1}</span>
+            <span className="settings-muted font-mono">{index + 1}</span>
           </div>
         ))}
       </div>

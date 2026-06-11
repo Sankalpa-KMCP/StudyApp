@@ -10,7 +10,7 @@ interface AlgorithmPanelProps {
 export function AlgorithmPanel({ initialEasinessFactor, updateSetting }: AlgorithmPanelProps) {
   return (
     <SettingsCard title="Algorithm Settings">
-      <p className="text-[10px] text-white/40 leading-relaxed mb-4">
+      <p className="settings-muted leading-relaxed mb-4">
         Adjust default SM-2 memory parameters for initial recall intervals. Higher EF means cards stay easier longer after a good grade (e.g. 2.5 is typical).
       </p>
       <RangeSetting

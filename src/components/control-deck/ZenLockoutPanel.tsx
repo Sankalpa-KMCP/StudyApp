@@ -12,7 +12,7 @@ export function ZenLockoutPanel({ enforceLockout, autoArchiveAncientTasks, updat
   return (
     <>
       <SettingsCard title="Zen Lockout">
-        <p className="text-[10px] text-white/40 leading-relaxed mb-4">
+        <p className="settings-muted leading-relaxed mb-4">
           Hides tab and escape navigation menus during study blocks to enforce strict focus.
         </p>
         <ToggleSetting
@@ -22,7 +22,7 @@ export function ZenLockoutPanel({ enforceLockout, autoArchiveAncientTasks, updat
         />
       </SettingsCard>
       <SettingsCard title="Automated Archiving">
-        <p className="text-[10px] text-white/40 leading-relaxed mb-4">
+        <p className="settings-muted leading-relaxed mb-4">
           Automatically archives completed tasks older than 90 days to keep the workspace clean.
         </p>
         <ToggleSetting
