@@ -28,6 +28,10 @@ export function FocusTabContent() {
           setIsZenMode={setIsZenMode}
           onUserGesture={ensureAudio}
           showReflectionModal={timer.showReflectionModal}
+          studyBlockDurationMinutes={settings.studyBlockDurationMinutes}
+          shortBreakDurationMinutes={settings.shortBreakDurationMinutes}
+          longBreakDurationMinutes={settings.longBreakDurationMinutes}
+          updateSetting={settings.updateSetting}
         />
       </div>
       <div className="lg:col-span-7">
