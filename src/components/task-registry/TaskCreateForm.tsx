@@ -39,7 +39,7 @@ export function TaskCreateForm({
     <div className="flex flex-col gap-4 mb-6 bg-white/[0.02] border border-white/5 p-4 rounded-[24px]">
       <div className="flex flex-col gap-1">
         <label htmlFor="task-input" className="text-[10px] font-bold uppercase tracking-wider text-white/40">
-          Create New Focus Target
+          Add focus target
         </label>
         <div className="flex gap-2">
           <input
