@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type { ThemePresetMeta, ThemeProfile } from '../types/app'
 
 export interface ThemeAccentOverrides {
@@ -187,6 +188,38 @@ export const THEME_PROFILES: Record<string, ThemeProfile> = {
     textSecondary: 'rgba(15, 23, 42, 0.72)',
     textMuted: 'rgba(15, 23, 42, 0.62)',
   }),
+  'linen-warm': lightProfile({
+    surface: '#f3ebe0',
+    surfaceCard: '#faf6f0',
+    surfaceCardRgb: '250, 246, 240',
+    surfaceCardHover: '#f0e8dc',
+    surfaceCardHoverRgb: '240, 232, 220',
+    pageGradient: 'linear-gradient(180deg, #faf6f0 0%, #e8dfd2 100%)',
+    ambientGlow: 'radial-gradient(at 20% 0%, rgba(180, 83, 9, 0.08) 0px, transparent 50%)',
+    accentBlue: '#1d4a8c',
+    accentPurple: '#7c3aed',
+    accentGreen: '#166534',
+    accentAmber: '#92400e',
+    textPrimary: '#2c1810',
+    textSecondary: 'rgba(44, 24, 16, 0.72)',
+    textMuted: 'rgba(44, 24, 16, 0.62)',
+  }),
+  'arctic-clean': lightProfile({
+    surface: '#eef4fa',
+    surfaceCard: '#f8fbff',
+    surfaceCardRgb: '248, 251, 255',
+    surfaceCardHover: '#e8f0f8',
+    surfaceCardHoverRgb: '232, 240, 248',
+    pageGradient: 'linear-gradient(180deg, #f8fbff 0%, #dce8f4 100%)',
+    ambientGlow: 'radial-gradient(at 50% 0%, rgba(14, 165, 233, 0.08) 0px, transparent 55%)',
+    accentBlue: '#0369a1',
+    accentPurple: '#6d28d9',
+    accentGreen: '#15803d',
+    accentAmber: '#c2410c',
+    textPrimary: '#0c1929',
+    textSecondary: 'rgba(12, 25, 41, 0.72)',
+    textMuted: 'rgba(12, 25, 41, 0.62)',
+  }),
 }
 
 export const THEME_PRESET_META: ThemePresetMeta[] = [
@@ -195,8 +228,12 @@ export const THEME_PRESET_META: ThemePresetMeta[] = [
   { id: 'nordic-frost', label: 'Nordic Frost', description: 'Icy blue-violet Scandinavian palette', isLight: false, swatchOrder: 2 },
   { id: 'amber-retro', label: 'Amber Retro', description: 'Warm sepia tones with vintage amber glow', isLight: false, swatchOrder: 3 },
   { id: 'nebula-purple', label: 'Nebula Purple', description: 'Deep cosmic magenta and violet', isLight: false, swatchOrder: 4 },
-  { id: 'paper-day', label: 'Paper Day', description: 'Warm paper white for daylight reading', isLight: true, swatchOrder: 5 },
-  { id: 'mist-slate', label: 'Mist Slate', description: 'Cool grey-blue light workspace', isLight: true, swatchOrder: 6 },
+  { id: 'forest-dusk', label: 'Forest Dusk', description: 'Deep teal-green study sanctuary', isLight: false, swatchOrder: 5 },
+  { id: 'cosmos-ink', label: 'Cosmos Ink', description: 'Indigo-black with cyan starlight accents', isLight: false, swatchOrder: 6 },
+  { id: 'paper-day', label: 'Paper Day', description: 'Warm paper white for daylight reading', isLight: true, swatchOrder: 7 },
+  { id: 'mist-slate', label: 'Mist Slate', description: 'Cool grey-blue light workspace', isLight: true, swatchOrder: 8 },
+  { id: 'linen-warm', label: 'Linen Warm', description: 'Cream linen with brown-ink text', isLight: true, swatchOrder: 9 },
+  { id: 'arctic-clean', label: 'Arctic Clean', description: 'Crisp white-blue clinical clarity', isLight: true, swatchOrder: 10 },
 ]
 
 export const DARK_THEME_PRESETS = THEME_PRESET_META.filter(p => !p.isLight)
@@ -239,14 +276,27 @@ export function resolveThemeProfile(
   return applyAccentOverrides(base, overrides)
 }
 
-export const TOOLTIP_STYLE = {
-  backgroundColor: 'rgba(8, 10, 15, 0.85)',
-  backdropFilter: 'blur(16px)',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-  borderRadius: '12px',
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.08)',
-  color: '#e1ded7',
-  outline: 'none',
+export function tooltipStyle(profile: ThemeProfile): CSSProperties {
+  const isLight = profile.isLight ?? false
+  const textColor = profile.textPrimary ?? (isLight ? '#1a1a2e' : '#e1ded7')
+  const borderColor = isLight ? 'rgba(0, 0, 0, 0.10)' : 'rgba(255, 255, 255, 0.1)'
+  const shadowColor = isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(0, 0, 0, 0.4)'
+  const insetHighlight = isLight ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.08)'
+
+  return {
+    backgroundColor: isLight
+      ? `rgba(${profile.surfaceCardRgb}, 0.95)`
+      : 'rgba(8, 10, 15, 0.85)',
+    backdropFilter: 'blur(16px)',
+    border: `1px solid ${borderColor}`,
+    borderRadius: '12px',
+    boxShadow: `0 8px 32px ${shadowColor}, inset 0 1px 1px ${insetHighlight}`,
+    color: textColor,
+    outline: 'none',
+  }
 }
+
+/** @deprecated Use tooltipStyle(profile) for theme-aware tooltips */
+export const TOOLTIP_STYLE = tooltipStyle(THEME_PROFILES['midnight-slate'])
 
 export { DAY_NAMES_SHORT, MONTH_NAMES } from './dateConstants'
