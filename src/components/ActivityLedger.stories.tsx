@@ -41,6 +41,7 @@ export const Default: Story = {
         initialDraftNotes=""
         handleNotesChange={() => {}}
         selectedDayHistory={[]}
+        saveStatus="idle"
       />
     </div>
   ),

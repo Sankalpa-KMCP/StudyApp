@@ -43,6 +43,7 @@ const baseProps = {
   initialDraftNotes: '',
   handleNotesChange: vi.fn(),
   selectedDayHistory: [],
+  saveStatus: 'idle' as const,
 }
 
 describe('ActivityLedger', () => {

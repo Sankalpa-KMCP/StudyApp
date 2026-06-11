@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
-import { Calendar, X } from 'lucide-react'
+import { Calendar, X, Timer, Coffee, Target } from 'lucide-react'
 import type { CategoryItem, HistoryEntry } from '../db/types'
 import type { DayData } from '../types/app'
+import type { JournalSaveStatus } from '../hooks/useJournalCalendar'
 import { formatMinutes, getIntensity } from '../lib/studyDashboard'
+import { JOURNAL_HELPER, JOURNAL_PANEL_HELPER } from '../lib/uxTerms'
 import { DayDetailPanel } from './activity-ledger/DayDetailPanel'
 import { useLedgerIntensityStyles } from './activity-ledger/useLedgerCalendar'
 import { TabPageShell } from './shared/TabPageShell'
@@ -35,6 +37,7 @@ interface ActivityLedgerProps {
   initialDraftNotes: string
   handleNotesChange: (notes: string) => void
   selectedDayHistory: HistoryEntry[]
+  saveStatus: JournalSaveStatus
 }
 
 export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
@@ -63,6 +66,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
   initialDraftNotes,
   handleNotesChange,
   selectedDayHistory,
+  saveStatus,
 }) => {
   const [draftMood, setDraftMood] = useState(initialDraftMood)
   const [draftNotes, setDraftNotes] = useState(initialDraftNotes)
@@ -85,14 +89,14 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
     <TabPageShell>
       {showJournalHint && (
         <div className="lg:col-span-12 flex items-start justify-between gap-3 rounded-2xl border border-accent-blue/20 bg-accent-blue/10 px-4 py-3">
-          <p className="text-xs text-white/75 leading-relaxed">
+          <p className="text-xs text-text-secondary leading-relaxed">
             Your study sessions will appear here. Start a focus block on the Focus tab.
           </p>
           <button
             type="button"
             onClick={dismissJournalHint}
             aria-label="Dismiss journal hint"
-            className="shrink-0 rounded-full p-1 text-white/50 hover:text-white hover:bg-white/10 transition-all"
+            className="shrink-0 rounded-full p-1 text-muted hover:text-primary hover:bg-white/10 transition-all"
           >
             <X className="h-4 w-4" />
           </button>
@@ -100,7 +104,8 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
       )}
       <div className="lg:col-span-5 flex flex-col gap-6">
         <PanelCard>
-          <PanelHeader title="Study log by day" bordered={false} className="mb-4" />
+          <PanelHeader title={JOURNAL_HELPER} bordered={false} className="mb-1" />
+          <p className="text-[10px] text-muted font-medium mb-4">{JOURNAL_PANEL_HELPER}</p>
 
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
@@ -155,13 +160,22 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                 >
                   <span>{cell}</span>
                   {dayData && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-36 surface-overlay border border-white/10 p-2.5 rounded-[16px] text-micro font-mono text-left pointer-events-none z-30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] leading-normal animate-slide-in-up">
-                      <div className="font-bold text-white mb-1 border-b border-white/10 pb-0.5">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden md:group-hover:flex flex-col w-36 surface-overlay border border-white/10 p-2.5 rounded-[16px] text-micro font-mono text-left pointer-events-none z-30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] leading-normal animate-slide-in-up">
+                      <div className="font-bold text-text-primary mb-1 border-b border-white/10 pb-0.5">
                         {monthNames[currentMonth]} {cell}, {currentYear}
                       </div>
-                      <div className="text-white/80">⏱️ Focus: {isLiveDay ? formatMinutes(todayStudyMinutes) : dayData.studyTime}</div>
-                      <div className="text-white/60">☕ Break: {isLiveDay ? formatMinutes(todayBreakMinutes) : dayData.breakTime}</div>
-                      <div className="text-accent-blue font-bold mt-0.5">🎯 Score: {isLiveDay ? `${progressPercent}%` : dayData.focusScore}</div>
+                      <div className="flex items-center gap-1 text-text-secondary">
+                        <Timer className="h-3 w-3 shrink-0" aria-hidden />
+                        Focus: {isLiveDay ? formatMinutes(todayStudyMinutes) : dayData.studyTime}
+                      </div>
+                      <div className="flex items-center gap-1 text-muted">
+                        <Coffee className="h-3 w-3 shrink-0" aria-hidden />
+                        Break: {isLiveDay ? formatMinutes(todayBreakMinutes) : dayData.breakTime}
+                      </div>
+                      <div className="flex items-center gap-1 text-accent-blue font-bold mt-0.5">
+                        <Target className="h-3 w-3 shrink-0" aria-hidden />
+                        Score: {isLiveDay ? `${progressPercent}%` : dayData.focusScore}
+                      </div>
                     </div>
                   )}
                 </button>
@@ -169,6 +183,26 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                 <div key={i} className="aspect-square" />
               )
             })}
+          </div>
+
+          <div className="md:hidden mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2 text-micro font-mono text-text-secondary">
+            <span className="font-bold text-text-primary w-full text-[10px] uppercase tracking-wider">
+              {monthNames[currentMonth]} {selectedDay}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Timer className="h-3 w-3 text-accent-blue" aria-hidden />
+              {liveDay.studyTime}
+            </span>
+            <span className="text-muted">·</span>
+            <span className="inline-flex items-center gap-1">
+              <Coffee className="h-3 w-3 text-accent-amber" aria-hidden />
+              {liveDay.breakTime}
+            </span>
+            <span className="text-muted">·</span>
+            <span className="inline-flex items-center gap-1 text-accent-blue font-bold">
+              <Target className="h-3 w-3" aria-hidden />
+              {liveDay.focusScore}
+            </span>
           </div>
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-label text-text-secondary border-t border-white/5 pt-4">
@@ -218,6 +252,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
           }}
           selectedDayHistory={selectedDayHistory}
           activeThemeVars={activeThemeVars}
+          saveStatus={saveStatus}
         />
       </div>
     </TabPageShell>
