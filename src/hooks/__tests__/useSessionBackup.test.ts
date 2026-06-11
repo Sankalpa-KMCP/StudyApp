@@ -6,6 +6,11 @@ import { computeBackupChecksum } from '../../lib/backupChecksum'
 import { parseStudyBackupPayload, validateBackupPayload } from '../../lib/studyDashboard'
 import { useSessionBackup } from '../useSessionBackup'
 
+interface MockAnchor {
+  click: ReturnType<typeof vi.fn>
+  download: string
+}
+
 describe('useSessionBackup payload helpers', () => {
   it('parses valid backup JSON', () => {
     const payload = {
@@ -44,13 +49,13 @@ describe('useSessionBackup hook', () => {
   it('shows toast on corrupt JSON import', async () => {
     const { result } = renderHook(() => useSessionBackup(pushToast))
     await result.current.importStudyBackup('{ not valid json')
-    expect(pushToast).toHaveBeenCalledWith('BACKUP', 'INVALID BACKUP FILE FORMAT')
+    expect(pushToast).toHaveBeenCalledWith('BACKUP', 'Invalid backup file format')
   })
 
   it('shows toast on invalid schema import', async () => {
     const { result } = renderHook(() => useSessionBackup(pushToast))
     await result.current.importStudyBackup(JSON.stringify({ version: 2, tasks: 'bad' }))
-    expect(pushToast).toHaveBeenCalledWith('BACKUP', 'VALIDATION FAILED - CORRUPT SCHEMA')
+    expect(pushToast).toHaveBeenCalledWith('BACKUP', 'Backup file failed validation')
   })
 
   it('exportStudyBackup triggers download with study-vault filename', async () => {
@@ -69,8 +74,9 @@ describe('useSessionBackup hook', () => {
     const { result } = renderHook(() => useSessionBackup(pushToast))
     await result.current.exportStudyBackup()
 
-    expect(capturedAnchor?.click).toHaveBeenCalled()
-    expect(capturedAnchor?.download).toMatch(/^study-vault-\d{4}-\d{2}-\d{2}\.studybackup$/)
+    expect((capturedAnchor as unknown as MockAnchor).click).toHaveBeenCalled()
+    expect((capturedAnchor as unknown as MockAnchor).download).toMatch(/^study-vault-\d{4}-\d{2}-\d{2}\.studybackup$/)
+    expect(pushToast).toHaveBeenCalledWith('BACKUP', 'Backup exported successfully')
   })
 
   it('import does not clear tasks when validation fails', async () => {
@@ -82,7 +88,7 @@ describe('useSessionBackup hook', () => {
 
     const after = await db.tasks.count()
     expect(after).toBe(before)
-    expect(pushToast).toHaveBeenCalledWith('BACKUP', 'VALIDATION FAILED - CORRUPT SCHEMA')
+    expect(pushToast).toHaveBeenCalledWith('BACKUP', 'Backup file failed validation')
   })
 
   it('createDatabaseSnapshot stores payload in snapshots table', async () => {
@@ -103,10 +109,10 @@ describe('useSessionBackup hook', () => {
     })
     let capturedCsv = ''
     const OriginalBlob = global.Blob
-    vi.spyOn(global, 'Blob').mockImplementation((parts: BlobPart[]) => {
+    vi.spyOn(global, 'Blob').mockImplementation(((parts: BlobPart[]) => {
       capturedCsv = String(parts[0])
       return new OriginalBlob(parts)
-    })
+    }) as unknown as (this: Blob, blobParts?: BlobPart[] | undefined, options?: BlobPropertyBag | undefined) => Blob)
     const createElement = document.createElement.bind(document)
     vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
       const el = createElement(tag)
@@ -160,7 +166,7 @@ describe('useSessionBackup hook', () => {
 
     const { result } = renderHook(() => useSessionBackup(pushToast))
     await result.current.exportTaskCompletionLogsCSV()
-    expect(capturedAnchor?.download).toMatch(/^task-logs-/)
+    expect((capturedAnchor as unknown as MockAnchor).download).toMatch(/^task-logs-/)
   })
 
   it('rejects import when checksum does not match', async () => {
@@ -183,7 +189,7 @@ describe('useSessionBackup hook', () => {
     const { result } = renderHook(() => useSessionBackup(pushToast))
     await result.current.importStudyBackup(JSON.stringify(tampered))
 
-    expect(pushToast).toHaveBeenCalledWith('BACKUP', 'CHECKSUM MISMATCH - FILE MAY BE CORRUPT')
+    expect(pushToast).toHaveBeenCalledWith('BACKUP', 'Backup checksum mismatch — file may be corrupt')
     expect(await db.tasks.toArray()).toHaveLength(1)
     expect((await db.tasks.toArray())[0].text).toBe('Keep on bad checksum')
   })
@@ -193,6 +199,6 @@ describe('useSessionBackup hook', () => {
     const { result } = renderHook(() => useSessionBackup(pushToast))
     await result.current.resetDataSelective({ tasks: true, history: false, categories: false, cards: false, notes: false })
     expect(await db.tasks.count()).toBe(0)
-    expect(pushToast).toHaveBeenCalledWith('RESET', 'SELECTED TABLES SWEPT')
+    expect(pushToast).toHaveBeenCalledWith('RESET', 'Selected data cleared')
   })
 })

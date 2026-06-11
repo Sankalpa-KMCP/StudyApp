@@ -1,9 +1,29 @@
 import { useRef, useState } from 'react'
 import { db } from '../db/db'
-import { exportStudyBackupFile } from '../lib/backupExport'
+import { exportStudyBackupFile, collectStudyBackupPayload, downloadStudyBackup } from '../lib/backupExport'
+import { setLastBackupExportAt } from '../lib/backupMetadata'
+import { canShareStudyBackup, shareStudyBackup } from '../lib/backupShare'
+import { buildStudyHistoryIcs, downloadIcs } from '../lib/icsExport'
 import { verifyBackupChecksum } from '../lib/backupChecksum'
 import { parseStudyBackupPayload, validateBackupPayload } from '../lib/studyDashboard'
 import { devLog } from '../lib/devLogger'
+import {
+  BACKUP_CSV_EXPORT_FAILED,
+  BACKUP_EXPORT_COMPLETE,
+  BACKUP_EXPORT_FAILED,
+  BACKUP_IMPORT_CHECKSUM_FAILED,
+  BACKUP_IMPORT_FAILED,
+  BACKUP_IMPORT_INVALID,
+  BACKUP_IMPORT_INVALID_FORMAT,
+  BACKUP_IMPORT_INVALID_SCHEMA,
+  BACKUP_RESET_FAILED,
+  BACKUP_RESET_SWEPT,
+  BACKUP_SNAPSHOT_FAILED,
+  BACKUP_SNAPSHOTS_CLEAR_FAILED,
+  BACKUP_SNAPSHOTS_CLEARED,
+  BACKUP_TASK_CSV_EXPORT_FAILED,
+} from '../lib/backupTerms'
+
 const MAX_SNAPSHOTS = 3
 
 function escapeCsvField(value: string): string {
@@ -49,7 +69,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
       }
     } catch (err) {
       console.error('Failed to create database snapshot:', err)
-      pushToast('BACKUP', 'FAILED TO SAVE LOCAL SNAPSHOT')
+      pushToast('BACKUP', BACKUP_SNAPSHOT_FAILED)
     }
   }
 
@@ -58,22 +78,56 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
       setIsExporting(true)
       setExportProgress(0)
       await exportStudyBackupFile('study-vault', setExportProgress)
+      setLastBackupExportAt()
+      pushToast('BACKUP', BACKUP_EXPORT_COMPLETE)
     } catch (err) {
       console.error('Export failed:', err)
-      pushToast('BACKUP', 'FAILED TO EXPORT VAULT')
+      pushToast('BACKUP', BACKUP_EXPORT_FAILED)
     } finally {
       setIsExporting(false)
       setExportProgress(0)
     }
   }
 
+  async function shareStudyBackupVault() {
+    try {
+      setIsExporting(true)
+      setExportProgress(0)
+      const payload = await collectStudyBackupPayload(setExportProgress)
+      const shared = await shareStudyBackup(payload, 'study-vault')
+      if (!shared) {
+        downloadStudyBackup(payload, 'study-vault')
+      }
+      setLastBackupExportAt()
+      pushToast('BACKUP', BACKUP_EXPORT_COMPLETE)
+    } catch (err) {
+      console.error('Share failed:', err)
+      pushToast('BACKUP', BACKUP_EXPORT_FAILED)
+    } finally {
+      setIsExporting(false)
+      setExportProgress(0)
+    }
+  }
+
+  async function exportStudyHistoryIcs() {
+    try {
+      const [history, categories] = await Promise.all([db.history.toArray(), db.categories.toArray()])
+      const categoryNames = new Map(categories.filter(c => c.id !== undefined).map(c => [c.id!, c.name]))
+      const ics = buildStudyHistoryIcs(history, categoryNames)
+      downloadIcs(ics)
+    } catch (err) {
+      console.error('ICS export failed:', err)
+      pushToast('EXPORT', 'ICS export failed')
+    }
+  }
+
   async function clearSnapshots() {
     try {
       await db.snapshots.clear()
-      pushToast('BACKUP', 'LOCAL SNAPSHOTS CLEARED')
+      pushToast('BACKUP', BACKUP_SNAPSHOTS_CLEARED)
     } catch (err) {
       console.error('Failed to clear snapshots:', err)
-      pushToast('BACKUP', 'FAILED TO CLEAR SNAPSHOTS')
+      pushToast('BACKUP', BACKUP_SNAPSHOTS_CLEAR_FAILED)
     }
   }
 
@@ -94,7 +148,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
       URL.revokeObjectURL(url)
     } catch (err) {
       console.error('CSV Export failed:', err)
-      pushToast('EXPORT', 'CSV EXPORT FAILED')
+      pushToast('EXPORT', BACKUP_CSV_EXPORT_FAILED)
     }
   }
 
@@ -128,7 +182,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
       URL.revokeObjectURL(url)
     } catch (err) {
       console.error('Task CSV Export failed:', err)
-      pushToast('EXPORT', 'TASK CSV EXPORT FAILED')
+      pushToast('EXPORT', BACKUP_TASK_CSV_EXPORT_FAILED)
     }
   }
 
@@ -138,24 +192,24 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
       try {
         parsedJson = JSON.parse(fileString)
       } catch {
-        pushToast('BACKUP', 'INVALID BACKUP FILE FORMAT')
+        pushToast('BACKUP', BACKUP_IMPORT_INVALID_FORMAT)
         return
       }
 
       if (!validateBackupPayload(parsedJson)) {
-        pushToast('BACKUP', 'VALIDATION FAILED - CORRUPT SCHEMA')
+        pushToast('BACKUP', BACKUP_IMPORT_INVALID_SCHEMA)
         return
       }
 
       const data = parseStudyBackupPayload(fileString)
       if (!data) {
-        pushToast('BACKUP', 'INVALID BACKUP FILE')
+        pushToast('BACKUP', BACKUP_IMPORT_INVALID)
         return
       }
 
       const checksumValid = await verifyBackupChecksum(data)
       if (!checksumValid) {
-        pushToast('BACKUP', 'CHECKSUM MISMATCH - FILE MAY BE CORRUPT')
+        pushToast('BACKUP', BACKUP_IMPORT_CHECKSUM_FAILED)
         return
       }
 
@@ -186,8 +240,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
       window.location.reload()
     } catch (err) {
       console.error('Failed to import vault:', err)
-      pushToast('BACKUP', 'FAILED TO IMPORT VAULT')
-      alert('Failed to import vault: Malformed backup file.')
+      pushToast('BACKUP', BACKUP_IMPORT_FAILED)
     }
   }
 
@@ -239,10 +292,10 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
         if (options.cards) await db.flashcards.clear()
         if (options.notes) await db.quick_notes.clear()
       })
-      pushToast('RESET', 'SELECTED TABLES SWEPT')
+      pushToast('RESET', BACKUP_RESET_SWEPT)
     } catch (err) {
       console.error('Selective reset failed:', err)
-      pushToast('RESET', 'SELECTIVE RESET FAILED')
+      pushToast('RESET', BACKUP_RESET_FAILED)
     }
   }
 
@@ -252,6 +305,9 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
     exportProgress,
     createDatabaseSnapshot,
     exportStudyBackup,
+    shareStudyBackupVault,
+    exportStudyHistoryIcs,
+    canShareBackup: canShareStudyBackup(),
     clearSnapshots,
     exportStudyLogsCSV,
     exportTaskCompletionLogsCSV,

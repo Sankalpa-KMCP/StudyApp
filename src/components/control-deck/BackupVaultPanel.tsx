@@ -3,17 +3,24 @@ import { useConfirm } from '../../context/useConfirm'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { Button } from '../shared/Button'
+import { StorageUsagePanel } from './StorageUsagePanel'
+import { archiveHistoryOlderThan } from '../../db/repositories/history'
 
 export function BackupVaultPanel() {
   const {
     backup,
     quotaExceeded,
+    historyRetentionDays,
+    pushToast,
     isDragging,
     setIsDragging,
     handleFileDrop,
   } = useSettingsPanel()
   const {
     exportStudyBackup,
+    shareStudyBackupVault,
+    exportStudyHistoryIcs,
+    canShareBackup = false,
     isExporting = false,
     exportProgress = 0,
     exportStudyLogsCSV,
@@ -30,9 +37,11 @@ export function BackupVaultPanel() {
   const [sweepCategories, setSweepCategories] = useState(false)
   const [sweepCards, setSweepCards] = useState(false)
   const [sweepNotes, setSweepNotes] = useState(false)
+  const [storageKey, setStorageKey] = useState(0)
 
   return (
     <SettingsCard id="settings-backup-vault" title="Backup Vault">
+      <StorageUsagePanel key={storageKey} />
       {quotaExceeded && (
         <div className="mb-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 space-y-3">
           <p className="text-xs font-bold text-amber-200 uppercase tracking-wider">Storage recovery</p>
@@ -85,6 +94,11 @@ export function BackupVaultPanel() {
           <Button variant="primary" onClick={exportStudyBackup} disabled={isExporting} className="w-full mt-4">
             {isExporting ? `Exporting… ${exportProgress}%` : 'Export Vault'}
           </Button>
+          {canShareBackup && shareStudyBackupVault && (
+            <Button variant="secondary" onClick={shareStudyBackupVault} disabled={isExporting} className="w-full mt-2">
+              Share backup
+            </Button>
+          )}
           {isExporting && (
             <div className="mt-2 h-1.5 w-full rounded-full bg-[color-mix(in_srgb,var(--color-text-primary)_10%,transparent)] overflow-hidden" aria-hidden>
               <div className="h-full bg-accent-blue transition-all duration-300" style={{ width: `${exportProgress}%` }} />
@@ -119,6 +133,28 @@ export function BackupVaultPanel() {
 
       <div className="mt-5 border-t border-[var(--color-border-card)] pt-5">
         <span className="settings-label block mb-3">CSV Reports Export</span>
+        {historyRetentionDays > 0 && (
+          <div className="mb-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                const ok = await requestConfirm({
+                  title: `Archive history older than ${historyRetentionDays} days?`,
+                  message: 'Export a backup first if you need old session records. This cannot be undone.',
+                  confirmLabel: 'Archive',
+                  danger: true,
+                })
+                if (!ok) return
+                const deleted = await archiveHistoryOlderThan(historyRetentionDays)
+                setStorageKey(k => k + 1)
+                pushToast('ARCHIVE', deleted > 0 ? `Archived ${deleted} history entries` : 'No history entries to archive')
+              }}
+            >
+              Archive old history ({historyRetentionDays}+ days)
+            </Button>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="rounded-2xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] p-4 flex flex-col justify-between">
             <div>
@@ -130,6 +166,12 @@ export function BackupVaultPanel() {
               className="w-full mt-4 rounded-full bg-accent-blue/10 hover:bg-accent-blue/25 text-accent-blue border border-accent-blue/20 py-2.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
             >
               Export CSV Logs
+            </button>
+            <button
+              onClick={() => exportStudyHistoryIcs?.()}
+              className="w-full mt-4 rounded-full bg-accent-green/10 hover:bg-accent-green/25 text-accent-green border border-accent-green/20 py-2.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
+            >
+              Export ICS Calendar
             </button>
           </div>
           <div className="rounded-2xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] p-4 flex flex-col justify-between">
