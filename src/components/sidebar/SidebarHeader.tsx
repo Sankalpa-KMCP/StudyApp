@@ -8,8 +8,8 @@ interface SidebarHeaderProps {
 export function SidebarHeader({ collapsed, onToggleCollapse }: SidebarHeaderProps) {
   if (collapsed) {
     return (
-      <header className="grid justify-items-center gap-2 px-1 py-0.5 select-none">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-tr from-accent-blue to-accent-purple shadow-md shadow-accent-blue/10">
+      <header className="flex w-full flex-col items-center gap-2 pt-1 pb-0.5 select-none">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-tr from-accent-blue to-accent-purple shadow-md shadow-accent-blue/10">
           <Brain className="h-5.5 w-5.5 text-on-accent" />
         </div>
         <button
