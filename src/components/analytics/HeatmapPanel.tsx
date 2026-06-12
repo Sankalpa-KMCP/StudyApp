@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { hexToRgb } from '../../lib/studyDashboard'
+import { hexToRgb } from '../../lib/study/studyDashboard'
 import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
 import { EmptyState } from '../shared/EmptyState'

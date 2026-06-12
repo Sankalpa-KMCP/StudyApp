@@ -9,7 +9,9 @@ import { HeatmapPanel } from './analytics/HeatmapPanel'
 import { BreakdownPanels } from './analytics/BreakdownPanels'
 import { AnalyticsEmptyHero } from './analytics/AnalyticsEmptyHero'
 import { AnalyticsRangeSelector } from './analytics/AnalyticsRangeSelector'
+import { CategoryGoalTrendPanel } from './analytics/CategoryGoalTrendPanel'
 import { TabPageShell, TabSection } from './shared/TabPageShell'
+import { Button } from './shared/Button'
 import type { AnalyticsHistoryRange } from '../hooks/useAnalyticsHistoryRange'
 import {
   useHeatmapData,
@@ -41,6 +43,15 @@ interface AnalyticsStudioProps {
   analyticsRangeLabel: string
   onAnalyticsRangeChange: (range: AnalyticsHistoryRange) => void
   onStartFocus?: () => void
+  categoryGoalTrends?: Array<{
+    name: string
+    color: string
+    goalMinutes: number
+    hitDays: number
+    totalDays: number
+    hitRate: number
+  }>
+  onExportWeeklyReport?: (format: 'md' | 'csv') => void
 }
 
 export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
@@ -65,6 +76,8 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
   analyticsRangeLabel,
   onAnalyticsRangeChange,
   onStartFocus,
+  categoryGoalTrends = [],
+  onExportWeeklyReport,
 }) => {
   const retentionData = useRetentionData(tasks, flashcards)
   const heatmapData = useHeatmapData(allLogs)
@@ -123,6 +136,12 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
       )}
 
       <TabSection label="Insights">
+        {onExportWeeklyReport && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Button variant="secondary" size="sm" onClick={() => onExportWeeklyReport('md')}>Export weekly report (MD)</Button>
+            <Button variant="secondary" size="sm" onClick={() => onExportWeeklyReport('csv')}>Export weekly report (CSV)</Button>
+          </div>
+        )}
         <AnalyticsRangeSelector range={analyticsRange} onChange={onAnalyticsRangeChange} />
         <p className="text-micro settings-muted mb-4 -mt-2">
           Productivity metrics below reflect {analyticsRangeLabel.toLowerCase()}. Streak and XP use all-time data.
@@ -136,6 +155,11 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
           peakDay={peakDay}
           estimationInsight={estimationInsight}
         />
+        {categoryGoalTrends.length > 0 && (
+          <div className="mt-4">
+            <CategoryGoalTrendPanel trends={categoryGoalTrends} />
+          </div>
+        )}
       </TabSection>
     </TabPageShell>
   )

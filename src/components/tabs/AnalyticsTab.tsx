@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react'
-import { tooltipStyle } from '../../lib/theme'
+import { tooltipStyle } from '../../lib/theme/theme'
+import { calculateCategoryGoalTrend } from '../../lib/study/studyDashboard'
+import { buildWeeklyReportData, downloadWeeklyReport, weeklyReportToCsv, weeklyReportToMarkdown } from '../../lib/export/weeklyReportExport'
 import { TabLoadingFallback } from '../shared/TabLoadingFallback'
 import { useStudyAnalytics, useStudyData, useStudyUI } from '../../context/useStudyApp'
 
@@ -8,13 +10,14 @@ const AnalyticsStudio = lazy(() =>
 )
 
 export function AnalyticsTab() {
-  const { tasks, flashcards, settings } = useStudyData()
+  const { tasks, flashcards, settings, categories, recentHistory } = useStudyData()
   const { currentStreak, xpData, insights, breakdownData, journal, allLogs, analyticsRange } = useStudyAnalytics()
+  const categoryGoalTrends = calculateCategoryGoalTrend(allLogs.allLogs, categories.categories)
   const { activeThemeVars, setActiveTab } = useStudyUI()
   const { calendar } = journal
 
   return (
-    <Suspense fallback={<TabLoadingFallback label="analytics" />}>
+    <Suspense fallback={<TabLoadingFallback label="analytics" variant="analytics" />}>
       <AnalyticsStudio
         tasks={tasks.tasks}
         flashcards={settings.flashcardsEnabled ? flashcards.flashcards : []}
@@ -38,6 +41,20 @@ export function AnalyticsTab() {
         analyticsRangeLabel={analyticsRange.rangeLabel}
         onAnalyticsRangeChange={analyticsRange.setRange}
         onStartFocus={() => setActiveTab('focus')}
+        categoryGoalTrends={categoryGoalTrends}
+        onExportWeeklyReport={format => {
+          const data = buildWeeklyReportData(
+            recentHistory.history,
+            allLogs.allLogs,
+            tasks.tasks,
+            categories.categories,
+            settings.dailyGoalMinutes,
+          )
+          downloadWeeklyReport(
+            format === 'md' ? weeklyReportToMarkdown(data) : weeklyReportToCsv(data),
+            format,
+          )
+        }}
       />
     </Suspense>
   )
