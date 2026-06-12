@@ -3,6 +3,7 @@ import { ErrorFallback } from './ErrorFallback'
 
 interface ErrorBoundaryProps {
   children: ReactNode
+  fallbackLabel?: string
 }
 
 interface ErrorBoundaryState {
@@ -36,6 +37,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <ErrorFallback
           message={this.state.message}
           stack={this.state.stack}
+          contextLabel={this.props.fallbackLabel}
           onRetry={this.handleRetry}
           onReload={this.handleReload}
         />
