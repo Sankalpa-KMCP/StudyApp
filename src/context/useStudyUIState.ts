@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
-import { applyThemeToDocument } from '../lib/applyThemeVars'
-import { readAppHashFromLocation, writeAppHash, resolveAppHash } from '../lib/appHashRouting'
+import { applyThemeToDocument } from '../lib/theme/applyThemeVars'
+import { readAppHashFromLocation, writeAppHash, resolveAppHash } from '../lib/routing/appHashRouting'
 import { getKeyboardTabOrder } from '../navigation/appNav'
-import { setActiveTabSync } from '../lib/activeTabSync'
-import { loadAppFonts } from '../lib/loadAppFonts'
-import { resolveThemeProfile } from '../lib/theme'
+import { setActiveTabSync } from '../lib/routing/activeTabSync'
+import { loadAppFonts } from '../lib/theme/loadAppFonts'
+import { resolveThemeProfile } from '../lib/theme/theme'
 import { useZenCanvas } from '../hooks/useZenCanvas'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useFocusLockoutNavigation } from '../hooks/useFocusLockoutNavigation'
@@ -15,7 +15,8 @@ import { useStudyTimerContext, useStudyTimerDisplay } from './studyTimerContext'
 import { useConfirm } from './useConfirm'
 import type { useAppToast } from '../hooks/useAppToast'
 import { useUndoDelete } from '../hooks/useUndoDelete'
-import { PAUSE_TIMER_TO_LEAVE } from '../lib/uxTerms'
+import { PAUSE_TIMER_TO_LEAVE } from '../lib/shared/uxTerms'
+import { setAppLocale } from '../i18n'
 
 const UI_FONT_STACKS: Record<string, string> = {
   Inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -61,6 +62,10 @@ export function useStudyUIState(toast: ToastApi) {
 
   const navigateToTab = useFocusLockoutNavigation({
     enforceLockout: settings.enforce_lockout,
+    lockoutMode: settings.lockoutMode,
+    lockoutAllowedTabs: settings.lockoutAllowedTabs,
+    lockoutStudyOnly: settings.lockoutStudyOnly,
+    activeTab,
     timer: timerControls,
     setActiveTab: setActiveTabState,
     onLockedAttempt: notifyFocusLockout,
@@ -94,6 +99,10 @@ export function useStudyUIState(toast: ToastApi) {
       navigateToTab('focus')
     }
   }, [settings.flashcardsEnabled, activeTab, navigateToTab])
+
+  useEffect(() => {
+    setAppLocale(settings.locale)
+  }, [settings.locale])
 
   useEffect(() => {
     document.documentElement.style.setProperty('--font-monospace', `'${settings.developer_font}', monospace`)

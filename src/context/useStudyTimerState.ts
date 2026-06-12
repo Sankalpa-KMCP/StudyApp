@@ -19,6 +19,7 @@ export function useStudyTimerState(pushToast: PushToast) {
     history,
     settings,
     todayLog,
+    categories,
   } = useStudyDataContext()
 
   const [activeTaskId, setActiveTaskId] = useState<number | null>(null)
@@ -37,6 +38,9 @@ export function useStudyTimerState(pushToast: PushToast) {
     longBreakDurationMinutes: settings.longBreakDurationMinutes,
     targetSessionsPerCycle: settings.targetSessionsPerCycle,
     initialEasinessFactor: settings.initialEasinessFactor,
+    schedulingAlgorithm: settings.schedulingAlgorithm,
+    sessionTasks: tasks.tasks,
+    categories: categories.categories,
     incrementStudy: todayLog.incrementStudy,
     incrementBreak: todayLog.incrementBreak,
     addHistoryEntry: history.addEntry,
@@ -82,22 +86,31 @@ export function useStudyTimerState(pushToast: PushToast) {
     sessionCategoryId: timerControls.timerCategoryId,
     taskCycleCount,
     autoArchiveAncientTasks: settings.autoArchiveAncientTasks,
+    autoArchiveAfterDays: settings.autoArchiveAfterDays,
     isDataReady,
     pushToast,
   })
 
-  const confirmImport = useCallback(async (fileString: string) => {
+  const confirmImport = useCallback(async (fileString: string, options?: { mode?: 'replace' | 'merge'; passphrase?: string }) => {
     const warn = timerControls.isTimerActive || timerControls.showReflectionModal
+    const storedMode = sessionStorage.getItem('backup_import_mode')
+    const storedPassphrase = sessionStorage.getItem('backup_import_passphrase')
+    const mode = options?.mode ?? (storedMode === 'merge' ? 'merge' : 'replace')
+    const passphrase = options?.passphrase ?? (storedPassphrase || undefined)
+    sessionStorage.removeItem('backup_import_mode')
+    sessionStorage.removeItem('backup_import_passphrase')
     const ok = await requestConfirm({
-      title: warn ? 'Import during active session?' : 'Import backup?',
+      title: warn ? 'Import during active session?' : mode === 'merge' ? 'Merge backup?' : 'Import backup?',
       message: warn
-        ? 'Importing will replace all data and reload the page. An active timer or reflection is in progress.'
+        ? 'Importing will affect workspace data. An active timer or reflection is in progress.'
+        : mode === 'merge'
+        ? 'Merge adds new records and combines daily logs. Local settings are kept.'
         : 'Importing will replace all workspace data. Continue?',
-      confirmLabel: 'Import',
-      danger: true,
+      confirmLabel: mode === 'merge' ? 'Merge' : 'Import',
+      danger: mode !== 'merge',
     })
     if (!ok) return
-    void backup.importStudyBackup(fileString)
+    void backup.importStudyBackup(fileString, { mode, passphrase })
   }, [backup, requestConfirm, timerControls.isTimerActive, timerControls.showReflectionModal])
 
   return {
