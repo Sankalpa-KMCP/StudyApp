@@ -30,4 +30,11 @@ describe('backupChecksum', () => {
   it('skips verification when checksum is absent', async () => {
     await expect(verifyBackupChecksum(samplePayload)).resolves.toBe(true)
   })
+
+  it('ignores parse-only rawVersion when verifying', async () => {
+    const checksumSha256 = await computeBackupChecksum(samplePayload)
+    await expect(
+      verifyBackupChecksum({ ...samplePayload, checksumSha256, rawVersion: 3 } as StudyBackupPayload & { rawVersion: number }),
+    ).resolves.toBe(true)
+  })
 })
