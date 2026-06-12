@@ -1,14 +1,17 @@
-import { getSharedAudioContext } from '../../lib/ambientAudio'
+import { getSharedAudioContext, type AmbientPreset } from '../../lib/ambientAudio'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
 import { SettingsPresetChips } from '../shared/settings/SettingsPresetChips'
+import { RangeSetting } from '../shared/settings/RangeSetting'
 
 const FONT_OPTIONS = ['JetBrains Mono', 'Inter', 'Outfit'] as const
 
-const AMBIENT_PRESETS = [
-  { value: 0, label: 'Rain', preset: 'rain' as const },
-  { value: 1, label: 'White noise', preset: 'white-noise' as const },
+const AMBIENT_PRESETS: { value: number; label: string; preset: AmbientPreset }[] = [
+  { value: 0, label: 'Rain', preset: 'rain' },
+  { value: 1, label: 'White noise', preset: 'white-noise' },
+  { value: 2, label: 'Café', preset: 'cafe' },
+  { value: 3, label: 'Brown noise', preset: 'brown-noise' },
 ]
 
 export function SoundFeedbackPanel() {
@@ -18,6 +21,7 @@ export function SoundFeedbackPanel() {
     developer_font: developerFont,
     ambientSoundEnabled,
     ambientSoundPreset,
+    ambientVolume,
     updateSetting,
   } = useSettingsPanel()
 
@@ -25,6 +29,8 @@ export function SoundFeedbackPanel() {
     if (enabled) getSharedAudioContext()
     updateSetting('ambientSoundEnabled', enabled)
   }
+
+  const activePresetValue = AMBIENT_PRESETS.find(p => p.preset === ambientSoundPreset)?.value ?? 0
 
   return (
     <SettingsCard id="settings-sound-feedback" title="Sound & Feedback">
@@ -40,12 +46,23 @@ export function SoundFeedbackPanel() {
             onChange={handleAmbientToggle}
           />
           {ambientSoundEnabled && (
-            <SettingsPresetChips
-              presets={AMBIENT_PRESETS.map(p => ({ value: p.value, label: p.label }))}
-              activeValue={ambientSoundPreset === 'white-noise' ? 1 : 0}
-              onSelect={v => updateSetting('ambientSoundPreset', AMBIENT_PRESETS.find(p => p.value === v)?.preset ?? 'rain')}
-              unit=""
-            />
+            <>
+              <SettingsPresetChips
+                presets={AMBIENT_PRESETS.map(p => ({ value: p.value, label: p.label }))}
+                activeValue={activePresetValue}
+                onSelect={v => updateSetting('ambientSoundPreset', AMBIENT_PRESETS.find(p => p.value === v)?.preset ?? 'rain')}
+                unit=""
+              />
+              <RangeSetting
+                label="Ambient volume"
+                value={ambientVolume}
+                min={0}
+                max={100}
+                step={5}
+                unit="%"
+                onChange={v => updateSetting('ambientVolume', v)}
+              />
+            </>
           )}
         </div>
 

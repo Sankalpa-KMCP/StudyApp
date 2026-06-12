@@ -43,7 +43,11 @@ export function useTimerTick({
   useEffect(() => {
     if (!isTimerActive) return
 
-    const tick = () => syncElapsedFromWall()
+    const tick = () => {
+      if (document.visibilityState !== 'hidden') {
+        syncElapsedFromWall()
+      }
+    }
     tick()
     const id = setInterval(tick, 250)
     return () => clearInterval(id)

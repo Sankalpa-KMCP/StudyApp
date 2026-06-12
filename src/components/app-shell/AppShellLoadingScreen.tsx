@@ -7,6 +7,9 @@ interface AppShellLoadingScreenProps {
 export function AppShellLoadingScreen({ pageGradient }: AppShellLoadingScreenProps) {
   return (
     <div
+      role="status"
+      aria-busy="true"
+      aria-live="polite"
       className="flex min-h-screen items-center justify-center"
       style={{ background: pageGradient }}
     >

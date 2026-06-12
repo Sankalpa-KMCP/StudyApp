@@ -7,6 +7,7 @@ import type { TaskItem } from '../db/types'
 export type JournalSaveStatus = 'idle' | 'saving' | 'saved'
 
 interface UseJournalCalendarOptions {
+  enabled?: boolean
   sessionTasks: TaskItem[]
   dailyGoalMinutes: number
   studyBlockDurationMinutes: number
@@ -15,6 +16,7 @@ interface UseJournalCalendarOptions {
 }
 
 export function useJournalCalendar({
+  enabled = true,
   sessionTasks,
   dailyGoalMinutes,
   studyBlockDurationMinutes,
@@ -27,6 +29,9 @@ export function useJournalCalendar({
   const [selectedDay, setSelectedDay] = useState(() => new Date().getDate())
   const [saveStatus, setSaveStatus] = useState<JournalSaveStatus>('idle')
 
+  const [prevSelectedDateStr, setPrevSelectedDateStr] = useState<string | undefined>(undefined)
+  const [prevDayLog, setPrevDayLog] = useState<unknown>(undefined)
+
   const notesRef = useRef('')
   const moodRef = useRef('')
   const dateStrRef = useRef('')
@@ -37,9 +42,10 @@ export function useJournalCalendar({
     currentMonth,
     currentYear,
     studyBlockDurationMinutes,
+    enabled,
   )
 
-  const { history: monthHistory } = useHistoryForMonth(currentYear, currentMonth)
+  const { history: monthHistory } = useHistoryForMonth(currentYear, currentMonth, enabled)
 
   const categoryDayMinutes = useMemo(
     () => calculateCalendarHeatmapData(monthHistory, currentMonth, currentYear, calendarCategoryFilter),
@@ -60,6 +66,12 @@ export function useJournalCalendar({
     categoryDayMinutes,
   })
 
+  if (calendar.selectedDateStr !== prevSelectedDateStr || calendar.selectedDayLog !== prevDayLog) {
+    setPrevSelectedDateStr(calendar.selectedDateStr)
+    setPrevDayLog(calendar.selectedDayLog)
+    setSaveStatus('idle')
+  }
+
   const markSaved = () => {
     setSaveStatus('saved')
     if (savedIdleTimerRef.current) clearTimeout(savedIdleTimerRef.current)
@@ -77,7 +89,6 @@ export function useJournalCalendar({
     dateStrRef.current = nextDate
     notesRef.current = calendar.selectedDayLog?.notes ?? ''
     moodRef.current = calendar.selectedDayLog?.mood ?? ''
-    setSaveStatus('idle')
   }, [calendar.selectedDateStr, calendar.selectedDayLog])
 
   useEffect(() => () => {

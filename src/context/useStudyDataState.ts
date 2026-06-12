@@ -1,15 +1,20 @@
 import { useMemo } from 'react'
+import { useActiveTabSync } from '../lib/activeTabSync'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { useGamification } from '../hooks/useGamification'
 import { useAnalytics } from '../hooks/useAnalytics'
+import { useAnalyticsHistoryRange } from '../hooks/useAnalyticsHistoryRange'
 import { useJournalCalendar } from '../hooks/useJournalCalendar'
-import type { useAppToast } from '../hooks/useAppToast'
 
-type PushToast = ReturnType<typeof useAppToast>['pushToast']
-
-export function useStudyDataState(_pushToast: PushToast) {
+export function useStudyDataState() {
   const data = useDashboardData()
   const { tasks, history, recentHistory, settings, todayLog, flashcards, quickNotes, categories, allLogs, isDataReady } = data
+  const activeTab = useActiveTabSync()
+
+  const journalEnabled = activeTab === 'journal' || activeTab === 'analytics'
+  const analyticsEnabled = activeTab === 'analytics'
+
+  const analyticsRange = useAnalyticsHistoryRange(analyticsEnabled)
 
   const { currentStreak, xpData, pendingLevelUp, dismissLevelUp } = useGamification({
     allLogs: allLogs.allLogs,
@@ -17,13 +22,15 @@ export function useStudyDataState(_pushToast: PushToast) {
   })
 
   const { insights, breakdownData } = useAnalytics({
-    sessionHistory: recentHistory.history,
+    enabled: analyticsEnabled,
+    sessionHistory: analyticsRange.history,
     sessionTasks: tasks.tasks,
     allLogs: allLogs.allLogs,
     categories: categories.categories,
   })
 
   const journal = useJournalCalendar({
+    enabled: journalEnabled,
     sessionTasks: tasks.tasks,
     dailyGoalMinutes: settings.dailyGoalMinutes,
     studyBlockDurationMinutes: settings.studyBlockDurationMinutes,
@@ -53,6 +60,7 @@ export function useStudyDataState(_pushToast: PushToast) {
     dismissLevelUp,
     insights,
     breakdownData,
+    analyticsRange,
     journal,
     progress,
   }), [
@@ -72,6 +80,7 @@ export function useStudyDataState(_pushToast: PushToast) {
     dismissLevelUp,
     insights,
     breakdownData,
+    analyticsRange,
     journal,
     progress,
   ])

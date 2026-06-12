@@ -1,17 +1,19 @@
 import { useConfirm } from '../context/useConfirm'
 import { db } from '../db/db'
 import { exportStudyBackupFile } from '../lib/backupExport'
+import { setLastBackupExportAt } from '../lib/backupMetadata'
 import { copyDebugInfo } from '../lib/copyDebugInfo'
 import { Button } from './shared/Button'
 
 interface ErrorFallbackProps {
   message: string
   stack?: string
+  contextLabel?: string
   onRetry: () => void
   onReload: () => void
 }
 
-export function ErrorFallback({ message, stack, onRetry, onReload }: ErrorFallbackProps) {
+export function ErrorFallback({ message, stack, contextLabel, onRetry, onReload }: ErrorFallbackProps) {
   const { requestConfirm } = useConfirm()
 
   const handleCopyDebug = async () => {
@@ -28,6 +30,7 @@ export function ErrorFallback({ message, stack, onRetry, onReload }: ErrorFallba
   const handleExportData = async () => {
     try {
       await exportStudyBackupFile('study-emergency-export')
+      setLastBackupExportAt()
     } catch (err) {
       console.error('Emergency export failed:', err)
     }
@@ -51,10 +54,12 @@ export function ErrorFallback({ message, stack, onRetry, onReload }: ErrorFallba
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#06070a] p-6">
-      <div className="max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-xl">
-        <h1 className="text-lg font-bold text-white mb-2">Something went wrong</h1>
-        <p className="text-sm text-white/60 font-mono mb-6">{message}</p>
+    <div className="flex min-h-screen items-center justify-center bg-[var(--body-base)] p-6">
+      <div className="max-w-md rounded-2xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_80%,transparent)] p-8 text-center backdrop-blur-xl">
+        <h1 className="text-lg font-bold text-[var(--color-text-primary)] mb-2">
+          {contextLabel ? `${contextLabel} tab crashed` : 'Something went wrong'}
+        </h1>
+        <p className="text-sm text-[var(--color-text-secondary)] font-mono mb-6">{message}</p>
         <div className="flex flex-wrap gap-3 justify-center">
           <Button variant="secondary" size="sm" onClick={onRetry}>
             Try again

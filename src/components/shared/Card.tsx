@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from 'react'
+import { useRef, type HTMLAttributes, type ReactNode } from 'react'
 
 type CardVariant = 'default' | 'elevated' | 'inset'
 
@@ -29,10 +29,32 @@ export function Card({
   interactive = false,
   className = '',
   children,
+  onMouseMove,
   ...props
 }: CardProps) {
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = cardRef.current
+    if (card && interactive) {
+      const rect = card.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      card.style.setProperty('--mouse-x', `${x}px`)
+      card.style.setProperty('--mouse-y', `${y}px`)
+    }
+    if (onMouseMove) {
+      onMouseMove(e)
+    }
+  }
+
   return (
-    <div className={`${cardShellClass(variant, interactive)} ${paddingClass[padding]} ${className}`.trim()} {...props}>
+    <div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      className={`dynamic-card ${cardShellClass(variant, interactive)} ${paddingClass[padding]} ${className}`.trim()}
+      {...props}
+    >
       {children}
     </div>
   )

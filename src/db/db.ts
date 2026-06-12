@@ -117,6 +117,22 @@ class StudyDashboardDB extends Dexie {
       ]
       await tx.table('settings').bulkDelete(orphanedAmbientKeys)
     })
+    this.version(8).stores({
+      tasks: '++id, text, completed, createdAt, categoryId',
+      history: '++id, timestamp, createdAt, type, durationMinutes, categoryId',
+      settings: '&key, value',
+      daily_logs: '&dateString, studyMinutes, breakMinutes',
+      categories: '++id, name, color',
+      flashcards: '++id, question, answer, categoryId, nextReviewDate',
+      quick_notes: '++id, title, content, categoryId, updatedAt',
+      snapshots: '++id, timestamp',
+    }).upgrade(async tx => {
+      const settingsTable = tx.table('settings')
+      const flashcardsEnabledSetting = await settingsTable.get('flashcardsEnabled')
+      if (flashcardsEnabledSetting === undefined) {
+        await settingsTable.put({ key: 'flashcardsEnabled', value: true })
+      }
+    })
   }
 }
 

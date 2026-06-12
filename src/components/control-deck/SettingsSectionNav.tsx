@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react'
-import { SETTINGS_SECTIONS, type SettingsSectionId } from '../../lib/settingsSections'
+import { writeAppHash } from '../../lib/appHashRouting'
+import { SETTINGS_SECTIONS, scrollToSettingsSection, type SettingsSectionId } from '../../lib/settingsSections'
 
 interface SettingsSectionNavProps {
   className?: string
   variant?: 'sidebar' | 'pills'
-}
-
-export function scrollToSettingsSection(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 export function SettingsSectionNav({ className = '', variant = 'sidebar' }: SettingsSectionNavProps) {
@@ -50,7 +47,10 @@ export function SettingsSectionNav({ className = '', variant = 'sidebar' }: Sett
             type="button"
             id={`nav-${section.id}`}
             aria-current={isActive ? 'location' : undefined}
-            onClick={() => scrollToSettingsSection(`settings-${section.id}`)}
+            onClick={() => {
+              scrollToSettingsSection(`settings-${section.id}`)
+              writeAppHash('settings', section.id)
+            }}
             className={
               isPills
                 ? `shrink-0 flex items-center gap-2 rounded-full px-3 py-2 text-micro font-semibold transition-all ios-active-scale border ${

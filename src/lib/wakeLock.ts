@@ -5,19 +5,21 @@
  * re-request on visibilitychange when the timer is active again.
  */
 
+import { devLog } from './devLogger'
+
 export function isWakeLockSupported(): boolean {
   return typeof window !== 'undefined' && 'wakeLock' in navigator
 }
 
 export async function requestWakeLock(): Promise<WakeLockSentinel | null> {
   if (!isWakeLockSupported()) {
-    console.warn('Wake Lock API is not supported in this browser.')
+    devLog('wakeLock', 'unsupported')
     return null
   }
 
   try {
     const wakeLock = await navigator.wakeLock.request('screen')
-    console.log('Screen Wake Lock acquired successfully.')
+    devLog('wakeLock', 'acquired')
     return wakeLock
   } catch (err) {
     console.error('Failed to acquire Screen Wake Lock:', err)
@@ -30,7 +32,7 @@ export async function releaseWakeLock(sentinel: WakeLockSentinel | null): Promis
 
   try {
     await sentinel.release()
-    console.log('Screen Wake Lock released successfully.')
+    devLog('wakeLock', 'released')
   } catch (err) {
     console.error('Failed to release Screen Wake Lock:', err)
   }

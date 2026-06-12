@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Sparkles } from 'lucide-react'
 import { ModalShell } from './shared/ModalShell'
 import { Button } from './shared/Button'
@@ -9,6 +10,24 @@ interface LevelUpModalProps {
 }
 
 export function LevelUpModal({ level, xpProgressPercent, onDismiss }: LevelUpModalProps) {
+  useEffect(() => {
+    const delayBurst = (delayMs: number, count: number) => {
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent('celebrate-complete', {
+            detail: {
+              count,
+              x: Math.random() * window.innerWidth,
+              y: window.innerHeight * 0.7,
+            },
+          }),
+        )
+      }, delayMs)
+    }
+    delayBurst(100, 80)
+    delayBurst(400, 50)
+    delayBurst(700, 50)
+  }, [])
   return (
     <ModalShell
       open

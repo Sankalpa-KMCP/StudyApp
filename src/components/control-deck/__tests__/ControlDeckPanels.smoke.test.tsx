@@ -6,6 +6,9 @@ import { AlgorithmPanel } from '../AlgorithmPanel'
 import { ZenLockoutPanel } from '../ZenLockoutPanel'
 import { NotesSettingsPanel } from '../NotesSettingsPanel'
 import { BackupVaultPanel } from '../BackupVaultPanel'
+import { FlashcardsPanel } from '../FlashcardsPanel'
+import { DesktopSettingsPanel } from '../DesktopSettingsPanel'
+import * as tauri from '../../../lib/tauri'
 import { SettingsOnboardingBanners } from '../SettingsOnboardingBanners'
 import { SettingsShell, SettingsSection } from '../SettingsShell'
 
@@ -30,7 +33,7 @@ describe('control-deck panel smoke tests', () => {
         <AlgorithmPanel />
       </SettingsPanelProvider>,
     )
-    expect(screen.getByText('Algorithm Settings')).toBeInTheDocument()
+    expect(screen.getByText('Spaced Repetition (SM-2)')).toBeInTheDocument()
   })
 
   it('renders ZenLockoutPanel', () => {
@@ -66,6 +69,7 @@ describe('control-deck panel smoke tests', () => {
       <SettingsOnboardingBanners
         showHighGoalNudge
         startHereDismissed={false}
+        flashcardsEnabled={false}
         onDismissGoalNudge={() => {}}
         onDismissStartHere={() => {}}
       />,
@@ -84,5 +88,27 @@ describe('control-deck panel smoke tests', () => {
     )
     expect(screen.getByText('Timer & Focus')).toBeInTheDocument()
     expect(screen.getByText('Panel content')).toBeInTheDocument()
+  })
+
+  it('renders DesktopSettingsPanel when Tauri is available', () => {
+    vi.spyOn(tauri, 'isTauri').mockReturnValue(true)
+    render(
+      <SettingsPanelProvider>
+        <DesktopSettingsPanel />
+      </SettingsPanelProvider>,
+    )
+    expect(screen.getByText('Desktop App')).toBeInTheDocument()
+    expect(screen.getByText('Launch on login')).toBeInTheDocument()
+    vi.mocked(tauri.isTauri).mockRestore()
+  })
+
+  it('renders FlashcardsPanel', () => {
+    render(
+      <SettingsPanelProvider>
+        <FlashcardsPanel />
+      </SettingsPanelProvider>,
+    )
+    expect(screen.getByText('Flashcards Settings')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Enable flashcards' })).toBeInTheDocument()
   })
 })

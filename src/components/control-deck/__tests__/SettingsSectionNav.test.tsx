@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { SettingsSectionNav, scrollToSettingsSection } from '../SettingsSectionNav'
+import { SettingsSectionNav } from '../SettingsSectionNav'
+import { scrollToSettingsSection } from '../../../lib/settingsSections'
 
 class MockIntersectionObserver {
   observe = vi.fn()

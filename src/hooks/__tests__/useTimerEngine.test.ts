@@ -84,7 +84,7 @@ describe('useTimerEngine', () => {
     const instances: unknown[] = []
     class MockNotification {
       static permission = 'granted'
-      constructor(..._args: unknown[]) {
+      constructor() {
         instances.push(this)
       }
     }

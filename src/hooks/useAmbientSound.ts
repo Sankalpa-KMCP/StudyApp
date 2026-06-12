@@ -5,6 +5,7 @@ import type { AmbientPreset } from '../lib/ambientAudio'
 interface UseAmbientSoundOptions {
   enabled: boolean
   preset: AmbientPreset
+  volumePercent?: number
   isTimerActive: boolean
   timerMode: 'study' | 'break'
 }
@@ -12,10 +13,12 @@ interface UseAmbientSoundOptions {
 export function useAmbientSound({
   enabled,
   preset,
+  volumePercent = 50,
   isTimerActive,
   timerMode,
 }: UseAmbientSoundOptions) {
   const shouldPlay = enabled && isTimerActive && timerMode === 'study'
+  const volume = Math.max(0, Math.min(100, volumePercent)) / 100 * 0.24
 
   useEffect(() => {
     if (!shouldPlay) {
@@ -23,13 +26,13 @@ export function useAmbientSound({
       return
     }
 
-    startAmbient(preset)
+    startAmbient(preset, volume)
 
     function handleVisibility() {
       if (document.hidden) {
         stopAmbient()
       } else if (shouldPlay) {
-        startAmbient(preset)
+        startAmbient(preset, volume)
       }
     }
 
@@ -38,5 +41,5 @@ export function useAmbientSound({
       document.removeEventListener('visibilitychange', handleVisibility)
       stopAmbient()
     }
-  }, [shouldPlay, preset])
+  }, [shouldPlay, preset, volume])
 }

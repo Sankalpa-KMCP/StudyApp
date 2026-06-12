@@ -19,6 +19,7 @@ class MockBufferSource {
 class MockBiquadFilter {
   type = ''
   frequency = { value: 0 }
+  Q = { value: 0 }
   connect = vi.fn()
   disconnect = vi.fn()
 }
@@ -58,6 +59,15 @@ describe('ambientAudio', () => {
     expect(isAmbientPlaying()).toBe(true)
     stopAmbient()
     expect(isAmbientPlaying()).toBe(false)
+  })
+
+  it('starts cafe and brown-noise presets', () => {
+    startAmbient('cafe')
+    expect(isAmbientPlaying()).toBe(true)
+    stopAmbient()
+    startAmbient('brown-noise')
+    expect(isAmbientPlaying()).toBe(true)
+    stopAmbient()
   })
 
   it('returns null context when AudioContext unavailable', () => {

@@ -17,6 +17,7 @@ interface NavTabButtonProps {
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
   onMouseEnter?: (e: React.MouseEvent<HTMLButtonElement>) => void
   onMouseLeave?: () => void
+  onTouchStart?: () => void
   buttonRef?: (el: HTMLButtonElement | null) => void
 }
 
@@ -57,6 +58,7 @@ export function NavTabButton({
   onClick,
   onMouseEnter,
   onMouseLeave,
+  onTouchStart,
   buttonRef,
 }: NavTabButtonProps) {
   const lockedClass = isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
@@ -106,6 +108,8 @@ export function NavTabButton({
         aria-current={isActive ? 'page' : undefined}
         aria-label={ariaLabel}
         onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        onTouchStart={onTouchStart}
         className={`mobile-nav-btn relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-label font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue ${lockedClass}`}
       >
         {badge > 0 && (

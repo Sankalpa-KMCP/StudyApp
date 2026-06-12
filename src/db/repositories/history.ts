@@ -32,3 +32,13 @@ export async function addHistoryEntry(entry: Omit<HistoryEntry, 'id' | 'createdA
 export async function clearHistory() {
   await db.history.clear()
 }
+
+export async function archiveHistoryOlderThan(days: number): Promise<number> {
+  if (days <= 0) return 0
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000
+  const stale = await db.history.where('createdAt').below(cutoff).toArray()
+  const ids = stale.map(entry => entry.id).filter((id): id is number => id !== undefined)
+  if (ids.length === 0) return 0
+  await db.history.bulkDelete(ids)
+  return ids.length
+}

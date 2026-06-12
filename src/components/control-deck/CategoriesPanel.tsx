@@ -163,7 +163,7 @@ export function CategoriesPanel() {
                     if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
                     if (e.key === 'Escape') setEditingCategoryId(null)
                   }}
-                  autoFocus
+                  ref={el => el?.focus()}
                   className="flex-1 min-w-0 rounded-lg settings-input px-2 py-1 text-xs"
                   aria-label={`Edit name for ${cat.name}`}
                 />

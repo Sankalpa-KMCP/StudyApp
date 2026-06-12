@@ -55,6 +55,7 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
 
       <button
         onClick={handleExitAttempt}
+        aria-label={canExit ? `Exit ${FOCUS_MODE.toLowerCase()}` : `${FOCUS_LOCKOUT} active — confirm to exit`}
         className="absolute top-6 right-6 z-20 flex items-center gap-2 rounded-full bg-white/10 border border-white/10 px-4 py-2 text-caption font-semibold text-white/80 hover:bg-white/15 hover:text-white transition-all cursor-pointer ios-active-scale"
         title={canExit ? `Exit ${FOCUS_MODE.toLowerCase()}` : `${FOCUS_LOCKOUT} active`}
       >

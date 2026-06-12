@@ -65,7 +65,7 @@ describe('useTimerEngine session shadow', () => {
     renderHook(() => useTimerEngine(createTimerOptions({ pushToast })))
 
     await waitFor(() => {
-      expect(pushToast).toHaveBeenCalledWith('RESTORE', expect.stringContaining('STUDY'))
+      expect(pushToast).toHaveBeenCalledWith('RESTORE', 'Restored 2 min interrupted study block')
     })
     const log = await db.daily_logs.get(buildDateString())
     expect(log?.studyMinutes).toBe(2)

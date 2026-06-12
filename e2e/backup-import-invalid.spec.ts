@@ -11,7 +11,7 @@ test('rejects malformed backup import without changing tasks', async ({ page }) 
   const input = page.getByPlaceholder('What do you want to focus on?')
   await input.fill(anchorTask)
   await input.press('Enter')
-  await expect(page.getByText(anchorTask)).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText(anchorTask).first()).toBeVisible({ timeout: 10000 })
 
   const badPath = path.join(os.tmpdir(), `study-bad-${Date.now()}.studybackup`)
   fs.writeFileSync(badPath, '{ not valid json')
@@ -25,7 +25,7 @@ test('rejects malformed backup import without changing tasks', async ({ page }) 
 
   await expect(page.getByText(/invalid backup/i)).toBeVisible({ timeout: 10000 })
   await page.getByRole('button', { name: /focus/i }).filter({ visible: true }).first().click()
-  await expect(page.getByText(anchorTask)).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText(anchorTask).first()).toBeVisible({ timeout: 10000 })
 
   fs.unlinkSync(badPath)
 })

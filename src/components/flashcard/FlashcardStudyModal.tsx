@@ -45,7 +45,12 @@ export function FlashcardStudyModal({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Flashcard study session">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} aria-hidden="true" />
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/50 backdrop-blur-md cursor-default"
+        onClick={onClose}
+        aria-label="Close dialog"
+      />
       <div ref={trapRef} className="relative w-full max-w-lg flex flex-col items-center gap-6 z-10">
         <button
           type="button"
@@ -112,6 +117,12 @@ export function FlashcardStudyModal({
                 </div>
               </div>
             </div>
+
+            {!isFlipped && (
+              <p className="text-caption text-center text-white/45 mb-2 select-none">
+                Flip the card to reveal grade buttons
+              </p>
+            )}
 
             <div className={`w-full max-w-md transition-all duration-300 ${isFlipped ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
               <p className="text-caption font-mono text-center text-white/40 mb-1 select-none uppercase tracking-wider font-bold">Rate recall strength</p>

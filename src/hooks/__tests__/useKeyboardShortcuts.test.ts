@@ -64,4 +64,31 @@ describe('useKeyboardShortcuts', () => {
     })
     expect(setIsTimerActive).toHaveBeenCalled()
   })
+
+  it('routes number-key tab jumps through lockout-aware navigation', () => {
+    const navigateToTab = vi.fn()
+    renderShortcuts({ navigateToTab })
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '2', bubbles: true }))
+    })
+    expect(navigateToTab).toHaveBeenCalledWith('cards')
+  })
+
+  it('remaps number keys when visibleTabs is overridden', () => {
+    const navigateToTab = vi.fn()
+    renderShortcuts({
+      navigateToTab,
+      visibleTabs: ['focus', 'analytics', 'journal', 'settings'],
+    })
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '2', bubbles: true }))
+    })
+    expect(navigateToTab).toHaveBeenCalledWith('analytics')
+
+    vi.clearAllMocks()
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '5', bubbles: true }))
+    })
+    expect(navigateToTab).not.toHaveBeenCalled()
+  })
 })
