@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { X, Edit3 } from 'lucide-react'
 import type { CategoryItem, QuickNoteItem } from '../db/types'
 import { useFocusTrap } from '../hooks/useFocusTrap'
@@ -20,6 +20,7 @@ interface QuickNotesDrawerProps {
   updateNote: (id: number, title: string, content: string, categoryId?: number, color?: string) => Promise<void>
   deleteNote: (id: number) => Promise<void>
   noteTagColors: string[]
+  focusNoteId?: number | null
 }
 
 export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
@@ -33,11 +34,19 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   updateNote,
   deleteNote,
   noteTagColors,
+  focusNoteId,
 }) => {
   const { requestConfirm } = useConfirm()
   const trapRef = useFocusTrap(isOpen, onClose)
   const filters = useNoteFilters(notes, categories)
   const editor = useNoteEditor(updateNote)
+
+  useEffect(() => {
+    if (!isOpen || focusNoteId == null) return
+    const note = notes.find(n => n.id === focusNoteId)
+    if (note) editor.startEditing(note)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- startEditing is stable enough for focus jump
+  }, [isOpen, focusNoteId, notes])
 
   const handleCreateNote = async () => {
     const noteId = await addNote(
