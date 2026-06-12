@@ -5,12 +5,18 @@ import { SettingsCard } from '../shared/settings/SettingsCard'
 import { Button } from '../shared/Button'
 import { StorageUsagePanel } from './StorageUsagePanel'
 import { archiveHistoryOlderThan } from '../../db/repositories/history'
+import { ToggleSetting } from '../shared/settings/ToggleSetting'
+import { RangeSetting } from '../shared/settings/RangeSetting'
+import { daysSinceLastExport } from '../../lib/backupMetadata'
 
 export function BackupVaultPanel() {
   const {
     backup,
     quotaExceeded,
     historyRetentionDays,
+    autoExportEnabled,
+    autoExportIntervalDays,
+    updateSetting,
     pushToast,
     isDragging,
     setIsDragging,
@@ -42,6 +48,33 @@ export function BackupVaultPanel() {
   return (
     <SettingsCard id="settings-backup-vault" title="Backup Vault">
       <StorageUsagePanel key={storageKey} />
+
+      <div className="mb-5 rounded-2xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] p-4 space-y-3">
+        <p className="text-xs font-bold uppercase tracking-wider text-accent-blue">Scheduled export</p>
+        <ToggleSetting
+          label="Auto-export vault"
+          description="Downloads a backup when the interval elapses (checked on app load)."
+          checked={autoExportEnabled}
+          onChange={v => updateSetting('autoExportEnabled', v)}
+        />
+        {autoExportEnabled && (
+          <RangeSetting
+            label="Export interval"
+            value={autoExportIntervalDays}
+            min={1}
+            max={30}
+            step={1}
+            unit="days"
+            onChange={v => updateSetting('autoExportIntervalDays', v)}
+          />
+        )}
+        <p className="text-micro settings-muted">
+          {daysSinceLastExport() === null
+            ? 'No vault export recorded yet.'
+            : `Last export: ${Math.floor(daysSinceLastExport() ?? 0)} day(s) ago.`}
+        </p>
+      </div>
+
       {quotaExceeded && (
         <div className="mb-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 space-y-3">
           <p className="text-xs font-bold text-amber-200 uppercase tracking-wider">Storage recovery</p>
