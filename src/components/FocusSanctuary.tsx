@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { MAX_STUDY_BLOCK_MINUTES } from '../lib/timerConstants'
-import { Play, Pause, Check, Sparkles, Heart } from 'lucide-react'
+import { Play, Pause, Check, Sparkles, Heart, X, Sun } from 'lucide-react'
 import { Button } from './shared/Button'
 import { PanelCard } from './shared/PanelCard'
 import { PanelHeader } from './shared/PanelHeader'
@@ -39,6 +39,7 @@ interface FocusSanctuaryProps {
   updateSetting: (key: SettingsKey, val: SettingsValue) => void
   activeTask?: TaskItem | null
   onSkipBreak?: () => void
+  wakeLockActive?: boolean
 }
 
 export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
@@ -64,9 +65,11 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   updateSetting,
   activeTask = null,
   onSkipBreak,
+  wakeLockActive = false,
 }) => {
   const [showDurationAdjust, setShowDurationAdjust] = useState(false)
   const [breathTime, setBreathTime] = useState(0)
+  const [wakeLockChipDismissed, setWakeLockChipDismissed] = useState(false)
 
   useEffect(() => {
     if (timerMode === 'study') return
@@ -115,6 +118,23 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               </Button>
             }
           />
+
+          {timerMode === 'study' && isTimerActive && wakeLockActive && !wakeLockChipDismissed && (
+            <div className="flex items-center justify-between gap-2 mb-3 rounded-full border border-accent-amber/20 bg-accent-amber/10 px-3 py-1.5 text-micro font-semibold text-accent-amber">
+              <span className="inline-flex items-center gap-1.5">
+                <Sun className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Screen stays awake
+              </span>
+              <button
+                type="button"
+                onClick={() => setWakeLockChipDismissed(true)}
+                aria-label="Dismiss wake lock notice"
+                className="rounded-full p-0.5 hover:bg-accent-amber/20 transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
 
           <div className="flex justify-center gap-2 mb-4">
             {(['study', 'break'] as const).map(mode => {
@@ -308,7 +328,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               <button
                 onClick={() => { onUserGesture?.(); setIsTimerActive(a => !a) }}
                 aria-label={isTimerActive ? 'Pause timer' : 'Start timer'}
-                className={`md:hidden w-full py-3.5 rounded-full text-sm font-bold text-on-accent transition-all ios-active-scale cursor-pointer shadow-md ${!isTimerActive ? 'timer-cta-idle' : ''}`}
+                className={`w-full max-w-xs py-3.5 rounded-full text-sm font-bold text-on-accent transition-all ios-active-scale cursor-pointer shadow-md ${!isTimerActive ? 'timer-cta-idle' : ''}`}
                 style={{ backgroundColor: activeColor, ['--timer-cta-color' as string]: activeColor }}
               >
                 {isTimerActive ? 'Pause focus' : 'Start focus'}

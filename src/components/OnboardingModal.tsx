@@ -9,6 +9,8 @@ interface OnboardingModalProps {
   isOpen: boolean
   onClose: () => void
   updateSetting?: (key: SettingsKey, val: SettingsValue) => void
+  onOpenBackup?: () => void
+  onReplayTour?: () => void
 }
 
 interface OnboardingBullet {
@@ -54,7 +56,13 @@ const SLIDES: OnboardingSlide[] = [
   },
 ]
 
-export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose, updateSetting }) => {
+export const OnboardingModal: React.FC<OnboardingModalProps> = ({
+  isOpen,
+  onClose,
+  updateSetting,
+  onOpenBackup,
+  onReplayTour,
+}) => {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [dailyGoalMinutes, setDailyGoalMinutes] = useState<number | null>(null)
 
@@ -161,9 +169,33 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClos
                 </SelectionChip>
               ))}
             </div>
+            {onReplayTour && (
+              <button
+                type="button"
+                onClick={onReplayTour}
+                className="mt-3 text-[10px] font-semibold text-accent-blue hover:underline cursor-pointer"
+              >
+                Learn more — replay this tour anytime from the sidebar
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {currentSlide === 0 && onOpenBackup && (
+        <p className="text-center pb-2">
+          <button
+            type="button"
+            onClick={() => {
+              handleFinish()
+              onOpenBackup()
+            }}
+            className="text-[10px] font-semibold text-white/45 hover:text-accent-blue transition-colors cursor-pointer"
+          >
+            Import existing data?
+          </button>
+        </p>
+      )}
 
       <div className="flex items-center justify-between pt-3 border-t border-white/5 select-none">
         <div className="flex gap-1.5">
