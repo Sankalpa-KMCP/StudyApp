@@ -11,7 +11,7 @@ test('cancelling backup import leaves current data unchanged', async ({ page }) 
   const input = page.getByPlaceholder('What do you want to focus on?')
   await input.fill(taskName)
   await input.press('Enter')
-  await expect(page.getByText(taskName)).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText(taskName).first()).toBeVisible({ timeout: 10000 })
 
   await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
   const downloadPromise = page.waitForEvent('download')
@@ -24,7 +24,7 @@ test('cancelling backup import leaves current data unchanged', async ({ page }) 
   const staleTask = 'Stale task should survive cancel'
   await input.fill(staleTask)
   await input.press('Enter')
-  await expect(page.getByText(staleTask)).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText(staleTask).first()).toBeVisible({ timeout: 10000 })
 
   await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
   await page.locator('input[type="file"][accept*=".studybackup"]').setInputFiles(backupPath)
@@ -35,8 +35,8 @@ test('cancelling backup import leaves current data unchanged', async ({ page }) 
   await expect(dialog).not.toBeVisible()
 
   await page.getByRole('button', { name: /focus/i }).filter({ visible: true }).first().click()
-  await expect(page.getByText(staleTask)).toBeVisible({ timeout: 10000 })
-  await expect(page.getByText(taskName)).toBeVisible()
+  await expect(page.getByText(staleTask).first()).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText(taskName).first()).toBeVisible()
 
   fs.unlinkSync(backupPath)
 })

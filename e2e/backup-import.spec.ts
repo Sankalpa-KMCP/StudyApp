@@ -12,7 +12,7 @@ test('imports backup vault after confirm dialog', async ({ page }) => {
   const input = page.getByPlaceholder('What do you want to focus on?')
   await input.fill(taskName)
   await input.press('Enter')
-  await expect(page.getByText(taskName)).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText(taskName).first()).toBeVisible({ timeout: 10000 })
 
   await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
   const downloadPromise = page.waitForEvent('download')
@@ -24,7 +24,7 @@ test('imports backup vault after confirm dialog', async ({ page }) => {
   await page.getByRole('button', { name: /focus/i }).filter({ visible: true }).first().click()
   await input.fill('Stale task after export')
   await input.press('Enter')
-  await expect(page.getByText('Stale task after export')).toBeVisible({ timeout: 10000 })
+  await expect(page.getByText('Stale task after export').first()).toBeVisible({ timeout: 10000 })
 
   await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
   await page.locator('input[type="file"][accept*=".studybackup"]').setInputFiles(backupPath)
@@ -35,8 +35,9 @@ test('imports backup vault after confirm dialog', async ({ page }) => {
 
   await page.waitForLoadState('load')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 20000 })
-  await expect(page.getByText(taskName)).toBeVisible({ timeout: 15000 })
-  await expect(page.getByText('Stale task after export')).not.toBeVisible()
+  await page.getByRole('button', { name: 'Focus' }).first().click()
+  await expect(page.getByText(taskName).first()).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('Stale task after export', { exact: true })).toHaveCount(0)
 
   fs.unlinkSync(backupPath)
 })
