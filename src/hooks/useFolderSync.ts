@@ -39,7 +39,11 @@ export function useFolderSync({
 
   useEffect(() => {
     if (!isDataReady || isTauri()) return
-    void getWebSyncFolderLabel().then(setWebFolderLabel)
+    let mounted = true
+    void getWebSyncFolderLabel().then(label => {
+      if (mounted) setWebFolderLabel(label)
+    })
+    return () => { mounted = false }
   }, [isDataReady, syncFolderPath, syncEnabled])
 
   useEffect(() => {

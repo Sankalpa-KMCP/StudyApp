@@ -6,7 +6,7 @@ import type { SyncAdapter } from './syncAdapter'
 import { pullFromSyncFolder } from './syncPull'
 import { pushToSyncFolder } from './syncPush'
 import { SYNC_POLL_INTERVAL_MS, SYNC_PUSH_DEBOUNCE_MS } from './syncConstants'
-import { db } from '../../db/db'
+import { registerSyncDbHooks } from '../../db/repositories/syncHooks'
 import {
   getPollTimer,
   getPushTimer,
@@ -20,7 +20,6 @@ import {
 let orchestratorActive = false
 let activeAdapter: SyncAdapter | null = null
 let lastMetadata: { mtimeMs: number; size: number } | null = null
-let hooksRegistered = false
 
 async function resolveAdapter(syncFolderPath: string): Promise<SyncAdapter | null> {
   if (isTauri()) {
@@ -74,41 +73,6 @@ export function scheduleSyncPush(): void {
   setPushTimer(timer)
 }
 
-function registerSyncHooks(): void {
-  if (hooksRegistered) return
-  hooksRegistered = true
-
-  const tables = [
-    db.tasks,
-    db.history,
-    db.daily_logs,
-    db.categories,
-    db.flashcards,
-    db.quick_notes,
-  ] as const
-
-  for (const table of tables) {
-    table.hook('creating', scheduleSyncPush)
-    table.hook('updating', scheduleSyncPush)
-    table.hook('deleting', scheduleSyncPush)
-  }
-
-  db.settings.hook('creating', (_pk, obj) => {
-    if (obj.key === 'lastSyncAt' || obj.key === 'lastSyncChecksum') return
-    scheduleSyncPush()
-  })
-  db.settings.hook('updating', (mods, _pk, obj) => {
-    const key = obj.key
-    if (key === 'lastSyncAt' || key === 'lastSyncChecksum') return
-    const changes = mods as Partial<{ value: unknown }>
-    if (changes.value !== undefined) scheduleSyncPush()
-  })
-  db.settings.hook('deleting', (_pk, obj) => {
-    if (obj.key === 'lastSyncAt' || obj.key === 'lastSyncChecksum') return
-    scheduleSyncPush()
-  })
-}
-
 export async function startSyncOrchestrator(syncFolderPath: string): Promise<void> {
   stopSyncOrchestrator()
   orchestratorActive = true
@@ -120,7 +84,7 @@ export async function startSyncOrchestrator(syncFolderPath: string): Promise<voi
   }
 
   activeAdapter = adapter
-  registerSyncHooks()
+  registerSyncDbHooks(scheduleSyncPush)
 
   const checksum = await getSetting('lastSyncChecksum')
   if (typeof checksum === 'string' && checksum) {
