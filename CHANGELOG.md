@@ -4,6 +4,7 @@
 
 | Version | Changes |
 |---------|---------|
+| **v11** | `sync_handles` table; folder sync settings (`syncEnabled`, `lastSyncAt`, `lastSyncChecksum`); migrates `desktopBackupFolderPath` → `syncFolderPath` |
 | **v10** | Task/category timer overrides, recurring tasks, flashcard images, FSRS fields |
 | **v9** | Optional `taskId` on `history` entries |
 | **v8** | Add optional `flashcardsEnabled` setting (default true for migrations, false for new installs) |
@@ -22,6 +23,7 @@
 ## [Unreleased]
 
 ### Added
+- **Folder sync** — bidirectional shared-folder sync between GitHub Pages (Chrome/Edge) and the Tauri desktop app via `study-vault.sync.studybackup`
 - Configurable auto-archive threshold (`autoArchiveAfterDays`)
 - Command palette actions (toggle timer, zen, export backup, hotkeys, review cards)
 - Task-linked session history (Dexie v9 `taskId` on history entries)

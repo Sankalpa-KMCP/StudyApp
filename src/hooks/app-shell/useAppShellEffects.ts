@@ -3,6 +3,7 @@ import { applySavedDesktopSettings, initDesktopTrayBridge, isTauri, setDesktopTr
 import { prefetchIdleTabChunks } from '../../lib/routing/prefetchTabChunks'
 import { useStudyReminder } from '../useStudyReminder'
 import { useAutoExport } from '../useAutoExport'
+import { useFolderSync } from '../useFolderSync'
 
 interface UseAppShellEffectsOptions {
   isDataReady: boolean
@@ -14,6 +15,8 @@ interface UseAppShellEffectsOptions {
   todayStudyMinutes: number
   autoExportEnabled: boolean
   autoExportIntervalDays: number
+  syncEnabled: boolean
+  syncFolderPath: string
   desktopAutostartEnabled: boolean
   desktopGlobalShortcutsEnabled: boolean
   exportBackup: () => void
@@ -37,6 +40,8 @@ export function useAppShellEffects({
   todayStudyMinutes,
   autoExportEnabled,
   autoExportIntervalDays,
+  syncEnabled,
+  syncFolderPath,
   desktopAutostartEnabled,
   desktopGlobalShortcutsEnabled,
   exportBackup,
@@ -70,6 +75,12 @@ export function useAppShellEffects({
     intervalDays: autoExportIntervalDays,
     isDataReady,
     exportBackup,
+  })
+
+  useFolderSync({
+    syncEnabled,
+    syncFolderPath,
+    isDataReady,
   })
 
   const desktopSettingsAppliedRef = useRef(false)

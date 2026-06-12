@@ -1,4 +1,6 @@
 import type { StudyBackupPayload } from '../study/studyDashboard'
+import { SYNC_FILE_NAME } from '../sync/syncConstants'
+import type { SyncFileMetadata } from '../sync/syncAdapter'
 
 export function isTauri(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
@@ -30,11 +32,50 @@ export async function sendDesktopNotification(title: string, body: string): Prom
 }
 
 export async function pickDesktopBackupFolder(): Promise<string | null> {
+  return pickSyncFolder()
+}
+
+export async function pickSyncFolder(): Promise<string | null> {
   if (!isTauri()) return null
   const { open } = await import('@tauri-apps/plugin-dialog')
-  const selected = await open({ directory: true, multiple: false, title: 'Choose backup folder' })
+  const selected = await open({ directory: true, multiple: false, title: 'Choose sync folder' })
   if (selected === null || Array.isArray(selected)) return null
   return selected
+}
+
+function joinFolderPath(folderPath: string, filename: string): string {
+  return folderPath.endsWith('/') || folderPath.endsWith('\\')
+    ? `${folderPath}${filename}`
+    : `${folderPath}/${filename}`
+}
+
+export async function writeSyncFile(folderPath: string, content: string): Promise<void> {
+  if (!isTauri() || !folderPath) return
+  const { writeTextFile } = await import('@tauri-apps/plugin-fs')
+  await writeTextFile(joinFolderPath(folderPath, SYNC_FILE_NAME), content)
+}
+
+export async function readSyncFile(folderPath: string): Promise<string | null> {
+  if (!isTauri() || !folderPath) return null
+  const { readTextFile, exists } = await import('@tauri-apps/plugin-fs')
+  const path = joinFolderPath(folderPath, SYNC_FILE_NAME)
+  if (!(await exists(path))) return null
+  return readTextFile(path)
+}
+
+export async function getSyncFileMetadata(folderPath: string): Promise<SyncFileMetadata | null> {
+  if (!isTauri() || !folderPath) return null
+  const { stat } = await import('@tauri-apps/plugin-fs')
+  const path = joinFolderPath(folderPath, SYNC_FILE_NAME)
+  try {
+    const info = await stat(path)
+    if (!info.isFile) return null
+    const mtime = info.mtime
+    const mtimeMs = mtime instanceof Date ? mtime.getTime() : typeof mtime === 'number' ? mtime : 0
+    return { mtimeMs, size: info.size ?? 0 }
+  } catch {
+    return null
+  }
 }
 
 export async function applySavedDesktopSettings(settings: {

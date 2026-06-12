@@ -2,14 +2,14 @@ import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
 import { scrollToSettingsSection } from '../../lib/settings/settingsSections'
-import { isTauri, enableDesktopAutostart, pickDesktopBackupFolder, requestDesktopNotificationPermission, setDesktopGlobalShortcuts } from '../../lib/desktop/tauri'
+import { isTauri, enableDesktopAutostart, requestDesktopNotificationPermission, setDesktopGlobalShortcuts } from '../../lib/desktop/tauri'
 
 export function DesktopSettingsPanel() {
   const {
     desktopAutostartEnabled,
     desktopGlobalShortcutsEnabled,
     desktopNativeNotificationsEnabled,
-    desktopBackupFolderPath,
+    syncFolderPath,
     desktopMinimizeOnCloseEnabled,
     desktopGlobalTimerShortcut,
     updateSetting,
@@ -82,38 +82,21 @@ export function DesktopSettingsPanel() {
           }}
         />
         <div>
-          <p className="settings-label mb-1">Auto-export folder</p>
+          <p className="settings-label mb-1">Sync folder</p>
           <p className="settings-muted mb-2 text-micro">
-            {desktopBackupFolderPath
-              ? 'Scheduled exports write here instead of triggering a browser download.'
-              : 'No folder selected — scheduled exports use browser download.'}
+            {syncFolderPath
+              ? 'Web and desktop share data through this folder when folder sync is enabled.'
+              : 'Choose a sync folder in Backup Vault to share data with the website.'}
           </p>
           <button
             type="button"
-            className="mb-2 text-xs font-semibold text-accent-blue hover:text-accent-blue/80"
+            className="text-xs font-semibold text-accent-blue hover:text-accent-blue/80"
             onClick={() => scrollToSettingsSection('settings-backup-vault')}
           >
-            Scheduled export settings → Backup Vault
+            Folder sync settings → Backup Vault
           </button>
-          <button
-            type="button"
-            className="text-xs font-semibold text-accent-blue hover:text-accent-blue/80"
-            onClick={() => {
-              void pickDesktopBackupFolder().then(path => {
-                if (path) updateSetting('desktopBackupFolderPath', path)
-              })
-            }}
-          >
-            Choose folder
-          </button>
-          {desktopBackupFolderPath && (
-            <button
-              type="button"
-              className="ml-3 text-xs font-semibold settings-muted hover:text-[var(--color-text-primary)]"
-              onClick={() => updateSetting('desktopBackupFolderPath', '')}
-            >
-              Clear
-            </button>
+          {syncFolderPath && (
+            <p className="text-micro settings-muted mt-2 font-mono break-all">{syncFolderPath}</p>
           )}
         </div>
       </div>

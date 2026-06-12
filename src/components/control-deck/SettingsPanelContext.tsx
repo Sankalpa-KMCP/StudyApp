@@ -82,6 +82,9 @@ interface SettingsPanelContextValue {
   desktopMinimizeOnCloseEnabled: boolean
   desktopGlobalTimerShortcut: string
   syncFolderPath: string
+  syncEnabled: boolean
+  lastSyncAt: string
+  lastSyncChecksum: string
   ambientSoundEnabled: boolean
   ambientSoundPreset: 'rain' | 'white-noise' | 'cafe' | 'brown-noise'
   ambientVolume: number
@@ -155,6 +158,9 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     desktopMinimizeOnCloseEnabled: updater.desktopMinimizeOnCloseEnabled,
     desktopGlobalTimerShortcut: updater.desktopGlobalTimerShortcut,
     syncFolderPath: updater.syncFolderPath,
+    syncEnabled: updater.syncEnabled,
+    lastSyncAt: updater.lastSyncAt,
+    lastSyncChecksum: updater.lastSyncChecksum,
     ambientSoundEnabled: updater.ambientSoundEnabled,
     ambientSoundPreset: updater.ambientSoundPreset,
     ambientVolume: updater.ambientVolume,

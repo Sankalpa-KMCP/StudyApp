@@ -100,6 +100,9 @@ export type SettingsKey =
   | 'desktopMinimizeOnCloseEnabled'
   | 'desktopGlobalTimerShortcut'
   | 'syncFolderPath'
+  | 'syncEnabled'
+  | 'lastSyncAt'
+  | 'lastSyncChecksum'
   | 'ambientSoundEnabled'
   | 'ambientSoundPreset'
   | 'ambientVolume'
@@ -149,4 +152,10 @@ export interface SnapshotRow {
   id?: number
   timestamp: string
   payload: string
+}
+
+export interface SyncHandleRow {
+  id?: number
+  kind: 'directory'
+  handle: FileSystemDirectoryHandle
 }

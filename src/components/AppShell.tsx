@@ -65,6 +65,8 @@ export const AppShell = memo(function AppShell() {
     todayStudyMinutes: todayLog.studyMinutes,
     autoExportEnabled: settings.autoExportEnabled,
     autoExportIntervalDays: settings.autoExportIntervalDays,
+    syncEnabled: settings.syncEnabled,
+    syncFolderPath: settings.syncFolderPath,
     desktopAutostartEnabled: settings.desktopAutostartEnabled,
     desktopGlobalShortcutsEnabled: settings.desktopGlobalShortcutsEnabled,
     exportBackup: () => {

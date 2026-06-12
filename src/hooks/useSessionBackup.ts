@@ -50,10 +50,12 @@ export interface StudyBackupImportOptions {
   passphrase?: string
 }
 
-async function resolveDesktopBackupFolder(): Promise<string> {
+async function resolveSyncFolder(): Promise<string> {
   if (!isTauri()) return ''
-  const value = await getSetting('desktopBackupFolderPath')
-  return typeof value === 'string' ? value : ''
+  const syncPath = await getSetting('syncFolderPath')
+  if (typeof syncPath === 'string' && syncPath) return syncPath
+  const legacyPath = await getSetting('desktopBackupFolderPath')
+  return typeof legacyPath === 'string' ? legacyPath : ''
 }
 
 function resolveExportDestination(
@@ -94,7 +96,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
       setIsExporting(true)
       setExportProgress(0)
       const payload = await collectStudyBackupPayload(setExportProgress)
-      const folder = await resolveDesktopBackupFolder()
+      const folder = await resolveSyncFolder()
       const destination = resolveExportDestination(options?.destination ?? 'download', folder)
 
       let exportBody: unknown = payload
