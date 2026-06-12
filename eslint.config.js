@@ -26,4 +26,21 @@ export default defineConfig([
       'jsx-a11y/no-static-element-interactions': 'error',
     },
   },
+  {
+    files: ['src/components/**/*.{ts,tsx}', 'src/hooks/**/*.{ts,tsx}', 'src/lib/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['**/db/db', '**/db/db.ts', '../db/db', '../../db/db'],
+          message: 'Import from db/repositories instead of db/db directly.',
+        }],
+      }],
+    },
+  },
+  {
+    files: ['src/**/__tests__/**/*.{ts,tsx}', 'src/test/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': 'off',
+    },
+  },
 ])
