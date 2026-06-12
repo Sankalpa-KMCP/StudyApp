@@ -2,14 +2,14 @@ import { useMemo } from 'react'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { useGamification } from '../hooks/useGamification'
 import { useAnalytics } from '../hooks/useAnalytics'
+import { useAnalyticsHistoryRange } from '../hooks/useAnalyticsHistoryRange'
 import { useJournalCalendar } from '../hooks/useJournalCalendar'
-import type { useAppToast } from '../hooks/useAppToast'
 
-type PushToast = ReturnType<typeof useAppToast>['pushToast']
-
-export function useStudyDataState(_pushToast: PushToast) {
+export function useStudyDataState() {
   const data = useDashboardData()
   const { tasks, history, recentHistory, settings, todayLog, flashcards, quickNotes, categories, allLogs, isDataReady } = data
+
+  const analyticsRange = useAnalyticsHistoryRange()
 
   const { currentStreak, xpData, pendingLevelUp, dismissLevelUp } = useGamification({
     allLogs: allLogs.allLogs,
@@ -17,7 +17,7 @@ export function useStudyDataState(_pushToast: PushToast) {
   })
 
   const { insights, breakdownData } = useAnalytics({
-    sessionHistory: recentHistory.history,
+    sessionHistory: analyticsRange.history,
     sessionTasks: tasks.tasks,
     allLogs: allLogs.allLogs,
     categories: categories.categories,
@@ -53,6 +53,7 @@ export function useStudyDataState(_pushToast: PushToast) {
     dismissLevelUp,
     insights,
     breakdownData,
+    analyticsRange,
     journal,
     progress,
   }), [
@@ -72,6 +73,7 @@ export function useStudyDataState(_pushToast: PushToast) {
     dismissLevelUp,
     insights,
     breakdownData,
+    analyticsRange,
     journal,
     progress,
   ])

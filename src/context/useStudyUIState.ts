@@ -4,6 +4,7 @@ import { applyThemeToDocument } from '../lib/applyThemeVars'
 import { resolveThemeProfile } from '../lib/theme'
 import { useZenCanvas } from '../hooks/useZenCanvas'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { useFocusLockoutNavigation } from '../hooks/useFocusLockoutNavigation'
 import { useOptionalSidebarCollapse } from '../components/sidebar/useSidebarCollapseContext'
 import { useStudyDataContext } from './studyDataContext'
 import { useStudyTimerContext, useStudyTimerDisplay } from './studyTimerContext'
@@ -11,6 +12,12 @@ import { useConfirm } from './useConfirm'
 import type { useAppToast } from '../hooks/useAppToast'
 import { useUndoDelete } from '../hooks/useUndoDelete'
 import { PAUSE_TIMER_TO_LEAVE } from '../lib/uxTerms'
+
+const UI_FONT_STACKS: Record<string, string> = {
+  Inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  Outfit: "'Outfit', 'Inter', sans-serif",
+  System: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+}
 
 type ToastApi = ReturnType<typeof useAppToast>
 
@@ -24,7 +31,7 @@ export function useStudyUIState(toast: ToastApi) {
 
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [isZenMode, setIsZenMode] = useState(false)
-  const [activeTab, setActiveTab] = useState<ActiveTab>('focus')
+  const [activeTab, setActiveTabState] = useState<ActiveTab>('focus')
   const [isDragging, setIsDragging] = useState(false)
   const [isHotkeyHudOpen, setIsHotkeyHudOpen] = useState(false)
   const [prefersDark, setPrefersDark] = useState(
@@ -36,6 +43,21 @@ export function useStudyUIState(toast: ToastApi) {
   useZenCanvas(isZenMode, canvasRef)
 
   const sidebarCollapse = useOptionalSidebarCollapse()
+
+  const notifyFocusLockout = useCallback(() => {
+    setActiveToast({
+      key: 'LOCK',
+      message: PAUSE_TIMER_TO_LEAVE,
+      id: Date.now(),
+    })
+  }, [setActiveToast])
+
+  const navigateToTab = useFocusLockoutNavigation({
+    enforceLockout: settings.enforce_lockout,
+    timer: timerControls,
+    setActiveTab: setActiveTabState,
+    onLockedAttempt: notifyFocusLockout,
+  })
 
   useKeyboardShortcuts({
     activeTab,
@@ -52,16 +74,10 @@ export function useStudyUIState(toast: ToastApi) {
     setIsZenMode,
     setIsHotkeyHudOpen,
     setActiveToast,
-    setActiveTab,
+    navigateToTab,
     toggleSidebarCollapse: sidebarCollapse?.toggleCollapsed,
     requestConfirm,
   })
-
-  const UI_FONT_STACKS: Record<string, string> = {
-    Inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    Outfit: "'Outfit', 'Inter', sans-serif",
-    System: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-  }
 
   useEffect(() => {
     document.documentElement.style.setProperty('--font-monospace', `'${settings.developer_font}', monospace`)
@@ -114,15 +130,7 @@ export function useStudyUIState(toast: ToastApi) {
     settings.cardBorderOpacity,
   ])
 
-  const notifyFocusLockout = useCallback(() => {
-    setActiveToast({
-      key: 'LOCK',
-      message: PAUSE_TIMER_TO_LEAVE,
-      id: Date.now(),
-    })
-  }, [setActiveToast])
-
-  const handleFileDrop = (e: React.DragEvent, confirmImport: (s: string) => void) => {
+  const handleFileDrop = useCallback((e: React.DragEvent, confirmImport: (s: string) => void) => {
     e.preventDefault()
     setIsDragging(false)
     const file = e.dataTransfer?.files?.[0]
@@ -133,7 +141,7 @@ export function useStudyUIState(toast: ToastApi) {
       }
       r.readAsText(file)
     }
-  }
+  }, [])
 
   return useMemo(() => ({
     pushToast: toast.pushToast,
@@ -145,7 +153,7 @@ export function useStudyUIState(toast: ToastApi) {
     isZenMode,
     setIsZenMode,
     activeTab,
-    setActiveTab,
+    setActiveTab: navigateToTab,
     isDragging,
     setIsDragging,
     isHotkeyHudOpen,
@@ -163,6 +171,7 @@ export function useStudyUIState(toast: ToastApi) {
     isNotesOpen,
     isZenMode,
     activeTab,
+    navigateToTab,
     isDragging,
     isHotkeyHudOpen,
     activeThemeVars,

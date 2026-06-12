@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import type { CategoryItem, SettingsKey, SettingsValue } from '../../db/types'
 import { useStudyDataContext } from '../../context/studyDataContext'
@@ -7,6 +8,9 @@ import { useSettingsUpdater } from '../../hooks/useSettingsUpdater'
 
 export interface SettingsBackupApi {
   exportStudyBackup: () => void
+  shareStudyBackupVault?: () => void
+  exportStudyHistoryIcs?: () => void
+  canShareBackup?: boolean
   isExporting?: boolean
   exportProgress?: number
   exportStudyLogsCSV: () => void
@@ -66,6 +70,7 @@ interface SettingsPanelContextValue {
   autoArchiveAncientTasks: boolean
   ambientSoundEnabled: boolean
   ambientSoundPreset: 'rain' | 'white-noise'
+  historyRetentionDays: number
   backup: SettingsBackupApi
   categories: SettingsCategoriesApi
   isDragging: boolean
@@ -118,6 +123,7 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     autoArchiveAncientTasks: updater.autoArchiveAncientTasks,
     ambientSoundEnabled: updater.ambientSoundEnabled,
     ambientSoundPreset: updater.ambientSoundPreset,
+    historyRetentionDays: updater.historyRetentionDays,
     isLoading: updater.isLoading,
     updateSetting: (key, val) => { void updater.updateSettingSafe(key, val) },
     updateSettingSafe: updater.updateSettingSafe,
@@ -126,6 +132,9 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     pushToast,
     backup: {
       exportStudyBackup: timerCtx.backup.exportStudyBackup,
+      shareStudyBackupVault: timerCtx.backup.shareStudyBackupVault,
+      exportStudyHistoryIcs: timerCtx.backup.exportStudyHistoryIcs,
+      canShareBackup: timerCtx.backup.canShareBackup,
       isExporting: timerCtx.backup.isExporting,
       exportProgress: timerCtx.backup.exportProgress,
       exportStudyLogsCSV: timerCtx.backup.exportStudyLogsCSV,

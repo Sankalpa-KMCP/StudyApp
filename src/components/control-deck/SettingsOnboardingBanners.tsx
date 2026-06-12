@@ -1,6 +1,6 @@
 import { Sparkles } from 'lucide-react'
 import { SettingsCard } from '../shared/settings/SettingsCard'
-import { scrollToSettingsSection } from './SettingsShell'
+import { scrollToSettingsSection } from '../../lib/settingsSections'
 
 interface SettingsOnboardingBannersProps {
   showHighGoalNudge: boolean

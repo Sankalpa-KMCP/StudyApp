@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react'
-import { SETTINGS_SECTIONS, type SettingsSectionId } from '../../lib/settingsSections'
+import { SETTINGS_SECTIONS, scrollToSettingsSection, type SettingsSectionId } from '../../lib/settingsSections'
 
 interface SettingsSectionNavProps {
   className?: string
   variant?: 'sidebar' | 'pills'
-}
-
-export function scrollToSettingsSection(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 export function SettingsSectionNav({ className = '', variant = 'sidebar' }: SettingsSectionNavProps) {

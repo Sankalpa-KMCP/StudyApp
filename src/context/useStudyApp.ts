@@ -99,6 +99,7 @@ export function useStudyAnalytics() {
     xpData: data.xpData,
     insights: data.insights,
     breakdownData: data.breakdownData,
+    analyticsRange: data.analyticsRange,
     journal: data.journal,
     allLogs: data.allLogs,
   }), [data])
