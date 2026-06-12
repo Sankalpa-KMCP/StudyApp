@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { getLastBackupExportAt } from '../lib/backupMetadata'
 import { shouldRunAutoExport } from '../lib/autoExportSchedule'
+
+const RECHECK_MS = 6 * 60 * 60 * 1000
 
 interface UseAutoExportOptions {
   enabled: boolean
@@ -15,15 +17,26 @@ export function useAutoExport({
   isDataReady,
   exportBackup,
 }: UseAutoExportOptions) {
-  const attemptedRef = useRef(false)
-
   useEffect(() => {
-    if (!enabled || !isDataReady || attemptedRef.current) return
+    if (!enabled || !isDataReady) return
 
-    const lastExportAt = getLastBackupExportAt()
-    if (!shouldRunAutoExport(lastExportAt, intervalDays)) return
+    const maybeExport = () => {
+      const lastExportAt = getLastBackupExportAt()
+      if (!shouldRunAutoExport(lastExportAt, intervalDays)) return
+      void Promise.resolve(exportBackup())
+    }
 
-    attemptedRef.current = true
-    void Promise.resolve(exportBackup())
+    maybeExport()
+
+    const intervalId = window.setInterval(maybeExport, RECHECK_MS)
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') maybeExport()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    return () => {
+      window.clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   }, [enabled, intervalDays, isDataReady, exportBackup])
 }
