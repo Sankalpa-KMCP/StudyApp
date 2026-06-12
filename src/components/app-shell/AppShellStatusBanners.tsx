@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { useTranslation } from '../../i18n/useTranslation'
 import { InstallPromptBanner } from '../InstallPromptBanner'
 import { QuotaRecoveryBanner } from '../QuotaRecoveryBanner'
 import { BackupReminderBanner } from '../BackupReminderBanner'
@@ -35,6 +36,7 @@ export function AppShellStatusBanners({
   onDismissQuota,
   onDismissBackupReminder,
 }: AppShellStatusBannersProps) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
 
   if (isZenMode && !isOffline) return null
@@ -68,10 +70,10 @@ export function AppShellStatusBanners({
           <div
             key="offline"
             role="status"
-            className="flex items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-label font-semibold text-amber-200"
+            className="status-banner-warning flex items-center justify-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-label font-semibold"
           >
             <AlertCircle className="h-3.5 w-3.5" aria-hidden />
-            You are offline — data stays on this device
+            {t('offlineBanner')}
           </div>
         )
       case 'pwa':
