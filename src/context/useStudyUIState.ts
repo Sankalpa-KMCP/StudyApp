@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
 import { applyThemeToDocument } from '../lib/applyThemeVars'
-import { readAppHashFromLocation, writeAppHash } from '../lib/appHashRouting'
+import { readAppHashFromLocation, writeAppHash, resolveAppHash } from '../lib/appHashRouting'
+import { getKeyboardTabOrder } from '../navigation/appNav'
 import { setActiveTabSync } from '../lib/activeTabSync'
 import { loadAppFonts } from '../lib/loadAppFonts'
 import { resolveThemeProfile } from '../lib/theme'
@@ -37,6 +38,8 @@ export function useStudyUIState(toast: ToastApi) {
   const [activeTab, setActiveTabState] = useState<ActiveTab>(() => readAppHashFromLocation().tab)
   const [isDragging, setIsDragging] = useState(false)
   const [isHotkeyHudOpen, setIsHotkeyHudOpen] = useState(false)
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
+  const [focusNoteId, setFocusNoteId] = useState<number | null>(null)
   const [prefersDark, setPrefersDark] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches,
   )
@@ -76,11 +79,20 @@ export function useStudyUIState(toast: ToastApi) {
     setIsTimerActive: timerControls.setIsTimerActive,
     setIsZenMode,
     setIsHotkeyHudOpen,
+    isCommandPaletteOpen,
+    setIsCommandPaletteOpen,
     setActiveToast,
     navigateToTab,
     toggleSidebarCollapse: sidebarCollapse?.toggleCollapsed,
     requestConfirm,
+    visibleTabs: getKeyboardTabOrder(settings.flashcardsEnabled),
   })
+
+  useEffect(() => {
+    if (!settings.flashcardsEnabled && activeTab === 'cards') {
+      navigateToTab('focus')
+    }
+  }, [settings.flashcardsEnabled, activeTab, navigateToTab])
 
   useEffect(() => {
     document.documentElement.style.setProperty('--font-monospace', `'${settings.developer_font}', monospace`)
@@ -103,11 +115,15 @@ export function useStudyUIState(toast: ToastApi) {
   useEffect(() => {
     const onHashChange = () => {
       const { tab } = readAppHashFromLocation()
-      setActiveTabState(tab)
+      const resolved = resolveAppHash(tab, settings.flashcardsEnabled)
+      if (resolved !== tab) {
+        writeAppHash(resolved)
+      }
+      setActiveTabState(resolved)
     }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
-  }, [])
+  }, [settings.flashcardsEnabled])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
@@ -179,6 +195,10 @@ export function useStudyUIState(toast: ToastApi) {
     setIsDragging,
     isHotkeyHudOpen,
     setIsHotkeyHudOpen,
+    isCommandPaletteOpen,
+    setIsCommandPaletteOpen,
+    focusNoteId,
+    setFocusNoteId,
     canvasRef,
     activeThemeVars,
     handleFileDrop,
@@ -195,6 +215,8 @@ export function useStudyUIState(toast: ToastApi) {
     navigateToTab,
     isDragging,
     isHotkeyHudOpen,
+    isCommandPaletteOpen,
+    focusNoteId,
     activeThemeVars,
     handleFileDrop,
     notifyFocusLockout,
