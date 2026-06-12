@@ -3,6 +3,7 @@ import { ChevronDown, Plus } from 'lucide-react'
 import type { CategoryItem } from '../../db/types'
 import { InlineCategoryManager } from '../shared/InlineCategoryManager'
 import { SelectionChip } from '../shared/SelectionChip'
+import { useConfirm } from '../../context/useConfirm'
 
 const OPTIONS_EXPANDED_KEY = 'focus_task_options_expanded'
 
@@ -47,6 +48,7 @@ export function TaskCreateForm({
   setTaskIsStudySubject,
   onSubmit,
 }: TaskCreateFormProps) {
+  const { requestConfirm } = useConfirm()
   const [showOptions, setShowOptions] = useState(() => {
     if (typeof window === 'undefined') return false
     return sessionStorage.getItem(OPTIONS_EXPANDED_KEY) === 'true'
@@ -72,12 +74,22 @@ export function TaskCreateForm({
           categories={categories}
           addCategory={addCategory}
           deleteCategory={deleteCategory}
+          requestConfirm={requestConfirm}
           selectedCategoryId={sessionCategoryId}
           onSelectCategory={onSelectCategory}
         />
         {timerMode === 'break' && (
           <p className="text-micro text-muted mt-1">Subject locked during break mode.</p>
         )}
+        {sessionCategoryId !== undefined && (() => {
+          const cat = categories.find(c => c.id === sessionCategoryId)
+          if (!cat?.dailyGoalMinutes) return null
+          return (
+            <span className="inline-flex mt-2 text-[10px] font-bold text-accent-blue bg-accent-blue/10 border border-accent-blue/20 px-2.5 py-1 rounded-full">
+              Subject goal: {cat.dailyGoalMinutes} min/day
+            </span>
+          )
+        })()}
       </div>
 
       <div className="flex flex-col gap-1">

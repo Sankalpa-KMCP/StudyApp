@@ -5,6 +5,7 @@ import { InlineCategoryManager } from '../shared/InlineCategoryManager'
 import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
 import { Button } from '../shared/Button'
+import { useConfirm } from '../../context/useConfirm'
 
 interface FlashcardCreateFormProps {
   categories: CategoryItem[]
@@ -37,6 +38,8 @@ export function FlashcardCreateForm({
   onStudyDue,
   onStudyAll,
 }: FlashcardCreateFormProps) {
+  const { requestConfirm } = useConfirm()
+
   return (
     <div className="lg:col-span-4 space-y-6">
       <PanelCard>
@@ -71,6 +74,7 @@ export function FlashcardCreateForm({
             categories={categories}
             addCategory={addCategory}
             deleteCategory={deleteCategory}
+            requestConfirm={requestConfirm}
             selectedCategoryId={newCategoryId}
             onSelectCategory={setNewCategoryId}
           />
