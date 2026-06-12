@@ -1,6 +1,6 @@
 import { Lock } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
-import { FOCUS_LOCKOUT } from '../lib/uxTerms'
+import { FOCUS_LOCKOUT } from '../lib/shared/uxTerms'
 
 export type NavTabButtonVariant = 'sidebar-expanded' | 'sidebar-rail' | 'mobile'
 

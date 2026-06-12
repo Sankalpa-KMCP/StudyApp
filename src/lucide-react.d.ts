@@ -38,6 +38,8 @@ export const Database: Icon
   export const Layers: Icon
   export const GraduationCap: Icon
   export const Edit3: Icon
+export const Circle: Icon
+export const MoreHorizontal: Icon
   export const Search: Icon
   export const Save: Icon
   export const FileText: Icon
