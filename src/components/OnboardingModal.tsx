@@ -2,8 +2,10 @@ import React, { useState } from 'react'
 import { Sparkles, Clock, Target, ChevronRight, Check, Lock, Heart, RefreshCw, Layers } from 'lucide-react'
 import { ModalShell } from './shared/ModalShell'
 import { SelectionChip } from './shared/SelectionChip'
-import { PRODUCT_NAME } from '../lib/uxTerms'
-import { markDailyGoalConfigured } from '../lib/setupChecklist'
+import { useTranslation } from '../i18n/useTranslation'
+import type { TranslationKey } from '../i18n'
+import { markDailyGoalConfigured } from '../lib/study/setupChecklist'
+import { markFirstSessionPending } from '../lib/study/firstSession'
 import type { SettingsKey, SettingsValue } from '../db/types'
 
 interface OnboardingModalProps {
@@ -12,6 +14,12 @@ interface OnboardingModalProps {
   updateSetting?: (key: SettingsKey, val: SettingsValue) => void
   onOpenBackup?: () => void
   onReplayTour?: () => void
+}
+
+interface OnboardingBulletDef {
+  textKey: TranslationKey
+  helperKey?: TranslationKey
+  icon: typeof Sparkles
 }
 
 interface OnboardingBullet {
@@ -31,28 +39,26 @@ interface OnboardingSlide {
 
 const GOAL_OPTIONS = [60, 120, 240, 480] as const
 
-const SLIDES: OnboardingSlide[] = [
+const SLIDE_BULLET_DEFS: Array<Omit<OnboardingSlide, 'title' | 'description' | 'bullets'> & {
+  bullets: OnboardingBulletDef[]
+}> = [
   {
-    title: `Welcome to ${PRODUCT_NAME}`,
-    description: 'A premium, offline-first workspace to protect your focus, track study blocks, and build consistent habits.',
     icon: Sparkles,
     color: 'text-accent-blue bg-accent-blue/10 border-accent-blue/20',
     bullets: [
-      { text: '100% local-first', helper: 'Your data never leaves this device.', icon: Lock },
-      { text: 'Premium aesthetics', helper: 'Dark mode and glass UI built in.', icon: Sparkles },
-      { text: 'Breathing pacer during breaks', helper: 'Optional guided breathing when you rest.', icon: Heart },
+      { textKey: 'onboardingBulletLocalFirst', helperKey: 'onboardingBulletLocalFirstHelper', icon: Lock },
+      { textKey: 'onboardingBulletAesthetics', helperKey: 'onboardingBulletAestheticsHelper', icon: Sparkles },
+      { textKey: 'onboardingBulletBreathing', helperKey: 'onboardingBulletBreathingHelper', icon: Heart },
     ],
   },
   {
-    title: 'Your focus loop',
-    description: 'Pick one focus target, run a study block, and reflect.',
     icon: Clock,
     color: 'text-accent-amber bg-accent-amber/10 border-accent-amber/20',
     bullets: [
-      { text: 'Focus targets', helper: 'Add tasks with subject, priority, and cycles.', icon: Target },
-      { text: 'Study blocks & breaks', helper: 'Adjust block length from the timer panel.', icon: Clock },
-      { text: 'Focus lockout', helper: 'Optional nav lockout during active study blocks.', icon: RefreshCw },
-      { text: 'Optional flashcard deck', helper: 'Enable anytime in Settings → Study.', icon: Layers },
+      { textKey: 'onboardingBulletFocusTargets', helperKey: 'onboardingBulletFocusTargetsHelper', icon: Target },
+      { textKey: 'onboardingBulletStudyBlocks', helperKey: 'onboardingBulletStudyBlocksHelper', icon: Clock },
+      { textKey: 'onboardingBulletFocusLockout', helperKey: 'onboardingBulletFocusLockoutHelper', icon: RefreshCw },
+      { textKey: 'onboardingBulletFlashcards', helperKey: 'onboardingBulletFlashcardsHelper', icon: Layers },
     ],
     showGoalPicker: true,
   },
@@ -65,11 +71,28 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   onOpenBackup,
   onReplayTour,
 }) => {
+  const { t } = useTranslation()
   const [currentSlide, setCurrentSlide] = useState(0)
   const [dailyGoalMinutes, setDailyGoalMinutes] = useState<number | null>(null)
   const [enableFlashcards, setEnableFlashcards] = useState(false)
 
+  const slides: OnboardingSlide[] = SLIDE_BULLET_DEFS.map((def, index) => ({
+    title: index === 0
+      ? t('onboardingWelcomeTitle', { productName: t('productName') })
+      : t('onboardingFocusLoopTitle'),
+    description: index === 0 ? t('onboardingWelcomeDesc') : t('onboardingFocusLoopDesc'),
+    icon: def.icon,
+    color: def.color,
+    showGoalPicker: def.showGoalPicker,
+    bullets: def.bullets.map(bullet => ({
+      text: t(bullet.textKey),
+      helper: bullet.helperKey ? t(bullet.helperKey) : undefined,
+      icon: bullet.icon,
+    })),
+  }))
+
   const handleFinish = () => {
+    markFirstSessionPending()
     if (dailyGoalMinutes != null && updateSetting) {
       updateSetting('dailyGoalMinutes', dailyGoalMinutes)
       markDailyGoalConfigured()
@@ -90,7 +113,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   }
 
   const handleNext = () => {
-    if (currentSlide < SLIDES.length - 1) {
+    if (currentSlide < slides.length - 1) {
       setCurrentSlide(s => s + 1)
     } else {
       handleFinish()
@@ -103,7 +126,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     }
   }
 
-  const slide = SLIDES[currentSlide]
+  const slide = slides[currentSlide]
   const Icon = slide.icon
 
   return (
@@ -211,14 +234,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             }}
             className="text-[10px] font-semibold text-white/45 hover:text-accent-blue transition-colors cursor-pointer"
           >
-            Import existing data?
+            {t('onboardingImportData')}
           </button>
         </p>
       )}
 
       <div className="flex items-center justify-between pt-3 border-t border-white/5 select-none">
         <div className="flex gap-1.5">
-          {SLIDES.map((_, idx) => (
+          {slides.map((_, idx) => (
             <button
               key={idx}
               type="button"
@@ -238,7 +261,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               onClick={handlePrev}
               className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all cursor-pointer"
             >
-              Back
+              {t('onboardingBack')}
             </button>
           )}
           <button
@@ -246,8 +269,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             onClick={handleNext}
             className="flex items-center gap-1 px-4 py-1.5 rounded-lg text-[10px] font-bold bg-accent-blue hover:bg-accent-blue/90 border border-white/10 text-white transition-all cursor-pointer shadow-md shadow-accent-blue/15"
           >
-            <span>{currentSlide === SLIDES.length - 1 ? 'Create your first focus target' : 'Next'}</span>
-            {currentSlide === SLIDES.length - 1 ? <Check className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            <span>{currentSlide === slides.length - 1 ? t('onboardingFinish') : t('onboardingNext')}</span>
+            {currentSlide === slides.length - 1 ? <Check className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
           </button>
         </div>
       </div>
