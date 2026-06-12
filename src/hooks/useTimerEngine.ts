@@ -26,6 +26,7 @@ interface UseTimerEngineOptions {
   activeTaskId: number | null
   setActiveTaskId: (id: number | null) => void
   focusNotificationsEnabled: boolean
+  desktopNativeNotificationsEnabled?: boolean
 }
 
 export function useTimerEngine({
@@ -44,6 +45,7 @@ export function useTimerEngine({
   activeTaskId,
   setActiveTaskId,
   focusNotificationsEnabled,
+  desktopNativeNotificationsEnabled = false,
 }: UseTimerEngineOptions) {
   const [timerCategoryId, setTimerCategoryId] = useState<number | undefined>(undefined)
   const [secondsElapsed, setSecondsElapsed] = useState(0)
@@ -106,6 +108,7 @@ export function useTimerEngine({
     playChime,
     createDatabaseSnapshot,
     focusNotificationsEnabled,
+    desktopNativeNotificationsEnabled,
     activeTaskId,
     setActiveTaskId,
     targetSessionsPerCycle,
