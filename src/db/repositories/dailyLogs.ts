@@ -1,5 +1,5 @@
 import { db } from '../db'
-import { buildDateString } from '../../lib/studyDashboard'
+import { buildDateString } from '../../lib/study/studyDashboard'
 
 export async function incrementStudyMinutes() {
   const current = buildDateString()
@@ -28,6 +28,10 @@ export async function updateDailyReflection(dateString: string, notes: string, m
   } else {
     await db.daily_logs.add({ dateString, studyMinutes: 0, breakMinutes: 0, notes, mood })
   }
+}
+
+export async function getAllDailyLogs() {
+  return db.daily_logs.toArray()
 }
 
 export async function addRecoveredMinutes(mode: 'study' | 'break', minutes: number) {

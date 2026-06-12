@@ -1,4 +1,5 @@
 import { db } from '../db'
+import type { QuickNoteItem } from '../types'
 
 export async function addNote(title: string, content: string, categoryId?: number) {
   return db.quick_notes.add({
@@ -22,4 +23,12 @@ export async function updateNote(id: number, title: string, content: string, cat
 
 export async function deleteNote(id: number) {
   await db.quick_notes.delete(id)
+}
+
+export async function restoreNote(note: QuickNoteItem): Promise<void> {
+  await db.quick_notes.put(note)
+}
+
+export async function getAllNotes() {
+  return db.quick_notes.toArray()
 }

@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
 import type { DailyLog } from '../types'
-import { calculateMonthLogs } from '../../lib/studyDashboard'
+import { calculateMonthLogs } from '../../lib/study/studyDashboard'
 
 export function useMonthLogsQuery(month: number, year: number, studyBlockMinutes = 25, enabled = true) {
   const logs = useLiveQuery<DailyLog[] | undefined>(

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
-import { buildDateString } from '../../lib/studyDashboard'
+import { buildDateString } from '../../lib/study/studyDashboard'
 import * as dailyLogsRepo from '../repositories/dailyLogs'
 
 export function useTodayLog() {

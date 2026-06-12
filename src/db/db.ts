@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import type { TaskItem, HistoryEntry, DailyLog, SettingsRow, CategoryItem, FlashcardItem, QuickNoteItem, SnapshotRow } from './types'
-import { parseLegacyHistoryTimestamp } from '../lib/studyDashboard'
+import { parseLegacyHistoryTimestamp } from '../lib/study/studyDashboard'
 
 type LegacyTaskRecord = TaskItem & {
   title?: string
@@ -132,6 +132,26 @@ class StudyDashboardDB extends Dexie {
       if (flashcardsEnabledSetting === undefined) {
         await settingsTable.put({ key: 'flashcardsEnabled', value: true })
       }
+    })
+    this.version(9).stores({
+      tasks: '++id, text, completed, createdAt, categoryId',
+      history: '++id, timestamp, createdAt, type, durationMinutes, categoryId, taskId',
+      settings: '&key, value',
+      daily_logs: '&dateString, studyMinutes, breakMinutes',
+      categories: '++id, name, color',
+      flashcards: '++id, question, answer, categoryId, nextReviewDate',
+      quick_notes: '++id, title, content, categoryId, updatedAt',
+      snapshots: '++id, timestamp',
+    })
+    this.version(10).stores({
+      tasks: '++id, text, completed, createdAt, categoryId, recurrenceParentId',
+      history: '++id, timestamp, createdAt, type, durationMinutes, categoryId, taskId',
+      settings: '&key, value',
+      daily_logs: '&dateString, studyMinutes, breakMinutes',
+      categories: '++id, name, color',
+      flashcards: '++id, question, answer, categoryId, nextReviewDate',
+      quick_notes: '++id, title, content, categoryId, updatedAt',
+      snapshots: '++id, timestamp',
     })
   }
 }

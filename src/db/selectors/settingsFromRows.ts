@@ -39,6 +39,18 @@ export interface ParsedSettings {
   enforce_lockout: boolean
   initialEasinessFactor: number
   autoArchiveAncientTasks: boolean
+  autoArchiveAfterDays: number
+  lockoutMode: 'strict' | 'soft'
+  lockoutAllowedTabs: string
+  lockoutStudyOnly: boolean
+  studyReminderEnabled: boolean
+  studyReminderTime: string
+  studyReminderOnlyBelowGoal: boolean
+  schedulingAlgorithm: 'sm2' | 'fsrs'
+  locale: string
+  desktopMinimizeOnCloseEnabled: boolean
+  desktopGlobalTimerShortcut: string
+  syncFolderPath: string
   ambientSoundEnabled: boolean
   ambientSoundPreset: 'rain' | 'white-noise' | 'cafe' | 'brown-noise'
   ambientVolume: number
@@ -80,6 +92,18 @@ export const SETTINGS_DEFAULTS: ParsedSettings = {
   enforce_lockout: false,
   initialEasinessFactor: 2.5,
   autoArchiveAncientTasks: false,
+  autoArchiveAfterDays: 90,
+  lockoutMode: 'strict',
+  lockoutAllowedTabs: '[]',
+  lockoutStudyOnly: true,
+  studyReminderEnabled: false,
+  studyReminderTime: '15:00',
+  studyReminderOnlyBelowGoal: true,
+  schedulingAlgorithm: 'sm2',
+  locale: 'en',
+  desktopMinimizeOnCloseEnabled: false,
+  desktopGlobalTimerShortcut: 'Space',
+  syncFolderPath: '',
   ambientSoundEnabled: false,
   ambientSoundPreset: 'rain',
   ambientVolume: 50,
@@ -143,6 +167,18 @@ export function settingsFromRows(rows: SettingsRow[] | undefined): ParsedSetting
     enforce_lockout: getValue(rows, 'enforce_lockout', SETTINGS_DEFAULTS.enforce_lockout),
     initialEasinessFactor: getValue(rows, 'initialEasinessFactor', SETTINGS_DEFAULTS.initialEasinessFactor),
     autoArchiveAncientTasks: getValue(rows, 'autoArchiveAncientTasks', SETTINGS_DEFAULTS.autoArchiveAncientTasks),
+    autoArchiveAfterDays: getValue(rows, 'autoArchiveAfterDays', SETTINGS_DEFAULTS.autoArchiveAfterDays),
+    lockoutMode: getValue(rows, 'lockoutMode', SETTINGS_DEFAULTS.lockoutMode),
+    lockoutAllowedTabs: String(getValue(rows, 'lockoutAllowedTabs', SETTINGS_DEFAULTS.lockoutAllowedTabs)),
+    lockoutStudyOnly: getValue(rows, 'lockoutStudyOnly', SETTINGS_DEFAULTS.lockoutStudyOnly),
+    studyReminderEnabled: getValue(rows, 'studyReminderEnabled', SETTINGS_DEFAULTS.studyReminderEnabled),
+    studyReminderTime: String(getValue(rows, 'studyReminderTime', SETTINGS_DEFAULTS.studyReminderTime)),
+    studyReminderOnlyBelowGoal: getValue(rows, 'studyReminderOnlyBelowGoal', SETTINGS_DEFAULTS.studyReminderOnlyBelowGoal),
+    schedulingAlgorithm: getValue(rows, 'schedulingAlgorithm', SETTINGS_DEFAULTS.schedulingAlgorithm),
+    locale: String(getValue(rows, 'locale', SETTINGS_DEFAULTS.locale)),
+    desktopMinimizeOnCloseEnabled: getValue(rows, 'desktopMinimizeOnCloseEnabled', SETTINGS_DEFAULTS.desktopMinimizeOnCloseEnabled),
+    desktopGlobalTimerShortcut: String(getValue(rows, 'desktopGlobalTimerShortcut', SETTINGS_DEFAULTS.desktopGlobalTimerShortcut)),
+    syncFolderPath: String(getValue(rows, 'syncFolderPath', SETTINGS_DEFAULTS.syncFolderPath)),
     ambientSoundEnabled: getValue(rows, 'ambientSoundEnabled', SETTINGS_DEFAULTS.ambientSoundEnabled),
     ambientSoundPreset: getValue(rows, 'ambientSoundPreset', SETTINGS_DEFAULTS.ambientSoundPreset),
     ambientVolume: getValue(rows, 'ambientVolume', SETTINGS_DEFAULTS.ambientVolume),

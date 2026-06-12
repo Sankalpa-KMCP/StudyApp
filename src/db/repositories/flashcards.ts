@@ -1,6 +1,6 @@
 import { db } from '../db'
 import type { FlashcardItem } from '../types'
-import { buildDateString, calculateSM2 } from '../../lib/studyDashboard'
+import { buildDateString, calculateSM2 } from '../../lib/study/studyDashboard'
 import { getInitialEasinessFactor } from './settings'
 
 export async function addFlashcard(question: string, answer: string, categoryId?: number) {
@@ -18,6 +18,14 @@ export async function addFlashcard(question: string, answer: string, categoryId?
 
 export async function deleteFlashcard(id: number) {
   await db.flashcards.delete(id)
+}
+
+export async function restoreFlashcard(card: FlashcardItem): Promise<void> {
+  await db.flashcards.put(card)
+}
+
+export async function getAllFlashcards(): Promise<FlashcardItem[]> {
+  return db.flashcards.toArray()
 }
 
 export function computeNextReviewDate(intervalDays: number): string {

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import Dexie from 'dexie'
 import { db } from '../db'
 import { resetDatabase } from '../../test/dbTestUtils'
-import { parseLegacyHistoryTimestamp } from '../../lib/studyDashboard'
+import { parseLegacyHistoryTimestamp } from '../../lib/study/studyDashboard'
 
 describe('db migration helpers', () => {
   beforeEach(async () => {

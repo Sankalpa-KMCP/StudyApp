@@ -1,6 +1,6 @@
 import { db } from '../db'
 import type { HistoryEntry } from '../types'
-import { formatHistoryTimestamp } from '../../lib/studyDashboard'
+import { formatHistoryTimestamp } from '../../lib/study/studyDashboard'
 
 export function getMonthBounds(year: number, month: number) {
   const start = new Date(year, month, 1, 0, 0, 0, 0).getTime()
@@ -27,6 +27,19 @@ export async function addHistoryEntry(entry: Omit<HistoryEntry, 'id' | 'createdA
     createdAt: entry.createdAt ?? now,
     timestamp: entry.timestamp || formatHistoryTimestamp(new Date(entry.createdAt ?? now)),
   })
+}
+
+export async function getAllHistoryOrderedByCreatedAt(): Promise<HistoryEntry[]> {
+  return db.history.orderBy('createdAt').reverse().toArray()
+}
+
+export async function getAllHistory(): Promise<HistoryEntry[]> {
+  return db.history.toArray()
+}
+
+export async function bulkAddHistory(entries: (Omit<HistoryEntry, 'id'> & { id?: number })[]): Promise<void> {
+  if (entries.length === 0) return
+  await db.history.bulkAdd(entries)
 }
 
 export async function clearHistory() {

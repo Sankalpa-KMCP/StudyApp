@@ -1,4 +1,9 @@
 import { db } from '../db'
+import type { CategoryItem } from '../types'
+
+export async function getAllCategories(): Promise<CategoryItem[]> {
+  return db.categories.toArray()
+}
 
 export async function addCategory(name: string, color: string, dailyGoalMinutes?: number): Promise<number> {
   return db.categories.add({ name, color, ...(dailyGoalMinutes ? { dailyGoalMinutes } : {}) })

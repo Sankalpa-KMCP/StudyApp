@@ -3,6 +3,9 @@ export interface CategoryItem {
   name: string
   color: string
   dailyGoalMinutes?: number
+  studyBlockDurationMinutes?: number
+  shortBreakDurationMinutes?: number
+  longBreakDurationMinutes?: number
 }
 
 export interface SubTask {
@@ -28,6 +31,12 @@ export interface TaskItem {
   isStudySubject?: boolean
   subtasks?: SubTask[]
   archived?: boolean
+  studyBlockDurationMinutes?: number
+  shortBreakDurationMinutes?: number
+  longBreakDurationMinutes?: number
+  recurrenceRule?: 'daily' | 'weekly' | 'weekdays'
+  recurrenceParentId?: number
+  lastCompletedAt?: number
 }
 
 export interface HistoryEntry {
@@ -37,6 +46,7 @@ export interface HistoryEntry {
   type: 'study' | 'break'
   durationMinutes: number
   categoryId?: number
+  taskId?: number
   sessionNotes?: string
   attentionRating?: number
   stabilityRating?: number
@@ -78,6 +88,18 @@ export type SettingsKey =
   | 'enforce_lockout'
   | 'initialEasinessFactor'
   | 'autoArchiveAncientTasks'
+  | 'autoArchiveAfterDays'
+  | 'lockoutMode'
+  | 'lockoutAllowedTabs'
+  | 'lockoutStudyOnly'
+  | 'studyReminderEnabled'
+  | 'studyReminderTime'
+  | 'studyReminderOnlyBelowGoal'
+  | 'schedulingAlgorithm'
+  | 'locale'
+  | 'desktopMinimizeOnCloseEnabled'
+  | 'desktopGlobalTimerShortcut'
+  | 'syncFolderPath'
   | 'ambientSoundEnabled'
   | 'ambientSoundPreset'
   | 'ambientVolume'
@@ -108,6 +130,10 @@ export interface FlashcardItem {
   intervalDays: number
   nextReviewDate?: string
   latestGrade?: number
+  imageDataUrl?: string
+  stability?: number
+  difficulty?: number
+  elapsedDays?: number
 }
 
 export interface QuickNoteItem {
