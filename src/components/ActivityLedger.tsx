@@ -3,8 +3,8 @@ import { Calendar, X, Timer, Coffee, Target } from 'lucide-react'
 import type { CategoryItem, HistoryEntry } from '../db/types'
 import type { DayData } from '../types/app'
 import type { JournalSaveStatus } from '../hooks/useJournalCalendar'
-import { formatMinutes, getIntensity } from '../lib/studyDashboard'
-import { JOURNAL_HELPER, JOURNAL_PANEL_HELPER } from '../lib/uxTerms'
+import { formatMinutes, getIntensity } from '../lib/study/studyDashboard'
+import { JOURNAL_HELPER, JOURNAL_PANEL_HELPER } from '../lib/shared/uxTerms'
 import { DayDetailPanel } from './activity-ledger/DayDetailPanel'
 import { useLedgerIntensityStyles } from './activity-ledger/useLedgerCalendar'
 import { TabPageShell } from './shared/TabPageShell'
@@ -57,7 +57,6 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
   dynamicGridCells,
   activeMonthData,
   isLiveMonth,
-  totalDaysInMonth,
   todayDayOfMonth,
   todayStudyMinutes,
   todayBreakMinutes,

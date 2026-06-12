@@ -7,8 +7,8 @@ import {
   COMMAND_PALETTE_GROUP_LABELS,
   type CommandPaletteItem,
   type CommandPaletteItemType,
-} from '../lib/commandPaletteSearch'
-import type { CategoryItem, FlashcardItem, QuickNoteItem, TaskItem } from '../db/types'
+} from '../lib/routing/commandPaletteSearch'
+import type { CategoryItem, DailyLog, FlashcardItem, QuickNoteItem, TaskItem } from '../db/types'
 import type { ActiveTab } from '../types/app'
 
 export interface CommandPaletteSelection {
@@ -18,6 +18,8 @@ export interface CommandPaletteSelection {
   flashcardId?: number
   tab?: ActiveTab
   settingsSection?: string
+  actionId?: string
+  journalDate?: string
 }
 
 interface CommandPaletteProps {
@@ -29,9 +31,10 @@ interface CommandPaletteProps {
   flashcards: FlashcardItem[]
   categories: CategoryItem[]
   flashcardsEnabled: boolean
+  dailyLogs?: DailyLog[]
 }
 
-const GROUP_ORDER: CommandPaletteItemType[] = ['settings', 'tab', 'task', 'note', 'flashcard']
+const GROUP_ORDER: CommandPaletteItemType[] = ['action', 'settings', 'tab', 'task', 'note', 'journal', 'flashcard']
 
 export function CommandPalette({
   isOpen,
@@ -42,14 +45,15 @@ export function CommandPalette({
   flashcards,
   categories,
   flashcardsEnabled,
+  dailyLogs = [],
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const allItems = useMemo(
-    () => buildCommandPaletteItems({ tasks, notes, flashcards, categories, flashcardsEnabled }),
-    [tasks, notes, flashcards, categories, flashcardsEnabled],
+    () => buildCommandPaletteItems({ tasks, notes, flashcards, categories, dailyLogs, flashcardsEnabled }),
+    [tasks, notes, flashcards, categories, dailyLogs, flashcardsEnabled],
   )
 
   const results = useMemo(() => filterCommandPaletteItems(allItems, query), [allItems, query])
@@ -91,6 +95,8 @@ export function CommandPalette({
       flashcardId: item.flashcardId,
       tab: item.tab,
       settingsSection: item.settingsSection,
+      actionId: item.actionId,
+      journalDate: item.journalDate,
     })
     handleClose()
   }

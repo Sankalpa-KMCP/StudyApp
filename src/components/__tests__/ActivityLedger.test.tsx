@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ActivityLedger } from '../ActivityLedger'
-import { MONTH_NAMES, DAY_NAMES_SHORT } from '../../lib/theme'
+import { MONTH_NAMES, DAY_NAMES_SHORT } from '../../lib/theme/theme'
 
 const theme = { accentBlue: '#3b82f6', accentAmber: '#f59e0b' }
 

@@ -3,14 +3,14 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ConfirmProvider } from '../../context/ConfirmProvider'
 import { ErrorFallback } from '../ErrorFallback'
-import * as backupExport from '../../lib/backupExport'
-import * as copyDebug from '../../lib/copyDebugInfo'
+import * as backupExport from '../../lib/backup/backupExport'
+import * as copyDebug from '../../lib/shared/copyDebugInfo'
 
-vi.mock('../../lib/backupExport', () => ({
+vi.mock('../../lib/backup/backupExport', () => ({
   exportStudyBackupFile: vi.fn().mockResolvedValue({ version: 2 }),
 }))
 
-vi.mock('../../lib/copyDebugInfo', () => ({
+vi.mock('../../lib/shared/copyDebugInfo', () => ({
   copyDebugInfo: vi.fn().mockResolvedValue(undefined),
 }))
 

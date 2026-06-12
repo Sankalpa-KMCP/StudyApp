@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { hexToRgb } from '../../lib/studyDashboard'
+import { hexToRgb } from '../../lib/study/studyDashboard'
 
 export function useLedgerIntensityStyles(accentBlue: string) {
   return useMemo(() => {

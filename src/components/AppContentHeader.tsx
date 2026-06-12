@@ -1,8 +1,8 @@
 import { Brain, FileText, Flame, Lock, Search } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
 import { TAB_CHROME } from '../navigation/appNav'
-import { getDailyFocusStatus } from '../lib/studyDashboard'
-import { PAUSE_TIMER_TO_LEAVE } from '../lib/uxTerms'
+import { getDailyFocusStatus } from '../lib/study/studyDashboard'
+import { PAUSE_TIMER_TO_LEAVE } from '../lib/shared/uxTerms'
 import { MobileHeaderMenu } from './MobileHeaderMenu'
 
 interface AppContentHeaderProps {

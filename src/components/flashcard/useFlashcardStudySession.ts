@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { FlashcardItem } from '../../db/types'
-import { END_FLASHCARD_SESSION, END_FLASHCARD_SESSION_BODY } from '../../lib/uxTerms'
+import { END_FLASHCARD_SESSION, END_FLASHCARD_SESSION_BODY } from '../../lib/shared/uxTerms'
 
 type RequestConfirm = (options: {
   title: string

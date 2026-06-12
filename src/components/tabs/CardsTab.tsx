@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { TabLoadingFallback } from '../shared/TabLoadingFallback'
-import { db } from '../../db/db'
+import { restoreFlashcard } from '../../db/repositories/flashcards'
 import { useStudyData, useStudyUI } from '../../context/useStudyApp'
 
 const FlashcardStudio = lazy(() =>
@@ -17,7 +17,7 @@ export function CardsTab() {
     scheduleDelete(
       'Card',
       () => flashcards.deleteFlashcard(id),
-      async () => { await db.flashcards.put(card) },
+      async () => { await restoreFlashcard(card) },
     )
   }
 

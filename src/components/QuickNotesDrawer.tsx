@@ -5,7 +5,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useNoteFilters } from './quick-notes/useNoteFilters'
 import { useNoteEditor } from './quick-notes/useNoteEditor'
 import { useConfirm } from '../context/useConfirm'
-import { QUICK_NOTES_HELPER } from '../lib/uxTerms'
+import { QUICK_NOTES_HELPER } from '../lib/shared/uxTerms'
 import { NoteEditorPanel } from './quick-notes/NoteEditorPanel'
 import { NoteListPanel } from './quick-notes/NoteListPanel'
 

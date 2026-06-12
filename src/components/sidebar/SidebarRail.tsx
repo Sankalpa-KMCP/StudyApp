@@ -5,7 +5,7 @@ import type { SidebarModeProps } from './types'
 import { SidebarHeader } from './SidebarHeader'
 import { SidebarNavButton } from './SidebarNavButton'
 import { SidebarActionButton } from './SidebarActionButton'
-import { QUICK_NOTES_HELPER } from '../../lib/uxTerms'
+import { QUICK_NOTES_HELPER } from '../../lib/shared/uxTerms'
 
 export function SidebarRailContent({
   activeTab,

@@ -1,7 +1,7 @@
 import type { ActiveTab } from '../../types/app'
 import { NavTabButton } from '../../navigation/NavTabButton'
 import { useSidebarFlyout } from './useSidebarFlyout'
-import { prefetchTabChunk } from '../../lib/prefetchTabChunks'
+import { prefetchTabChunk } from '../../lib/routing/prefetchTabChunks'
 
 interface SidebarNavButtonProps {
   variant: 'expanded' | 'rail'

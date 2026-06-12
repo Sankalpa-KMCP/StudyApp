@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { CategoryItem, TaskItem } from '../../db/types'
-import { buildDateString } from '../../lib/studyDashboard'
+import { buildDateString } from '../../lib/study/studyDashboard'
 
 export function useTodayDateString() {
   return useMemo(() => buildDateString(new Date()), [])

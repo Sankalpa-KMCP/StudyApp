@@ -4,7 +4,7 @@ import type { FlashcardItem } from '../../db/types'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useFlashcardStudyKeyboard } from '../../hooks/useFlashcardStudyKeyboard'
 import { Button } from '../shared/Button'
-import { SM2_HELPER } from '../../lib/uxTerms'
+import { SM2_HELPER } from '../../lib/shared/uxTerms'
 import { SM2_GRADES } from './constants'
 
 interface FlashcardStudyModalProps {

@@ -4,7 +4,7 @@ import type { CategoryItem } from '../../db/types'
 import { InlineCategoryManager } from '../shared/InlineCategoryManager'
 import { SelectionChip } from '../shared/SelectionChip'
 import { useConfirm } from '../../context/useConfirm'
-import { addTaskTemplate, loadTaskTemplates, type TaskTemplate } from '../../lib/taskTemplates'
+import { addTaskTemplate, loadTaskTemplates, type TaskTemplate } from '../../lib/study/taskTemplates'
 
 const OPTIONS_EXPANDED_KEY = 'focus_task_options_expanded'
 

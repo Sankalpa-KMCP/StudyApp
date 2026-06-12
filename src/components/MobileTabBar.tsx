@@ -2,7 +2,7 @@ import React, { useRef } from 'react'
 import type { ActiveTab } from '../types/app'
 import { getVisibleNavTabs } from '../navigation/appNav'
 import { NavTabButton } from '../navigation/NavTabButton'
-import { prefetchTabChunk } from '../lib/prefetchTabChunks'
+import { prefetchTabChunk } from '../lib/routing/prefetchTabChunks'
 
 interface MobileTabBarProps {
   activeTab: ActiveTab

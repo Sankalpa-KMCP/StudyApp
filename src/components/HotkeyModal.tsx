@@ -8,7 +8,7 @@ interface HotkeyModalProps {
   flashcardsEnabled?: boolean
 }
 
-import { FOCUS_MODE } from '../lib/uxTerms'
+import { FOCUS_MODE } from '../lib/shared/uxTerms'
 
 const FLASHCARD_SHORTCUTS = [
   { keys: 'Space', action: 'Flip card' },

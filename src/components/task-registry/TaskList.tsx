@@ -3,8 +3,8 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { Check, Target, AlertCircle, ChevronDown, ChevronUp, Plus } from 'lucide-react'
 import { EmptyState } from '../shared/EmptyState'
 import type { CategoryItem, TaskItem } from '../../db/types'
-import { db } from '../../db/db'
-import { SM2_HELPER } from '../../lib/uxTerms'
+import { updateSubtasks } from '../../db/repositories/tasks'
+import { SM2_HELPER } from '../../lib/shared/uxTerms'
 
 const SM2_GRADES = [
   { q: 1, label: 'Forgot', title: 'Forgot (Incorrect)' },
@@ -79,7 +79,7 @@ export function TaskList({
   const handleAddSubtask = async (task: TaskItem, text: string) => {
     if (task.id === undefined) return
     const sub = { id: Date.now().toString(), text, completed: false }
-    await db.tasks.update(task.id, { subtasks: [...(task.subtasks ?? []), sub] })
+    await updateSubtasks(task.id, [...(task.subtasks ?? []), sub])
   }
 
   const handleToggleSubtask = async (task: TaskItem, subId: string) => {
@@ -87,13 +87,13 @@ export function TaskList({
     const subtasks = (task.subtasks ?? []).map(s =>
       s.id === subId ? { ...s, completed: !s.completed } : s,
     )
-    await db.tasks.update(task.id, { subtasks })
+    await updateSubtasks(task.id, subtasks)
   }
 
   const handleDeleteSubtask = async (task: TaskItem, subId: string) => {
     if (task.id === undefined) return
     const subtasks = (task.subtasks ?? []).filter(s => s.id !== subId)
-    await db.tasks.update(task.id, { subtasks })
+    await updateSubtasks(task.id, subtasks)
   }
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {

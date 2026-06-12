@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Play, Pause, Check, ChevronLeft, Lock } from 'lucide-react'
 import type { TaskItem } from '../db/types'
-import { FOCUS_LOCKOUT, FOCUS_MODE } from '../lib/uxTerms'
+import { FOCUS_LOCKOUT, FOCUS_MODE } from '../lib/shared/uxTerms'
 
 interface ZenOverlayProps {
   isZenMode: boolean
