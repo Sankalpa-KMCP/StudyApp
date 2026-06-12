@@ -5,7 +5,7 @@ import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
 
 export function AlgorithmPanel() {
-  const { initialEasinessFactor, updateSetting, resetKeys } = useSettingsPanel()
+  const { initialEasinessFactor, flashcardsEnabled, updateSetting, resetKeys } = useSettingsPanel()
   const { requestConfirm } = useConfirm()
 
   const handleReset = async () => {
@@ -21,10 +21,14 @@ export function AlgorithmPanel() {
   return (
     <SettingsCard
       id="settings-algorithm"
-      title="Algorithm Settings"
+      title="Spaced Repetition (SM-2)"
       defaultCollapsed
       onResetDefaults={() => void handleReset()}
-      description="Adjust default SM-2 memory parameters for initial recall intervals. Higher EF means cards stay easier longer after a good grade (e.g. 2.5 is typical)."
+      description={
+        flashcardsEnabled
+          ? 'Adjust default SM-2 parameters for study subjects and flashcards. Higher EF means items stay easier longer after a good grade (2.5 is typical).'
+          : 'Adjust default SM-2 parameters for study subjects. Higher EF means subjects stay easier longer after a good grade (2.5 is typical).'
+      }
     >
       <RangeSetting
         label="Initial Easiness Factor (EF)"

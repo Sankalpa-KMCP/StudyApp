@@ -6,6 +6,7 @@ import { useStudyData, useStudyUI } from '../../context/useStudyApp'
 import { useStudyTimerContext, useStudyTimerDisplay } from '../../context/studyTimerContext'
 import { useConfirm } from '../../context/useConfirm'
 import { END_BREAK_EARLY_BODY, END_BREAK_EARLY_CONFIRM } from '../../lib/uxTerms'
+import { FlashcardsDueBanner } from '../flashcard/FlashcardsDueBanner'
 
 const MemoizedTaskRegistry = memo(TaskRegistry)
 
@@ -55,8 +56,8 @@ function FocusSanctuaryWithTimer({
 }
 
 export function FocusTabContent() {
-  const { settings, tasks, categories } = useStudyData()
-  const { setIsZenMode, activeTaskId, setActiveTaskId, taskCycleCount, setTaskCycleCount } = useStudyUI()
+  const { settings, tasks, categories, flashcards } = useStudyData()
+  const { setIsZenMode, setActiveTab, activeTaskId, setActiveTaskId, taskCycleCount, setTaskCycleCount } = useStudyUI()
   const {
     timerControls,
     ensureAudio,
@@ -91,6 +92,12 @@ export function FocusTabContent() {
         />
       </div>
       <div className="lg:col-span-7 order-2">
+        {settings.flashcardsEnabled && (
+          <FlashcardsDueBanner
+            flashcards={flashcards.flashcards}
+            onReview={() => void setActiveTab('cards')}
+          />
+        )}
         <MemoizedTaskRegistry
           tasks={tasks.tasks}
           categories={categories.categories}

@@ -5,6 +5,7 @@ import { scrollToSettingsSection } from '../../lib/settingsSections'
 interface SettingsOnboardingBannersProps {
   showHighGoalNudge: boolean
   startHereDismissed: boolean
+  flashcardsEnabled: boolean
   onDismissGoalNudge: () => void
   onDismissStartHere: () => void
   onShowOnboarding?: () => void
@@ -13,6 +14,7 @@ interface SettingsOnboardingBannersProps {
 export function SettingsOnboardingBanners({
   showHighGoalNudge,
   startHereDismissed,
+  flashcardsEnabled,
   onDismissGoalNudge,
   onDismissStartHere,
   onShowOnboarding,
@@ -55,9 +57,18 @@ export function SettingsOnboardingBanners({
             >
               Daily goal → Timer & Focus
             </button>
+            {!flashcardsEnabled && (
+              <button
+                type="button"
+                onClick={() => scrollToSettingsSection('settings-flashcards')}
+                className="text-left text-xs font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
+              >
+                Flashcards (optional) → enable recall deck
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => scrollToSettingsSection('settings-study')}
+              onClick={() => scrollToSettingsSection('settings-categories')}
               className="text-left text-xs font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
             >
               Subject categories → organize your tasks

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Sparkles, Clock, Target, ChevronRight, Check, Lock, Heart, RefreshCw } from 'lucide-react'
+import { Sparkles, Clock, Target, ChevronRight, Check, Lock, Heart, RefreshCw, Layers } from 'lucide-react'
 import { ModalShell } from './shared/ModalShell'
 import { SelectionChip } from './shared/SelectionChip'
 import { PRODUCT_NAME } from '../lib/uxTerms'
@@ -33,7 +33,7 @@ const GOAL_OPTIONS = [120, 240, 480] as const
 const SLIDES: OnboardingSlide[] = [
   {
     title: `Welcome to ${PRODUCT_NAME}`,
-    description: 'A premium, offline-first workspace to protect your focus, track study blocks, and strengthen active recall.',
+    description: 'A premium, offline-first workspace to protect your focus, track study blocks, and build consistent habits.',
     icon: Sparkles,
     color: 'text-accent-blue bg-accent-blue/10 border-accent-blue/20',
     bullets: [
@@ -44,13 +44,14 @@ const SLIDES: OnboardingSlide[] = [
   },
   {
     title: 'Your focus loop',
-    description: 'Pick one focus target, run a study block, reflect, and review with spaced repetition.',
+    description: 'Pick one focus target, run a study block, and reflect.',
     icon: Clock,
     color: 'text-accent-amber bg-accent-amber/10 border-accent-amber/20',
     bullets: [
       { text: 'Focus targets', helper: 'Add tasks with subject, priority, and cycles.', icon: Target },
       { text: 'Study blocks & breaks', helper: 'Adjust block length from the timer panel.', icon: Clock },
       { text: 'Focus lockout', helper: 'Optional nav lockout during active study blocks.', icon: RefreshCw },
+      { text: 'Optional flashcard deck', helper: 'Enable anytime in Settings → Study.', icon: Layers },
     ],
     showGoalPicker: true,
   },

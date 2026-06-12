@@ -6,6 +6,7 @@ import { AlgorithmPanel } from '../AlgorithmPanel'
 import { ZenLockoutPanel } from '../ZenLockoutPanel'
 import { NotesSettingsPanel } from '../NotesSettingsPanel'
 import { BackupVaultPanel } from '../BackupVaultPanel'
+import { FlashcardsPanel } from '../FlashcardsPanel'
 import { SettingsOnboardingBanners } from '../SettingsOnboardingBanners'
 import { SettingsShell, SettingsSection } from '../SettingsShell'
 
@@ -30,7 +31,7 @@ describe('control-deck panel smoke tests', () => {
         <AlgorithmPanel />
       </SettingsPanelProvider>,
     )
-    expect(screen.getByText('Algorithm Settings')).toBeInTheDocument()
+    expect(screen.getByText('Spaced Repetition (SM-2)')).toBeInTheDocument()
   })
 
   it('renders ZenLockoutPanel', () => {
@@ -66,6 +67,7 @@ describe('control-deck panel smoke tests', () => {
       <SettingsOnboardingBanners
         showHighGoalNudge
         startHereDismissed={false}
+        flashcardsEnabled={false}
         onDismissGoalNudge={() => {}}
         onDismissStartHere={() => {}}
       />,
@@ -84,5 +86,15 @@ describe('control-deck panel smoke tests', () => {
     )
     expect(screen.getByText('Timer & Focus')).toBeInTheDocument()
     expect(screen.getByText('Panel content')).toBeInTheDocument()
+  })
+
+  it('renders FlashcardsPanel', () => {
+    render(
+      <SettingsPanelProvider>
+        <FlashcardsPanel />
+      </SettingsPanelProvider>,
+    )
+    expect(screen.getByText('Flashcards Settings')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Enable flashcards' })).toBeInTheDocument()
   })
 })
