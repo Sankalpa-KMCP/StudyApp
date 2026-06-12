@@ -51,6 +51,9 @@ export interface ParsedSettings {
   desktopMinimizeOnCloseEnabled: boolean
   desktopGlobalTimerShortcut: string
   syncFolderPath: string
+  syncEnabled: boolean
+  lastSyncAt: string
+  lastSyncChecksum: string
   ambientSoundEnabled: boolean
   ambientSoundPreset: 'rain' | 'white-noise' | 'cafe' | 'brown-noise'
   ambientVolume: number
@@ -104,6 +107,9 @@ export const SETTINGS_DEFAULTS: ParsedSettings = {
   desktopMinimizeOnCloseEnabled: false,
   desktopGlobalTimerShortcut: 'Space',
   syncFolderPath: '',
+  syncEnabled: false,
+  lastSyncAt: '',
+  lastSyncChecksum: '',
   ambientSoundEnabled: false,
   ambientSoundPreset: 'rain',
   ambientVolume: 50,
@@ -178,7 +184,10 @@ export function settingsFromRows(rows: SettingsRow[] | undefined): ParsedSetting
     locale: String(getValue(rows, 'locale', SETTINGS_DEFAULTS.locale)),
     desktopMinimizeOnCloseEnabled: getValue(rows, 'desktopMinimizeOnCloseEnabled', SETTINGS_DEFAULTS.desktopMinimizeOnCloseEnabled),
     desktopGlobalTimerShortcut: String(getValue(rows, 'desktopGlobalTimerShortcut', SETTINGS_DEFAULTS.desktopGlobalTimerShortcut)),
-    syncFolderPath: String(getValue(rows, 'syncFolderPath', SETTINGS_DEFAULTS.syncFolderPath)),
+    syncFolderPath: String(getValue(rows, 'syncFolderPath', SETTINGS_DEFAULTS.syncFolderPath) || getValue(rows, 'desktopBackupFolderPath', '')),
+    syncEnabled: getValue(rows, 'syncEnabled', SETTINGS_DEFAULTS.syncEnabled),
+    lastSyncAt: String(getValue(rows, 'lastSyncAt', SETTINGS_DEFAULTS.lastSyncAt)),
+    lastSyncChecksum: String(getValue(rows, 'lastSyncChecksum', SETTINGS_DEFAULTS.lastSyncChecksum)),
     ambientSoundEnabled: getValue(rows, 'ambientSoundEnabled', SETTINGS_DEFAULTS.ambientSoundEnabled),
     ambientSoundPreset: getValue(rows, 'ambientSoundPreset', SETTINGS_DEFAULTS.ambientSoundPreset),
     ambientVolume: getValue(rows, 'ambientVolume', SETTINGS_DEFAULTS.ambientVolume),

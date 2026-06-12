@@ -25,9 +25,17 @@ _Cards screenshot requires enabling flashcards in Settings → Study._
 ### Known limits
 
 - **Localization** — English UI with an i18n-ready string catalog in `src/i18n/locales/en.json`; additional locales can be added without restructuring components.
-- **Local-first** — no cloud sync; use `.studybackup` vault export/import for cross-device transfer.
+- **Local-first** — no cloud sync; use `.studybackup` vault export/import for cross-device transfer, or **folder sync** to share data between the GitHub Pages site and desktop app on the same PC.
+- **Folder sync (web + desktop)** — enable in Settings → Backup Vault → Folder sync. Choose the same folder in both clients (e.g. `Documents/StudyDashboard`). Requires Chrome or Edge for the website; Firefox/Safari can still use manual backup import/export.
 - **Private license** — not open source (see [License](#license)).
 - **Ambient soundscapes** — procedural rain, white noise, café, and brown-noise presets (not sampled audio files).
+
+### Folder sync setup (web + desktop)
+
+1. Install the desktop app from GitHub Releases.
+2. Open **Settings → Backup Vault → Folder sync** in the desktop app, choose a folder, and enable folder sync.
+3. Open the GitHub Pages site in **Chrome or Edge**, go to the same settings panel, choose the **same folder**, and enable folder sync.
+4. Both clients share `study-vault.sync.studybackup` in that folder and stay in sync automatically.
 
 ---
 

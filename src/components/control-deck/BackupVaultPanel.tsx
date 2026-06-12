@@ -5,6 +5,7 @@ import { SettingsCard } from '../shared/settings/SettingsCard'
 import { SettingsDisclosure } from '../shared/settings/SettingsDisclosure'
 import { Button } from '../shared/Button'
 import { StorageUsagePanel } from './StorageUsagePanel'
+import { FolderSyncPanel } from './FolderSyncPanel'
 import { archiveHistoryOlderThan } from '../../db/repositories/history'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
 import { RangeSetting } from '../shared/settings/RangeSetting'
@@ -19,7 +20,7 @@ export function BackupVaultPanel() {
     historyRetentionDays,
     autoExportEnabled,
     autoExportIntervalDays,
-    desktopBackupFolderPath,
+    syncFolderPath,
     updateSetting,
     pushToast,
     isDragging,
@@ -102,14 +103,16 @@ export function BackupVaultPanel() {
         Export backup data bundle to sync tables or local study logs across devices.
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <FolderSyncPanel />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
         <div className="rounded-2xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] p-4 flex flex-col justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-accent-blue mb-2 block">Step 1 — Export</span>
             <span className="settings-label block">Export backup vault</span>
             <span className="settings-muted mt-1 leading-normal font-semibold block">
-              {isTauri() && desktopBackupFolderPath
-                ? 'Downloads a JSON package to your browser (independent of the desktop auto-export folder).'
+              {isTauri() && syncFolderPath
+                ? 'Downloads a JSON package to your browser (independent of the sync folder).'
                 : 'Prepares a JSON package and initiates browser download.'}
             </span>
             <span className="text-micro settings-muted mt-2 block">{lastExportNote}</span>
@@ -177,8 +180,8 @@ export function BackupVaultPanel() {
             <ToggleSetting
               label="Auto-export vault"
               description={
-                isTauri() && desktopBackupFolderPath
-                  ? 'Saves a backup to your desktop folder when the interval elapses (also checked every 6 hours while the app is open).'
+                isTauri() && syncFolderPath
+                  ? 'Saves a dated backup to your sync folder when the interval elapses (also checked every 6 hours while the app is open).'
                   : 'Downloads a backup when the interval elapses (checked on load and every 6 hours while the app is open). Requires a prior manual export before the first scheduled run.'
               }
               checked={autoExportEnabled}
@@ -195,15 +198,15 @@ export function BackupVaultPanel() {
                 onChange={v => updateSetting('autoExportIntervalDays', v)}
               />
             )}
-            {isTauri() && desktopBackupFolderPath && (
+            {isTauri() && syncFolderPath && (
               <p className="text-micro settings-muted">
                 Scheduled exports save to:{' '}
-                <span className="font-mono text-[10px] break-all">{desktopBackupFolderPath}</span>
+                <span className="font-mono text-[10px] break-all">{syncFolderPath}</span>
                 {' · '}
                 <button
                   type="button"
                   className="text-accent-blue hover:text-accent-blue/80 font-semibold"
-                  onClick={() => scrollToSettingsSection('settings-desktop')}
+                  onClick={() => scrollToSettingsSection('settings-backup-vault')}
                 >
                   Change folder
                 </button>

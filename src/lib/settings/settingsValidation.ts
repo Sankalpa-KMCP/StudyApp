@@ -90,7 +90,8 @@ export function validateSetting(key: SettingsKey, value: SettingsValue): Validat
     key === 'lockoutStudyOnly' ||
     key === 'studyReminderEnabled' ||
     key === 'studyReminderOnlyBelowGoal' ||
-    key === 'desktopMinimizeOnCloseEnabled'
+    key === 'desktopMinimizeOnCloseEnabled' ||
+    key === 'syncEnabled'
   ) {
     if (typeof value !== 'boolean') return { ok: false, reason: `${key} must be a boolean` }
     return { ok: true, value }
@@ -106,7 +107,7 @@ export function validateSetting(key: SettingsKey, value: SettingsValue): Validat
     return { ok: true, value }
   }
 
-  if (key === 'lockoutAllowedTabs' || key === 'studyReminderTime' || key === 'locale' || key === 'desktopGlobalTimerShortcut' || key === 'syncFolderPath') {
+  if (key === 'lockoutAllowedTabs' || key === 'studyReminderTime' || key === 'locale' || key === 'desktopGlobalTimerShortcut' || key === 'syncFolderPath' || key === 'lastSyncAt' || key === 'lastSyncChecksum') {
     if (typeof value !== 'string') return { ok: false, reason: `${key} must be a string` }
     return { ok: true, value }
   }

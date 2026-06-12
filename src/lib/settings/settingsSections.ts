@@ -99,10 +99,15 @@ export const SECTION_DEFAULT_KEYS: Record<SettingsSectionId, SettingsKey[]> = {
     'historyRetentionDays',
     'autoExportEnabled',
     'autoExportIntervalDays',
+    'syncEnabled',
+    'syncFolderPath',
+    'lastSyncAt',
+    'lastSyncChecksum',
     'desktopAutostartEnabled',
     'desktopGlobalShortcutsEnabled',
     'desktopNativeNotificationsEnabled',
-    'desktopBackupFolderPath',
+    'syncFolderPath',
+    'syncEnabled',
   ],
 }
 
