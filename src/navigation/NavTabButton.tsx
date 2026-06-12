@@ -61,7 +61,7 @@ export function NavTabButton({
   onTouchStart,
   buttonRef,
 }: NavTabButtonProps) {
-  const lockedClass = isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+  const lockedClass = isLocked ? 'opacity-50' : ''
   const ariaLabel = buildAriaLabel(label, badge, isLocked)
 
   const lockIcon = isLocked ? (
@@ -86,7 +86,7 @@ export function NavTabButton({
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className={`sidebar-rail-btn relative h-10 w-10 flex items-center justify-center rounded-[14px] font-semibold text-xs transition-all duration-200 ios-active-scale border ${lockedClass}`}
+        className={`sidebar-rail-btn relative h-10 w-10 flex items-center justify-center rounded-[14px] font-semibold text-xs transition-all duration-200 ios-active-scale border cursor-pointer ${lockedClass}`}
       >
         <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? iconColor : 'text-white/60'}`} />
         {isLocked && (
@@ -110,7 +110,7 @@ export function NavTabButton({
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onTouchStart={onTouchStart}
-        className={`mobile-nav-btn relative flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-label font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue ${lockedClass}`}
+        className={`mobile-nav-btn relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 min-h-[44px] rounded-xl text-label font-semibold transition-all cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue ${lockedClass}`}
       >
         {badge > 0 && (
           <NavTabBadge count={badge} className="absolute top-0 right-1 z-20" />
@@ -135,7 +135,7 @@ export function NavTabButton({
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`nav-tab w-full ios-active-scale ${lockedClass}`}
+      className={`nav-tab w-full ios-active-scale cursor-pointer ${lockedClass}`}
     >
       <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? iconColor : 'text-white/60'}`} />
       <span className="whitespace-nowrap">{label}</span>

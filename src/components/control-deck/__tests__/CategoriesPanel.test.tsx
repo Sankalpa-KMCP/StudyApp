@@ -103,6 +103,7 @@ describe('CategoriesPanel', () => {
       </SettingsPanelProvider>,
     )
 
+    await user.click(screen.getByRole('button', { name: 'Show' }))
     await user.click(screen.getByRole('button', { name: /delete category math/i }))
 
     expect(requestConfirm).toHaveBeenCalled()

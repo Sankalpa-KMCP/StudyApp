@@ -162,15 +162,15 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
           <button
             type="button"
             onClick={() => setShowDurationAdjust(v => !v)}
-            className="md:hidden text-micro font-bold uppercase tracking-wider text-accent-blue hover:text-accent-blue/80 mb-2"
+            className="text-micro font-semibold text-accent-blue hover:text-accent-blue/80 mb-2 transition-colors"
           >
             {showDurationAdjust ? 'Hide length controls' : 'Adjust length'}
           </button>
 
           {/* Duration Adjuster */}
-          <div className={`flex flex-col items-center gap-2 mb-5 border-t border-card pt-4 ${showDurationAdjust ? '' : 'hidden md:flex'}`}>
-            <span className="text-micro uppercase font-bold text-muted tracking-wider">
-              {timerMode === 'study' ? 'Study Block Length' : isLongBreak ? 'Long Break Length' : 'Short Break Length'}
+          <div className={`flex flex-col items-center gap-2 mb-5 border-t border-card pt-4 ${showDurationAdjust ? '' : 'hidden'}`}>
+            <span className="panel-title">
+              {timerMode === 'study' ? 'Study block length' : isLongBreak ? 'Long break length' : 'Short break length'}
             </span>
             <div className="flex items-center gap-3">
               <button
@@ -251,7 +251,12 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
           </div>
 
           <div className="flex flex-col items-center py-2">
-            <div className="relative flex h-48 w-48 md:h-64 md:w-64 focus-timer-ring items-center justify-center rounded-full border border-card surface-subtle overflow-hidden">
+            <div
+              className={`relative flex h-52 w-52 md:h-72 md:w-72 focus-timer-ring glass-hero items-center justify-center rounded-full overflow-hidden ${
+                timerMode === 'study' && isTimerActive ? 'focus-timer-ring--active' : ''
+              }`}
+              style={{ '--timer-ring-color': activeColor } as React.CSSProperties}
+            >
               {/* Spherical Radial Glow */}
               <div 
                 className="absolute inset-[3%] rounded-full opacity-15 blur-2xl pointer-events-none transition-all duration-700 ease-out" 
@@ -278,14 +283,15 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
 
               <div className="text-center z-10 select-none" aria-live="polite" aria-atomic="true">
                 <p 
-                  className="text-5xl md:text-7xl font-black text-primary tracking-tight tabular-nums timer-text-glow font-sans-geometric"
+                  className="text-display font-display text-primary tabular-nums timer-text-glow"
                   style={{ '--timer-glow-color': activeColor } as React.CSSProperties}
                   role="timer"
                 >
                   {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
                 </p>
-                <span className="inline-block rounded-full surface-subtle border border-card px-3 py-0.5 text-label font-semibold uppercase tracking-wider text-muted mt-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-                  {timerMode === 'study' ? 'Study Block' : isLongBreak ? 'Long Break' : 'Short Break'}
+                <span className="timer-mode-badge mt-3">
+                  <span className="timer-mode-badge__dot" aria-hidden />
+                  {timerMode === 'study' ? 'Study block' : isLongBreak ? 'Long break' : 'Short break'}
                 </span>
               </div>
             </div>
@@ -301,14 +307,16 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                 </button>
               )}
 
-              <button
+              <Button
+                variant="primary"
+                size="md"
                 onClick={() => { onUserGesture?.(); setIsTimerActive(a => !a) }}
                 aria-label={isTimerActive ? 'Pause timer' : 'Start timer'}
-                className={`hidden md:flex h-14 w-14 items-center justify-center rounded-full text-on-accent hover:opacity-90 transition-all ios-active-scale cursor-pointer shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue ${!isTimerActive ? 'timer-cta-idle' : ''}`}
+                className={`hidden md:flex h-14 w-14 !p-0 items-center justify-center rounded-full !border-0 ${!isTimerActive ? 'timer-cta-idle' : ''}`}
                 style={{ backgroundColor: activeColor, ['--timer-cta-color' as string]: activeColor }}
               >
                 {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
-              </button>
+              </Button>
 
               {(isTimerActive || secondsElapsed > 0) && (
                 <>

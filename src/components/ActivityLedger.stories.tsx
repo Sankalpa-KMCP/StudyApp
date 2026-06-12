@@ -32,6 +32,7 @@ export const Default: Story = {
         activeMonthData={[]}
         isLiveMonth
         totalDaysInMonth={30}
+        todayDayOfMonth={10}
         todayStudyMinutes={90}
         todayBreakMinutes={15}
         progressPercent={45}

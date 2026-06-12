@@ -133,9 +133,48 @@ export function getDefaultForKey(key: SettingsKey): SettingsValue {
   return value as SettingsValue
 }
 
-export function scrollToSettingsSection(id: string) {
-  if (typeof document !== 'undefined') {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+export const PENDING_SETTINGS_SCROLL_KEY = 'pending_settings_scroll'
+
+export function queueSettingsPanelScroll(id: string): void {
+  sessionStorage.setItem(PENDING_SETTINGS_SCROLL_KEY, id)
+}
+
+export function consumePendingSettingsPanelScroll(): string | null {
+  const id = sessionStorage.getItem(PENDING_SETTINGS_SCROLL_KEY)
+  if (id) sessionStorage.removeItem(PENDING_SETTINGS_SCROLL_KEY)
+  return id
+}
+
+export function scrollToSettingsSectionWhenReady(
+  id: string,
+  onComplete?: (found: boolean) => void,
+): void {
+  if (typeof document === 'undefined') return
+
+  queueSettingsPanelScroll(id)
+
+  let attempts = 0
+  const maxAttempts = 90
+
+  const tryScroll = () => {
+    const el = document.getElementById(id)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      sessionStorage.removeItem(PENDING_SETTINGS_SCROLL_KEY)
+      onComplete?.(true)
+      return
+    }
+    if (++attempts < maxAttempts) {
+      requestAnimationFrame(tryScroll)
+    } else {
+      onComplete?.(false)
+    }
   }
+
+  tryScroll()
+}
+
+export function scrollToSettingsSection(id: string) {
+  scrollToSettingsSectionWhenReady(id)
 }
 

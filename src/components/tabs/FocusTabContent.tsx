@@ -6,7 +6,9 @@ import { useStudyData, useStudyUI } from '../../context/useStudyApp'
 import { useStudyTimerContext, useStudyTimerDisplay } from '../../context/studyTimerContext'
 import { useConfirm } from '../../context/useConfirm'
 import { END_BREAK_EARLY_BODY, END_BREAK_EARLY_CONFIRM } from '../../lib/uxTerms'
+import { scrollToSettingsSectionWhenReady } from '../../lib/settingsSections'
 import { FlashcardsDueBanner } from '../flashcard/FlashcardsDueBanner'
+import { FlashcardsEnableBanner } from '../flashcard/FlashcardsEnableBanner'
 
 const MemoizedTaskRegistry = memo(TaskRegistry)
 
@@ -92,6 +94,14 @@ export function FocusTabContent() {
         />
       </div>
       <div className="lg:col-span-7 order-2">
+        {!settings.flashcardsEnabled && (
+          <FlashcardsEnableBanner
+            onEnable={() => {
+              void setActiveTab('settings')
+              scrollToSettingsSectionWhenReady('settings-flashcards')
+            }}
+          />
+        )}
         {settings.flashcardsEnabled && (
           <FlashcardsDueBanner
             flashcards={flashcards.flashcards}

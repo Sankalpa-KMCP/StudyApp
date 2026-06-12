@@ -17,6 +17,7 @@ export interface CommandPaletteSelection {
   noteId?: number
   flashcardId?: number
   tab?: ActiveTab
+  settingsSection?: string
 }
 
 interface CommandPaletteProps {
@@ -30,7 +31,7 @@ interface CommandPaletteProps {
   flashcardsEnabled: boolean
 }
 
-const GROUP_ORDER: CommandPaletteItemType[] = ['tab', 'task', 'note', 'flashcard']
+const GROUP_ORDER: CommandPaletteItemType[] = ['settings', 'tab', 'task', 'note', 'flashcard']
 
 export function CommandPalette({
   isOpen,
@@ -89,6 +90,7 @@ export function CommandPalette({
       noteId: item.noteId,
       flashcardId: item.flashcardId,
       tab: item.tab,
+      settingsSection: item.settingsSection,
     })
     handleClose()
   }
@@ -127,7 +129,7 @@ export function CommandPalette({
             setActiveIndex(0)
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Search tasks, notes, tabs…"
+          placeholder="Search settings, tasks, notes, tabs…"
           aria-label="Search commands"
           className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/35"
           autoComplete="off"

@@ -17,7 +17,7 @@ export function TabPageShell({ children, className = '' }: TabPageShellProps) {
 
 export function TabSectionLabel({ children }: { children: ReactNode }) {
   return (
-    <p className="text-label font-bold uppercase tracking-wider settings-muted select-none">
+    <p className="panel-title select-none">
       {children}
     </p>
   )

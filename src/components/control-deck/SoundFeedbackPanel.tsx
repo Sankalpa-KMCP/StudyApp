@@ -33,7 +33,7 @@ export function SoundFeedbackPanel() {
   const activePresetValue = AMBIENT_PRESETS.find(p => p.preset === ambientSoundPreset)?.value ?? 0
 
   return (
-    <SettingsCard id="settings-sound-feedback" title="Sound & Feedback">
+    <SettingsCard id="settings-sound-feedback" title="Sound & Feedback" defaultCollapsed>
       <div className="space-y-4">
         <ToggleSetting label="Session chimes" checked={soundEnabled} onChange={v => updateSetting('soundEnabled', v)} />
         <ToggleSetting label="Tactile click feedback" checked={tactileEnabled} onChange={v => updateSetting('tactile_feedback', v)} />

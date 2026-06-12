@@ -36,6 +36,7 @@ export function useStudyUIState(toast: ToastApi) {
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [isZenMode, setIsZenMode] = useState(false)
   const [activeTab, setActiveTabState] = useState<ActiveTab>(() => readAppHashFromLocation().tab)
+  const activeTabRef = useRef(activeTab)
   const [isDragging, setIsDragging] = useState(false)
   const [isHotkeyHudOpen, setIsHotkeyHudOpen] = useState(false)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
@@ -108,6 +109,10 @@ export function useStudyUIState(toast: ToastApi) {
   }, [settings.ui_font, settings.developer_font])
 
   useEffect(() => {
+    activeTabRef.current = activeTab
+  }, [activeTab])
+
+  useEffect(() => {
     setActiveTabSync(activeTab)
     writeAppHash(activeTab)
   }, [activeTab])
@@ -119,11 +124,16 @@ export function useStudyUIState(toast: ToastApi) {
       if (resolved !== tab) {
         writeAppHash(resolved)
       }
-      setActiveTabState(resolved)
+      if (resolved === activeTabRef.current) return
+      void navigateToTab(resolved).then(() => {
+        if (activeTabRef.current !== resolved) {
+          writeAppHash(activeTabRef.current)
+        }
+      })
     }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
-  }, [settings.flashcardsEnabled])
+  }, [settings.flashcardsEnabled, navigateToTab])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')

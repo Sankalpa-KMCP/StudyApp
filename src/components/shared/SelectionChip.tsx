@@ -43,8 +43,8 @@ export function SelectionChip({
 
   const stateClass = selected
     ? accentColor
-      ? 'font-semibold border'
-      : `${ACCENT_SELECTED[accent]} font-semibold border`
+      ? 'font-semibold border shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
+      : `${ACCENT_SELECTED[accent]} font-semibold border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]`
     : 'surface-subtle border-card text-muted hover:border-accent-blue/30 font-semibold border'
 
   return (

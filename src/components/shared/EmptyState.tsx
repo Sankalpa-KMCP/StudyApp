@@ -12,12 +12,12 @@ export function EmptyState({ icon, title, description, action, compact = false }
   return (
     <div
       role="status"
-      className={`flex flex-col items-center justify-center text-center rounded-[var(--radius-panel)] border border-card surface-subtle ${
+      className={`empty-state-shell flex flex-col items-center justify-center text-center rounded-[var(--radius-panel)] border ${
         compact ? 'py-8 px-4' : 'py-12 px-6'
       }`}
     >
       {icon && <div className={`text-muted opacity-60 ${compact ? 'mb-2' : 'mb-3'}`}>{icon}</div>}
-      <p className="text-caption font-semibold text-secondary">{title}</p>
+      <p className="text-title text-secondary">{title}</p>
       {description && <p className="text-label text-muted mt-1.5 max-w-xs">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>

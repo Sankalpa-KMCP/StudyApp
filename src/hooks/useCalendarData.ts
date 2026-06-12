@@ -71,9 +71,10 @@ export function useCalendarData({
   const progressPercent = Math.round(progress * 100)
   const todaySessionsDone = sessionTasks.filter(t => t.completed).length
   const totalSessionsTarget = sessionTasks.length
-  const isLastDay = selectedDay === totalDaysInMonth
+  const todayDayOfMonth = new Date().getDate()
+  const isTodaySelected = isLiveMonth && selectedDay === todayDayOfMonth
 
-  const liveDay = isLiveMonth && isLastDay
+  const liveDay = isTodaySelected
     ? {
         ...activeMonthData[selectedDay - 1],
         studyTime: formatMinutes(todayStudyMinutes),
@@ -135,6 +136,7 @@ export function useCalendarData({
     dynamicGridCells,
     isLiveMonth,
     totalDaysInMonth,
+    todayDayOfMonth,
     selectedDateStr,
     selectedDayLog,
     activeMonthData,

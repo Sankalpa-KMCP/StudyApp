@@ -66,9 +66,10 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
 
   return (
     <div className="flex flex-col gap-6 h-full w-full min-h-0">
-      <PanelCard className="flex flex-col h-full min-h-0">
+      <PanelCard className="flex flex-col h-full min-h-0 glass-quiet">
         <PanelHeader title="Focus targets" bordered={false} className="mb-4" />
 
+        <div className="hidden lg:block">
         <TaskCreateForm
           taskText={taskText}
           setTaskText={setTaskText}
@@ -86,6 +87,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           setTaskIsStudySubject={setTaskIsStudySubject}
           onSubmit={submitNewTask}
         />
+        </div>
 
         {(activeTasksList.length > 0 || completedTasksList.length > 0) && (
           <div className="relative mb-4">

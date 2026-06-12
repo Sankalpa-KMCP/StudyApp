@@ -14,7 +14,7 @@ interface DayDetailPanelProps {
   currentMonth: number
   currentYear: number
   isLiveMonth: boolean
-  totalDaysInMonth: number
+  todayDayOfMonth: number
   draftMood: string
   onMoodToggle: (value: string) => void
   draftNotes: string
@@ -31,7 +31,7 @@ export function DayDetailPanel({
   currentMonth,
   currentYear,
   isLiveMonth,
-  totalDaysInMonth,
+  todayDayOfMonth,
   draftMood,
   onMoodToggle,
   draftNotes,
@@ -49,7 +49,7 @@ export function DayDetailPanel({
         bordered={false}
         className="mb-2"
         action={
-          isLiveMonth && selectedDay === totalDaysInMonth ? (
+          isLiveMonth && selectedDay === todayDayOfMonth ? (
             <span className="flex items-center gap-1 bg-accent-green/10 border border-accent-green/20 rounded-full px-2.5 py-0.5 text-micro font-bold text-accent-green uppercase">
               <span className="h-1 w-1 bg-accent-green rounded-full animate-ping" />
               <span>Today</span>

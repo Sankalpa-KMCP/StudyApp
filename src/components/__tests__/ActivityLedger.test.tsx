@@ -34,6 +34,7 @@ const baseProps = {
   activeMonthData: [],
   isLiveMonth: true,
   totalDaysInMonth: 30,
+  todayDayOfMonth: 10,
   todayStudyMinutes: 0,
   todayBreakMinutes: 0,
   progressPercent: 0,

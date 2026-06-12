@@ -24,7 +24,7 @@ export function NotesSettingsPanel() {
   }
 
   return (
-    <SettingsCard id="settings-notes" title="Notes" onResetDefaults={() => void handleReset()}>
+    <SettingsCard id="settings-notes" title="Notes" defaultCollapsed onResetDefaults={() => void handleReset()}>
       <p className="settings-muted mb-3">Customize Quick Notes tag colors (up to 8).</p>
       <div className="flex flex-wrap gap-3">
         {noteTagColors.map((color, index) => (

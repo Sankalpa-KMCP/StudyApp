@@ -22,7 +22,7 @@ export function SettingsShell({ banners, children }: SettingsShellProps) {
 
       <div className="hidden lg:block lg:col-span-3">
         <div className="sticky top-4">
-          <p className="settings-label mb-3 px-1">Sections</p>
+        <p className="panel-title mb-3 px-1">Sections</p>
           <SettingsSectionNav variant="sidebar" />
         </div>
       </div>
@@ -50,7 +50,7 @@ export function SettingsSection({ id, label, children, onResetDefaults }: Settin
       className="flex flex-col gap-4 scroll-mt-4"
     >
       <div className="flex items-center justify-between gap-3 px-1">
-        <h2 id={`heading-${id}`} className="text-sm font-bold tracking-wide text-[var(--color-text-primary)]">
+        <h2 id={`heading-${id}`} className="text-title text-[var(--color-text-primary)]">
           {label}
         </h2>
         {onResetDefaults && (

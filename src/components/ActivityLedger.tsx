@@ -28,6 +28,7 @@ interface ActivityLedgerProps {
   activeMonthData: DayData[]
   isLiveMonth: boolean
   totalDaysInMonth: number
+  todayDayOfMonth: number
   todayStudyMinutes: number
   todayBreakMinutes: number
   progressPercent: number
@@ -57,6 +58,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
   activeMonthData,
   isLiveMonth,
   totalDaysInMonth,
+  todayDayOfMonth,
   todayStudyMinutes,
   todayBreakMinutes,
   progressPercent,
@@ -138,7 +140,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
           <div className="grid grid-cols-7 gap-2.5" role="grid" aria-label={`${monthNames[currentMonth]} ${currentYear} study calendar`}>
             {dynamicGridCells.map((cell, i) => {
               const dayData = cell ? activeMonthData[cell - 1] : null
-              const isLiveDay = isLiveMonth && cell === totalDaysInMonth
+              const isLiveDay = isLiveMonth && cell === todayDayOfMonth
               const intensity = isLiveDay ? getIntensity(todayStudyMinutes) : (dayData?.intensity ?? 0)
               const cellLabel = cell ? `${monthNames[currentMonth]} ${cell}, ${currentYear}` : ''
               const studyLabel = isLiveDay ? formatMinutes(todayStudyMinutes) : (dayData?.studyTime ?? '0m')
@@ -238,7 +240,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
           currentMonth={currentMonth}
           currentYear={currentYear}
           isLiveMonth={isLiveMonth}
-          totalDaysInMonth={totalDaysInMonth}
+          todayDayOfMonth={todayDayOfMonth}
           draftMood={draftMood}
           onMoodToggle={value => {
             const nextMood = draftMood === value ? '' : value

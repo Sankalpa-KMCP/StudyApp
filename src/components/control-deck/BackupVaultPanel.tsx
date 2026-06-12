@@ -270,9 +270,9 @@ export function BackupVaultPanel() {
 
       <div className="mt-6 border-t border-red-500/15 pt-5">
         <span className="text-[10px] font-bold uppercase tracking-wider text-red-400/90 mb-2 block">Step 3 — Reset</span>
-        <span className="text-xs font-bold text-red-400 block mb-1">Destructive reset zone</span>
+        <span className="text-xs font-bold text-red-400 block mb-1">Clear workspace data</span>
         <p className="settings-muted leading-normal mb-4">
-          Select specific database tables to clear individually, or sweep all tables to perform a full workspace wipe.
+          Choose what to remove, or reset your entire workspace. This cannot be undone.
         </p>
         <div className="grid grid-cols-2 gap-3 mb-5 bg-[color-mix(in_srgb,var(--color-surface-card)_30%,transparent)] border border-[var(--color-border-card)] p-4 rounded-2xl">
           {[
@@ -298,9 +298,9 @@ export function BackupVaultPanel() {
             disabled={!sweepTasks && !sweepHistory && !sweepCategories && !sweepCards && !sweepNotes}
             onClick={async () => {
               const ok = await requestConfirm({
-                title: 'Sweep selected tables?',
-                message: 'Are you sure you want to sweep the selected workspace databases? This cannot be undone.',
-                confirmLabel: 'Sweep Selected',
+                title: 'Clear selected data?',
+                message: 'The selected items will be permanently deleted from your workspace. Export a backup first if you need your data.',
+                confirmLabel: 'Clear selected',
                 danger: true,
               })
               if (!ok) return
@@ -319,14 +319,14 @@ export function BackupVaultPanel() {
             }}
             className="rounded-full bg-red-500/10 border border-red-500/20 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 disabled:opacity-40 disabled:pointer-events-none transition-all ios-active-scale cursor-pointer"
           >
-            Sweep Selected
+            Clear selected data
           </button>
           <button
             onClick={async () => {
               const ok = await requestConfirm({
                 title: 'Reset entire workspace?',
-                message: 'Sweeping all tables deletes your workspace stats and configuration permanently.',
-                confirmLabel: 'Sweep All',
+                message: 'This deletes all tasks, history, settings, and other workspace data permanently. Export a backup first if you need your data.',
+                confirmLabel: 'Reset workspace',
                 danger: true,
               })
               if (!ok) return
@@ -334,7 +334,7 @@ export function BackupVaultPanel() {
             }}
             className="rounded-full bg-[color-mix(in_srgb,var(--color-surface-card)_50%,transparent)] border border-[var(--color-border-card)] px-4 py-2 text-xs font-bold settings-label hover:bg-[color-mix(in_srgb,var(--color-surface-card)_70%,transparent)] transition-all ios-active-scale cursor-pointer"
           >
-            Sweep All Tables
+            Reset entire workspace
           </button>
         </div>
       </div>

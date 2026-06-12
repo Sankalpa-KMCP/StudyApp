@@ -13,6 +13,7 @@ describe('commandPaletteSearch', () => {
     expect(items.some(i => i.type === 'flashcard')).toBe(false)
     expect(items.some(i => i.type === 'tab' && i.tab === 'cards')).toBe(false)
     expect(items.some(i => i.type === 'task')).toBe(true)
+    expect(items.some(i => i.type === 'settings' && i.settingsSection === 'settings-timer-focus')).toBe(true)
   })
 
   it('filters by query', () => {

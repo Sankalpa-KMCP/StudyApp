@@ -33,10 +33,10 @@ describe('TabSection', () => {
 })
 
 describe('TabSectionLabel', () => {
-  it('renders uppercase section label', () => {
+  it('renders section label with panel-title token', () => {
     render(<TabSectionLabel>Overview</TabSectionLabel>)
     const label = screen.getByText('Overview')
-    expect(label.className).toContain('uppercase')
-    expect(label.className).toContain('settings-muted')
+    expect(label.className).toContain('panel-title')
+    expect(label.className).not.toContain('uppercase')
   })
 })

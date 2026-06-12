@@ -3,11 +3,11 @@ import { render, screen } from '@testing-library/react'
 import { PanelHeader } from '../PanelHeader'
 
 describe('PanelHeader', () => {
-  it('renders uppercase title with standard token', () => {
+  it('renders sentence-case title with panel-title token', () => {
     render(<PanelHeader title="Focus Timer" />)
     const title = screen.getByText('Focus Timer')
-    expect(title.className).toContain('uppercase')
-    expect(title.className).toContain('settings-muted')
+    expect(title.className).toContain('panel-title')
+    expect(title.className).not.toContain('uppercase')
   })
 
   it('renders action slot', () => {

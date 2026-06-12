@@ -32,24 +32,24 @@ export function SidebarExpandedContent({
       <div className="flex flex-col gap-4 md:gap-6">
         <SidebarHeader collapsed={false} onToggleCollapse={onToggleCollapse} />
 
-        <div className="hidden md:block dynamic-card-static space-y-3.5 select-none p-4 animate-slide-in-up">
+        <div className="hidden md:block dynamic-card-static sidebar-stats-card space-y-3.5 select-none p-4 animate-slide-in-up">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="h-4 w-4 text-accent-amber" />
-              <span className="text-xs font-semibold text-primary">{currentStreak} Day Streak</span>
+              <span className="text-xs font-semibold text-primary">{currentStreak} day streak</span>
             </div>
-            <span className="rounded-full surface-track px-2.5 py-0.5 text-label font-bold text-primary">
+            <span className="header-stat-chip !py-0.5 !px-2">
               LVL {level}
             </span>
           </div>
           <div className="space-y-1.5">
-            <div className="flex justify-between text-label font-bold text-muted uppercase tracking-wider">
-              <span>XP Progress</span>
+            <div className="flex justify-between panel-title">
+              <span>XP progress</span>
               <span>{Math.round(xpProgressPercent)}%</span>
             </div>
             <div className="h-2 w-full rounded-full surface-track overflow-hidden">
               <div
-                className="h-full bg-accent-blue rounded-full transition-all duration-500 ease-out"
+                className="h-full xp-bar-fill rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${xpProgressPercent}%` }}
               />
             </div>

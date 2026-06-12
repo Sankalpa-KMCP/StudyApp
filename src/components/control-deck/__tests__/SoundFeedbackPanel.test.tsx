@@ -15,12 +15,14 @@ describe('SoundFeedbackPanel', () => {
     mockUpdateSetting.mockClear()
   })
 
-  it('renders session chimes and ambient controls', () => {
+  it('renders session chimes and ambient controls', async () => {
+    const user = userEvent.setup()
     render(
       <SettingsPanelProvider>
         <SoundFeedbackPanel />
       </SettingsPanelProvider>,
     )
+    await user.click(screen.getByRole('button', { name: 'Show' }))
     expect(screen.getByText('Session chimes')).toBeInTheDocument()
     expect(screen.getByText('Ambient background')).toBeInTheDocument()
   })
@@ -33,6 +35,7 @@ describe('SoundFeedbackPanel', () => {
       </SettingsPanelProvider>,
     )
 
+    await user.click(screen.getByRole('button', { name: 'Show' }))
     await user.click(screen.getByRole('switch', { name: /ambient background/i }))
 
     expect(mockUpdateSetting).toHaveBeenCalledWith('ambientSoundEnabled', true)

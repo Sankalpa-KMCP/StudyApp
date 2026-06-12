@@ -3,7 +3,7 @@ import type { CategoryItem, FlashcardItem, QuickNoteItem, TaskItem } from '../db
 import { getVisibleNavTabs } from '../navigation/appNav'
 import { TAB_CHROME } from '../navigation/appNav'
 
-export type CommandPaletteItemType = 'task' | 'note' | 'flashcard' | 'tab'
+export type CommandPaletteItemType = 'task' | 'note' | 'flashcard' | 'tab' | 'settings'
 
 export interface CommandPaletteItem {
   id: string
@@ -14,7 +14,15 @@ export interface CommandPaletteItem {
   noteId?: number
   flashcardId?: number
   tab?: ActiveTab
+  settingsSection?: string
 }
+
+const SETTINGS_SHORTCUTS: Array<{ id: string; label: string; subtitle: string; settingsSection: string }> = [
+  { id: 'settings-daily-goal', label: 'Daily goal', subtitle: 'Settings → Timer & Focus', settingsSection: 'settings-timer-focus' },
+  { id: 'settings-flashcards', label: 'Enable flashcards', subtitle: 'Settings → Study', settingsSection: 'settings-flashcards' },
+  { id: 'settings-backup', label: 'Export backup', subtitle: 'Settings → Backup Vault', settingsSection: 'settings-backup-vault' },
+  { id: 'settings-theme', label: 'Theme', subtitle: 'Settings → Appearance', settingsSection: 'settings-aesthetics' },
+]
 
 function matchesQuery(query: string, ...parts: (string | undefined)[]): boolean {
   const q = query.trim().toLowerCase()
@@ -33,6 +41,16 @@ export function buildCommandPaletteItems(options: {
   const categoryName = (id?: number) => categories.find(c => c.id === id)?.name
 
   const items: CommandPaletteItem[] = []
+
+  for (const shortcut of SETTINGS_SHORTCUTS) {
+    items.push({
+      id: shortcut.id,
+      type: 'settings',
+      label: shortcut.label,
+      subtitle: shortcut.subtitle,
+      settingsSection: shortcut.settingsSection,
+    })
+  }
 
   for (const tab of getVisibleNavTabs(flashcardsEnabled)) {
     const chrome = TAB_CHROME[tab.id]
@@ -90,6 +108,7 @@ export function filterCommandPaletteItems(items: CommandPaletteItem[], query: st
 }
 
 export const COMMAND_PALETTE_GROUP_LABELS: Record<CommandPaletteItemType, string> = {
+  settings: 'Settings',
   tab: 'Go to',
   task: 'Tasks',
   note: 'Notes',

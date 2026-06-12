@@ -32,6 +32,7 @@ export function JournalTab() {
         activeMonthData={calendar.activeMonthData}
         isLiveMonth={calendar.isLiveMonth}
         totalDaysInMonth={calendar.totalDaysInMonth}
+        todayDayOfMonth={calendar.todayDayOfMonth}
         todayStudyMinutes={todayLog.studyMinutes}
         todayBreakMinutes={todayLog.breakMinutes}
         progressPercent={calendar.progressPercent}

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Layers } from 'lucide-react'
 import type { CategoryItem, FlashcardItem } from '../db/types'
 import { useConfirm } from '../context/useConfirm'
@@ -12,6 +12,7 @@ import { FlashcardRegistry } from './flashcard/FlashcardRegistry'
 import { FlashcardStudyModal } from './flashcard/FlashcardStudyModal'
 import { TabPageShell, TabSection } from './shared/TabPageShell'
 import { MetricCard } from './shared/MetricCard'
+import { consumeFlashcardReviewPending } from '../lib/flashcardReviewPending'
 
 interface FlashcardStudioProps {
   categories: CategoryItem[]
@@ -64,6 +65,11 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
     handleGrade,
     closeStudy,
   } = useFlashcardStudySession(filteredCards, isDue, submitFlashcardGrade, requestConfirm)
+
+  useEffect(() => {
+    if (!consumeFlashcardReviewPending()) return
+    if (stats.due > 0) startStudy(true)
+  }, [stats.due, startStudy])
 
   const handleDeleteFlashcard = async (id: number) => {
     const card = flashcards.find(c => c.id === id)

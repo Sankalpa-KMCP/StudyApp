@@ -17,7 +17,7 @@ export function DesktopSettingsPanel() {
   if (!isTauri()) return null
 
   return (
-    <SettingsCard id="settings-desktop" title="Desktop App">
+    <SettingsCard id="settings-desktop" title="Desktop App" defaultCollapsed>
       <div className="space-y-4">
         <ToggleSetting
           label="Launch on login"

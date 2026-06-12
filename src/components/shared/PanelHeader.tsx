@@ -15,7 +15,7 @@ export function PanelHeader({ title, action, bordered = true, className = '', id
         bordered ? 'mb-5 border-b border-[var(--color-border-card)] pb-3' : 'mb-4'
       } ${className}`.trim()}
     >
-      <span id={id} className="text-label font-bold uppercase tracking-wider settings-muted">{title}</span>
+      <span id={id} className="panel-title">{title}</span>
       {action}
     </div>
   )

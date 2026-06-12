@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { MAX_STUDY_BLOCK_MINUTES } from '../../lib/timerConstants'
 import { POMODORO_PRESETS } from '../../lib/settingsSections'
+import { markDailyGoalConfigured } from '../../lib/setupChecklist'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
@@ -92,7 +93,10 @@ export function TimerFocusPanel() {
               <SettingsPresetChips
                 presets={item.chips.map(v => ({ value: v }))}
                 activeValue={item.value}
-                onSelect={v => updateSetting(item.key, v)}
+                onSelect={v => {
+                  if (item.key === 'dailyGoalMinutes') markDailyGoalConfigured()
+                  updateSetting(item.key, v)
+                }}
                 unit={item.key === 'targetSessionsPerCycle' ? '' : 'm'}
               />
             )}
@@ -102,7 +106,10 @@ export function TimerFocusPanel() {
               min={item.min}
               max={item.max}
               step={item.step}
-              onChange={v => updateSetting(item.key, v)}
+              onChange={v => {
+                if (item.key === 'dailyGoalMinutes') markDailyGoalConfigured()
+                updateSetting(item.key, v)
+              }}
             />
           </div>
         ))}

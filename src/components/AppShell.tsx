@@ -28,6 +28,8 @@ import { AppShellStatusBanners } from './app-shell/AppShellStatusBanners'
 import { AppToastOverlay } from './app-shell/AppToastOverlay'
 import { LevelUpModal } from './LevelUpModal'
 import { prefetchIdleTabChunks } from '../lib/prefetchTabChunks'
+import { scrollToSettingsSectionWhenReady } from '../lib/settingsSections'
+import { setFlashcardReviewPending } from '../lib/flashcardReviewPending'
 import { ErrorBoundary } from './ErrorBoundary'
 import { CelebrationConfettiHost } from './shared/CelebrationConfettiHost'
 import { CommandPalette } from './CommandPalette'
@@ -115,6 +117,10 @@ export const AppShell = memo(function AppShell() {
 
   const handleCommandPaletteSelect = (selection: CommandPaletteSelection) => {
     if (selection.tab) void setActiveTab(selection.tab)
+    if (selection.settingsSection) {
+      void setActiveTab('settings')
+      scrollToSettingsSectionWhenReady(selection.settingsSection!)
+    }
     if (selection.taskId != null) {
       const task = tasks.tasks.find(t => t.id === selection.taskId)
       if (task) {
@@ -126,7 +132,10 @@ export const AppShell = memo(function AppShell() {
       setFocusNoteId(selection.noteId)
       setIsNotesOpen(true)
     }
-    if (selection.flashcardId != null) void setActiveTab('cards')
+    if (selection.flashcardId != null) {
+      setFlashcardReviewPending()
+      void setActiveTab('cards')
+    }
   }
 
   useEffect(() => {
@@ -210,16 +219,10 @@ export const AppShell = memo(function AppShell() {
     <div
       data-theme-mode={isLight ? 'light' : 'dark'}
       data-density={settings.uiDensity}
-      className="min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden pb-24 md:pb-0"
+      data-ui-font={settings.ui_font}
+      className="app-grain min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden pb-24 md:pb-0"
       style={inlineStyles}
     >
-      {/* Premium Ambient Glassmorphic Glow Blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-accent-blue/10 blur-[120px] animate-blob-slow" />
-        <div className="absolute top-[35%] -right-[15%] w-[60%] h-[60%] rounded-full bg-accent-green/8 blur-[150px] animate-blob-medium" />
-        <div className="absolute -bottom-[10%] left-[15%] w-[55%] h-[55%] rounded-full bg-accent-amber/8 blur-[130px] animate-blob-slowest" />
-      </div>
-
       <E2eCrashProbe />
       <Sidebar
         isZenMode={isZenMode}
@@ -263,7 +266,15 @@ export const AppShell = memo(function AppShell() {
             todayStudyMinutes={headerStudyMinutes}
             dailyGoalMinutes={headerGoalMinutes}
             focusCategoryName={activeTimerCategory?.name}
+            currentStreak={currentStreak}
+            level={xpData.level}
+            xpProgressPercent={xpData.xpProgressPercent}
+            enforceLockout={settings.enforce_lockout}
             onOpenNotes={() => setIsNotesOpen(true)}
+            onNavigateToAnalytics={() => void setActiveTab('analytics')}
+            onShowOnboarding={openOnboarding}
+            onOpenHotkeys={() => setIsHotkeyHudOpen(true)}
+            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
           />
         )}
 

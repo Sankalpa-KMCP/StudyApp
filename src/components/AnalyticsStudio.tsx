@@ -108,7 +108,7 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
             <RetentionChartPanel
               retentionData={retentionData}
               tooltipStyle={tooltipStyle}
-              suppressEmptyState
+              suppressEmptyState={retentionData.length > 0}
             />
           </TabSection>
 
@@ -116,7 +116,7 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
             <HeatmapPanel
               heatmapData={heatmapData}
               accentBlue={activeThemeVars.accentBlue}
-              suppressEmptyState
+              suppressEmptyState={totalHeatmapMinutes > 0}
             />
           </TabSection>
         </>

@@ -1,44 +1,60 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { AppContentHeader } from '../AppContentHeader'
 
 describe('AppContentHeader', () => {
-  it('shows simplified goal chip label', () => {
+  const baseProps = {
+    activeTab: 'focus' as const,
+    isTimerActive: false,
+    timerMode: 'study' as const,
+    todayStudyMinutes: 30,
+    dailyGoalMinutes: 120,
+    currentStreak: 5,
+    level: 3,
+    xpProgressPercent: 42,
+    enforceLockout: false,
+  }
+
+  it('shows mobile streak and level stats', () => {
     render(
       <AppContentHeader
-        activeTab="focus"
-        isTimerActive={false}
-        timerMode="study"
-        todayStudyMinutes={30}
-        dailyGoalMinutes={120}
+        {...baseProps}
+        onNavigateToAnalytics={vi.fn()}
+        onOpenHotkeys={vi.fn()}
+        onOpenCommandPalette={vi.fn()}
       />,
     )
-    expect(screen.getAllByText('1h 30m left today').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByLabelText(/5-day streak/i)).toBeInTheDocument()
+    expect(screen.getByText('LVL 3')).toBeInTheDocument()
   })
 
-  it('shows timer running status on mobile when active', () => {
+  it('navigates to analytics when stats chip is clicked', async () => {
+    const user = userEvent.setup()
+    const onNavigateToAnalytics = vi.fn()
     render(
       <AppContentHeader
-        activeTab="focus"
+        {...baseProps}
+        onNavigateToAnalytics={onNavigateToAnalytics}
+        onOpenHotkeys={vi.fn()}
+        onOpenCommandPalette={vi.fn()}
+      />,
+    )
+    await user.click(screen.getByLabelText(/5-day streak/i))
+    expect(onNavigateToAnalytics).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows lockout strip on mobile when focus lockout is active', () => {
+    render(
+      <AppContentHeader
+        {...baseProps}
         isTimerActive
-        timerMode="study"
-        todayStudyMinutes={0}
-        dailyGoalMinutes={120}
+        enforceLockout
+        onNavigateToAnalytics={vi.fn()}
+        onOpenHotkeys={vi.fn()}
+        onOpenCommandPalette={vi.fn()}
       />,
     )
-    expect(screen.getAllByText('Study timer running')).toHaveLength(2)
-  })
-
-  it('does not show streak chip in header', () => {
-    render(
-      <AppContentHeader
-        activeTab="focus"
-        isTimerActive={false}
-        timerMode="study"
-        todayStudyMinutes={0}
-        dailyGoalMinutes={120}
-      />,
-    )
-    expect(screen.queryByText(/day streak/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/Pause the timer to leave Focus/i)).toBeInTheDocument()
   })
 })

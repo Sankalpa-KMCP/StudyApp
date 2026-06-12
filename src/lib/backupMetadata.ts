@@ -12,6 +12,9 @@ export function getLastBackupExportAt(): number | null {
 
 export function setLastBackupExportAt(timestamp = Date.now()): void {
   localStorage.setItem(LAST_BACKUP_EXPORT_KEY, String(timestamp))
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('study-backup-exported'))
+  }
 }
 
 export function getLastBackupDismissedAt(): number | null {

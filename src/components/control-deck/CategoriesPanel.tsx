@@ -65,7 +65,7 @@ export function CategoriesPanel() {
   }
 
   return (
-    <SettingsCard id="settings-categories" title="Subject Categories">
+    <SettingsCard id="settings-categories" title="Subject Categories" defaultCollapsed>
       <div className="flex gap-2 mb-4 settings-input border border-[var(--color-border-card)] p-2 rounded-full flex-wrap sm:flex-nowrap">
         <input
           id="category-name-input"

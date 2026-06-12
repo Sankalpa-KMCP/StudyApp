@@ -3,6 +3,7 @@ import { Sparkles, Clock, Target, ChevronRight, Check, Lock, Heart, RefreshCw, L
 import { ModalShell } from './shared/ModalShell'
 import { SelectionChip } from './shared/SelectionChip'
 import { PRODUCT_NAME } from '../lib/uxTerms'
+import { markDailyGoalConfigured } from '../lib/setupChecklist'
 import type { SettingsKey, SettingsValue } from '../db/types'
 
 interface OnboardingModalProps {
@@ -28,7 +29,7 @@ interface OnboardingSlide {
   showGoalPicker?: boolean
 }
 
-const GOAL_OPTIONS = [120, 240, 480] as const
+const GOAL_OPTIONS = [60, 120, 240, 480] as const
 
 const SLIDES: OnboardingSlide[] = [
   {
@@ -66,10 +67,15 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 }) => {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [dailyGoalMinutes, setDailyGoalMinutes] = useState<number | null>(null)
+  const [enableFlashcards, setEnableFlashcards] = useState(false)
 
   const handleFinish = () => {
     if (dailyGoalMinutes != null && updateSetting) {
       updateSetting('dailyGoalMinutes', dailyGoalMinutes)
+      markDailyGoalConfigured()
+    }
+    if (enableFlashcards && updateSetting) {
+      updateSetting('flashcardsEnabled', true)
     }
     onClose()
     requestAnimationFrame(() => {
@@ -170,15 +176,27 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </SelectionChip>
               ))}
             </div>
+            <p className="text-[10px] text-white/40 mt-2 leading-relaxed">
+              Fine-tune anytime in Settings → Timer &amp; Focus.
+            </p>
             {onReplayTour && (
               <button
                 type="button"
                 onClick={onReplayTour}
                 className="mt-3 text-[10px] font-semibold text-accent-blue hover:underline cursor-pointer"
               >
-                Learn more — replay this tour anytime from the sidebar
+                Learn more — replay anytime from Settings → Getting started, or the ⋯ menu on mobile
               </button>
             )}
+            <label className="mt-4 flex items-center gap-2.5 cursor-pointer rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={enableFlashcards}
+                onChange={e => setEnableFlashcards(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-white/20 accent-accent-blue"
+              />
+              <span className="text-[11px] font-semibold text-white/80">Enable recall deck (optional)</span>
+            </label>
           </div>
         )}
       </div>

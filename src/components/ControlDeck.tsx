@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { readAppHashFromLocation } from '../lib/appHashRouting'
-import { scrollToSettingsSection } from '../lib/settingsSections'
+import { scrollToSettingsSectionWhenReady, consumePendingSettingsPanelScroll } from '../lib/settingsSections'
 import { useConfirm } from '../context/useConfirm'
 import { AestheticsPanel } from './control-deck/AestheticsPanel'
 import { FlashcardsPanel } from './control-deck/FlashcardsPanel'
@@ -26,25 +26,12 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
 
   useEffect(() => {
     const { settingsSection } = readAppHashFromLocation()
-    if (settingsSection) {
-      requestAnimationFrame(() => {
-        scrollToSettingsSection(`settings-${settingsSection}`)
-      })
+    const pending = consumePendingSettingsPanelScroll()
+    const targetId = pending ?? (settingsSection ? `settings-${settingsSection}` : null)
+    if (targetId) {
+      scrollToSettingsSectionWhenReady(targetId)
     }
   }, [])
-
-  const [startHereDismissed, setStartHereDismissed] = useState(
-    () => typeof window !== 'undefined' && !!localStorage.getItem('settings_start_here_dismissed'),
-  )
-  const [goalNudgeDismissed, setGoalNudgeDismissed] = useState(
-    () => typeof window !== 'undefined' && !!localStorage.getItem('goal_nudge_dismissed'),
-  )
-  const showHighGoalNudge = !goalNudgeDismissed && dailyGoalMinutes >= 480
-
-  const dismissStartHere = () => {
-    localStorage.setItem('settings_start_here_dismissed', 'true')
-    setStartHereDismissed(true)
-  }
 
   const handleSectionReset = async (sectionId: 'appearance' | 'focus' | 'study' | 'data') => {
     const ok = await requestConfirm({
@@ -58,14 +45,8 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
 
   const banners = (
     <SettingsOnboardingBanners
-      showHighGoalNudge={showHighGoalNudge}
-      startHereDismissed={startHereDismissed}
+      dailyGoalMinutes={dailyGoalMinutes}
       flashcardsEnabled={flashcardsEnabled}
-      onDismissGoalNudge={() => {
-        localStorage.setItem('goal_nudge_dismissed', 'true')
-        setGoalNudgeDismissed(true)
-      }}
-      onDismissStartHere={dismissStartHere}
       onShowOnboarding={onShowOnboarding}
     />
   )
@@ -98,8 +79,8 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
       </SettingsSection>
 
       <SettingsSection id="data" label="Data">
-        <DesktopSettingsPanel />
         <BackupVaultPanel />
+        <DesktopSettingsPanel />
       </SettingsSection>
     </SettingsShell>
   )

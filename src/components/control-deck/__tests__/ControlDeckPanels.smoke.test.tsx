@@ -1,6 +1,7 @@
 import './testUtils'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { SettingsPanelProvider } from '../SettingsPanelContext'
 import { AlgorithmPanel } from '../AlgorithmPanel'
 import { ZenLockoutPanel } from '../ZenLockoutPanel'
@@ -67,15 +68,12 @@ describe('control-deck panel smoke tests', () => {
   it('renders SettingsOnboardingBanners', () => {
     render(
       <SettingsOnboardingBanners
-        showHighGoalNudge
-        startHereDismissed={false}
+        dailyGoalMinutes={480}
         flashcardsEnabled={false}
-        onDismissGoalNudge={() => {}}
-        onDismissStartHere={() => {}}
       />,
     )
-    expect(screen.getByText('Start here')).toBeInTheDocument()
-    expect(screen.getByText('Daily goal tip')).toBeInTheDocument()
+    expect(screen.getByText('Setup checklist')).toBeInTheDocument()
+    expect(screen.getByText(/8h is a lot for day one/i)).toBeInTheDocument()
   })
 
   it('renders SettingsShell with section', () => {
@@ -90,7 +88,8 @@ describe('control-deck panel smoke tests', () => {
     expect(screen.getByText('Panel content')).toBeInTheDocument()
   })
 
-  it('renders DesktopSettingsPanel when Tauri is available', () => {
+  it('renders DesktopSettingsPanel when Tauri is available', async () => {
+    const user = userEvent.setup()
     vi.spyOn(tauri, 'isTauri').mockReturnValue(true)
     render(
       <SettingsPanelProvider>
@@ -98,6 +97,7 @@ describe('control-deck panel smoke tests', () => {
       </SettingsPanelProvider>,
     )
     expect(screen.getByText('Desktop App')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Show' }))
     expect(screen.getByText('Launch on login')).toBeInTheDocument()
     vi.mocked(tauri.isTauri).mockRestore()
   })
