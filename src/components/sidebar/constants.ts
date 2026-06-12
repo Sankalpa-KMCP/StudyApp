@@ -1,1 +1,1 @@
-export { SIDEBAR_COLLAPSED_KEY, NAV_TABS } from '../../navigation/appNav'
+export { SIDEBAR_COLLAPSED_KEY, NAV_TABS, getVisibleNavTabs } from '../../navigation/appNav'

@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
 import { applyThemeToDocument } from '../lib/applyThemeVars'
+import { readAppHashFromLocation, writeAppHash, resolveAppHash } from '../lib/appHashRouting'
+import { getKeyboardTabOrder } from '../navigation/appNav'
+import { setActiveTabSync } from '../lib/activeTabSync'
+import { loadAppFonts } from '../lib/loadAppFonts'
 import { resolveThemeProfile } from '../lib/theme'
 import { useZenCanvas } from '../hooks/useZenCanvas'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { useFocusLockoutNavigation } from '../hooks/useFocusLockoutNavigation'
 import { useOptionalSidebarCollapse } from '../components/sidebar/useSidebarCollapseContext'
 import { useStudyDataContext } from './studyDataContext'
 import { useStudyTimerContext, useStudyTimerDisplay } from './studyTimerContext'
@@ -11,6 +16,12 @@ import { useConfirm } from './useConfirm'
 import type { useAppToast } from '../hooks/useAppToast'
 import { useUndoDelete } from '../hooks/useUndoDelete'
 import { PAUSE_TIMER_TO_LEAVE } from '../lib/uxTerms'
+
+const UI_FONT_STACKS: Record<string, string> = {
+  Inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  Outfit: "'Outfit', 'Inter', sans-serif",
+  System: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+}
 
 type ToastApi = ReturnType<typeof useAppToast>
 
@@ -24,9 +35,11 @@ export function useStudyUIState(toast: ToastApi) {
 
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [isZenMode, setIsZenMode] = useState(false)
-  const [activeTab, setActiveTab] = useState<ActiveTab>('focus')
+  const [activeTab, setActiveTabState] = useState<ActiveTab>(() => readAppHashFromLocation().tab)
   const [isDragging, setIsDragging] = useState(false)
   const [isHotkeyHudOpen, setIsHotkeyHudOpen] = useState(false)
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
+  const [focusNoteId, setFocusNoteId] = useState<number | null>(null)
   const [prefersDark, setPrefersDark] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches,
   )
@@ -36,6 +49,21 @@ export function useStudyUIState(toast: ToastApi) {
   useZenCanvas(isZenMode, canvasRef)
 
   const sidebarCollapse = useOptionalSidebarCollapse()
+
+  const notifyFocusLockout = useCallback(() => {
+    setActiveToast({
+      key: 'LOCK',
+      message: PAUSE_TIMER_TO_LEAVE,
+      id: Date.now(),
+    })
+  }, [setActiveToast])
+
+  const navigateToTab = useFocusLockoutNavigation({
+    enforceLockout: settings.enforce_lockout,
+    timer: timerControls,
+    setActiveTab: setActiveTabState,
+    onLockedAttempt: notifyFocusLockout,
+  })
 
   useKeyboardShortcuts({
     activeTab,
@@ -51,17 +79,20 @@ export function useStudyUIState(toast: ToastApi) {
     setIsTimerActive: timerControls.setIsTimerActive,
     setIsZenMode,
     setIsHotkeyHudOpen,
+    isCommandPaletteOpen,
+    setIsCommandPaletteOpen,
     setActiveToast,
-    setActiveTab,
+    navigateToTab,
     toggleSidebarCollapse: sidebarCollapse?.toggleCollapsed,
     requestConfirm,
+    visibleTabs: getKeyboardTabOrder(settings.flashcardsEnabled),
   })
 
-  const UI_FONT_STACKS: Record<string, string> = {
-    Inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    Outfit: "'Outfit', 'Inter', sans-serif",
-    System: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-  }
+  useEffect(() => {
+    if (!settings.flashcardsEnabled && activeTab === 'cards') {
+      navigateToTab('focus')
+    }
+  }, [settings.flashcardsEnabled, activeTab, navigateToTab])
 
   useEffect(() => {
     document.documentElement.style.setProperty('--font-monospace', `'${settings.developer_font}', monospace`)
@@ -71,6 +102,28 @@ export function useStudyUIState(toast: ToastApi) {
     const stack = UI_FONT_STACKS[settings.ui_font] ?? UI_FONT_STACKS.Inter
     document.documentElement.style.setProperty('--font-sans-geom', stack)
   }, [settings.ui_font])
+
+  useEffect(() => {
+    void loadAppFonts(settings.ui_font, settings.developer_font)
+  }, [settings.ui_font, settings.developer_font])
+
+  useEffect(() => {
+    setActiveTabSync(activeTab)
+    writeAppHash(activeTab)
+  }, [activeTab])
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const { tab } = readAppHashFromLocation()
+      const resolved = resolveAppHash(tab, settings.flashcardsEnabled)
+      if (resolved !== tab) {
+        writeAppHash(resolved)
+      }
+      setActiveTabState(resolved)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [settings.flashcardsEnabled])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
@@ -114,15 +167,7 @@ export function useStudyUIState(toast: ToastApi) {
     settings.cardBorderOpacity,
   ])
 
-  const notifyFocusLockout = useCallback(() => {
-    setActiveToast({
-      key: 'LOCK',
-      message: PAUSE_TIMER_TO_LEAVE,
-      id: Date.now(),
-    })
-  }, [setActiveToast])
-
-  const handleFileDrop = (e: React.DragEvent, confirmImport: (s: string) => void) => {
+  const handleFileDrop = useCallback((e: React.DragEvent, confirmImport: (s: string) => void) => {
     e.preventDefault()
     setIsDragging(false)
     const file = e.dataTransfer?.files?.[0]
@@ -133,7 +178,7 @@ export function useStudyUIState(toast: ToastApi) {
       }
       r.readAsText(file)
     }
-  }
+  }, [])
 
   return useMemo(() => ({
     pushToast: toast.pushToast,
@@ -145,11 +190,15 @@ export function useStudyUIState(toast: ToastApi) {
     isZenMode,
     setIsZenMode,
     activeTab,
-    setActiveTab,
+    setActiveTab: navigateToTab,
     isDragging,
     setIsDragging,
     isHotkeyHudOpen,
     setIsHotkeyHudOpen,
+    isCommandPaletteOpen,
+    setIsCommandPaletteOpen,
+    focusNoteId,
+    setFocusNoteId,
     canvasRef,
     activeThemeVars,
     handleFileDrop,
@@ -163,8 +212,11 @@ export function useStudyUIState(toast: ToastApi) {
     isNotesOpen,
     isZenMode,
     activeTab,
+    navigateToTab,
     isDragging,
     isHotkeyHudOpen,
+    isCommandPaletteOpen,
+    focusNoteId,
     activeThemeVars,
     handleFileDrop,
     notifyFocusLockout,

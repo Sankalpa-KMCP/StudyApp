@@ -71,6 +71,7 @@ vi.mock('../../../hooks/useSettingsUpdater', () => ({
     longBreakDurationMinutes: 15,
     targetSessionsPerCycle: 4,
     recentHistoryLimit: 100,
+    historyRetentionDays: 0,
     focusNotificationsEnabled: false,
     soundEnabled: true,
     tactile_feedback: false,

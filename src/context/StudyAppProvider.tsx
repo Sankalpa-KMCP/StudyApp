@@ -10,7 +10,7 @@ export function StudyAppProvider({ children }: { children: ReactNode }) {
 
   return (
     <ConfirmProvider>
-      <StudyDataProvider pushToast={toast.pushToast}>
+      <StudyDataProvider>
         <StudyTimerProvider pushToast={toast.pushToast}>
           <StudyUIProvider toast={toast}>
             {children}

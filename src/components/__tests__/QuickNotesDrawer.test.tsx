@@ -17,7 +17,7 @@ const baseProps = {
   addCategory: vi.fn(),
   deleteCategory: vi.fn(),
   notes,
-  addNote: vi.fn().mockResolvedValue(undefined),
+  addNote: vi.fn().mockResolvedValue(2),
   updateNote: vi.fn().mockResolvedValue(undefined),
   deleteNote: vi.fn().mockResolvedValue(undefined),
   noteTagColors: ['#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444'],
@@ -36,7 +36,7 @@ describe('QuickNotesDrawer', () => {
 
   it('creates a note from the add button', async () => {
     const user = userEvent.setup()
-    const addNote = vi.fn().mockResolvedValue(undefined)
+    const addNote = vi.fn().mockResolvedValue(2)
     render(<ConfirmProvider><QuickNotesDrawer {...baseProps} addNote={addNote} /></ConfirmProvider>)
 
     await user.click(screen.getByRole('button', { name: /create note/i }))

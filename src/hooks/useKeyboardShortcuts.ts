@@ -25,10 +25,13 @@ interface UseKeyboardShortcutsOptions {
   setIsTimerActive: React.Dispatch<React.SetStateAction<boolean>>
   setIsZenMode: React.Dispatch<React.SetStateAction<boolean>>
   setIsHotkeyHudOpen: React.Dispatch<React.SetStateAction<boolean>>
+  isCommandPaletteOpen?: boolean
+  setIsCommandPaletteOpen?: React.Dispatch<React.SetStateAction<boolean>>
   setActiveToast: React.Dispatch<React.SetStateAction<ToastState | null>>
-  setActiveTab?: React.Dispatch<React.SetStateAction<ActiveTab>>
+  navigateToTab?: (tab: ActiveTab) => void | Promise<void>
   toggleSidebarCollapse?: () => void
   requestConfirm?: RequestConfirm
+  visibleTabs?: ActiveTab[]
 }
 
 const TIMER_KEYS = new Set([' ', 's', 'b', 'c', 'z'])
@@ -47,10 +50,13 @@ export function useKeyboardShortcuts({
   setIsTimerActive,
   setIsZenMode,
   setIsHotkeyHudOpen,
+  isCommandPaletteOpen = false,
+  setIsCommandPaletteOpen,
   setActiveToast,
-  setActiveTab,
+  navigateToTab,
   toggleSidebarCollapse,
   requestConfirm,
+  visibleTabs = ['focus', 'cards', 'analytics', 'journal', 'settings'],
 }: UseKeyboardShortcutsOptions) {
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {
@@ -60,6 +66,13 @@ export function useKeyboardShortcuts({
       const target = e.target as HTMLElement
       const inInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
 
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setIsCommandPaletteOpen?.(open => !open)
+        return
+      }
+
+      if (isCommandPaletteOpen && e.key !== 'Escape') return
       if (isHotkeyHudOpen && e.key !== '?' && e.key !== 'Escape') return
 
       const settingsBlocksShortcuts = activeTab === 'settings' && !isTimerActive
@@ -151,12 +164,11 @@ export function useKeyboardShortcuts({
         case '3':
         case '4':
         case '5':
-          if (inInput || !setActiveTab) break
+          if (inInput || !navigateToTab) break
           {
-            const tabs: ActiveTab[] = ['focus', 'cards', 'analytics', 'journal', 'settings']
             const idx = Number(key) - 1
-            if (idx < tabs.length) {
-              setActiveTab(tabs[idx])
+            if (idx < visibleTabs.length) {
+              void navigateToTab(visibleTabs[idx])
             }
           }
           break
@@ -179,9 +191,12 @@ export function useKeyboardShortcuts({
     setIsTimerActive,
     setIsZenMode,
     setIsHotkeyHudOpen,
+    isCommandPaletteOpen,
+    setIsCommandPaletteOpen,
     setActiveToast,
-    setActiveTab,
+    navigateToTab,
     toggleSidebarCollapse,
     requestConfirm,
+    visibleTabs,
   ])
 }

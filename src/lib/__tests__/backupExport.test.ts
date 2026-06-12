@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { resetDatabase, seedTask } from '../../test/dbTestUtils'
 import { collectStudyBackupPayload, downloadStudyBackup } from '../backupExport'
 
+interface MockAnchor {
+  click: ReturnType<typeof vi.fn>
+  download: string
+}
+
 describe('backupExport', () => {
   beforeEach(async () => {
     await resetDatabase()
@@ -54,8 +59,8 @@ describe('backupExport', () => {
       'study-vault',
     )
 
-    expect(capturedAnchor?.click).toHaveBeenCalled()
-    expect(capturedAnchor?.download).toMatch(/^study-vault-\d{4}-\d{2}-\d{2}\.studybackup$/)
+    expect((capturedAnchor as unknown as MockAnchor).click).toHaveBeenCalled()
+    expect((capturedAnchor as unknown as MockAnchor).download).toMatch(/^study-vault-\d{4}-\d{2}-\d{2}\.studybackup$/)
   })
 
   it('downloadStudyBackup uses emergency prefix when specified', () => {
@@ -85,6 +90,6 @@ describe('backupExport', () => {
       'study-emergency-export',
     )
 
-    expect(capturedAnchor?.download).toMatch(/^study-emergency-export-\d{4}-\d{2}-\d{2}\.studybackup$/)
+    expect((capturedAnchor as unknown as MockAnchor).download).toMatch(/^study-emergency-export-\d{4}-\d{2}-\d{2}\.studybackup$/)
   })
 })

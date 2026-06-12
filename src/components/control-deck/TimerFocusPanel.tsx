@@ -15,6 +15,7 @@ export function TimerFocusPanel() {
     longBreakDurationMinutes,
     targetSessionsPerCycle,
     recentHistoryLimit,
+    historyRetentionDays,
     focusNotificationsEnabled,
     updateSetting,
   } = useSettingsPanel()
@@ -49,6 +50,7 @@ export function TimerFocusPanel() {
     { key: 'longBreakDurationMinutes' as const, label: 'Long break (minutes)', value: longBreakDurationMinutes, min: 5, max: 60, step: 5, chips: [10, 15, 20, 30] },
     { key: 'targetSessionsPerCycle' as const, label: 'Sessions before long break', value: targetSessionsPerCycle, min: 1, max: 10, step: 1, chips: [2, 4, 6, 8] },
     { key: 'recentHistoryLimit' as const, label: 'Recent history window', value: recentHistoryLimit, min: 50, max: 500, step: 25, chips: undefined },
+    { key: 'historyRetentionDays' as const, label: 'History retention (days, 0 = keep all)', value: historyRetentionDays, min: 0, max: 365, step: 30, chips: [0, 90, 180, 365] },
   ]
 
   return (

@@ -1,6 +1,6 @@
 # Study Dashboard // The Cognitive Focus Console
 
-A local-first, privacy-focused study dashboard with Pomodoro timing, task tracking, spaced repetition flashcards, analytics, and journaling.
+A focus-first, local-first study dashboard with Pomodoro timing, task tracking, journal, analytics, and an optional flashcard recall deck.
 
 **Created by Sankalpa KMCP**
 
@@ -8,9 +8,11 @@ A local-first, privacy-focused study dashboard with Pomodoro timing, task tracki
 
 ## Screenshots
 
-| Focus | Cards | Analytics | Settings |
-|-------|-------|-----------|----------|
+| Focus | Cards (optional) | Analytics | Settings |
+|-------|------------------|-----------|----------|
 | ![Focus tab](docs/screenshots/focus.png) | ![Cards tab](docs/screenshots/cards.png) | ![Analytics tab](docs/screenshots/analytics.png) | ![Settings tab](docs/screenshots/settings.png) |
+
+_Cards screenshot requires enabling flashcards in Settings → Study._
 
 ---
 
@@ -25,7 +27,7 @@ A local-first, privacy-focused study dashboard with Pomodoro timing, task tracki
 - **English-only UI** — no localization layer in this build.
 - **Local-first** — no cloud sync; use `.studybackup` vault export/import for cross-device transfer.
 - **Private license** — not open source (see [License](#license)).
-- **Ambient soundscapes** — basic rain and white-noise presets during study blocks, not a full soundscape library.
+- **Ambient soundscapes** — procedural rain, white noise, café, and brown-noise presets (not sampled audio files).
 
 ---
 
@@ -48,13 +50,14 @@ A local-first, privacy-focused study dashboard with Pomodoro timing, task tracki
 - SM-2 spaced repetition for study subjects
 - Subtasks and auto-archive of completed tasks (90+ days)
 
-### Recall Deck
-- Flashcards with SM-2 scheduling
-- Category filters and grade tracking
+### Recall Deck (Optional)
+- Spaced repetition flashcards (disabled by default on new installs, toggleable in settings)
+- SM-2 scheduling, category filters, and grade tracking
 
 ### Analytics Studio
 - Weekly charts, category breakdown, retention curves
-- Streak and XP leveling from study minutes
+- Configurable productivity window (7 / 30 / 90 days or all time)
+- Streak and XP leveling from study minutes (all-time)
 
 ### Activity Ledger
 - Calendar heatmap and daily mood/notes journal
@@ -62,7 +65,14 @@ A local-first, privacy-focused study dashboard with Pomodoro timing, task tracki
 
 ### Control Deck
 - Theme, opacity, blur, timer, sound, font, and backup settings
-- Export/import `.studybackup` vault files and CSV reports
+- Export/import `.studybackup` vault files, CSV reports, and ICS calendar
+- Storage usage panel and optional history archival
+- Web Share backup on supported mobile browsers
+
+### Task & flashcard productivity
+- Task templates saved from the focus task form
+- Flashcard deck CSV import
+- Virtual scrolling for large task and flashcard lists
 
 ---
 
@@ -81,6 +91,9 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 | `shortBreakDurationMinutes` | 5 | Short break length |
 | `longBreakDurationMinutes` | 15 | Long break length |
 | `targetSessionsPerCycle` | 4 | Study sessions before long break |
+| `historyRetentionDays` | 0 | Auto-archive threshold (0 = keep all; manual sweep in Backup Vault) |
+| `flashcardsEnabled` | `false` (new installs) / `true` (migrated) | Show optional Cards tab and recall deck |
+| Backup reminder interval | 30 days | Reminds when no export; dismiss snoozes 7 days |
 
 ---
 
@@ -88,15 +101,16 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 
 - **History entries** include `createdAt` (epoch ms) for reliable date filtering, plus a human-readable `timestamp` for display.
 - **Emergency snapshots** are stored in IndexedDB (`snapshots` table), keeping the last 3 automatic backups.
-- **Schema version:** 7 (Dexie `db.verno` — IndexedDB migration version).
-- **Backup `version: 2`** in `.studybackup` JSON exports is the **export file format** revision — separate from the DB schema version above.
+- **Schema version:** 8 (Dexie `db.verno` — IndexedDB migration version).
+- **Backup `version: 3`** in `.studybackup` JSON exports is the **export file format** revision (adds `checksumSha256`; imports still accept v2). Separate from the DB schema version above.
 - See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ### Data limits
 
 | Limit | Value | Used by |
 |-------|-------|---------|
-| Recent history window | 100 entries | Analytics (`useRecentHistory`) |
+| Recent history window | 100 entries (configurable 50–500) | Timer settings (`recentHistoryLimit`) |
+| Analytics productivity window | 7d / 30d / 90d / all (default 30d) | Analytics insights (`useAnalyticsHistoryRange`) |
 | Journal history | Current calendar month | `useHistoryForMonth` |
 | Full history table | Unbounded | Backup export only (`db.history.toArray`) |
 | Auto snapshots retained | 3 | `useSessionBackup` |
@@ -111,6 +125,8 @@ Data hooks live in [`src/db/hooks/`](src/db/hooks/) (repositories + per-domain h
 
 ## Development
 
+The git repository root is the `web/` folder. If your editor workspace is the parent `study app` directory, you can run scripts from there via the root delegate `package.json` (`npm run dev` → `npm --prefix web run dev`).
+
 ```bash
 npm ci
 npm run dev
@@ -124,6 +140,7 @@ npm run test:watch
 npm run test:e2e
 npm run storybook
 npm run build-storybook
+npm run test:storybook
 npm run lint
 ```
 

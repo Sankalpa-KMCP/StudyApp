@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import { GraduationCap, Layers } from 'lucide-react'
+import { GraduationCap, Layers, FileUp } from 'lucide-react'
 import type { CategoryItem } from '../../db/types'
 import { InlineCategoryManager } from '../shared/InlineCategoryManager'
 import { PanelCard } from '../shared/PanelCard'
@@ -21,6 +21,7 @@ interface FlashcardCreateFormProps {
   stats: { due: number; total: number }
   onStudyDue: () => void
   onStudyAll: () => void
+  onImportClick?: () => void
 }
 
 export function FlashcardCreateForm({
@@ -37,6 +38,7 @@ export function FlashcardCreateForm({
   stats,
   onStudyDue,
   onStudyAll,
+  onImportClick,
 }: FlashcardCreateFormProps) {
   const { requestConfirm } = useConfirm()
 
@@ -81,6 +83,12 @@ export function FlashcardCreateForm({
           <Button type="submit" variant="primary" className="w-full gap-2">
             Add to Deck
           </Button>
+          {onImportClick && (
+            <Button type="button" variant="secondary" className="w-full gap-2" onClick={onImportClick}>
+              <FileUp className="h-4 w-4" aria-hidden />
+              Import CSV deck
+            </Button>
+          )}
         </form>
       </PanelCard>
 

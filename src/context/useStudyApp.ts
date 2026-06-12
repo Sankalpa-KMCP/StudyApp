@@ -38,7 +38,22 @@ export function useStudyData() {
     xpData: ctx.xpData,
     pendingLevelUp: ctx.pendingLevelUp,
     dismissLevelUp: ctx.dismissLevelUp,
-  }), [ctx])
+  }), [
+    ctx.tasks,
+    ctx.history,
+    ctx.recentHistory,
+    ctx.settings,
+    ctx.todayLog,
+    ctx.flashcards,
+    ctx.quickNotes,
+    ctx.categories,
+    ctx.allLogs,
+    ctx.isDataReady,
+    ctx.currentStreak,
+    ctx.xpData,
+    ctx.pendingLevelUp,
+    ctx.dismissLevelUp,
+  ])
 }
 
 export function useStudyUI() {
@@ -54,6 +69,10 @@ export function useStudyUI() {
     setIsNotesOpen: ui.setIsNotesOpen,
     isHotkeyHudOpen: ui.isHotkeyHudOpen,
     setIsHotkeyHudOpen: ui.setIsHotkeyHudOpen,
+    isCommandPaletteOpen: ui.isCommandPaletteOpen,
+    setIsCommandPaletteOpen: ui.setIsCommandPaletteOpen,
+    focusNoteId: ui.focusNoteId,
+    setFocusNoteId: ui.setFocusNoteId,
     pushToast: ui.pushToast,
     activeToast: ui.activeToast,
     quotaExceeded: ui.quotaExceeded,
@@ -99,9 +118,18 @@ export function useStudyAnalytics() {
     xpData: data.xpData,
     insights: data.insights,
     breakdownData: data.breakdownData,
+    analyticsRange: data.analyticsRange,
     journal: data.journal,
     allLogs: data.allLogs,
-  }), [data])
+  }), [
+    data.currentStreak,
+    data.xpData,
+    data.insights,
+    data.breakdownData,
+    data.analyticsRange,
+    data.journal,
+    data.allLogs,
+  ])
 }
 
 export function useStudySettings() {

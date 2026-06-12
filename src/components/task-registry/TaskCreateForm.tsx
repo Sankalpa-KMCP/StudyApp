@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
-import { ChevronDown, Plus } from 'lucide-react'
+import { useState } from 'react'
+import { ChevronDown, Plus, Bookmark } from 'lucide-react'
 import type { CategoryItem } from '../../db/types'
 import { InlineCategoryManager } from '../shared/InlineCategoryManager'
 import { SelectionChip } from '../shared/SelectionChip'
 import { useConfirm } from '../../context/useConfirm'
+import { addTaskTemplate, loadTaskTemplates, type TaskTemplate } from '../../lib/taskTemplates'
 
 const OPTIONS_EXPANDED_KEY = 'focus_task_options_expanded'
 
@@ -49,6 +50,7 @@ export function TaskCreateForm({
   onSubmit,
 }: TaskCreateFormProps) {
   const { requestConfirm } = useConfirm()
+  const [templates, setTemplates] = useState<TaskTemplate[]>(() => loadTaskTemplates())
   const [showOptions, setShowOptions] = useState(() => {
     if (typeof window === 'undefined') return false
     return sessionStorage.getItem(OPTIONS_EXPANDED_KEY) === 'true'
@@ -64,6 +66,27 @@ export function TaskCreateForm({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') onSubmit()
+  }
+
+  const applyTemplate = (template: TaskTemplate) => {
+    setTaskText(template.text)
+    setTaskCycleCount(template.estimatedCycles)
+    if (template.priority) setTaskPriority(template.priority)
+    if (template.isStudySubject !== undefined) setTaskIsStudySubject(template.isStudySubject)
+    if (template.categoryId !== undefined) onSelectCategory(template.categoryId)
+  }
+
+  const saveCurrentAsTemplate = () => {
+    const trimmed = taskText.trim()
+    if (!trimmed) return
+    addTaskTemplate({
+      text: trimmed,
+      estimatedCycles: taskCycleCount,
+      categoryId: sessionCategoryId,
+      priority: taskPriority,
+      isStudySubject: taskIsStudySubject,
+    })
+    setTemplates(loadTaskTemplates())
   }
 
   return (
@@ -92,6 +115,25 @@ export function TaskCreateForm({
         })()}
       </div>
 
+      {templates.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-micro font-bold uppercase tracking-wider text-muted">Templates</span>
+          <div className="flex flex-wrap gap-1.5">
+            {templates.map(template => (
+              <SelectionChip
+                key={template.id}
+                selected={false}
+                accent="purple"
+                size="sm"
+                onClick={() => applyTemplate(template)}
+              >
+                {template.text}
+              </SelectionChip>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-1">
         <label htmlFor="task-input" className="text-micro font-bold uppercase tracking-wider text-muted">
           Add focus target
@@ -113,6 +155,16 @@ export function TaskCreateForm({
             className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-accent-blue hover:bg-accent-blue/90 text-on-accent transition-all ios-active-scale cursor-pointer shadow-md shadow-accent-blue/15"
           >
             <Plus className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={saveCurrentAsTemplate}
+            disabled={!taskText.trim()}
+            aria-label="Save as template"
+            title="Save as template"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl surface-subtle border border-card text-muted hover:text-accent-purple transition-all ios-active-scale cursor-pointer disabled:opacity-40"
+          >
+            <Bookmark className="h-5 w-5" />
           </button>
         </div>
       </div>

@@ -86,6 +86,7 @@ export function useTaskActions({
     if (task) {
       if (!task.completed) {
         playChime()
+        window.dispatchEvent(new CustomEvent('celebrate-complete', { detail: { count: 50 } }))
         await toggleTask(id)
         pushToast('UNDO', 'Task completed', {
           durationMs: 5000,

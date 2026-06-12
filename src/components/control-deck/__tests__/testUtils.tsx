@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { ReactNode } from 'react'
 import { vi } from 'vitest'
 import { SettingsPanelProvider } from '../SettingsPanelContext'
@@ -70,12 +71,20 @@ vi.mock('../../../hooks/useSettingsUpdater', () => ({
     longBreakDurationMinutes: 15,
     targetSessionsPerCycle: 4,
     recentHistoryLimit: 100,
+    historyRetentionDays: 0,
+    autoExportEnabled: false,
+    autoExportIntervalDays: 7,
+    desktopAutostartEnabled: false,
+    desktopGlobalShortcutsEnabled: false,
+    desktopNativeNotificationsEnabled: false,
+    desktopBackupFolderPath: '',
     focusNotificationsEnabled: false,
     soundEnabled: true,
     tactile_feedback: false,
     developer_font: 'JetBrains Mono',
     ambientSoundEnabled: false,
     ambientSoundPreset: 'rain' as const,
+    ambientVolume: 50,
     enforce_lockout: false,
     autoArchiveAncientTasks: false,
     isLoading: false,

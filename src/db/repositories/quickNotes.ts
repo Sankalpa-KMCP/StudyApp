@@ -1,7 +1,7 @@
 import { db } from '../db'
 
 export async function addNote(title: string, content: string, categoryId?: number) {
-  await db.quick_notes.add({
+  return db.quick_notes.add({
     title,
     content,
     categoryId,

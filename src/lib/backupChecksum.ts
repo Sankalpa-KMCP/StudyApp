@@ -10,6 +10,8 @@ export async function computeBackupChecksum(payload: Omit<StudyBackupPayload, 'c
 export async function verifyBackupChecksum(payload: StudyBackupPayload): Promise<boolean> {
   if (!payload.checksumSha256) return true
   const { checksumSha256, ...rest } = payload
-  const expected = await computeBackupChecksum(rest)
+  const canonical = { ...rest } as Omit<StudyBackupPayload, 'checksumSha256'>
+  delete (canonical as StudyBackupPayload & { rawVersion?: unknown }).rawVersion
+  const expected = await computeBackupChecksum(canonical)
   return expected === checksumSha256
 }

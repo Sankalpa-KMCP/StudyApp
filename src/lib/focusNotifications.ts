@@ -2,17 +2,22 @@ export function canSendFocusNotification(): boolean {
   return typeof Notification !== 'undefined' && Notification.permission === 'granted'
 }
 
-export function sendFocusBlockCompleteNotification(timerMode: 'study' | 'break'): void {
-  if (!canSendFocusNotification()) return
-  if (timerMode === 'study') {
-    new Notification('Focus block complete', {
-      body: 'Take a break or start your next study block.',
-      tag: 'focus-block-complete',
+export function sendFocusBlockCompleteNotification(
+  timerMode: 'study' | 'break',
+  options?: { useDesktopNative?: boolean },
+): void {
+  const title = timerMode === 'study' ? 'Focus block complete' : 'Break complete'
+  const body = timerMode === 'study'
+    ? 'Take a break or start your next study block.'
+    : 'Ready to start your next focus block?'
+
+  if (options?.useDesktopNative) {
+    void import('./tauri').then(({ isTauri, sendDesktopNotification }) => {
+      if (isTauri()) void sendDesktopNotification(title, body)
     })
-  } else {
-    new Notification('Break complete', {
-      body: 'Ready to start your next focus block?',
-      tag: 'break-complete',
-    })
+    return
   }
+
+  if (!canSendFocusNotification()) return
+  new Notification(title, { body, tag: timerMode === 'study' ? 'focus-block-complete' : 'break-complete' })
 }

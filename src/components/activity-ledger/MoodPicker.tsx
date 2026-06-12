@@ -1,5 +1,4 @@
 import { Brain, Zap, Moon, Wind } from 'lucide-react'
-import { Button } from '../shared/Button'
 
 interface MoodPickerProps {
   draftMood: string
@@ -15,25 +14,25 @@ const MOODS = [
 
 export function MoodPicker({ draftMood, onSelect }: MoodPickerProps) {
   return (
-    <div className="mb-5">
-      <p className="text-caption font-semibold text-muted uppercase tracking-wider mb-2.5">How are you feeling?</p>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Track mood">
+    <div className="mb-6">
+      <p className="text-caption font-semibold text-muted uppercase tracking-wider mb-3 select-none">How are you feeling?</p>
+      <div className="mood-picker-container" role="group" aria-label="Track mood">
         {MOODS.map(m => {
           const isSelected = draftMood === m.value
           const Icon = m.icon
           return (
-            <Button
+            <button
               key={m.value}
               type="button"
-              variant={isSelected ? 'primary' : 'ghost'}
-              size="sm"
               aria-pressed={isSelected}
               onClick={() => onSelect(m.value)}
-              className={`gap-1.5 px-4 py-2 ${isSelected ? '' : 'border border-white/8'}`}
+              className={`mood-btn mood-${m.value} ${isSelected ? 'mood-active' : ''}`}
             >
-              <Icon className="h-3.5 w-3.5" aria-hidden />
+              <div className="mood-icon-wrapper">
+                <Icon className="h-5 w-5" aria-hidden />
+              </div>
               <span>{m.label}</span>
-            </Button>
+            </button>
           )
         })}
       </div>

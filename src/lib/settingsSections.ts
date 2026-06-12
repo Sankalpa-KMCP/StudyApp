@@ -29,13 +29,13 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     id: 'study',
     label: 'Study',
     icon: BookOpen,
-    panelIds: ['settings-notes', 'settings-algorithm', 'settings-categories'],
+    panelIds: ['settings-flashcards', 'settings-notes', 'settings-algorithm', 'settings-categories'],
   },
   {
     id: 'data',
     label: 'Data',
     icon: Database,
-    panelIds: ['settings-backup-vault'],
+    panelIds: ['settings-backup-vault', 'settings-desktop'],
   },
 ]
 
@@ -61,21 +61,32 @@ export const SECTION_DEFAULT_KEYS: Record<SettingsSectionId, SettingsKey[]> = {
     'longBreakDurationMinutes',
     'targetSessionsPerCycle',
     'recentHistoryLimit',
+    'historyRetentionDays',
     'focusNotificationsEnabled',
     'soundEnabled',
     'tactile_feedback',
     'developer_font',
     'ambientSoundEnabled',
     'ambientSoundPreset',
+    'ambientVolume',
     'enforce_lockout',
     'autoArchiveAncientTasks',
   ],
-  study: ['initialEasinessFactor', 'noteTagColors', 'autoArchiveAncientTasks'],
-  data: [],
+  study: ['flashcardsEnabled', 'initialEasinessFactor', 'noteTagColors', 'autoArchiveAncientTasks'],
+  data: [
+    'historyRetentionDays',
+    'autoExportEnabled',
+    'autoExportIntervalDays',
+    'desktopAutostartEnabled',
+    'desktopGlobalShortcutsEnabled',
+    'desktopNativeNotificationsEnabled',
+    'desktopBackupFolderPath',
+  ],
 }
 
 export const STUDY_NOTES_RESET_KEYS: SettingsKey[] = ['noteTagColors']
 export const STUDY_ALGORITHM_RESET_KEYS: SettingsKey[] = ['initialEasinessFactor']
+export const STUDY_FLASHCARDS_RESET_KEYS: SettingsKey[] = ['flashcardsEnabled']
 
 export const POMODORO_PRESETS = [
   {
@@ -121,3 +132,10 @@ export function getDefaultForKey(key: SettingsKey): SettingsValue {
   }
   return value as SettingsValue
 }
+
+export function scrollToSettingsSection(id: string) {
+  if (typeof document !== 'undefined') {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+

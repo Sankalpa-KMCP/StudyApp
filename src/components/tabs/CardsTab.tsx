@@ -13,11 +13,12 @@ export function CardsTab() {
 
   const handleDeleteFlashcard = async (id: number) => {
     const card = flashcards.flashcards.find(c => c.id === id)
-    if (!card) {
-      void flashcards.deleteFlashcard(id)
-      return
-    }
-    scheduleDelete('Card', () => flashcards.deleteFlashcard(id), async () => { await db.flashcards.put(card) })
+    if (!card) return
+    scheduleDelete(
+      'Card',
+      () => flashcards.deleteFlashcard(id),
+      async () => { await db.flashcards.put(card) },
+    )
   }
 
   return (

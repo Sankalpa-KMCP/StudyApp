@@ -45,6 +45,9 @@ export const Default: Story = {
         activeThemeVars={theme}
         tooltipStyle={{ background: '#1a1d26', border: '1px solid rgba(255,255,255,0.1)' }}
         hasChartData
+        analyticsRange="30d"
+        analyticsRangeLabel="Last 30 days"
+        onAnalyticsRangeChange={() => {}}
       />
     </div>
   ),

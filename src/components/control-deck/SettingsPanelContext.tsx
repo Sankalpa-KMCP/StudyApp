@@ -1,12 +1,17 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import type { CategoryItem, SettingsKey, SettingsValue } from '../../db/types'
 import { useStudyDataContext } from '../../context/studyDataContext'
 import { useStudyTimerContext } from '../../context/studyTimerContext'
 import { useStudyUIContext } from '../../context/studyUIContext'
 import { useSettingsUpdater } from '../../hooks/useSettingsUpdater'
+import type { StudyBackupExportOptions } from '../../hooks/useSessionBackup'
 
 export interface SettingsBackupApi {
-  exportStudyBackup: () => void
+  exportStudyBackup: (options?: StudyBackupExportOptions) => void
+  shareStudyBackupVault?: () => void
+  exportStudyHistoryIcs?: () => void
+  canShareBackup?: boolean
   isExporting?: boolean
   exportProgress?: number
   exportStudyLogsCSV: () => void
@@ -65,7 +70,16 @@ interface SettingsPanelContextValue {
   enforce_lockout: boolean
   autoArchiveAncientTasks: boolean
   ambientSoundEnabled: boolean
-  ambientSoundPreset: 'rain' | 'white-noise'
+  ambientSoundPreset: 'rain' | 'white-noise' | 'cafe' | 'brown-noise'
+  ambientVolume: number
+  historyRetentionDays: number
+  autoExportEnabled: boolean
+  autoExportIntervalDays: number
+  desktopAutostartEnabled: boolean
+  desktopGlobalShortcutsEnabled: boolean
+  desktopNativeNotificationsEnabled: boolean
+  desktopBackupFolderPath: string
+  flashcardsEnabled: boolean
   backup: SettingsBackupApi
   categories: SettingsCategoriesApi
   isDragging: boolean
@@ -118,6 +132,15 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     autoArchiveAncientTasks: updater.autoArchiveAncientTasks,
     ambientSoundEnabled: updater.ambientSoundEnabled,
     ambientSoundPreset: updater.ambientSoundPreset,
+    ambientVolume: updater.ambientVolume,
+    historyRetentionDays: updater.historyRetentionDays,
+    autoExportEnabled: updater.autoExportEnabled,
+    autoExportIntervalDays: updater.autoExportIntervalDays,
+    desktopAutostartEnabled: updater.desktopAutostartEnabled,
+    desktopGlobalShortcutsEnabled: updater.desktopGlobalShortcutsEnabled,
+    desktopNativeNotificationsEnabled: updater.desktopNativeNotificationsEnabled,
+    desktopBackupFolderPath: updater.desktopBackupFolderPath,
+    flashcardsEnabled: updater.flashcardsEnabled,
     isLoading: updater.isLoading,
     updateSetting: (key, val) => { void updater.updateSettingSafe(key, val) },
     updateSettingSafe: updater.updateSettingSafe,
@@ -126,6 +149,9 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     pushToast,
     backup: {
       exportStudyBackup: timerCtx.backup.exportStudyBackup,
+      shareStudyBackupVault: timerCtx.backup.shareStudyBackupVault,
+      exportStudyHistoryIcs: timerCtx.backup.exportStudyHistoryIcs,
+      canShareBackup: timerCtx.backup.canShareBackup,
       isExporting: timerCtx.backup.isExporting,
       exportProgress: timerCtx.backup.exportProgress,
       exportStudyLogsCSV: timerCtx.backup.exportStudyLogsCSV,

@@ -1,7 +1,7 @@
 import type { ActiveTab } from '../../types/app'
 import { NavTabButton } from '../../navigation/NavTabButton'
 import { useSidebarFlyout } from './useSidebarFlyout'
-import { prefetchControlDeck } from '../../lib/prefetchControlDeck'
+import { prefetchTabChunk } from '../../lib/prefetchTabChunks'
 
 interface SidebarNavButtonProps {
   variant: 'expanded' | 'rail'
@@ -31,7 +31,7 @@ export function SidebarNavButton({
   const flyout = useSidebarFlyout()
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (tabId === 'settings') prefetchControlDeck()
+    prefetchTabChunk(tabId)
     if (variant === 'rail') flyout.showFlyout(label, e.currentTarget)
   }
 

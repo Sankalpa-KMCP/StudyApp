@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "StudyDashboard",
-  "version": "0.1.0",
-  "identifier": "com.studydashboard.app",
+  "version": "1.0.0",
+  "identifier": "com.studydashboard.desktop",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useDebouncedCallback } from '../../../hooks/useDebouncedCallback'
 
 interface RangeSettingProps {
@@ -24,11 +24,13 @@ export function RangeSetting({
   debounceMs = 300,
   commitOnRelease = true,
 }: RangeSettingProps) {
+  const [prevValue, setPrevValue] = useState(value)
   const [localValue, setLocalValue] = useState(value)
 
-  useEffect(() => {
+  if (value !== prevValue) {
+    setPrevValue(value)
     setLocalValue(value)
-  }, [value])
+  }
 
   const debouncedCommit = useDebouncedCallback((next: number) => {
     onChange(next)

@@ -1,4 +1,6 @@
-export type AmbientPreset = 'rain' | 'white-noise'
+export type AmbientPreset = 'rain' | 'white-noise' | 'cafe' | 'brown-noise'
+
+export const AMBIENT_PRESET_OPTIONS: AmbientPreset[] = ['rain', 'white-noise', 'cafe', 'brown-noise']
 
 let sharedContext: AudioContext | null = null
 let noiseSource: AudioBufferSourceNode | null = null
@@ -16,12 +18,25 @@ export function getSharedAudioContext(): AudioContext | null {
   return sharedContext
 }
 
-function createNoiseBuffer(ctx: AudioContext): AudioBuffer {
+function createWhiteNoiseBuffer(ctx: AudioContext): AudioBuffer {
   const bufferSize = ctx.sampleRate * 2
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
   const data = buffer.getChannelData(0)
   for (let i = 0; i < bufferSize; i++) {
     data[i] = Math.random() * 2 - 1
+  }
+  return buffer
+}
+
+function createBrownNoiseBuffer(ctx: AudioContext): AudioBuffer {
+  const bufferSize = ctx.sampleRate * 2
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
+  const data = buffer.getChannelData(0)
+  let last = 0
+  for (let i = 0; i < bufferSize; i++) {
+    const white = Math.random() * 2 - 1
+    last = (last + 0.02 * white) / 1.02
+    data[i] = last * 3.5
   }
   return buffer
 }
@@ -60,6 +75,16 @@ export function resetAmbientAudioEngine() {
   }
 }
 
+function connectFiltered(source: AudioBufferSourceNode, ctx: AudioContext, gain: GainNode, type: BiquadFilterType, frequency: number, q = 1) {
+  const filter = ctx.createBiquadFilter()
+  filter.type = type
+  filter.frequency.value = frequency
+  filter.Q.value = q
+  source.connect(filter)
+  filter.connect(gain)
+  filterNode = filter
+}
+
 export function startAmbient(preset: AmbientPreset, volume = 0.12) {
   const ctx = getSharedAudioContext()
   if (!ctx) return
@@ -73,19 +98,16 @@ export function startAmbient(preset: AmbientPreset, volume = 0.12) {
   stopNodes()
 
   const source = ctx.createBufferSource()
-  source.buffer = createNoiseBuffer(ctx)
+  source.buffer = preset === 'brown-noise' ? createBrownNoiseBuffer(ctx) : createWhiteNoiseBuffer(ctx)
   source.loop = true
 
   const gain = ctx.createGain()
   gain.gain.value = volume
 
   if (preset === 'rain') {
-    const filter = ctx.createBiquadFilter()
-    filter.type = 'lowpass'
-    filter.frequency.value = 800
-    source.connect(filter)
-    filter.connect(gain)
-    filterNode = filter
+    connectFiltered(source, ctx, gain, 'lowpass', 800)
+  } else if (preset === 'cafe') {
+    connectFiltered(source, ctx, gain, 'bandpass', 1200, 0.8)
   } else {
     source.connect(gain)
   }

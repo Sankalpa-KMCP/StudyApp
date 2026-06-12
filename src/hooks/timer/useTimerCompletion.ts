@@ -11,6 +11,7 @@ interface UseTimerCompletionOptions {
   playChime: () => void
   createDatabaseSnapshot: () => Promise<void>
   focusNotificationsEnabled: boolean
+  desktopNativeNotificationsEnabled?: boolean
   activeTaskId: number | null
   setActiveTaskId: (id: number | null) => void
   targetSessionsPerCycle: number
@@ -25,6 +26,7 @@ export function useTimerCompletion({
   playChime,
   createDatabaseSnapshot,
   focusNotificationsEnabled,
+  desktopNativeNotificationsEnabled = false,
   activeTaskId,
   setActiveTaskId,
   targetSessionsPerCycle,
@@ -54,11 +56,14 @@ export function useTimerCompletion({
     })
 
     playChime()
-    if (focusNotificationsEnabled) {
+    if (desktopNativeNotificationsEnabled) {
+      sendFocusBlockCompleteNotification(mode, { useDesktopNative: true })
+    } else if (focusNotificationsEnabled) {
       sendFocusBlockCompleteNotification(mode)
     }
     devLog('timer', 'session-complete', { mode, elapsed })
     if (mode === 'study') {
+      window.dispatchEvent(new CustomEvent('celebrate-complete', { detail: { count: 80 } }))
       const studySessionCount = parseInt(localStorage.getItem('completed_study_sessions_count') || '0') + 1
       localStorage.setItem('completed_study_sessions_count', String(studySessionCount))
       if (studySessionCount % 5 === 0) {
@@ -100,6 +105,7 @@ export function useTimerCompletion({
     setActiveTaskId,
     targetSessionsPerCycle,
     focusNotificationsEnabled,
+    desktopNativeNotificationsEnabled,
     completingRef,
     setCompletedSessionsInCycle,
     setIsLongBreak,

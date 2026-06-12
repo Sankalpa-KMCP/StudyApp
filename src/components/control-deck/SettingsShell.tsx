@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react'
 import { TabPageShell } from '../shared/TabPageShell'
-import { SettingsSectionNav, scrollToSettingsSection } from './SettingsSectionNav'
-
-export { scrollToSettingsSection }
+import { SettingsSectionNav } from './SettingsSectionNav'
 
 interface SettingsShellProps {
   banners?: ReactNode

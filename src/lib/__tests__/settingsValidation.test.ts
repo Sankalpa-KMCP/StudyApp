@@ -28,6 +28,8 @@ describe('settingsValidation', () => {
   it('validates ambientSoundPreset enum', () => {
     expect(validateSetting('ambientSoundPreset', 'rain')).toEqual({ ok: true, value: 'rain' })
     expect(validateSetting('ambientSoundPreset', 'white-noise')).toEqual({ ok: true, value: 'white-noise' })
+    expect(validateSetting('ambientSoundPreset', 'cafe')).toEqual({ ok: true, value: 'cafe' })
+    expect(validateSetting('ambientSoundPreset', 'brown-noise')).toEqual({ ok: true, value: 'brown-noise' })
     expect(validateSetting('ambientSoundPreset', 'ocean').ok).toBe(false)
   })
 

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { settingsSectionNav } from './helpers/studyApp'
 
 test('navigates to settings tab', async ({ page }) => {
   await page.goto('/')
@@ -41,8 +42,8 @@ test('classic pomodoro preset updates timer summary', async ({ page }) => {
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
   await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
 
-  await page.getByRole('button', { name: 'Focus', exact: true }).click()
-  await page.getByRole('button', { name: 'Classic' }).click()
+  await settingsSectionNav(page).getByRole('button', { name: 'Focus', exact: true }).click()
+  await page.locator('#settings-timer-focus').getByRole('button', { name: 'Classic' }).click()
 
   await expect(page.getByText(/25m focus · 5m break · 15m long · every 4 sessions/)).toBeVisible({ timeout: 5000 })
 })
