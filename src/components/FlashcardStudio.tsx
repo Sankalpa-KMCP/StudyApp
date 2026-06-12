@@ -3,7 +3,7 @@ import { Layers } from 'lucide-react'
 import type { CategoryItem, FlashcardItem } from '../db/types'
 import { useConfirm } from '../context/useConfirm'
 import { DELETE_FLASHCARD_TITLE, deleteFlashcardMessage } from '../lib/backupTerms'
-import { parseFlashcardCsv } from '../lib/flashcardImport'
+import { parseFlashcardImport } from '../lib/flashcardImport'
 import { useCategoriesMap } from '../hooks/useCategoriesMap'
 import { useFlashcardFilters } from './flashcard/useFlashcardFilters'
 import { useFlashcardStudySession } from './flashcard/useFlashcardStudySession'
@@ -92,9 +92,9 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
     return typeof id === 'number' ? id : undefined
   }
 
-  const handleImportCsv = async (file: File) => {
+  const handleImportFile = async (file: File) => {
     const text = await file.text()
-    const rows = parseFlashcardCsv(text)
+    const rows = parseFlashcardImport(text, file.name)
     if (rows.length === 0) return
     const ok = await requestConfirm({
       title: `Import ${rows.length} flashcards?`,
@@ -169,11 +169,11 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
       <input
         ref={importInputRef}
         type="file"
-        accept=".csv,text/csv"
+        accept=".csv,.txt,text/csv,text/plain"
         className="hidden"
         onChange={e => {
           const file = e.target.files?.[0]
-          if (file) void handleImportCsv(file)
+          if (file) void handleImportFile(file)
           e.target.value = ''
         }}
       />
