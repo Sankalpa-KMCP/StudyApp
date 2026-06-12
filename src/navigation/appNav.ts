@@ -1,7 +1,7 @@
 import type React from 'react'
 import { Clock, BarChart3, Calendar, Settings, Layers } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
-import { JOURNAL_TAB_SUBTITLE } from '../lib/uxTerms'
+import { JOURNAL_TAB_SUBTITLE } from '../lib/shared/uxTerms'
 
 export const SIDEBAR_COLLAPSED_KEY = 'sidebar_collapsed'
 
