@@ -6,7 +6,7 @@ import { SoundFeedbackPanel } from '../SoundFeedbackPanel'
 import { SettingsPanelProvider } from '../SettingsPanelContext'
 import { mockUpdateSetting } from './testUtils'
 
-vi.mock('../../../lib/ambientAudio', () => ({
+vi.mock('../../../lib/audio/ambientAudio', () => ({
   getSharedAudioContext: vi.fn(),
 }))
 

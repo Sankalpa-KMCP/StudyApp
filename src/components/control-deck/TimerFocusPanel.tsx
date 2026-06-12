@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
-import { MAX_STUDY_BLOCK_MINUTES } from '../../lib/timerConstants'
-import { POMODORO_PRESETS } from '../../lib/settingsSections'
-import { markDailyGoalConfigured } from '../../lib/setupChecklist'
+import { MAX_STUDY_BLOCK_MINUTES } from '../../lib/shared/timerConstants'
+import { POMODORO_PRESETS } from '../../lib/settings/settingsSections'
+import { markDailyGoalConfigured } from '../../lib/study/setupChecklist'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
@@ -18,6 +18,9 @@ export function TimerFocusPanel() {
     recentHistoryLimit,
     historyRetentionDays,
     focusNotificationsEnabled,
+    studyReminderEnabled,
+    studyReminderTime,
+    studyReminderOnlyBelowGoal,
     updateSetting,
   } = useSettingsPanel()
 
@@ -85,6 +88,31 @@ export function TimerFocusPanel() {
           <p className="settings-muted text-micro rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
             Notifications are blocked in your browser. Enable them in site settings to use focus reminders.
           </p>
+        )}
+
+        <ToggleSetting
+          label="Daily study reminder"
+          description="Nudge if you have not met your daily goal by the chosen time"
+          checked={studyReminderEnabled}
+          onChange={v => updateSetting('studyReminderEnabled', v)}
+        />
+        {studyReminderEnabled && (
+          <div className="space-y-3 pl-1">
+            <label className="block">
+              <span className="settings-label block mb-1">Reminder time</span>
+              <input
+                type="time"
+                value={studyReminderTime}
+                onChange={e => updateSetting('studyReminderTime', e.target.value)}
+                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white"
+              />
+            </label>
+            <ToggleSetting
+              label="Only if below daily goal"
+              checked={studyReminderOnlyBelowGoal}
+              onChange={v => updateSetting('studyReminderOnlyBelowGoal', v)}
+            />
+          </div>
         )}
 
         {fields.map(item => (

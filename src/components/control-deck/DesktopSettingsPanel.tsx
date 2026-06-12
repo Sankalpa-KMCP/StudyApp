@@ -1,8 +1,8 @@
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
-import { scrollToSettingsSection } from '../../lib/settingsSections'
-import { isTauri, enableDesktopAutostart, pickDesktopBackupFolder, requestDesktopNotificationPermission, setDesktopGlobalShortcuts } from '../../lib/tauri'
+import { scrollToSettingsSection } from '../../lib/settings/settingsSections'
+import { isTauri, enableDesktopAutostart, pickDesktopBackupFolder, requestDesktopNotificationPermission, setDesktopGlobalShortcuts } from '../../lib/desktop/tauri'
 
 export function DesktopSettingsPanel() {
   const {
@@ -10,6 +10,8 @@ export function DesktopSettingsPanel() {
     desktopGlobalShortcutsEnabled,
     desktopNativeNotificationsEnabled,
     desktopBackupFolderPath,
+    desktopMinimizeOnCloseEnabled,
+    desktopGlobalTimerShortcut,
     updateSetting,
     pushToast,
   } = useSettingsPanel()
@@ -32,14 +34,35 @@ export function DesktopSettingsPanel() {
         />
         <ToggleSetting
           label="Global timer shortcut"
-          description="Space toggles the timer when another app is focused (experimental)."
+          description="Toggles the timer when another app is focused (experimental)."
           checked={desktopGlobalShortcutsEnabled}
           onChange={v => {
             void (async () => {
-              await setDesktopGlobalShortcuts(v)
+              await setDesktopGlobalShortcuts(v, desktopGlobalTimerShortcut)
               updateSetting('desktopGlobalShortcutsEnabled', v)
             })()
           }}
+        />
+        <div>
+          <span className="settings-label block mb-1">Shortcut key</span>
+          <input
+            type="text"
+            value={desktopGlobalTimerShortcut}
+            onChange={e => updateSetting('desktopGlobalTimerShortcut', e.target.value)}
+            onBlur={() => {
+              if (desktopGlobalShortcutsEnabled) {
+                void setDesktopGlobalShortcuts(true, desktopGlobalTimerShortcut)
+              }
+            }}
+            className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white w-full max-w-[200px]"
+            placeholder="Space"
+          />
+        </div>
+        <ToggleSetting
+          label="Minimize to tray on close"
+          description="Closing the window hides it; use tray Quit to exit."
+          checked={desktopMinimizeOnCloseEnabled}
+          onChange={v => updateSetting('desktopMinimizeOnCloseEnabled', v)}
         />
         <ToggleSetting
           label="Native notifications"

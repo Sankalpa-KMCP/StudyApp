@@ -1,4 +1,4 @@
-import { getSharedAudioContext, type AmbientPreset } from '../../lib/ambientAudio'
+import { getSharedAudioContext, type AmbientPreset } from '../../lib/audio/ambientAudio'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'

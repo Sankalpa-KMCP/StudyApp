@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Check, Circle, Sparkles } from 'lucide-react'
 import { SettingsCard } from '../shared/settings/SettingsCard'
-import { scrollToSettingsSection } from '../../lib/settingsSections'
-import { getLastBackupExportAt } from '../../lib/backupMetadata'
-import { BACKUP_EXPORTED_EVENT, isDailyGoalConfigured } from '../../lib/setupChecklist'
+import { scrollToSettingsSection } from '../../lib/settings/settingsSections'
+import { getLastBackupExportAt } from '../../lib/backup/backupMetadata'
+import { BACKUP_EXPORTED_EVENT, isDailyGoalConfigured } from '../../lib/study/setupChecklist'
 
 const CHECKLIST_DISMISS_KEY = 'settings_setup_checklist_dismissed'
 

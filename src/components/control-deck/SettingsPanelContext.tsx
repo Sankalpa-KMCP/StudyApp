@@ -16,7 +16,8 @@ export interface SettingsBackupApi {
   exportProgress?: number
   exportStudyLogsCSV: () => void
   exportTaskCompletionLogsCSV: () => void
-  importStudyBackup: (val: string) => void
+  importStudyBackup: (val: string, options?: { mode?: 'replace' | 'merge'; passphrase?: string }) => void
+  importStudyHistoryIcs?: (val: string) => void
   resetData: () => void
   resetDataSelective: (options: {
     tasks: boolean
@@ -39,7 +40,7 @@ export interface SettingsCategoriesApi {
 interface SettingsPanelContextValue {
   updateSetting: (key: SettingsKey, val: SettingsValue) => void | Promise<boolean>
   updateSettingSafe: (key: SettingsKey, val: SettingsValue, options?: { silent?: boolean }) => Promise<boolean>
-  resetSectionDefaults: (sectionId: import('../../lib/settingsSections').SettingsSectionId) => Promise<boolean>
+  resetSectionDefaults: (sectionId: import('../../lib/settings/settingsSections').SettingsSectionId) => Promise<boolean>
   resetKeys: (keys: SettingsKey[], successMessage: string) => Promise<boolean>
   isLoading: boolean
   theme: string
@@ -69,6 +70,18 @@ interface SettingsPanelContextValue {
   developer_font: string
   enforce_lockout: boolean
   autoArchiveAncientTasks: boolean
+  autoArchiveAfterDays: number
+  lockoutMode: 'strict' | 'soft'
+  lockoutAllowedTabs: string
+  lockoutStudyOnly: boolean
+  studyReminderEnabled: boolean
+  studyReminderTime: string
+  studyReminderOnlyBelowGoal: boolean
+  schedulingAlgorithm: 'sm2' | 'fsrs'
+  locale: string
+  desktopMinimizeOnCloseEnabled: boolean
+  desktopGlobalTimerShortcut: string
+  syncFolderPath: string
   ambientSoundEnabled: boolean
   ambientSoundPreset: 'rain' | 'white-noise' | 'cafe' | 'brown-noise'
   ambientVolume: number
@@ -130,6 +143,18 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     developer_font: updater.developer_font,
     enforce_lockout: updater.enforce_lockout,
     autoArchiveAncientTasks: updater.autoArchiveAncientTasks,
+    autoArchiveAfterDays: updater.autoArchiveAfterDays,
+    lockoutMode: updater.lockoutMode,
+    lockoutAllowedTabs: updater.lockoutAllowedTabs,
+    lockoutStudyOnly: updater.lockoutStudyOnly,
+    studyReminderEnabled: updater.studyReminderEnabled,
+    studyReminderTime: updater.studyReminderTime,
+    studyReminderOnlyBelowGoal: updater.studyReminderOnlyBelowGoal,
+    schedulingAlgorithm: updater.schedulingAlgorithm,
+    locale: updater.locale,
+    desktopMinimizeOnCloseEnabled: updater.desktopMinimizeOnCloseEnabled,
+    desktopGlobalTimerShortcut: updater.desktopGlobalTimerShortcut,
+    syncFolderPath: updater.syncFolderPath,
     ambientSoundEnabled: updater.ambientSoundEnabled,
     ambientSoundPreset: updater.ambientSoundPreset,
     ambientVolume: updater.ambientVolume,
@@ -157,6 +182,7 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
       exportStudyLogsCSV: timerCtx.backup.exportStudyLogsCSV,
       exportTaskCompletionLogsCSV: timerCtx.backup.exportTaskCompletionLogsCSV,
       importStudyBackup: timerCtx.confirmImport,
+      importStudyHistoryIcs: (val: string) => { void timerCtx.backup.importStudyHistoryIcs(val) },
       resetData: timerCtx.backup.resetData,
       resetDataSelective: timerCtx.backup.resetDataSelective,
       clearSnapshots: timerCtx.backup.clearSnapshots,

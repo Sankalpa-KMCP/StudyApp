@@ -1,5 +1,5 @@
 import { useConfirm } from '../../context/useConfirm'
-import { STUDY_NOTES_RESET_KEYS } from '../../lib/settingsSections'
+import { STUDY_NOTES_RESET_KEYS } from '../../lib/settings/settingsSections'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 

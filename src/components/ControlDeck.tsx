@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { readAppHashFromLocation } from '../lib/appHashRouting'
-import { scrollToSettingsSectionWhenReady, consumePendingSettingsPanelScroll } from '../lib/settingsSections'
+import { readAppHashFromLocation } from '../lib/routing/appHashRouting'
+import { scrollToSettingsSectionWhenReady, consumePendingSettingsPanelScroll } from '../lib/settings/settingsSections'
 import { useConfirm } from '../context/useConfirm'
 import { AestheticsPanel } from './control-deck/AestheticsPanel'
 import { FlashcardsPanel } from './control-deck/FlashcardsPanel'
@@ -15,6 +15,7 @@ import { CategoriesPanel } from './control-deck/CategoriesPanel'
 import { SettingsOnboardingBanners } from './control-deck/SettingsOnboardingBanners'
 import { SettingsPanelProvider, useSettingsPanel } from './control-deck/SettingsPanelContext'
 import { SettingsShell, SettingsSection } from './control-deck/SettingsShell'
+import { useSettingsAdvancedMode } from '../hooks/useSettingsAdvancedMode'
 
 interface ControlDeckProps {
   onShowOnboarding?: () => void
@@ -23,6 +24,7 @@ interface ControlDeckProps {
 function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
   const { dailyGoalMinutes, flashcardsEnabled, resetSectionDefaults } = useSettingsPanel()
   const { requestConfirm } = useConfirm()
+  const { showAdvanced, setShowAdvanced } = useSettingsAdvancedMode()
 
   useEffect(() => {
     const { settingsSection } = readAppHashFromLocation()
@@ -52,7 +54,11 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
   )
 
   return (
-    <SettingsShell banners={banners}>
+    <SettingsShell
+      banners={banners}
+      showAdvanced={showAdvanced}
+      onShowAdvancedChange={setShowAdvanced}
+    >
       <SettingsSection id="appearance" label="Appearance">
         <AestheticsPanel />
       </SettingsSection>
@@ -64,7 +70,7 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
       >
         <TimerFocusPanel />
         <SoundFeedbackPanel />
-        <ZenLockoutPanel />
+        {showAdvanced && <ZenLockoutPanel />}
       </SettingsSection>
 
       <SettingsSection
@@ -73,14 +79,18 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
         onResetDefaults={() => void handleSectionReset('study')}
       >
         <FlashcardsPanel />
-        <NotesSettingsPanel />
-        <AlgorithmPanel />
-        <CategoriesPanel />
+        {showAdvanced && (
+          <>
+            <NotesSettingsPanel />
+            <AlgorithmPanel />
+            <CategoriesPanel />
+          </>
+        )}
       </SettingsSection>
 
       <SettingsSection id="data" label="Data">
         <BackupVaultPanel />
-        <DesktopSettingsPanel />
+        {showAdvanced && <DesktopSettingsPanel />}
       </SettingsSection>
     </SettingsShell>
   )

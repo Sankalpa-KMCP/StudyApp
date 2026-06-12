@@ -9,7 +9,7 @@ import { NotesSettingsPanel } from '../NotesSettingsPanel'
 import { BackupVaultPanel } from '../BackupVaultPanel'
 import { FlashcardsPanel } from '../FlashcardsPanel'
 import { DesktopSettingsPanel } from '../DesktopSettingsPanel'
-import * as tauri from '../../../lib/tauri'
+import * as tauri from '../../../lib/desktop/tauri'
 import { SettingsOnboardingBanners } from '../SettingsOnboardingBanners'
 import { SettingsShell, SettingsSection } from '../SettingsShell'
 
@@ -34,7 +34,7 @@ describe('control-deck panel smoke tests', () => {
         <AlgorithmPanel />
       </SettingsPanelProvider>,
     )
-    expect(screen.getByText('Spaced Repetition (SM-2)')).toBeInTheDocument()
+    expect(screen.getByText('Spaced Repetition')).toBeInTheDocument()
   })
 
   it('renders ZenLockoutPanel', () => {

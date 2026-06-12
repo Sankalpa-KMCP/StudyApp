@@ -1,18 +1,39 @@
 import type { ReactNode } from 'react'
 import { TabPageShell } from '../shared/TabPageShell'
+import { ToggleSetting } from '../shared/settings/ToggleSetting'
+import { useTranslation } from '../../i18n/useTranslation'
 import { SettingsSectionNav } from './SettingsSectionNav'
 
 interface SettingsShellProps {
   banners?: ReactNode
   children: ReactNode
+  showAdvanced?: boolean
+  onShowAdvancedChange?: (value: boolean) => void
 }
 
-export function SettingsShell({ banners, children }: SettingsShellProps) {
+export function SettingsShell({
+  banners,
+  children,
+  showAdvanced = false,
+  onShowAdvancedChange,
+}: SettingsShellProps) {
+  const { t } = useTranslation()
+
   return (
     <TabPageShell>
       {banners && (
         <div className="lg:col-span-12 flex flex-col gap-4">
           {banners}
+        </div>
+      )}
+
+      {onShowAdvancedChange && (
+        <div className="lg:col-span-12 rounded-2xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] px-4 py-3">
+          <ToggleSetting
+            label={t('showAdvancedSettings')}
+            checked={showAdvanced}
+            onChange={onShowAdvancedChange}
+          />
         </div>
       )}
 

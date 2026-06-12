@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useConfirm } from '../../context/useConfirm'
-import { APPEARANCE_ADVANCED_KEYS } from '../../lib/settingsSections'
+import { APPEARANCE_ADVANCED_KEYS } from '../../lib/settings/settingsSections'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'

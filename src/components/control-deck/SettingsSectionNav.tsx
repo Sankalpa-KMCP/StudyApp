@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { writeAppHash } from '../../lib/appHashRouting'
-import { SETTINGS_SECTIONS, scrollToSettingsSection, type SettingsSectionId } from '../../lib/settingsSections'
+import { writeAppHash } from '../../lib/routing/appHashRouting'
+import { SETTINGS_SECTIONS, scrollToSettingsSection, type SettingsSectionId } from '../../lib/settings/settingsSections'
 
 interface SettingsSectionNavProps {
   className?: string

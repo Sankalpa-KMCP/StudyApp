@@ -1,7 +1,7 @@
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
-import { STUDY_FLASHCARDS_RESET_KEYS } from '../../lib/settingsSections'
+import { STUDY_FLASHCARDS_RESET_KEYS } from '../../lib/settings/settingsSections'
 import { useConfirm } from '../../context/useConfirm'
 
 export function FlashcardsPanel() {

@@ -1,4 +1,4 @@
-import { THEME_PROFILES, DARK_THEME_PRESETS, LIGHT_THEME_PRESETS } from '../../lib/theme'
+import { THEME_PROFILES, DARK_THEME_PRESETS, LIGHT_THEME_PRESETS } from '../../lib/theme/theme'
 import type { SettingsKey, SettingsValue } from '../../db/types'
 
 interface ThemeSwatchPickerProps {
