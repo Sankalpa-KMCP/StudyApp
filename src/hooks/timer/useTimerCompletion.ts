@@ -11,6 +11,7 @@ interface UseTimerCompletionOptions {
   playChime: () => void
   createDatabaseSnapshot: () => Promise<void>
   focusNotificationsEnabled: boolean
+  desktopNativeNotificationsEnabled?: boolean
   activeTaskId: number | null
   setActiveTaskId: (id: number | null) => void
   targetSessionsPerCycle: number
@@ -25,6 +26,7 @@ export function useTimerCompletion({
   playChime,
   createDatabaseSnapshot,
   focusNotificationsEnabled,
+  desktopNativeNotificationsEnabled = false,
   activeTaskId,
   setActiveTaskId,
   targetSessionsPerCycle,
@@ -54,7 +56,9 @@ export function useTimerCompletion({
     })
 
     playChime()
-    if (focusNotificationsEnabled) {
+    if (desktopNativeNotificationsEnabled) {
+      sendFocusBlockCompleteNotification(mode, { useDesktopNative: true })
+    } else if (focusNotificationsEnabled) {
       sendFocusBlockCompleteNotification(mode)
     }
     devLog('timer', 'session-complete', { mode, elapsed })
@@ -101,6 +105,7 @@ export function useTimerCompletion({
     setActiveTaskId,
     targetSessionsPerCycle,
     focusNotificationsEnabled,
+    desktopNativeNotificationsEnabled,
     completingRef,
     setCompletedSessionsInCycle,
     setIsLongBreak,

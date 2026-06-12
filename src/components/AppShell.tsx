@@ -13,13 +13,15 @@ import { CardsTab } from './tabs/CardsTab'
 import { SettingsTab } from './tabs/SettingsTab'
 import { db } from '../db/db'
 import { useStudyData, useStudyUI } from '../context/useStudyApp'
-import { useStudyTimerContext } from '../context/studyTimerContext'
+import { useStudyTimerContext, useStudyTimerDisplay } from '../context/studyTimerContext'
 import { E2eCrashProbe } from './E2eCrashProbe'
 import { OnboardingModal } from './OnboardingModal'
 import { countDueFlashcards } from './flashcard/flashcardDue'
 import { getEffectiveDailyGoal, getTodayCategoryStudyMinutes } from '../lib/studyDashboard'
 import { usePwaInstall } from '../hooks/usePwaInstall'
 import { useBackupReminder } from '../hooks/useBackupReminder'
+import { useAutoExport } from '../hooks/useAutoExport'
+import { initDesktopTrayBridge, isTauri, setDesktopTrayTooltip } from '../lib/tauri'
 import { buildThemeInlineStyles } from '../lib/applyThemeVars'
 import { AppShellLoadingScreen } from './app-shell/AppShellLoadingScreen'
 import { AppShellStatusBanners } from './app-shell/AppShellStatusBanners'
@@ -28,6 +30,8 @@ import { LevelUpModal } from './LevelUpModal'
 import { prefetchIdleTabChunks } from '../lib/prefetchTabChunks'
 import { ErrorBoundary } from './ErrorBoundary'
 import { CelebrationConfettiHost } from './shared/CelebrationConfettiHost'
+import { CommandPalette } from './CommandPalette'
+import type { CommandPaletteSelection } from './CommandPalette'
 
 export const AppShell = memo(function AppShell() {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
@@ -58,10 +62,20 @@ export const AppShell = memo(function AppShell() {
     recentHistory,
   } = useStudyData()
 
-  const cardsDueCount = countDueFlashcards(flashcards.flashcards)
+  const cardsDueCount = settings.flashcardsEnabled ? countDueFlashcards(flashcards.flashcards) : 0
   const pwaInstall = usePwaInstall()
   const backupReminder = useBackupReminder()
-  const { timerControls, backup } = useStudyTimerContext()
+  const { timerControls, backup, activateTask } = useStudyTimerContext()
+  const timerDisplay = useStudyTimerDisplay()
+
+  useAutoExport({
+    enabled: settings.autoExportEnabled,
+    intervalDays: settings.autoExportIntervalDays,
+    isDataReady,
+    exportBackup: () => {
+      void backup.exportStudyBackup().then(() => backupReminder.refresh())
+    },
+  })
 
   const {
     activeTab,
@@ -78,19 +92,62 @@ export const AppShell = memo(function AppShell() {
     dismissQuotaRecovery,
     isNotesOpen,
     setIsNotesOpen,
+    isCommandPaletteOpen,
+    setIsCommandPaletteOpen,
+    focusNoteId,
+    setFocusNoteId,
     scheduleDelete,
   } = useStudyUI()
+
+  const handleCommandPaletteSelect = (selection: CommandPaletteSelection) => {
+    if (selection.tab) void setActiveTab(selection.tab)
+    if (selection.taskId != null) {
+      const task = tasks.tasks.find(t => t.id === selection.taskId)
+      if (task) {
+        void setActiveTab('focus')
+        activateTask(task)
+      }
+    }
+    if (selection.noteId != null) {
+      setFocusNoteId(selection.noteId)
+      setIsNotesOpen(true)
+    }
+    if (selection.flashcardId != null) void setActiveTab('cards')
+  }
+
+  useEffect(() => {
+    void initDesktopTrayBridge()
+    const onDesktopTimerToggle = () => {
+      timerControls.setIsTimerActive(active => !active)
+    }
+    window.addEventListener('desktop-timer-toggle', onDesktopTimerToggle)
+    return () => window.removeEventListener('desktop-timer-toggle', onDesktopTimerToggle)
+  }, [timerControls])
+
+  useEffect(() => {
+    if (!isTauri()) return
+    const mins = Math.floor(timerDisplay.remainingSeconds / 60)
+    const secs = timerDisplay.remainingSeconds % 60
+    const time = `${mins}:${secs.toString().padStart(2, '0')}`
+    const mode = timerControls.timerMode === 'study' ? 'Focus' : 'Break'
+    const state = timerControls.isTimerActive ? 'Running' : 'Paused'
+    void setDesktopTrayTooltip(`Study Dashboard — ${mode} ${time} (${state})`)
+  }, [
+    timerDisplay.remainingSeconds,
+    timerControls.isTimerActive,
+    timerControls.timerMode,
+  ])
 
   useEffect(() => {
     if (!isDataReady) return
     const id = window.requestIdleCallback
-      ? window.requestIdleCallback(() => prefetchIdleTabChunks())
-      : window.setTimeout(() => prefetchIdleTabChunks(), 2000)
+      ? window.requestIdleCallback(() => prefetchIdleTabChunks(settings.flashcardsEnabled))
+      : window.setTimeout(() => prefetchIdleTabChunks(settings.flashcardsEnabled), 2000)
     return () => {
       if (typeof id === 'number') window.clearTimeout(id)
       else window.cancelIdleCallback?.(id)
     }
-  }, [isDataReady])
+  }, [isDataReady, settings.flashcardsEnabled])
 
   const activeTimerCategory = timerControls.timerCategoryId !== undefined
     ? categories.categories.find(c => c.id === timerControls.timerCategoryId)
@@ -162,6 +219,7 @@ export const AppShell = memo(function AppShell() {
         timerMode={timerControls.timerMode}
         enforceLockout={settings.enforce_lockout}
         cardsDueCount={cardsDueCount}
+        flashcardsEnabled={settings.flashcardsEnabled}
         onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
         onShowOnboarding={openOnboarding}
       />
@@ -213,7 +271,7 @@ export const AppShell = memo(function AppShell() {
                   <JournalTab />
                 </ErrorBoundary>
               )}
-              {activeTab === 'cards' && (
+              {settings.flashcardsEnabled && activeTab === 'cards' && (
                 <ErrorBoundary fallbackLabel="Cards">
                   <CardsTab />
                 </ErrorBoundary>
@@ -239,7 +297,17 @@ export const AppShell = memo(function AppShell() {
       />
 
       <ReflectionModalContainer studyBlockDurationMinutes={settings.studyBlockDurationMinutes} />
-      <HotkeyModal isOpen={isHotkeyHudOpen} onClose={() => setIsHotkeyHudOpen(false)} />
+      <HotkeyModal isOpen={isHotkeyHudOpen} onClose={() => setIsHotkeyHudOpen(false)} flashcardsEnabled={settings.flashcardsEnabled} />
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onSelect={handleCommandPaletteSelect}
+        tasks={tasks.tasks}
+        notes={quickNotes.notes}
+        flashcards={flashcards.flashcards}
+        categories={categories.categories}
+        flashcardsEnabled={settings.flashcardsEnabled}
+      />
       <OnboardingModal
         isOpen={showOnboarding}
         onClose={handleCloseOnboarding}
@@ -263,7 +331,11 @@ export const AppShell = memo(function AppShell() {
 
       <QuickNotesDrawer
         isOpen={isNotesOpen}
-        onClose={() => setIsNotesOpen(false)}
+        onClose={() => {
+          setIsNotesOpen(false)
+          setFocusNoteId(null)
+        }}
+        focusNoteId={focusNoteId}
         categories={categories.categories}
         addCategory={categories.addCategory}
         deleteCategory={categories.deleteCategory}
@@ -282,6 +354,7 @@ export const AppShell = memo(function AppShell() {
           timerMode={timerControls.timerMode}
           enforceLockout={settings.enforce_lockout}
           cardsDueCount={cardsDueCount}
+          flashcardsEnabled={settings.flashcardsEnabled}
         />
       )}
       <CelebrationConfettiHost />

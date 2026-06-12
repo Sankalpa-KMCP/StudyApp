@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { db } from '../db/db'
-import { exportStudyBackupFile, collectStudyBackupPayload, downloadStudyBackup } from '../lib/backupExport'
+import { collectStudyBackupPayload, downloadStudyBackup } from '../lib/backupExport'
+import { isTauri, writeBackupToDesktopFolder } from '../lib/tauri'
 import { setLastBackupExportAt } from '../lib/backupMetadata'
 import { canShareStudyBackup, shareStudyBackup } from '../lib/backupShare'
 import { buildStudyHistoryIcs, downloadIcs } from '../lib/icsExport'
@@ -77,7 +78,15 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
     try {
       setIsExporting(true)
       setExportProgress(0)
-      await exportStudyBackupFile('study-vault', setExportProgress)
+      const payload = await collectStudyBackupPayload(setExportProgress)
+      downloadStudyBackup(payload, 'study-vault')
+      if (isTauri()) {
+        const folderRow = await db.settings.get('desktopBackupFolderPath')
+        const folder = typeof folderRow?.value === 'string' ? folderRow.value : ''
+        if (folder) {
+          await writeBackupToDesktopFolder(folder, payload)
+        }
+      }
       setLastBackupExportAt()
       pushToast('BACKUP', BACKUP_EXPORT_COMPLETE)
     } catch (err) {
