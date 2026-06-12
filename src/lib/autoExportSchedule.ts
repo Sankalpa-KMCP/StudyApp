@@ -6,6 +6,6 @@ export function shouldRunAutoExport(
   now = Date.now(),
 ): boolean {
   if (intervalDays <= 0) return false
-  if (lastExportAt === null) return true
+  if (lastExportAt === null) return false
   return (now - lastExportAt) / MS_PER_DAY >= intervalDays
 }

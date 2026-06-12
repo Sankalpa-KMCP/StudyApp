@@ -4,8 +4,8 @@ import { shouldRunAutoExport } from '../autoExportSchedule'
 describe('shouldRunAutoExport', () => {
   const now = Date.UTC(2026, 5, 12)
 
-  it('returns true when never exported', () => {
-    expect(shouldRunAutoExport(null, 7, now)).toBe(true)
+  it('returns false when never exported (requires a prior manual export)', () => {
+    expect(shouldRunAutoExport(null, 7, now)).toBe(false)
   })
 
   it('returns false when interval not elapsed', () => {
