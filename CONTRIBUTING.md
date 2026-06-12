@@ -46,6 +46,8 @@ On pushes to `master` (excluding screenshot-only commits), CI rebuilds the app, 
 
 **v8 note:** On upgrade from v7, missing `flashcardsEnabled` is set to `true` (preserves Cards tab for existing users). Fresh installs default to `false` via `SETTINGS_DEFAULTS`.
 
+**v9–v10:** v9 adds optional `taskId` on history entries; v10 adds `recurrenceParentId` on tasks. See [`src/db/db.ts`](src/db/db.ts) for full migration chain.
+
 ## E2E helpers
 
 Shared utilities live in [`e2e/helpers/studyApp.ts`](e2e/helpers/studyApp.ts):

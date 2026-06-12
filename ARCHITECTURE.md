@@ -90,6 +90,34 @@ flowchart LR
 
 Import hooks from `db/hooks` — not legacy shims.
 
+## Layer rules
+
+| Layer | May import |
+|-------|------------|
+| `db/repositories`, `db/hooks` | `db/db` (Dexie instance) |
+| `hooks`, `components`, `lib` | `db/repositories`, `db/hooks`, `db/types` — **not** `db/db` |
+| Tests | `db/db` allowed for setup/teardown |
+
+ESLint enforces `no-restricted-imports` on `components`, `hooks`, and `lib`. Bulk backup/merge operations live in `db/repositories/database.ts`.
+
+Tab-gated analytics/journal work uses `useLazyStudyFeatures(activeTab)` from `StudyDataProvider`.
+
+Dexie schema version: **10** (`db.verno`).
+
+## `lib/` layout
+
+| Folder | Contents |
+|--------|----------|
+| `lib/backup/` | Vault export/import, checksum, crypto, merge |
+| `lib/export/` | ICS and weekly report export |
+| `lib/theme/` | Theme profiles, CSS variables, fonts |
+| `lib/desktop/` | Tauri bridge, native notifications, wake lock |
+| `lib/audio/` | Ambient sound engine |
+| `lib/routing/` | Hash routing, tab sync, prefetch, command palette search |
+| `lib/settings/` | Settings validation and section registry |
+| `lib/study/` | Study dashboard math, recurrence, timer helpers |
+| `lib/shared/` | UX terms, constants, dev logger |
+
 ## PWA / offline
 
 - Service worker precaches the app shell (`vite-plugin-pwa`).

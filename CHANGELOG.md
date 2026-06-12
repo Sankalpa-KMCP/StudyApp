@@ -4,6 +4,8 @@
 
 | Version | Changes |
 |---------|---------|
+| **v10** | Task/category timer overrides, recurring tasks, flashcard images, FSRS fields |
+| **v9** | Optional `taskId` on `history` entries |
 | **v8** | Add optional `flashcardsEnabled` setting (default true for migrations, false for new installs) |
 | **v7** | Remove orphaned ambient audio settings keys from `settings` table |
 | **v6** | `history.createdAt`, `studyBlockDurationMinutes` setting, `snapshots` table, pre-migration auto-backup |
@@ -18,6 +20,19 @@
 - **DB schema v8** (Dexie `db.verno`) is the **IndexedDB migration** version — these are intentionally separate.
 
 ## [Unreleased]
+
+### Added
+- Configurable auto-archive threshold (`autoArchiveAfterDays`)
+- Command palette actions (toggle timer, zen, export backup, hotkeys, review cards)
+- Task-linked session history (Dexie v9 `taskId` on history entries)
+- Per-task analytics, category goal trends, weekly report export (CSV/Markdown)
+- Encrypted `.studybackup` v4, merge import, ICS import, sync folder workflow
+- Smarter focus lockout modes, study reminders, per-entity timer presets
+- Recurring tasks, FSRS scheduling option, rich flashcard markdown/images
+- Journal search in command palette; Tauri minimize-on-close and configurable shortcuts
+- i18n (English + stub locale), mobile focus parity, PWA offline documentation
+
+## [1.1.0] - 2026-06-12
 
 ### Added
 - Command palette (Ctrl/Cmd+K) for tasks, notes, flashcards, and tab navigation

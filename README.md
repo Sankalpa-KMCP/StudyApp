@@ -24,7 +24,7 @@ _Cards screenshot requires enabling flashcards in Settings → Study._
 
 ### Known limits
 
-- **English-only UI** — no localization layer in this build.
+- **Localization** — English UI with an i18n-ready string catalog in `src/i18n/locales/en.json`; additional locales can be added without restructuring components.
 - **Local-first** — no cloud sync; use `.studybackup` vault export/import for cross-device transfer.
 - **Private license** — not open source (see [License](#license)).
 - **Ambient soundscapes** — procedural rain, white noise, café, and brown-noise presets (not sampled audio files).
@@ -101,7 +101,7 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 
 - **History entries** include `createdAt` (epoch ms) for reliable date filtering, plus a human-readable `timestamp` for display.
 - **Emergency snapshots** are stored in IndexedDB (`snapshots` table), keeping the last 3 automatic backups.
-- **Schema version:** 8 (Dexie `db.verno` — IndexedDB migration version).
+- **Schema version:** 10 (Dexie `db.verno` — IndexedDB migration version).
 - **Backup `version: 3`** in `.studybackup` JSON exports is the **export file format** revision (adds `checksumSha256`; imports still accept v2). Separate from the DB schema version above.
 - See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
