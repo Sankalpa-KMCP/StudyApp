@@ -1,72 +1,70 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { MAX_STUDY_BLOCK_MINUTES } from '../lib/timerConstants'
-import { Play, Pause, Check, Sparkles, Heart, X, Sun } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { MAX_STUDY_BLOCK_MINUTES } from '../lib/shared/timerConstants'
+import { Sparkles, Heart, X, Sun } from 'lucide-react'
 import { Button } from './shared/Button'
 import { PanelCard } from './shared/PanelCard'
 import { PanelHeader } from './shared/PanelHeader'
 import { SelectionChip } from './shared/SelectionChip'
+import { useTranslation } from '../i18n/useTranslation'
 import {
-  END_BREAK_EARLY,
   FOCUS_MODE,
-  HOTKEY_HINT,
   NO_FOCUS_TARGET,
-  SESSIONS_BEFORE_LONG_BREAK,
   STUDY_BLOCK_COMPLETE,
   WORKING_ON,
-} from '../lib/uxTerms'
-import type { SettingsKey, SettingsValue, TaskItem } from '../db/types'
+} from '../lib/shared/uxTerms'
+import type { TaskItem } from '../db/types'
+import { useStudyData } from '../context/useStudyApp'
+import { useStudyTimerContext, useStudyTimerDisplay } from '../context/studyTimerContext'
+import { TimerDisplay } from './focus/TimerDisplay'
+import { TimerControls } from './focus/TimerControls'
+import { SessionProgress } from './focus/SessionProgress'
 
 interface FocusSanctuaryProps {
-  timerMode: 'study' | 'break'
-  isTimerActive: boolean
-  setIsTimerActive: React.Dispatch<React.SetStateAction<boolean>>
-  remainingSeconds: number
-  secondsElapsed: number
-  progress: number
-  isLongBreak: boolean
-  completedSessionsInCycle: number
-  targetSessionsPerCycle: number
-  handleModeSwitch: (mode: 'study' | 'break') => void
-  completeSession: () => void
-  extendSession: () => void
-  skipBreak: () => void
+  activeTask?: TaskItem | null
   setIsZenMode: (zen: boolean) => void
   onUserGesture?: () => void
-  showReflectionModal?: boolean
-  studyBlockDurationMinutes: number
-  shortBreakDurationMinutes: number
-  longBreakDurationMinutes: number
-  updateSetting: (key: SettingsKey, val: SettingsValue) => void
-  activeTask?: TaskItem | null
   onSkipBreak?: () => void
-  wakeLockActive?: boolean
+  onTimerStart?: () => void
 }
 
-export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
-  timerMode,
-  isTimerActive,
-  setIsTimerActive,
-  remainingSeconds,
-  secondsElapsed,
-  progress,
-  isLongBreak,
-  completedSessionsInCycle,
-  targetSessionsPerCycle,
-  handleModeSwitch,
-  completeSession,
-  extendSession,
-  skipBreak,
+export function FocusSanctuary({
+  activeTask = null,
   setIsZenMode,
   onUserGesture,
-  showReflectionModal = false,
-  studyBlockDurationMinutes,
-  shortBreakDurationMinutes,
-  longBreakDurationMinutes,
-  updateSetting,
-  activeTask = null,
   onSkipBreak,
-  wakeLockActive = false,
-}) => {
+  onTimerStart,
+}: FocusSanctuaryProps) {
+  const { t } = useTranslation()
+  const { settings } = useStudyData()
+  const { timerControls } = useStudyTimerContext()
+  const timerDisplay = useStudyTimerDisplay()
+
+  const {
+    timerMode,
+    isTimerActive,
+    setIsTimerActive,
+    isLongBreak,
+    completedSessionsInCycle,
+    handleModeSwitch,
+    skipBreak,
+    showReflectionModal,
+    wakeLockActive,
+  } = timerControls
+
+  const {
+    remainingSeconds,
+    secondsElapsed,
+    progress,
+  } = timerDisplay
+
+  const {
+    studyBlockDurationMinutes,
+    shortBreakDurationMinutes,
+    longBreakDurationMinutes,
+    targetSessionsPerCycle,
+    updateSetting,
+  } = settings
+
   const [showDurationAdjust, setShowDurationAdjust] = useState(false)
   const [breathTime, setBreathTime] = useState(0)
   const [wakeLockChipDismissed, setWakeLockChipDismissed] = useState(false)
@@ -78,15 +76,15 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   }, [timerMode])
 
   const handleDurationChange = (newMinutes: number) => {
-    if (!updateSetting) return
     if (timerMode === 'study') {
-      updateSetting('studyBlockDurationMinutes', newMinutes)
+      void updateSetting('studyBlockDurationMinutes', newMinutes)
     } else if (isLongBreak) {
-      updateSetting('longBreakDurationMinutes', newMinutes)
+      void updateSetting('longBreakDurationMinutes', newMinutes)
     } else {
-      updateSetting('shortBreakDurationMinutes', newMinutes)
+      void updateSetting('shortBreakDurationMinutes', newMinutes)
     }
   }
+
   const activeColor = useMemo(() => {
     if (timerMode === 'study') return 'var(--color-accent-blue)'
     if (isLongBreak) return 'var(--color-accent-green)'
@@ -100,6 +98,12 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
       ? 1.25
       : 1.25 - ((breathTime - 7) / 5) * 0.25
   }, [breathTime])
+
+  const handleToggleActive = () => {
+    onUserGesture?.()
+    if (!isTimerActive) onTimerStart?.()
+    setIsTimerActive(a => !a)
+  }
 
   return (
     <div className="grid grid-cols-1 gap-6 w-full flex-1 items-start">
@@ -123,12 +127,12 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
             <div className="flex items-center justify-between gap-2 mb-3 rounded-full border border-accent-amber/20 bg-accent-amber/10 px-3 py-1.5 text-micro font-semibold text-accent-amber">
               <span className="inline-flex items-center gap-1.5">
                 <Sun className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                Screen stays awake
+                {t('screenStaysAwake')}
               </span>
               <button
                 type="button"
                 onClick={() => setWakeLockChipDismissed(true)}
-                aria-label="Dismiss wake lock notice"
+                aria-label={t('dismissWakeLock')}
                 className="rounded-full p-0.5 hover:bg-accent-amber/20 transition-colors"
               >
                 <X className="h-3.5 w-3.5" />
@@ -147,7 +151,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                   size="md"
                   onClick={() => handleModeSwitch(mode)}
                 >
-                  {mode === 'study' ? 'Study' : 'Break'}
+                  {mode === 'study' ? t('studyTab') : t('breakTab')}
                 </SelectionChip>
               )
             })}
@@ -164,10 +168,9 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
             onClick={() => setShowDurationAdjust(v => !v)}
             className="text-micro font-semibold text-accent-blue hover:text-accent-blue/80 mb-2 transition-colors"
           >
-            {showDurationAdjust ? 'Hide length controls' : 'Adjust length'}
+            {showDurationAdjust ? t('hideLengthControls') : t('adjustLength')}
           </button>
 
-          {/* Duration Adjuster */}
           <div className={`flex flex-col items-center gap-2 mb-5 border-t border-card pt-4 ${showDurationAdjust ? '' : 'hidden'}`}>
             <span className="panel-title">
               {timerMode === 'study' ? 'Study block length' : isLongBreak ? 'Long break length' : 'Short break length'}
@@ -225,8 +228,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                 +
               </button>
             </div>
-            
-            {/* Quick Presets */}
+
             <div className="flex items-center gap-1.5 mt-1 flex-wrap justify-center">
               {(timerMode === 'study' ? [15, 25, 45, 60] : isLongBreak ? [10, 15, 20, 30] : [3, 5, 10, 15]).map(mins => {
                 const currentVal =
@@ -251,139 +253,31 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
           </div>
 
           <div className="flex flex-col items-center py-2">
-            <div
-              className={`relative flex h-52 w-52 md:h-72 md:w-72 focus-timer-ring glass-hero items-center justify-center rounded-full overflow-hidden ${
-                timerMode === 'study' && isTimerActive ? 'focus-timer-ring--active' : ''
-              }`}
-              style={{ '--timer-ring-color': activeColor } as React.CSSProperties}
-            >
-              {/* Spherical Radial Glow */}
-              <div 
-                className="absolute inset-[3%] rounded-full opacity-15 blur-2xl pointer-events-none transition-all duration-700 ease-out" 
-                style={{
-                  background: `radial-gradient(circle, ${activeColor} 0%, transparent 70%)`
-                }} 
-              />
-              <svg className="absolute h-[94%] w-[94%] -rotate-90 overflow-visible" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="2" />
-                <circle
-                  cx="60" cy="60" r="50"
-                  fill="none"
-                  stroke={activeColor}
-                  strokeWidth="4.5"
-                  strokeLinecap="round"
-                  strokeDasharray="314.16"
-                  strokeDashoffset={String(314.16 * (1 - progress))}
-                  style={{ 
-                    transition: 'stroke-dashoffset 0.35s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s',
-                    filter: `drop-shadow(0 0 8px ${activeColor})`
-                  }}
-                />
-              </svg>
+            <TimerDisplay
+              remainingSeconds={remainingSeconds}
+              progress={progress}
+              timerMode={timerMode}
+              isLongBreak={isLongBreak}
+              isTimerActive={isTimerActive}
+              activeColor={activeColor}
+            />
 
-              <div className="text-center z-10 select-none" aria-live="polite" aria-atomic="true">
-                <p 
-                  className="text-display font-display text-primary tabular-nums timer-text-glow"
-                  style={{ '--timer-glow-color': activeColor } as React.CSSProperties}
-                  role="timer"
-                >
-                  {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
-                </p>
-                <span className="timer-mode-badge mt-3">
-                  <span className="timer-mode-badge__dot" aria-hidden />
-                  {timerMode === 'study' ? 'Study block' : isLongBreak ? 'Long break' : 'Short break'}
-                </span>
-              </div>
-            </div>
+            <TimerControls
+              timerMode={timerMode}
+              isTimerActive={isTimerActive}
+              secondsElapsed={secondsElapsed}
+              activeColor={activeColor}
+              onToggleActive={handleToggleActive}
+              onExtend={timerControls.extendSession}
+              onComplete={() => { void timerControls.completeSession() }}
+              onSkipBreak={onSkipBreak}
+              skipBreak={skipBreak}
+            />
 
-            <div className="flex flex-col items-center gap-3 mt-7 select-none w-full max-w-xs">
-              <div className="flex items-center gap-3 flex-wrap justify-center w-full">
-              {timerMode === 'break' && (
-                <button
-                  onClick={onSkipBreak ?? skipBreak}
-                  className="px-4 py-2.5 rounded-full text-xs font-bold border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all ios-active-scale cursor-pointer"
-                >
-                  {END_BREAK_EARLY}
-                </button>
-              )}
-
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() => { onUserGesture?.(); setIsTimerActive(a => !a) }}
-                aria-label={isTimerActive ? 'Pause timer' : 'Start timer'}
-                className={`hidden md:flex h-14 w-14 !p-0 items-center justify-center rounded-full !border-0 ${!isTimerActive ? 'timer-cta-idle' : ''}`}
-                style={{ backgroundColor: activeColor, ['--timer-cta-color' as string]: activeColor }}
-              >
-                {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
-              </Button>
-
-              {(isTimerActive || secondsElapsed > 0) && (
-                <>
-                  <button
-                    onClick={extendSession}
-                    className="hidden md:inline-flex px-4 py-2.5 rounded-full text-xs font-bold border border-accent-purple/20 bg-accent-purple/10 hover:bg-accent-purple/20 text-accent-purple transition-all ios-active-scale cursor-pointer"
-                  >
-                    +5 Min
-                  </button>
-                  <button
-                    onClick={completeSession}
-                    className="hidden md:flex items-center gap-1.5 rounded-full surface-track text-primary border border-card px-4 py-2.5 text-xs font-semibold hover:surface-subtle transition-all ios-active-scale cursor-pointer"
-                  >
-                    <Check className="h-4 w-4 text-accent-green stroke-[2.5]" />
-                    <span>Complete</span>
-                  </button>
-                </>
-              )}
-              </div>
-
-              <button
-                onClick={() => { onUserGesture?.(); setIsTimerActive(a => !a) }}
-                aria-label={isTimerActive ? 'Pause timer' : 'Start timer'}
-                className={`md:hidden w-full max-w-xs py-3.5 rounded-full text-sm font-bold text-on-accent transition-all ios-active-scale cursor-pointer shadow-md ${!isTimerActive ? 'timer-cta-idle' : ''}`}
-                style={{ backgroundColor: activeColor, ['--timer-cta-color' as string]: activeColor }}
-              >
-                {isTimerActive ? 'Pause focus' : 'Start focus'}
-              </button>
-
-              {(isTimerActive || secondsElapsed > 0) && (
-                <div className="flex md:hidden items-center gap-2 w-full">
-                  <button
-                    onClick={extendSession}
-                    className="flex-1 px-4 py-2.5 rounded-full text-xs font-bold border border-accent-purple/20 bg-accent-purple/10 text-accent-purple transition-all ios-active-scale cursor-pointer"
-                  >
-                    +5 Min
-                  </button>
-                  <button
-                    onClick={completeSession}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-full surface-track text-primary border border-card px-4 py-2.5 text-xs font-semibold transition-all ios-active-scale cursor-pointer"
-                  >
-                    <Check className="h-4 w-4 text-accent-green stroke-[2.5]" />
-                    <span>Complete</span>
-                  </button>
-                </div>
-              )}
-              <p className="text-micro text-muted/80 hidden md:block">{HOTKEY_HINT}</p>
-            </div>
-
-            <div className="flex flex-col items-center gap-1 mt-5 select-none">
-              <div className="flex items-center gap-3 text-label text-white/40 font-bold uppercase tracking-wider">
-                <span>{SESSIONS_BEFORE_LONG_BREAK}:</span>
-                <div className="flex items-center gap-1.5">
-                  {Array.from({ length: targetSessionsPerCycle }, (_, i) => (
-                    <span
-                      key={i}
-                      className={`h-2 w-2 rounded-full transition-all duration-300 border ${
-                        i < completedSessionsInCycle
-                          ? 'bg-accent-amber border-accent-amber'
-                          : 'bg-transparent border-white/10'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-              <p className="text-micro text-white/35">Dots = sessions before long break</p>
-            </div>
+            <SessionProgress
+              completedSessionsInCycle={completedSessionsInCycle}
+              targetSessionsPerCycle={targetSessionsPerCycle}
+            />
           </div>
 
           {timerMode !== 'study' && (
