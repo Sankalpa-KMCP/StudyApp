@@ -46,6 +46,7 @@ export function useStudyTimerState(pushToast: PushToast) {
     activeTaskId,
     setActiveTaskId,
     focusNotificationsEnabled: settings.focusNotificationsEnabled,
+    desktopNativeNotificationsEnabled: settings.desktopNativeNotificationsEnabled,
   })
 
   const { controls: timerControls, display: timerDisplay } = engine
@@ -53,6 +54,7 @@ export function useStudyTimerState(pushToast: PushToast) {
   useAmbientSound({
     enabled: settings.ambientSoundEnabled,
     preset: settings.ambientSoundPreset,
+    volumePercent: settings.ambientVolume,
     isTimerActive: timerControls.isTimerActive,
     timerMode: timerControls.timerMode,
   })
