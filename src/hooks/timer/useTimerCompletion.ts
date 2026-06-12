@@ -59,6 +59,7 @@ export function useTimerCompletion({
     }
     devLog('timer', 'session-complete', { mode, elapsed })
     if (mode === 'study') {
+      window.dispatchEvent(new CustomEvent('celebrate-complete', { detail: { count: 80 } }))
       const studySessionCount = parseInt(localStorage.getItem('completed_study_sessions_count') || '0') + 1
       localStorage.setItem('completed_study_sessions_count', String(studySessionCount))
       if (studySessionCount % 5 === 0) {

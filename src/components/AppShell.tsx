@@ -27,6 +27,7 @@ import { AppToastOverlay } from './app-shell/AppToastOverlay'
 import { LevelUpModal } from './LevelUpModal'
 import { prefetchControlDeck } from '../lib/prefetchControlDeck'
 import { ErrorBoundary } from './ErrorBoundary'
+import { CelebrationConfetti } from './shared/CelebrationConfetti'
 
 export const AppShell = memo(function AppShell() {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
@@ -283,6 +284,7 @@ export const AppShell = memo(function AppShell() {
           cardsDueCount={cardsDueCount}
         />
       )}
+      <CelebrationConfetti />
     </div>
   )
 })
