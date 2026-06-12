@@ -67,3 +67,33 @@
 [data-reduce-effects="true"] .ios-active-scale:active {
   transform: none;
 }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  border-radius: 99px;
+  height: 6px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  border: 0.5px solid color-mix(in srgb, var(--color-text-primary) 20%, transparent);
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+  transition: transform 0.1s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+[data-reduce-effects="true"] input[type="range"]::-webkit-slider-thumb:hover {
+  transform: none;
+}
