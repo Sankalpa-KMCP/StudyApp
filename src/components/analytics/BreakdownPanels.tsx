@@ -72,7 +72,7 @@ export function BreakdownPanels({
           </div>
           </>
         ) : (
-          <p className="py-12 text-center text-xs italic text-white/30">Configure categories and complete focus blocks.</p>
+          <p className="py-12 text-center text-xs italic text-muted">Configure categories and complete focus blocks.</p>
         )}
       </PanelCard>
 
@@ -104,7 +104,7 @@ export function BreakdownPanels({
           </div>
         ) : (
           <div className="flex h-24 items-center justify-center text-center">
-            <p className="text-xs italic text-white/30">Log mood in the Journal tab to see distribution.</p>
+            <p className="text-xs italic text-muted">Log mood in the Journal tab to see distribution.</p>
           </div>
         )}
       </PanelCard>
@@ -121,13 +121,13 @@ export function BreakdownPanels({
           ].map(insight => {
             const Icon = insight.icon
             return (
-              <div key={insight.label} className="rounded-xl border border-white/5 bg-black/20 p-2.5 hover:border-white/10 transition-all flex items-center gap-3">
+              <div key={insight.label} className="rounded-xl border border-card surface-subtle p-2.5 hover:border-card transition-all flex items-center gap-3">
                 <div className={`h-7.5 w-7.5 rounded-full flex items-center justify-center shrink-0 ${insight.bg}`}>
                   <Icon className={`h-3.5 w-3.5 ${insight.color}`} />
                 </div>
                 <div className="min-w-0 flex-1 flex justify-between items-center">
-                  <p className="text-[9px] font-bold tracking-wider text-white/40 uppercase">{insight.label}</p>
-                  <p className="text-xs font-extrabold text-white truncate">{insight.value}</p>
+                  <p className="text-micro font-bold tracking-wider text-muted uppercase">{insight.label}</p>
+                  <p className="text-xs font-extrabold text-primary truncate">{insight.value}</p>
                 </div>
               </div>
             )

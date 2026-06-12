@@ -26,7 +26,7 @@ export function FirstSessionBanner({ onDismiss }: FirstSessionBannerProps) {
         <button
           type="button"
           onClick={onDismiss}
-          className="shrink-0 rounded-full p-1.5 text-muted hover:text-primary hover:bg-white/5 transition-colors ios-active-scale"
+          className="shrink-0 rounded-full p-1.5 text-muted hover:text-primary hover:surface-subtle transition-colors ios-active-scale"
           aria-label={t('firstSessionDismiss')}
         >
           <X className="h-4 w-4" />

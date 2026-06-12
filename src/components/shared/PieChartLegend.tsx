@@ -22,13 +22,13 @@ export function PieChartLegend({ items, className = '' }: PieChartLegendProps) {
           ) : (
             <div className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
           )}
-          <span className="text-white/90 flex-1 truncate">{item.name}</span>
-          <span className="text-white/60 font-mono">
+          <span className="text-primary flex-1 truncate">{item.name}</span>
+          <span className="text-secondary font-mono">
             {item.value}
             {item.unit ?? ''}
           </span>
           {item.percentage !== undefined && (
-            <span className="text-white/40 font-mono text-[9px]">({item.percentage}%)</span>
+            <span className="text-muted font-mono text-[9px]">({item.percentage}%)</span>
           )}
         </div>
       ))}

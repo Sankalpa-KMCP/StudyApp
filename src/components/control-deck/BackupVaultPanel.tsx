@@ -168,7 +168,7 @@ export function BackupVaultPanel() {
             onChange={e => { e.stopPropagation(); setImportPassphrase(e.target.value) }}
             onClick={e => e.stopPropagation()}
             placeholder="Passphrase (encrypted backups)"
-            className="mt-2 w-full max-w-xs rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[10px] text-white"
+            className="mt-2 w-full max-w-xs rounded-lg border border-card surface-subtle px-2 py-1 text-micro text-primary"
           />
         </div>
       </div>
@@ -230,7 +230,7 @@ export function BackupVaultPanel() {
                 value={encryptPassphrase.trim()}
                 onChange={e => setEncryptPassphrase(e.target.value)}
                 placeholder="Passphrase"
-                className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white"
+                className="mt-2 w-full rounded-lg border border-card surface-subtle px-3 py-2 text-xs text-primary"
               />
             )}
             <Button

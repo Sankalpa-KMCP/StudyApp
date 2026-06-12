@@ -61,7 +61,7 @@ export function SidebarRailContent({
         </nav>
       </div>
 
-      <footer className="hidden md:grid justify-items-center gap-2 border-t border-white/5 pt-4 select-none">
+      <footer className="hidden md:grid justify-items-center gap-2 border-t border-card pt-4 select-none">
         <SidebarActionButton
           variant="rail"
           label="Getting Started Tour"
@@ -73,7 +73,7 @@ export function SidebarRailContent({
           variant="rail"
           label="Keyboard Shortcuts"
           icon={Keyboard}
-          iconClassName="text-white/40"
+          iconClassName="text-muted"
           onClick={() => setIsHotkeyHudOpen(true)}
         />
       </footer>

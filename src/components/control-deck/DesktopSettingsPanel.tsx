@@ -54,7 +54,7 @@ export function DesktopSettingsPanel() {
                 void setDesktopGlobalShortcuts(true, desktopGlobalTimerShortcut)
               }
             }}
-            className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white w-full max-w-[200px]"
+            className="rounded-lg border border-card surface-subtle px-3 py-2 text-xs text-primary w-full max-w-[200px]"
             placeholder="Space"
           />
         </div>

@@ -33,7 +33,7 @@ export function LevelUpModal({ level, xpProgressPercent, onDismiss }: LevelUpMod
       open
       onClose={onDismiss}
       ariaLabelledby="level-up-title"
-      panelClassName="max-w-sm bg-white/5 p-6 text-center shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+      panelClassName="max-w-sm surface-subtle p-6 text-center shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
     >
       <div className="flex flex-col items-center gap-4">
         <div className="h-14 w-14 rounded-full bg-accent-amber/15 border border-accent-amber/30 flex items-center justify-center">
@@ -49,7 +49,7 @@ export function LevelUpModal({ level, xpProgressPercent, onDismiss }: LevelUpMod
             <span>XP progress</span>
             <span>{Math.round(xpProgressPercent)}%</span>
           </div>
-          <div className="h-2 w-full rounded-full bg-white/10 border border-white/10 overflow-hidden">
+          <div className="h-2 w-full rounded-full surface-track border border-card overflow-hidden">
             <div
               className="h-full bg-accent-amber transition-all duration-500"
               style={{ width: `${xpProgressPercent}%` }}

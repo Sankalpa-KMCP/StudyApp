@@ -24,7 +24,7 @@ export function RetentionChartPanel({ retentionData, tooltipStyle, className = '
         className="mb-5"
         id="analytics-retention"
       />
-      <p className="text-micro text-white/40 mb-4 -mt-2">Average recall score from card reviews</p>
+      <p className="text-micro text-muted mb-4 -mt-2">Average recall score from card reviews</p>
       {hasRetentionData ? (
         <>
         <ChartSummary>

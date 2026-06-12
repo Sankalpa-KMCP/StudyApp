@@ -104,7 +104,7 @@ export function TimerFocusPanel() {
                 type="time"
                 value={studyReminderTime}
                 onChange={e => updateSetting('studyReminderTime', e.target.value)}
-                className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white"
+                className="rounded-lg border border-card surface-subtle px-3 py-2 text-xs text-primary"
               />
             </label>
             <ToggleSetting
