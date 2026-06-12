@@ -8,7 +8,9 @@ import { RetentionChartPanel } from './analytics/RetentionChartPanel'
 import { HeatmapPanel } from './analytics/HeatmapPanel'
 import { BreakdownPanels } from './analytics/BreakdownPanels'
 import { AnalyticsEmptyHero } from './analytics/AnalyticsEmptyHero'
+import { AnalyticsRangeSelector } from './analytics/AnalyticsRangeSelector'
 import { TabPageShell, TabSection } from './shared/TabPageShell'
+import type { AnalyticsHistoryRange } from '../hooks/useAnalyticsHistoryRange'
 import {
   useHeatmapData,
   useRetentionData,
@@ -35,6 +37,9 @@ interface AnalyticsStudioProps {
   activeThemeVars: ThemeProfile
   tooltipStyle: CSSProperties
   hasChartData: boolean
+  analyticsRange: AnalyticsHistoryRange
+  analyticsRangeLabel: string
+  onAnalyticsRangeChange: (range: AnalyticsHistoryRange) => void
   onStartFocus?: () => void
 }
 
@@ -56,6 +61,9 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
   activeThemeVars,
   tooltipStyle,
   hasChartData,
+  analyticsRange,
+  analyticsRangeLabel,
+  onAnalyticsRangeChange,
   onStartFocus,
 }) => {
   const retentionData = useRetentionData(tasks, flashcards)
@@ -115,6 +123,10 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
       )}
 
       <TabSection label="Insights">
+        <AnalyticsRangeSelector range={analyticsRange} onChange={onAnalyticsRangeChange} />
+        <p className="text-micro settings-muted mb-4 -mt-2">
+          Productivity metrics below reflect {analyticsRangeLabel.toLowerCase()}. Streak and XP use all-time data.
+        </p>
         <BreakdownPanels
           categoryBreakdown={categoryBreakdown}
           moodDistribution={moodDistribution}
