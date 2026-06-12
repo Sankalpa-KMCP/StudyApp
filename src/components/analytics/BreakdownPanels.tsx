@@ -41,7 +41,7 @@ export function BreakdownPanels({
 }: BreakdownPanelsProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <PanelCard className="lg:col-span-4" aria-labelledby="analytics-subjects">
+      <PanelCard className="lg:col-span-4" aria-labelledby="analytics-subjects" interactive={true}>
         <PanelHeader title="Subject distribution" bordered={false} className="mb-5" id="analytics-subjects" />
         {categoryBreakdown.length > 0 ? (
           <>
@@ -76,7 +76,7 @@ export function BreakdownPanels({
         )}
       </PanelCard>
 
-      <PanelCard className="lg:col-span-4" aria-labelledby="analytics-mood">
+      <PanelCard className="lg:col-span-4" aria-labelledby="analytics-mood" interactive={true}>
         <PanelHeader title="Mood distribution" bordered={false} className="mb-5" id="analytics-mood" />
         {moodDistribution.some(m => m.value > 0) ? (
           <div className="flex items-center gap-8 justify-around">
@@ -109,7 +109,7 @@ export function BreakdownPanels({
         )}
       </PanelCard>
 
-      <PanelCard className="lg:col-span-4" aria-labelledby="analytics-productivity">
+      <PanelCard className="lg:col-span-4" aria-labelledby="analytics-productivity" interactive={true}>
         <PanelHeader title="Productivity metrics" bordered={false} className="mb-5" id="analytics-productivity" />
         <div className="grid grid-cols-1 gap-2.5">
           {[
