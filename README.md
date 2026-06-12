@@ -54,7 +54,8 @@ A local-first, privacy-focused study dashboard with Pomodoro timing, task tracki
 
 ### Analytics Studio
 - Weekly charts, category breakdown, retention curves
-- Streak and XP leveling from study minutes
+- Configurable productivity window (7 / 30 / 90 days or all time)
+- Streak and XP leveling from study minutes (all-time)
 
 ### Activity Ledger
 - Calendar heatmap and daily mood/notes journal
@@ -62,7 +63,14 @@ A local-first, privacy-focused study dashboard with Pomodoro timing, task tracki
 
 ### Control Deck
 - Theme, opacity, blur, timer, sound, font, and backup settings
-- Export/import `.studybackup` vault files and CSV reports
+- Export/import `.studybackup` vault files, CSV reports, and ICS calendar
+- Storage usage panel and optional history archival
+- Web Share backup on supported mobile browsers
+
+### Task & flashcard productivity
+- Task templates saved from the focus task form
+- Flashcard deck CSV import
+- Virtual scrolling for large task and flashcard lists
 
 ---
 
@@ -81,6 +89,8 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 | `shortBreakDurationMinutes` | 5 | Short break length |
 | `longBreakDurationMinutes` | 15 | Long break length |
 | `targetSessionsPerCycle` | 4 | Study sessions before long break |
+| `historyRetentionDays` | 0 | Auto-archive threshold (0 = keep all; manual sweep in Backup Vault) |
+| Backup reminder interval | 30 days | Reminds when no export; dismiss snoozes 7 days |
 
 ---
 
@@ -96,7 +106,8 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 
 | Limit | Value | Used by |
 |-------|-------|---------|
-| Recent history window | 100 entries | Analytics (`useRecentHistory`) |
+| Recent history window | 100 entries (configurable 50–500) | Timer settings (`recentHistoryLimit`) |
+| Analytics productivity window | 7d / 30d / 90d / all (default 30d) | Analytics insights (`useAnalyticsHistoryRange`) |
 | Journal history | Current calendar month | `useHistoryForMonth` |
 | Full history table | Unbounded | Backup export only (`db.history.toArray`) |
 | Auto snapshots retained | 3 | `useSessionBackup` |
@@ -111,6 +122,8 @@ Data hooks live in [`src/db/hooks/`](src/db/hooks/) (repositories + per-domain h
 
 ## Development
 
+The git repository root is the `web/` folder. If your editor workspace is the parent `study app` directory, you can run scripts from there via the root delegate `package.json` (`npm run dev` → `npm --prefix web run dev`).
+
 ```bash
 npm ci
 npm run dev
@@ -124,6 +137,7 @@ npm run test:watch
 npm run test:e2e
 npm run storybook
 npm run build-storybook
+npm run test:storybook
 npm run lint
 ```
 

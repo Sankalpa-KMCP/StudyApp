@@ -46,5 +46,7 @@ export const Database: Icon
   export const Lock: Icon
   export const ChevronRight: Icon
   export const RefreshCw: Icon
+  export const FileUp: Icon
+  export const Bookmark: Icon
 }
 

@@ -64,4 +64,13 @@ describe('useKeyboardShortcuts', () => {
     })
     expect(setIsTimerActive).toHaveBeenCalled()
   })
+
+  it('routes number-key tab jumps through lockout-aware navigation', () => {
+    const navigateToTab = vi.fn()
+    renderShortcuts({ navigateToTab })
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '2', bubbles: true }))
+    })
+    expect(navigateToTab).toHaveBeenCalledWith('cards')
+  })
 })

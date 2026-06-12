@@ -15,7 +15,7 @@ describe('focusNotifications', () => {
     const instances: unknown[] = []
     class MockNotification {
       static permission = 'granted'
-      constructor(_title: string, _options?: NotificationOptions) {
+      constructor() {
         instances.push(this)
       }
     }

@@ -2,6 +2,7 @@ import type { MutableRefObject } from 'react'
 import { useCallback, useEffect } from 'react'
 import { addRecoveredMinutes } from '../../db/repositories/dailyLogs'
 import { formatHistoryTimestamp } from '../../lib/studyDashboard'
+import { sessionRestoredMessage } from '../../lib/backupTerms'
 import type { HistoryEntry } from '../../db/types'
 
 export interface TimerShadowRefs {
@@ -35,20 +36,28 @@ export function useTimerSessionShadow({
   addHistoryEntry,
   pushToast,
 }: UseTimerSessionShadowOptions) {
+  const {
+    timerModeRef,
+    secondsElapsedRef,
+    isTimerActiveRef,
+    timerCategoryIdRef,
+    lastShadowWriteRef,
+  } = refs
+
   const writeSessionShadow = useCallback((force = false) => {
     if (!isDataReady) return
     const now = Date.now()
-    if (!force && now - refs.lastShadowWriteRef.current < 5000) return
-    refs.lastShadowWriteRef.current = now
+    if (!force && now - lastShadowWriteRef.current < 5000) return
+    lastShadowWriteRef.current = now
     const shadow = {
-      mode: refs.timerModeRef.current,
-      secondsElapsed: refs.secondsElapsedRef.current,
-      isTimerActive: refs.isTimerActiveRef.current,
-      categoryId: refs.timerCategoryIdRef.current,
+      mode: timerModeRef.current,
+      secondsElapsed: secondsElapsedRef.current,
+      isTimerActive: isTimerActiveRef.current,
+      categoryId: timerCategoryIdRef.current,
       timestamp: now,
     }
     sessionStorage.setItem('active_session_shadow', JSON.stringify(shadow))
-  }, [isDataReady, refs])
+  }, [isDataReady, timerModeRef, secondsElapsedRef, isTimerActiveRef, timerCategoryIdRef, lastShadowWriteRef])
 
   useEffect(() => {
     if (!isDataReady) return
@@ -69,7 +78,7 @@ export function useTimerSessionShadow({
             categoryId: shadow.mode === 'study' ? shadow.categoryId : undefined,
           })
           await addRecoveredMinutes(shadow.mode, elapsedMin)
-          pushToast('RESTORE', `RECOVERED ${elapsedMin}M INTERRUPTED ${shadow.mode.toUpperCase()}`)
+          pushToast('RESTORE', sessionRestoredMessage(elapsedMin, shadow.mode))
         }
         void runRestore()
       }
@@ -90,14 +99,14 @@ export function useTimerSessionShadow({
         writeSessionShadow(true)
         return
       }
-      if (refs.isTimerActiveRef.current) {
+      if (isTimerActiveRef.current) {
         syncElapsedFromWall()
         writeSessionShadow(true)
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [syncElapsedFromWall, writeSessionShadow, refs.isTimerActiveRef])
+  }, [syncElapsedFromWall, writeSessionShadow, isTimerActiveRef])
 
   return { writeSessionShadow }
 }

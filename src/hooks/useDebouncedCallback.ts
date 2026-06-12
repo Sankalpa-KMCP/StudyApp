@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef } from 'react'
+/* eslint-disable react-hooks/refs */
+import { useCallback, useEffect, useRef, useMemo } from 'react'
 
 export function useDebouncedCallback<T extends (...args: never[]) => void>(
   callback: T,
@@ -31,18 +32,24 @@ export function useDebouncedCallback<T extends (...args: never[]) => void>(
     callbackRef.current(...args)
   }, [])
 
-  const debounced = useCallback((...args: Parameters<T>) => {
-    pendingArgsRef.current = args
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    timeoutRef.current = setTimeout(() => {
-      timeoutRef.current = null
-      pendingArgsRef.current = null
-      callbackRef.current(...args)
-    }, delayMs)
-  }, [delayMs]) as T & { flush: () => void; cancel: () => void }
+  const debounced = useMemo(() => {
+    const fn = (...args: Parameters<T>) => {
+      pendingArgsRef.current = args
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null
+        pendingArgsRef.current = null
+        callbackRef.current(...args)
+      }, delayMs)
+    }
 
-  debounced.flush = flush
-  debounced.cancel = cancel
+    Object.defineProperties(fn, {
+      flush: { value: flush, writable: true, configurable: true },
+      cancel: { value: cancel, writable: true, configurable: true }
+    })
+
+    return fn as T & { flush: () => void; cancel: () => void }
+  }, [delayMs, flush, cancel])
 
   useEffect(() => () => cancel(), [cancel])
 

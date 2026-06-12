@@ -26,7 +26,7 @@ interface UseKeyboardShortcutsOptions {
   setIsZenMode: React.Dispatch<React.SetStateAction<boolean>>
   setIsHotkeyHudOpen: React.Dispatch<React.SetStateAction<boolean>>
   setActiveToast: React.Dispatch<React.SetStateAction<ToastState | null>>
-  setActiveTab?: React.Dispatch<React.SetStateAction<ActiveTab>>
+  navigateToTab?: (tab: ActiveTab) => void | Promise<void>
   toggleSidebarCollapse?: () => void
   requestConfirm?: RequestConfirm
 }
@@ -48,7 +48,7 @@ export function useKeyboardShortcuts({
   setIsZenMode,
   setIsHotkeyHudOpen,
   setActiveToast,
-  setActiveTab,
+  navigateToTab,
   toggleSidebarCollapse,
   requestConfirm,
 }: UseKeyboardShortcutsOptions) {
@@ -151,12 +151,12 @@ export function useKeyboardShortcuts({
         case '3':
         case '4':
         case '5':
-          if (inInput || !setActiveTab) break
+          if (inInput || !navigateToTab) break
           {
             const tabs: ActiveTab[] = ['focus', 'cards', 'analytics', 'journal', 'settings']
             const idx = Number(key) - 1
             if (idx < tabs.length) {
-              setActiveTab(tabs[idx])
+              void navigateToTab(tabs[idx])
             }
           }
           break
@@ -180,7 +180,7 @@ export function useKeyboardShortcuts({
     setIsZenMode,
     setIsHotkeyHudOpen,
     setActiveToast,
-    setActiveTab,
+    navigateToTab,
     toggleSidebarCollapse,
     requestConfirm,
   ])
