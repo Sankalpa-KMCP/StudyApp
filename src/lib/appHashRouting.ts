@@ -46,3 +46,10 @@ export function writeAppHash(tab: ActiveTab, settingsSection?: SettingsSectionId
     window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${next}`)
   }
 }
+
+export function resolveAppHash(tab: ActiveTab, flashcardsEnabled: boolean): ActiveTab {
+  if (tab === 'cards' && !flashcardsEnabled) {
+    return 'focus'
+  }
+  return tab
+}

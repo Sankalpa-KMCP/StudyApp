@@ -21,7 +21,10 @@ export function prefetchControlDeck() {
   prefetchTabChunk('settings')
 }
 
-export function prefetchIdleTabChunks() {
+export function prefetchIdleTabChunks(flashcardsEnabled = true) {
   const tabs: Exclude<ActiveTab, 'focus'>[] = ['analytics', 'cards', 'journal', 'settings']
-  for (const tab of tabs) prefetchTabChunk(tab)
+  for (const tab of tabs) {
+    if (tab === 'cards' && !flashcardsEnabled) continue
+    prefetchTabChunk(tab)
+  }
 }

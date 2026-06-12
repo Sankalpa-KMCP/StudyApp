@@ -80,7 +80,15 @@ export type SettingsKey =
   | 'autoArchiveAncientTasks'
   | 'ambientSoundEnabled'
   | 'ambientSoundPreset'
+  | 'ambientVolume'
+  | 'autoExportEnabled'
+  | 'autoExportIntervalDays'
+  | 'desktopAutostartEnabled'
+  | 'desktopGlobalShortcutsEnabled'
+  | 'desktopNativeNotificationsEnabled'
+  | 'desktopBackupFolderPath'
   | 'historyRetentionDays'
+  | 'flashcardsEnabled'
 
 export type SettingsValue = number | boolean | string | null
 

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import Dexie from 'dexie'
 import { db } from '../db'
 import { resetDatabase } from '../../test/dbTestUtils'
 import { parseLegacyHistoryTimestamp } from '../../lib/studyDashboard'
@@ -53,5 +54,36 @@ describe('db migration helpers', () => {
     })
     const entry = await db.history.get(id)
     expect(entry?.createdAt).toBe(before)
+  })
+
+  it('migrates from v7 to v8, setting flashcardsEnabled to true', async () => {
+    const tempDbName = 'StudyDashboardDB_migration_test'
+    await Dexie.delete(tempDbName)
+    const dbOld = new Dexie(tempDbName)
+    dbOld.version(7).stores({
+      settings: '&key, value',
+    })
+    await dbOld.open()
+    await dbOld.table('settings').put({ key: 'soundEnabled', value: true })
+    dbOld.close()
+
+    const dbNew = new Dexie(tempDbName)
+    dbNew.version(7).stores({
+      settings: '&key, value',
+    })
+    dbNew.version(8).stores({
+      settings: '&key, value',
+    }).upgrade(async tx => {
+      const settingsTable = tx.table('settings')
+      const flashcardsEnabledSetting = await settingsTable.get('flashcardsEnabled')
+      if (flashcardsEnabledSetting === undefined) {
+        await settingsTable.put({ key: 'flashcardsEnabled', value: true })
+      }
+    })
+    await dbNew.open()
+    const row = await dbNew.table('settings').get('flashcardsEnabled')
+    expect(row).toEqual({ key: 'flashcardsEnabled', value: true })
+    dbNew.close()
+    await Dexie.delete(tempDbName)
   })
 })

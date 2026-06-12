@@ -29,7 +29,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     id: 'study',
     label: 'Study',
     icon: BookOpen,
-    panelIds: ['settings-notes', 'settings-algorithm', 'settings-categories'],
+    panelIds: ['settings-flashcards', 'settings-notes', 'settings-algorithm', 'settings-categories'],
   },
   {
     id: 'data',
@@ -68,15 +68,25 @@ export const SECTION_DEFAULT_KEYS: Record<SettingsSectionId, SettingsKey[]> = {
     'developer_font',
     'ambientSoundEnabled',
     'ambientSoundPreset',
+    'ambientVolume',
     'enforce_lockout',
     'autoArchiveAncientTasks',
   ],
-  study: ['initialEasinessFactor', 'noteTagColors', 'autoArchiveAncientTasks'],
-  data: ['historyRetentionDays'],
+  study: ['flashcardsEnabled', 'initialEasinessFactor', 'noteTagColors', 'autoArchiveAncientTasks'],
+  data: [
+    'historyRetentionDays',
+    'autoExportEnabled',
+    'autoExportIntervalDays',
+    'desktopAutostartEnabled',
+    'desktopGlobalShortcutsEnabled',
+    'desktopNativeNotificationsEnabled',
+    'desktopBackupFolderPath',
+  ],
 }
 
 export const STUDY_NOTES_RESET_KEYS: SettingsKey[] = ['noteTagColors']
 export const STUDY_ALGORITHM_RESET_KEYS: SettingsKey[] = ['initialEasinessFactor']
+export const STUDY_FLASHCARDS_RESET_KEYS: SettingsKey[] = ['flashcardsEnabled']
 
 export const POMODORO_PRESETS = [
   {

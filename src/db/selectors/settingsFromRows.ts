@@ -40,8 +40,16 @@ export interface ParsedSettings {
   initialEasinessFactor: number
   autoArchiveAncientTasks: boolean
   ambientSoundEnabled: boolean
-  ambientSoundPreset: 'rain' | 'white-noise'
+  ambientSoundPreset: 'rain' | 'white-noise' | 'cafe' | 'brown-noise'
+  ambientVolume: number
+  autoExportEnabled: boolean
+  autoExportIntervalDays: number
+  desktopAutostartEnabled: boolean
+  desktopGlobalShortcutsEnabled: boolean
+  desktopNativeNotificationsEnabled: boolean
+  desktopBackupFolderPath: string
   historyRetentionDays: number
+  flashcardsEnabled: boolean
 }
 
 export const SETTINGS_DEFAULTS: ParsedSettings = {
@@ -74,7 +82,15 @@ export const SETTINGS_DEFAULTS: ParsedSettings = {
   autoArchiveAncientTasks: false,
   ambientSoundEnabled: false,
   ambientSoundPreset: 'rain',
+  ambientVolume: 50,
+  autoExportEnabled: false,
+  autoExportIntervalDays: 7,
+  desktopAutostartEnabled: false,
+  desktopGlobalShortcutsEnabled: false,
+  desktopNativeNotificationsEnabled: false,
+  desktopBackupFolderPath: '',
   historyRetentionDays: 0,
+  flashcardsEnabled: false,
 }
 
 function parseNoteTagColors(raw: string): string[] {
@@ -129,7 +145,15 @@ export function settingsFromRows(rows: SettingsRow[] | undefined): ParsedSetting
     autoArchiveAncientTasks: getValue(rows, 'autoArchiveAncientTasks', SETTINGS_DEFAULTS.autoArchiveAncientTasks),
     ambientSoundEnabled: getValue(rows, 'ambientSoundEnabled', SETTINGS_DEFAULTS.ambientSoundEnabled),
     ambientSoundPreset: getValue(rows, 'ambientSoundPreset', SETTINGS_DEFAULTS.ambientSoundPreset),
+    ambientVolume: getValue(rows, 'ambientVolume', SETTINGS_DEFAULTS.ambientVolume),
+    autoExportEnabled: getValue(rows, 'autoExportEnabled', SETTINGS_DEFAULTS.autoExportEnabled),
+    autoExportIntervalDays: getValue(rows, 'autoExportIntervalDays', SETTINGS_DEFAULTS.autoExportIntervalDays),
+    desktopAutostartEnabled: getValue(rows, 'desktopAutostartEnabled', SETTINGS_DEFAULTS.desktopAutostartEnabled),
+    desktopGlobalShortcutsEnabled: getValue(rows, 'desktopGlobalShortcutsEnabled', SETTINGS_DEFAULTS.desktopGlobalShortcutsEnabled),
+    desktopNativeNotificationsEnabled: getValue(rows, 'desktopNativeNotificationsEnabled', SETTINGS_DEFAULTS.desktopNativeNotificationsEnabled),
+    desktopBackupFolderPath: String(getValue(rows, 'desktopBackupFolderPath', SETTINGS_DEFAULTS.desktopBackupFolderPath)),
     historyRetentionDays: getValue(rows, 'historyRetentionDays', SETTINGS_DEFAULTS.historyRetentionDays),
+    flashcardsEnabled: getValue(rows, 'flashcardsEnabled', SETTINGS_DEFAULTS.flashcardsEnabled),
   } as ParsedSettings
 }
 

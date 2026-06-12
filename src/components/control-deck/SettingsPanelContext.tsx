@@ -69,8 +69,16 @@ interface SettingsPanelContextValue {
   enforce_lockout: boolean
   autoArchiveAncientTasks: boolean
   ambientSoundEnabled: boolean
-  ambientSoundPreset: 'rain' | 'white-noise'
+  ambientSoundPreset: 'rain' | 'white-noise' | 'cafe' | 'brown-noise'
+  ambientVolume: number
   historyRetentionDays: number
+  autoExportEnabled: boolean
+  autoExportIntervalDays: number
+  desktopAutostartEnabled: boolean
+  desktopGlobalShortcutsEnabled: boolean
+  desktopNativeNotificationsEnabled: boolean
+  desktopBackupFolderPath: string
+  flashcardsEnabled: boolean
   backup: SettingsBackupApi
   categories: SettingsCategoriesApi
   isDragging: boolean
@@ -123,7 +131,15 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     autoArchiveAncientTasks: updater.autoArchiveAncientTasks,
     ambientSoundEnabled: updater.ambientSoundEnabled,
     ambientSoundPreset: updater.ambientSoundPreset,
+    ambientVolume: updater.ambientVolume,
     historyRetentionDays: updater.historyRetentionDays,
+    autoExportEnabled: updater.autoExportEnabled,
+    autoExportIntervalDays: updater.autoExportIntervalDays,
+    desktopAutostartEnabled: updater.desktopAutostartEnabled,
+    desktopGlobalShortcutsEnabled: updater.desktopGlobalShortcutsEnabled,
+    desktopNativeNotificationsEnabled: updater.desktopNativeNotificationsEnabled,
+    desktopBackupFolderPath: updater.desktopBackupFolderPath,
+    flashcardsEnabled: updater.flashcardsEnabled,
     isLoading: updater.isLoading,
     updateSetting: (key, val) => { void updater.updateSettingSafe(key, val) },
     updateSettingSafe: updater.updateSettingSafe,

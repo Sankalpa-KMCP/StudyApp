@@ -28,3 +28,11 @@ export const TAB_CHROME: Record<ActiveTab, { title: string; subtitle: string }> 
 }
 
 export const ACTIVE_TAB_IDS: ActiveTab[] = NAV_TABS.map(tab => tab.id)
+
+export function getVisibleNavTabs(flashcardsEnabled: boolean) {
+  return NAV_TABS.filter(t => t.id !== 'cards' || flashcardsEnabled)
+}
+
+export function getKeyboardTabOrder(flashcardsEnabled: boolean): ActiveTab[] {
+  return getVisibleNavTabs(flashcardsEnabled).map(t => t.id)
+}

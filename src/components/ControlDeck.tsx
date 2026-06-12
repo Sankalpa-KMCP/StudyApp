@@ -3,12 +3,14 @@ import { readAppHashFromLocation } from '../lib/appHashRouting'
 import { scrollToSettingsSection } from '../lib/settingsSections'
 import { useConfirm } from '../context/useConfirm'
 import { AestheticsPanel } from './control-deck/AestheticsPanel'
+import { FlashcardsPanel } from './control-deck/FlashcardsPanel'
 import { NotesSettingsPanel } from './control-deck/NotesSettingsPanel'
 import { TimerFocusPanel } from './control-deck/TimerFocusPanel'
 import { SoundFeedbackPanel } from './control-deck/SoundFeedbackPanel'
 import { AlgorithmPanel } from './control-deck/AlgorithmPanel'
 import { ZenLockoutPanel } from './control-deck/ZenLockoutPanel'
 import { BackupVaultPanel } from './control-deck/BackupVaultPanel'
+import { DesktopSettingsPanel } from './control-deck/DesktopSettingsPanel'
 import { CategoriesPanel } from './control-deck/CategoriesPanel'
 import { SettingsOnboardingBanners } from './control-deck/SettingsOnboardingBanners'
 import { SettingsPanelProvider, useSettingsPanel } from './control-deck/SettingsPanelContext'
@@ -19,7 +21,7 @@ interface ControlDeckProps {
 }
 
 function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
-  const { dailyGoalMinutes, resetSectionDefaults } = useSettingsPanel()
+  const { dailyGoalMinutes, flashcardsEnabled, resetSectionDefaults } = useSettingsPanel()
   const { requestConfirm } = useConfirm()
 
   useEffect(() => {
@@ -58,6 +60,7 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
     <SettingsOnboardingBanners
       showHighGoalNudge={showHighGoalNudge}
       startHereDismissed={startHereDismissed}
+      flashcardsEnabled={flashcardsEnabled}
       onDismissGoalNudge={() => {
         localStorage.setItem('goal_nudge_dismissed', 'true')
         setGoalNudgeDismissed(true)
@@ -88,12 +91,14 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
         label="Study"
         onResetDefaults={() => void handleSectionReset('study')}
       >
+        <FlashcardsPanel />
         <NotesSettingsPanel />
         <AlgorithmPanel />
         <CategoriesPanel />
       </SettingsSection>
 
       <SettingsSection id="data" label="Data">
+        <DesktopSettingsPanel />
         <BackupVaultPanel />
       </SettingsSection>
     </SettingsShell>

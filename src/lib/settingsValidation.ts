@@ -3,7 +3,7 @@ import { MAX_STUDY_BLOCK_MINUTES } from './timerConstants'
 
 const UI_FONT_OPTIONS = ['Inter', 'Outfit', 'System'] as const
 const UI_DENSITY_OPTIONS = ['comfortable', 'compact'] as const
-const AMBIENT_PRESET_OPTIONS = ['rain', 'white-noise'] as const
+const AMBIENT_PRESET_OPTIONS = ['rain', 'white-noise', 'cafe', 'brown-noise'] as const
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
 
 interface NumericRule {
@@ -25,6 +25,8 @@ const NUMERIC_RULES: Partial<Record<SettingsKey, NumericRule>> = {
   backdropSaturate: { min: 100, max: 200, step: 5 },
   cardBorderOpacity: { min: 0.04, max: 0.16, step: 0.01 },
   initialEasinessFactor: { min: 1.3, max: 3.5, step: 0.1 },
+  ambientVolume: { min: 0, max: 100, step: 5 },
+  autoExportIntervalDays: { min: 1, max: 30, step: 1 },
 }
 
 function clampToStep(value: number, rule: NumericRule): number {
@@ -78,7 +80,12 @@ export function validateSetting(key: SettingsKey, value: SettingsValue): Validat
     key === 'tactile_feedback' ||
     key === 'enforce_lockout' ||
     key === 'autoArchiveAncientTasks' ||
-    key === 'ambientSoundEnabled'
+    key === 'ambientSoundEnabled' ||
+    key === 'flashcardsEnabled' ||
+    key === 'autoExportEnabled' ||
+    key === 'desktopAutostartEnabled' ||
+    key === 'desktopGlobalShortcutsEnabled' ||
+    key === 'desktopNativeNotificationsEnabled'
   ) {
     if (typeof value !== 'boolean') return { ok: false, reason: `${key} must be a boolean` }
     return { ok: true, value }
@@ -93,7 +100,7 @@ export function validateSetting(key: SettingsKey, value: SettingsValue): Validat
 
   if (key === 'ambientSoundPreset') {
     if (typeof value !== 'string' || !AMBIENT_PRESET_OPTIONS.includes(value as (typeof AMBIENT_PRESET_OPTIONS)[number])) {
-      return { ok: false, reason: 'ambientSoundPreset must be rain or white-noise' }
+      return { ok: false, reason: 'ambientSoundPreset must be rain, white-noise, cafe, or brown-noise' }
     }
     return { ok: true, value }
   }

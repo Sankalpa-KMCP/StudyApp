@@ -8,7 +8,7 @@ const AnalyticsStudio = lazy(() =>
 )
 
 export function AnalyticsTab() {
-  const { tasks, flashcards } = useStudyData()
+  const { tasks, flashcards, settings } = useStudyData()
   const { currentStreak, xpData, insights, breakdownData, journal, allLogs, analyticsRange } = useStudyAnalytics()
   const { activeThemeVars, setActiveTab } = useStudyUI()
   const { calendar } = journal
@@ -17,7 +17,7 @@ export function AnalyticsTab() {
     <Suspense fallback={<TabLoadingFallback label="analytics" />}>
       <AnalyticsStudio
         tasks={tasks.tasks}
-        flashcards={flashcards.flashcards}
+        flashcards={settings.flashcardsEnabled ? flashcards.flashcards : []}
         monthLogs={calendar.monthLogs}
         allLogs={allLogs.allLogs}
         totalMonthHours={calendar.totalMonthHours}
