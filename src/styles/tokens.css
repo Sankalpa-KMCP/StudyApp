@@ -1,1 +1,46 @@
-/* Design tokens — extended theme variables live in applyThemeVars.ts runtime injection */
+/* Semantic text, surface, and scrollbar utilities — theme vars from applyThemeVars.ts */
+
+.text-primary {
+  color: var(--color-text-primary);
+}
+
+.text-heading-primary {
+  color: var(--color-text-primary);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.border-card {
+  border-color: var(--color-border-card);
+}
+
+.modal-backdrop {
+  background-color: var(--overlay-backdrop, rgba(0, 0, 0, 0.5));
+}
+
+.surface-subtle {
+  background-color: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+}
+
+.surface-track {
+  background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, rgba(255, 255, 255, 0.12));
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, rgba(255, 255, 255, 0.25));
+}

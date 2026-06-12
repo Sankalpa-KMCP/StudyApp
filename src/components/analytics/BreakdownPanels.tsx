@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Clock, Calendar, Award, CheckCircle, Target } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { PieChartLegend } from '../shared/PieChartLegend'
@@ -30,7 +31,7 @@ interface BreakdownPanelsProps {
   estimationInsight: string
 }
 
-export function BreakdownPanels({
+export const BreakdownPanels = memo(function BreakdownPanels({
   categoryBreakdown,
   moodDistribution,
   topSubject,
@@ -136,4 +137,4 @@ export function BreakdownPanels({
       </PanelCard>
     </div>
   )
-}
+})

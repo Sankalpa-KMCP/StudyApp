@@ -631,18 +631,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   transform: translateX(2px);
 }
 
-/* Custom Scrollbar for list scroll areas */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
 /* 3D Flip Card Utilities */
 .flashcard-wrapper {
   perspective: 1000px;
@@ -886,38 +874,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   font-size: var(--text-micro);
 }
 
-.text-primary {
-  color: var(--color-text-primary);
-}
-
-.text-heading-primary {
-  color: var(--color-text-primary);
-}
-
-.text-secondary {
-  color: var(--color-text-secondary);
-}
-
-.text-muted {
-  color: var(--color-text-muted);
-}
-
-.border-card {
-  border-color: var(--color-border-card);
-}
-
-.modal-backdrop {
-  background-color: var(--overlay-backdrop, rgba(0, 0, 0, 0.5));
-}
-
-.surface-subtle {
-  background-color: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
-}
-
-.surface-track {
-  background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
-}
-
 @keyframes timer-cta-pulse {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--timer-cta-color, var(--color-accent-blue)) 35%, transparent); }
   50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--timer-cta-color, var(--color-accent-blue)) 0%, transparent); }
@@ -988,6 +944,27 @@ input[type="range"]::-webkit-slider-thumb:hover {
   --backdrop-blur: 6px;
   --backdrop-saturate: 100%;
   --card-opacity: 0.92;
+}
+
+[data-reduce-effects="true"] .dynamic-card-interactive::before,
+[data-reduce-effects="true"] .dynamic-card-interactive::after {
+  display: none;
+}
+
+[data-reduce-effects="true"] .sidebar-rail-btn:hover {
+  transform: none;
+}
+
+[data-reduce-effects="true"] .nav-tab:hover {
+  transform: none;
+}
+
+[data-reduce-effects="true"] .app-tab-panel {
+  animation: none;
+}
+
+[data-reduce-effects="true"] .timer-cta-idle {
+  animation: none;
 }
 
 @media (pointer: coarse) {
