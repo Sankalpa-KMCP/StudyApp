@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { Check, Target, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import type { CategoryItem, TaskItem } from '../../db/types'
 import { db } from '../../db/db'
@@ -13,6 +14,8 @@ const SM2_GRADES = [
 
 const COMPLETED_SECTION_KEY = 'completed_section_open'
 const COMPLETED_DISPLAY_CAP = 20
+const VIRTUALIZE_THRESHOLD = 100
+const TASK_ROW_ESTIMATE = 140
 
 interface TaskListProps {
   activeTasksList: TaskItem[]
@@ -39,9 +42,7 @@ export function TaskList({
   submitRecallGrade,
   searchQuery = '',
 }: TaskListProps) {
-  const VIRTUALIZE_THRESHOLD = 100
-  const PAGE_SIZE = 50
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const activeListRef = useRef<HTMLDivElement>(null)
   const [completedVisibleCount, setCompletedVisibleCount] = useState(COMPLETED_DISPLAY_CAP)
   const [completedOpen, setCompletedOpen] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -56,8 +57,15 @@ export function TaskList({
   const filteredCompleted = completedTasksList.filter(matchesSearch)
 
   const shouldVirtualize = filteredActive.length > VIRTUALIZE_THRESHOLD
-  const visibleTasks = shouldVirtualize ? filteredActive.slice(0, visibleCount) : filteredActive
   const visibleCompleted = filteredCompleted.slice(0, completedVisibleCount)
+
+  const activeVirtualizer = useVirtualizer({
+    count: filteredActive.length,
+    getScrollElement: () => activeListRef.current,
+    estimateSize: () => TASK_ROW_ESTIMATE,
+    overscan: 5,
+    enabled: shouldVirtualize,
+  })
 
   const toggleCompletedSection = () => {
     setCompletedOpen(prev => {
@@ -87,6 +95,15 @@ export function TaskList({
     await db.tasks.update(task.id, { subtasks })
   }
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget
+    const rect = card.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    card.style.setProperty('--mouse-x', `${x}px`)
+    card.style.setProperty('--mouse-y', `${y}px`)
+  }
+
   const renderTaskRow = (task: TaskItem, { completed = false }: { completed?: boolean } = {}) => {
     const isActive = !completed && activeTaskId === task.id
     const cat = task.categoryId !== undefined ? categoriesMap.get(task.categoryId) : undefined
@@ -106,16 +123,19 @@ export function TaskList({
       }
     }
 
+    const isInteractive = !completed && !isActive
+
     return (
       <div
         key={task.id}
         aria-current={isActive ? 'true' : undefined}
-        className={`dynamic-card flex flex-col gap-3 py-4 px-4 transition-all duration-300 mb-2 ${
+        onMouseMove={isInteractive ? handleMouseMove : undefined}
+        className={`dynamic-card flex flex-col gap-3 py-4 px-4 transition-all duration-305 mb-2 ${
           completed
             ? 'opacity-70'
             : isActive
             ? 'shadow-lg border-white/12 -translate-y-[1px] ring-1 ring-accent-blue/25 border-l-[4px] border-l-accent-blue'
-            : 'hover:-translate-y-[2px]'
+            : 'dynamic-card-interactive hover:-translate-y-[2px]'
         } ${completed || isActive ? '' : priorityBorder}`}
       >
         <div className="flex items-center justify-between gap-3.5 w-full">
@@ -319,16 +339,33 @@ export function TaskList({
             </p>
           </div>
         ) : (
-          <div className="flex flex-col">
-            {visibleTasks.map(task => renderTaskRow(task))}
-            {shouldVirtualize && visibleCount < filteredActive.length && (
-              <button
-                type="button"
-                onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-                className="mt-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-label font-semibold text-white/70 hover:bg-white/10"
+          <div ref={activeListRef} className={`flex flex-col ${shouldVirtualize ? 'max-h-[60vh] overflow-y-auto custom-scrollbar' : ''}`}>
+            {shouldVirtualize ? (
+              <div
+                style={{ height: `${activeVirtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}
               >
-                Show more ({filteredActive.length - visibleCount} remaining)
-              </button>
+                {activeVirtualizer.getVirtualItems().map(virtualRow => {
+                  const task = filteredActive[virtualRow.index]
+                  return (
+                    <div
+                      key={task.id ?? virtualRow.key}
+                      ref={activeVirtualizer.measureElement}
+                      data-index={virtualRow.index}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                    >
+                      {renderTaskRow(task)}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              filteredActive.map(task => renderTaskRow(task))
             )}
           </div>
         )}
