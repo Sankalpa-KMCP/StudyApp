@@ -49,7 +49,11 @@ export function FolderSyncPanel() {
 
   useEffect(() => {
     if (isTauri()) return
-    void getWebSyncFolderLabel().then(setWebFolderLabel)
+    let mounted = true
+    void getWebSyncFolderLabel().then(label => {
+      if (mounted) setWebFolderLabel(label)
+    })
+    return () => { mounted = false }
   }, [syncFolderPath, syncEnabled])
 
   const folderLabel = isTauri() ? syncFolderPath : webFolderLabel
