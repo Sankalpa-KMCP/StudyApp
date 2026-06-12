@@ -115,6 +115,7 @@ export function FlashcardRegistry({
                 <button
                   key={status}
                   type="button"
+                  aria-pressed={activeSpacingFilter === status}
                   onClick={() => setActiveSpacingFilter(status)}
                   className={`px-2.5 py-1 rounded-lg text-micro font-bold uppercase tracking-wider transition-all cursor-pointer ${
                     activeSpacingFilter === status ? 'bg-white/10 text-text-primary shadow-sm' : 'text-muted hover:text-text-primary'

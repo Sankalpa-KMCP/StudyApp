@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Check, Target, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, Target, AlertCircle, ChevronDown, ChevronUp, Plus } from 'lucide-react'
+import { EmptyState } from '../shared/EmptyState'
 import type { CategoryItem, TaskItem } from '../../db/types'
 import { db } from '../../db/db'
 import { SM2_HELPER } from '../../lib/uxTerms'
@@ -325,19 +326,19 @@ export function TaskList({
 
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col pr-1">
         {filteredActive.length === 0 && filteredCompleted.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 rounded-[24px] bg-black/20 text-center my-2 select-none animate-fade-in">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-white/5 mb-3 text-white/40">
-              <AlertCircle className="h-5 w-5" />
-            </div>
-            <p className="text-sm font-bold text-white/70">
-              {normalizedQuery ? 'No matching focus targets' : 'No focus targets yet'}
-            </p>
-            <p className="text-label text-white/45 mt-1.5 font-medium max-w-xs leading-relaxed">
-              {normalizedQuery
-                ? 'Try a different search term.'
-                : 'Add a focus target below to link it to your study block.'}
-            </p>
-          </div>
+          <EmptyState
+            icon={<AlertCircle className="h-8 w-8" />}
+            title={normalizedQuery ? 'No matching focus targets' : 'No focus targets yet'}
+            description={normalizedQuery
+              ? 'Try a different search term.'
+              : 'Add a focus target below to link it to your study block.'}
+            action={!normalizedQuery ? (
+              <span className="inline-flex items-center gap-1.5 text-label text-muted">
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+                Use the form above to add your first target
+              </span>
+            ) : undefined}
+          />
         ) : (
           <div ref={activeListRef} className={`flex flex-col ${shouldVirtualize ? 'max-h-[60vh] overflow-y-auto custom-scrollbar' : ''}`}>
             {shouldVirtualize ? (

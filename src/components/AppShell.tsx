@@ -25,9 +25,9 @@ import { AppShellLoadingScreen } from './app-shell/AppShellLoadingScreen'
 import { AppShellStatusBanners } from './app-shell/AppShellStatusBanners'
 import { AppToastOverlay } from './app-shell/AppToastOverlay'
 import { LevelUpModal } from './LevelUpModal'
-import { prefetchControlDeck } from '../lib/prefetchControlDeck'
+import { prefetchIdleTabChunks } from '../lib/prefetchTabChunks'
 import { ErrorBoundary } from './ErrorBoundary'
-import { CelebrationConfetti } from './shared/CelebrationConfetti'
+import { CelebrationConfettiHost } from './shared/CelebrationConfettiHost'
 
 export const AppShell = memo(function AppShell() {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
@@ -84,8 +84,8 @@ export const AppShell = memo(function AppShell() {
   useEffect(() => {
     if (!isDataReady) return
     const id = window.requestIdleCallback
-      ? window.requestIdleCallback(() => prefetchControlDeck())
-      : window.setTimeout(() => prefetchControlDeck(), 2000)
+      ? window.requestIdleCallback(() => prefetchIdleTabChunks())
+      : window.setTimeout(() => prefetchIdleTabChunks(), 2000)
     return () => {
       if (typeof id === 'number') window.clearTimeout(id)
       else window.cancelIdleCallback?.(id)
@@ -284,7 +284,7 @@ export const AppShell = memo(function AppShell() {
           cardsDueCount={cardsDueCount}
         />
       )}
-      <CelebrationConfetti />
+      <CelebrationConfettiHost />
     </div>
   )
 })

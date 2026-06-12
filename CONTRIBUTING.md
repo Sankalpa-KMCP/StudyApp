@@ -32,7 +32,7 @@ On pushes to `master` (excluding screenshot-only commits), CI rebuilds the app, 
 
 ## List virtualization
 
-`TaskList` and `FlashcardRegistry` render the first 50 items when count exceeds 100, with a **Show more** control (+50 per click).
+`TaskList` and `FlashcardRegistry` virtualize when count exceeds 100. `NoteListPanel` virtualizes above 50 notes. Completed tasks cap at 20 with a **Show more** control (+20 per click).
 
 ## CSV export safety
 

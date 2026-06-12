@@ -26,4 +26,15 @@ export default defineConfig(({ mode }) => ({
     port: 5173,
     strictPort: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/recharts')) return 'vendor-recharts'
+          if (id.includes('node_modules/dexie')) return 'vendor-dexie'
+          if (id.includes('node_modules/lucide-react')) return 'vendor-lucide'
+        },
+      },
+    },
+  },
 }))

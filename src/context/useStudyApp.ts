@@ -38,7 +38,22 @@ export function useStudyData() {
     xpData: ctx.xpData,
     pendingLevelUp: ctx.pendingLevelUp,
     dismissLevelUp: ctx.dismissLevelUp,
-  }), [ctx])
+  }), [
+    ctx.tasks,
+    ctx.history,
+    ctx.recentHistory,
+    ctx.settings,
+    ctx.todayLog,
+    ctx.flashcards,
+    ctx.quickNotes,
+    ctx.categories,
+    ctx.allLogs,
+    ctx.isDataReady,
+    ctx.currentStreak,
+    ctx.xpData,
+    ctx.pendingLevelUp,
+    ctx.dismissLevelUp,
+  ])
 }
 
 export function useStudyUI() {
@@ -102,7 +117,15 @@ export function useStudyAnalytics() {
     analyticsRange: data.analyticsRange,
     journal: data.journal,
     allLogs: data.allLogs,
-  }), [data])
+  }), [
+    data.currentStreak,
+    data.xpData,
+    data.insights,
+    data.breakdownData,
+    data.analyticsRange,
+    data.journal,
+    data.allLogs,
+  ])
 }
 
 export function useStudySettings() {

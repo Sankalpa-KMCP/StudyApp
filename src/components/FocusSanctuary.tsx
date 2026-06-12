@@ -332,7 +332,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
               <button
                 onClick={() => { onUserGesture?.(); setIsTimerActive(a => !a) }}
                 aria-label={isTimerActive ? 'Pause timer' : 'Start timer'}
-                className={`w-full max-w-xs py-3.5 rounded-full text-sm font-bold text-on-accent transition-all ios-active-scale cursor-pointer shadow-md ${!isTimerActive ? 'timer-cta-idle' : ''}`}
+                className={`md:hidden w-full max-w-xs py-3.5 rounded-full text-sm font-bold text-on-accent transition-all ios-active-scale cursor-pointer shadow-md ${!isTimerActive ? 'timer-cta-idle' : ''}`}
                 style={{ backgroundColor: activeColor, ['--timer-cta-color' as string]: activeColor }}
               >
                 {isTimerActive ? 'Pause focus' : 'Start focus'}

@@ -1,14 +1,69 @@
+import { memo } from 'react'
 import { FocusSanctuary } from '../FocusSanctuary'
 import { TaskRegistry } from '../TaskRegistry'
 import { TabPageShell } from '../shared/TabPageShell'
-import { useStudyData, useStudyUI, useStudyTimer } from '../../context/useStudyApp'
+import { useStudyData, useStudyUI } from '../../context/useStudyApp'
+import { useStudyTimerContext, useStudyTimerDisplay } from '../../context/studyTimerContext'
 import { useConfirm } from '../../context/useConfirm'
 import { END_BREAK_EARLY_BODY, END_BREAK_EARLY_CONFIRM } from '../../lib/uxTerms'
+
+const MemoizedTaskRegistry = memo(TaskRegistry)
+
+function FocusSanctuaryWithTimer({
+  settings,
+  activeTask,
+  setIsZenMode,
+  ensureAudio,
+  onSkipBreak,
+}: {
+  settings: ReturnType<typeof useStudyData>['settings']
+  activeTask: ReturnType<typeof useStudyData>['tasks']['tasks'][number] | null
+  setIsZenMode: (zen: boolean) => void
+  ensureAudio: () => void
+  onSkipBreak: () => void
+}) {
+  const { timerControls } = useStudyTimerContext()
+  const timerDisplay = useStudyTimerDisplay()
+
+  return (
+    <FocusSanctuary
+      timerMode={timerControls.timerMode}
+      isTimerActive={timerControls.isTimerActive}
+      setIsTimerActive={timerControls.setIsTimerActive}
+      remainingSeconds={timerDisplay.remainingSeconds}
+      secondsElapsed={timerDisplay.secondsElapsed}
+      progress={timerDisplay.progress}
+      isLongBreak={timerControls.isLongBreak}
+      completedSessionsInCycle={timerControls.completedSessionsInCycle}
+      targetSessionsPerCycle={settings.targetSessionsPerCycle}
+      handleModeSwitch={timerControls.handleModeSwitch}
+      completeSession={() => { void timerControls.completeSession() }}
+      extendSession={timerControls.extendSession}
+      skipBreak={timerControls.skipBreak}
+      onSkipBreak={onSkipBreak}
+      setIsZenMode={setIsZenMode}
+      onUserGesture={ensureAudio}
+      showReflectionModal={timerControls.showReflectionModal}
+      studyBlockDurationMinutes={settings.studyBlockDurationMinutes}
+      shortBreakDurationMinutes={settings.shortBreakDurationMinutes}
+      longBreakDurationMinutes={settings.longBreakDurationMinutes}
+      updateSetting={settings.updateSetting}
+      activeTask={activeTask}
+      wakeLockActive={timerControls.wakeLockActive}
+    />
+  )
+}
 
 export function FocusTabContent() {
   const { settings, tasks, categories } = useStudyData()
   const { setIsZenMode, activeTaskId, setActiveTaskId, taskCycleCount, setTaskCycleCount } = useStudyUI()
-  const { timer, ensureAudio, handleAddTask, handleToggleTask, activateTask } = useStudyTimer()
+  const {
+    timerControls,
+    ensureAudio,
+    handleAddTask,
+    handleToggleTask,
+    activateTask,
+  } = useStudyTimerContext()
   const { requestConfirm } = useConfirm()
 
   const activeTask = activeTaskId != null
@@ -21,40 +76,22 @@ export function FocusTabContent() {
       message: END_BREAK_EARLY_BODY,
       confirmLabel: 'End break',
     })
-    if (ok) timer.skipBreak()
+    if (ok) timerControls.skipBreak()
   }
 
   return (
     <TabPageShell className="pb-20 lg:pb-0">
       <div className="lg:col-span-5 order-1">
-        <FocusSanctuary
-          timerMode={timer.timerMode}
-          isTimerActive={timer.isTimerActive}
-          setIsTimerActive={timer.setIsTimerActive}
-          remainingSeconds={timer.remainingSeconds}
-          secondsElapsed={timer.secondsElapsed}
-          progress={timer.progress}
-          isLongBreak={timer.isLongBreak}
-          completedSessionsInCycle={timer.completedSessionsInCycle}
-          targetSessionsPerCycle={settings.targetSessionsPerCycle}
-          handleModeSwitch={timer.handleModeSwitch}
-          completeSession={() => { void timer.completeSession() }}
-          extendSession={timer.extendSession}
-          skipBreak={timer.skipBreak}
-          onSkipBreak={handleSkipBreak}
-          setIsZenMode={setIsZenMode}
-          onUserGesture={ensureAudio}
-          showReflectionModal={timer.showReflectionModal}
-          studyBlockDurationMinutes={settings.studyBlockDurationMinutes}
-          shortBreakDurationMinutes={settings.shortBreakDurationMinutes}
-          longBreakDurationMinutes={settings.longBreakDurationMinutes}
-          updateSetting={settings.updateSetting}
+        <FocusSanctuaryWithTimer
+          settings={settings}
           activeTask={activeTask}
-          wakeLockActive={timer.wakeLockActive}
+          setIsZenMode={setIsZenMode}
+          ensureAudio={ensureAudio}
+          onSkipBreak={handleSkipBreak}
         />
       </div>
       <div className="lg:col-span-7 order-2">
-        <TaskRegistry
+        <MemoizedTaskRegistry
           tasks={tasks.tasks}
           categories={categories.categories}
           addCategory={categories.addCategory}
@@ -64,10 +101,10 @@ export function FocusTabContent() {
           activateTask={activateTask}
           toggleTask={handleToggleTask}
           handleAddTask={handleAddTask}
-          submitRecallGrade={timer.submitRecallGrade}
-          timerCategoryId={timer.timerCategoryId}
-          setTimerCategoryId={timer.setTimerCategoryId}
-          timerMode={timer.timerMode}
+          submitRecallGrade={timerControls.submitRecallGrade}
+          timerCategoryId={timerControls.timerCategoryId}
+          setTimerCategoryId={timerControls.setTimerCategoryId}
+          timerMode={timerControls.timerMode}
           taskCycleCount={taskCycleCount}
           setTaskCycleCount={setTaskCycleCount}
         />

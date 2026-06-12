@@ -2,6 +2,7 @@ import React, { useRef } from 'react'
 import type { ActiveTab } from '../types/app'
 import { NAV_TABS } from '../navigation/appNav'
 import { NavTabButton } from '../navigation/NavTabButton'
+import { prefetchTabChunk } from '../lib/prefetchTabChunks'
 
 interface MobileTabBarProps {
   activeTab: ActiveTab
@@ -50,6 +51,8 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
             isLocked={isLocked}
             badge={tab.id === 'cards' ? cardsDueCount : undefined}
             onClick={handleTabClick(tab.id)}
+            onMouseEnter={() => prefetchTabChunk(tab.id)}
+            onTouchStart={() => prefetchTabChunk(tab.id)}
             buttonRef={el => { tabRefs.current[tab.id] = el }}
           />
         )

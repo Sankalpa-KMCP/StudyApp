@@ -18,7 +18,7 @@ export const Open: Story = {
     addCategory: () => 2,
     deleteCategory: () => {},
     notes: [{ id: 1, title: 'Sample note', content: 'Review chapter 3', updatedAt: Date.now(), color: '#06b6d4' }],
-    addNote: async () => {},
+    addNote: async () => 2,
     updateNote: async () => {},
     deleteNote: async () => {},
     noteTagColors: ['#06b6d4', '#3b82f6'],

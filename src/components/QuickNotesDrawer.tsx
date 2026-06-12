@@ -16,7 +16,7 @@ interface QuickNotesDrawerProps {
   addCategory: (name: string, color: string) => Promise<number | void> | number | void
   deleteCategory: (id: number) => Promise<void> | void
   notes: QuickNoteItem[]
-  addNote: (title: string, content: string, categoryId?: number) => Promise<void>
+  addNote: (title: string, content: string, categoryId?: number) => Promise<number>
   updateNote: (id: number, title: string, content: string, categoryId?: number, color?: string) => Promise<void>
   deleteNote: (id: number) => Promise<void>
   noteTagColors: string[]
@@ -40,16 +40,24 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   const editor = useNoteEditor(updateNote)
 
   const handleCreateNote = async () => {
-    await addNote('New Scratch Note', '', filters.activeCategoryId !== 'all' ? filters.activeCategoryId : undefined)
-    setTimeout(() => {
-      const sorted = [...notes].sort((a, b) => b.updatedAt - a.updatedAt)
-      if (sorted.length > 0) {
-        const latest = sorted[0]
-        if (latest?.id !== undefined) {
-          editor.startEditing(latest)
-        }
-      }
-    }, 100)
+    const noteId = await addNote(
+      'New Scratch Note',
+      '',
+      filters.activeCategoryId !== 'all' ? filters.activeCategoryId : undefined,
+    )
+    const created = notes.find(note => note.id === noteId)
+    if (created) {
+      editor.startEditing(created)
+      return
+    }
+    editor.startEditing({
+      id: noteId,
+      title: 'New Scratch Note',
+      content: '',
+      categoryId: filters.activeCategoryId !== 'all' ? filters.activeCategoryId : undefined,
+      color: '#06b6d4',
+      updatedAt: Date.now(),
+    })
   }
 
   const handleDelete = async (id: number, e: React.MouseEvent) => {
@@ -68,7 +76,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="quick-notes-title"
-      className="fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-[#07090f]/90 border-l border-white/10 backdrop-blur-2xl shadow-2xl transition-transform duration-500 ease-out flex flex-col translate-x-0"
+      className="fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-[color-mix(in_srgb,var(--body-base)_92%,transparent)] border-l border-white/10 backdrop-blur-2xl shadow-2xl transition-transform duration-500 ease-out flex flex-col translate-x-0"
     >
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-black/20 select-none">
         <div className="flex items-center gap-2">

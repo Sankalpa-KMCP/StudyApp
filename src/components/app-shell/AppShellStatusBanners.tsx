@@ -39,17 +39,18 @@ export function AppShellStatusBanners({
 
   if (isZenMode && !isOffline) return null
 
-  const queue: BannerKey[] = []
-  if (!isZenMode && quotaExceeded) queue.push('quota')
-  if (isOffline) queue.push('offline')
-  if (!isZenMode && showPwaBanner) queue.push('pwa')
-  if (!isZenMode && showBackupReminder) queue.push('backup')
+  const prominent: BannerKey[] = []
+  const collapsible: BannerKey[] = []
 
-  if (queue.length === 0) return null
+  if (isOffline) prominent.push('offline')
+  if (!isZenMode && showPwaBanner) prominent.push('pwa')
+  if (!isZenMode && quotaExceeded) collapsible.push('quota')
+  if (!isZenMode && showBackupReminder) collapsible.push('backup')
 
-  const primary = queue[0]
-  const secondary = queue.slice(1)
-  const visibleKeys = expanded ? queue : [primary]
+  if (prominent.length === 0 && collapsible.length === 0) return null
+
+  const visibleCollapsible = expanded ? collapsible : collapsible.slice(0, 1)
+  const hiddenCollapsibleCount = expanded ? 0 : Math.max(0, collapsible.length - 1)
 
   const renderBanner = (key: BannerKey) => {
     switch (key) {
@@ -91,25 +92,28 @@ export function AppShellStatusBanners({
 
   return (
     <div className="flex flex-col">
-      {visibleKeys.map(renderBanner)}
-      {secondary.length > 0 && (
+      {prominent.map(renderBanner)}
+      {visibleCollapsible.map(renderBanner)}
+      {hiddenCollapsibleCount > 0 && (
         <button
           type="button"
-          onClick={() => setExpanded(v => !v)}
+          onClick={() => setExpanded(true)}
           className="flex items-center justify-center gap-1 border-b border-white/5 bg-white/[0.03] px-4 py-1.5 text-micro font-semibold text-muted hover:text-primary transition-colors"
           aria-expanded={expanded}
         >
-          {expanded ? (
-            <>
-              <ChevronUp className="h-3 w-3" aria-hidden />
-              Hide alerts
-            </>
-          ) : (
-            <>
-              <ChevronDown className="h-3 w-3" aria-hidden />
-              {secondary.length} more alert{secondary.length > 1 ? 's' : ''}
-            </>
-          )}
+          <ChevronDown className="h-3 w-3" aria-hidden />
+          {hiddenCollapsibleCount} more alert{hiddenCollapsibleCount > 1 ? 's' : ''}
+        </button>
+      )}
+      {expanded && collapsible.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="flex items-center justify-center gap-1 border-b border-white/5 bg-white/[0.03] px-4 py-1.5 text-micro font-semibold text-muted hover:text-primary transition-colors"
+          aria-expanded={expanded}
+        >
+          <ChevronUp className="h-3 w-3" aria-hidden />
+          Hide alerts
         </button>
       )}
     </div>

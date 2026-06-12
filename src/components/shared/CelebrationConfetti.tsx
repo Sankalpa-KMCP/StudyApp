@@ -74,8 +74,13 @@ export function CelebrationConfetti() {
     window.addEventListener('celebrate-complete', handleCelebrate)
 
     const animate = () => {
-      ctx.clearRect(0, 0, width, height)
       const particles = particlesRef.current
+      if (particles.length === 0) {
+        animationFrameId = requestAnimationFrame(animate)
+        return
+      }
+
+      ctx.clearRect(0, 0, width, height)
 
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i]

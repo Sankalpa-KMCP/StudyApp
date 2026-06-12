@@ -34,7 +34,7 @@ async function fetchHistoryForRange(range: AnalyticsHistoryRange) {
   return getHistoryForDateRange(start, Date.now())
 }
 
-export function useAnalyticsHistoryRange() {
+export function useAnalyticsHistoryRange(enabled = true) {
   const [range, setRangeState] = useState<AnalyticsHistoryRange>(readStoredRange)
 
   const setRange = useCallback((next: AnalyticsHistoryRange) => {
@@ -42,7 +42,10 @@ export function useAnalyticsHistoryRange() {
     setRangeState(next)
   }, [])
 
-  const history = useLiveQuery(() => fetchHistoryForRange(range), [range])
+  const history = useLiveQuery(
+    () => (enabled ? fetchHistoryForRange(range) : Promise.resolve([])),
+    [range, enabled],
+  )
 
   return {
     range,

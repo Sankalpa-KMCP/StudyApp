@@ -78,8 +78,8 @@ export function DayDetailPanel({
 
       <div className="mb-5">
         <div className="flex justify-between items-center mb-2.5">
-          <p className="text-label font-semibold text-muted uppercase tracking-wider">Reflection log</p>
-          <div className="flex items-center gap-2">
+          <p id="reflection-log-label" className="text-label font-semibold text-muted uppercase tracking-wider">Reflection log</p>
+          <div className="flex items-center gap-2" aria-live="polite" aria-atomic="true">
             {saveStatus === 'saving' && (
               <span className="text-micro font-mono text-muted animate-pulse">Saving…</span>
             )}
@@ -101,6 +101,7 @@ export function DayDetailPanel({
           value={draftNotes}
           onChange={e => onNotesChange(e.target.value.slice(0, 500))}
           maxLength={500}
+          aria-labelledby="reflection-log-label"
           placeholder="How did you perform? Note down any wins, hurdles, or focal points for today..."
           rows={3}
           className={`w-full resize-none rounded-2xl border bg-white/4 focus:bg-white/8 px-4 py-3 text-xs text-text-primary placeholder:text-muted outline-none transition-all duration-200 ${

@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { readAppHashFromLocation } from '../lib/appHashRouting'
+import { scrollToSettingsSection } from '../lib/settingsSections'
 import { useConfirm } from '../context/useConfirm'
 import { AestheticsPanel } from './control-deck/AestheticsPanel'
 import { NotesSettingsPanel } from './control-deck/NotesSettingsPanel'
@@ -19,6 +21,15 @@ interface ControlDeckProps {
 function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
   const { dailyGoalMinutes, resetSectionDefaults } = useSettingsPanel()
   const { requestConfirm } = useConfirm()
+
+  useEffect(() => {
+    const { settingsSection } = readAppHashFromLocation()
+    if (settingsSection) {
+      requestAnimationFrame(() => {
+        scrollToSettingsSection(`settings-${settingsSection}`)
+      })
+    }
+  }, [])
 
   const [startHereDismissed, setStartHereDismissed] = useState(
     () => typeof window !== 'undefined' && !!localStorage.getItem('settings_start_here_dismissed'),

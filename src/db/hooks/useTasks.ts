@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
 import type { TaskItem } from '../types'
@@ -7,7 +8,10 @@ import { mapLegacyTaskFields, sortTasks } from '../selectors/sortTasks'
 export function useTasks() {
   const tasks = useLiveQuery<TaskItem[]>(() => db.tasks.orderBy('id').reverse().toArray())
 
-  const sortedTasks = sortTasks(mapLegacyTaskFields(tasks ?? []))
+  const sortedTasks = useMemo(
+    () => sortTasks(mapLegacyTaskFields(tasks ?? [])),
+    [tasks],
+  )
 
   return {
     tasks: sortedTasks,

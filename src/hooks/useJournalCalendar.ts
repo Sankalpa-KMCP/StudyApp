@@ -7,6 +7,7 @@ import type { TaskItem } from '../db/types'
 export type JournalSaveStatus = 'idle' | 'saving' | 'saved'
 
 interface UseJournalCalendarOptions {
+  enabled?: boolean
   sessionTasks: TaskItem[]
   dailyGoalMinutes: number
   studyBlockDurationMinutes: number
@@ -15,6 +16,7 @@ interface UseJournalCalendarOptions {
 }
 
 export function useJournalCalendar({
+  enabled = true,
   sessionTasks,
   dailyGoalMinutes,
   studyBlockDurationMinutes,
@@ -40,9 +42,10 @@ export function useJournalCalendar({
     currentMonth,
     currentYear,
     studyBlockDurationMinutes,
+    enabled,
   )
 
-  const { history: monthHistory } = useHistoryForMonth(currentYear, currentMonth)
+  const { history: monthHistory } = useHistoryForMonth(currentYear, currentMonth, enabled)
 
   const categoryDayMinutes = useMemo(
     () => calculateCalendarHeatmapData(monthHistory, currentMonth, currentYear, calendarCategoryFilter),

@@ -30,11 +30,12 @@ export function useRecentHistory(limit = 100) {
   }
 }
 
-export function useHistoryForMonth(year: number, month: number) {
+export function useHistoryForMonth(year: number, month: number, enabled = true) {
   const history = useLiveQuery(() => {
+    if (!enabled) return Promise.resolve([])
     const { start, end } = historyRepo.getMonthBounds(year, month)
     return historyRepo.getHistoryForDateRange(start, end)
-  }, [year, month])
+  }, [year, month, enabled])
 
   return {
     history: history ?? [],

@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
 import { applyThemeToDocument } from '../lib/applyThemeVars'
+import { readAppHashFromLocation, writeAppHash } from '../lib/appHashRouting'
+import { setActiveTabSync } from '../lib/activeTabSync'
+import { loadAppFonts } from '../lib/loadAppFonts'
 import { resolveThemeProfile } from '../lib/theme'
 import { useZenCanvas } from '../hooks/useZenCanvas'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
@@ -31,7 +34,7 @@ export function useStudyUIState(toast: ToastApi) {
 
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [isZenMode, setIsZenMode] = useState(false)
-  const [activeTab, setActiveTabState] = useState<ActiveTab>('focus')
+  const [activeTab, setActiveTabState] = useState<ActiveTab>(() => readAppHashFromLocation().tab)
   const [isDragging, setIsDragging] = useState(false)
   const [isHotkeyHudOpen, setIsHotkeyHudOpen] = useState(false)
   const [prefersDark, setPrefersDark] = useState(
@@ -87,6 +90,24 @@ export function useStudyUIState(toast: ToastApi) {
     const stack = UI_FONT_STACKS[settings.ui_font] ?? UI_FONT_STACKS.Inter
     document.documentElement.style.setProperty('--font-sans-geom', stack)
   }, [settings.ui_font])
+
+  useEffect(() => {
+    void loadAppFonts(settings.ui_font, settings.developer_font)
+  }, [settings.ui_font, settings.developer_font])
+
+  useEffect(() => {
+    setActiveTabSync(activeTab)
+    writeAppHash(activeTab)
+  }, [activeTab])
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const { tab } = readAppHashFromLocation()
+      setActiveTabState(tab)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
