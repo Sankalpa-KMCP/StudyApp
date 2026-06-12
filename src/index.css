@@ -575,6 +575,30 @@ body {
   flex-shrink: 0;
 }
 
+.status-banner-warning {
+  color: rgb(253 230 138);
+}
+
+[data-theme-mode="light"] .status-banner-warning {
+  color: rgb(146 64 14);
+}
+
+.status-banner-warning-body {
+  color: rgba(254, 243, 199, 0.8);
+}
+
+[data-theme-mode="light"] .status-banner-warning-body {
+  color: rgba(120, 53, 15, 0.85);
+}
+
+.skeleton-pulse {
+  background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+}
+
+.skeleton-pulse-strong {
+  background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+}
+
 .empty-state-shell {
   background: linear-gradient(
     165deg,
@@ -941,7 +965,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: rgba(0, 0, 0, 0.45);
 }
 
-[data-theme-mode="light"] .dynamic-card {
+[data-theme-mode="light"] .dynamic-card,
+[data-theme-mode="light"] .dynamic-card-static,
+[data-theme-mode="light"] .dynamic-card-interactive {
+  background: color-mix(in srgb, var(--color-surface-card) 92%, white);
   box-shadow:
     0 8px 24px rgba(0, 0, 0, 0.08),
     inset 0 1px 0px rgba(255, 255, 255, 0.6),
@@ -959,6 +986,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 [data-theme-mode="light"] .glass-hero {
+  border-color: rgba(0, 0, 0, 0.1);
   box-shadow:
     0 16px 40px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.85);
