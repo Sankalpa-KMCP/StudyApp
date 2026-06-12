@@ -16,7 +16,7 @@ export const NAV_TABS: {
   { id: 'cards', label: 'Cards', icon: Layers, color: 'text-accent-purple', accent: 'cards' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-accent-green', accent: 'analytics' },
   { id: 'journal', label: 'Journal', icon: Calendar, color: 'text-accent-amber', accent: 'journal' },
-  { id: 'settings', label: 'Settings', icon: Settings, color: 'text-white/60', accent: 'settings' },
+  { id: 'settings', label: 'Settings', icon: Settings, color: 'text-secondary', accent: 'settings' },
 ]
 
 export const TAB_CHROME: Record<ActiveTab, { title: string; subtitle: string }> = {

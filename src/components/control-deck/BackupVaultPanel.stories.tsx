@@ -9,7 +9,7 @@ const meta: Meta<typeof BackupVaultPanel> = {
     Story => (
       <ConfirmProvider>
         <div className="max-w-2xl p-6 bg-[#0d0a1b]">
-          <p className="text-white/60 text-sm mb-4">Requires SettingsPanelProvider — see Settings tab in app.</p>
+          <p className="text-secondary text-sm mb-4">Requires SettingsPanelProvider — see Settings tab in app.</p>
           <Story />
         </div>
       </ConfirmProvider>

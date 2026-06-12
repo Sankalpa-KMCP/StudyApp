@@ -9,7 +9,7 @@ const meta: Meta<typeof ControlDeck> = {
     Story => (
       <ConfirmProvider>
         <div className="max-w-6xl p-6 min-h-screen" style={{ background: '#0d0a1b' }}>
-          <p className="text-white/60 text-sm mb-4">
+          <p className="text-secondary text-sm mb-4">
             Control Deck requires Study App providers — open the Settings tab in the running app for the full experience.
           </p>
           <Story />

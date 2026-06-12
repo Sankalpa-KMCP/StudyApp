@@ -16,7 +16,7 @@ export function PieChartLegend({ items, className = '' }: PieChartLegendProps) {
   return (
     <div className={`flex flex-col gap-2 flex-1 max-w-[150px] ${className}`}>
       {items.map((item, i) => (
-        <div key={i} className="flex items-center gap-1.5 text-[10px] font-semibold">
+        <div key={i} className="flex items-center gap-1.5 text-micro font-semibold">
           {item.emoji ? (
             <span className="text-xs shrink-0">{item.emoji}</span>
           ) : (
@@ -28,7 +28,7 @@ export function PieChartLegend({ items, className = '' }: PieChartLegendProps) {
             {item.unit ?? ''}
           </span>
           {item.percentage !== undefined && (
-            <span className="text-muted font-mono text-[9px]">({item.percentage}%)</span>
+            <span className="text-muted font-mono text-micro">({item.percentage}%)</span>
           )}
         </div>
       ))}
