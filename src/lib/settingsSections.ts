@@ -35,7 +35,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     id: 'data',
     label: 'Data',
     icon: Database,
-    panelIds: ['settings-backup-vault'],
+    panelIds: ['settings-backup-vault', 'settings-desktop'],
   },
 ]
 
