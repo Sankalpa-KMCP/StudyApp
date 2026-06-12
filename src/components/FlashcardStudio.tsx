@@ -1,7 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { Layers } from 'lucide-react'
 import type { CategoryItem, FlashcardItem } from '../db/types'
 import { useConfirm } from '../context/useConfirm'
+import { DELETE_FLASHCARD_TITLE, deleteFlashcardMessage } from '../lib/backupTerms'
+import { parseFlashcardCsv } from '../lib/flashcardImport'
 import { useCategoriesMap } from '../hooks/useCategoriesMap'
 import { useFlashcardFilters } from './flashcard/useFlashcardFilters'
 import { useFlashcardStudySession } from './flashcard/useFlashcardStudySession'
@@ -33,6 +35,7 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
   const [newQuestion, setNewQuestion] = useState('')
   const [newAnswer, setNewAnswer] = useState('')
   const [newCategoryId, setNewCategoryId] = useState<number | undefined>(undefined)
+  const importInputRef = useRef<HTMLInputElement>(null)
 
   const {
     activeCategoryFilter,
@@ -65,8 +68,8 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
   const handleDeleteFlashcard = async (id: number) => {
     const card = flashcards.find(c => c.id === id)
     const ok = await requestConfirm({
-      title: 'Delete flashcard?',
-      message: card ? `"${card.question.slice(0, 80)}${card.question.length > 80 ? '…' : ''}" will be removed permanently.` : 'This card will be removed permanently.',
+      title: DELETE_FLASHCARD_TITLE,
+      message: card ? deleteFlashcardMessage(card.question) : 'This card will be removed permanently.',
       confirmLabel: 'Delete',
       danger: true,
     })
@@ -79,6 +82,30 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
     await addFlashcard(newQuestion.trim(), newAnswer.trim(), newCategoryId)
     setNewQuestion('')
     setNewAnswer('')
+  }
+
+  const resolveCategoryId = async (name?: string): Promise<number | undefined> => {
+    if (!name) return undefined
+    const existing = categories.find(c => c.name.toLowerCase() === name.toLowerCase())
+    if (existing?.id !== undefined) return existing.id
+    const id = await addCategory(name, '#64748B')
+    return typeof id === 'number' ? id : undefined
+  }
+
+  const handleImportCsv = async (file: File) => {
+    const text = await file.text()
+    const rows = parseFlashcardCsv(text)
+    if (rows.length === 0) return
+    const ok = await requestConfirm({
+      title: `Import ${rows.length} flashcards?`,
+      message: 'Cards will be added to your deck. Duplicate content is not filtered.',
+      confirmLabel: 'Import',
+    })
+    if (!ok) return
+    for (const row of rows) {
+      const categoryId = await resolveCategoryId(row.category)
+      await addFlashcard(row.front, row.back, categoryId)
+    }
   }
 
   return (
@@ -137,6 +164,18 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
         stats={stats}
         onStudyDue={() => startStudy(true)}
         onStudyAll={() => startStudy(false)}
+        onImportClick={() => importInputRef.current?.click()}
+      />
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={e => {
+          const file = e.target.files?.[0]
+          if (file) void handleImportCsv(file)
+          e.target.value = ''
+        }}
       />
       <FlashcardRegistry
         flashcards={flashcards}
