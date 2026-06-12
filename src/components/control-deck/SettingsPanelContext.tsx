@@ -5,9 +5,10 @@ import { useStudyDataContext } from '../../context/studyDataContext'
 import { useStudyTimerContext } from '../../context/studyTimerContext'
 import { useStudyUIContext } from '../../context/studyUIContext'
 import { useSettingsUpdater } from '../../hooks/useSettingsUpdater'
+import type { StudyBackupExportOptions } from '../../hooks/useSessionBackup'
 
 export interface SettingsBackupApi {
-  exportStudyBackup: () => void
+  exportStudyBackup: (options?: StudyBackupExportOptions) => void
   shareStudyBackupVault?: () => void
   exportStudyHistoryIcs?: () => void
   canShareBackup?: boolean

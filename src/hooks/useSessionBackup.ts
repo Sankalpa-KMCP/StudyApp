@@ -27,6 +27,27 @@ import {
 
 const MAX_SNAPSHOTS = 3
 
+export type StudyBackupExportDestination = 'auto' | 'download' | 'folder'
+
+export interface StudyBackupExportOptions {
+  destination?: StudyBackupExportDestination
+}
+
+async function resolveDesktopBackupFolder(): Promise<string> {
+  if (!isTauri()) return ''
+  const folderRow = await db.settings.get('desktopBackupFolderPath')
+  return typeof folderRow?.value === 'string' ? folderRow.value : ''
+}
+
+function resolveExportDestination(
+  requested: StudyBackupExportDestination,
+  folderPath: string,
+): 'download' | 'folder' {
+  if (requested === 'download') return 'download'
+  if (requested === 'folder') return folderPath ? 'folder' : 'download'
+  return isTauri() && folderPath ? 'folder' : 'download'
+}
+
 function escapeCsvField(value: string): string {
   const needsFormulaGuard = /^[=+\-@]/.test(value)
   const sanitized = needsFormulaGuard ? `'${value}` : value
@@ -74,19 +95,20 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
     }
   }
 
-  async function exportStudyBackup() {
+  async function exportStudyBackup(options?: StudyBackupExportOptions) {
     try {
       setIsExporting(true)
       setExportProgress(0)
       const payload = await collectStudyBackupPayload(setExportProgress)
-      downloadStudyBackup(payload, 'study-vault')
-      if (isTauri()) {
-        const folderRow = await db.settings.get('desktopBackupFolderPath')
-        const folder = typeof folderRow?.value === 'string' ? folderRow.value : ''
-        if (folder) {
-          await writeBackupToDesktopFolder(folder, payload)
-        }
+      const folder = await resolveDesktopBackupFolder()
+      const destination = resolveExportDestination(options?.destination ?? 'download', folder)
+
+      if (destination === 'download') {
+        downloadStudyBackup(payload, 'study-vault')
+      } else if (folder) {
+        await writeBackupToDesktopFolder(folder, payload)
       }
+
       setLastBackupExportAt()
       pushToast('BACKUP', BACKUP_EXPORT_COMPLETE)
     } catch (err) {
