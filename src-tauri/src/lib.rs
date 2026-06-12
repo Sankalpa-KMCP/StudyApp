@@ -26,7 +26,7 @@ pub fn run() {
 
       if let Some(icon) = app.default_window_icon() {
         let show = MenuItem::with_id(app, "tray-show", "Show Study Dashboard", true, None::<&str>)?;
-        let pause = MenuItem::with_id(app, "tray-pause", "Pause timer", true, None::<&str>)?;
+        let pause = MenuItem::with_id(app, "tray-pause", "Toggle timer", true, None::<&str>)?;
         let quit = MenuItem::with_id(app, "tray-quit", "Quit", true, None::<&str>)?;
         let menu = Menu::with_items(app, &[&show, &pause, &quit])?;
 
