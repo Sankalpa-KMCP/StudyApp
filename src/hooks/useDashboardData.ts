@@ -16,7 +16,8 @@ export function useDashboardData() {
   const history = useHistoryMutations()
   const recentHistory = useRecentHistory(settings.recentHistoryLimit)
   const todayLog = useTodayLog()
-  const flashcards = useFlashcards()
+  const flashcardsEnabled = !settings.isLoading && settings.flashcardsEnabled
+  const flashcards = useFlashcards(flashcardsEnabled)
   const quickNotes = useQuickNotes()
   const categories = useCategories()
   const allLogs = useAllDailyLogs()
