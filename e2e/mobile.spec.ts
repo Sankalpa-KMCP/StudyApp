@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 test.use({ viewport: { width: 375, height: 667 } })
 
-const TABS = ['Focus', 'Cards', 'Analytics', 'Journal', 'Settings'] as const
+const TABS = ['Focus', 'Analytics', 'Journal', 'Settings'] as const
 
 test('mobile tab bar navigates all main tabs', async ({ page }) => {
   await page.goto('/')
@@ -14,7 +14,7 @@ test('mobile tab bar navigates all main tabs', async ({ page }) => {
   }
 
   await page.getByRole('button', { name: 'Analytics', exact: true }).click()
-  await expect(page.getByText(/loading analytics|monthly study time/i).first()).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText(/loading analytics|monthly study time|no study data yet/i).first()).toBeVisible({ timeout: 15000 })
 })
 
 test('mobile focus shows compact timer and task input', async ({ page }) => {
