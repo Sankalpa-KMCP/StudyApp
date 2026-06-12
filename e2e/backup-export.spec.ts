@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test'
+import { openSettingsTab } from './helpers/studyApp'
 
 test('exports backup vault download', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
   const downloadPromise = page.waitForEvent('download')
   await page.getByRole('button', { name: /export vault/i }).click()
   const download = await downloadPromise

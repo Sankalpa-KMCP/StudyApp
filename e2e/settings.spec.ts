@@ -1,17 +1,17 @@
 import { test, expect } from '@playwright/test'
-import { settingsSectionNav } from './helpers/studyApp'
+import { openSettingsTab, settingsSectionNav } from './helpers/studyApp'
 
 test('navigates to settings tab', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
   await expect(page.getByText(/aesthetics|backup vault|dark presets/i).filter({ visible: true }).first()).toBeVisible({ timeout: 10000 })
 })
 
 test('switches light preset via swatch and updates data-theme-mode', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
 
   await page.getByRole('button', { name: 'Linen Warm' }).click()
 
@@ -21,7 +21,7 @@ test('switches light preset via swatch and updates data-theme-mode', async ({ pa
 test('switches dark preset via swatch and updates data-theme-mode', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
 
   await page.getByRole('button', { name: 'Forest Dusk' }).click()
 
@@ -31,7 +31,7 @@ test('switches dark preset via swatch and updates data-theme-mode', async ({ pag
 test('section nav scrolls to backup vault', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
 
   await page.getByRole('button', { name: 'Data', exact: true }).click()
   await expect(page.locator('#settings-backup-vault')).toBeInViewport({ timeout: 5000 })
@@ -40,7 +40,7 @@ test('section nav scrolls to backup vault', async ({ page }) => {
 test('advanced panels hidden until toggle is enabled', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
 
   await expect(page.locator('#settings-zen-lockout')).toHaveCount(0)
   await expect(page.locator('#settings-algorithm')).toHaveCount(0)
@@ -59,7 +59,7 @@ test('pending scroll to advanced panel auto-enables advanced settings', async ({
     sessionStorage.setItem('pending_settings_scroll', 'settings-zen-lockout')
   })
   await page.goto('/')
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await openSettingsTab(page)
   await expect(page.getByRole('switch', { name: 'Show advanced settings' })).toBeChecked({ timeout: 5000 })
   await expect(page.locator('#settings-zen-lockout')).toBeVisible({ timeout: 5000 })
 })
@@ -67,7 +67,7 @@ test('pending scroll to advanced panel auto-enables advanced settings', async ({
 test('classic pomodoro preset updates timer summary', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
 
   await settingsSectionNav(page).getByRole('button', { name: 'Focus', exact: true }).click()
   await page.locator('#settings-timer-focus').getByRole('button', { name: 'Classic' }).click()

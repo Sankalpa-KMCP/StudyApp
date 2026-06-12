@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { openSettingsTab } from './helpers/studyApp'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
@@ -16,7 +17,7 @@ test('rejects malformed backup import without changing tasks', async ({ page }) 
   const badPath = path.join(os.tmpdir(), `study-bad-${Date.now()}.studybackup`)
   fs.writeFileSync(badPath, '{ not valid json')
 
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
   await page.locator('input[type="file"][accept*=".studybackup"]').setInputFiles(badPath)
 
   const confirm = page.getByRole('alertdialog')

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { openSettingsTab } from './helpers/studyApp'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
@@ -13,7 +14,7 @@ test('cancelling backup import leaves current data unchanged', async ({ page }) 
   await input.press('Enter')
   await expect(page.getByText(taskName).first()).toBeVisible({ timeout: 10000 })
 
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
   const downloadPromise = page.waitForEvent('download')
   await page.getByRole('button', { name: /export vault/i }).click()
   const download = await downloadPromise
@@ -26,7 +27,7 @@ test('cancelling backup import leaves current data unchanged', async ({ page }) 
   await input.press('Enter')
   await expect(page.getByText(staleTask).first()).toBeVisible({ timeout: 10000 })
 
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
   await page.locator('input[type="file"][accept*=".studybackup"]').setInputFiles(backupPath)
 
   const dialog = page.getByRole('alertdialog')

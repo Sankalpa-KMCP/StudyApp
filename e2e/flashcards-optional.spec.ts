@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { clearStudyDatabase, freshVisitStorage, settingsSectionNav, waitForAppReady } from './helpers/studyApp'
+import { clearStudyDatabase, freshVisitStorage, openSettingsTab, settingsSectionNav, waitForAppReady } from './helpers/studyApp'
 
 test.use({ storageState: freshVisitStorage })
 
@@ -17,7 +17,7 @@ test('flashcards tab hidden by default and toggleable in settings', async ({ pag
   await page.goto('/#cards')
   await expect(page).toHaveURL(/#focus/)
 
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
   await settingsSectionNav(page).getByRole('button', { name: 'Study', exact: true }).click()
 
   const toggle = page.getByRole('switch', { name: 'Enable flashcards' })
@@ -32,7 +32,7 @@ test('flashcards tab hidden by default and toggleable in settings', async ({ pag
   await cardsNavButton.click()
   await expect(page.getByText('Create new flashcard')).toBeVisible()
 
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
   await settingsSectionNav(page).getByRole('button', { name: 'Study', exact: true }).click()
   await toggle.click()
   await expect(toggle).toHaveAttribute('aria-checked', 'false')

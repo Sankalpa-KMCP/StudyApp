@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import * as fs from 'fs'
 import * as path from 'path'
 import { fileURLToPath } from 'url'
-import { enableFlashcards, waitForAppReady } from './helpers/studyApp'
+import { enableFlashcards, openSettingsTab, waitForAppReady } from './helpers/studyApp'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const outDir = path.join(__dirname, '..', 'docs', 'screenshots')
@@ -32,7 +32,7 @@ test('capture readme screenshots', async ({ page }) => {
   await expect(analyticsReady).toBeVisible({ timeout: 20000 })
   await page.screenshot({ path: path.join(outDir, 'analytics.png'), fullPage: false })
 
-  await page.getByRole('button', { name: 'Settings' }).first().click()
+  await openSettingsTab(page)
   await expect(page.locator('#settings-timer-focus')).toBeVisible({ timeout: 20000 })
   await expect(page.locator('#settings-sound-feedback')).toBeVisible({ timeout: 20000 })
   await page.waitForTimeout(300)

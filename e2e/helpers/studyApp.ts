@@ -25,6 +25,11 @@ export function settingsSectionNav(page: Page) {
   return page.getByRole('navigation', { name: 'Settings sections' })
 }
 
+/** Opens the Settings tab without matching in-page CTAs such as "Enable in Settings". */
+export async function openSettingsTab(page: Page): Promise<void> {
+  await page.locator('[data-tab="settings"]').filter({ visible: true }).click()
+}
+
 export async function waitForAppReady(page: Page): Promise<void> {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
@@ -35,7 +40,7 @@ export async function waitForAppReady(page: Page): Promise<void> {
 }
 
 export async function enableFlashcards(page: Page): Promise<void> {
-  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+  await openSettingsTab(page)
   await settingsSectionNav(page).getByRole('button', { name: 'Study', exact: true }).click()
   const toggle = page.getByRole('switch', { name: 'Enable flashcards' })
   await expect(toggle).toBeVisible({ timeout: 10000 })
