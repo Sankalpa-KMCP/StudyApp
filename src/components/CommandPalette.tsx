@@ -80,6 +80,7 @@ export function CommandPalette({
   }, [results])
 
   const flatResults = useMemo(() => grouped.flatMap(g => g.items), [grouped])
+  const safeActiveIndex = Math.min(activeIndex, Math.max(flatResults.length - 1, 0))
 
   const handleSelect = (item: CommandPaletteItem) => {
     onSelect({
@@ -99,9 +100,9 @@ export function CommandPalette({
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setActiveIndex(i => Math.max(i - 1, 0))
-    } else if (e.key === 'Enter' && flatResults[activeIndex]) {
+    } else if (e.key === 'Enter' && flatResults[safeActiveIndex]) {
       e.preventDefault()
-      handleSelect(flatResults[activeIndex])
+      handleSelect(flatResults[safeActiveIndex])
     }
   }
 
@@ -143,7 +144,7 @@ export function CommandPalette({
               {group.items.map(item => {
                 rowIndex += 1
                 const idx = rowIndex
-                const isActive = idx === activeIndex
+                const isActive = idx === safeActiveIndex
                 return (
                   <button
                     key={item.id}

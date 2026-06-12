@@ -22,7 +22,12 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({
   flashcardsEnabled = true,
 }) => {
   const shortcuts = [
-    { keys: 'Ctrl+K', action: 'Open command palette (search tasks, notes, tabs)' },
+    {
+      keys: 'Ctrl+K',
+      action: flashcardsEnabled
+        ? 'Open command palette (tasks, notes, flashcards, tabs)'
+        : 'Open command palette (tasks, notes, tabs)',
+    },
     { keys: 'Space', action: 'Toggle play / pause' },
     { keys: 'S', action: 'Switch to study mode' },
     { keys: 'B', action: 'Switch to break mode' },
@@ -84,6 +89,11 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({
       <p className="mt-2 text-center text-label text-slate-500">
         Timer shortcuts still work on Settings while a study block is active. Tab through navigation to reach every section without a mouse.
       </p>
+      {flashcardsEnabled && (
+        <p className="mt-2 text-center text-label text-slate-500">
+          Selecting a flashcard in the command palette opens the Cards tab (it does not start a review session).
+        </p>
+      )}
     </ModalShell>
   )
 }
