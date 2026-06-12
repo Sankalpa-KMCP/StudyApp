@@ -141,6 +141,13 @@ export const AppShell = memo(function AppShell() {
       className="min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden pb-24 md:pb-0"
       style={inlineStyles}
     >
+      {/* Premium Ambient Glassmorphic Glow Blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-accent-blue/10 blur-[120px] animate-blob-slow" />
+        <div className="absolute top-[35%] -right-[15%] w-[60%] h-[60%] rounded-full bg-accent-green/8 blur-[150px] animate-blob-medium" />
+        <div className="absolute -bottom-[10%] left-[15%] w-[55%] h-[55%] rounded-full bg-accent-amber/8 blur-[130px] animate-blob-slowest" />
+      </div>
+
       <E2eCrashProbe />
       <Sidebar
         isZenMode={isZenMode}

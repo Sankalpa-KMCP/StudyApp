@@ -260,24 +260,28 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
                 }} 
               />
               <svg className="absolute h-[94%] w-[94%] -rotate-90 overflow-visible" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255, 255, 255, 0.04)" strokeWidth="1" />
+                <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="2" />
                 <circle
                   cx="60" cy="60" r="50"
                   fill="none"
                   stroke={activeColor}
-                  strokeWidth="2.5"
+                  strokeWidth="4.5"
                   strokeLinecap="round"
                   strokeDasharray="314.16"
                   strokeDashoffset={String(314.16 * (1 - progress))}
                   style={{ 
-                    transition: 'stroke-dashoffset 0.3s ease-out, stroke 0.3s',
-                    filter: `drop-shadow(0 0 4px ${activeColor})`
+                    transition: 'stroke-dashoffset 0.35s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s',
+                    filter: `drop-shadow(0 0 8px ${activeColor})`
                   }}
                 />
               </svg>
 
               <div className="text-center z-10 select-none" aria-live="polite" aria-atomic="true">
-                <p className="text-5xl md:text-7xl font-bold text-primary tracking-tight tabular-nums drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]" role="timer">
+                <p 
+                  className="text-5xl md:text-7xl font-black text-primary tracking-tight tabular-nums timer-text-glow font-sans-geometric"
+                  style={{ '--timer-glow-color': activeColor } as React.CSSProperties}
+                  role="timer"
+                >
                   {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
                 </p>
                 <span className="inline-block rounded-full surface-subtle border border-card px-3 py-0.5 text-label font-semibold uppercase tracking-wider text-muted mt-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">

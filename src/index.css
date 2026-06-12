@@ -845,3 +845,162 @@ input[type="range"]::-webkit-slider-thumb:hover {
     animation: none;
   }
 }
+
+/* Ambient Background Glow Blobs */
+@keyframes blob-float-slow {
+  0%, 100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1) rotate(120deg);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95) rotate(240deg);
+  }
+}
+
+@keyframes blob-float-medium {
+  0%, 100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+  33% {
+    transform: translate(-40px, 30px) scale(0.95) rotate(-120deg);
+  }
+  66% {
+    transform: translate(30px, -20px) scale(1.05) rotate(-240deg);
+  }
+}
+
+@keyframes blob-float-slowest {
+  0%, 100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+  50% {
+    transform: translate(25px, 25px) scale(1.08) rotate(180deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-blob-slow {
+    animation: blob-float-slow 25s ease-in-out infinite;
+  }
+  .animate-blob-medium {
+    animation: blob-float-medium 20s ease-in-out infinite;
+  }
+  .animate-blob-slowest {
+    animation: blob-float-slowest 30s ease-in-out infinite;
+  }
+}
+
+/* Premium Expressive Mood Picker Grid */
+.mood-picker-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .mood-picker-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mood-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 0.75rem;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-surface-card) 30%, transparent);
+  border: 1px solid var(--color-border-card);
+  color: var(--color-text-secondary);
+  transition: all var(--motion-normal) ease;
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+}
+
+.mood-btn:hover {
+  background: color-mix(in srgb, var(--color-surface-card) 60%, transparent);
+  color: var(--color-text-primary);
+  transform: translateY(-2px);
+}
+
+.mood-btn:active {
+  transform: translateY(1px);
+}
+
+/* Focused Mood */
+.mood-focused.mood-active {
+  color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+  background: color-mix(in srgb, var(--color-accent-blue) 12%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--color-accent-blue) 25%, transparent);
+}
+.mood-focused:hover:not(.mood-active) {
+  border-color: color-mix(in srgb, var(--color-accent-blue) 50%, transparent);
+}
+
+/* Energetic Mood */
+.mood-energetic.mood-active {
+  color: var(--color-accent-amber);
+  border-color: var(--color-accent-amber);
+  background: color-mix(in srgb, var(--color-accent-amber) 12%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--color-accent-amber) 25%, transparent);
+}
+.mood-energetic:hover:not(.mood-active) {
+  border-color: color-mix(in srgb, var(--color-accent-amber) 50%, transparent);
+}
+
+/* Tired Mood */
+.mood-tired.mood-active {
+  color: #a855f7; /* purple-500 */
+  border-color: #a855f7;
+  background: rgba(168, 85, 247, 0.12);
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.25);
+}
+.mood-tired:hover:not(.mood-active) {
+  border-color: rgba(168, 85, 247, 0.5);
+}
+
+/* Distracted Mood */
+.mood-distracted.mood-active {
+  color: #ec4899; /* pink-500 */
+  border-color: #ec4899;
+  background: rgba(236, 72, 153, 0.12);
+  box-shadow: 0 0 16px rgba(236, 72, 153, 0.25);
+}
+.mood-distracted:hover:not(.mood-active) {
+  border-color: rgba(236, 72, 153, 0.5);
+}
+
+.mood-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  transition: all var(--motion-normal) ease;
+}
+
+.mood-active .mood-icon-wrapper {
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.1);
+}
+
+.mood-btn span {
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+/* Dynamic Timer Text Glow */
+.timer-text-glow {
+  text-shadow: 0 4px 20px var(--timer-glow-color, rgba(56, 189, 248, 0.3));
+}
+
