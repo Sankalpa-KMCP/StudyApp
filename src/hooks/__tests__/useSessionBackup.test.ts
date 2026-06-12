@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { db } from '../../db/db'
 import { resetDatabase, seedTask } from '../../test/dbTestUtils'
-import { computeBackupChecksum } from '../../lib/backupChecksum'
-import { parseStudyBackupPayload, validateBackupPayload } from '../../lib/studyDashboard'
+import { computeBackupChecksum } from '../../lib/backup/backupChecksum'
+import { parseStudyBackupPayload, validateBackupPayload } from '../../lib/study/studyDashboard'
 import { useSessionBackup } from '../useSessionBackup'
 
 interface MockAnchor {

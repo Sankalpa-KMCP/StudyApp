@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { calculateStreak, calculateXpLevel } from '../lib/studyDashboard'
+import { calculateStreak, calculateXpLevel } from '../lib/study/studyDashboard'
 import type { DailyLog } from '../db/types'
 
 interface UseGamificationOptions {

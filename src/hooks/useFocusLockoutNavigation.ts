@@ -1,7 +1,8 @@
 import { useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
 import { useConfirm } from '../context/useConfirm'
-import { FOCUS_LOCKOUT } from '../lib/uxTerms'
+import { FOCUS_LOCKOUT } from '../lib/shared/uxTerms'
+import { isFocusLockoutActive, parseLockoutAllowedTabs, type LockoutMode } from '../lib/study/focusLockout'
 
 interface FocusLockoutTimer {
   isTimerActive: boolean
@@ -11,6 +12,10 @@ interface FocusLockoutTimer {
 
 interface UseFocusLockoutNavigationOptions {
   enforceLockout: boolean
+  lockoutMode: LockoutMode
+  lockoutAllowedTabs: string
+  lockoutStudyOnly: boolean
+  activeTab: ActiveTab
   timer: FocusLockoutTimer
   setActiveTab: (tab: ActiveTab) => void
   onLockedAttempt?: () => void
@@ -18,6 +23,10 @@ interface UseFocusLockoutNavigationOptions {
 
 export function useFocusLockoutNavigation({
   enforceLockout,
+  lockoutMode,
+  lockoutAllowedTabs,
+  lockoutStudyOnly,
+  activeTab,
   timer,
   setActiveTab,
   onLockedAttempt,
@@ -25,13 +34,23 @@ export function useFocusLockoutNavigation({
   const { requestConfirm } = useConfirm()
 
   const handleSetActiveTab = useCallback(async (tab: ActiveTab) => {
-    const locked =
-      enforceLockout &&
-      timer.isTimerActive &&
-      timer.timerMode === 'study' &&
-      tab !== 'focus'
+    const locked = isFocusLockoutActive(
+      {
+        enforceLockout,
+        lockoutMode,
+        lockoutAllowedTabs: parseLockoutAllowedTabs(lockoutAllowedTabs),
+        lockoutStudyOnly,
+      },
+      {
+        isTimerActive: timer.isTimerActive,
+        timerMode: timer.timerMode,
+        activeTab,
+        targetTab: tab,
+      },
+    )
     if (locked) {
       onLockedAttempt?.()
+      if (lockoutMode === 'strict') return
       const ok = await requestConfirm({
         title: `${FOCUS_LOCKOUT} active`,
         message: 'Your lockout setting prevents leaving Focus during an active study block. Pause the timer to navigate away.',
@@ -45,7 +64,7 @@ export function useFocusLockoutNavigation({
       return
     }
     setActiveTab(tab)
-  }, [enforceLockout, timer, setActiveTab, requestConfirm, onLockedAttempt])
+  }, [enforceLockout, lockoutMode, lockoutAllowedTabs, lockoutStudyOnly, activeTab, timer, setActiveTab, requestConfirm, onLockedAttempt])
 
   return handleSetActiveTab
 }

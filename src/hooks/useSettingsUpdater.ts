@@ -2,12 +2,12 @@ import { useCallback } from 'react'
 import type { SettingsKey, SettingsValue } from '../db/types'
 import { useSettings } from '../db/hooks/useSettings'
 import type { useAppToast } from './useAppToast'
-import { validateSetting } from '../lib/settingsValidation'
+import { validateSetting } from '../lib/settings/settingsValidation'
 import {
   type SettingsSectionId,
   SECTION_DEFAULT_KEYS,
   getDefaultForKey,
-} from '../lib/settingsSections'
+} from '../lib/settings/settingsSections'
 
 type PushToast = ReturnType<typeof useAppToast>['pushToast']
 

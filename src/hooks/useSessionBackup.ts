@@ -1,13 +1,21 @@
 import { useRef, useState } from 'react'
-import { db } from '../db/db'
-import { collectStudyBackupPayload, downloadStudyBackup } from '../lib/backupExport'
-import { isTauri, writeBackupToDesktopFolder } from '../lib/tauri'
-import { setLastBackupExportAt } from '../lib/backupMetadata'
-import { canShareStudyBackup, shareStudyBackup } from '../lib/backupShare'
-import { buildStudyHistoryIcs, downloadIcs } from '../lib/icsExport'
-import { verifyBackupChecksum } from '../lib/backupChecksum'
-import { parseStudyBackupPayload, validateBackupPayload } from '../lib/studyDashboard'
-import { devLog } from '../lib/devLogger'
+import { collectStudyBackupPayload, downloadStudyBackup } from '../lib/backup/backupExport'
+import { exportAllTables, mergeBackupData, replaceAllTables, resetDatabase, resetSelective } from '../db/repositories/database'
+import { addSnapshot, trimSnapshotsToMax } from '../db/repositories/snapshots'
+import { getAllHistory, bulkAddHistory } from '../db/repositories/history'
+import { getAllCategories } from '../db/repositories/categories'
+import { getAllTasks } from '../db/repositories/tasks'
+import { getAllDailyLogs } from '../db/repositories/dailyLogs'
+import { getSetting } from '../db/repositories/settings'
+import { decryptBackupEnvelope, encryptBackupPayload, isEncryptedBackupEnvelope } from '../lib/backup/backupCrypto'
+import { parseStudyHistoryIcs } from '../lib/export/icsImport'
+import { isTauri, writeBackupToDesktopFolder } from '../lib/desktop/tauri'
+import { setLastBackupExportAt } from '../lib/backup/backupMetadata'
+import { canShareStudyBackup, shareStudyBackup } from '../lib/backup/backupShare'
+import { buildStudyHistoryIcs, downloadIcs } from '../lib/export/icsExport'
+import { verifyBackupChecksum } from '../lib/backup/backupChecksum'
+import { parseStudyBackupPayload, validateBackupPayload } from '../lib/study/studyDashboard'
+import { devLog } from '../lib/shared/devLogger'
 import {
   BACKUP_CSV_EXPORT_FAILED,
   BACKUP_EXPORT_COMPLETE,
@@ -23,7 +31,7 @@ import {
   BACKUP_SNAPSHOTS_CLEAR_FAILED,
   BACKUP_SNAPSHOTS_CLEARED,
   BACKUP_TASK_CSV_EXPORT_FAILED,
-} from '../lib/backupTerms'
+} from '../lib/backup/backupTerms'
 
 const MAX_SNAPSHOTS = 3
 
@@ -31,12 +39,21 @@ export type StudyBackupExportDestination = 'auto' | 'download' | 'folder'
 
 export interface StudyBackupExportOptions {
   destination?: StudyBackupExportDestination
+  encrypt?: boolean
+  passphrase?: string
+}
+
+export type StudyBackupImportMode = 'replace' | 'merge'
+
+export interface StudyBackupImportOptions {
+  mode?: StudyBackupImportMode
+  passphrase?: string
 }
 
 async function resolveDesktopBackupFolder(): Promise<string> {
   if (!isTauri()) return ''
-  const folderRow = await db.settings.get('desktopBackupFolderPath')
-  return typeof folderRow?.value === 'string' ? folderRow.value : ''
+  const value = await getSetting('desktopBackupFolderPath')
+  return typeof value === 'string' ? value : ''
 }
 
 function resolveExportDestination(
@@ -61,34 +78,11 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
 
   async function createDatabaseSnapshot() {
     try {
-      const [tasks, history, dailyLogs, settings, categories, flashcards, quickNotes] = await Promise.all([
-        db.tasks.toArray(),
-        db.history.toArray(),
-        db.daily_logs.toArray(),
-        db.settings.toArray(),
-        db.categories.toArray(),
-        db.flashcards.toArray(),
-        db.quick_notes.toArray(),
-      ])
-      const snapshot = {
-        timestamp: new Date().toISOString(),
-        tasks,
-        history,
-        dailyLogs,
-        settings,
-        categories,
-        flashcards,
-        quickNotes,
-      }
-      await db.snapshots.add({
-        timestamp: snapshot.timestamp,
-        payload: JSON.stringify(snapshot),
-      })
-      const count = await db.snapshots.count()
-      if (count > MAX_SNAPSHOTS) {
-        const oldest = await db.snapshots.orderBy('id').limit(count - MAX_SNAPSHOTS).toArray()
-        await db.snapshots.bulkDelete(oldest.map(s => s.id!).filter(Boolean))
-      }
+      const { tasks, history, dailyLogs, settings, categories, flashcards, quickNotes } = await exportAllTables()
+      const timestamp = new Date().toISOString()
+      const snapshot = { timestamp, tasks, history, dailyLogs, settings, categories, flashcards, quickNotes }
+      await addSnapshot({ timestamp, payload: JSON.stringify(snapshot) })
+      await trimSnapshotsToMax(MAX_SNAPSHOTS)
     } catch (err) {
       console.error('Failed to create database snapshot:', err)
       pushToast('BACKUP', BACKUP_SNAPSHOT_FAILED)
@@ -103,10 +97,25 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
       const folder = await resolveDesktopBackupFolder()
       const destination = resolveExportDestination(options?.destination ?? 'download', folder)
 
+      let exportBody: unknown = payload
+      if (options?.encrypt && options.passphrase) {
+        exportBody = await encryptBackupPayload(payload, options.passphrase, payload.checksumSha256 ?? '')
+      }
+
       if (destination === 'download') {
-        downloadStudyBackup(payload, 'study-vault')
+        if (options?.encrypt && options.passphrase) {
+          const blob = new Blob([JSON.stringify(exportBody, null, 2)], { type: 'application/json' })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `study-vault-${new Date().toISOString().slice(0, 10)}.studybackup`
+          a.click()
+          URL.revokeObjectURL(url)
+        } else {
+          downloadStudyBackup(payload, 'study-vault')
+        }
       } else if (folder) {
-        await writeBackupToDesktopFolder(folder, payload)
+        await writeBackupToDesktopFolder(folder, exportBody as typeof payload)
       }
 
       setLastBackupExportAt()
@@ -142,7 +151,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
 
   async function exportStudyHistoryIcs() {
     try {
-      const [history, categories] = await Promise.all([db.history.toArray(), db.categories.toArray()])
+      const [history, categories] = await Promise.all([getAllHistory(), getAllCategories()])
       const categoryNames = new Map(categories.filter(c => c.id !== undefined).map(c => [c.id!, c.name]))
       const ics = buildStudyHistoryIcs(history, categoryNames)
       downloadIcs(ics)
@@ -154,7 +163,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
 
   async function clearSnapshots() {
     try {
-      await db.snapshots.clear()
+      await clearSnapshots()
       pushToast('BACKUP', BACKUP_SNAPSHOTS_CLEARED)
     } catch (err) {
       console.error('Failed to clear snapshots:', err)
@@ -164,7 +173,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
 
   async function exportStudyLogsCSV() {
     try {
-      const logs = await db.daily_logs.toArray()
+      const logs = await getAllDailyLogs()
       let csv = 'Date,Study Minutes,Break Minutes,Mood,Notes\n'
       logs.forEach(l => {
         const notes = l.notes ? escapeCsvField(l.notes) : ''
@@ -185,8 +194,8 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
 
   async function exportTaskCompletionLogsCSV() {
     try {
-      const tasks = await db.tasks.toArray()
-      const cats = await db.categories.toArray()
+      const tasks = await getAllTasks()
+      const cats = await getAllCategories()
       const catMap = new Map(cats.map(c => [c.id, c.name]))
 
       let csv = 'Task ID,Task Text,Status,Priority,Category,Created At,Estimated Cycles,Actual Cycles,Subtasks Progress,Subtasks Detail\n'
@@ -217,7 +226,22 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
     }
   }
 
-  async function importStudyBackup(fileString: string) {
+  async function importStudyHistoryIcs(fileString: string) {
+    try {
+      const entries = parseStudyHistoryIcs(fileString)
+      if (entries.length === 0) {
+        pushToast('BACKUP', BACKUP_IMPORT_INVALID)
+        return
+      }
+      await bulkAddHistory(entries)
+      pushToast('BACKUP', `Imported ${entries.length} study sessions from calendar`)
+    } catch (err) {
+      console.error('ICS import failed:', err)
+      pushToast('BACKUP', BACKUP_IMPORT_FAILED)
+    }
+  }
+
+  async function importStudyBackup(fileString: string, options?: StudyBackupImportOptions) {
     try {
       let parsedJson: unknown
       try {
@@ -225,6 +249,16 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
       } catch {
         pushToast('BACKUP', BACKUP_IMPORT_INVALID_FORMAT)
         return
+      }
+
+      if (isEncryptedBackupEnvelope(parsedJson)) {
+        if (!options?.passphrase) {
+          pushToast('BACKUP', 'Passphrase required for encrypted backup')
+          return
+        }
+        const decrypted = await decryptBackupEnvelope(parsedJson, options.passphrase)
+        parsedJson = decrypted
+        fileString = JSON.stringify(decrypted)
       }
 
       if (!validateBackupPayload(parsedJson)) {
@@ -244,25 +278,29 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
         return
       }
 
-      await db.transaction('rw', [db.tasks, db.history, db.daily_logs, db.settings, db.categories, db.flashcards, db.quick_notes, db.snapshots], async () => {
-        await Promise.all([
-          db.tasks.clear(),
-          db.history.clear(),
-          db.daily_logs.clear(),
-          db.settings.clear(),
-          db.categories.clear(),
-          db.flashcards.clear(),
-          db.quick_notes.clear(),
-          db.snapshots.clear(),
-        ])
+      if (options?.mode === 'merge') {
+        await mergeBackupData({
+          tasks: data.tasks,
+          history: data.history,
+          dailyLogs: data.dailyLogs,
+          settings: data.settings,
+          categories: data.categories,
+          flashcards: data.flashcards,
+          quickNotes: data.quickNotes,
+        })
+        pushToast('BACKUP', 'Backup merged successfully')
+        devLog('backup', 'merge-success', { tasks: data.tasks.length, history: data.history.length })
+        return
+      }
 
-        if (data.tasks.length > 0) await db.tasks.bulkAdd(data.tasks)
-        if (data.history.length > 0) await db.history.bulkAdd(data.history)
-        if (data.dailyLogs.length > 0) await db.daily_logs.bulkAdd(data.dailyLogs)
-        if (data.settings.length > 0) await db.settings.bulkAdd(data.settings)
-        if (data.categories.length > 0) await db.categories.bulkAdd(data.categories)
-        if (data.flashcards.length > 0) await db.flashcards.bulkAdd(data.flashcards)
-        if (data.quickNotes.length > 0) await db.quick_notes.bulkAdd(data.quickNotes)
+      await replaceAllTables({
+        tasks: data.tasks,
+        history: data.history,
+        dailyLogs: data.dailyLogs,
+        settings: data.settings,
+        categories: data.categories,
+        flashcards: data.flashcards,
+        quickNotes: data.quickNotes,
       })
 
       localStorage.removeItem('study_dashboard_snapshots')
@@ -276,53 +314,18 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
   }
 
   async function resetData() {
-    await db.tasks.clear()
-    await db.history.clear()
-    await db.daily_logs.clear()
-    await db.settings.clear()
-    await db.categories.clear()
-    await db.flashcards.clear()
-    await db.quick_notes.clear()
-    await db.snapshots.clear()
+    await resetDatabase()
     localStorage.removeItem('completed_study_sessions_count')
     localStorage.removeItem('study_dashboard_snapshots')
-    await db.settings.bulkAdd([
-      { key: 'dailyGoalMinutes', value: 120 },
-      { key: 'soundEnabled', value: true },
-      { key: 'targetSessionsPerCycle', value: 4 },
-      { key: 'longBreakDurationMinutes', value: 15 },
-      { key: 'shortBreakDurationMinutes', value: 5 },
-      { key: 'studyBlockDurationMinutes', value: 25 },
-      { key: 'theme', value: 'midnight-slate' },
-      { key: 'cardOpacity', value: 0.70 },
-      { key: 'backdropBlur', value: 8 },
-      { key: 'initialEasinessFactor', value: 2.5 },
-      { key: 'autoArchiveAncientTasks', value: false },
-      { key: 'tactile_feedback', value: false },
-      { key: 'developer_font', value: 'JetBrains Mono' },
-      { key: 'enforce_lockout', value: false },
-    ])
-    await db.categories.bulkAdd([
-      { name: 'General', color: '#64748B' },
-      { name: 'Development', color: '#3B82F6' },
-      { name: 'Mathematics', color: '#8B5CF6' },
-    ])
     window.location.reload()
   }
 
   async function resetDataSelective(options: { tasks: boolean; history: boolean; categories: boolean; cards: boolean; notes: boolean }) {
     try {
-      await db.transaction('rw', [db.tasks, db.history, db.daily_logs, db.categories, db.flashcards, db.quick_notes], async () => {
-        if (options.tasks) await db.tasks.clear()
-        if (options.history) {
-          await db.history.clear()
-          await db.daily_logs.clear()
-          localStorage.removeItem('completed_study_sessions_count')
-        }
-        if (options.categories) await db.categories.clear()
-        if (options.cards) await db.flashcards.clear()
-        if (options.notes) await db.quick_notes.clear()
-      })
+      await resetSelective(options)
+      if (options.history) {
+        localStorage.removeItem('completed_study_sessions_count')
+      }
       pushToast('RESET', BACKUP_RESET_SWEPT)
     } catch (err) {
       console.error('Selective reset failed:', err)
@@ -343,6 +346,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
     exportStudyLogsCSV,
     exportTaskCompletionLogsCSV,
     importStudyBackup,
+    importStudyHistoryIcs,
     resetData,
     resetDataSelective,
   }

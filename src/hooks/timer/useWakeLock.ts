@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { requestWakeLock, releaseWakeLock } from '../../lib/wakeLock'
+import { requestWakeLock, releaseWakeLock } from '../../lib/desktop/wakeLock'
 
 export function useWakeLock(isTimerActive: boolean, timerMode: 'study' | 'break') {
   const [wakeLockActive, setWakeLockActive] = useState(false)

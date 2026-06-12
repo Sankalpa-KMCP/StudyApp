@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
-import { ARCHIVED_TASKS } from '../lib/uxTerms'
-import { db } from '../db/db'
+import { ARCHIVED_TASKS } from '../lib/shared/uxTerms'
+import { spawnNextRecurrence } from '../lib/study/recurrence'
+import { archiveTasks, getAllTasks, uncompleteTask, updateLastCompleted } from '../db/repositories/tasks'
 import type { TaskItem } from '../db/types'
 
 interface UseTaskActionsOptions {
@@ -20,6 +21,7 @@ interface UseTaskActionsOptions {
   sessionCategoryId: number | undefined
   taskCycleCount: number
   autoArchiveAncientTasks: boolean
+  autoArchiveAfterDays: number
   isDataReady: boolean
   pushToast: (key: string, message: string, options?: { action?: { label: string; onClick: () => void }; durationMs?: number }) => void
 }
@@ -35,26 +37,27 @@ export function useTaskActions({
   sessionCategoryId,
   taskCycleCount,
   autoArchiveAncientTasks,
+  autoArchiveAfterDays,
   isDataReady,
   pushToast,
 }: UseTaskActionsOptions) {
   useEffect(() => {
     if (isDataReady && autoArchiveAncientTasks) {
       const archiveAncientTasks = async () => {
-        const ninetyDaysAgo = Date.now() - 7776000000
-        const allTasks = await db.tasks.toArray()
-        const targetTasks = allTasks.filter(t => t.completed && t.createdAt < ninetyDaysAgo && !t.archived)
+        const cutoff = Date.now() - autoArchiveAfterDays * 86400000
+        const allTasks = await getAllTasks()
+        const targetTasks = allTasks.filter(t => t.completed && t.createdAt < cutoff && !t.archived)
         if (targetTasks.length > 0) {
           const ids = targetTasks.map(t => t.id).filter((id): id is number => id !== undefined)
           if (ids.length > 0) {
-            await Promise.all(ids.map(id => db.tasks.update(id, { archived: true })))
+            await archiveTasks(ids)
             pushToast('ARCHIVE', ARCHIVED_TASKS(ids.length))
           }
         }
       }
       void archiveAncientTasks()
     }
-  }, [isDataReady, autoArchiveAncientTasks, pushToast])
+  }, [isDataReady, autoArchiveAncientTasks, autoArchiveAfterDays, pushToast])
 
   async function handleAddTask(
     text: string,
@@ -88,15 +91,19 @@ export function useTaskActions({
         playChime()
         window.dispatchEvent(new CustomEvent('celebrate-complete', { detail: { count: 50 } }))
         await toggleTask(id)
+        await updateLastCompleted(id)
+        if (task.recurrenceRule) {
+          void spawnNextRecurrence({ ...task, completed: true, lastCompletedAt: Date.now() })
+        }
         pushToast('UNDO', 'Task completed', {
           durationMs: 5000,
           action: {
             label: 'Undo',
-            onClick: () => { void db.tasks.update(id, { completed: false, nextReviewDate: undefined }) },
+            onClick: () => { void uncompleteTask(id) },
           },
         })
       } else {
-        await db.tasks.update(id, { completed: false, nextReviewDate: undefined })
+        await uncompleteTask(id)
       }
     }
     if (activeTaskId === id) setActiveTaskId(null)

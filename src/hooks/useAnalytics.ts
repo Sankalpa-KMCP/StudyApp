@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import {
   calculateProductivityInsights,
   calculateCategoryBreakdown,
-} from '../lib/studyDashboard'
+} from '../lib/study/studyDashboard'
 import type { CategoryItem, DailyLog, HistoryEntry, TaskItem } from '../db/types'
 
 const EMPTY_INSIGHTS = {

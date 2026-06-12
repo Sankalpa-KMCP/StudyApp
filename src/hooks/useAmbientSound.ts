@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { startAmbient, stopAmbient } from '../lib/ambientAudio'
-import type { AmbientPreset } from '../lib/ambientAudio'
+import { startAmbient, stopAmbient } from '../lib/audio/ambientAudio'
+import type { AmbientPreset } from '../lib/audio/ambientAudio'
 
 interface UseAmbientSoundOptions {
   enabled: boolean

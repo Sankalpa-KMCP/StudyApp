@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { getLastBackupExportAt } from '../lib/backupMetadata'
-import { shouldRunAutoExport } from '../lib/autoExportSchedule'
+import { getLastBackupExportAt } from '../lib/backup/backupMetadata'
+import { shouldRunAutoExport } from '../lib/shared/autoExportSchedule'
 
 const RECHECK_MS = 6 * 60 * 60 * 1000
 

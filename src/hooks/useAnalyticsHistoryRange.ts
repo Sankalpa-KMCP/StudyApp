@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/db'
-import { getHistoryForDateRange } from '../db/repositories/history'
+import { getAllHistoryOrderedByCreatedAt, getHistoryForDateRange } from '../db/repositories/history'
 
 export type AnalyticsHistoryRange = '7d' | '30d' | '90d' | 'all'
 
@@ -28,7 +27,7 @@ function readStoredRange(): AnalyticsHistoryRange {
 
 async function fetchHistoryForRange(range: AnalyticsHistoryRange) {
   if (range === 'all') {
-    return db.history.orderBy('createdAt').reverse().toArray()
+    return getAllHistoryOrderedByCreatedAt()
   }
   const start = Date.now() - RANGE_MS[range]
   return getHistoryForDateRange(start, Date.now())

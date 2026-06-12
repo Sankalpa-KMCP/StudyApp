@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildCommandPaletteItems, filterCommandPaletteItems } from '../../lib/commandPaletteSearch'
+import { buildCommandPaletteItems, filterCommandPaletteItems } from '../../lib/routing/commandPaletteSearch'
 
 describe('commandPaletteSearch', () => {
   it('builds items excluding flashcards when disabled', () => {
@@ -14,6 +14,7 @@ describe('commandPaletteSearch', () => {
     expect(items.some(i => i.type === 'tab' && i.tab === 'cards')).toBe(false)
     expect(items.some(i => i.type === 'task')).toBe(true)
     expect(items.some(i => i.type === 'settings' && i.settingsSection === 'settings-timer-focus')).toBe(true)
+    expect(items.some(i => i.type === 'action' && i.actionId === 'toggle-timer')).toBe(true)
   })
 
   it('filters by query', () => {

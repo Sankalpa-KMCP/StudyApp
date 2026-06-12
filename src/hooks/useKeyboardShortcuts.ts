@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import type { ActiveTab, ToastState } from '../types/app'
-import { FOCUS_LOCKOUT_ACTIVE } from '../lib/uxTerms'
-import { SHORTCUT_TOASTS } from '../lib/shortcutToasts'
+import { FOCUS_LOCKOUT_ACTIVE } from '../lib/shared/uxTerms'
+import { SHORTCUT_TOASTS } from '../lib/shared/shortcutToasts'
 
 type RequestConfirm = (options: {
   title: string

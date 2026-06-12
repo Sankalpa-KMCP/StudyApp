@@ -1,12 +1,14 @@
 import { useState, useRef, useMemo, useCallback, useEffect, type RefObject, type SetStateAction } from 'react'
-import { db } from '../db/db'
 import type { TaskItem, HistoryEntry } from '../db/types'
-import { calculateSM2, formatHistoryTimestamp } from '../lib/studyDashboard'
+import { updateTask } from '../db/repositories/tasks'
+import { calculateSM2, calculateFSRS, formatHistoryTimestamp } from '../lib/study/studyDashboard'
+import { resolveTimerDurations } from '../lib/study/resolveTimerDurations'
+import type { CategoryItem } from '../db/types'
 import { createAnchorState } from './timer/timerAnchor'
 import { useTimerSessionShadow } from './timer/useTimerSessionShadow'
 import { useTimerCompletion } from './timer/useTimerCompletion'
 import { useWakeLock } from './timer/useWakeLock'
-import { BREAK_ENDED } from '../lib/uxTerms'
+import { BREAK_ENDED } from '../lib/shared/uxTerms'
 import { useTimerReflection } from './timer/useTimerReflection'
 import { useTimerTick } from './timer/useTimerTick'
 
@@ -17,6 +19,9 @@ interface UseTimerEngineOptions {
   longBreakDurationMinutes: number
   targetSessionsPerCycle: number
   initialEasinessFactor: number
+  schedulingAlgorithm?: 'sm2' | 'fsrs'
+  sessionTasks: TaskItem[]
+  categories: CategoryItem[]
   incrementStudy: () => Promise<void>
   incrementBreak: () => Promise<void>
   addHistoryEntry: (entry: Omit<HistoryEntry, 'id'> & { createdAt?: number }) => Promise<void>
@@ -36,6 +41,9 @@ export function useTimerEngine({
   longBreakDurationMinutes,
   targetSessionsPerCycle,
   initialEasinessFactor,
+  schedulingAlgorithm = 'sm2',
+  sessionTasks,
+  categories,
   incrementStudy,
   incrementBreak,
   addHistoryEntry,
@@ -65,6 +73,7 @@ export function useTimerEngine({
   const timerModeRef = useRef(timerMode)
   const timerCategoryIdRef = useRef(timerCategoryId)
   const secondsElapsedRef = useRef(secondsElapsed)
+  const activeTaskIdRef = useRef(activeTaskId)
 
   useEffect(() => {
     incStudyRef.current = incrementStudy
@@ -75,6 +84,7 @@ export function useTimerEngine({
   useEffect(() => { timerModeRef.current = timerMode }, [timerMode])
   useEffect(() => { timerCategoryIdRef.current = timerCategoryId }, [timerCategoryId])
   useEffect(() => { secondsElapsedRef.current = secondsElapsed }, [secondsElapsed])
+  useEffect(() => { activeTaskIdRef.current = activeTaskId }, [activeTaskId])
 
   const resetAnchor = useCallback((elapsed: number) => {
     anchorRef.current = createAnchorState(elapsed)
@@ -91,13 +101,23 @@ export function useTimerEngine({
     })
   }, [resetAnchor])
 
+  const resolvedDurations = useMemo(() => {
+    const activeTask = activeTaskId != null ? sessionTasks.find(t => t.id === activeTaskId) ?? null : null
+    const category = timerCategoryId !== undefined ? categories.find(c => c.id === timerCategoryId) ?? null : null
+    return resolveTimerDurations(
+      { studyBlockDurationMinutes, shortBreakDurationMinutes, longBreakDurationMinutes },
+      activeTask,
+      category,
+    )
+  }, [activeTaskId, sessionTasks, timerCategoryId, categories, studyBlockDurationMinutes, shortBreakDurationMinutes, longBreakDurationMinutes])
+
   const targetSeconds = useMemo(() => {
-    let baseMin = studyBlockDurationMinutes
+    let baseMin = resolvedDurations.studyBlockDurationMinutes
     if (timerMode !== 'study') {
-      baseMin = isLongBreak ? longBreakDurationMinutes : shortBreakDurationMinutes
+      baseMin = isLongBreak ? resolvedDurations.longBreakDurationMinutes : resolvedDurations.shortBreakDurationMinutes
     }
     return (baseMin + extendedMinutes) * 60
-  }, [timerMode, isLongBreak, longBreakDurationMinutes, shortBreakDurationMinutes, extendedMinutes, studyBlockDurationMinutes])
+  }, [timerMode, isLongBreak, resolvedDurations, extendedMinutes])
 
   const remainingSeconds = Math.max(0, targetSeconds - secondsElapsed)
   const progress = targetSeconds > 0 ? Math.min(1, secondsElapsed / targetSeconds) : 0
@@ -158,6 +178,7 @@ export function useTimerEngine({
       secondsElapsedRef,
       isTimerActiveRef,
       timerCategoryIdRef,
+      activeTaskIdRef,
       lastShadowWriteRef,
     },
     timerMode,
@@ -203,25 +224,31 @@ export function useTimerEngine({
 
   const submitRecallGrade = useCallback(async (task: TaskItem, q: number) => {
     if (task.id === undefined) return
-    const { repetitionCount, easinessFactor, intervalDays } = calculateSM2(
-      q,
-      task.repetitionCount ?? 0,
-      task.easinessFactor ?? initialEasinessFactor,
-      task.intervalDays ?? 0,
-    )
+    const gradeResult = schedulingAlgorithm === 'fsrs'
+      ? calculateFSRS(q, {
+          stability: task.easinessFactor ?? initialEasinessFactor,
+          difficulty: task.latestGrade ?? 5,
+          repetitionCount: task.repetitionCount ?? 0,
+          elapsedDays: 0,
+        }, initialEasinessFactor)
+      : calculateSM2(q, task.repetitionCount ?? 0, task.easinessFactor ?? initialEasinessFactor, task.intervalDays ?? 0)
+    const { repetitionCount, easinessFactor, intervalDays } = gradeResult
     const nextDate = new Date()
     nextDate.setDate(nextDate.getDate() + intervalDays)
     const nextReviewDate = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`
-    await db.tasks.update(task.id, {
+    await updateTask(task.id, {
       repetitionCount,
       easinessFactor,
       intervalDays,
       nextReviewDate,
       completed: true,
       latestGrade: q,
+      ...(schedulingAlgorithm === 'fsrs'
+        ? { stability: (gradeResult as ReturnType<typeof calculateFSRS>).stability, difficulty: (gradeResult as ReturnType<typeof calculateFSRS>).difficulty }
+        : {}),
     })
     playChime()
-  }, [initialEasinessFactor, playChime])
+  }, [initialEasinessFactor, schedulingAlgorithm, playChime])
 
   const resetTimerState = useCallback(() => {
     setSecondsElapsed(0)

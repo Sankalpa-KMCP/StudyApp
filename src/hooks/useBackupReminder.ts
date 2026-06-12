@@ -3,7 +3,7 @@ import {
   daysSinceLastExport,
   setLastBackupDismissedAt,
   shouldShowBackupReminder,
-} from '../lib/backupMetadata'
+} from '../lib/backup/backupMetadata'
 
 const REMINDER_INTERVAL_DAYS = 30
 const SNOOZE_DAYS = 7

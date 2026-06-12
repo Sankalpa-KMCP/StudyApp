@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { db } from '../../db/db'
 import { useTimerEngine } from '../useTimerEngine'
 import { resetDatabase } from '../../test/dbTestUtils'
-import { buildDateString } from '../../lib/studyDashboard'
+import { buildDateString } from '../../lib/study/studyDashboard'
 
 function createTimerOptions(overrides: Partial<Parameters<typeof useTimerEngine>[0]> = {}) {
   return {
@@ -22,6 +22,9 @@ function createTimerOptions(overrides: Partial<Parameters<typeof useTimerEngine>
     activeTaskId: null,
     setActiveTaskId: vi.fn(),
     focusNotificationsEnabled: false,
+    schedulingAlgorithm: 'sm2' as const,
+    sessionTasks: [],
+    categories: [],
     ...overrides,
   }
 }

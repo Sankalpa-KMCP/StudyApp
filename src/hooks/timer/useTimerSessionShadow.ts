@@ -1,8 +1,8 @@
 import type { MutableRefObject } from 'react'
 import { useCallback, useEffect } from 'react'
 import { addRecoveredMinutes } from '../../db/repositories/dailyLogs'
-import { formatHistoryTimestamp } from '../../lib/studyDashboard'
-import { sessionRestoredMessage } from '../../lib/backupTerms'
+import { formatHistoryTimestamp } from '../../lib/study/studyDashboard'
+import { sessionRestoredMessage } from '../../lib/backup/backupTerms'
 import type { HistoryEntry } from '../../db/types'
 
 export interface TimerShadowRefs {
@@ -10,6 +10,7 @@ export interface TimerShadowRefs {
   secondsElapsedRef: MutableRefObject<number>
   isTimerActiveRef: MutableRefObject<boolean>
   timerCategoryIdRef: MutableRefObject<number | undefined>
+  activeTaskIdRef: MutableRefObject<number | null>
   lastShadowWriteRef: MutableRefObject<number>
 }
 
@@ -41,6 +42,7 @@ export function useTimerSessionShadow({
     secondsElapsedRef,
     isTimerActiveRef,
     timerCategoryIdRef,
+    activeTaskIdRef,
     lastShadowWriteRef,
   } = refs
 
@@ -54,10 +56,11 @@ export function useTimerSessionShadow({
       secondsElapsed: secondsElapsedRef.current,
       isTimerActive: isTimerActiveRef.current,
       categoryId: timerCategoryIdRef.current,
+      activeTaskId: activeTaskIdRef.current,
       timestamp: now,
     }
     sessionStorage.setItem('active_session_shadow', JSON.stringify(shadow))
-  }, [isDataReady, timerModeRef, secondsElapsedRef, isTimerActiveRef, timerCategoryIdRef, lastShadowWriteRef])
+  }, [isDataReady, timerModeRef, secondsElapsedRef, isTimerActiveRef, timerCategoryIdRef, activeTaskIdRef, lastShadowWriteRef])
 
   useEffect(() => {
     if (!isDataReady) return
@@ -76,6 +79,7 @@ export function useTimerSessionShadow({
             type: shadow.mode,
             durationMinutes: elapsedMin,
             categoryId: shadow.mode === 'study' ? shadow.categoryId : undefined,
+            taskId: shadow.mode === 'study' && shadow.activeTaskId != null ? shadow.activeTaskId : undefined,
           })
           await addRecoveredMinutes(shadow.mode, elapsedMin)
           pushToast('RESTORE', sessionRestoredMessage(elapsedMin, shadow.mode))

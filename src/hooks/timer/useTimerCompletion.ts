@@ -1,9 +1,9 @@
 import type { MutableRefObject } from 'react'
 import { useCallback } from 'react'
-import { db } from '../../db/db'
 import type { HistoryEntry } from '../../db/types'
-import { devLog } from '../../lib/devLogger'
-import { sendFocusBlockCompleteNotification } from '../../lib/focusNotifications'
+import { getTask, incrementActualCycles } from '../../db/repositories/tasks'
+import { devLog } from '../../lib/shared/devLogger'
+import { sendFocusBlockCompleteNotification } from '../../lib/desktop/focusNotifications'
 
 interface UseTimerCompletionOptions {
   completingRef: MutableRefObject<boolean>
@@ -50,6 +50,7 @@ export function useTimerCompletion({
       type: mode,
       durationMinutes: Math.floor(elapsed / 60) || 1,
       categoryId: mode === 'study' ? categoryId : undefined,
+      taskId: mode === 'study' && activeTaskId != null ? activeTaskId : undefined,
       sessionNotes: sessionNotes || undefined,
       ...(attRating !== undefined ? { attentionRating: attRating } : {}),
       ...(stabRating !== undefined ? { stabilityRating: stabRating } : {}),
@@ -70,11 +71,9 @@ export function useTimerCompletion({
         await createDatabaseSnapshot()
       }
       if (activeTaskId !== null) {
-        const task = await db.tasks.get(activeTaskId)
+        const task = await getTask(activeTaskId)
         if (task) {
-          const newActual = (task.actualCycles ?? 0) + 1
-          const completed = newActual >= (task.estimatedCycles ?? 1)
-          await db.tasks.update(activeTaskId, { actualCycles: newActual, completed })
+          const { completed } = await incrementActualCycles(activeTaskId, task.estimatedCycles ?? 1)
           if (completed) setActiveTaskId(null)
         }
       }

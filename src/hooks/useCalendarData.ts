@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import type { DailyLog, HistoryEntry, TaskItem } from '../db/types'
 import type { DayData } from '../types/app'
-import { formatMinutes, getIntensity, getHistoryDayKey } from '../lib/studyDashboard'
-import { DAY_NAMES_SHORT, MONTH_NAMES } from '../lib/dateConstants'
+import { formatMinutes, getIntensity, getHistoryDayKey } from '../lib/study/studyDashboard'
+import { DAY_NAMES_SHORT, MONTH_NAMES } from '../lib/shared/dateConstants'
 
 interface UseCalendarDataOptions {
   monthLogs: DailyLog[]

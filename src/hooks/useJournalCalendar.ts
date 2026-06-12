@@ -1,8 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { updateDailyReflection, useHistoryForMonth, useMonthLogsQuery } from '../db/hooks'
-import { calculateCalendarHeatmapData } from '../lib/studyDashboard'
+import { calculateCalendarHeatmapData } from '../lib/study/studyDashboard'
 import { useCalendarData } from './useCalendarData'
 import type { TaskItem } from '../db/types'
+import { consumePendingJournalDate, parseJournalDateParts } from '../lib/routing/journalNavigation'
 
 export type JournalSaveStatus = 'idle' | 'saving' | 'saved'
 
@@ -23,10 +24,12 @@ export function useJournalCalendar({
   todayStudyMinutes,
   todayBreakMinutes,
 }: UseJournalCalendarOptions) {
-  const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth())
-  const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear())
+  const pendingDate = typeof window !== 'undefined' ? consumePendingJournalDate() : null
+  const pendingParts = pendingDate ? parseJournalDateParts(pendingDate) : null
+  const [currentMonth, setCurrentMonth] = useState(() => pendingParts?.month ?? new Date().getMonth())
+  const [currentYear, setCurrentYear] = useState(() => pendingParts?.year ?? new Date().getFullYear())
   const [calendarCategoryFilter, setCalendarCategoryFilter] = useState<'all' | number>('all')
-  const [selectedDay, setSelectedDay] = useState(() => new Date().getDate())
+  const [selectedDay, setSelectedDay] = useState(() => pendingParts?.day ?? new Date().getDate())
   const [saveStatus, setSaveStatus] = useState<JournalSaveStatus>('idle')
 
   const [prevSelectedDateStr, setPrevSelectedDateStr] = useState<string | undefined>(undefined)

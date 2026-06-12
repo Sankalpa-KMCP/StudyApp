@@ -1,15 +1,7 @@
 import { useState, useEffect } from 'react'
-import { db } from '../db/db'
+import { getTableRowCounts, type TableRowCounts } from '../db/repositories/storageStats'
 
-export interface TableRowCounts {
-  tasks: number
-  history: number
-  dailyLogs: number
-  flashcards: number
-  quickNotes: number
-  categories: number
-  snapshots: number
-}
+export type { TableRowCounts }
 
 export interface StorageEstimate {
   usageBytes: number | null
@@ -17,19 +9,6 @@ export interface StorageEstimate {
   rowCounts: TableRowCounts | null
   isLoading: boolean
   isSupported: boolean
-}
-
-async function fetchRowCounts(): Promise<TableRowCounts> {
-  const [tasks, history, dailyLogs, flashcards, quickNotes, categories, snapshots] = await Promise.all([
-    db.tasks.count(),
-    db.history.count(),
-    db.daily_logs.count(),
-    db.flashcards.count(),
-    db.quick_notes.count(),
-    db.categories.count(),
-    db.snapshots.count(),
-  ])
-  return { tasks, history, dailyLogs, flashcards, quickNotes, categories, snapshots }
 }
 
 export function useStorageEstimate(enabled = true): StorageEstimate {
@@ -50,7 +29,7 @@ export function useStorageEstimate(enabled = true): StorageEstimate {
     async function load() {
       setIsLoading(true)
       try {
-        const counts = await fetchRowCounts()
+        const counts = await getTableRowCounts()
         if (cancelled) return
         setRowCounts(counts)
 

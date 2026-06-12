@@ -2,16 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useAutoExport } from '../useAutoExport'
 
-vi.mock('../../lib/backupMetadata', () => ({
+vi.mock('../../lib/backup/backupMetadata', () => ({
   getLastBackupExportAt: vi.fn(),
 }))
 
-vi.mock('../../lib/autoExportSchedule', () => ({
+vi.mock('../../lib/shared/autoExportSchedule', () => ({
   shouldRunAutoExport: vi.fn(),
 }))
 
-import { getLastBackupExportAt } from '../../lib/backupMetadata'
-import { shouldRunAutoExport } from '../../lib/autoExportSchedule'
+import { getLastBackupExportAt } from '../../lib/backup/backupMetadata'
+import { shouldRunAutoExport } from '../../lib/shared/autoExportSchedule'
 
 describe('useAutoExport', () => {
   beforeEach(() => {

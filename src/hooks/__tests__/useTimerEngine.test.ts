@@ -20,6 +20,9 @@ function createTimerOptions(overrides: Partial<Parameters<typeof useTimerEngine>
     activeTaskId: null,
     setActiveTaskId: vi.fn(),
     focusNotificationsEnabled: false,
+    schedulingAlgorithm: 'sm2' as const,
+    sessionTasks: [],
+    categories: [],
     ...overrides,
   }
 }
