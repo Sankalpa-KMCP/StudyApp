@@ -32,6 +32,16 @@
 - README and docs aligned with optional flashcards and backup format v3
 - Onboarding and Settings discoverability for optional flashcard deck
 - `useDashboardData` skips flashcard query when `flashcardsEnabled` is false
+- Desktop backup exports write to the chosen folder without also triggering a browser download
+- Auto-export re-checks every 6 hours and when the app becomes visible
+
+### Fixed
+- Apply saved desktop autostart and global shortcut settings on app startup
+- Backup v3 checksum verification ignores parse-only `rawVersion` field
+- Tray menu label reads "Toggle timer" (was "Pause timer")
+- Scheduled export requires a prior manual export before the first automatic run
+- Settings section nav includes Desktop App panel on Tauri builds
+- Tauri FS scope allows backup writes under home, documents, and downloads folders
 
 ## [1.0.0] - 2026-06-12
 
