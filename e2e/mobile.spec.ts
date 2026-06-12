@@ -25,5 +25,19 @@ test('mobile focus shows compact timer and task input', async ({ page }) => {
   }
   await page.getByRole('button', { name: 'Focus', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Adjust length' })).toBeVisible()
-  await expect(page.getByPlaceholder('What do you want to focus on?')).toBeVisible()
+  await expect(page.locator('#task-input-mobile')).toBeVisible()
+})
+
+test('mobile timer has play/pause icon and extend/complete when running', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
+  if (await page.getByRole('button', { name: 'Skip onboarding tour' }).isVisible()) {
+    await page.getByRole('button', { name: 'Skip onboarding tour' }).click()
+  }
+  await page.getByRole('button', { name: 'Focus', exact: true }).click()
+  await expect(page.getByTestId('mobile-timer-play-pause')).toBeVisible()
+  await page.getByRole('button', { name: 'Start focus' }).click()
+  await expect(page.getByRole('button', { name: '+5 Min' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Complete' })).toBeVisible()
+  await expect(page.getByTestId('mobile-timer-play-pause')).toHaveAttribute('aria-label', 'Pause timer')
 })

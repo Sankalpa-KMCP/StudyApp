@@ -37,6 +37,33 @@ test('section nav scrolls to backup vault', async ({ page }) => {
   await expect(page.locator('#settings-backup-vault')).toBeInViewport({ timeout: 5000 })
 })
 
+test('advanced panels hidden until toggle is enabled', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
+  await page.getByRole('button', { name: /control deck|settings/i }).filter({ visible: true }).click()
+
+  await expect(page.locator('#settings-zen-lockout')).toHaveCount(0)
+  await expect(page.locator('#settings-algorithm')).toHaveCount(0)
+
+  await page.getByRole('switch', { name: 'Show advanced settings' }).click()
+
+  await expect(page.locator('#settings-zen-lockout')).toBeVisible({ timeout: 5000 })
+  await settingsSectionNav(page).getByRole('button', { name: 'Study', exact: true }).click()
+  await expect(page.locator('#settings-algorithm')).toBeInViewport({ timeout: 5000 })
+})
+
+test('pending scroll to advanced panel auto-enables advanced settings', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('sanctuary_onboarding_completed', 'true')
+    localStorage.setItem('settings_show_advanced', 'false')
+    sessionStorage.setItem('pending_settings_scroll', 'settings-zen-lockout')
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await expect(page.getByRole('switch', { name: 'Show advanced settings' })).toBeChecked({ timeout: 5000 })
+  await expect(page.locator('#settings-zen-lockout')).toBeVisible({ timeout: 5000 })
+})
+
 test('classic pomodoro preset updates timer summary', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
