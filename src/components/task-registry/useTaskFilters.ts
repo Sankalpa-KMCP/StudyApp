@@ -6,6 +6,10 @@ export function useTodayDateString() {
   return useMemo(() => buildDateString(new Date()), [])
 }
 
+function isInReviewQueue(task: TaskItem, todayStr: string) {
+  return task.completed && task.isStudySubject && (!task.nextReviewDate || task.nextReviewDate <= todayStr)
+}
+
 export function useTaskFilters(tasks: TaskItem[], categories: CategoryItem[], todayStr: string) {
   const categoriesMap = useMemo(() => {
     const m = new Map<number, CategoryItem>()
@@ -15,12 +19,20 @@ export function useTaskFilters(tasks: TaskItem[], categories: CategoryItem[], to
     return m
   }, [categories])
 
-  const activeTasksList = useMemo(() => tasks.filter(t => !t.completed), [tasks])
+  const activeTasksList = useMemo(() => tasks.filter(t => !t.completed && !t.archived), [tasks])
 
   const reviewQueueList = useMemo(
-    () => tasks.filter(t => t.completed && t.isStudySubject && (!t.nextReviewDate || t.nextReviewDate <= todayStr)),
+    () => tasks.filter(t => isInReviewQueue(t, todayStr)),
     [tasks, todayStr],
   )
 
-  return { categoriesMap, activeTasksList, reviewQueueList }
+  const completedTasksList = useMemo(
+    () =>
+      tasks
+        .filter(t => t.completed && !t.archived && !isInReviewQueue(t, todayStr))
+        .sort((a, b) => b.createdAt - a.createdAt),
+    [tasks, todayStr],
+  )
+
+  return { categoriesMap, activeTasksList, reviewQueueList, completedTasksList }
 }
