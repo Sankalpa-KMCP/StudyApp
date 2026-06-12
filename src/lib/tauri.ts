@@ -37,6 +37,15 @@ export async function pickDesktopBackupFolder(): Promise<string | null> {
   return selected
 }
 
+export async function applySavedDesktopSettings(settings: {
+  desktopAutostartEnabled: boolean
+  desktopGlobalShortcutsEnabled: boolean
+}): Promise<void> {
+  if (!isTauri()) return
+  await enableDesktopAutostart(settings.desktopAutostartEnabled)
+  await setDesktopGlobalShortcuts(settings.desktopGlobalShortcutsEnabled)
+}
+
 export async function writeBackupToDesktopFolder(
   folderPath: string,
   payload: StudyBackupPayload,

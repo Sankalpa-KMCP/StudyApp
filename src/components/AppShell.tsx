@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { Sidebar } from './Sidebar'
 import { AppContentHeader } from './AppContentHeader'
 import { ZenOverlayContainer } from './ZenOverlayContainer'
@@ -21,7 +21,7 @@ import { getEffectiveDailyGoal, getTodayCategoryStudyMinutes } from '../lib/stud
 import { usePwaInstall } from '../hooks/usePwaInstall'
 import { useBackupReminder } from '../hooks/useBackupReminder'
 import { useAutoExport } from '../hooks/useAutoExport'
-import { initDesktopTrayBridge, isTauri, setDesktopTrayTooltip } from '../lib/tauri'
+import { applySavedDesktopSettings, initDesktopTrayBridge, isTauri, setDesktopTrayTooltip } from '../lib/tauri'
 import { buildThemeInlineStyles } from '../lib/applyThemeVars'
 import { AppShellLoadingScreen } from './app-shell/AppShellLoadingScreen'
 import { AppShellStatusBanners } from './app-shell/AppShellStatusBanners'
@@ -73,9 +73,23 @@ export const AppShell = memo(function AppShell() {
     intervalDays: settings.autoExportIntervalDays,
     isDataReady,
     exportBackup: () => {
-      void backup.exportStudyBackup().then(() => backupReminder.refresh())
+      void backup.exportStudyBackup({ destination: 'auto' }).then(() => backupReminder.refresh())
     },
   })
+
+  const desktopSettingsAppliedRef = useRef(false)
+  useEffect(() => {
+    if (!isDataReady || !isTauri() || desktopSettingsAppliedRef.current) return
+    desktopSettingsAppliedRef.current = true
+    void applySavedDesktopSettings({
+      desktopAutostartEnabled: settings.desktopAutostartEnabled,
+      desktopGlobalShortcutsEnabled: settings.desktopGlobalShortcutsEnabled,
+    })
+  }, [
+    isDataReady,
+    settings.desktopAutostartEnabled,
+    settings.desktopGlobalShortcutsEnabled,
+  ])
 
   const {
     activeTab,
@@ -235,7 +249,7 @@ export const AppShell = memo(function AppShell() {
           onPwaInstall={() => void pwaInstall.install()}
           onPwaDismiss={pwaInstall.dismiss}
           onExportBackup={() => {
-            void backup.exportStudyBackup().then(() => backupReminder.refresh())
+            void backup.exportStudyBackup({ destination: 'download' }).then(() => backupReminder.refresh())
           }}
           onOpenRecovery={() => void setActiveTab('settings')}
           onDismissQuota={dismissQuotaRecovery}
