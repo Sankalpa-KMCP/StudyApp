@@ -19,13 +19,14 @@ import { OnboardingModal } from './OnboardingModal'
 import { countDueFlashcards } from './flashcard/flashcardDue'
 import { getEffectiveDailyGoal, getTodayCategoryStudyMinutes } from '../lib/studyDashboard'
 import { usePwaInstall } from '../hooks/usePwaInstall'
-import { useFocusLockoutNavigation } from '../hooks/useFocusLockoutNavigation'
+import { useBackupReminder } from '../hooks/useBackupReminder'
 import { buildThemeInlineStyles } from '../lib/applyThemeVars'
 import { AppShellLoadingScreen } from './app-shell/AppShellLoadingScreen'
 import { AppShellStatusBanners } from './app-shell/AppShellStatusBanners'
 import { AppToastOverlay } from './app-shell/AppToastOverlay'
 import { LevelUpModal } from './LevelUpModal'
 import { prefetchControlDeck } from '../lib/prefetchControlDeck'
+import { ErrorBoundary } from './ErrorBoundary'
 
 export const AppShell = memo(function AppShell() {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
@@ -58,6 +59,7 @@ export const AppShell = memo(function AppShell() {
 
   const cardsDueCount = countDueFlashcards(flashcards.flashcards)
   const pwaInstall = usePwaInstall()
+  const backupReminder = useBackupReminder()
   const { timerControls, backup } = useStudyTimerContext()
 
   const {
@@ -75,16 +77,8 @@ export const AppShell = memo(function AppShell() {
     dismissQuotaRecovery,
     isNotesOpen,
     setIsNotesOpen,
-    notifyFocusLockout,
     scheduleDelete,
   } = useStudyUI()
-
-  const handleSetActiveTab = useFocusLockoutNavigation({
-    enforceLockout: settings.enforce_lockout,
-    timer: timerControls,
-    setActiveTab,
-    onLockedAttempt: notifyFocusLockout,
-  })
 
   useEffect(() => {
     if (!isDataReady) return
@@ -154,7 +148,7 @@ export const AppShell = memo(function AppShell() {
         level={xpData.level}
         xpProgressPercent={xpData.xpProgressPercent}
         activeTab={activeTab}
-        setActiveTab={handleSetActiveTab}
+        setActiveTab={setActiveTab}
         setIsHotkeyHudOpen={setIsHotkeyHudOpen}
         isTimerActive={timerControls.isTimerActive}
         timerMode={timerControls.timerMode}
@@ -170,11 +164,16 @@ export const AppShell = memo(function AppShell() {
           isZenMode={isZenMode}
           showPwaBanner={pwaInstall.showBanner}
           quotaExceeded={quotaExceeded}
+          showBackupReminder={backupReminder.shouldRemind}
+          backupDaysSinceExport={backupReminder.daysSinceExport}
           onPwaInstall={() => void pwaInstall.install()}
           onPwaDismiss={pwaInstall.dismiss}
-          onExportBackup={() => void backup.exportStudyBackup()}
-          onOpenRecovery={() => void handleSetActiveTab('settings')}
+          onExportBackup={() => {
+            void backup.exportStudyBackup().then(() => backupReminder.refresh())
+          }}
+          onOpenRecovery={() => void setActiveTab('settings')}
           onDismissQuota={dismissQuotaRecovery}
+          onDismissBackupReminder={backupReminder.dismissReminder}
         />
         {!isZenMode && (
           <AppContentHeader
@@ -191,11 +190,31 @@ export const AppShell = memo(function AppShell() {
         <div className={`app-content-main flex-1 p-4 md:p-6 lg:p-8 flex flex-col transition-all duration-700 ${isZenMode ? 'opacity-0 scale-95 pointer-events-none' : ''}`}>
           {!isZenMode && (
             <div key={activeTab} className="app-tab-panel flex-1 flex flex-col min-h-0" data-active-tab={activeTab}>
-              {activeTab === 'focus' && <FocusTab />}
-              {activeTab === 'analytics' && <AnalyticsTab />}
-              {activeTab === 'journal' && <JournalTab />}
-              {activeTab === 'cards' && <CardsTab />}
-              {activeTab === 'settings' && <SettingsTab onShowOnboarding={openOnboarding} />}
+              {activeTab === 'focus' && (
+                <ErrorBoundary fallbackLabel="Focus">
+                  <FocusTab />
+                </ErrorBoundary>
+              )}
+              {activeTab === 'analytics' && (
+                <ErrorBoundary fallbackLabel="Analytics">
+                  <AnalyticsTab />
+                </ErrorBoundary>
+              )}
+              {activeTab === 'journal' && (
+                <ErrorBoundary fallbackLabel="Journal">
+                  <JournalTab />
+                </ErrorBoundary>
+              )}
+              {activeTab === 'cards' && (
+                <ErrorBoundary fallbackLabel="Cards">
+                  <CardsTab />
+                </ErrorBoundary>
+              )}
+              {activeTab === 'settings' && (
+                <ErrorBoundary fallbackLabel="Settings">
+                  <SettingsTab onShowOnboarding={openOnboarding} />
+                </ErrorBoundary>
+              )}
             </div>
           )}
         </div>
@@ -218,7 +237,7 @@ export const AppShell = memo(function AppShell() {
         onClose={handleCloseOnboarding}
         updateSetting={settings.updateSetting}
         onOpenBackup={() => {
-          void handleSetActiveTab('settings')
+          void setActiveTab('settings')
           requestAnimationFrame(() => {
             document.getElementById('settings-backup-vault')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           })
@@ -250,7 +269,7 @@ export const AppShell = memo(function AppShell() {
       {!isZenMode && (
         <MobileTabBar
           activeTab={activeTab}
-          setActiveTab={handleSetActiveTab}
+          setActiveTab={setActiveTab}
           isTimerActive={timerControls.isTimerActive}
           timerMode={timerControls.timerMode}
           enforceLockout={settings.enforce_lockout}
