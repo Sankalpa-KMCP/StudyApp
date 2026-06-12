@@ -1,6 +1,7 @@
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
+import { scrollToSettingsSection } from '../../lib/settingsSections'
 import { isTauri, enableDesktopAutostart, pickDesktopBackupFolder, requestDesktopNotificationPermission, setDesktopGlobalShortcuts } from '../../lib/tauri'
 
 export function DesktopSettingsPanel() {
@@ -60,8 +61,17 @@ export function DesktopSettingsPanel() {
         <div>
           <p className="settings-label mb-1">Auto-export folder</p>
           <p className="settings-muted mb-2 text-micro">
-            {desktopBackupFolderPath || 'No folder selected — browser download is used.'}
+            {desktopBackupFolderPath
+              ? 'Scheduled exports write here instead of triggering a browser download.'
+              : 'No folder selected — scheduled exports use browser download.'}
           </p>
+          <button
+            type="button"
+            className="mb-2 text-xs font-semibold text-accent-blue hover:text-accent-blue/80"
+            onClick={() => scrollToSettingsSection('settings-backup-vault')}
+          >
+            Scheduled export settings → Backup Vault
+          </button>
           <button
             type="button"
             className="text-xs font-semibold text-accent-blue hover:text-accent-blue/80"

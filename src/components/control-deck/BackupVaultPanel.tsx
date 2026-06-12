@@ -8,6 +8,8 @@ import { archiveHistoryOlderThan } from '../../db/repositories/history'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
 import { RangeSetting } from '../shared/settings/RangeSetting'
 import { daysSinceLastExport } from '../../lib/backupMetadata'
+import { scrollToSettingsSection } from '../../lib/settingsSections'
+import { isTauri } from '../../lib/tauri'
 
 export function BackupVaultPanel() {
   const {
@@ -16,6 +18,7 @@ export function BackupVaultPanel() {
     historyRetentionDays,
     autoExportEnabled,
     autoExportIntervalDays,
+    desktopBackupFolderPath,
     updateSetting,
     pushToast,
     isDragging,
@@ -53,7 +56,11 @@ export function BackupVaultPanel() {
         <p className="text-xs font-bold uppercase tracking-wider text-accent-blue">Scheduled export</p>
         <ToggleSetting
           label="Auto-export vault"
-          description="Downloads a backup when the interval elapses (checked on app load)."
+          description={
+            isTauri() && desktopBackupFolderPath
+              ? 'Saves a backup to your desktop folder when the interval elapses (also checked every 6 hours while the app is open).'
+              : 'Downloads a backup when the interval elapses (checked on load and every 6 hours while the app is open). Requires a prior manual export before the first scheduled run.'
+          }
           checked={autoExportEnabled}
           onChange={v => updateSetting('autoExportEnabled', v)}
         />
@@ -70,9 +77,23 @@ export function BackupVaultPanel() {
         )}
         <p className="text-micro settings-muted">
           {daysSinceLastExport() === null
-            ? 'No vault export recorded yet.'
+            ? 'No vault export recorded yet — export manually once before scheduled exports run.'
             : `Last export: ${Math.floor(daysSinceLastExport() ?? 0)} day(s) ago.`}
         </p>
+        {isTauri() && desktopBackupFolderPath && (
+          <p className="text-micro settings-muted">
+            Scheduled exports save to:{' '}
+            <span className="font-mono text-[10px] break-all">{desktopBackupFolderPath}</span>
+            {' · '}
+            <button
+              type="button"
+              className="text-accent-blue hover:text-accent-blue/80 font-semibold"
+              onClick={() => scrollToSettingsSection('settings-desktop')}
+            >
+              Change folder
+            </button>
+          </p>
+        )}
       </div>
 
       {quotaExceeded && (
@@ -87,7 +108,7 @@ export function BackupVaultPanel() {
             <li>Sweep study logs and history if you still need room.</li>
           </ol>
           <div className="flex flex-wrap gap-2 pt-1">
-            <Button variant="primary" size="sm" onClick={exportStudyBackup}>
+            <Button variant="primary" size="sm" onClick={() => exportStudyBackup({ destination: 'download' })}>
               1. Export vault
             </Button>
             <Button variant="secondary" size="sm" onClick={clearSnapshots}>
@@ -122,9 +143,18 @@ export function BackupVaultPanel() {
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-accent-blue mb-2 block">Step 1 — Export</span>
             <span className="settings-label block">Export backup vault</span>
-            <span className="settings-muted mt-1 leading-normal font-semibold block">Prepares a JSON package and initiates browser download.</span>
+            <span className="settings-muted mt-1 leading-normal font-semibold block">
+              {isTauri() && desktopBackupFolderPath
+                ? 'Downloads a JSON package to your browser (independent of the desktop auto-export folder).'
+                : 'Prepares a JSON package and initiates browser download.'}
+            </span>
           </div>
-          <Button variant="primary" onClick={exportStudyBackup} disabled={isExporting} className="w-full mt-4">
+          <Button
+            variant="primary"
+            onClick={() => exportStudyBackup({ destination: 'download' })}
+            disabled={isExporting}
+            className="w-full mt-4"
+          >
             {isExporting ? `Exporting… ${exportProgress}%` : 'Export Vault'}
           </Button>
           {canShareBackup && shareStudyBackupVault && (
