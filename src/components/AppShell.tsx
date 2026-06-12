@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo } from 'react'
 import { Sidebar } from './Sidebar'
 import { AppContentHeader } from './AppContentHeader'
 import { ZenOverlayContainer } from './ZenOverlayContainer'
@@ -11,44 +11,28 @@ import { AnalyticsTab } from './tabs/AnalyticsTab'
 import { JournalTab } from './tabs/JournalTab'
 import { CardsTab } from './tabs/CardsTab'
 import { SettingsTab } from './tabs/SettingsTab'
-import { db } from '../db/db'
 import { useStudyData, useStudyUI } from '../context/useStudyApp'
 import { useStudyTimerContext, useStudyTimerDisplay } from '../context/studyTimerContext'
 import { E2eCrashProbe } from './E2eCrashProbe'
 import { OnboardingModal } from './OnboardingModal'
 import { countDueFlashcards } from './flashcard/flashcardDue'
-import { getEffectiveDailyGoal, getTodayCategoryStudyMinutes } from '../lib/studyDashboard'
+import { getEffectiveDailyGoal, getTodayCategoryStudyMinutes } from '../lib/study/studyDashboard'
 import { usePwaInstall } from '../hooks/usePwaInstall'
 import { useBackupReminder } from '../hooks/useBackupReminder'
-import { useAutoExport } from '../hooks/useAutoExport'
-import { applySavedDesktopSettings, initDesktopTrayBridge, isTauri, setDesktopTrayTooltip } from '../lib/tauri'
-import { buildThemeInlineStyles } from '../lib/applyThemeVars'
+import { buildThemeInlineStyles } from '../lib/theme/applyThemeVars'
 import { AppShellLoadingScreen } from './app-shell/AppShellLoadingScreen'
 import { AppShellStatusBanners } from './app-shell/AppShellStatusBanners'
 import { AppToastOverlay } from './app-shell/AppToastOverlay'
 import { LevelUpModal } from './LevelUpModal'
-import { prefetchIdleTabChunks } from '../lib/prefetchTabChunks'
-import { scrollToSettingsSectionWhenReady } from '../lib/settingsSections'
-import { setFlashcardReviewPending } from '../lib/flashcardReviewPending'
 import { ErrorBoundary } from './ErrorBoundary'
 import { CelebrationConfettiHost } from './shared/CelebrationConfettiHost'
 import { CommandPalette } from './CommandPalette'
-import type { CommandPaletteSelection } from './CommandPalette'
+import { useAppShellEffects } from '../hooks/app-shell/useAppShellEffects'
+import { useCommandPaletteActions } from '../hooks/app-shell/useCommandPaletteActions'
+import { useAppShellOnboarding } from '../hooks/app-shell/useAppShellOnboarding'
+import { useNoteDeleteUndo } from '../hooks/app-shell/useNoteDeleteUndo'
 
 export const AppShell = memo(function AppShell() {
-  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
-
-  useEffect(() => {
-    const onOnline = () => setIsOffline(false)
-    const onOffline = () => setIsOffline(true)
-    window.addEventListener('online', onOnline)
-    window.addEventListener('offline', onOffline)
-    return () => {
-      window.removeEventListener('online', onOnline)
-      window.removeEventListener('offline', onOffline)
-    }
-  }, [])
-
   const {
     isDataReady,
     tasks,
@@ -62,6 +46,7 @@ export const AppShell = memo(function AppShell() {
     todayLog,
     flashcards,
     recentHistory,
+    allLogs,
   } = useStudyData()
 
   const cardsDueCount = settings.flashcardsEnabled ? countDueFlashcards(flashcards.flashcards) : 0
@@ -70,28 +55,24 @@ export const AppShell = memo(function AppShell() {
   const { timerControls, backup, activateTask } = useStudyTimerContext()
   const timerDisplay = useStudyTimerDisplay()
 
-  useAutoExport({
-    enabled: settings.autoExportEnabled,
-    intervalDays: settings.autoExportIntervalDays,
+  const { isOffline } = useAppShellEffects({
     isDataReady,
+    flashcardsEnabled: settings.flashcardsEnabled,
+    studyReminderEnabled: settings.studyReminderEnabled,
+    studyReminderTime: settings.studyReminderTime,
+    studyReminderOnlyBelowGoal: settings.studyReminderOnlyBelowGoal,
+    dailyGoalMinutes: settings.dailyGoalMinutes,
+    todayStudyMinutes: todayLog.studyMinutes,
+    autoExportEnabled: settings.autoExportEnabled,
+    autoExportIntervalDays: settings.autoExportIntervalDays,
+    desktopAutostartEnabled: settings.desktopAutostartEnabled,
+    desktopGlobalShortcutsEnabled: settings.desktopGlobalShortcutsEnabled,
     exportBackup: () => {
       void backup.exportStudyBackup({ destination: 'auto' }).then(() => backupReminder.refresh())
     },
+    timerControls,
+    timerDisplay,
   })
-
-  const desktopSettingsAppliedRef = useRef(false)
-  useEffect(() => {
-    if (!isDataReady || !isTauri() || desktopSettingsAppliedRef.current) return
-    desktopSettingsAppliedRef.current = true
-    void applySavedDesktopSettings({
-      desktopAutostartEnabled: settings.desktopAutostartEnabled,
-      desktopGlobalShortcutsEnabled: settings.desktopGlobalShortcutsEnabled,
-    })
-  }, [
-    isDataReady,
-    settings.desktopAutostartEnabled,
-    settings.desktopGlobalShortcutsEnabled,
-  ])
 
   const {
     activeTab,
@@ -115,62 +96,31 @@ export const AppShell = memo(function AppShell() {
     scheduleDelete,
   } = useStudyUI()
 
-  const handleCommandPaletteSelect = (selection: CommandPaletteSelection) => {
-    if (selection.tab) void setActiveTab(selection.tab)
-    if (selection.settingsSection) {
-      void setActiveTab('settings')
-      scrollToSettingsSectionWhenReady(selection.settingsSection!)
-    }
-    if (selection.taskId != null) {
-      const task = tasks.tasks.find(t => t.id === selection.taskId)
-      if (task) {
-        void setActiveTab('focus')
-        activateTask(task)
-      }
-    }
-    if (selection.noteId != null) {
-      setFocusNoteId(selection.noteId)
-      setIsNotesOpen(true)
-    }
-    if (selection.flashcardId != null) {
-      setFlashcardReviewPending()
-      void setActiveTab('cards')
-    }
+  const handleCommandPaletteSelect = useCommandPaletteActions({
+    tasks: tasks.tasks,
+    timerControls,
+    backup,
+    backupReminder,
+    activateTask,
+    setActiveTab,
+    setIsZenMode,
+    setIsHotkeyHudOpen,
+    setFocusNoteId,
+    setIsNotesOpen,
+  })
+
+  const { handleDeleteNote } = useNoteDeleteUndo({
+    notes: quickNotes.notes,
+    deleteNote: quickNotes.deleteNote,
+    scheduleDelete,
+  })
+
+  const { showOnboarding, handleCloseOnboarding, openOnboarding } = useAppShellOnboarding(isDataReady)
+
+  const handleOnboardingClose = () => {
+    handleCloseOnboarding()
+    void setActiveTab('focus')
   }
-
-  useEffect(() => {
-    void initDesktopTrayBridge()
-    const onDesktopTimerToggle = () => {
-      timerControls.setIsTimerActive(active => !active)
-    }
-    window.addEventListener('desktop-timer-toggle', onDesktopTimerToggle)
-    return () => window.removeEventListener('desktop-timer-toggle', onDesktopTimerToggle)
-  }, [timerControls])
-
-  useEffect(() => {
-    if (!isTauri()) return
-    const mins = Math.floor(timerDisplay.remainingSeconds / 60)
-    const secs = timerDisplay.remainingSeconds % 60
-    const time = `${mins}:${secs.toString().padStart(2, '0')}`
-    const mode = timerControls.timerMode === 'study' ? 'Focus' : 'Break'
-    const state = timerControls.isTimerActive ? 'Running' : 'Paused'
-    void setDesktopTrayTooltip(`Study Dashboard — ${mode} ${time} (${state})`)
-  }, [
-    timerDisplay.remainingSeconds,
-    timerControls.isTimerActive,
-    timerControls.timerMode,
-  ])
-
-  useEffect(() => {
-    if (!isDataReady) return
-    const id = window.requestIdleCallback
-      ? window.requestIdleCallback(() => prefetchIdleTabChunks(settings.flashcardsEnabled))
-      : window.setTimeout(() => prefetchIdleTabChunks(settings.flashcardsEnabled), 2000)
-    return () => {
-      if (typeof id === 'number') window.clearTimeout(id)
-      else window.cancelIdleCallback?.(id)
-    }
-  }, [isDataReady, settings.flashcardsEnabled])
 
   const activeTimerCategory = timerControls.timerCategoryId !== undefined
     ? categories.categories.find(c => c.id === timerControls.timerCategoryId)
@@ -179,29 +129,6 @@ export const AppShell = memo(function AppShell() {
     ? getTodayCategoryStudyMinutes(recentHistory.history, activeTimerCategory.id)
     : todayLog.studyMinutes
   const headerGoalMinutes = getEffectiveDailyGoal(activeTimerCategory, settings.dailyGoalMinutes)
-
-  const handleDeleteNote = async (id: number) => {
-    const note = quickNotes.notes.find(n => n.id === id)
-    if (!note) {
-      void quickNotes.deleteNote(id)
-      return
-    }
-    scheduleDelete('Note', () => quickNotes.deleteNote(id), async () => { await db.quick_notes.put(note) })
-  }
-
-  const [onboardingDismissed, setOnboardingDismissed] = useState(
-    () => typeof window !== 'undefined' && !!localStorage.getItem('sanctuary_onboarding_completed'),
-  )
-  const [onboardingForced, setOnboardingForced] = useState(false)
-  const showOnboarding = (isDataReady && !onboardingDismissed) || onboardingForced
-
-  const handleCloseOnboarding = () => {
-    localStorage.setItem('sanctuary_onboarding_completed', 'true')
-    setOnboardingDismissed(true)
-    setOnboardingForced(false)
-  }
-
-  const openOnboarding = () => setOnboardingForced(true)
 
   if (!isDataReady) {
     return <AppShellLoadingScreen pageGradient={activeThemeVars.pageGradient} />
@@ -332,10 +259,11 @@ export const AppShell = memo(function AppShell() {
         flashcards={flashcards.flashcards}
         categories={categories.categories}
         flashcardsEnabled={settings.flashcardsEnabled}
+        dailyLogs={allLogs.allLogs}
       />
       <OnboardingModal
         isOpen={showOnboarding}
-        onClose={handleCloseOnboarding}
+        onClose={handleOnboardingClose}
         updateSetting={settings.updateSetting}
         onOpenBackup={() => {
           void setActiveTab('settings')
