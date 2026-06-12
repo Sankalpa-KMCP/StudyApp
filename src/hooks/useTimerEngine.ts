@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef, useMemo, useCallback, type RefObject, type SetStateAction } from 'react'
+import { useState, useRef, useMemo, useCallback, useEffect, type RefObject, type SetStateAction } from 'react'
 import { db } from '../db/db'
 import type { TaskItem, HistoryEntry } from '../db/types'
 import { calculateSM2, formatHistoryTimestamp } from '../lib/studyDashboard'
-import { requestWakeLock, releaseWakeLock } from '../lib/wakeLock'
 import { createAnchorState } from './timer/timerAnchor'
 import { useTimerSessionShadow } from './timer/useTimerSessionShadow'
 import { useTimerCompletion } from './timer/useTimerCompletion'
+import { useWakeLock } from './timer/useWakeLock'
 import { BREAK_ENDED } from '../lib/uxTerms'
 import { useTimerReflection } from './timer/useTimerReflection'
 import { useTimerTick } from './timer/useTimerTick'
@@ -52,7 +52,6 @@ export function useTimerEngine({
   const [completedSessionsInCycle, setCompletedSessionsInCycle] = useState(0)
   const [isLongBreak, setIsLongBreak] = useState(false)
   const [extendedMinutes, setExtendedMinutes] = useState(0)
-  const [wakeLockActive, setWakeLockActive] = useState(false)
 
   const completingRef = useRef(false)
   const incStudyRef = useRef(incrementStudy)
@@ -167,6 +166,8 @@ export function useTimerEngine({
     pushToast,
   })
 
+  const { wakeLockActive } = useWakeLock(isTimerActive, timerMode)
+
   const handleModeSwitch = useCallback((mode: 'study' | 'break') => {
     if (completingRef.current) return
     if (mode === timerMode) return
@@ -218,39 +219,6 @@ export function useTimerEngine({
     })
     playChime()
   }, [initialEasinessFactor, playChime])
-
-  useEffect(() => {
-    let activeSentinel: WakeLockSentinel | null = null
-    let isMounted = true
-
-    async function acquireLock() {
-      if (isTimerActive && timerMode === 'study' && !document.hidden) {
-        if (activeSentinel) {
-          await releaseWakeLock(activeSentinel)
-          activeSentinel = null
-        }
-        const lock = await requestWakeLock()
-        if (isMounted) {
-          activeSentinel = lock
-          setWakeLockActive(!!lock)
-        }
-      } else if (isMounted) {
-        setWakeLockActive(false)
-      }
-    }
-
-    void acquireLock()
-
-    const onVisibility = () => { void acquireLock() }
-    document.addEventListener('visibilitychange', onVisibility)
-
-    return () => {
-      isMounted = false
-      document.removeEventListener('visibilitychange', onVisibility)
-      if (activeSentinel) releaseWakeLock(activeSentinel)
-      setWakeLockActive(false)
-    }
-  }, [isTimerActive, timerMode])
 
   const resetTimerState = useCallback(() => {
     setSecondsElapsed(0)
