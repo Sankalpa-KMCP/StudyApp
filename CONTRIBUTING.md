@@ -44,6 +44,15 @@ On pushes to `master` (excluding screenshot-only commits), CI rebuilds the app, 
 2. Add `.stores({ ... })` and optional `.upgrade()` handler.
 3. Add or extend tests in [`src/db/__tests__/db.migration.test.ts`](src/db/__tests__/db.migration.test.ts).
 
+**v8 note:** On upgrade from v7, missing `flashcardsEnabled` is set to `true` (preserves Cards tab for existing users). Fresh installs default to `false` via `SETTINGS_DEFAULTS`.
+
+## E2E helpers
+
+Shared utilities live in [`e2e/helpers/studyApp.ts`](e2e/helpers/studyApp.ts):
+
+- `enableFlashcards(page)` — required before any spec that clicks the Cards tab (new installs hide it by default)
+- `clearStudyDatabase(page)` + `freshVisitStorage` — for first-install scenarios (`flashcards-optional.spec.ts`)
+
 ## Adding a setting key
 
 1. Add default in settings repository / seed logic.
@@ -57,6 +66,7 @@ On pushes to `master` (excluding screenshot-only commits), CI rebuilds the app, 
 2. Start with `page.goto('/')` and wait for `Study Dashboard`.
 3. For lazy tabs, assert loading fallback then content (`/loading analytics/i`).
 4. Run `npm run test:e2e -- e2e/<feature>.spec.ts` locally before pushing.
+5. Specs that use the Cards tab must call `enableFlashcards(page)` from `e2e/helpers/studyApp.ts`.
 
 ## Storybook
 

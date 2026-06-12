@@ -4,6 +4,7 @@
 
 | Version | Changes |
 |---------|---------|
+| **v8** | Add optional `flashcardsEnabled` setting (default true for migrations, false for new installs) |
 | **v7** | Remove orphaned ambient audio settings keys from `settings` table |
 | **v6** | `history.createdAt`, `studyBlockDurationMinutes` setting, `snapshots` table, pre-migration auto-backup |
 | **v5** | `quick_notes` table |
@@ -13,12 +14,29 @@
 
 ## Backup format vs database schema
 
-- **Backup `version: 2`** in `.studybackup` JSON exports is the **export file format** revision.
-- **DB schema v6/v7** (Dexie `db.verno`) is the **IndexedDB migration** version — these are intentionally separate.
+- **Backup `version: 3`** in `.studybackup` JSON exports is the **export file format** revision (adds `checksumSha256`; v2 imports remain supported).
+- **DB schema v8** (Dexie `db.verno`) is the **IndexedDB migration** version — these are intentionally separate.
+
+## [Unreleased]
+
+### Added
+- Command palette (Ctrl/Cmd+K) for tasks, notes, flashcards, and tab navigation
+- Anki-style tab-separated `.txt` flashcard import
+- Additional ambient presets (café, brown noise) with volume control
+- Scheduled vault auto-export settings
+- Tauri desktop: system tray, native notifications, global shortcuts, autostart, backup folder picker
+- Focus tab due-cards CTA when flashcards are enabled
+- E2E helpers (`e2e/helpers/studyApp.ts`) and flashcards-optional spec hardening
+
+### Changed
+- README and docs aligned with optional flashcards and backup format v3
+- Onboarding and Settings discoverability for optional flashcard deck
+- `useDashboardData` skips flashcard query when `flashcardsEnabled` is false
 
 ## [1.0.0] - 2026-06-12
 
 ### Added
+- Optional flashcards feature gated by `flashcardsEnabled` setting (hides nav tab, shortcuts, prefetch, analytics data)
 - Smarter backup reminders based on last export time with 7-day dismiss snooze
 - Storage usage panel in Backup Vault with per-table row counts
 - Configurable history retention (`historyRetentionDays`) with manual archive action
