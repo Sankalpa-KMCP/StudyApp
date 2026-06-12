@@ -6,7 +6,21 @@ vi.mock('../../context/useStudyApp', () => ({
   useStudyData: () => ({
     isDataReady: false,
     tasks: { tasks: [] },
-    settings: { dailyGoalMinutes: 120, enforce_lockout: false, cardOpacity: 0.7, backdropBlur: 8, backdropSaturate: 180, cardBorderOpacity: 0.08, noteTagColors: [], uiDensity: 'comfortable' },
+    settings: {
+      dailyGoalMinutes: 120,
+      enforce_lockout: false,
+      cardOpacity: 0.7,
+      backdropBlur: 8,
+      backdropSaturate: 180,
+      cardBorderOpacity: 0.08,
+      noteTagColors: [],
+      uiDensity: 'comfortable',
+      flashcardsEnabled: false,
+      autoExportEnabled: false,
+      autoExportIntervalDays: 7,
+      desktopAutostartEnabled: false,
+      desktopGlobalShortcutsEnabled: false,
+    },
     quickNotes: { notes: [], deleteNote: vi.fn(), addNote: vi.fn(), updateNote: vi.fn() },
     categories: { categories: [], addCategory: vi.fn(), deleteCategory: vi.fn() },
     currentStreak: 0,
@@ -30,6 +44,10 @@ vi.mock('../../context/useStudyApp', () => ({
     dismissQuotaRecovery: vi.fn(),
     isNotesOpen: false,
     setIsNotesOpen: vi.fn(),
+    isCommandPaletteOpen: false,
+    setIsCommandPaletteOpen: vi.fn(),
+    focusNoteId: null,
+    setFocusNoteId: vi.fn(),
     scheduleDelete: vi.fn(),
   }),
 }))
@@ -43,6 +61,13 @@ vi.mock('../../context/studyTimerContext', () => ({
       timerCategoryId: undefined,
     },
     backup: { exportStudyBackup: vi.fn() },
+    activateTask: vi.fn(),
+  }),
+  useStudyTimerDisplay: () => ({
+    remainingSeconds: 1500,
+    secondsElapsed: 0,
+    targetSeconds: 1500,
+    progress: 0,
   }),
 }))
 

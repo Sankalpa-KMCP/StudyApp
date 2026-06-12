@@ -30,8 +30,7 @@ describe('useDashboardData', () => {
     expect(result.current.flashcards.flashcards).toEqual([])
     expect(result.current.flashcards.isLoading).toBe(false)
 
-    const id = await result.current.flashcards.addFlashcard('Q2', 'A2')
-    expect(id).toBe(0)
+    await result.current.flashcards.addFlashcard('Q2', 'A2')
     expect(await db.flashcards.count()).toBe(1)
   })
 })

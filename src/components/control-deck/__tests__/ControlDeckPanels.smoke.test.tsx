@@ -7,6 +7,8 @@ import { ZenLockoutPanel } from '../ZenLockoutPanel'
 import { NotesSettingsPanel } from '../NotesSettingsPanel'
 import { BackupVaultPanel } from '../BackupVaultPanel'
 import { FlashcardsPanel } from '../FlashcardsPanel'
+import { DesktopSettingsPanel } from '../DesktopSettingsPanel'
+import * as tauri from '../../../lib/tauri'
 import { SettingsOnboardingBanners } from '../SettingsOnboardingBanners'
 import { SettingsShell, SettingsSection } from '../SettingsShell'
 
@@ -86,6 +88,18 @@ describe('control-deck panel smoke tests', () => {
     )
     expect(screen.getByText('Timer & Focus')).toBeInTheDocument()
     expect(screen.getByText('Panel content')).toBeInTheDocument()
+  })
+
+  it('renders DesktopSettingsPanel when Tauri is available', () => {
+    vi.spyOn(tauri, 'isTauri').mockReturnValue(true)
+    render(
+      <SettingsPanelProvider>
+        <DesktopSettingsPanel />
+      </SettingsPanelProvider>,
+    )
+    expect(screen.getByText('Desktop App')).toBeInTheDocument()
+    expect(screen.getByText('Launch on login')).toBeInTheDocument()
+    vi.mocked(tauri.isTauri).mockRestore()
   })
 
   it('renders FlashcardsPanel', () => {
