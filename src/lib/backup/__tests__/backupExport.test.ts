@@ -16,11 +16,11 @@ describe('backupExport', () => {
     })
   })
 
-  it('collectStudyBackupPayload returns version 2 payload with all tables', async () => {
+  it('collectStudyBackupPayload returns version 4 payload without flashcards', async () => {
     await seedTask('Backup task')
     const payload = await collectStudyBackupPayload()
 
-    expect(payload.version).toBe(3)
+    expect(payload.version).toBe(4)
     expect(payload.checksumSha256).toMatch(/^[a-f0-9]{64}$/)
     expect(payload.exportedAt).toBeTruthy()
     expect(payload.tasks).toHaveLength(1)
@@ -28,7 +28,7 @@ describe('backupExport', () => {
     expect(Array.isArray(payload.dailyLogs)).toBe(true)
     expect(Array.isArray(payload.settings)).toBe(true)
     expect(Array.isArray(payload.categories)).toBe(true)
-    expect(Array.isArray(payload.flashcards)).toBe(true)
+    expect('flashcards' in payload).toBe(false)
     expect(Array.isArray(payload.quickNotes)).toBe(true)
   })
 
@@ -46,14 +46,13 @@ describe('backupExport', () => {
 
     downloadStudyBackup(
       {
-        version: 2,
+        version: 4,
         exportedAt: new Date().toISOString(),
         tasks: [],
         history: [],
         dailyLogs: [],
         settings: [],
         categories: [],
-        flashcards: [],
         quickNotes: [],
       },
       'study-vault',
@@ -77,14 +76,13 @@ describe('backupExport', () => {
 
     downloadStudyBackup(
       {
-        version: 2,
+        version: 4,
         exportedAt: new Date().toISOString(),
         tasks: [],
         history: [],
         dailyLogs: [],
         settings: [],
         categories: [],
-        flashcards: [],
         quickNotes: [],
       },
       'study-emergency-export',
