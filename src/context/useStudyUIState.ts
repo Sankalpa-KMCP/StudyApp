@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
 import { applyThemeToDocument } from '../lib/theme/applyThemeVars'
 import { readAppHashFromLocation, writeAppHash, resolveAppHash } from '../lib/routing/appHashRouting'
-import { getKeyboardTabOrder } from '../navigation/appNav'
+import { KEYBOARD_TAB_ORDER } from '../navigation/appNav'
 import { setActiveTabSync } from '../lib/routing/activeTabSync'
 import { loadAppFonts } from '../lib/theme/loadAppFonts'
 import { resolveThemeProfile } from '../lib/theme/theme'
@@ -91,14 +91,8 @@ export function useStudyUIState(toast: ToastApi) {
     navigateToTab,
     toggleSidebarCollapse: sidebarCollapse?.toggleCollapsed,
     requestConfirm,
-    visibleTabs: getKeyboardTabOrder(settings.flashcardsEnabled),
+    visibleTabs: KEYBOARD_TAB_ORDER,
   })
-
-  useEffect(() => {
-    if (!settings.flashcardsEnabled && activeTab === 'cards') {
-      navigateToTab('focus')
-    }
-  }, [settings.flashcardsEnabled, activeTab, navigateToTab])
 
   useEffect(() => {
     setDeferredDataFlags({
@@ -136,7 +130,7 @@ export function useStudyUIState(toast: ToastApi) {
   useEffect(() => {
     const onHashChange = () => {
       const { tab } = readAppHashFromLocation()
-      const resolved = resolveAppHash(tab, settings.flashcardsEnabled)
+      const resolved = resolveAppHash(tab)
       if (resolved !== tab) {
         writeAppHash(resolved)
       }
@@ -149,7 +143,7 @@ export function useStudyUIState(toast: ToastApi) {
     }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
-  }, [settings.flashcardsEnabled, navigateToTab])
+  }, [navigateToTab])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')

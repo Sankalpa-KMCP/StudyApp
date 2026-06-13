@@ -43,7 +43,6 @@ export function StudyDataProvider({ children }: { children: ReactNode }) {
   }), [state.currentStreak, state.xpData, state.pendingLevelUp, state.dismissLevelUp])
 
   const extendedValue = useMemo(() => ({
-    flashcards: state.flashcards,
     quickNotes: state.quickNotes,
     allLogs: state.allLogs,
     insights: state.insights,
@@ -51,7 +50,6 @@ export function StudyDataProvider({ children }: { children: ReactNode }) {
     analyticsRange: state.analyticsRange,
     journal: state.journal,
   }), [
-    state.flashcards,
     state.quickNotes,
     state.allLogs,
     state.insights,

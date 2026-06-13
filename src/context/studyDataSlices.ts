@@ -15,7 +15,7 @@ export type StudyGamificationSlice = Pick<
 
 export type StudyExtendedSlice = Pick<
   StudyDataState,
-  'flashcards' | 'quickNotes' | 'allLogs' | 'insights' | 'breakdownData' | 'analyticsRange' | 'journal'
+  'quickNotes' | 'allLogs' | 'insights' | 'breakdownData' | 'analyticsRange' | 'journal'
 >
 
 export const StudyCoreContext = createContext<StudyCoreSlice | null>(null)
