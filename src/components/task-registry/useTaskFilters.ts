@@ -10,6 +10,10 @@ function isInReviewQueue(task: TaskItem, todayStr: string) {
   return task.completed && task.isStudySubject && (!task.nextReviewDate || task.nextReviewDate <= todayStr)
 }
 
+export function countReviewDueTasks(tasks: TaskItem[], todayStr: string): number {
+  return tasks.filter(t => isInReviewQueue(t, todayStr)).length
+}
+
 export function useTaskFilters(tasks: TaskItem[], categories: CategoryItem[], todayStr: string) {
   const categoriesMap = useMemo(() => {
     const m = new Map<number, CategoryItem>()
