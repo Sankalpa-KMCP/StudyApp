@@ -5,7 +5,7 @@ import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useNoteFilters } from './quick-notes/useNoteFilters'
 import { useNoteEditor } from './quick-notes/useNoteEditor'
 import { useConfirm } from '../context/useConfirm'
-import { QUICK_NOTES_HELPER } from '../lib/shared/uxTerms'
+import { useTranslation } from '../i18n/useTranslation'
 import { NoteEditorPanel } from './quick-notes/NoteEditorPanel'
 import { NoteListPanel } from './quick-notes/NoteListPanel'
 
@@ -36,6 +36,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   noteTagColors,
   focusNoteId,
 }) => {
+  const { t } = useTranslation()
   const { requestConfirm } = useConfirm()
   const trapRef = useFocusTrap(isOpen, onClose)
   const filters = useNoteFilters(notes, categories)
@@ -92,7 +93,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
           <Edit3 className="h-4 w-4 text-accent-blue shrink-0" />
           <div className="flex flex-col min-w-0">
             <h3 id="quick-notes-title" className="text-xs font-bold uppercase tracking-wider text-primary">Quick Notes</h3>
-            <p className="text-micro text-muted font-medium normal-case tracking-normal">{QUICK_NOTES_HELPER}</p>
+            <p className="text-micro text-muted font-medium normal-case tracking-normal">{t('quickNotesHelper')}</p>
           </div>
         </div>
         <button

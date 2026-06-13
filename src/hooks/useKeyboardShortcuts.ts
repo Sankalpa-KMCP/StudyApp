@@ -1,6 +1,6 @@
 import { useEffect, type RefObject } from 'react'
 import type { ActiveTab, ToastState } from '../types/app'
-import { FOCUS_LOCKOUT_ACTIVE } from '../lib/shared/uxTerms'
+import { t } from '../i18n'
 import { SHORTCUT_TOASTS } from '../lib/shared/shortcutToasts'
 
 type RequestConfirm = (options: {
@@ -91,7 +91,7 @@ export function useKeyboardShortcuts({
             const nextActive = !active
             setActiveToast({
               key: 'SPACE',
-              message: nextActive ? SHORTCUT_TOASTS.space.running : SHORTCUT_TOASTS.space.paused,
+              message: nextActive ? SHORTCUT_TOASTS.space.running() : SHORTCUT_TOASTS.space.paused(),
               id: Date.now(),
             })
             return nextActive
@@ -99,11 +99,11 @@ export function useKeyboardShortcuts({
           break
         case 's':
           handleModeSwitch('study')
-          setActiveToast({ key: 'S', message: SHORTCUT_TOASTS.study, id: Date.now() })
+          setActiveToast({ key: 'S', message: SHORTCUT_TOASTS.study(), id: Date.now() })
           break
         case 'b':
           handleModeSwitch('break')
-          setActiveToast({ key: 'B', message: SHORTCUT_TOASTS.break, id: Date.now() })
+          setActiveToast({ key: 'B', message: SHORTCUT_TOASTS.break(), id: Date.now() })
           break
         case 'c':
           void (async () => {
@@ -119,20 +119,20 @@ export function useKeyboardShortcuts({
             }
             const result = await completeSession()
             if (result === 'completed') {
-              setActiveToast({ key: 'C', message: SHORTCUT_TOASTS.complete, id: Date.now() })
+              setActiveToast({ key: 'C', message: SHORTCUT_TOASTS.complete(), id: Date.now() })
             }
           })()
           break
         case 'z':
           if (enforceLockout && isTimerActive && timerMode === 'study') {
-            setActiveToast({ key: 'LOCK', message: FOCUS_LOCKOUT_ACTIVE, id: Date.now() })
+            setActiveToast({ key: 'LOCK', message: t('focusLockoutActive'), id: Date.now() })
             break
           }
           setIsZenMode(zen => {
             const nextZen = !zen
             setActiveToast({
               key: 'Z',
-              message: nextZen ? SHORTCUT_TOASTS.focusMode.on : SHORTCUT_TOASTS.focusMode.off,
+              message: nextZen ? SHORTCUT_TOASTS.focusMode.on() : SHORTCUT_TOASTS.focusMode.off(),
               id: Date.now(),
             })
             return nextZen
@@ -143,7 +143,7 @@ export function useKeyboardShortcuts({
             const nextOpen = !o
             setActiveToast({
               key: '?',
-              message: nextOpen ? SHORTCUT_TOASTS.shortcutsPanel.open : SHORTCUT_TOASTS.shortcutsPanel.close,
+              message: nextOpen ? SHORTCUT_TOASTS.shortcutsPanel.open() : SHORTCUT_TOASTS.shortcutsPanel.close(),
               id: Date.now(),
             })
             return nextOpen
@@ -154,7 +154,7 @@ export function useKeyboardShortcuts({
             toggleSidebarCollapse()
             setActiveToast({
               key: '[',
-              message: SHORTCUT_TOASTS.sidebar,
+              message: SHORTCUT_TOASTS.sidebar(),
               id: Date.now(),
             })
           }

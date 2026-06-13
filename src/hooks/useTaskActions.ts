@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { ARCHIVED_TASKS } from '../lib/shared/uxTerms'
+import { t } from '../i18n'
 import { spawnNextRecurrence } from '../lib/study/recurrence'
 import { archiveTasks, getAllTasks, uncompleteTask, updateLastCompleted } from '../db/repositories/tasks'
 import type { TaskItem } from '../db/types'
@@ -51,7 +51,7 @@ export function useTaskActions({
           const ids = targetTasks.map(t => t.id).filter((id): id is number => id !== undefined)
           if (ids.length > 0) {
             await archiveTasks(ids)
-            pushToast('ARCHIVE', ARCHIVED_TASKS(ids.length))
+            pushToast('ARCHIVE', ids.length === 1 ? t('archivedTasksOne') : t('archivedTasksMany', { count: ids.length }))
           }
         }
       }

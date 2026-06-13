@@ -1,12 +1,12 @@
 import { useCallback } from 'react'
 import { Flame, FileText, Sparkles, Keyboard } from 'lucide-react'
 import type { ActiveTab } from '../../types/app'
-import { NAV_TABS } from './constants'
+import { getNavTabs } from './constants'
+import { useTranslation } from '../../i18n/useTranslation'
 import type { SidebarModeProps } from './types'
 import { SidebarHeader } from './SidebarHeader'
 import { SidebarNavButton } from './SidebarNavButton'
 import { SidebarActionButton } from './SidebarActionButton'
-import { QUICK_NOTES_HELPER } from '../../lib/shared/uxTerms'
 
 export function SidebarExpandedContent({
   currentStreak,
@@ -22,6 +22,8 @@ export function SidebarExpandedContent({
   onShowOnboarding,
   onToggleCollapse,
 }: SidebarModeProps) {
+  const { t } = useTranslation()
+  const navTabs = getNavTabs()
   const onActivateTab = useCallback((tabId: ActiveTab) => setActiveTab(tabId), [setActiveTab])
 
   return (
@@ -55,7 +57,7 @@ export function SidebarExpandedContent({
 
         <p className="hidden md:block px-1 text-label font-bold uppercase tracking-wider text-muted select-none">Workspace</p>
         <nav className="hidden md:flex flex-col gap-1">
-          {NAV_TABS.map(tab => {
+          {navTabs.map(tab => {
             const isActive = activeTab === tab.id
             const isLocked = enforceLockout && isTimerActive && timerMode === 'study' && tab.id !== 'focus'
             return (
@@ -78,7 +80,7 @@ export function SidebarExpandedContent({
           <SidebarActionButton
             variant="expanded"
             label="Quick Notes"
-            subtitle={QUICK_NOTES_HELPER}
+            subtitle={t('quickNotesHelper')}
             icon={FileText}
             iconClassName="text-accent-blue"
             onClick={onToggleNotes}

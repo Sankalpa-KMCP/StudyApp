@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
 import { useConfirm } from '../context/useConfirm'
-import { FOCUS_LOCKOUT } from '../lib/shared/uxTerms'
+import { t } from '../i18n'
 import { isFocusLockoutActive, parseLockoutAllowedTabs, type LockoutMode } from '../lib/study/focusLockout'
 
 interface FocusLockoutTimer {
@@ -52,7 +52,7 @@ export function useFocusLockoutNavigation({
       onLockedAttempt?.()
       if (lockoutMode === 'strict') return
       const ok = await requestConfirm({
-        title: `${FOCUS_LOCKOUT} active`,
+        title: `${t('focusLockout')} active`,
         message: 'Your lockout setting prevents leaving Focus during an active study block. Pause the timer to navigate away.',
         confirmLabel: 'Pause & navigate',
         danger: true,

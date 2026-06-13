@@ -1,4 +1,4 @@
-import { SESSIONS_BEFORE_LONG_BREAK } from '../../lib/shared/uxTerms'
+import { useTranslation } from '../../i18n/useTranslation'
 
 interface SessionProgressProps {
   completedSessionsInCycle: number
@@ -6,10 +6,12 @@ interface SessionProgressProps {
 }
 
 export function SessionProgress({ completedSessionsInCycle, targetSessionsPerCycle }: SessionProgressProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="flex flex-col items-center gap-1 mt-5 select-none">
       <div className="flex items-center gap-3 text-label text-muted font-bold uppercase tracking-wider">
-        <span>{SESSIONS_BEFORE_LONG_BREAK}:</span>
+        <span>{t('sessionsBeforeLongBreak')}:</span>
         <div className="flex items-center gap-1.5">
           {Array.from({ length: targetSessionsPerCycle }, (_, i) => (
             <span
