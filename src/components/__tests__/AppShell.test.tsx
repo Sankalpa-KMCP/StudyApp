@@ -15,7 +15,6 @@ vi.mock('../../context/useStudyApp', () => ({
       cardBorderOpacity: 0.08,
       noteTagColors: [],
       uiDensity: 'comfortable',
-      flashcardsEnabled: false,
       reduceVisualEffects: false,
       autoExportEnabled: false,
       autoExportIntervalDays: 7,
@@ -27,7 +26,6 @@ vi.mock('../../context/useStudyApp', () => ({
     currentStreak: 0,
     xpData: { level: 1, xpProgressPercent: 0 },
     todayLog: { studyMinutes: 0 },
-    flashcards: { flashcards: [] },
     recentHistory: { history: [] },
   }),
   useStudyUI: () => ({
