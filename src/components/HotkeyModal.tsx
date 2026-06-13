@@ -1,7 +1,7 @@
 import React from 'react'
 import { X } from 'lucide-react'
 import { ModalShell } from './shared/ModalShell'
-import { FOCUS_MODE } from '../lib/shared/uxTerms'
+import { useTranslation } from '../i18n/useTranslation'
 
 interface HotkeyModalProps {
   isOpen: boolean
@@ -12,16 +12,18 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const { t } = useTranslation()
+
   const shortcuts = [
-    { keys: 'Ctrl+K', action: 'Open command palette (tasks, notes, tabs)' },
-    { keys: 'Space', action: 'Toggle play / pause' },
-    { keys: 'S', action: 'Switch to study mode' },
-    { keys: 'B', action: 'Switch to break mode' },
-    { keys: 'C / Shift+C', action: 'Complete study block (Shift+C ends early)' },
-    { keys: 'Z', action: `Toggle ${FOCUS_MODE.toLowerCase()}` },
-    { keys: '1–4', action: 'Jump to Focus, Analytics, Journal, Settings' },
-    { keys: '?', action: 'Toggle this shortcut panel' },
-    { keys: '[', action: 'Toggle sidebar collapse (desktop)' },
+    { keys: 'Ctrl+K', action: t('hotkeyCommandPalette') },
+    { keys: 'Space', action: t('hotkeyTogglePlayPause') },
+    { keys: 'S', action: t('hotkeySwitchStudy') },
+    { keys: 'B', action: t('hotkeySwitchBreak') },
+    { keys: 'C / Shift+C', action: t('hotkeyCompleteSession') },
+    { keys: 'Z', action: t('hotkeyToggleFocusMode', { mode: t('focusMode').toLowerCase() }) },
+    { keys: '1–4', action: t('hotkeyJumpTabs') },
+    { keys: '?', action: t('hotkeyTogglePanel') },
+    { keys: '[', action: t('hotkeyToggleSidebar') },
   ]
 
   return (
@@ -32,13 +34,13 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({
       ariaDescribedby="hotkey-modal-desc"
       panelClassName="max-w-sm surface-subtle p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)]"
     >
-      <p id="hotkey-modal-desc" className="sr-only">Keyboard shortcuts for timer controls, focus mode, and this help panel.</p>
+      <p id="hotkey-modal-desc" className="sr-only">{t('hotkeyModalDesc')}</p>
       <div className="mb-5 flex items-center justify-between border-b border-card pb-3">
-        <h3 id="hotkey-modal-title" className="text-lg font-semibold">Keyboard Shortcuts</h3>
+        <h3 id="hotkey-modal-title" className="text-lg font-semibold">{t('hotkeyModalTitle')}</h3>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close shortcuts panel"
+          aria-label={t('hotkeyCloseAria')}
           className="flex h-7 w-7 items-center justify-center rounded-xl text-muted transition-colors hover:surface-track hover:text-primary cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
         >
           <X className="h-4 w-4" />
@@ -52,10 +54,8 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({
           </div>
         ))}
       </div>
-      <p className="mt-4 text-center text-label text-muted">Shortcuts are disabled while typing in input fields.</p>
-      <p className="mt-2 text-center text-label text-muted">
-        Timer shortcuts still work on Settings while a study block is active. Tab through navigation to reach every section without a mouse.
-      </p>
+      <p className="mt-4 text-center text-label text-muted">{t('hotkeyDisabledInInputs')}</p>
+      <p className="mt-2 text-center text-label text-muted">{t('hotkeySettingsNote')}</p>
     </ModalShell>
   )
 }

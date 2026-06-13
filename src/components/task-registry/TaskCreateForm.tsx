@@ -5,6 +5,8 @@ import { InlineCategoryManager } from '../shared/InlineCategoryManager'
 import { SelectionChip } from '../shared/SelectionChip'
 import { useConfirm } from '../../context/useConfirm'
 import { addTaskTemplate, loadTaskTemplates, type TaskTemplate } from '../../lib/study/taskTemplates'
+import { useTranslation } from '../../i18n/useTranslation'
+import type { TranslationKey } from '../../i18n'
 
 const OPTIONS_EXPANDED_KEY = 'focus_task_options_expanded'
 
@@ -32,6 +34,12 @@ const PRIORITY_ACCENT = {
   high: 'red',
 } as const
 
+const PRIORITY_LABEL_KEYS: Record<'low' | 'medium' | 'high', TranslationKey> = {
+  low: 'taskPriorityLow',
+  medium: 'taskPriorityMedium',
+  high: 'taskPriorityHigh',
+}
+
 export function TaskCreateForm({
   taskText,
   setTaskText,
@@ -49,6 +57,7 @@ export function TaskCreateForm({
   setTaskIsStudySubject,
   onSubmit,
 }: TaskCreateFormProps) {
+  const { t } = useTranslation()
   const { requestConfirm } = useConfirm()
   const [templates, setTemplates] = useState<TaskTemplate[]>(() => loadTaskTemplates())
   const [showOptions, setShowOptions] = useState(() => {
@@ -93,7 +102,7 @@ export function TaskCreateForm({
     <div className="focus-task-form flex flex-col gap-4 mb-6">
       <div className={timerMode === 'break' ? 'opacity-70 pointer-events-none' : ''}>
         <InlineCategoryManager
-          label="Session subject"
+          label={t('taskSessionSubject')}
           categories={categories}
           addCategory={addCategory}
           deleteCategory={deleteCategory}
@@ -102,14 +111,14 @@ export function TaskCreateForm({
           onSelectCategory={onSelectCategory}
         />
         {timerMode === 'break' && (
-          <p className="text-micro text-muted mt-1">Subject locked during break mode.</p>
+          <p className="text-micro text-muted mt-1">{t('taskSubjectLockedBreak')}</p>
         )}
         {sessionCategoryId !== undefined && (() => {
           const cat = categories.find(c => c.id === sessionCategoryId)
           if (!cat?.dailyGoalMinutes) return null
           return (
             <span className="inline-flex mt-2 text-micro font-bold text-accent-blue bg-accent-blue/10 border border-accent-blue/20 px-2.5 py-1 rounded-full">
-              Subject goal: {cat.dailyGoalMinutes} min/day
+              {t('taskSubjectGoal', { minutes: cat.dailyGoalMinutes })}
             </span>
           )
         })()}
@@ -117,7 +126,7 @@ export function TaskCreateForm({
 
       {templates.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <span className="text-micro font-bold uppercase tracking-wider text-muted">Templates</span>
+          <span className="text-micro font-bold uppercase tracking-wider text-muted">{t('taskTemplates')}</span>
           <div className="flex flex-wrap gap-1.5">
             {templates.map(template => (
               <SelectionChip
@@ -136,7 +145,7 @@ export function TaskCreateForm({
 
       <div className="flex flex-col gap-1">
         <label htmlFor="task-input" className="text-micro font-bold uppercase tracking-wider text-muted">
-          Add focus target
+          {t('taskAddFocusTarget')}
         </label>
         <div className="flex gap-2">
           <input
@@ -145,13 +154,13 @@ export function TaskCreateForm({
             value={taskText}
             onChange={e => setTaskText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="What do you want to focus on?"
+            placeholder={t('taskFocusPlaceholder')}
             className="flex-1 rounded-xl surface-subtle border border-card px-4 py-3 text-sm text-primary placeholder:text-muted outline-none focus:border-accent-blue/30 transition-all font-semibold"
           />
           <button
             type="button"
             onClick={onSubmit}
-            aria-label="Add focus target"
+            aria-label={t('taskAddFocusTargetAria')}
             className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl bg-accent-blue hover:bg-accent-blue/90 text-on-accent transition-all ios-active-scale cursor-pointer shadow-md shadow-accent-blue/15"
           >
             <Plus className="h-5 w-5" />
@@ -160,8 +169,8 @@ export function TaskCreateForm({
             type="button"
             onClick={saveCurrentAsTemplate}
             disabled={!taskText.trim()}
-            aria-label="Save as template"
-            title="Save as template"
+            aria-label={t('taskSaveAsTemplateAria')}
+            title={t('taskSaveAsTemplate')}
             className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl surface-subtle border border-card text-muted hover:text-accent-purple transition-all ios-active-scale cursor-pointer disabled:opacity-40"
           >
             <Bookmark className="h-5 w-5" />
@@ -175,7 +184,7 @@ export function TaskCreateForm({
         className="flex items-center justify-between w-full text-left text-micro font-bold uppercase tracking-wider text-muted hover:text-secondary transition-colors"
         aria-expanded={showOptions}
       >
-        <span>More options</span>
+        <span>{t('taskMoreOptions')}</span>
         <ChevronDown className={`h-4 w-4 transition-transform ${showOptions ? 'rotate-180' : ''}`} />
       </button>
 
@@ -183,7 +192,7 @@ export function TaskCreateForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 border-t border-card">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <span className="text-micro font-bold uppercase tracking-wider text-muted">Priority Level</span>
+              <span className="text-micro font-bold uppercase tracking-wider text-muted">{t('taskPriorityLevel')}</span>
               <div className="flex gap-1.5">
                 {(['low', 'medium', 'high'] as const).map(p => (
                   <SelectionChip
@@ -194,29 +203,31 @@ export function TaskCreateForm({
                     className="flex-1 capitalize"
                     onClick={() => setTaskPriority(p)}
                   >
-                    {p}
+                    {t(PRIORITY_LABEL_KEYS[p])}
                   </SelectionChip>
                 ))}
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <span className="text-micro font-bold uppercase tracking-wider text-muted">Estimated Pomodoro Cycles</span>
+              <span className="text-micro font-bold uppercase tracking-wider text-muted">{t('taskEstimatedCycles')}</span>
               <select
                 value={taskCycleCount}
                 onChange={e => setTaskCycleCount(Number(e.target.value))}
                 className="w-full rounded-lg surface-subtle border border-card px-3 py-2 text-xs text-primary outline-none cursor-pointer font-bold settings-select"
               >
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
-                  <option key={n} value={n}>🎯 {n} {n === 1 ? 'Cycle' : 'Cycles'}</option>
+                  <option key={n} value={n}>
+                    {n === 1 ? t('taskCycleOne', { n }) : t('taskCycleMany', { n })}
+                  </option>
                 ))}
               </select>
-              <p className="text-micro text-muted leading-relaxed">One cycle = one focus block (default 25 min).</p>
+              <p className="text-micro text-muted leading-relaxed">{t('taskCycleHelper')}</p>
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-micro font-bold uppercase tracking-wider text-muted">Recall Scheduling</span>
+            <span className="text-micro font-bold uppercase tracking-wider text-muted">{t('taskRecallScheduling')}</span>
             <button
               type="button"
               onClick={() => setTaskIsStudySubject(!taskIsStudySubject)}
@@ -226,7 +237,7 @@ export function TaskCreateForm({
                   : 'surface-subtle text-muted border-card hover:text-secondary'
               }`}
             >
-              <span>🔄 Spaced Repetition (SM-2)</span>
+              <span>{t('taskSpacedRepetitionToggle')}</span>
               <div className={`h-4.5 w-8 rounded-full transition-all relative p-0.5 border ${
                 taskIsStudySubject ? 'bg-accent-purple border-accent-purple/40' : 'surface-subtle border-card'
               }`}>
