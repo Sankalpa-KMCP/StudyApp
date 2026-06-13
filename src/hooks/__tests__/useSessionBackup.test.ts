@@ -226,6 +226,16 @@ describe('useSessionBackup hook', () => {
     expect(reload).toHaveBeenCalled()
   })
 
+  it('clearSnapshots removes all snapshot rows', async () => {
+    const { result } = renderHook(() => useSessionBackup(pushToast))
+    await result.current.createDatabaseSnapshot()
+    await result.current.createDatabaseSnapshot()
+    expect(await db.snapshots.count()).toBeGreaterThan(0)
+    await result.current.clearSnapshots()
+    expect(await db.snapshots.count()).toBe(0)
+    expect(pushToast).toHaveBeenCalledWith('BACKUP', 'Local snapshots cleared')
+  })
+
   it('resetDataSelective clears only chosen tables', async () => {
     await seedTask('Task')
     const { result } = renderHook(() => useSessionBackup(pushToast))
