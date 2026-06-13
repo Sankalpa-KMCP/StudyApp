@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { t } from '../../i18n'
 import type { CategoryItem } from '../../db/types'
 
 type RequestConfirm = (options: {
@@ -37,9 +38,9 @@ export function InlineCategoryManager({
     if (c.id === undefined) return
     if (requestConfirm) {
       const ok = await requestConfirm({
-        title: `Delete "${c.name}"?`,
-        message: 'Tasks linked to this category will keep their data but lose the category label.',
-        confirmLabel: 'Delete',
+        title: t('categoriesDeleteConfirmTitle', { name: c.name }),
+        message: t('categoriesDeleteConfirmMessage'),
+        confirmLabel: t('categoriesDeleteConfirmLabel'),
         danger: true,
       })
       if (!ok) return

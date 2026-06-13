@@ -20,6 +20,7 @@ import { SettingsOnboardingBanners } from './control-deck/SettingsOnboardingBann
 import { SettingsPanelProvider, useSettingsPanel } from './control-deck/SettingsPanelContext'
 import { SettingsShell, SettingsSection } from './control-deck/SettingsShell'
 import { useSettingsAdvancedMode } from '../hooks/useSettingsAdvancedMode'
+import { useTranslation } from '../i18n/useTranslation'
 
 interface ControlDeckProps {
   onShowOnboarding?: () => void
@@ -29,6 +30,7 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
   const { dailyGoalMinutes, resetSectionDefaults } = useSettingsPanel()
   const { requestConfirm } = useConfirm()
   const { showAdvanced, setShowAdvanced } = useSettingsAdvancedMode()
+  const { t } = useTranslation()
 
   useEffect(() => {
     const { settingsSection } = readAppHashFromLocation()
@@ -41,9 +43,9 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
 
   const handleSectionReset = async (sectionId: 'appearance' | 'focus' | 'study' | 'data') => {
     const ok = await requestConfirm({
-      title: 'Reset section defaults?',
-      message: 'Restores all settings in this section to their original values.',
-      confirmLabel: 'Reset',
+      title: t('settingsResetSectionTitle'),
+      message: t('settingsResetSectionMessage'),
+      confirmLabel: t('settingsResetSectionLabel'),
     })
     if (!ok) return
     void resetSectionDefaults(sectionId)

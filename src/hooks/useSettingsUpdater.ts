@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { t } from '../i18n'
 import type { SettingsKey, SettingsValue } from '../db/types'
 import { useSettings } from '../db/hooks/useSettings'
 import type { useAppToast } from './useAppToast'
@@ -26,7 +27,7 @@ export function useSettingsUpdater(pushToast: PushToast) {
     const validated = validateSetting(key, value)
     if (validated.ok === false) {
       if (!options.silent) {
-        pushToast('SETTINGS', `Could not save: ${validated.reason}`)
+        pushToast('SETTINGS', t('settingsSaveFailed', { reason: validated.reason }))
       }
       return false
     }
@@ -52,7 +53,7 @@ export function useSettingsUpdater(pushToast: PushToast) {
       pushToast('SETTINGS', successMessage)
       return true
     } catch {
-      pushToast('SETTINGS', 'Could not restore defaults')
+      pushToast('SETTINGS', t('settingsRestoreFailed'))
       return false
     }
   }, [settings, pushToast])
@@ -61,7 +62,7 @@ export function useSettingsUpdater(pushToast: PushToast) {
     const keys = SECTION_DEFAULT_KEYS[sectionId]
     if (keys.length === 0) return false
     const label = sectionId.charAt(0).toUpperCase() + sectionId.slice(1)
-    return resetKeysToDefaults(keys, `${label} settings restored`)
+    return resetKeysToDefaults(keys, t('settingsSectionRestored', { section: label }))
   }, [resetKeysToDefaults])
 
   const resetKeys = useCallback(async (keys: SettingsKey[], successMessage: string) => {
