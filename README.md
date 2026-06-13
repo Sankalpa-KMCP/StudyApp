@@ -1,6 +1,6 @@
 # Study Dashboard // The Cognitive Focus Console
 
-A focus-first, local-first study dashboard with Pomodoro timing, task tracking, journal, analytics, and an optional flashcard recall deck.
+A focus-first, local-first study dashboard with Pomodoro timing, task tracking, journal, and analytics.
 
 **Created by Sankalpa KMCP**
 
@@ -8,11 +8,9 @@ A focus-first, local-first study dashboard with Pomodoro timing, task tracking, 
 
 ## Screenshots
 
-| Focus | Cards (optional) | Analytics | Settings |
-|-------|------------------|-----------|----------|
-| ![Focus tab](docs/screenshots/focus.png) | ![Cards tab](docs/screenshots/cards.png) | ![Analytics tab](docs/screenshots/analytics.png) | ![Settings tab](docs/screenshots/settings.png) |
-
-_Cards screenshot requires enabling flashcards in Settings → Study._
+| Focus | Analytics | Journal | Settings |
+|-------|-----------|---------|----------|
+| ![Focus tab](docs/screenshots/focus.png) | ![Analytics tab](docs/screenshots/analytics.png) | ![Journal tab](docs/screenshots/journal.png) | ![Settings tab](docs/screenshots/settings.png) |
 
 ---
 
@@ -55,15 +53,11 @@ _Cards screenshot requires enabling flashcards in Settings → Study._
 
 ### Task Registry
 - Priority-sorted tasks with cycle estimates
-- SM-2 spaced repetition for study subjects
+- SM-2 / FSRS spaced repetition for study subjects
 - Subtasks and auto-archive of completed tasks (90+ days)
 
-### Recall Deck (Optional)
-- Spaced repetition flashcards (disabled by default on new installs, toggleable in settings)
-- SM-2 scheduling, category filters, and grade tracking
-
 ### Analytics Studio
-- Weekly charts, category breakdown, retention curves
+- Weekly charts, category breakdown, retention curves (task recall reviews)
 - Configurable productivity window (7 / 30 / 90 days or all time)
 - Streak and XP leveling from study minutes (all-time)
 
@@ -77,10 +71,9 @@ _Cards screenshot requires enabling flashcards in Settings → Study._
 - Storage usage panel and optional history archival
 - Web Share backup on supported mobile browsers
 
-### Task & flashcard productivity
+### Task productivity
 - Task templates saved from the focus task form
-- Flashcard deck CSV import
-- Virtual scrolling for large task and flashcard lists
+- Virtual scrolling for large task lists
 
 ---
 
@@ -100,7 +93,6 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 | `longBreakDurationMinutes` | 15 | Long break length |
 | `targetSessionsPerCycle` | 4 | Study sessions before long break |
 | `historyRetentionDays` | 0 | Auto-archive threshold (0 = keep all; manual sweep in Backup Vault) |
-| `flashcardsEnabled` | `false` (new installs) / `true` (migrated) | Show optional Cards tab and recall deck |
 | Backup reminder interval | 30 days | Reminds when no export; dismiss snoozes 7 days |
 
 ---
@@ -109,8 +101,8 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 
 - **History entries** include `createdAt` (epoch ms) for reliable date filtering, plus a human-readable `timestamp` for display.
 - **Emergency snapshots** are stored in IndexedDB (`snapshots` table), keeping the last 3 automatic backups.
-- **Schema version:** 10 (Dexie `db.verno` — IndexedDB migration version).
-- **Backup `version: 3`** in `.studybackup` JSON exports is the **export file format** revision (adds `checksumSha256`; imports still accept v2). Separate from the DB schema version above.
+- **Schema version:** 12 (Dexie `db.verno` — IndexedDB migration version).
+- **Backup `version: 4`** in `.studybackup` JSON exports omits flashcards (legacy v2/v3 imports still accepted; flashcard rows are discarded). **v3** added `checksumSha256`. Separate from the DB schema version above.
 - See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ### Data limits
