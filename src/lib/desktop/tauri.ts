@@ -1,6 +1,7 @@
 import type { StudyBackupPayload } from '../study/studyDashboard'
 import { SYNC_FILE_NAME } from '../sync/syncConstants'
 import type { SyncFileMetadata } from '../sync/syncAdapter'
+import { t } from '../../i18n'
 
 export function isTauri(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
@@ -38,7 +39,7 @@ export async function pickDesktopBackupFolder(): Promise<string | null> {
 export async function pickSyncFolder(): Promise<string | null> {
   if (!isTauri()) return null
   const { open } = await import('@tauri-apps/plugin-dialog')
-  const selected = await open({ directory: true, multiple: false, title: 'Choose sync folder' })
+  const selected = await open({ directory: true, multiple: false, title: t('tauriChooseSyncFolder') })
   if (selected === null || Array.isArray(selected)) return null
   return selected
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import type { PendingSessionData } from '../types/app'
 import { useFocusTrap } from '../hooks/useFocusTrap'
+import { useTranslation } from '../i18n/useTranslation'
 import { Button } from './shared/Button'
 import { ModalShell } from './shared/ModalShell'
 
@@ -31,6 +32,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
   onSubmitReflection,
   onSkipReflection,
 }) => {
+  const { t } = useTranslation()
   const [adjustedElapsed, setAdjustedElapsed] = useState<number | null>(null)
   const isOpen = showReflectionModal && !!pendingSessionData
   const elapsed = adjustedElapsed !== null ? adjustedElapsed : (pendingSessionData?.elapsed ?? 0)
@@ -53,16 +55,16 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
       panelClassName="max-w-md rounded-[28px] p-7 pb-0 sm:pb-7 animate-slide-in-up flex flex-col max-h-[90vh]"
     >
       <div className="mb-4 pb-2 border-b border-card shrink-0">
-        <h3 id="reflection-modal-title" className="text-base font-semibold text-heading-primary">Session reflection</h3>
-        <p id="reflection-modal-desc" className="text-caption text-muted mt-1">Rate how the session went before saving it to your log.</p>
+        <h3 id="reflection-modal-title" className="text-base font-semibold text-heading-primary">{t('reflectionModalTitle')}</h3>
+        <p id="reflection-modal-desc" className="text-caption text-muted mt-1">{t('reflectionModalDesc')}</p>
       </div>
 
       <div className="space-y-6 overflow-y-auto flex-1 pb-4 sm:pb-0">
         {durationMinutes > 240 && (
           <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-caption leading-relaxed text-accent-amber animate-fade-in flex flex-col gap-2">
-            <span className="font-bold">Long session detected</span>
+            <span className="font-bold">{t('reflectionLongSessionTitle')}</span>
             <span>
-              This session was <strong>{durationMinutes} minutes</strong>. You can keep it or adjust to a standard {studyBlockDurationMinutes}-minute block.
+              {t('reflectionLongSessionBody', { minutes: durationMinutes, blockMinutes: studyBlockDurationMinutes })}
             </span>
             <Button
               variant="secondary"
@@ -70,13 +72,13 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
               onClick={() => setAdjustedElapsed(standardBlockSeconds)}
               className="self-start"
             >
-              Adjust to {studyBlockDurationMinutes} mins
+              {t('reflectionAdjustToBlock', { blockMinutes: studyBlockDurationMinutes })}
             </Button>
           </div>
         )}
 
         <fieldset>
-          <legend className="block text-caption font-bold text-muted uppercase tracking-wide mb-2.5">How focused were you?</legend>
+          <legend className="block text-caption font-bold text-muted uppercase tracking-wide mb-2.5">{t('reflectionAttentionLegend')}</legend>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map(rating => (
               <button
@@ -91,13 +93,13 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
             ))}
           </div>
           <div className="flex justify-between text-label text-muted mt-1.5 font-bold">
-            <span>Distracted</span>
-            <span>In flow</span>
+            <span>{t('reflectionAttentionLow')}</span>
+            <span>{t('reflectionAttentionHigh')}</span>
           </div>
         </fieldset>
 
         <fieldset>
-          <legend className="block text-caption font-bold text-muted uppercase tracking-wide mb-2.5">How stable was your focus?</legend>
+          <legend className="block text-caption font-bold text-muted uppercase tracking-wide mb-2.5">{t('reflectionStabilityLegend')}</legend>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map(rating => (
               <button
@@ -112,14 +114,14 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
             ))}
           </div>
           <div className="flex justify-between text-label text-muted mt-1.5 font-bold">
-            <span>Fragmented</span>
-            <span>Steady</span>
+            <span>{t('reflectionStabilityLow')}</span>
+            <span>{t('reflectionStabilityHigh')}</span>
           </div>
         </fieldset>
 
         <div>
           <div className="flex justify-between items-center mb-2">
-            <label htmlFor="reflection-session-notes" className="block text-caption font-bold text-muted uppercase tracking-wide">Session notes</label>
+            <label htmlFor="reflection-session-notes" className="block text-caption font-bold text-muted uppercase tracking-wide">{t('reflectionSessionNotes')}</label>
             <span className={`text-label font-bold font-mono px-2 py-0.5 rounded-full ${localSessionNotes.length > 450 ? 'bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse' : 'text-muted'}`}>
               {localSessionNotes.length} / 500
             </span>
@@ -129,7 +131,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
             value={localSessionNotes}
             onChange={e => setLocalSessionNotes(e.target.value.slice(0, 500))}
             maxLength={500}
-            placeholder="What did you work on? Any wins or blockers?"
+            placeholder={t('reflectionSessionNotesPlaceholder')}
             className={`w-full h-16 rounded-2xl border surface-subtle px-4 py-3 text-xs text-heading-primary outline-none focus:surface-track placeholder:text-muted resize-none font-sans transition-all duration-300 ${localSessionNotes.length >= 500 ? 'border-red-500/40 focus:border-red-500/60' : 'border-card focus:border-accent-blue/30'}`}
           />
         </div>
@@ -142,7 +144,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
           onClick={() => onSubmitReflection(attentionRating, stabilityRating, localSessionNotes, elapsed)}
           className="w-full py-3.5"
         >
-          Save & continue
+          {t('reflectionSaveContinue')}
         </Button>
         <Button
           variant="secondary"
@@ -150,7 +152,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
           onClick={handleSkip}
           className="w-full py-3"
         >
-          Skip reflection
+          {t('reflectionSkip')}
         </Button>
       </div>
     </ModalShell>
