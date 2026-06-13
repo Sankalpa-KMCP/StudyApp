@@ -1,33 +1,35 @@
 import { useConfirm } from '../../context/useConfirm'
 import { STUDY_ALGORITHM_RESET_KEYS } from '../../lib/settings/settingsSections'
+import { useTranslation } from '../../i18n/useTranslation'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
 
 export function AlgorithmPanel() {
+  const { t } = useTranslation()
   const { initialEasinessFactor, schedulingAlgorithm, updateSetting, resetKeys } = useSettingsPanel()
   const { requestConfirm } = useConfirm()
 
   const handleReset = async () => {
     const ok = await requestConfirm({
-      title: 'Reset algorithm settings?',
-      message: 'Restores the default initial easiness factor (2.5) and SM-2 algorithm.',
-      confirmLabel: 'Reset',
+      title: t('algorithmResetConfirmTitle'),
+      message: t('algorithmResetConfirmMessage'),
+      confirmLabel: t('algorithmResetConfirmLabel'),
     })
     if (!ok) return
-    void resetKeys(STUDY_ALGORITHM_RESET_KEYS, 'Algorithm settings restored')
+    void resetKeys(STUDY_ALGORITHM_RESET_KEYS, t('algorithmSettingsRestored'))
   }
 
   return (
     <SettingsCard
       id="settings-algorithm"
-      title="Spaced Repetition"
+      title={t('algorithmPanelTitle')}
       defaultCollapsed
       onResetDefaults={() => void handleReset()}
-      description="Choose SM-2 or FSRS scheduling for study subjects."
+      description={t('algorithmPanelDescription')}
     >
       <div className="mb-4">
-        <span className="settings-label block mb-2">Scheduling algorithm</span>
+        <span className="settings-label block mb-2">{t('algorithmSchedulingAlgorithm')}</span>
         <div className="flex gap-2">
           {(['sm2', 'fsrs'] as const).map(algo => (
             <button
@@ -46,7 +48,7 @@ export function AlgorithmPanel() {
         </div>
       </div>
       <RangeSetting
-        label="Initial Easiness Factor (EF)"
+        label={t('algorithmInitialEasinessFactor')}
         value={initialEasinessFactor}
         min={1.3}
         max={3.5}
