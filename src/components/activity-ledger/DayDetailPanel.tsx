@@ -6,6 +6,7 @@ import { EmptyState } from '../shared/EmptyState'
 import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
 import { MoodPicker } from './MoodPicker'
+import { useTranslation } from '../../i18n/useTranslation'
 
 interface DayDetailPanelProps {
   liveDay: DayData
@@ -40,19 +41,20 @@ export function DayDetailPanel({
   activeThemeVars,
   saveStatus,
 }: DayDetailPanelProps) {
+  const { t } = useTranslation()
   const dateTitle = `${liveDay.dayName}, ${selectedDay} ${monthNames[currentMonth]} ${currentYear}`
 
   return (
     <PanelCard>
       <PanelHeader
-        title="Day journal"
+        title={t('journalDayJournal')}
         bordered={false}
         className="mb-2"
         action={
           isLiveMonth && selectedDay === todayDayOfMonth ? (
             <span className="flex items-center gap-1 bg-accent-green/10 border border-accent-green/20 rounded-full px-2.5 py-0.5 text-micro font-bold text-accent-green uppercase">
               <span className="h-1 w-1 bg-accent-green rounded-full animate-ping" />
-              <span>Today</span>
+              <span>{t('commonToday')}</span>
             </span>
           ) : undefined
         }
@@ -61,15 +63,15 @@ export function DayDetailPanel({
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         <div className="surface-subtle p-3.5 rounded-[20px] border border-card">
-          <span className="text-micro font-bold text-muted uppercase tracking-wide block">Study block</span>
+          <span className="text-micro font-bold text-muted uppercase tracking-wide block">{t('journalStudyBlock')}</span>
           <span className="text-base font-extrabold text-accent-blue mt-0.5 font-mono">{liveDay.studyTime}</span>
         </div>
         <div className="surface-subtle p-3.5 rounded-[20px] border border-card">
-          <span className="text-micro font-bold text-muted uppercase tracking-wide block">Break cooldown</span>
+          <span className="text-micro font-bold text-muted uppercase tracking-wide block">{t('journalBreakCooldown')}</span>
           <span className="text-base font-extrabold text-accent-amber mt-0.5 font-mono">{liveDay.breakTime}</span>
         </div>
         <div className="surface-subtle p-3.5 rounded-[20px] border border-card">
-          <span className="text-micro font-bold text-muted uppercase tracking-wide block">Efficiency score</span>
+          <span className="text-micro font-bold text-muted uppercase tracking-wide block">{t('journalEfficiencyScore')}</span>
           <span className="text-base font-extrabold text-accent-green mt-0.5 font-mono">{liveDay.focusScore}</span>
         </div>
       </div>
@@ -78,13 +80,13 @@ export function DayDetailPanel({
 
       <div className="mb-5">
         <div className="flex justify-between items-center mb-2.5">
-          <p id="reflection-log-label" className="text-label font-semibold text-muted uppercase tracking-wider">Reflection log</p>
+          <p id="reflection-log-label" className="text-label font-semibold text-muted uppercase tracking-wider">{t('journalReflectionLog')}</p>
           <div className="flex items-center gap-2" aria-live="polite" aria-atomic="true">
             {saveStatus === 'saving' && (
-              <span className="text-micro font-mono text-muted animate-pulse">Saving…</span>
+              <span className="text-micro font-mono text-muted animate-pulse">{t('commonSaving')}</span>
             )}
             {saveStatus === 'saved' && (
-              <span className="text-micro font-mono text-accent-green">Saved</span>
+              <span className="text-micro font-mono text-accent-green">{t('commonSaved')}</span>
             )}
             <span className={`text-micro font-bold font-mono px-2 py-0.5 rounded-full ${
               draftNotes.length > 450
@@ -102,7 +104,7 @@ export function DayDetailPanel({
           onChange={e => onNotesChange(e.target.value.slice(0, 500))}
           maxLength={500}
           aria-labelledby="reflection-log-label"
-          placeholder="How did you perform? Note down any wins, hurdles, or focal points for today..."
+          placeholder={t('journalReflectionPlaceholder')}
           rows={3}
           className={`w-full resize-none rounded-2xl border surface-subtle focus:surface-track px-4 py-3 text-xs text-text-primary placeholder:text-muted outline-none transition-all duration-200 ${
             draftNotes.length >= 500
@@ -114,18 +116,18 @@ export function DayDetailPanel({
         />
         {draftNotes.length >= 500 && (
           <p className="text-micro text-red-400 font-semibold mt-1.5 leading-normal">
-            Character limit reached (500 maximum). Please condense your thoughts.
+            {t('journalCharLimitReached')}
           </p>
         )}
       </div>
 
       <div className="border-t border-card pt-5">
-        <p className="text-caption font-semibold text-muted uppercase tracking-wider mb-3">Session timeline (24h)</p>
+        <p className="text-caption font-semibold text-muted uppercase tracking-wider mb-3">{t('journalSessionTimeline')}</p>
         {selectedDayHistory.length === 0 ? (
           <EmptyState
             icon={<Clock className="h-8 w-8" />}
-            title="No sessions logged"
-            description="Complete a focus block on this day to see your timeline."
+            title={t('journalNoSessionsTitle')}
+            description={t('journalNoSessionsDesc')}
           />
         ) : (
         <div className="relative w-full surface-subtle border border-card rounded-2xl p-4.5">
@@ -142,12 +144,13 @@ export function DayDetailPanel({
               const startPercent = (startMinute / 1440) * 100
               const widthPercent = ((endMinute - startMinute) / 1440) * 100
               const isStudy = entry.type === 'study'
+              const sessionType = isStudy ? t('journalFocusBlock') : t('journalBreakTime')
 
               return (
                 <div
                   key={idx}
-                  title={`${isStudy ? 'Focus block' : 'Break time'}: ${entry.durationMinutes}m (ending ${timePart})`}
-                  aria-label={`${isStudy ? 'Focus block' : 'Break time'}: ${entry.durationMinutes} minutes ending ${timePart}`}
+                  title={t('journalSessionTooltip', { type: sessionType, minutes: entry.durationMinutes, time: timePart })}
+                  aria-label={t('journalSessionAria', { type: sessionType, minutes: entry.durationMinutes, time: timePart })}
                   className="absolute top-0.5 bottom-0.5 rounded-full transition-all hover:scale-y-110 cursor-pointer"
                   style={{
                     left: `${startPercent}%`,

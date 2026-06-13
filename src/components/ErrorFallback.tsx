@@ -40,9 +40,9 @@ export function ErrorFallback({ message, stack, contextLabel, onRetry, onReload 
 
   const handleResetDatabase = async () => {
     const ok = await requestConfirm({
-      title: 'Reset database?',
-      message: 'Export a backup first if you need your data.',
-      confirmLabel: 'Reset',
+      title: t('errorResetDatabaseTitle'),
+      message: t('errorResetDatabaseMessage'),
+      confirmLabel: t('errorResetDatabaseConfirm'),
       danger: true,
     })
     if (!ok) return

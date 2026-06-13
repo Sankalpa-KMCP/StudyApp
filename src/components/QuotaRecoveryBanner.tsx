@@ -1,5 +1,6 @@
 import { AlertCircle } from 'lucide-react'
 import { Button } from './shared/Button'
+import { useTranslation } from '../i18n/useTranslation'
 
 interface QuotaRecoveryBannerProps {
   onExport: () => void
@@ -8,6 +9,8 @@ interface QuotaRecoveryBannerProps {
 }
 
 export function QuotaRecoveryBanner({ onExport, onOpenRecovery, onDismiss }: QuotaRecoveryBannerProps) {
+  const { t } = useTranslation()
+
   return (
     <div
       role="alert"
@@ -16,18 +19,18 @@ export function QuotaRecoveryBanner({ onExport, onOpenRecovery, onDismiss }: Quo
       <div className="flex items-start sm:items-center gap-2.5">
         <AlertCircle className="h-4 w-4 text-amber-300 shrink-0 mt-0.5 sm:mt-0" aria-hidden />
         <p className="text-label font-semibold text-amber-100 leading-relaxed">
-          Storage full — export your data, then free space in Settings.
+          {t('bannerQuotaMessage')}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2 shrink-0">
         <Button variant="primary" size="sm" onClick={onExport}>
-          Export now
+          {t('bannerQuotaExportNow')}
         </Button>
         <Button variant="secondary" size="sm" onClick={onOpenRecovery}>
-          Open recovery
+          {t('bannerQuotaOpenRecovery')}
         </Button>
         <Button variant="ghost" size="sm" onClick={onDismiss}>
-          Dismiss
+          {t('commonDismiss')}
         </Button>
       </div>
     </div>
