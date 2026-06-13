@@ -1,9 +1,9 @@
 import { memo } from 'react'
 import { Brain, FileText, Flame, Lock, Search } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
-import { TAB_CHROME } from '../navigation/appNav'
+import { getTabChrome } from '../navigation/appNav'
+import { useTranslation } from '../i18n/useTranslation'
 import { getDailyFocusStatus } from '../lib/study/studyDashboard'
-import { PAUSE_TIMER_TO_LEAVE } from '../lib/shared/uxTerms'
 import { MobileHeaderMenu } from './MobileHeaderMenu'
 
 interface AppContentHeaderProps {
@@ -41,6 +41,8 @@ export const AppContentHeader = memo(function AppContentHeader({
   onOpenHotkeys,
   onOpenCommandPalette,
 }: AppContentHeaderProps) {
+  const { t } = useTranslation()
+  const tabChrome = getTabChrome()
   const focusStatus = getDailyFocusStatus(todayStudyMinutes, dailyGoalMinutes)
   const goalScopeLabel = focusCategoryName ? `${focusCategoryName} goal` : 'Daily goal'
   const goalDetailTooltip = `${focusStatus.studiedLabel} / ${formatGoalLabel(dailyGoalMinutes)} (${goalScopeLabel}). Change daily goal in Settings → Timer & Focus.`
@@ -93,8 +95,8 @@ export const AppContentHeader = memo(function AppContentHeader({
           <div className="flex items-center gap-2 min-w-0">
             <Brain className="h-4 w-4 text-accent-blue shrink-0" />
             <div className="min-w-0">
-              <span className="text-title font-display text-gradient-accent truncate block">{TAB_CHROME[activeTab].title}</span>
-              <p className="text-caption text-muted font-medium truncate">{TAB_CHROME[activeTab].subtitle}</p>
+              <span className="text-title font-display text-gradient-accent truncate block">{tabChrome[activeTab].title}</span>
+              <p className="text-caption text-muted font-medium truncate">{tabChrome[activeTab].subtitle}</p>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -128,7 +130,7 @@ export const AppContentHeader = memo(function AppContentHeader({
             className="flex items-center gap-1.5 rounded-lg border border-accent-amber/20 bg-accent-amber/8 px-3 py-1.5"
           >
             <Lock className="h-3 w-3 text-accent-amber shrink-0" aria-hidden />
-            <span className="text-micro font-semibold text-accent-amber">{PAUSE_TIMER_TO_LEAVE}</span>
+            <span className="text-micro font-semibold text-accent-amber">{t('pauseTimerToLeave')}</span>
           </div>
         )}
         {isTimerActive && !showLockoutStrip && (
@@ -143,8 +145,8 @@ export const AppContentHeader = memo(function AppContentHeader({
 
       <header className="hidden md:flex items-center justify-between px-6 lg:px-8 py-4 border-b border-card surface-subtle backdrop-blur-md">
         <div className="select-none">
-          <h2 className="text-title font-display text-gradient-accent">{TAB_CHROME[activeTab].title}</h2>
-          <p className="text-caption text-muted font-medium mt-1">{TAB_CHROME[activeTab].subtitle}</p>
+          <h2 className="text-title font-display text-gradient-accent">{tabChrome[activeTab].title}</h2>
+          <p className="text-caption text-muted font-medium mt-1">{tabChrome[activeTab].subtitle}</p>
         </div>
         <div className="flex items-center gap-2.5">
           {onOpenCommandPalette && (

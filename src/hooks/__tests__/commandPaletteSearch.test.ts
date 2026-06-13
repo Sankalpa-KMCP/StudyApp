@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildCommandPaletteItems, filterCommandPaletteItems } from '../../lib/routing/commandPaletteSearch'
+import { buildCommandPaletteItems, filterCommandPaletteItems, getCommandPaletteGroupLabels } from '../../lib/routing/commandPaletteSearch'
 
 describe('commandPaletteSearch', () => {
   it('builds items without flashcard entries', () => {
@@ -26,5 +26,12 @@ describe('commandPaletteSearch', () => {
     const filtered = filterCommandPaletteItems(items, 'math')
     expect(filtered).toHaveLength(1)
     expect(filtered[0].label).toBe('Math homework')
+  })
+
+  it('provides localized group labels', () => {
+    const labels = getCommandPaletteGroupLabels()
+    expect(labels.action).toBe('Actions')
+    expect(labels.tab).toBe('Go to')
+    expect(labels.journal).toBe('Journal')
   })
 })

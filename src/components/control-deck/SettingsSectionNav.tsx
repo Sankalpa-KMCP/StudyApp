@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { writeAppHash } from '../../lib/routing/appHashRouting'
-import { SETTINGS_SECTIONS, scrollToSettingsSection, type SettingsSectionId } from '../../lib/settings/settingsSections'
+import { getSettingsSections, scrollToSettingsSection, type SettingsSectionId } from '../../lib/settings/settingsSections'
+import { useTranslation } from '../../i18n/useTranslation'
 
 interface SettingsSectionNavProps {
   className?: string
@@ -8,6 +9,8 @@ interface SettingsSectionNavProps {
 }
 
 export function SettingsSectionNav({ className = '', variant = 'sidebar' }: SettingsSectionNavProps) {
+  useTranslation()
+  const settingsSections = getSettingsSections()
   const [activeId, setActiveId] = useState<SettingsSectionId>('appearance')
 
   useEffect(() => {
@@ -38,7 +41,7 @@ export function SettingsSectionNav({ className = '', variant = 'sidebar' }: Sett
       aria-label="Settings sections"
       className={`${isPills ? 'flex gap-2 overflow-x-auto pb-1 custom-scrollbar' : 'flex flex-col gap-1'} ${className}`.trim()}
     >
-      {SETTINGS_SECTIONS.map(section => {
+      {settingsSections.map(section => {
         const isActive = activeId === section.id
         const Icon = section.icon
         return (
