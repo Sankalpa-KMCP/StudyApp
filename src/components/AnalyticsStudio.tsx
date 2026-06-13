@@ -24,6 +24,7 @@ import {
   useMoodDistribution,
   useEstimationInsight,
 } from './analytics/useAnalyticsChartData'
+import { useTranslation } from '../i18n/useTranslation'
 
 interface AnalyticsStudioProps {
   tasks: TaskItem[]
@@ -82,6 +83,7 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
   categoryGoalTrends = [],
   onExportWeeklyReport,
 }) => {
+  const { t } = useTranslation()
   const retentionData = useRetentionData(tasks)
   const heatmapData = useHeatmapData(allLogs)
   const moodDistribution = useMoodDistribution(monthLogs, activeThemeVars)
@@ -92,7 +94,7 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
 
   return (
     <TabPageShell>
-      <TabSection label="Overview">
+      <TabSection label={t('analyticsSectionOverview')}>
         {!isFullyEmpty && (
           <SummaryMetricsRow
             monthLogs={monthLogs}
@@ -104,7 +106,7 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
         )}
       </TabSection>
 
-      <TabSection label="Trends">
+      <TabSection label={t('analyticsSectionTrends')}>
         {isFullyEmpty && onStartFocus ? (
           <AnalyticsEmptyHero onStartFocus={onStartFocus} />
         ) : (
@@ -122,7 +124,7 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
 
       {!isFullyEmpty && (
         <>
-          <TabSection label="Retention" className="lg:col-span-6">
+          <TabSection label={t('analyticsSectionRetention')} className="lg:col-span-6">
             <Suspense fallback={<ChartPanelFallback />}>
               <RetentionChartPanel
                 retentionData={retentionData}
@@ -132,7 +134,7 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
             </Suspense>
           </TabSection>
 
-          <TabSection label="Activity map" className="lg:col-span-6">
+          <TabSection label={t('analyticsSectionActivityMap')} className="lg:col-span-6">
             <HeatmapPanel
               heatmapData={heatmapData}
               accentBlue={activeThemeVars.accentBlue}
@@ -142,16 +144,16 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
         </>
       )}
 
-      <TabSection label="Insights">
+      <TabSection label={t('analyticsSectionInsights')}>
         {onExportWeeklyReport && (
           <div className="flex flex-wrap gap-2 mb-4">
-            <Button variant="secondary" size="sm" onClick={() => onExportWeeklyReport('md')}>Export weekly report (MD)</Button>
-            <Button variant="secondary" size="sm" onClick={() => onExportWeeklyReport('csv')}>Export weekly report (CSV)</Button>
+            <Button variant="secondary" size="sm" onClick={() => onExportWeeklyReport('md')}>{t('analyticsExportWeeklyMd')}</Button>
+            <Button variant="secondary" size="sm" onClick={() => onExportWeeklyReport('csv')}>{t('analyticsExportWeeklyCsv')}</Button>
           </div>
         )}
         <AnalyticsRangeSelector range={analyticsRange} onChange={onAnalyticsRangeChange} />
         <p className="text-micro settings-muted mb-4 -mt-2">
-          Productivity metrics below reflect {analyticsRangeLabel.toLowerCase()}. Streak and XP use all-time data.
+          {t('analyticsProductivityWindowNote', { range: analyticsRangeLabel.toLowerCase() })}
         </p>
         <Suspense fallback={<ChartPanelFallback />}>
           <BreakdownPanels

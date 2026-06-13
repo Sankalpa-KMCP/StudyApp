@@ -1,11 +1,14 @@
 import { BarChart3 } from 'lucide-react'
 import { Button } from '../shared/Button'
+import { useTranslation } from '../../i18n/useTranslation'
 
 interface AnalyticsEmptyHeroProps {
   onStartFocus: () => void
 }
 
 export function AnalyticsEmptyHero({ onStartFocus }: AnalyticsEmptyHeroProps) {
+  const { t } = useTranslation()
+
   return (
     <div
       role="status"
@@ -25,13 +28,13 @@ export function AnalyticsEmptyHero({ onStartFocus }: AnalyticsEmptyHeroProps) {
         <div className="text-muted opacity-60 mb-3">
           <BarChart3 className="h-8 w-8" />
         </div>
-        <p className="text-caption font-semibold text-secondary">No study data yet</p>
+        <p className="text-caption font-semibold text-secondary">{t('analyticsEmptyTitle')}</p>
         <p className="text-label text-muted mt-1.5 max-w-sm">
-          Complete a focus block to unlock trends, retention curves, and your activity map.
+          {t('analyticsEmptyDescription')}
         </p>
         <div className="mt-4">
           <Button variant="primary" onClick={onStartFocus}>
-            Start a focus block
+            {t('analyticsEmptyCta')}
           </Button>
         </div>
       </div>

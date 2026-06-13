@@ -3,6 +3,8 @@ import { hexToRgb } from '../../lib/study/studyDashboard'
 import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
 import { EmptyState } from '../shared/EmptyState'
+import { getHeatmapIntensityLabel } from './useAnalyticsChartData'
+import { useTranslation } from '../../i18n/useTranslation'
 
 interface HeatmapDay {
   dateStr: string
@@ -17,6 +19,7 @@ interface HeatmapPanelProps {
 }
 
 export const HeatmapPanel = memo(function HeatmapPanel({ heatmapData, accentBlue, className = '', suppressEmptyState = false }: HeatmapPanelProps) {
+  const { t } = useTranslation()
   const rgbStr = useMemo(() => {
     const rgb = hexToRgb(accentBlue) || { r: 59, g: 130, b: 246 }
     return `${rgb.r}, ${rgb.g}, ${rgb.b}`
@@ -30,19 +33,19 @@ export const HeatmapPanel = memo(function HeatmapPanel({ heatmapData, accentBlue
   return (
     <PanelCard className={`flex flex-col gap-5 ${className}`.trim()} aria-labelledby="analytics-heatmap">
       <PanelHeader
-        title="Yearly focus horizon"
+        title={t('analyticsYearlyFocus')}
         bordered={false}
         className="mb-0"
         id="analytics-heatmap"
         action={
           <div className="flex items-center gap-1.5 text-micro text-muted font-semibold select-none">
-            <span>Less</span>
+            <span>{t('analyticsHeatmapLess')}</span>
             <div className="h-2.5 w-2.5 rounded-[2px] surface-subtle" />
             <div className="h-2.5 w-2.5 rounded-[2px]" style={{ backgroundColor: `rgba(${rgbStr}, 0.20)` }} />
             <div className="h-2.5 w-2.5 rounded-[2px]" style={{ backgroundColor: `rgba(${rgbStr}, 0.45)` }} />
             <div className="h-2.5 w-2.5 rounded-[2px]" style={{ backgroundColor: `rgba(${rgbStr}, 0.70)` }} />
             <div className="h-2.5 w-2.5 rounded-[2px]" style={{ backgroundColor: `rgba(${rgbStr}, 1.00)` }} />
-            <span>More</span>
+            <span>{t('analyticsHeatmapMore')}</span>
           </div>
         }
       />
@@ -50,8 +53,8 @@ export const HeatmapPanel = memo(function HeatmapPanel({ heatmapData, accentBlue
       {totalStudyMinutes === 0 ? (
         suppressEmptyState ? null : (
         <EmptyState
-          title="No study history yet"
-          description="Complete a focus block to fill your year map."
+          title={t('analyticsNoHistoryTitle')}
+          description={t('analyticsNoHistoryDesc')}
         />
         )
       ) : (
@@ -61,7 +64,7 @@ export const HeatmapPanel = memo(function HeatmapPanel({ heatmapData, accentBlue
             <div
               key={day.dateStr}
               role="img"
-              aria-label={`${day.dateStr}: ${day.minutes} minutes studied`}
+              aria-label={t('analyticsHeatmapDayAria', { date: day.dateStr, minutes: day.minutes })}
               title={`${day.dateStr}: ${day.minutes}m`}
               className="w-2.5 h-2.5 rounded-[2px] cursor-pointer transition-transform hover:scale-125 relative group"
               style={{
@@ -78,9 +81,9 @@ export const HeatmapPanel = memo(function HeatmapPanel({ heatmapData, accentBlue
             >
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-32 surface-overlay border border-card p-2 rounded-[12px] text-micro font-mono text-left pointer-events-none z-30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] leading-normal">
                 <div className="font-bold text-primary mb-0.5 border-b border-card pb-0.5">{day.dateStr}</div>
-                <div className="text-secondary">Study: {day.minutes}m</div>
+                <div className="text-secondary">{t('analyticsHeatmapStudy', { minutes: day.minutes })}</div>
                 <div className="text-accent-blue font-bold mt-0.5">
-                  Intensity: {day.minutes < 60 ? 'Low' : day.minutes < 120 ? 'Med' : day.minutes < 180 ? 'High' : 'Epic'}
+                  {t('analyticsHeatmapIntensity', { level: getHeatmapIntensityLabel(day.minutes) })}
                 </div>
               </div>
             </div>

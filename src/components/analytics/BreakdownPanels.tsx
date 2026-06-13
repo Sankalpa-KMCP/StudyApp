@@ -5,6 +5,7 @@ import { PieChartLegend } from '../shared/PieChartLegend'
 import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
 import { ChartSummary } from './ChartSummary'
+import { useTranslation } from '../../i18n/useTranslation'
 
 interface CategoryItem {
   name: string
@@ -40,14 +41,30 @@ export const BreakdownPanels = memo(function BreakdownPanels({
   peakDay,
   estimationInsight,
 }: BreakdownPanelsProps) {
+  const { t } = useTranslation()
+  const noLogs = t('commonNoLogs')
+
+  const insights = [
+    { label: t('analyticsTopSubject'), value: topSubject || noLogs, icon: Award, color: 'text-accent-purple', bg: 'bg-accent-purple/10' },
+    { label: t('analyticsAvgSessionLength'), value: t('analyticsAvgSessionValue', { minutes: avgMin }), icon: Clock, color: 'text-accent-blue', bg: 'bg-accent-blue/10' },
+    { label: t('analyticsCompletionRatio'), value: `${completionRate}%`, icon: CheckCircle, color: 'text-accent-green', bg: 'bg-accent-green/10' },
+    { label: t('analyticsPeakWorkday'), value: peakDay || noLogs, icon: Calendar, color: 'text-accent-amber', bg: 'bg-accent-amber/10' },
+    { label: t('analyticsEstimationDeviation'), value: estimationInsight, icon: Target, color: 'text-accent-blue', bg: 'bg-accent-blue/10' },
+  ]
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <PanelCard className="lg:col-span-4" aria-labelledby="analytics-subjects" interactive={true}>
-        <PanelHeader title="Subject distribution" bordered={false} className="mb-5" id="analytics-subjects" />
+        <PanelHeader title={t('analyticsSubjectDistribution')} bordered={false} className="mb-5" id="analytics-subjects" />
         {categoryBreakdown.length > 0 ? (
           <>
           <ChartSummary>
-            {`Top category: ${topSubject}. Average session length ${avgMin} minutes. Completion rate ${completionRate}%. Peak study day: ${peakDay}.`}
+            {t('analyticsBreakdownSummary', {
+              subject: topSubject,
+              avgMin,
+              completionRate,
+              peakDay,
+            })}
           </ChartSummary>
           <div className="flex items-center gap-8 justify-around">
             <div className="w-24 h-24 shrink-0">
@@ -73,12 +90,12 @@ export const BreakdownPanels = memo(function BreakdownPanels({
           </div>
           </>
         ) : (
-          <p className="py-12 text-center text-xs italic text-muted">Configure categories and complete focus blocks.</p>
+          <p className="py-12 text-center text-xs italic text-muted">{t('analyticsConfigureCategories')}</p>
         )}
       </PanelCard>
 
       <PanelCard className="lg:col-span-4" aria-labelledby="analytics-mood" interactive={true}>
-        <PanelHeader title="Mood distribution" bordered={false} className="mb-5" id="analytics-mood" />
+        <PanelHeader title={t('analyticsMoodDistribution')} bordered={false} className="mb-5" id="analytics-mood" />
         {moodDistribution.some(m => m.value > 0) ? (
           <div className="flex items-center gap-8 justify-around">
             <div className="w-24 h-24 shrink-0">
@@ -105,21 +122,15 @@ export const BreakdownPanels = memo(function BreakdownPanels({
           </div>
         ) : (
           <div className="flex h-24 items-center justify-center text-center">
-            <p className="text-xs italic text-muted">Log mood in the Journal tab to see distribution.</p>
+            <p className="text-xs italic text-muted">{t('analyticsMoodLogHint')}</p>
           </div>
         )}
       </PanelCard>
 
       <PanelCard className="lg:col-span-4" aria-labelledby="analytics-productivity" interactive={true}>
-        <PanelHeader title="Productivity metrics" bordered={false} className="mb-5" id="analytics-productivity" />
+        <PanelHeader title={t('analyticsProductivityMetrics')} bordered={false} className="mb-5" id="analytics-productivity" />
         <div className="grid grid-cols-1 gap-2.5">
-          {[
-            { label: 'TOP SUBJECT', value: topSubject || 'No logs', icon: Award, color: 'text-accent-purple', bg: 'bg-accent-purple/10' },
-            { label: 'AVG SESSION LENGTH', value: `${avgMin} min`, icon: Clock, color: 'text-accent-blue', bg: 'bg-accent-blue/10' },
-            { label: 'COMPLETION RATIO', value: `${completionRate}%`, icon: CheckCircle, color: 'text-accent-green', bg: 'bg-accent-green/10' },
-            { label: 'PEAK WORKDAY', value: peakDay || 'No logs', icon: Calendar, color: 'text-accent-amber', bg: 'bg-accent-amber/10' },
-            { label: 'ESTIMATION DEVIATION', value: estimationInsight, icon: Target, color: 'text-accent-blue', bg: 'bg-accent-blue/10' },
-          ].map(insight => {
+          {insights.map(insight => {
             const Icon = insight.icon
             return (
               <div key={insight.label} className="rounded-xl border border-card surface-subtle p-2.5 hover:border-card transition-all flex items-center gap-3">
