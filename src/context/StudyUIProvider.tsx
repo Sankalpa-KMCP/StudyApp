@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
 import { StudyUIContext } from './studyUIContext'
-import { useStudyUIState } from './useStudyUIState'
+import { useStudyUIProviderValue } from './useStudyUIProviderValue'
 import type { useAppToast } from '../hooks/useAppToast'
 
 type ToastApi = ReturnType<typeof useAppToast>
 
 export function StudyUIProvider({ children, toast }: { children: ReactNode; toast: ToastApi }) {
-  const value = useStudyUIState(toast)
+  const value = useStudyUIProviderValue(toast)
   return (
     <StudyUIContext.Provider value={value}>
       {children}

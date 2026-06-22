@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { SidebarFlyoutContext } from './useSidebarFlyout'
+import { SidebarFlyoutContext } from '../../context/sidebar/sidebarFlyoutContext'
 
 interface FlyoutState {
   label: string

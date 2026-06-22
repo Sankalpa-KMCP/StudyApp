@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { useSidebarFlyout } from './useSidebarFlyout'
+import { useSidebarFlyout } from '../../hooks/sidebar/useSidebarFlyout'
 
 interface SidebarActionButtonProps {
   variant: 'expanded' | 'rail'

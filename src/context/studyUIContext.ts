@@ -1,7 +1,10 @@
 import { createContext, useContext } from 'react'
+import type { ThemeProfile } from '../types/app'
 import type { useStudyUIState } from './useStudyUIState'
 
-export type StudyUIContextValue = ReturnType<typeof useStudyUIState>
+export type StudyUIContextValue = ReturnType<typeof useStudyUIState> & {
+  activeThemeVars: ThemeProfile
+}
 
 export const StudyUIContext = createContext<StudyUIContextValue | null>(null)
 

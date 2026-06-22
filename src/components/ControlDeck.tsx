@@ -17,7 +17,7 @@ function PanelFallback() {
   return <div className="h-16 animate-pulse rounded-2xl surface-subtle" aria-hidden />
 }
 import { SettingsOnboardingBanners } from './control-deck/SettingsOnboardingBanners'
-import { SettingsPanelProvider, useSettingsPanel } from './control-deck/SettingsPanelContext'
+import { SettingsPanelProvider, useSettingsPanel } from '../context/settingsPanelContext'
 import { SettingsShell, SettingsSection } from './control-deck/SettingsShell'
 import { useSettingsAdvancedMode } from '../hooks/useSettingsAdvancedMode'
 import { useTranslation } from '../i18n/useTranslation'
