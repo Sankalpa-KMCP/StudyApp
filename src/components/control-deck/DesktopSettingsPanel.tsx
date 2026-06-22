@@ -1,4 +1,4 @@
-import { useSettingsPanel } from './SettingsPanelContext'
+import { useSettingsPanel } from '../../context/settingsPanelContext'
 import { useTranslation } from '../../i18n/useTranslation'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'

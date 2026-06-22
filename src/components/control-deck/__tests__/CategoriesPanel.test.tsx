@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { CategoriesPanel } from '../CategoriesPanel'
-import { SettingsPanelProvider } from '../SettingsPanelContext'
+import { SettingsPanelProvider } from '../../../context/settingsPanelContext'
 
 const requestConfirm = vi.fn()
 const pushToast = vi.fn()
@@ -12,8 +12,8 @@ vi.mock('../../../context/useConfirm', () => ({
   useConfirm: () => ({ requestConfirm }),
 }))
 
-vi.mock('../../../context/studyDataContext', () => ({
-  useStudyDataContext: () => ({
+vi.mock('../../../context/useStudyApp', () => ({
+  useStudyData: () => ({
     categories: {
       categories: [{ id: 1, name: 'Math', color: '#3B82F6' }],
       addCategory: vi.fn(),
@@ -34,6 +34,7 @@ vi.mock('../../../context/studyTimerContext', () => ({
       clearSnapshots: vi.fn(),
       exportStudyLogsCSV: vi.fn(),
       exportTaskCompletionLogsCSV: vi.fn(),
+      archiveHistoryOlderThan: vi.fn().mockResolvedValue(0),
     },
   }),
 }))

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SoundFeedbackPanel } from '../SoundFeedbackPanel'
-import { SettingsPanelProvider } from '../SettingsPanelContext'
+import { SettingsPanelProvider } from '../../../context/settingsPanelContext'
 import { mockUpdateSetting } from './testUtils'
 
 vi.mock('../../../lib/audio/ambientAudio', () => ({

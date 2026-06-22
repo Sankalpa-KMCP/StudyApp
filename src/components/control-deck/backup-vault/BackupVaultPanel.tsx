@@ -1,6 +1,6 @@
 import { useConfirm } from '../../../context/useConfirm'
 import { useTranslation } from '../../../i18n/useTranslation'
-import { useSettingsPanel } from '../SettingsPanelContext'
+import { useSettingsPanel } from '../../../context/settingsPanelContext'
 import { SettingsCard } from '../../shared/settings/SettingsCard'
 import { SettingsDisclosure } from '../../shared/settings/SettingsDisclosure'
 import { StorageUsagePanel } from '../StorageUsagePanel'
@@ -12,7 +12,7 @@ import { ScheduledExportSection } from './ScheduledExportSection'
 import { EncryptedExportSection } from './EncryptedExportSection'
 import { CsvIcsReportsSection } from './CsvIcsReportsSection'
 import { BackupResetSection } from './BackupResetSection'
-import { useBackupVaultPanelState } from './useBackupVaultPanelState'
+import { useBackupVaultPanelState } from '../../../hooks/backup/useBackupVaultPanelState'
 
 export function BackupVaultPanel() {
   const { t } = useTranslation()
@@ -38,6 +38,7 @@ export function BackupVaultPanel() {
     exportProgress = 0,
     exportStudyLogsCSV,
     exportTaskCompletionLogsCSV,
+    archiveHistoryOlderThan,
     importStudyBackup,
     importStudyHistoryIcs,
     resetData,
@@ -112,6 +113,7 @@ export function BackupVaultPanel() {
             exportStudyLogsCSV={exportStudyLogsCSV}
             exportStudyHistoryIcs={exportStudyHistoryIcs}
             exportTaskCompletionLogsCSV={exportTaskCompletionLogsCSV}
+            archiveHistoryOlderThan={archiveHistoryOlderThan}
             importStudyHistoryIcs={importStudyHistoryIcs}
             pushToast={pushToast}
             onArchiveComplete={panelState.bumpStorageKey}

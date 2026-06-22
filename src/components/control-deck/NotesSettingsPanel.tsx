@@ -1,7 +1,7 @@
 import { useConfirm } from '../../context/useConfirm'
 import { STUDY_NOTES_RESET_KEYS } from '../../lib/settings/settingsSections'
 import { useTranslation } from '../../i18n/useTranslation'
-import { useSettingsPanel } from './SettingsPanelContext'
+import { useSettingsPanel } from '../../context/settingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 
 export function NotesSettingsPanel() {

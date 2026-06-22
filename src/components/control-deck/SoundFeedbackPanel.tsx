@@ -1,6 +1,6 @@
 import { useTranslation } from '../../i18n/useTranslation'
 import { getSharedAudioContext, type AmbientPreset } from '../../lib/audio/ambientAudio'
-import { useSettingsPanel } from './SettingsPanelContext'
+import { useSettingsPanel } from '../../context/settingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
 import { SettingsPresetChips } from '../shared/settings/SettingsPresetChips'
