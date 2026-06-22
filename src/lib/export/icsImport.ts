@@ -1,5 +1,5 @@
 import type { HistoryEntry } from '../../db/types'
-import { parseLegacyHistoryTimestamp } from '../study/studyDashboard'
+import { parseLegacyHistoryTimestamp } from '../study/dates'
 
 function unfoldIcsLines(content: string): string[] {
   const raw = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
