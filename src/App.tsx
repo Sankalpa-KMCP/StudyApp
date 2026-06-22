@@ -1,7 +1,7 @@
 import { StudyAppProvider } from './context/StudyAppProvider'
 import { AppShell } from './components/AppShell'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { SidebarCollapseProvider } from './components/sidebar/SidebarCollapseContext'
+import { SidebarCollapseProvider } from './context/sidebar/SidebarCollapseProvider'
 
 function App() {
   return (

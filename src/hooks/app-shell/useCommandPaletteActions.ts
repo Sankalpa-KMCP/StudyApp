@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import type { CommandPaletteSelection } from '../../components/CommandPalette'
+import type { CommandPaletteSelection } from '../../types/commandPalette'
 import type { TaskItem } from '../../db/types'
 import { scrollToSettingsSectionWhenReady } from '../../lib/settings/settingsSections'
 import { queueJournalDateNavigation } from '../../lib/routing/journalNavigation'

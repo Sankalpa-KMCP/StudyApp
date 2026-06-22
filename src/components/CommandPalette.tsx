@@ -10,17 +10,7 @@ import {
 } from '../lib/routing/commandPaletteSearch'
 import { useTranslation } from '../i18n/useTranslation'
 import type { CategoryItem, DailyLog, QuickNoteItem, TaskItem } from '../db/types'
-import type { ActiveTab } from '../types/app'
-
-export interface CommandPaletteSelection {
-  type: CommandPaletteItem['type']
-  taskId?: number
-  noteId?: number
-  tab?: ActiveTab
-  settingsSection?: string
-  actionId?: string
-  journalDate?: string
-}
+import type { CommandPaletteSelection } from '../types/commandPalette'
 
 interface CommandPaletteProps {
   isOpen: boolean
