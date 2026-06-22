@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { scrollToSettingsSectionWhenReady, queueSettingsPanelScroll, consumePendingSettingsPanelScroll } from '../settingsSections'
-import { SETTINGS_SHOW_ADVANCED_KEY, SETTINGS_ADVANCED_CHANGED_EVENT } from '../../../hooks/useSettingsAdvancedMode'
+import { SETTINGS_SHOW_ADVANCED_KEY, SETTINGS_ADVANCED_CHANGED_EVENT } from '../settingsAdvancedMode'
 
 describe('scrollToSettingsSectionWhenReady', () => {
   beforeEach(() => {

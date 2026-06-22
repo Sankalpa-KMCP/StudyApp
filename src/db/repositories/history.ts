@@ -1,6 +1,6 @@
 import { db } from '../db'
 import type { HistoryEntry } from '../types'
-import { formatHistoryTimestamp } from '../../lib/study/studyDashboard'
+import { formatHistoryTimestamp } from '../../lib/study/dates'
 
 export function getMonthBounds(year: number, month: number) {
   const start = new Date(year, month, 1, 0, 0, 0, 0).getTime()

@@ -1,7 +1,7 @@
 import type { MutableRefObject } from 'react'
 import { useCallback, useEffect } from 'react'
 import { addRecoveredMinutes } from '../../db/repositories/dailyLogs'
-import { formatHistoryTimestamp } from '../../lib/study/studyDashboard'
+import { formatHistoryTimestamp } from '../../lib/study/dates'
 import { sessionRestoredMessage } from '../../lib/backup/backupTerms'
 import type { HistoryEntry } from '../../db/types'
 

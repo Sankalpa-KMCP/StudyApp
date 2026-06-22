@@ -1,6 +1,6 @@
 import type { CategoryItem, HistoryEntry } from '../../../db/types'
 import { DAY_NAMES } from '../../shared/dateConstants'
-import { buildDateString, getHistoryDayKey } from './dateTime'
+import { buildDateString, getHistoryDayKey } from '../dates'
 import type { HistoryEntryLike, StudyLogLike, TaskCompletionLike } from './types'
 
 export function calculateMonthLogs<T extends StudyLogLike>(

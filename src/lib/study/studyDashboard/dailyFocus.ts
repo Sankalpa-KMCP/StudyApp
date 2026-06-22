@@ -1,5 +1,6 @@
 import type { CategoryItem, HistoryEntry } from '../../../db/types'
-import { buildDateString, formatMinutes } from './dateTime'
+import { buildDateString } from '../dates'
+import { formatMinutes } from './dateTime'
 
 export interface DailyFocusStatus {
   percent: number

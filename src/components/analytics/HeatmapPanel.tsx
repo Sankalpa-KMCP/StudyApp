@@ -3,7 +3,7 @@ import { hexToRgb } from '../../lib/study/studyDashboard'
 import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
 import { EmptyState } from '../shared/EmptyState'
-import { getHeatmapIntensityLabel } from './useAnalyticsChartData'
+import { getHeatmapIntensityLabel } from '../../lib/study/analyticsChartData'
 import { useTranslation } from '../../i18n/useTranslation'
 
 interface HeatmapDay {

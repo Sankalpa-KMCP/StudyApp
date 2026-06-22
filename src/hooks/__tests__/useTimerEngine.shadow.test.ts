@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { db } from '../../db/db'
 import { useTimerEngine } from '../useTimerEngine'
 import { resetDatabase } from '../../test/dbTestUtils'
-import { buildDateString } from '../../lib/study/studyDashboard'
+import { buildDateString } from '../../lib/study/dates'
 
 function createTimerOptions(overrides: Partial<Parameters<typeof useTimerEngine>[0]> = {}) {
   return {

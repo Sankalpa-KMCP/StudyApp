@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import {
   buildDateString,
+  parseLegacyHistoryTimestamp,
+  parseHistoryCreatedAt,
+  getHistoryDayKey,
+} from '../dates'
+import {
   calculateSM2,
   calculateStreak,
   calculateXpLevel,
   validateBackupPayload,
-  parseLegacyHistoryTimestamp,
-  parseHistoryCreatedAt,
-  getHistoryDayKey,
 } from '../studyDashboard'
 
 describe('buildDateString', () => {
