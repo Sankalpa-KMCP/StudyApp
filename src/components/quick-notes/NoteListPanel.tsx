@@ -1,6 +1,6 @@
 import { Edit3, Plus, Search, Trash2, X } from 'lucide-react'
 import type { CategoryItem, QuickNoteItem } from '../../db/types'
-import type { useNoteFilters } from './useNoteFilters'
+import type { useNoteFilters } from '../../hooks/quick-notes/useNoteFilters'
 import { EmptyState } from '../shared/EmptyState'
 import { VirtualList } from '../shared/VirtualList'
 

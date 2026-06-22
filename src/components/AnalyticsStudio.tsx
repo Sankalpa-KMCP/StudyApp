@@ -23,7 +23,7 @@ import {
   useRetentionData,
   useMoodDistribution,
   useEstimationInsight,
-} from './analytics/useAnalyticsChartData'
+} from '../hooks/analytics/useAnalyticsChartData'
 import { useTranslation } from '../i18n/useTranslation'
 
 interface AnalyticsStudioProps {

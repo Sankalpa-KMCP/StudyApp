@@ -1,17 +1,10 @@
 import { useMemo } from 'react'
-import type { CategoryItem, TaskItem } from '../../db/types'
-import { buildDateString } from '../../lib/study/studyDashboard'
+import type { CategoryItem, TaskItem } from '../db/types'
+import { isInReviewQueue } from '../lib/study/taskFilters'
+import { getTodayDateString } from '../lib/study/dates'
 
 export function useTodayDateString() {
-  return useMemo(() => buildDateString(new Date()), [])
-}
-
-function isInReviewQueue(task: TaskItem, todayStr: string) {
-  return task.completed && task.isStudySubject && (!task.nextReviewDate || task.nextReviewDate <= todayStr)
-}
-
-export function countReviewDueTasks(tasks: TaskItem[], todayStr: string): number {
-  return tasks.filter(t => isInReviewQueue(t, todayStr)).length
+  return useMemo(() => getTodayDateString(), [])
 }
 
 export function useTaskFilters(tasks: TaskItem[], categories: CategoryItem[], todayStr: string) {

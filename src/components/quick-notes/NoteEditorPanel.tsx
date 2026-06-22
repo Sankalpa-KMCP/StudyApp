@@ -1,7 +1,7 @@
 import { Check, Save } from 'lucide-react'
 import type { CategoryItem } from '../../db/types'
 import { InlineCategoryManager } from '../shared/InlineCategoryManager'
-import type { useNoteEditor } from './useNoteEditor'
+import type { useNoteEditor } from '../../hooks/quick-notes/useNoteEditor'
 
 type NoteEditorApi = ReturnType<typeof useNoteEditor>
 
