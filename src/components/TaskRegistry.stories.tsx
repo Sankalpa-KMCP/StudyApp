@@ -23,6 +23,7 @@ export const Default: Story = {
         setActiveTaskId={() => {}}
         activateTask={() => {}}
         toggleTask={async () => {}}
+        updateSubtasks={async () => {}}
         handleAddTask={() => {}}
         submitRecallGrade={async () => {}}
         timerCategoryId={1}
