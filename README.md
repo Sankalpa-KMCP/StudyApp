@@ -150,7 +150,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes and migration history.
 
 **Stack:** React 19 · Vite 8 · TypeScript · Dexie (IndexedDB) · Tailwind v4 · Tauri 2 · Vitest · Playwright
 
-Data hooks live in [`src/db/hooks/`](src/db/hooks/) (repositories + per-domain hooks). Full context tree and diagrams: [ARCHITECTURE.md](ARCHITECTURE.md).
+Data hooks live in [`src/db/hooks/`](src/db/hooks/) (repositories + per-domain hooks). Architecture, layer rules, and AI agent docs: [`ai/PROJECT_CONTEXT.md`](ai/PROJECT_CONTEXT.md) (§6) and [`ai/ARCHITECTURE_DECISIONS.md`](ai/ARCHITECTURE_DECISIONS.md).
 
 ## Development
 
