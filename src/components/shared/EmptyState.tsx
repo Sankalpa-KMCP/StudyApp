@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from 'react'
+import { memo, useId, type ReactNode } from 'react'
 
 interface EmptyStateProps {
   icon?: ReactNode
@@ -9,15 +9,22 @@ interface EmptyStateProps {
 }
 
 export const EmptyState = memo(function EmptyState({ icon, title, description, action, compact = false }: EmptyStateProps) {
+  const titleId = useId()
+
   return (
     <div
       role="status"
+      aria-labelledby={titleId}
       className={`empty-state-shell flex flex-col items-center justify-center text-center rounded-[var(--radius-panel)] border ${
         compact ? 'py-8 px-4' : 'py-12 px-6'
       }`}
     >
-      {icon && <div className={`text-muted opacity-60 ${compact ? 'mb-2' : 'mb-3'}`}>{icon}</div>}
-      <p className="text-title text-secondary">{title}</p>
+      {icon && (
+        <span aria-hidden className={`inline-flex text-muted opacity-60 ${compact ? 'mb-2' : 'mb-3'}`}>
+          {icon}
+        </span>
+      )}
+      <p id={titleId} className="text-title text-secondary">{title}</p>
       {description && <p className="text-label text-muted mt-1.5 max-w-xs">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>

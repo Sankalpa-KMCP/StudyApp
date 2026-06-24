@@ -20,14 +20,18 @@ interface MetricCardProps {
 
 export const MetricCard = memo(function MetricCard({ label, value, icon: Icon, valueClassName = '', accent = 'blue' }: MetricCardProps) {
   const accentClass = ACCENT_WELL[accent]
+
   return (
-    <PanelCard className="flex items-center justify-between">
+    <PanelCard className="flex items-center justify-between" role="group" aria-label={`${label}: ${value}`}>
       <div>
         <p className="panel-title">{label}</p>
         <p className={`text-2xl font-bold text-primary mt-1 font-mono tabular-nums ${valueClassName}`.trim()}>{value}</p>
       </div>
       {Icon && (
-        <div className={`h-11 w-11 rounded-full flex items-center justify-center border shadow-inner shrink-0 ${accentClass.well}`}>
+        <div
+          aria-hidden
+          className={`h-11 w-11 rounded-full flex items-center justify-center border shadow-inner shrink-0 ${accentClass.well}`}
+        >
           <Icon className={`h-5 w-5 ${accentClass.icon}`} />
         </div>
       )}

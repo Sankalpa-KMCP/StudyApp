@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { PanelCard } from '../PanelCard'
 import { PanelHeader } from '../PanelHeader'
@@ -21,12 +21,14 @@ export function SettingsCard({
   onResetDefaults,
 }: SettingsCardProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
+  const contentId = useId()
 
   const resetAction = onResetDefaults ? (
     <button
       type="button"
       onClick={onResetDefaults}
-      className="text-micro font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
+      aria-label={`Reset ${title} to defaults`}
+      className="text-micro font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors focus-ring ios-active-scale"
     >
       Reset
     </button>
@@ -37,9 +39,10 @@ export function SettingsCard({
       type="button"
       onClick={() => setCollapsed(c => !c)}
       aria-expanded={!collapsed}
-      className="flex items-center gap-1 text-micro font-semibold settings-muted hover:text-[var(--color-text-primary)] transition-colors"
+      aria-controls={contentId}
+      className="flex items-center gap-1 text-micro font-semibold settings-muted hover:text-primary transition-colors focus-ring ios-active-scale"
     >
-      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${collapsed ? '' : 'rotate-180'}`} />
+      <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform ${collapsed ? '' : 'rotate-180'}`} />
       {collapsed ? 'Show' : 'Hide'}
     </button>
   ) : undefined
@@ -55,7 +58,11 @@ export function SettingsCard({
     <PanelCard id={id}>
       <PanelHeader title={title} bordered={false} className="mb-3" action={action} />
       {description && <p className="settings-muted leading-relaxed mb-3 -mt-1">{description}</p>}
-      {!collapsed && children}
+      {!collapsed && (
+        <div id={contentId}>
+          {children}
+        </div>
+      )}
     </PanelCard>
   )
 }
