@@ -6,18 +6,29 @@ interface EmptyStateProps {
   description?: string
   action?: ReactNode
   compact?: boolean
+  /** Drops the inner bordered shell so content floats in the parent card */
+  borderless?: boolean
 }
 
-export const EmptyState = memo(function EmptyState({ icon, title, description, action, compact = false }: EmptyStateProps) {
+export const EmptyState = memo(function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+  compact = false,
+  borderless = false,
+}: EmptyStateProps) {
   const titleId = useId()
+
+  const shellClass = borderless
+    ? compact ? 'py-8 px-4' : 'py-10 px-4 flex-1'
+    : `empty-state-shell rounded-[var(--radius-panel)] border ${compact ? 'py-8 px-4' : 'py-12 px-6'}`
 
   return (
     <div
       role="status"
       aria-labelledby={titleId}
-      className={`empty-state-shell flex flex-col items-center justify-center text-center rounded-[var(--radius-panel)] border ${
-        compact ? 'py-8 px-4' : 'py-12 px-6'
-      }`}
+      className={`flex flex-col items-center justify-center text-center ${shellClass}`}
     >
       {icon && (
         <span aria-hidden className={`inline-flex text-muted opacity-60 ${compact ? 'mb-2' : 'mb-3'}`}>

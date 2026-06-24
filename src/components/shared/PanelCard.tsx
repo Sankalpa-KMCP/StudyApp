@@ -8,7 +8,7 @@ interface PanelCardProps extends HTMLAttributes<HTMLDivElement> {
 
 export const PanelCard = memo(function PanelCard({ children, className = '', interactive = false, ...props }: PanelCardProps) {
   return (
-    <Card variant="elevated" padding="md" interactive={interactive} className={className} {...props}>
+    <Card variant="elevated" padding="md" interactive={interactive} className={`min-h-0 ${className}`.trim()} {...props}>
       {children}
     </Card>
   )

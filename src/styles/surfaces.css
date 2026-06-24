@@ -5,7 +5,7 @@
 .dynamic-card-interactive {
   position: relative;
   background-color: color-mix(in srgb, var(--color-surface-card) calc(var(--card-opacity, 0.7) * 100%), transparent);
-  border: 1px solid var(--color-border-card);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 5%, transparent);
   border-radius: var(--radius-card);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.25),
@@ -19,7 +19,7 @@
 
 .dynamic-card-interactive:hover {
   background-color: color-mix(in srgb, var(--color-surface-card-hover) calc(var(--card-opacity, 0.7) * 100%), transparent);
-  border-color: var(--color-border-card);
+  border-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
   box-shadow: var(--shadow-elevated);
   transform: translateY(-2px) scale(1.005);
 }
@@ -75,13 +75,13 @@
 
 .glass-tier-2 {
   background-color: color-mix(in srgb, var(--color-surface-card) 40%, transparent);
-  border: 1px solid var(--color-border-card);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 5%, transparent);
   border-radius: 20px;
 }
 
 .glass-tier-3 {
   background-color: color-mix(in srgb, var(--color-surface-card) 55%, transparent);
-  border: 1px solid var(--color-border-card);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 5%, transparent);
 }
 
 .glass-hero {
@@ -141,7 +141,7 @@
 .glass-panel {
   position: relative;
   background-color: rgba(var(--surface-card-rgb), calc(var(--card-opacity, 0.7) * 0.65));
-  border: 1px solid var(--color-border-card);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 5%, transparent);
   border-radius: 28px;
   backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(var(--backdrop-saturate, 180%));
   -webkit-backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(var(--backdrop-saturate, 180%));

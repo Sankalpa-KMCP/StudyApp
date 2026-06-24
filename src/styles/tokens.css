@@ -123,10 +123,10 @@
 .settings-select {
   width: 100%;
   border-radius: 9999px;
-  border: 1px solid var(--color-border-card);
-  background-color: color-mix(in srgb, var(--color-surface-card) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  background-color: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
   color: var(--color-text-primary);
-  padding: 0.625rem 1rem;
+  padding: 0.625rem 1rem 0.625rem 1.25rem;
   font-size: var(--text-caption);
   font-weight: 600;
   outline: none;
@@ -136,10 +136,11 @@
 
 .settings-input:hover,
 .settings-select:hover {
-  background-color: color-mix(in srgb, var(--color-surface-card) 70%, transparent);
+  background-color: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
 }
 
 .settings-input:focus-visible,
 .settings-select:focus-visible {
-  border-color: color-mix(in srgb, var(--color-accent-blue) 40%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent-blue) 35%, transparent);
+  background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
 }
