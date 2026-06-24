@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
-import { useActiveTabSync } from '../lib/routing/activeTabSync'
+import { useActiveTabStore } from '../lib/routing/activeTabSync'
 import { useDeferredDataFlags } from '../hooks/useDeferredDataEnabled'
 import { StudyDataContext } from './studyDataContext'
 import {
@@ -11,7 +11,7 @@ import {
 import { useStudyDataState } from './useStudyDataState'
 
 export function StudyDataProvider({ children }: { children: ReactNode }) {
-  const activeTab = useActiveTabSync()
+  const activeTab = useActiveTabStore()
   const { notesEnabled, fullLogsEnabled } = useDeferredDataFlags()
   const state = useStudyDataState(activeTab, { notesEnabled, fullLogsEnabled })
 
