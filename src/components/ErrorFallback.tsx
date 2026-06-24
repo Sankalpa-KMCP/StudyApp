@@ -1,5 +1,5 @@
 import { useConfirm } from '../context/useConfirm'
-import { useDatabaseRecovery } from '../hooks/useDatabaseRecovery'
+import { useStudyRecovery } from '../context/useStudyApp'
 import { exportStudyBackupFile } from '../lib/backup/backupExport'
 import { setLastBackupExportAt } from '../lib/backup/backupMetadata'
 import { copyDebugInfo } from '../lib/shared/copyDebugInfo'
@@ -14,10 +14,14 @@ interface ErrorFallbackProps {
   onReload: () => void
 }
 
+/**
+ * Error UI rendered inside ErrorBoundary. StudyAppProvider wraps ErrorBoundary, so
+ * database recovery is exposed via useStudyRecovery() (wired in StudyUIProvider).
+ */
 export function ErrorFallback({ message, stack, contextLabel, onRetry, onReload }: ErrorFallbackProps) {
   const { requestConfirm } = useConfirm()
   const { t } = useTranslation()
-  const { getSchemaVersion, deleteAndReopen } = useDatabaseRecovery()
+  const { getSchemaVersion, deleteAndReopen } = useStudyRecovery()
 
   const handleCopyDebug = async () => {
     const debugInfo = [

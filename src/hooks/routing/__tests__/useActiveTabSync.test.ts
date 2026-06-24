@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
+import type { ActiveTab } from '../../../types/app'
 import { useActiveTabSync } from '../useActiveTabSync'
 
 const {
@@ -9,8 +10,8 @@ const {
   setActiveTabSync,
 } = vi.hoisted(() => ({
   writeAppHash: vi.fn(),
-  readAppHashFromLocation: vi.fn(() => ({ tab: 'focus' as const })),
-  resolveAppHash: vi.fn((tab: string) => tab),
+  readAppHashFromLocation: vi.fn((): { tab: ActiveTab } => ({ tab: 'focus' })),
+  resolveAppHash: vi.fn((tab: ActiveTab) => tab),
   setActiveTabSync: vi.fn(),
 }))
 
@@ -34,8 +35,8 @@ describe('useActiveTabSync', () => {
   it('syncs active tab to hash and external store on change', () => {
     const navigateToTab = vi.fn()
     const { rerender } = renderHook(
-      ({ activeTab }) => useActiveTabSync({ activeTab, navigateToTab }),
-      { initialProps: { activeTab: 'focus' as const } },
+      ({ activeTab }: { activeTab: ActiveTab }) => useActiveTabSync({ activeTab, navigateToTab }),
+      { initialProps: { activeTab: 'focus' } },
     )
 
     expect(setActiveTabSync).toHaveBeenCalledWith('focus')

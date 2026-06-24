@@ -31,13 +31,3 @@ export function useDeferredDataFlags() {
     () => ({ notesEnabled: false, fullLogsEnabled: false }),
   )
 }
-
-/** @deprecated Use setDeferredDataFlags */
-export function setNotesDataEnabled(enabled: boolean) {
-  setDeferredDataFlags({ notesEnabled: enabled })
-}
-
-/** @deprecated Use useDeferredDataFlags */
-export function useNotesDataEnabled() {
-  return useDeferredDataFlags().notesEnabled
-}

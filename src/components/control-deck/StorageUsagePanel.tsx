@@ -1,11 +1,11 @@
 import { useSettingsPanel } from '../../context/settingsPanelContext'
 import { useTranslation } from '../../i18n/useTranslation'
-import { useStorageEstimate, formatBytes } from '../../hooks/useStorageEstimate'
+import { formatBytes } from '../../hooks/useStorageEstimate'
 
 export function StorageUsagePanel() {
   const { t } = useTranslation()
-  const { historyRetentionDays } = useSettingsPanel()
-  const { usageBytes, quotaBytes, rowCounts, isLoading, isSupported } = useStorageEstimate()
+  const { historyRetentionDays, storageEstimate } = useSettingsPanel()
+  const { usageBytes, quotaBytes, rowCounts, isLoading, isSupported } = storageEstimate
 
   const usageLabel =
     isSupported && usageBytes !== null && quotaBytes !== null

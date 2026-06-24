@@ -5,6 +5,13 @@ import { useState } from 'react'
 import { ConfirmProvider } from '../../context/ConfirmProvider'
 import { ErrorBoundary } from '../ErrorBoundary'
 
+vi.mock('../../context/useStudyApp', () => ({
+  useStudyRecovery: () => ({
+    getSchemaVersion: () => 7,
+    deleteAndReopen: vi.fn().mockResolvedValue(undefined),
+  }),
+}))
+
 function ThrowingChild({ shouldThrow }: { shouldThrow: boolean }) {
   if (shouldThrow) throw new Error('Probe failure')
   return <span>Child ok</span>
