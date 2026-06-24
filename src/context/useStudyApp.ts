@@ -33,6 +33,10 @@ export function useStudyData() {
   }), [core, gamification, extended])
 }
 
+export function useStudyRecovery() {
+  return useStudyUIContext().databaseRecovery
+}
+
 export function useStudyUI() {
   const core = useStudyCore()
   const timerCtx = useStudyTimerContext()
@@ -65,6 +69,8 @@ export function useStudyUI() {
     progress: core.progress,
     notifyFocusLockout: ui.notifyFocusLockout,
     scheduleDelete: ui.scheduleDelete,
+    databaseRecovery: ui.databaseRecovery,
+    handleDeleteNote: ui.handleDeleteNote,
   }), [core.progress, timerCtx, ui])
 }
 

@@ -5,15 +5,18 @@
 
 ## AI documentation index
 
-| Doc | Purpose |
-|-----|---------|
-| [AI_RULES.md](AI_RULES.md) | Permanent agent operational rules |
-| [CURRENT_STATE.md](CURRENT_STATE.md) | Active work snapshot |
-| [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) | ADR log (includes ADR-014: lib/sync + lib/backup repository access) |
-| [TASK_TEMPLATE.md](TASK_TEMPLATE.md) | Scoped task template |
-| [PROMPT_PATTERNS.md](PROMPT_PATTERNS.md) | Reusable prompt patterns |
+| Doc | Purpose | Status |
+|-----|---------|--------|
+| [AI_RULES.md](AI_RULES.md) | Permanent agent operational rules | Present |
+| [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) | This document — canonical codebase reference | Present |
+| [CURRENT_STATE.md](CURRENT_STATE.md) | Active work snapshot | **Missing** — not yet created |
+| [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) | ADR log (includes ADR-014: lib/sync + lib/backup repository access) | **Missing** — ADR-003/014 cited in code comments and this doc but file absent from `ai/` |
+| [TASK_TEMPLATE.md](TASK_TEMPLATE.md) | Scoped task template | **Missing** — not yet created |
+| [PROMPT_PATTERNS.md](PROMPT_PATTERNS.md) | Reusable prompt patterns | **Missing** — not yet created |
 
 **Human-oriented docs:** [README.md](../README.md), [CONTRIBUTING.md](../CONTRIBUTING.md), [CHANGELOG.md](../CHANGELOG.md)
+
+**Note:** Parent workspace [README.md](../../README.md) links to `web/ARCHITECTURE.md`, which does **not** exist. Use this document (§6) and [AI_RULES.md](AI_RULES.md) for architecture guidance until that file is created.
 
 ---
 
@@ -36,6 +39,8 @@
 **Core purpose:** Provide a polished, distraction-minimizing focus environment with meaningful analytics and safe data export/import.
 
 **Development status:** Actively maintained at v1.2.0 (June 2026). CI runs on pushes to `V2` and `master`. GitHub Pages deploys the web app; Tauri releases trigger on `v*` tags.
+
+**Workspace layout:** The git repository root is `web/`. The parent `study app/` folder contains a delegating `package.json` that forwards `npm run dev`, `test`, `build`, `lint`, and `storybook` to `web/` — useful when the editor workspace is opened at the parent path.
 
 **License:** Private — not open source (see [README.md](../README.md#license)).
 
@@ -150,16 +155,20 @@ web/                              # Git repository root
 │   ├── components/               # UI components
 │   │   ├── tabs/                 # FocusTab, AnalyticsTab, JournalTab, SettingsTab
 │   │   ├── control-deck/         # Settings panels (timer, backup, sync, etc.)
-│   │   ├── sidebar/              # Desktop sidebar navigation
+│   │   │   ├── backup-vault/     # BackupVaultPanel implementation + sub-sections
+│   │   │   └── BackupVaultPanel.tsx  # Re-export barrel → backup-vault/
+│   │   ├── sidebar/              # Desktop sidebar navigation (+ SidebarFlyoutProvider)
 │   │   ├── focus/                # Timer display, controls, review banner
 │   │   ├── analytics/            # Charts, heatmap, retention panels
 │   │   ├── activity-ledger/      # Journal calendar and day detail
 │   │   ├── task-registry/        # Task list, create form, filters
 │   │   ├── quick-notes/          # Notes drawer components
 │   │   ├── app-shell/            # Loading screen, banners, toasts
-│   │   └── shared/               # Button, Card, ModalShell, settings widgets
+│   │   └── shared/               # Button, Card, ModalShell, PanelCard, MetricCard, TabPageShell, VirtualList, CelebrationConfettiHost, settings/*
 │   ├── context/                  # React context providers + facade hooks
 │   │   ├── StudyAppProvider.tsx, StudyDataProvider.tsx, StudyTimerProvider.tsx, StudyUIProvider.tsx
+│   │   ├── studyTimerContext.ts  # StudyTimerContext + StudyTimerDisplayContext
+│   │   ├── sidebar/              # SidebarCollapseProvider
 │   │   ├── useStudyApp.ts        # Public facade hooks (useStudyData, useStudyUI, …)
 │   │   ├── studyDataSlices.ts    # StudyCore / Gamification / Extended slice contexts
 │   │   ├── useStudyDataState.ts, useStudyUIState.ts, useStudyUIProviderValue.ts
@@ -167,6 +176,7 @@ web/                              # Git repository root
 │   ├── db/
 │   │   ├── db.ts                 # Dexie schema + migrations (v12)
 │   │   ├── types.ts              # TypeScript interfaces for all tables
+│   │   ├── hooks.ts              # Barrel re-exporting live-query hooks
 │   │   ├── repositories/         # CRUD and bulk operations
 │   │   ├── hooks/                # Live query hooks (dexie-react-hooks)
 │   │   └── selectors/            # Settings defaults, task sorting
@@ -194,7 +204,7 @@ web/                              # Git repository root
 │   ├── navigation/               # Tab definitions (appNav.ts)
 │   ├── i18n/                     # i18n: index.ts, locales/en.json, useTranslation.ts
 │   ├── types/                    # App-level types (ActiveTab, etc.)
-│   ├── styles/                   # Additional CSS (controls.css)
+│   ├── styles/                   # tokens.css, animations.css, nav-accents.css, surfaces.css, controls.css, mood-picker.css (imported by index.css)
 │   └── test/                     # Vitest setup and test utilities
 ├── src-tauri/                    # Tauri 2 desktop shell
 │   ├── src/main.rs, lib.rs       # Tray, plugins, window lifecycle
@@ -211,14 +221,17 @@ web/                              # Git repository root
 ```
 index.html
   └── src/main.tsx          (PWA SW, i18n, optional E2E sync adapter)
-        └── src/App.tsx     (SidebarCollapseProvider → StudyAppProvider → ErrorBoundary)
-              └── AppShell  (layout, tabs, modals, command palette)
-                    ├── FocusTab / AnalyticsTab / JournalTab / SettingsTab
-                    ├── context hooks (useStudyData, useStudyUI, useStudyTimerContext)
-                    ├── domain hooks (useTimerEngine, useSessionBackup, etc.)
-                    ├── db/hooks (useTasks, useSettings, useHistory, ...)
-                    ├── db/repositories (tasks.ts, settings.ts, ...)
-                    └── db/db.ts → IndexedDB (StudyDashboardDB)
+        └── src/App.tsx     (SidebarCollapseProvider → StudyAppProvider → ErrorBoundary → AppShell)
+              └── StudyAppProvider
+                    └── ConfirmProvider → StudyDataProvider → StudyTimerProvider → StudyUIProvider
+                          └── ErrorBoundary   (inside StudyUIProvider — provider errors are not caught)
+                                └── AppShell    (layout, tabs, modals, command palette)
+                                      ├── FocusTab / AnalyticsTab / JournalTab / SettingsTab
+                                      ├── context hooks (useStudyData, useStudyUI, useStudyTimerContext)
+                                      ├── domain hooks (useTimerEngine, useSessionBackup, etc.)
+                                      ├── db/hooks.ts barrel → db/hooks/* (useTasks, useSettings, …)
+                                      ├── db/repositories (tasks.ts, settings.ts, …)
+                                      └── db/db.ts → IndexedDB (StudyDashboardDB)
 ```
 
 ---
@@ -340,7 +353,7 @@ index.html
 5. Emergency snapshots (last 3) stored in `snapshots` table before risky operations.
 
 **Important files:**
-- `src/components/control-deck/backup-vault/BackupVaultPanel.tsx`
+- `src/components/control-deck/BackupVaultPanel.tsx` (re-export) → `src/components/control-deck/backup-vault/BackupVaultPanel.tsx`
 - `src/hooks/backup/useBackupVaultExport.ts`, `useBackupVaultImport.ts`, `useBackupVaultPanelState.ts`
 - `src/hooks/useSessionBackup.ts`
 - `src/lib/backup/backupExport.ts`, `backupMerge.ts`, `backupCrypto.ts`, `backupChecksum.ts`
@@ -452,15 +465,25 @@ flowchart TB
 ### Provider nesting order
 
 ```
-SidebarCollapseProvider
-  └── ConfirmProvider
-        └── StudyDataProvider      (tasks, history, settings, categories, notes, analytics)
-              └── StudyTimerProvider   (timer engine, backup, task actions)
-                    └── StudyUIProvider    (tab routing, zen mode, toasts, theme vars)
-                          └── AppShell
+SidebarCollapseProvider          (src/context/sidebar/SidebarCollapseProvider.tsx — src/App.tsx)
+  └── StudyAppProvider           (src/context/StudyAppProvider.tsx)
+        └── ConfirmProvider
+              └── StudyDataProvider      (tasks, history, settings, categories, notes, analytics)
+                    └── StudyTimerProvider   (timer engine, backup, task actions; StudyTimerDisplayContext nested inside)
+                          └── StudyUIProvider    (tab routing, zen mode, toasts, theme vars)
+                                └── ErrorBoundary    (src/App.tsx — errors in providers above are NOT caught)
+                                      └── AppShell
 ```
 
-Defined in `src/context/StudyAppProvider.tsx`.
+**Scoped providers (not app-wide):**
+- `SettingsPanelProvider` — wraps `ControlDeck` only (`src/components/ControlDeck.tsx`)
+- `SidebarFlyoutProvider` — mounts when sidebar is collapsed (`src/components/sidebar/SidebarShell.tsx`)
+
+`StudyAppProvider` nests Confirm → Data → Timer → UI in `src/context/StudyAppProvider.tsx`. `SidebarCollapseProvider` and `ErrorBoundary` are wired in `src/App.tsx`.
+
+### Deferred data loading
+
+Quick notes and full daily-log queries are **not** loaded on initial app mount. `useStudyUIState` calls `setDeferredDataFlags()` when the notes drawer or command palette opens; `StudyDataProvider` reads flags via `useDeferredDataFlags()` (`src/hooks/useDeferredDataEnabled.ts`). Analytics/journal tab data still lazy-loads via `useLazyStudyFeatures(activeTab)`.
 
 ### Hash routing flow
 
@@ -468,10 +491,14 @@ Defined in `src/context/StudyAppProvider.tsx`.
 2. Valid tabs: `focus` (default), `analytics`, `journal`, `settings`.
 3. Settings deep links: `#settings/appearance`, `#settings/focus`, `#settings/study`, `#settings/data`.
 4. Legacy `#cards` redirects to `#focus` (v12 migration).
-5. `hooks/routing/useActiveTabSync.ts` (wired in `useStudyUIProviderValue`) keeps hash and UI tab in sync: writes `writeAppHash()` on tab change; listens for `hashchange` and calls `navigateToTab` when the hash changes externally.
-6. `lib/routing/activeTabSync.ts` exposes a module-level `useActiveTabSync()` store so `StudyDataProvider` can read the active tab for lazy data loading **without** importing UI context.
+5. `hooks/routing/useActiveTabSync.ts` (wired in `useStudyUIProviderValue`, aliased as `useActiveTabHashSync`) keeps hash and UI tab in sync: writes `writeAppHash()` on tab change; listens for `hashchange` and calls `navigateToTab` when the hash changes externally.
+6. `lib/routing/activeTabSync.ts` exposes a module-level `useActiveTabStore()` hook so `StudyDataProvider` can read the active tab for lazy data loading **without** importing UI context.
 
-**Naming warning:** Two different modules use the name `useActiveTabSync` — the **hook** in `hooks/routing/` (hash sync side effects) vs the **store** in `lib/routing/activeTabSync.ts` (tab subscription for data layer). Import from the correct path.
+**Naming note:** Hash sync side effects live in `hooks/routing/useActiveTabSync.ts`; the data-layer tab subscription is `useActiveTabStore()` in `lib/routing/activeTabSync.ts`.
+
+### Journal deep-link queue
+
+Command palette and other flows can queue a journal date before navigating to the Journal tab. `src/lib/routing/journalNavigation.ts` stores the date in `sessionStorage` under key `pending_journal_date` (`PENDING_JOURNAL_DATE_KEY`); the journal tab consumes it on mount.
 
 ### Timer session flow
 
@@ -574,7 +601,9 @@ UI (components/)
 | **Data access** | `src/db/repositories/` | Dexie CRUD encapsulation |
 | **Live queries** | `src/db/hooks/` | Reactive IndexedDB subscriptions (used by providers/hooks, not components) |
 
-### Layer import rules (enforced by ESLint)
+### Layer import rules (ESLint + architectural convention)
+
+**ESLint enforcement** (`eslint.config.js`): `no-restricted-imports` blocks `db/db` imports from `src/components/`, `src/hooks/`, and `src/lib/`. Tests are exempt. ESLint does **not** block `db/repositories` or `db/hooks` in components — that restriction is an **architectural convention** enforced by code review and facade-hook discipline (verified: no components currently import repositories).
 
 **Golden rule:** Components must **never** import from `db/repositories/`, `db/hooks/`, or `db/db`. All data access in UI goes through context facade hooks in `src/context/useStudyApp.ts` (or narrower timer/UI contexts), or through props passed from a parent that already consumed those hooks.
 
@@ -583,12 +612,12 @@ UI (components/)
 | `components/` | `context/` facades, `hooks/` (UI-only helpers), `lib/` (display helpers), `db/types` | `db/repositories/`, `db/hooks/`, `db/db` |
 | `context/` | `hooks/`, `lib/`, `db/types`, slice contexts — **no direct DB access** | `db/repositories/`, `db/hooks/`, `db/db` |
 | `hooks/` | `db/repositories/`, `db/hooks/`, `db/types`, `lib/` | `db/db` |
-| `lib/` (default) | Other `lib/`, `db/types` only — **no repository imports** | `db/repositories/`, `db/hooks/`, `db/db` |
+| `lib/` (default) | Other `lib/`, `db/types` only — **no repository or selector imports** | `db/repositories/`, `db/hooks/`, `db/selectors/`, `db/db` |
 | `lib/sync/`, `lib/backup/` | `db/repositories/`, `db/types`, other `lib/` — **ADR-014 exception** | `db/db` |
 | `db/repositories/`, `db/hooks/` | `db/db`, `db/types`, `lib/` | — |
 | Tests | `db/db` allowed for setup/teardown | — |
 
-Source: `eslint.config.js` (`no-restricted-imports` blocks `db/db` from non-repository code). Full rationale: [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) **ADR-003** (repository boundary) and **ADR-014** (`lib/sync/` and `lib/backup/` may call repositories for background I/O orchestration outside the React render cycle).
+Source: `eslint.config.js` (`no-restricted-imports` blocks `db/db` from non-repository code). ADR rationale for repository boundary and the `lib/sync/` + `lib/backup/` exception was documented as **ADR-003** and **ADR-014** in [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) — **that file is currently missing from `ai/`**; see layer table above and [AI_RULES.md](AI_RULES.md) for operational rules.
 
 ### Design patterns
 
@@ -598,7 +627,8 @@ Source: `eslint.config.js` (`no-restricted-imports` blocks `db/db` from non-repo
 - **Provider composition** — nested React contexts for data/timer/UI concerns
 - **Hook composition** — timer split into `useTimerTick`, `useTimerCompletion`, `useTimerReflection`, `useTimerSessionShadow`
 - **Pure domain extraction** — date helpers in `lib/study/dates.ts`, recurrence math in `lib/study/recurrence.ts`; spawning/side effects stay in hooks
-- **Lazy loading** — command palette, quick notes, analytics/journal data via `useLazyStudyFeatures(activeTab)`
+- **Lazy loading** — command palette, quick notes, analytics/journal data via `useLazyStudyFeatures(activeTab)`; quick notes/full logs additionally gated by `useDeferredDataEnabled`
+- **Timer display context split** — `StudyTimerDisplayContext` isolates per-tick re-renders for tray bridge and zen overlay (`StudyTimerProvider.tsx`)
 - **Adapter pattern** — sync adapters for web (`fileSystemAccess.ts`) vs desktop (`desktopSyncAdapter.ts`)
 - **Validation gate** — all settings writes pass through `validateSetting()` before DB write
 
@@ -696,12 +726,12 @@ No server database. No ORM beyond Dexie.
 **Defined in:** `src/db/db.ts`, `src/db/types.ts` (`SettingsRow`, `SettingsKey`)
 
 **Important fields:**
-- `key` — primary key (`SettingsKey` union, 50+ keys)
+- `key` — primary key (`SettingsKey` union, 53 keys)
 - `value` — `number | boolean | string | null`
 
 **Key settings groups:** timer durations, theme, lockout, sync, desktop, ambient audio, auto-export, history retention.
 
-**Defaults:** `src/db/selectors/settingsFromRows.ts` (`SETTINGS_DEFAULTS`)
+**Defaults:** `src/lib/settings/settingsDefaults.ts` (`SETTINGS_DEFAULTS`); consumed by `db/selectors/settingsFromRows.ts` and settings UI helpers
 
 **Used by:** `src/db/repositories/settings.ts`, all settings panels, timer engine
 
@@ -827,6 +857,8 @@ Defined in `src/lib/routing/appHashRouting.ts`, `src/navigation/appNav.ts`.
 | `#settings/data` | Settings → data | Backup vault, folder sync, desktop |
 | `#cards` (legacy) | Redirects to `#focus` | Removed flashcards tab (v12) |
 
+**Journal deep-link (not hash-based):** `sessionStorage` key `pending_journal_date` (`src/lib/routing/journalNavigation.ts`) — set before navigating to `#journal` from command palette.
+
 **Authentication:** Not applicable (no auth system).
 
 ---
@@ -878,13 +910,21 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 ### src/context/StudyAppProvider.tsx
 
-**Purpose:** Root provider composition for the entire app.
+**Purpose:** Root provider composition for the app data/timer/UI stack.
 
 **Responsibilities:**
 - Nests Confirm → Data → Timer → UI providers in correct order
 - Wires toast system across providers
 
-**Used by:** `src/App.tsx`
+**Used by:** `src/App.tsx` (inside `SidebarCollapseProvider`, wrapping `ErrorBoundary` → `AppShell`)
+
+---
+
+### src/context/sidebar/SidebarCollapseProvider.tsx
+
+**Purpose:** Persists desktop sidebar collapsed/expanded state (`localStorage` key `sidebar_collapsed`).
+
+**Used by:** `src/App.tsx` (outermost provider)
 
 ---
 
@@ -897,6 +937,7 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 - Exposes tasks, history, settings, categories, quick notes
 - Computes analytics slices (streaks, XP, today log)
 - Lazy-loads analytics/journal data via `useLazyStudyFeatures(activeTab)`
+- Gates quick notes and full daily logs via `useDeferredDataFlags()` until notes drawer or command palette opens
 
 **Used by:** All tab components, `AppShell`, command palette (via facade hooks — not `useStudyDataContext` directly)
 
@@ -936,11 +977,23 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 **Purpose:** Timer engine and backup/session actions.
 
 **Responsibilities:**
-- Hosts `useTimerEngine` and `useSessionBackup`
-- Exposes `timerControls`, `backup`, `activateTask`
-- Pushes toasts on timer events
+- Hosts `useTimerEngine` and `useSessionBackup` via `useStudyTimerState`
+- Exposes `timerControls`, `backup`, `activateTask` on `StudyTimerContext`
+- Nests `StudyTimerDisplayContext` with tick-sensitive display state (remaining time, block type) separate from action context — limits re-renders in `DesktopTrayTimerBridge` and zen overlay
 
 **Used by:** `FocusTab`, `AppShell`, command palette
+
+**Consumer hook:** `useStudyTimerDisplay()` from `studyTimerContext.ts` for display-only subscribers.
+
+---
+
+### src/hooks/useDeferredDataEnabled.ts
+
+**Purpose:** Module-level flags controlling when expensive IndexedDB subscriptions load.
+
+**Responsibilities:**
+- `setDeferredDataFlags({ notesEnabled, fullLogsEnabled })` — called from `useStudyUIState` when notes drawer or command palette opens
+- `useDeferredDataFlags()` — read by `StudyDataProvider` to gate `useQuickNotes` and full daily-log queries
 
 ---
 
@@ -982,6 +1035,16 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 **Used by:** `ControlDeck.tsx`, all `control-deck/*Panel.tsx` components
 
+**Mount scope:** Provider wraps only the Settings tab content — not the full app.
+
+---
+
+### src/components/sidebar/SidebarFlyout.tsx — SidebarFlyoutProvider
+
+**Purpose:** Hover flyout menus for collapsed sidebar rail actions.
+
+**Mount scope:** Only when sidebar is collapsed (`SidebarShell.tsx`).
+
 ---
 
 ### src/components/AppShell.tsx
@@ -994,6 +1057,7 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 - Lazy-loads command palette and quick notes drawer (`Suspense`)
 - Hosts modals (onboarding, hotkeys, level-up, reflection, zen overlay)
 - Runs background effects (sync, auto-export, reminders) via `useAppShellEffects`
+- Renders `E2eCrashProbe` (dev-only forced error for E2E error-boundary tests)
 
 **Subcomponents:** `app-shell/AppShellLayout.tsx`, `app-shell/AppShellBanners.tsx`, `app-shell/AppShellLoadingScreen.tsx`, `app-shell/DesktopTrayTimerBridge.tsx`
 
@@ -1024,6 +1088,38 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 **Used by:** `FocusTabContent.tsx`
 
 **Data access:** Timer via `useStudyTimerContext()`; settings in `FocusTimerSection` via `useStudyData()` facade.
+
+---
+
+### src/lib/routing/journalNavigation.ts
+
+**Purpose:** Cross-tab journal date deep-linking via `sessionStorage`.
+
+**Responsibilities:**
+- `PENDING_JOURNAL_DATE_KEY` (`pending_journal_date`) — queue date before navigating to Journal tab
+- Consumed by journal tab on mount after command palette or palette-driven navigation
+
+**Used by:** Command palette actions, journal tab entry
+
+---
+
+### src/lib/routing/prefetchTabChunks.ts
+
+**Purpose:** Preload lazy tab chunks on hover/touch.
+
+**Responsibilities:**
+- `prefetchTabChunk(tab)` — used by `MobileTabBar` and sidebar hover
+
+---
+
+### src/components/E2eCrashProbe.tsx
+
+**Purpose:** Dev-only error injection for Playwright error-boundary specs.
+
+**Responsibilities:**
+- When `import.meta.env.DEV` and URL query `?e2e_force_error=1`, throws to trigger `ErrorBoundary`
+
+**Used by:** `AppShell.tsx`; tested via `e2e/error-boundary.spec.ts`
 
 ---
 
@@ -1136,7 +1232,7 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 **Purpose:** Parse and write URL hash for tab navigation.
 
 **Responsibilities:**
-- `parseAppHash`, `buildAppHash`, `readAppHashFromLocation`, `writeAppHash`
+- `parseAppHash`, `readAppHashFromLocation`, `writeAppHash` (`buildAppHash` is internal)
 - Legacy `#cards` → `#focus` redirect
 
 **Used by:** `hooks/routing/useActiveTabSync.ts`, `context/useStudyUIState.ts` (initial tab read)
@@ -1148,12 +1244,10 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 **Purpose:** Module-level active tab store for non-UI consumers (distinct from `hooks/routing/useActiveTabSync.ts`).
 
 **Responsibilities:**
-- `setActiveTabSync` / `getActiveTabSync` / `useActiveTabSync()` via `useSyncExternalStore`
+- `setActiveTabSync` / `useActiveTabStore()` via `useSyncExternalStore`
 - Lets `StudyDataProvider` subscribe to tab changes for `useLazyStudyFeatures` without importing UI context
 
 **Used by:** `StudyDataProvider.tsx`, updated by `hooks/routing/useActiveTabSync.ts` on each tab change
-
-**Notes:** Same export name `useActiveTabSync` as the routing hook file — always verify import path.
 
 ---
 
@@ -1229,6 +1323,7 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 | `sidebar_collapsed` | Sidebar collapse state | `src/navigation/appNav.ts` |
 | `pending_settings_scroll` | Deferred settings panel scroll | `settingsSections.ts` |
 | Timer heartbeat keys | Session interruption recovery | `useTimerSessionShadow.ts` |
+| `pending_journal_date` | Queued journal date for cross-tab navigation | `journalNavigation.ts` (`sessionStorage`) |
 
 ---
 
@@ -1255,7 +1350,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-**Note:** If your editor workspace is the parent `study app` folder, the root `package.json` there may delegate to this directory — run commands from the `web/` folder.
+**Note:** If your editor workspace is the parent `study app` folder, the root `package.json` there delegates `dev`, `test`, `build`, `lint`, and `storybook` to `web/` — you can run those commands from either location; git operations and `npm ci` should use the `web/` directory.
 
 **Windows tip:** Avoid trailing `#` comments on npm script lines in CMD — they pass as extra args to Vite.
 
@@ -1372,7 +1467,7 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md#dexie-migrations).
 
 ### Safest way for an AI agent to make changes
 
-1. Read this document and [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) first
+1. Read this document and [AI_RULES.md](AI_RULES.md) first (ADR details in missing [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) — use §6 here)
 2. Identify the feature layer (UI → context → hooks → lib → repository)
 3. Follow existing patterns in the nearest similar feature
 4. Never bypass repository layer for DB access
@@ -1401,6 +1496,7 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md#dexie-migrations).
 - E2E helpers: `e2e/helpers/studyApp.ts` (`clearStudyDatabase`, `freshVisitStorage`)
 - i18n key coverage: `src/i18n/__tests__/keys.test.ts`
 - Provider integration: `src/context/__tests__/StudyAppProvider.integration.test.tsx`
+- E2E error probe: `E2eCrashProbe.tsx` — add `?e2e_force_error=1` in dev to test `ErrorBoundary` (`e2e/error-boundary.spec.ts`)
 
 ### Coverage gates (tiered)
 
@@ -1471,9 +1567,12 @@ Error handlers use `console.error` for diagnostics — not debug logging:
 - `src/lib/desktop/wakeLock.ts`
 - `src/hooks/timer/useTimerSessionShadow.ts`
 
+### Dev-only logging
+
+`devLog()` in `src/lib/shared/devLogger.ts` wraps `console.info`, gated by `import.meta.env.DEV`. Used for import/merge success and wake-lock lifecycle — distinct from production error handlers.
+
 ### Areas that may need review
 
-- **`useActiveTabSync` naming collision** — `hooks/routing/useActiveTabSync.ts` (hash sync) vs `lib/routing/activeTabSync.ts` (tab store); agents often import the wrong module
 - **Sync conflict resolution UX** — functional but complex; limited test coverage outside E2E
 - **IndexedDB quota** — recovery path exists but user may lose unsynced data if quota exceeded before export
 - **Safari PWA** — works offline but no folder sync
@@ -1481,7 +1580,8 @@ Error handlers use `console.error` for diagnostics — not debug logging:
 ### Documentation gaps
 
 - No `.env.example` file
-- Parent `study app` folder may have delegating `package.json` — clarify workspace root for new contributors
+- Missing `ai/` companion docs: `CURRENT_STATE.md`, `ARCHITECTURE_DECISIONS.md`, `TASK_TEMPLATE.md`, `PROMPT_PATTERNS.md` (referenced but not present)
+- Parent [README.md](../../README.md) links to `web/ARCHITECTURE.md`, which does not exist — use this document §6 instead
 
 ---
 
@@ -1554,7 +1654,7 @@ For documentation maintenance rules and the AI-maintained doc registry, see [`AI
 
 ### Before editing
 
-1. Read this document and [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md)
+1. Read this document and [AI_RULES.md](AI_RULES.md) (note: [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) is referenced but **missing** — use §6 layer rules here)
 2. Identify which layer your change affects — follow the strict pipeline: **UI → Context facades → Hooks → Lib → Repositories → Dexie**
 3. Read the nearest similar existing feature and match its patterns
 4. Check [`CHANGELOG.md`](CHANGELOG.md) for recent schema/feature changes
@@ -1632,8 +1732,9 @@ npm run build                         # If build config or imports changed
 
 ### Common mistakes to avoid
 
-- Importing `db/repositories/`, `db/hooks/`, or `db/db` in a component (bypasses the facade layer — ESLint blocks `db/db`; repository bypasses are a review failure)
-- Confusing `hooks/routing/useActiveTabSync` (hash sync effect) with `lib/routing/activeTabSync` (tab store hook) — same export name, different paths
+- Importing `db/db` in a component or hook (ESLint error) — use repositories or facade hooks
+- Importing `db/repositories/` or `db/hooks/` in a component (not ESLint-blocked, but violates facade architecture)
+- Confusing `hooks/routing/useActiveTabSync` (hash sync effect) with `useActiveTabStore()` in `lib/routing/activeTabSync.ts` (data-layer tab subscription)
 - Using `useStudyDataContext()` in components instead of `useStudyData()` facade
 - Adding a setting key without validation and default
 - Changing migration version without `.upgrade()` handler
@@ -1651,7 +1752,8 @@ npm run build                         # If build config or imports changed
 | Improvement | Why | First step | Related files |
 |-------------|-----|------------|---------------|
 | Add `.env.example` | Documents `VITE_E2E_SYNC` and other env vars for contributors | Create `.env.example` with commented vars | `src/vite-env.d.ts`, `playwright.config.ts` |
-| Document workspace root | Parent folder may confuse new contributors | Add note to README or this doc | Parent `package.json` if exists |
+| Restore missing `ai/` docs | Broken links to ADRs, CURRENT_STATE, templates | Create or remove stale references | `ai/ARCHITECTURE_DECISIONS.md`, etc. |
+| Create `web/ARCHITECTURE.md` or fix parent README link | Parent README 404 on architecture link | Point to `ai/PROJECT_CONTEXT.md` §6 or add thin redirect doc | Parent `README.md` |
 | Sync conflict integration test | Complex merge logic relies mainly on E2E | Add Vitest test for conflict detection path | `src/lib/sync/syncPull.ts` |
 
 ### Medium Priority
@@ -1759,7 +1861,8 @@ npm run tauri:dev            # Desktop dev
 | **Tiered coverage** | Separate Vitest coverage gates for core, component, and settings code |
 | **Sanctuary** | Internal naming prefix for onboarding localStorage key (`sanctuary_onboarding_completed`) |
 | **Facade hooks** | Public UI API in `useStudyApp.ts` (`useStudyData`, `useStudyUI`, …) over slice contexts |
-| **Active tab store** | `lib/routing/activeTabSync.ts` (data layer) vs `hooks/routing/useActiveTabSync.ts` (hash sync) — do not merge |
+| **Deferred data flags** | `useDeferredDataEnabled` gates quick notes/full logs until drawer or palette opens |
+| **Active tab store** | `useActiveTabStore()` in `lib/routing/activeTabSync.ts` (data layer) vs `useActiveTabSync` in `hooks/routing/` (hash sync) — do not merge |
 
 ---
 
@@ -1768,13 +1871,14 @@ npm run tauri:dev            # Desktop dev
 ### Assumptions made
 
 - Git repository root is the `web/` folder (per README)
+- Parent `study app/` folder with delegating `package.json` is actively used for editor workspaces (confirmed in parent `package.json`)
 - No hidden backend or microservices exist outside this repo
 - GitHub Pages deployment uses `/StudyApp/` base path in production
 - Node 22 is the required version (matches CI)
 
 ### Areas needing human confirmation
 
-- Whether parent `study app` folder structure is still actively used for workspace delegation
+- Whether to create missing `ai/` companion docs (`ARCHITECTURE_DECISIONS.md`, `CURRENT_STATE.md`, etc.) or remove stale references from `.cursor/rules/`
 - Target locales for future i18n expansion
 - Whether Chromatic visual testing is actively used (CI job is conditional on secret)
 - Open-source licensing intentions (currently marked private)
@@ -1788,15 +1892,15 @@ npm run tauri:dev            # Desktop dev
 
 ### Related documentation
 
-| Document | Contents |
-|----------|----------|
-| [README.md](../README.md) | Product overview, quick start, features, deployment |
-| [AI_RULES.md](AI_RULES.md) | Agent operational rules and protected systems |
-| [CURRENT_STATE.md](CURRENT_STATE.md) | Active work snapshot |
-| [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) | ADR log with architectural trade-offs |
-| [CONTRIBUTING.md](../CONTRIBUTING.md) | Migrations, E2E patterns, settings conventions |
-| [CHANGELOG.md](../CHANGELOG.md) | Release notes, schema and backup version history |
+| Document | Contents | Status |
+|----------|----------|--------|
+| [README.md](../README.md) | Product overview, quick start, features, deployment | Present |
+| [AI_RULES.md](AI_RULES.md) | Agent operational rules and protected systems | Present |
+| [CURRENT_STATE.md](CURRENT_STATE.md) | Active work snapshot | **Missing** |
+| [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) | ADR log with architectural trade-offs | **Missing** |
+| [CONTRIBUTING.md](../CONTRIBUTING.md) | Migrations, E2E patterns, settings conventions | Present |
+| [CHANGELOG.md](../CHANGELOG.md) | Release notes, schema and backup version history | Present |
 
 ---
 
-*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 22, 2026. Canonical location: `ai/PROJECT_CONTEXT.md`.*
+*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 23, 2026. Canonical location: `ai/PROJECT_CONTEXT.md`.*

@@ -47,7 +47,7 @@ vi.mock('../../context/useStudyApp', () => ({
     setIsCommandPaletteOpen: vi.fn(),
     focusNoteId: null,
     setFocusNoteId: vi.fn(),
-    scheduleDelete: vi.fn(),
+    handleDeleteNote: vi.fn(),
   }),
 }))
 

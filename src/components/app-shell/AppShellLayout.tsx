@@ -36,6 +36,7 @@ export const AppShellLayout = memo(function AppShellLayout({
     activeTab,
     setActiveTab,
     isZenMode,
+    isNotesOpen,
     setIsHotkeyHudOpen,
     setIsNotesOpen,
     setIsCommandPaletteOpen,
