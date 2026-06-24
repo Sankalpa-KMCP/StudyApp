@@ -16,6 +16,7 @@ export function SidebarRailContent({
   timerMode,
   enforceLockout,
   reviewDueCount = 0,
+  showBackupReminder = false,
   onToggleNotes,
   onShowOnboarding,
   onToggleCollapse,
@@ -45,6 +46,7 @@ export function SidebarRailContent({
                 isActive={isActive}
                 isLocked={isLocked}
                 badge={tab.id === 'focus' ? reviewDueCount : undefined}
+                showNotificationDot={tab.id === 'settings' && showBackupReminder}
                 onActivate={onActivateTab}
               />
             )

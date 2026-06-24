@@ -132,7 +132,7 @@ export const AppShell = memo(function AppShell() {
       data-density={settings.uiDensity}
       data-ui-font={settings.ui_font}
       data-reduce-effects={settings.reduceVisualEffects ? 'true' : 'false'}
-      className="app-grain min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden pb-24 md:pb-0"
+      className="app-grain min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0"
       style={inlineStyles}
     >
       <E2eCrashProbe />
@@ -145,8 +145,6 @@ export const AppShell = memo(function AppShell() {
           isZenMode,
           showPwaBanner: pwaInstall.showBanner,
           quotaExceeded,
-          showBackupReminder: backupReminder.shouldRemind,
-          backupDaysSinceExport: backupReminder.daysSinceExport,
           onPwaInstall: () => void pwaInstall.install(),
           onPwaDismiss: pwaInstall.dismiss,
           onExportBackup: () => {
@@ -154,8 +152,8 @@ export const AppShell = memo(function AppShell() {
           },
           onOpenRecovery: () => void setActiveTab('settings'),
           onDismissQuota: dismissQuotaRecovery,
-          onDismissBackupReminder: backupReminder.dismissReminder,
         }}
+        showBackupReminder={backupReminder.shouldRemind}
       />
 
       <ZenOverlayContainer

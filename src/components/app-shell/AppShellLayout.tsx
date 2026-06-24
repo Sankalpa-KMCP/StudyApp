@@ -16,11 +16,13 @@ import { AppShellBanners, type AppShellBannersProps } from './AppShellBanners'
 interface AppShellLayoutProps {
   onShowOnboarding: () => void
   banners: AppShellBannersProps
+  showBackupReminder?: boolean
 }
 
 export const AppShellLayout = memo(function AppShellLayout({
   onShowOnboarding,
   banners,
+  showBackupReminder = false,
 }: AppShellLayoutProps) {
   const {
     tasks,
@@ -67,57 +69,60 @@ export const AppShellLayout = memo(function AppShellLayout({
         timerMode={timerControls.timerMode}
         enforceLockout={settings.enforce_lockout}
         reviewDueCount={reviewDueCount}
+        showBackupReminder={showBackupReminder}
         onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
         onShowOnboarding={onShowOnboarding}
       />
 
-      <main id="main-content" className="flex-1 flex flex-col min-w-0 z-10">
-        <AppShellBanners {...banners} />
-        {!isZenMode && (
-          <AppContentHeader
-            activeTab={activeTab}
-            isTimerActive={timerControls.isTimerActive}
-            timerMode={timerControls.timerMode}
-            todayStudyMinutes={headerStudyMinutes}
-            dailyGoalMinutes={headerGoalMinutes}
-            focusCategoryName={activeTimerCategory?.name}
-            currentStreak={currentStreak}
-            level={xpData.level}
-            xpProgressPercent={xpData.xpProgressPercent}
-            enforceLockout={settings.enforce_lockout}
-            onOpenNotes={() => setIsNotesOpen(true)}
-            onNavigateToAnalytics={() => void setActiveTab('analytics')}
-            onShowOnboarding={onShowOnboarding}
-            onOpenHotkeys={() => setIsHotkeyHudOpen(true)}
-            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-          />
-        )}
-
-        <div className={`app-content-main flex-1 p-4 md:p-6 lg:p-8 flex flex-col transition-all duration-300 motion-reduce:transition-none ${isZenMode ? 'opacity-0 motion-safe:scale-95 pointer-events-none' : ''}`}>
+      <main id="main-content" className="flex-1 flex flex-col min-w-0 min-h-0 z-10">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col min-h-0 px-4 md:px-6 lg:px-8">
+          <AppShellBanners {...banners} />
           {!isZenMode && (
-            <div key={activeTab} className="app-tab-panel flex-1 flex flex-col min-h-0" data-active-tab={activeTab}>
-              {activeTab === 'focus' && (
-                <ErrorBoundary fallbackLabel="Focus">
-                  <FocusTab />
-                </ErrorBoundary>
-              )}
-              {activeTab === 'analytics' && (
-                <ErrorBoundary fallbackLabel="Analytics">
-                  <AnalyticsTab />
-                </ErrorBoundary>
-              )}
-              {activeTab === 'journal' && (
-                <ErrorBoundary fallbackLabel="Journal">
-                  <JournalTab />
-                </ErrorBoundary>
-              )}
-              {activeTab === 'settings' && (
-                <ErrorBoundary fallbackLabel="Settings">
-                  <SettingsTab onShowOnboarding={onShowOnboarding} />
-                </ErrorBoundary>
-              )}
-            </div>
+            <AppContentHeader
+              activeTab={activeTab}
+              isTimerActive={timerControls.isTimerActive}
+              timerMode={timerControls.timerMode}
+              todayStudyMinutes={headerStudyMinutes}
+              dailyGoalMinutes={headerGoalMinutes}
+              focusCategoryName={activeTimerCategory?.name}
+              currentStreak={currentStreak}
+              level={xpData.level}
+              xpProgressPercent={xpData.xpProgressPercent}
+              enforceLockout={settings.enforce_lockout}
+              onOpenNotes={() => setIsNotesOpen(true)}
+              onNavigateToAnalytics={() => void setActiveTab('analytics')}
+              onShowOnboarding={onShowOnboarding}
+              onOpenHotkeys={() => setIsHotkeyHudOpen(true)}
+              onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+            />
           )}
+
+          <div className={`app-content-main flex-1 flex flex-col min-h-0 transition-all duration-300 motion-reduce:transition-none ${isZenMode ? 'opacity-0 motion-safe:scale-95 pointer-events-none' : ''}`}>
+            {!isZenMode && (
+              <div key={activeTab} className="app-tab-panel flex-1 flex flex-col min-h-0" data-active-tab={activeTab}>
+                {activeTab === 'focus' && (
+                  <ErrorBoundary fallbackLabel="Focus">
+                    <FocusTab />
+                  </ErrorBoundary>
+                )}
+                {activeTab === 'analytics' && (
+                  <ErrorBoundary fallbackLabel="Analytics">
+                    <AnalyticsTab />
+                  </ErrorBoundary>
+                )}
+                {activeTab === 'journal' && (
+                  <ErrorBoundary fallbackLabel="Journal">
+                    <JournalTab />
+                  </ErrorBoundary>
+                )}
+                {activeTab === 'settings' && (
+                  <ErrorBoundary fallbackLabel="Settings">
+                    <SettingsTab onShowOnboarding={onShowOnboarding} />
+                  </ErrorBoundary>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
@@ -129,6 +134,7 @@ export const AppShellLayout = memo(function AppShellLayout({
           timerMode={timerControls.timerMode}
           enforceLockout={settings.enforce_lockout}
           reviewDueCount={reviewDueCount}
+          showBackupReminder={showBackupReminder}
         />
       )}
     </>
