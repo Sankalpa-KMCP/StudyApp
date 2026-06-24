@@ -4,8 +4,8 @@
   "description": "Local-first focus and study tracking dashboard",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0a0b10",
-  "theme_color": "#0f172a",
+  "background_color": "#faf9f7",
+  "theme_color": "#f4f2ed",
   "icons": [
     {
       "src": "./icons/icon-192.png",
