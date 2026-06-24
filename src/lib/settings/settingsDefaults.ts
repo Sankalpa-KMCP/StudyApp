@@ -72,7 +72,7 @@ export const SETTINGS_DEFAULTS: ParsedSettings = {
   longBreakDurationMinutes: 15,
   shortBreakDurationMinutes: 5,
   studyBlockDurationMinutes: 25,
-  theme: 'midnight-slate',
+  theme: 'paper-day',
   themePreset: 'midnight-slate',
   lightThemePreset: 'paper-day',
   ui_font: 'Inter',
