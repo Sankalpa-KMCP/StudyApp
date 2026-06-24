@@ -12,6 +12,7 @@ const SM2_GRADES = [
 
 const REVIEW_VIRTUALIZE_THRESHOLD = 25
 const REVIEW_ROW_ESTIMATE = 72
+const REVIEW_QUEUE_LIST_ID = 'review-queue-list'
 
 export interface ReviewQueueSectionProps {
   reviewQueueList: TaskItem[]
@@ -29,9 +30,13 @@ export function ReviewQueueSection({
   if (reviewQueueList.length === 0) return null
 
   return (
-    <div id="review-queue" className="mb-6 p-4 rounded-[20px] surface-subtle border border-card flex flex-col gap-3 shadow-md animate-slide-in-up">
+    <section
+      id="review-queue"
+      aria-label={t('taskSpacedRepetitionReview')}
+      className="mb-6 p-4 rounded-[20px] surface-subtle border border-card flex flex-col gap-3 shadow-md animate-slide-in-up"
+    >
       <div className="flex items-center justify-between border-b border-card pb-2">
-        <span className="text-[9.5px] font-bold text-muted uppercase tracking-wider">{t('taskSpacedRepetitionReview')}</span>
+        <h2 className="text-[9.5px] font-bold text-muted uppercase tracking-wider">{t('taskSpacedRepetitionReview')}</h2>
         <span className="text-[8.5px] font-bold text-accent-amber bg-accent-amber/10 border border-accent-amber/20 px-2.5 py-0.5 rounded-full select-none">
           {t('taskDueCount', { count: reviewQueueList.length })}
         </span>
@@ -40,12 +45,17 @@ export function ReviewQueueSection({
       <p className="text-micro text-muted">{t('sm2Helper')}</p>
       <VirtualList
         items={reviewQueueList}
+        id={REVIEW_QUEUE_LIST_ID}
         className="flex flex-col gap-1 max-h-[40vh] overflow-y-auto custom-scrollbar pr-1"
         estimateSize={REVIEW_ROW_ESTIMATE}
         enabled={reviewQueueList.length > REVIEW_VIRTUALIZE_THRESHOLD}
+        listAriaLabel={t('taskReviewQueueListAria')}
         getKey={task => task.id ?? task.text}
         renderItem={task => (
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2 border-b border-card last:border-b-0 hover:surface-subtle px-1 rounded-xl transition-colors duration-200">
+          <div
+            role="listitem"
+            className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2 border-b border-card last:border-b-0 hover:surface-subtle px-1 rounded-xl transition-colors duration-200"
+          >
             <div className="flex items-center gap-2.5 min-w-0">
               {task.categoryId !== undefined && categoriesMap.has(task.categoryId) && (
                 <span
@@ -61,7 +71,7 @@ export function ReviewQueueSection({
               )}
               <span className="text-xs text-primary font-semibold truncate select-none" title={task.text}>{task.text}</span>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-1 shrink-0" role="group" aria-label={t('taskRecallLabel')}>
               <span className="text-[8px] text-muted font-bold uppercase tracking-wider mr-1.5 hidden sm:inline select-none">{t('taskRecallLabel')}</span>
               {SM2_GRADES.map(({ q, labelKey, titleKey }) => {
                 const title = t(titleKey)
@@ -72,7 +82,7 @@ export function ReviewQueueSection({
                     title={title}
                     aria-label={t('taskRecallGradeAria', { q, title, task: task.text })}
                     onClick={() => submitRecallGrade(task, q)}
-                    className="min-h-11 min-w-11 sm:min-h-6 sm:min-w-6 rounded-full text-micro sm:text-micro font-bold surface-subtle hover:surface-track text-secondary border border-card transition-all ios-active-scale cursor-pointer flex items-center justify-center px-1"
+                    className="focus-ring min-h-11 min-w-11 sm:min-h-6 sm:min-w-6 rounded-full text-micro sm:text-micro font-bold surface-subtle hover:surface-track text-secondary border border-card transition-all ios-active-scale cursor-pointer flex items-center justify-center px-1"
                   >
                     <span className="sm:hidden">{t(labelKey)}</span>
                     <span className="hidden sm:inline font-mono">{q}</span>
@@ -83,6 +93,6 @@ export function ReviewQueueSection({
           </div>
         )}
       />
-    </div>
+    </section>
   )
 }

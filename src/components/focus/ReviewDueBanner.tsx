@@ -15,19 +15,28 @@ export function ReviewDueBanner({ count, onViewQueue }: ReviewDueBannerProps) {
     <div
       role="status"
       data-testid="review-due-banner"
-      className="mb-4 rounded-2xl border border-accent-amber/25 bg-accent-amber/10 p-4"
+      className="banner-accent mb-4 border border-card p-4"
+      style={
+        {
+          '--banner-accent': 'var(--color-accent-amber)',
+          backgroundColor: 'color-mix(in srgb, var(--color-accent-amber) 10%, transparent)',
+          borderColor: 'color-mix(in srgb, var(--color-accent-amber) 25%, transparent)',
+        } as React.CSSProperties
+      }
     >
       <div className="flex items-start gap-3">
-        <AlertCircle className="h-5 w-5 shrink-0 text-accent-amber mt-0.5" aria-hidden />
+        <div className="banner-icon-well" style={{ '--banner-accent': 'var(--color-accent-amber)' } as React.CSSProperties}>
+          <AlertCircle className="h-4 w-4 text-accent-amber" aria-hidden />
+        </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-[var(--color-text-primary)]">
+          <p className="text-sm font-bold text-primary">
             {t('reviewDueBannerTitle', { count })}
           </p>
           <p className="text-caption settings-muted mt-1">{t('reviewDueBannerBody')}</p>
           <button
             type="button"
             onClick={onViewQueue}
-            className="mt-2 text-caption font-bold text-accent-amber hover:underline ios-active-scale"
+            className="focus-ring mt-2 rounded-lg text-caption font-bold text-accent-amber hover:underline ios-active-scale"
           >
             {t('reviewDueBannerCta')}
           </button>
