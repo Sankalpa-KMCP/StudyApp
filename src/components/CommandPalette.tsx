@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import { ModalShell } from './shared/ModalShell'
 import {
@@ -23,8 +23,9 @@ interface CommandPaletteProps {
 }
 
 const GROUP_ORDER: CommandPaletteItemType[] = ['action', 'settings', 'tab', 'task', 'note', 'journal']
+const LISTBOX_ID = 'command-palette-listbox'
 
-export function CommandPalette({
+export const CommandPalette = memo(function CommandPalette({
   isOpen,
   onClose,
   onSelect,
@@ -37,6 +38,7 @@ export function CommandPalette({
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const optionRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
   const allItems = useMemo(
     () => (isOpen
@@ -49,13 +51,14 @@ export function CommandPalette({
 
   useEffect(() => {
     if (!isOpen) return
-    const t = window.setTimeout(() => inputRef.current?.focus(), 0)
-    return () => window.clearTimeout(t)
+    const timer = window.setTimeout(() => inputRef.current?.focus(), 0)
+    return () => window.clearTimeout(timer)
   }, [isOpen])
 
   const handleClose = () => {
     setQuery('')
     setActiveIndex(0)
+    optionRefs.current.clear()
     onClose()
   }
 
@@ -67,7 +70,7 @@ export function CommandPalette({
       list.push(item)
       map.set(item.type, list)
     }
-    return GROUP_ORDER.filter(t => map.has(t)).map(type => ({
+    return GROUP_ORDER.filter(type => map.has(type)).map(type => ({
       type,
       label: groupLabels[type],
       items: map.get(type) ?? [],
@@ -76,6 +79,13 @@ export function CommandPalette({
 
   const flatResults = useMemo(() => grouped.flatMap(g => g.items), [grouped])
   const safeActiveIndex = Math.min(activeIndex, Math.max(flatResults.length - 1, 0))
+  const activeItem = flatResults[safeActiveIndex]
+  const activeOptionId = activeItem ? `command-palette-option-${activeItem.id}` : undefined
+
+  useEffect(() => {
+    if (!activeItem) return
+    optionRefs.current.get(activeItem.id)?.scrollIntoView({ block: 'nearest' })
+  }, [activeItem])
 
   const handleSelect = (item: CommandPaletteItem) => {
     onSelect({
@@ -110,7 +120,7 @@ export function CommandPalette({
       open={isOpen}
       onClose={handleClose}
       ariaLabel={t('commandPaletteAria')}
-      panelClassName="max-w-lg w-full surface-overlay border border-card p-0 shadow-2xl overflow-hidden"
+      panelClassName="max-w-lg w-full p-0 overflow-hidden"
       zIndexClass="z-[60]"
     >
       <div className="flex items-center gap-3 border-b border-card px-4 py-3">
@@ -118,6 +128,11 @@ export function CommandPalette({
         <input
           ref={inputRef}
           type="search"
+          role="combobox"
+          aria-expanded={isOpen && flatResults.length > 0}
+          aria-controls={LISTBOX_ID}
+          aria-activedescendant={activeOptionId}
+          aria-autocomplete="list"
           value={query}
           onChange={e => {
             setQuery(e.target.value)
@@ -126,14 +141,19 @@ export function CommandPalette({
           onKeyDown={handleKeyDown}
           placeholder={t('commandPaletteSearchPlaceholder')}
           aria-label={t('commandPaletteSearchAria')}
-          className="flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted"
+          className="flex-1 bg-transparent text-label text-primary outline-none placeholder:text-muted"
           autoComplete="off"
         />
         <kbd className="hidden sm:inline rounded border border-card surface-subtle px-1.5 py-0.5 text-micro font-mono text-muted">Esc</kbd>
       </div>
-      <div className="max-h-80 overflow-y-auto p-2" role="listbox" aria-label={t('commandPaletteResultsAria')}>
+      <div
+        id={LISTBOX_ID}
+        className="max-h-80 overflow-y-auto p-2"
+        role="listbox"
+        aria-label={t('commandPaletteResultsAria')}
+      >
         {flatResults.length === 0 ? (
-          <p className="px-3 py-6 text-center text-sm text-muted">{t('commandPaletteNoMatches')}</p>
+          <p className="px-3 py-6 text-center text-caption text-muted">{t('commandPaletteNoMatches')}</p>
         ) : (
           grouped.map(group => (
             <div key={group.type} className="mb-2 last:mb-0">
@@ -142,21 +162,27 @@ export function CommandPalette({
                 rowIndex += 1
                 const idx = rowIndex
                 const isActive = idx === safeActiveIndex
+                const optionId = `command-palette-option-${item.id}`
                 return (
                   <button
                     key={item.id}
+                    id={optionId}
+                    ref={el => {
+                      if (el) optionRefs.current.set(item.id, el)
+                      else optionRefs.current.delete(item.id)
+                    }}
                     type="button"
                     role="option"
                     aria-selected={isActive}
-                    className={`flex w-full flex-col items-start rounded-xl px-3 py-2.5 text-left transition-colors ${
-                      isActive ? 'bg-accent-blue/20 text-primary' : 'text-secondary hover:surface-subtle'
+                    className={`flex w-full flex-col items-start rounded-xl px-3 py-2.5 text-left transition-colors focus-ring ios-active-scale ${
+                      isActive ? 'bg-accent-blue/20 text-primary ring-1 ring-accent-blue/30' : 'text-secondary hover:surface-subtle'
                     }`}
                     onMouseEnter={() => setActiveIndex(idx)}
                     onClick={() => handleSelect(item)}
                   >
-                    <span className="text-sm font-medium truncate w-full">{item.label}</span>
+                    <span className="text-label font-medium truncate w-full">{item.label}</span>
                     {item.subtitle && (
-                      <span className="text-xs text-muted truncate w-full mt-0.5">{item.subtitle}</span>
+                      <span className="text-caption text-muted truncate w-full mt-0.5">{item.subtitle}</span>
                     )}
                   </button>
                 )
@@ -167,4 +193,4 @@ export function CommandPalette({
       </div>
     </ModalShell>
   )
-}
+})

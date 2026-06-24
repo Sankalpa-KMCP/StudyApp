@@ -65,8 +65,9 @@ export const NavTabButton = memo(function NavTabButton({
   buttonRef,
 }: NavTabButtonProps) {
   const { t } = useTranslation()
-  const lockedClass = isLocked ? 'opacity-50' : ''
+  const lockedClass = isLocked ? 'opacity-50 cursor-not-allowed' : ''
   const ariaLabel = buildAriaLabel(label, badge, isLocked)
+  const lockedA11y = isLocked ? { 'aria-disabled': true as const } : {}
 
   const lockIcon = isLocked ? (
     <Lock className="h-3 w-3 shrink-0 text-muted" aria-hidden />
@@ -85,12 +86,13 @@ export const NavTabButton = memo(function NavTabButton({
         ref={buttonRef}
         type="button"
         {...sharedDataAttrs}
+        {...lockedA11y}
         aria-current={isActive ? 'page' : undefined}
         aria-label={ariaLabel}
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className={`sidebar-rail-btn relative h-10 w-10 flex items-center justify-center rounded-[14px] font-semibold text-xs transition-all duration-200 ios-active-scale border cursor-pointer ${lockedClass}`}
+        className={`sidebar-rail-btn relative h-10 w-10 flex items-center justify-center rounded-[14px] font-semibold text-xs transition-all duration-200 ios-active-scale border cursor-pointer focus-ring ${lockedClass}`}
       >
         <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? iconColor : 'text-secondary'}`} />
         {isLocked && (
@@ -109,12 +111,13 @@ export const NavTabButton = memo(function NavTabButton({
         ref={buttonRef}
         type="button"
         {...sharedDataAttrs}
+        {...lockedA11y}
         aria-current={isActive ? 'page' : undefined}
         aria-label={ariaLabel}
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onTouchStart={onTouchStart}
-        className={`mobile-nav-btn relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 min-h-[44px] rounded-xl text-label font-semibold transition-all cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue ${lockedClass}`}
+        className={`mobile-nav-btn relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-2.5 min-h-[44px] rounded-xl text-label font-semibold transition-all cursor-pointer focus-ring ios-active-scale ${lockedClass}`}
       >
         {badge > 0 && (
           <NavTabBadge count={badge} className="absolute top-0 right-1 z-20" />
@@ -133,13 +136,14 @@ export const NavTabButton = memo(function NavTabButton({
       ref={buttonRef}
       type="button"
       {...sharedDataAttrs}
+      {...lockedA11y}
       aria-current={isActive ? 'page' : undefined}
       aria-label={ariaLabel}
       title={isLocked ? `${t('focusLockout')} active` : label}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`nav-tab w-full ios-active-scale cursor-pointer ${lockedClass}`}
+      className={`nav-tab w-full ios-active-scale cursor-pointer focus-ring ${lockedClass}`}
     >
       <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? iconColor : 'text-secondary'}`} />
       <span className="whitespace-nowrap">{label}</span>

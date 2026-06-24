@@ -41,6 +41,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   const trapRef = useFocusTrap(isOpen, onClose)
   const filters = useNoteFilters(notes, categories)
   const editor = useNoteEditor(updateNote)
+  const defaultNoteColor = noteTagColors[0] ?? 'var(--color-accent-blue)'
 
   useEffect(() => {
     if (!isOpen || focusNoteId == null) return
@@ -50,8 +51,9 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   }, [isOpen, focusNoteId, notes])
 
   const handleCreateNote = async () => {
+    const newTitle = t('notesNewScratchTitle')
     const noteId = await addNote(
-      'New Scratch Note',
+      newTitle,
       '',
       filters.activeCategoryId !== 'all' ? filters.activeCategoryId : undefined,
     )
@@ -62,16 +64,15 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
     }
     editor.startEditing({
       id: noteId,
-      title: 'New Scratch Note',
+      title: newTitle,
       content: '',
       categoryId: filters.activeCategoryId !== 'all' ? filters.activeCategoryId : undefined,
-      color: '#06b6d4',
+      color: defaultNoteColor,
       updatedAt: Date.now(),
     })
   }
 
-  const handleDelete = async (id: number, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleDelete = async (id: number) => {
     if (editor.editingNoteId === id) {
       editor.setEditingNoteId(null)
     }
@@ -90,19 +91,21 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
     >
       <div className="flex items-center justify-between px-5 py-4 border-b border-card surface-subtle select-none">
         <div className="flex items-center gap-2">
-          <Edit3 className="h-4 w-4 text-accent-blue shrink-0" />
+          <Edit3 className="h-4 w-4 text-accent-blue shrink-0" aria-hidden />
           <div className="flex flex-col min-w-0">
-            <h3 id="quick-notes-title" className="text-xs font-bold uppercase tracking-wider text-primary">Quick Notes</h3>
+            <h3 id="quick-notes-title" className="text-xs font-bold uppercase tracking-wider text-primary">
+              {t('quickNotesTitle')}
+            </h3>
             <p className="text-micro text-muted font-medium normal-case tracking-normal">{t('quickNotesHelper')}</p>
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close quick notes"
-          className="p-1 rounded-lg hover:surface-track text-muted hover:text-primary transition-colors cursor-pointer"
+          aria-label={t('quickNotesCloseAria')}
+          className="focus-ring chrome-icon-btn chrome-icon-btn--sm rounded-full text-muted hover:text-primary"
         >
-          <X className="h-4.5 w-4.5" />
+          <X className="h-4 w-4" aria-hidden />
         </button>
       </div>
 
@@ -120,9 +123,10 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
           categories={categories}
           filteredNotes={filters.filteredNotes}
           categoriesMap={filters.categoriesMap}
+          noteTagColors={noteTagColors}
           filters={filters}
           onStartEditing={editor.startEditing}
-          onDelete={(id, e) => { void handleDelete(id, e) }}
+          onDelete={(id) => { void handleDelete(id) }}
           onCreateNote={() => { void handleCreateNote() }}
         />
       )}

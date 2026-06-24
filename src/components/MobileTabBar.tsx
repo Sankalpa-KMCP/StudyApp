@@ -1,7 +1,6 @@
 import { memo, useRef, useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
 import { getNavTabs } from '../navigation/appNav'
-import { useTranslation } from '../i18n/useTranslation'
 import { NavTabButton } from '../navigation/NavTabButton'
 import { prefetchTabChunk } from '../lib/routing/prefetchTabChunks'
 
@@ -22,7 +21,6 @@ export const MobileTabBar = memo(function MobileTabBar({
   enforceLockout,
   reviewDueCount = 0,
 }: MobileTabBarProps) {
-  useTranslation()
   const navTabs = getNavTabs()
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
@@ -49,7 +47,7 @@ export const MobileTabBar = memo(function MobileTabBar({
 
   return (
     <nav
-      className="fixed bottom-4 left-4 right-4 z-30 flex md:hidden items-center justify-around glass-panel shadow-2xl px-2 py-2 safe-area-pb rounded-[22px] border border-card"
+      className="fixed bottom-4 left-4 right-4 z-40 flex md:hidden items-center justify-around glass-panel shadow-2xl px-2 py-2 safe-area-pb rounded-[var(--radius-chrome-xl)] border border-card"
       aria-label="Main navigation"
     >
       {navTabs.map(tab => {

@@ -72,7 +72,7 @@ describe('TaskRegistry', () => {
       tasks: [{ id: 1, text: 'Existing task', completed: false, createdAt: Date.now(), estimatedCycles: 1, actualCycles: 0 }],
       toggleTask,
     })
-    await user.click(screen.getByRole('button', { name: 'Mark task complete' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Mark task complete' }))
     expect(toggleTask).toHaveBeenCalledWith(1)
   })
 })

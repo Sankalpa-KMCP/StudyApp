@@ -52,10 +52,10 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
       ariaLabelledby="reflection-modal-title"
       ariaDescribedby="reflection-modal-desc"
       trapRef={trapRef}
-      panelClassName="max-w-md rounded-[28px] p-7 pb-0 sm:pb-7 animate-slide-in-up flex flex-col max-h-[90vh]"
+      panelClassName="max-w-md p-7 pb-0 sm:pb-7 animate-slide-in-up flex flex-col max-h-[90vh]"
     >
       <div className="mb-4 pb-2 border-b border-card shrink-0">
-        <h3 id="reflection-modal-title" className="text-base font-semibold text-heading-primary">{t('reflectionModalTitle')}</h3>
+        <h2 id="reflection-modal-title" className="text-base font-semibold text-primary">{t('reflectionModalTitle')}</h2>
         <p id="reflection-modal-desc" className="text-caption text-muted mt-1">{t('reflectionModalDesc')}</p>
       </div>
 
@@ -86,7 +86,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
                 type="button"
                 onClick={() => setAttentionRating(rating)}
                 aria-pressed={attentionRating === rating}
-                className={`aspect-square flex-1 flex items-center justify-center text-xs font-bold transition-all duration-200 rounded-full cursor-pointer ios-active-scale border ${attentionRating === rating ? 'bg-accent-blue text-on-accent border-accent-blue/30 shadow-md shadow-accent-blue/15' : 'surface-subtle text-muted border-card hover:surface-track hover:text-heading-primary'}`}
+                className={`focus-ring aspect-square flex-1 flex items-center justify-center text-xs font-bold transition-all duration-200 rounded-full cursor-pointer ios-active-scale border ${attentionRating === rating ? 'bg-accent-blue text-on-accent border-accent-blue/30 shadow-md shadow-accent-blue/15' : 'surface-subtle text-muted border-card hover:surface-track hover:text-primary'}`}
               >
                 {rating}
               </button>
@@ -107,7 +107,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
                 type="button"
                 onClick={() => setStabilityRating(rating)}
                 aria-pressed={stabilityRating === rating}
-                className={`aspect-square flex-1 flex items-center justify-center text-xs font-bold transition-all duration-200 rounded-full cursor-pointer ios-active-scale border ${stabilityRating === rating ? 'bg-accent-blue text-on-accent border-accent-blue/30 shadow-md shadow-accent-blue/15' : 'surface-subtle text-muted border-card hover:surface-track hover:text-heading-primary'}`}
+                className={`focus-ring aspect-square flex-1 flex items-center justify-center text-xs font-bold transition-all duration-200 rounded-full cursor-pointer ios-active-scale border ${stabilityRating === rating ? 'bg-accent-blue text-on-accent border-accent-blue/30 shadow-md shadow-accent-blue/15' : 'surface-subtle text-muted border-card hover:surface-track hover:text-primary'}`}
               >
                 {rating}
               </button>
@@ -132,7 +132,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
             onChange={e => setLocalSessionNotes(e.target.value.slice(0, 500))}
             maxLength={500}
             placeholder={t('reflectionSessionNotesPlaceholder')}
-            className={`w-full h-16 rounded-2xl border surface-subtle px-4 py-3 text-xs text-heading-primary outline-none focus:surface-track placeholder:text-muted resize-none font-sans transition-all duration-300 ${localSessionNotes.length >= 500 ? 'border-red-500/40 focus:border-red-500/60' : 'border-card focus:border-accent-blue/30'}`}
+            className={`focus-ring w-full h-16 rounded-2xl border surface-subtle px-4 py-3 text-xs text-primary outline-none focus:surface-track placeholder:text-muted resize-none font-sans transition-all duration-300 ${localSessionNotes.length >= 500 ? 'border-danger/40 focus:border-danger/60' : 'border-card focus:border-accent-blue/30'}`}
           />
         </div>
       </div>

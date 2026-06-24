@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { MAX_STUDY_BLOCK_MINUTES } from '../../lib/shared/timerConstants'
 import { Sparkles, Sun, X } from 'lucide-react'
 import { Button } from '../shared/Button'
@@ -30,6 +30,7 @@ export function FocusTimerSection({
   onTimerStart,
 }: FocusTimerSectionProps) {
   const { t } = useTranslation()
+  const timerSectionHeadingId = useId()
   const { settings } = useStudyData()
   const { timerControls } = useStudyTimerContext()
   const timerDisplay = useStudyTimerDisplay()
@@ -100,9 +101,10 @@ export function FocusTimerSection({
   }
 
   return (
-    <PanelCard className="flex flex-col">
+    <PanelCard className="flex flex-col" role="region" aria-labelledby={timerSectionHeadingId}>
       <PanelHeader
-        title="Focus Timer"
+        id={timerSectionHeadingId}
+        title={t('focusTimerTitle')}
         action={
           <Button size="sm" onClick={() => setIsZenMode(true)} className="gap-1.5">
             <Sparkles className="h-3.5 w-3.5 text-accent-blue" />

@@ -103,10 +103,16 @@ export function TaskList({
               ? t('taskTryDifferentSearch')
               : t('taskAddTargetBelow')}
             action={!normalizedQuery ? (
-              <span className="inline-flex items-center gap-1.5 text-label text-muted">
-                <Plus className="h-3.5 w-3.5" aria-hidden />
-                {t('taskUseFormAbove')}
-              </span>
+              <>
+                <span className="hidden lg:inline-flex items-center gap-1.5 text-label text-muted">
+                  <Plus className="h-3.5 w-3.5" aria-hidden />
+                  {t('taskUseFormAbove')}
+                </span>
+                <span className="inline-flex lg:hidden items-center gap-1.5 text-label text-muted">
+                  <Plus className="h-3.5 w-3.5" aria-hidden />
+                  {t('taskUseBottomBar')}
+                </span>
+              </>
             ) : undefined}
           />
         ) : (

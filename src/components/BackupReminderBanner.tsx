@@ -21,14 +21,21 @@ export function BackupReminderBanner({ onExport, onDismiss, daysSinceExport }: B
     <div
       role="region"
       aria-label={t('bannerBackupReminderAria')}
-      className="flex items-center justify-between gap-3 border-b border-accent-amber/20 bg-accent-amber/10 px-4 py-2.5"
+      className="banner-accent flex items-center justify-between gap-3 border-b border-card px-4 py-2.5"
+      style={
+        {
+          '--banner-accent': 'var(--color-accent-amber)',
+          backgroundColor: 'color-mix(in srgb, var(--color-accent-amber) 10%, transparent)',
+          borderColor: 'color-mix(in srgb, var(--color-accent-amber) 25%, transparent)',
+        } as React.CSSProperties
+      }
     >
       <p className="text-label font-semibold text-primary truncate min-w-0">{message}</p>
       <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
           onClick={onExport}
-          className="rounded-full bg-accent-amber px-3 py-1 text-label font-bold text-on-accent ios-active-scale"
+          className="focus-ring rounded-full bg-accent-amber px-3 py-1 text-label font-bold text-on-accent ios-active-scale"
         >
           {t('commonExport')}
         </button>
@@ -36,9 +43,9 @@ export function BackupReminderBanner({ onExport, onDismiss, daysSinceExport }: B
           type="button"
           onClick={onDismiss}
           aria-label={t('bannerBackupDismiss')}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-muted hover:text-primary hover:surface-track ios-active-scale"
+          className="focus-ring chrome-icon-btn chrome-icon-btn--sm rounded-full text-muted hover:text-primary ios-active-scale"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4" aria-hidden />
         </button>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 
 const SHELL_CLASS = 'grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-1 items-start min-h-0'
 
@@ -15,11 +15,11 @@ export function TabPageShell({ children, className = '' }: TabPageShellProps) {
   )
 }
 
-export function TabSectionLabel({ children }: { children: ReactNode }) {
+export function TabSectionLabel({ children, id }: { children: ReactNode; id?: string }) {
   return (
-    <p className="panel-title select-none">
+    <h2 id={id} className="panel-title select-none">
       {children}
-    </p>
+    </h2>
   )
 }
 
@@ -30,10 +30,15 @@ interface TabSectionProps {
 }
 
 export function TabSection({ label, children, className = '' }: TabSectionProps) {
+  const labelId = useId()
+
   return (
-    <div className={`lg:col-span-12 flex flex-col gap-4 ${className}`.trim()}>
-      <TabSectionLabel>{label}</TabSectionLabel>
+    <section
+      aria-labelledby={labelId}
+      className={`lg:col-span-12 flex flex-col gap-4 ${className}`.trim()}
+    >
+      <TabSectionLabel id={labelId}>{label}</TabSectionLabel>
       {children}
-    </div>
+    </section>
   )
 }

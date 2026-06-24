@@ -36,9 +36,9 @@ export function SidebarExpandedContent({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="h-4 w-4 text-accent-amber" />
-              <span className="text-xs font-semibold text-primary">{currentStreak} day streak</span>
+              <span className="text-label font-semibold text-primary">{currentStreak} day streak</span>
             </div>
-            <span className="header-stat-chip !py-0.5 !px-2">
+            <span className="header-stat-chip header-stat-chip--compact">
               LVL {level}
             </span>
           </div>
@@ -56,8 +56,9 @@ export function SidebarExpandedContent({
           </div>
         </div>
 
-        <p className="hidden md:block px-1 text-label font-bold uppercase tracking-wider text-muted select-none">Workspace</p>
-        <nav className="hidden md:flex flex-col gap-1">
+        <h2 className="sr-only">Workspace</h2>
+        <p aria-hidden className="hidden md:block px-1 text-label font-bold uppercase tracking-wider text-muted select-none">Workspace</p>
+        <nav aria-label="Main navigation" className="hidden md:flex flex-col gap-1">
           {navTabs.map(tab => {
             const isActive = activeTab === tab.id
             const isLocked = enforceLockout && isTimerActive && timerMode === 'study' && tab.id !== 'focus'
@@ -78,7 +79,8 @@ export function SidebarExpandedContent({
             )
           })}
 
-          <p className="hidden md:block px-1 pt-2 text-label font-bold uppercase tracking-wider text-muted select-none">Tools</p>
+          <h2 className="sr-only">Tools</h2>
+          <p aria-hidden className="hidden md:block px-1 pt-2 text-label font-bold uppercase tracking-wider text-muted select-none">Tools</p>
           <SidebarActionButton
             variant="expanded"
             label="Quick Notes"

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { MoreHorizontal, Search, Sparkles, Keyboard } from 'lucide-react'
 
 interface MobileHeaderMenuProps {
@@ -14,6 +14,8 @@ export function MobileHeaderMenu({
 }: MobileHeaderMenuProps) {
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const triggerId = useId()
+  const menuId = useId()
 
   useEffect(() => {
     if (!open) return
@@ -24,6 +26,15 @@ export function MobileHeaderMenu({
     }
     document.addEventListener('mousedown', onPointerDown)
     return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
   }, [open])
 
   const items = [
@@ -61,18 +72,22 @@ export function MobileHeaderMenu({
     <div ref={menuRef} className="relative">
       <button
         type="button"
+        id={triggerId}
         onClick={() => setOpen(v => !v)}
         aria-label="More tools"
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex h-8 w-8 items-center justify-center rounded-full surface-subtle border border-card text-muted hover:text-primary hover:surface-track transition-all ios-active-scale"
+        aria-controls={menuId}
+        className="chrome-icon-btn chrome-icon-btn--sm"
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>
       {open && (
         <div
+          id={menuId}
           role="menu"
-          className="absolute right-0 top-full z-40 mt-1.5 min-w-[200px] rounded-2xl border border-card glass-panel shadow-2xl py-1.5 overflow-hidden"
+          aria-labelledby={triggerId}
+          className="absolute right-0 top-full z-40 mt-1.5 min-w-[200px] rounded-2xl border border-card glass-panel shadow-2xl py-1.5 overflow-hidden animate-fade-in"
         >
           {items.map(item => {
             const Icon = item.icon
@@ -82,9 +97,9 @@ export function MobileHeaderMenu({
                 type="button"
                 role="menuitem"
                 onClick={item.onClick}
-                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-label font-semibold text-primary hover:surface-subtle transition-colors ios-active-scale"
+                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-label font-semibold text-primary hover:surface-subtle transition-colors ios-active-scale focus-ring"
               >
-                <Icon className="h-4 w-4 text-accent-blue shrink-0" />
+                <Icon className="h-4 w-4 text-accent-blue shrink-0" aria-hidden />
                 <span className="flex-1">{item.label}</span>
               </button>
             )

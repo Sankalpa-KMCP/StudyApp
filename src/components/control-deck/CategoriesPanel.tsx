@@ -4,8 +4,11 @@ import { useConfirm } from '../../context/useConfirm'
 import { useTranslation } from '../../i18n/useTranslation'
 import { useSettingsPanel } from '../../context/settingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
+import { Button } from '../shared/Button'
 
-const SWATCH_COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#EF4444', '#F59E0B', '#10B981', '#64748B']
+/** Aligns with theme accent palette in index.css @theme */
+const SWATCH_COLORS = ['#007aff', '#af52de', '#ec4899', '#ff453a', '#ff9500', '#34c759', '#64748B']
+const DEFAULT_CATEGORY_COLOR = SWATCH_COLORS[0]
 
 function clampCategoryGoal(raw: number): number {
   const stepped = Math.round(raw / 15) * 15
@@ -19,7 +22,7 @@ export function CategoriesPanel() {
   const { categories, addCategory, updateCategory, deleteCategory } = catApi
 
   const [newCategoryName, setNewCategoryName] = useState('')
-  const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6')
+  const [newCategoryColor, setNewCategoryColor] = useState(DEFAULT_CATEGORY_COLOR)
   const [newCategoryGoal, setNewCategoryGoal] = useState('')
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null)
   const [editingCategoryName, setEditingCategoryName] = useState('')
@@ -68,7 +71,7 @@ export function CategoriesPanel() {
 
   return (
     <SettingsCard id="settings-categories" title={t('categoriesPanelTitle')} defaultCollapsed>
-      <div className="flex gap-2 mb-4 settings-input border border-[var(--color-border-card)] p-2 rounded-full flex-wrap sm:flex-nowrap">
+      <div className="flex gap-2 mb-4 settings-input border border-card p-2 rounded-full flex-wrap sm:flex-nowrap">
         <input
           id="category-name-input"
           value={newCategoryName}
@@ -76,7 +79,7 @@ export function CategoriesPanel() {
           type="text"
           placeholder={t('categoriesNamePlaceholder')}
           aria-label={t('categoriesNameAria')}
-          className="flex-1 min-w-[120px] rounded-full bg-transparent px-3 py-1.5 text-xs outline-none transition-all"
+          className="settings-input flex-1 min-w-[120px] !rounded-full !py-1.5 !px-3 text-micro !border-0 !bg-transparent"
           onKeyDown={e => { if (e.key === 'Enter') void handleAdd() }}
         />
         <input
@@ -88,41 +91,42 @@ export function CategoriesPanel() {
           step={15}
           placeholder={t('categoriesGoalPlaceholder')}
           aria-label={t('categoriesGoalAria')}
-          className="w-24 rounded-full bg-transparent px-3 py-1.5 text-xs outline-none transition-all"
+          className="settings-input w-24 !rounded-full !py-1.5 !px-3 text-micro !border-0 !bg-transparent"
         />
         <input
           type="color"
           value={newCategoryColor}
           onChange={e => setNewCategoryColor(e.target.value)}
-          className="h-8 w-8 cursor-pointer rounded-full border border-[var(--color-border-card)] bg-transparent p-0.5"
+          aria-label={t('categoriesColorAria', { color: newCategoryColor })}
+          className="h-8 w-8 cursor-pointer rounded-full border border-card bg-transparent p-0.5 focus-ring"
         />
-        <button
-          type="button"
-          onClick={() => void handleAdd()}
-          className="rounded-full bg-accent-blue hover:bg-accent-blue/90 text-on-accent px-4 py-1.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
-        >
+        <Button type="button" variant="primary" size="sm" onClick={() => void handleAdd()}>
           {t('categoriesAdd')}
-        </button>
+        </Button>
       </div>
 
       <div className="flex items-center gap-2.5 mb-4 px-2 select-none">
         <span className="settings-muted font-bold uppercase tracking-wider text-micro">{t('categoriesSwatches')}</span>
-        <div className="flex flex-wrap gap-2">
-          {SWATCH_COLORS.map(color => (
-            <button
-              key={color}
-              type="button"
-              onClick={() => setNewCategoryColor(color)}
-              className={`h-5 w-5 rounded-full border cursor-pointer transition-all duration-200 hover:scale-110 ${
-                newCategoryColor.toLowerCase() === color.toLowerCase()
-                  ? 'border-[var(--color-text-primary)] scale-105 shadow-md'
-                  : 'border-[var(--color-border-card)] hover:border-accent-blue/40'
-              }`}
-              style={{ backgroundColor: color }}
-              title={color}
-              aria-label={t('categoriesColorAria', { color })}
-            />
-          ))}
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t('categoriesSwatches')}>
+          {SWATCH_COLORS.map(color => {
+            const selected = newCategoryColor.toLowerCase() === color.toLowerCase()
+            return (
+              <button
+                key={color}
+                type="button"
+                onClick={() => setNewCategoryColor(color)}
+                aria-pressed={selected}
+                className={`h-5 w-5 rounded-full border cursor-pointer transition-all duration-200 hover:scale-110 focus-ring ${
+                  selected
+                    ? 'border-primary scale-105 shadow-md'
+                    : 'border-card hover:border-accent-blue/40'
+                }`}
+                style={{ backgroundColor: color }}
+                title={color}
+                aria-label={t('categoriesColorAria', { color })}
+              />
+            )
+          })}
         </div>
       </div>
 
@@ -133,10 +137,10 @@ export function CategoriesPanel() {
           categories.map(cat => (
             <div
               key={cat.id}
-              className="flex items-center gap-2.5 rounded-[16px] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] border border-[var(--color-border-card)] px-3.5 py-2.5"
+              className="flex items-center gap-2.5 rounded-[16px] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] border border-card px-3.5 py-2.5"
             >
               <label className="relative h-3 w-3 shrink-0 cursor-pointer" title={t('categoriesChangeColorTitle')}>
-                <span className="block h-3 w-3 rounded-full border border-[var(--color-border-card)]" style={{ backgroundColor: cat.color }} />
+                <span className="block h-3 w-3 rounded-full border border-card" style={{ backgroundColor: cat.color }} />
                 <input
                   type="color"
                   value={cat.color}
@@ -144,7 +148,7 @@ export function CategoriesPanel() {
                     if (cat.id === undefined) return
                     void updateCategory(cat.id, { color: e.target.value })
                   }}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  className="absolute inset-0 opacity-0 cursor-pointer focus-ring"
                   aria-label={t('categoriesColorForAria', { name: cat.name })}
                 />
               </label>
@@ -166,7 +170,7 @@ export function CategoriesPanel() {
                     if (e.key === 'Escape') setEditingCategoryId(null)
                   }}
                   ref={el => el?.focus()}
-                  className="flex-1 min-w-0 rounded-lg settings-input px-2 py-1 text-xs"
+                  className="settings-input flex-1 min-w-0 !rounded-lg !py-1 !px-2 text-micro"
                   aria-label={t('categoriesEditNameAria', { name: cat.name })}
                 />
               ) : (
@@ -177,7 +181,7 @@ export function CategoriesPanel() {
                     setEditingCategoryId(cat.id)
                     setEditingCategoryName(cat.name)
                   }}
-                  className="flex-1 text-left text-xs font-bold text-[var(--color-text-primary)] truncate hover:opacity-80 transition-colors cursor-pointer"
+                  className="flex-1 text-left text-xs font-bold text-primary truncate hover:opacity-80 transition-colors cursor-pointer focus-ring rounded-lg px-1"
                 >
                   {cat.name}
                 </button>
@@ -203,16 +207,18 @@ export function CategoriesPanel() {
                     commitGoal(cat.id, (e.target as HTMLInputElement).value)
                   }
                 }}
-                className="w-16 rounded-lg settings-input px-2 py-1 text-micro"
+                className="settings-input w-16 !rounded-lg !py-1 !px-2 text-micro"
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => cat.id !== undefined && void handleDelete(cat.id, cat.name)}
                 aria-label={t('categoriesDeleteAria', { name: cat.name })}
-                className="flex h-6 w-6 items-center justify-center rounded-full settings-muted hover:text-red-400 hover:bg-red-500/10 transition-all ios-active-scale cursor-pointer"
+                className="!h-6 !w-6 !p-0 text-muted hover:text-danger"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           ))
         )}

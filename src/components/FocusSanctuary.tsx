@@ -24,21 +24,19 @@ export function FocusSanctuary({
   const { showReflectionModal, timerMode } = timerControls
 
   return (
-    <div className="grid grid-cols-1 gap-6 w-full flex-1 items-start">
+    <div className="flex flex-col gap-6 w-full flex-1 items-start">
       <div className="sr-only" aria-live="assertive" aria-atomic="true">
         {showReflectionModal && timerMode === 'study' ? t('studyBlockComplete') : ''}
       </div>
 
-      <div className="flex flex-col gap-6 w-full">
-        <FocusTimerSection
-          activeTask={activeTask}
-          setIsZenMode={setIsZenMode}
-          onUserGesture={onUserGesture}
-          onSkipBreak={onSkipBreak}
-          onTimerStart={onTimerStart}
-        />
-        <FocusStudyTipSection />
-      </div>
+      <FocusTimerSection
+        activeTask={activeTask}
+        setIsZenMode={setIsZenMode}
+        onUserGesture={onUserGesture}
+        onSkipBreak={onSkipBreak}
+        onTimerStart={onTimerStart}
+      />
+      <FocusStudyTipSection />
     </div>
   )
 }

@@ -12,7 +12,9 @@ export async function openFolderSyncPanel(page: Page): Promise<void> {
 
 export async function connectE2eSyncFolder(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Choose sync folder' }).click()
-  await expect(page.getByText(E2E_SYNC_FOLDER_NAME)).toBeVisible({ timeout: 10000 })
+  await expect(
+    page.locator('span.font-mono.text-micro', { hasText: E2E_SYNC_FOLDER_NAME }),
+  ).toBeVisible({ timeout: 10000 })
 }
 
 export async function enableFolderSync(page: Page): Promise<void> {
@@ -118,7 +120,7 @@ export async function prepareSyncConflict(page: Page): Promise<{
   const remotePayload = await buildSignedBackupPayload(page, {
     exportedAt: '2026-06-12T10:00:00.000Z',
     tasks: [{
-      id: 1,
+      id: 999,
       text: 'Remote-only task',
       completed: false,
       createdAt: 1,

@@ -29,6 +29,6 @@ describe('Button', () => {
     expect(screen.getByRole('button')).toHaveClass('bg-accent-blue')
 
     rerender(<Button variant="danger">Danger</Button>)
-    expect(screen.getByRole('button')).toHaveClass('text-red-300')
+    expect(screen.getByRole('button')).toHaveClass('text-danger')
   })
 })

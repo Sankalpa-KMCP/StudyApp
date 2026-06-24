@@ -90,6 +90,18 @@
   color: var(--color-on-accent);
 }
 
+.text-danger {
+  color: var(--color-danger);
+}
+
+.bg-danger-muted {
+  background-color: var(--color-danger-muted);
+}
+
+.border-danger {
+  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+
 .surface-overlay {
   background-color: var(--surface-overlay, rgba(var(--surface-card-rgb), 0.95));
   backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%);

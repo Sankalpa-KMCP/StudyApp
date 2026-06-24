@@ -35,7 +35,7 @@ export function NotesSettingsPanel() {
               type="color"
               value={color}
               onChange={e => handleColorChange(index, e.target.value)}
-              className="h-8 w-8 rounded-lg border border-[var(--color-border-card)] bg-transparent cursor-pointer"
+              className="h-8 w-8 rounded-lg border border-card bg-transparent cursor-pointer focus-ring"
               aria-label={t('notesTagColorAria', { index: index + 1 })}
             />
             <span className="settings-muted font-mono">{index + 1}</span>

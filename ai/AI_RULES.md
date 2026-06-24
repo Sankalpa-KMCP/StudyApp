@@ -2,7 +2,7 @@
 
 > Permanent operational rules for AI coding agents working on Study Dashboard.
 > Read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) before substantive edits.
-> For ADR context, see [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md).
+> For ADR context, see [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) §6 (a separate `ARCHITECTURE_DECISIONS.md` is intentionally not maintained).
 
 ---
 
@@ -188,7 +188,6 @@ Before marking a task done:
 - [ ] `npm run build` (if build/config/import graph changed)
 - [ ] Affected `ai/` docs updated per sync triggers below
 - [ ] No secrets committed
-- [ ] `CURRENT_STATE.md` updated if sprint/active-work context changed
 
 ---
 
@@ -209,11 +208,11 @@ These files live in `ai/` and must stay synchronized with the codebase when rele
 | File | Purpose | Status |
 |------|---------|--------|
 | [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) | Comprehensive project reference for developers and AI | Active |
-| [`CURRENT_STATE.md`](CURRENT_STATE.md) | Snapshot of active work, recent changes, and open items | Active |
-| [`ARCHITECTURE_DECISIONS.md`](ARCHITECTURE_DECISIONS.md) | Record of significant architectural decisions | Active |
 | [`AI_RULES.md`](AI_RULES.md) | AI workflow rules (this file) | Active |
-| [`TASK_TEMPLATE.md`](TASK_TEMPLATE.md) | Template for scoped AI task documents | Active |
-| [`PROMPT_PATTERNS.md`](PROMPT_PATTERNS.md) | Reusable prompt patterns for AI workflows | Active |
+| [`CURRENT_STATE.md`](CURRENT_STATE.md) | Snapshot of active work, recent changes, and open items | **Intentionally omitted** — use `CHANGELOG.md` and git history |
+| [`ARCHITECTURE_DECISIONS.md`](ARCHITECTURE_DECISIONS.md) | Record of significant architectural decisions | **Intentionally omitted** — see `PROJECT_CONTEXT.md` §6 |
+| [`TASK_TEMPLATE.md`](TASK_TEMPLATE.md) | Template for scoped AI task documents | Not present |
+| [`PROMPT_PATTERNS.md`](PROMPT_PATTERNS.md) | Reusable prompt patterns for AI workflows | Not present |
 | [`.cursor/rules/`](../.cursor/rules/) | Persistent Cursor agent rules | Active |
 
 Human-oriented docs (`README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`) should also be updated when changes affect their audience, but AI agents must treat the `ai/` registry above as the primary synchronization set.
@@ -247,8 +246,8 @@ Update affected registry files when changes touch:
 | Change type | Primary docs to update |
 |-------------|------------------------|
 | Broad codebase / onboarding context | `PROJECT_CONTEXT.md` |
-| Active sprint / recent delta | `CURRENT_STATE.md` |
-| Deliberate design choice with trade-offs | `ARCHITECTURE_DECISIONS.md` |
+| Active sprint / recent delta | `CHANGELOG.md`, git history — not `CURRENT_STATE.md` |
+| Deliberate design choice with trade-offs | `PROJECT_CONTEXT.md` §6 — not `ARCHITECTURE_DECISIONS.md` |
 | AI workflow or agent behavior | `AI_RULES.md`, `.cursor/rules/` |
 | User-facing release notes | `CHANGELOG.md` |
 | Contributor procedures | `CONTRIBUTING.md` |
@@ -290,9 +289,8 @@ Before finishing implementation work, ask:
 | Document | When to read |
 |----------|--------------|
 | [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) | Before any substantive edit |
-| [`ARCHITECTURE_DECISIONS.md`](ARCHITECTURE_DECISIONS.md) | Layer boundaries, design trade-offs, ADR context |
-| [`CURRENT_STATE.md`](CURRENT_STATE.md) | Active work, recent changes, open risks |
+| [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) §6 | Layer boundaries, design trade-offs, ADR-003/ADR-014 context |
+| [`CHANGELOG.md`](../CHANGELOG.md) | Recent schema, release history, and active-work context |
 | [`TASK_TEMPLATE.md`](TASK_TEMPLATE.md) | Before starting a scoped task |
 | [`PROMPT_PATTERNS.md`](PROMPT_PATTERNS.md) | When structuring a multi-step AI workflow |
 | [`CONTRIBUTING.md`](../CONTRIBUTING.md) | Migrations, E2E patterns, settings conventions |
-| [`CHANGELOG.md`](../CHANGELOG.md) | Recent schema and release history |
