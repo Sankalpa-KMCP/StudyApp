@@ -9,8 +9,8 @@
 |-----|---------|--------|
 | [AI_RULES.md](AI_RULES.md) | Permanent agent operational rules | Present |
 | [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) | This document — canonical codebase reference | Present |
-| [CURRENT_STATE.md](CURRENT_STATE.md) | Active work snapshot | **Missing** — not yet created |
-| [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) | ADR log (includes ADR-014: lib/sync + lib/backup repository access) | **Missing** — ADR-003/014 cited in code comments and this doc but file absent from `ai/` |
+| [CURRENT_STATE.md](CURRENT_STATE.md) | Active work snapshot | **Intentionally omitted** — use git history, `CHANGELOG.md`, and task context |
+| [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) | ADR log (includes ADR-014: lib/sync + lib/backup repository access) | **Intentionally omitted** — ADR rationale inlined in this document §6 |
 | [TASK_TEMPLATE.md](TASK_TEMPLATE.md) | Scoped task template | **Missing** — not yet created |
 | [PROMPT_PATTERNS.md](PROMPT_PATTERNS.md) | Reusable prompt patterns | **Missing** — not yet created |
 
@@ -106,7 +106,7 @@ Technologies identified from the codebase with source locations.
 |------|-----------------|
 | **npm** (package manager) | `package-lock.json`, `README.md`, CI workflows |
 | **Node.js 22** | `README.md`, `.github/workflows/ci.yml` |
-| **GitHub Actions** (CI/CD) | `.github/workflows/ci.yml`, `deploy-pages.yml`, `tauri-release.yml`, `screenshots.yml` |
+| **GitHub Actions** (CI/CD) | `.github/workflows/ci.yml` (check, chromatic, storybook, e2e, e2e-sync, e2e-firefox, e2e-webkit), `deploy-pages.yml`, `tauri-release.yml`, `screenshots.yml` |
 | **GitHub Pages** | `vite.config.ts` (`base: '/StudyApp/'`), `deploy-pages.yml` |
 
 ### Not present
@@ -155,10 +155,12 @@ web/                              # Git repository root
 │   ├── components/               # UI components
 │   │   ├── tabs/                 # FocusTab, AnalyticsTab, JournalTab, SettingsTab
 │   │   ├── control-deck/         # Settings panels (timer, backup, sync, etc.)
-│   │   │   ├── backup-vault/     # BackupVaultPanel implementation + sub-sections
+│   │   │   ├── backup-vault/     # BackupVaultPanel + export/import/ICS/reset sections
+│   │   │   ├── StorageUsagePanel.tsx
+│   │   │   ├── SettingsOnboardingBanners.tsx
 │   │   │   └── BackupVaultPanel.tsx  # Re-export barrel → backup-vault/
 │   │   ├── sidebar/              # Desktop sidebar navigation (+ SidebarFlyoutProvider)
-│   │   ├── focus/                # Timer display, controls, review banner
+│   │   ├── focus/                # Timer display, controls, review/first-session banners
 │   │   ├── analytics/            # Charts, heatmap, retention panels
 │   │   ├── activity-ledger/      # Journal calendar and day detail
 │   │   ├── task-registry/        # Task list, create form, filters
@@ -167,6 +169,7 @@ web/                              # Git repository root
 │   │   └── shared/               # Button, Card, ModalShell, PanelCard, MetricCard, TabPageShell, VirtualList, CelebrationConfettiHost, settings/*
 │   ├── context/                  # React context providers + facade hooks
 │   │   ├── StudyAppProvider.tsx, StudyDataProvider.tsx, StudyTimerProvider.tsx, StudyUIProvider.tsx
+│   │   ├── ConfirmProvider.tsx   # Destructive-action confirm dialog context
 │   │   ├── studyTimerContext.ts  # StudyTimerContext + StudyTimerDisplayContext
 │   │   ├── sidebar/              # SidebarCollapseProvider
 │   │   ├── useStudyApp.ts        # Public facade hooks (useStudyData, useStudyUI, …)
@@ -179,24 +182,24 @@ web/                              # Git repository root
 │   │   ├── hooks.ts              # Barrel re-exporting live-query hooks
 │   │   ├── repositories/         # CRUD and bulk operations
 │   │   ├── hooks/                # Live query hooks (dexie-react-hooks)
-│   │   └── selectors/            # Settings defaults, task sorting
-│   ├── hooks/                    # App logic hooks
+│   │   └── selectors/            # Row parsing (`settingsFromRows.ts`), task sorting
+│   ├── hooks/                    # App logic hooks (~81 files)
 │   │   ├── timer/                # Timer engine sub-hooks
-│   │   ├── backup/               # Vault export/import hooks
+│   │   ├── backup/               # Vault export/import hooks (+ types, helpers)
 │   │   ├── routing/              # Hash ↔ tab sync (`useActiveTabSync`)
 │   │   ├── theme/                # Theme CSS variable effects
 │   │   ├── analytics/            # Chart data hooks
-│   │   ├── activity-ledger/      # Journal calendar hooks
+│   │   ├── activity-ledger/      # Ledger intensity styles (`useLedgerCalendar`)
 │   │   ├── quick-notes/          # Note editor/filter hooks
 │   │   ├── app-shell/            # AppShell effect hooks
-│   │   └── sidebar/              # Sidebar flyout/collapse hooks
+│   │   └── sidebar/              # Sidebar flyout/collapse (`useSidebarCollapse`)
 │   ├── lib/                      # Domain services (pure logic)
-│   │   ├── backup/               # Export, import, crypto, checksum, merge
+│   │   ├── backup/               # Export, import, crypto, checksum, merge, share, metadata
 │   │   ├── sync/                 # Folder sync orchestrator, push/pull
-│   │   ├── study/                # Pomodoro math, SM-2/FSRS, lockout
-│   │   ├── settings/             # Validation, section registry
+│   │   ├── study/                # Pomodoro math, SM-2/FSRS, lockout, setup checklist, first session
+│   │   ├── settings/             # Validation, defaults, sections, advanced mode
 │   │   ├── theme/                # Theme profiles, CSS variables
-│   │   ├── export/               # ICS, weekly report export
+│   │   ├── export/               # ICS import/export, weekly report export
 │   │   ├── desktop/              # Tauri bridge, wake lock, notifications
 │   │   ├── audio/                # Ambient sound engine
 │   │   ├── routing/              # Hash routing, activeTab store, command palette search, prefetch
@@ -251,9 +254,9 @@ index.html
 6. Interrupted sessions can be recovered via `sessionStorage` heartbeat (`useTimerSessionShadow`).
 
 **Important files:**
-- `src/components/tabs/FocusTab.tsx`, `src/components/focus/`
+- `src/components/tabs/FocusTab.tsx`, `src/components/focus/` (incl. `FirstSessionBanner.tsx`)
 - `src/hooks/useTimerEngine.ts`, `src/hooks/timer/`
-- `src/lib/study/focusLockout.ts`, `src/lib/study/resolveTimerDurations.ts`
+- `src/lib/study/focusLockout.ts`, `src/lib/study/resolveTimerDurations.ts`, `src/lib/study/firstSession.ts`
 - `src/db/repositories/history.ts`, `src/db/repositories/tasks.ts`
 
 **Related data:** `tasks`, `history`, `daily_logs`, `settings` (timer keys)
@@ -269,10 +272,12 @@ index.html
 2. `TaskRegistry` component renders virtualized list when count > 100.
 3. Creating/editing tasks updates Dexie; completed tasks can auto-archive after configurable days.
 4. Recurring tasks spawn new instances via `hooks/useTaskRecurrence.ts` (`getNextRecurrenceDate` in `lib/study/recurrence.ts`).
+5. Saved task templates (localStorage `task_templates`) speed up repeat task creation via `lib/study/taskTemplates.ts` / `TaskCreateForm.tsx`.
 
 **Important files:**
 - `src/components/TaskRegistry.tsx`
 - `src/components/task-registry/TaskCreateForm.tsx`
+- `src/lib/study/taskTemplates.ts`
 - `src/db/repositories/tasks.ts`
 - `src/db/selectors/sortTasks.ts`
 - `src/hooks/useTaskActions.ts`
@@ -290,12 +295,14 @@ index.html
 2. `useAnalyticsHistoryRange` filters history by productivity window (7/30/90 days or all).
 3. Recharts renders weekly trends, category goals, retention charts.
 4. XP and streaks computed from `daily_logs` and `history` in `lib/study/studyDashboard/`.
+5. Weekly report export (CSV/Markdown) via `lib/export/weeklyReportExport.ts` in `AnalyticsTab`.
 
 **Important files:**
 - `src/components/tabs/AnalyticsTab.tsx`
 - `src/components/analytics/`
 - `src/hooks/useAnalyticsHistoryRange.ts`
 - `src/lib/study/studyDashboard/`
+- `src/lib/export/weeklyReportExport.ts`
 
 **Related data:** `history`, `daily_logs`, `tasks`, `categories`
 
@@ -327,8 +334,10 @@ index.html
 **How it works:**
 1. `SettingsTab` wraps `ControlDeck` with section navigation.
 2. Four sections: appearance, focus, study, data (`src/lib/settings/settingsSections.ts`).
-3. Settings panels lazy-load; advanced panels hidden until advanced mode enabled.
-4. All writes go through `useSettingsUpdater` → `validateSetting()` → `db/repositories/settings.ts`.
+3. Settings panels lazy-load; advanced panels hidden until advanced mode enabled (`settingsAdvancedMode.ts`, `useSettingsAdvancedMode.ts`, localStorage key `settings_show_advanced`).
+4. `SettingsOnboardingBanners` shows setup checklist (daily goal, backup export) via `lib/study/setupChecklist.ts`.
+5. All writes go through `useSettingsUpdater` → `validateSetting()` → `db/repositories/settings.ts`.
+6. Study reminders (`studyReminderEnabled`, `studyReminderTime`, `studyReminderOnlyBelowGoal`) schedule notifications via `useStudyReminder` in `useAppShellEffects`.
 
 **Important files:**
 - `src/components/tabs/SettingsTab.tsx`
@@ -349,14 +358,22 @@ index.html
 1. Export serializes all tables via `db/repositories/database.ts` → `exportAllTables`.
 2. Optional AES-GCM encryption (PBKDF2, 100k iterations) via `lib/backup/backupCrypto.ts`.
 3. SHA-256 checksum embedded in backup envelope (format version 4).
-4. Import validates schema, verifies checksum, optionally shows merge preview.
-5. Emergency snapshots (last 3) stored in `snapshots` table before risky operations.
+4. Import validates schema, verifies checksum, optionally shows merge preview (`lib/backup/mergePreview.ts`).
+5. Web Share API export on supported mobile browsers (`lib/backup/backupShare.ts`).
+6. `StorageUsagePanel` shows IndexedDB quota estimate and per-table row counts (`useStorageEstimate`, `storageStats` repository).
+7. Emergency snapshots (last 3) stored in `snapshots` table before risky operations.
+8. Backup reminder timing tracked in localStorage via `lib/backup/backupMetadata.ts` (`last_backup_export_at`, `last_backup_dismissed_at`); surfaced by `useBackupReminder` → `BackupReminderBanner` in `AppShell`.
+9. CSV/ICS reports section (`backup-vault/CsvIcsReportsSection.tsx`) exports study logs CSV, history ICS, task-completion CSV; imports history from ICS (`lib/export/icsImport.ts`, `hooks/backup/useBackupIcs.ts`); can archive history older than `historyRetentionDays`.
 
 **Important files:**
 - `src/components/control-deck/BackupVaultPanel.tsx` (re-export) → `src/components/control-deck/backup-vault/BackupVaultPanel.tsx`
-- `src/hooks/backup/useBackupVaultExport.ts`, `useBackupVaultImport.ts`, `useBackupVaultPanelState.ts`
-- `src/hooks/useSessionBackup.ts`
-- `src/lib/backup/backupExport.ts`, `backupMerge.ts`, `backupCrypto.ts`, `backupChecksum.ts`
+- `src/components/control-deck/backup-vault/CsvIcsReportsSection.tsx`
+- `src/components/control-deck/StorageUsagePanel.tsx`, `SettingsOnboardingBanners.tsx`
+- `src/components/BackupReminderBanner.tsx`
+- `src/hooks/backup/useBackupVaultExport.ts`, `useBackupVaultImport.ts`, `useBackupVaultPanelState.ts`, `useBackupIcs.ts`
+- `src/hooks/useSessionBackup.ts`, `useStorageEstimate.ts`, `useBackupReminder.ts`
+- `src/lib/backup/backupExport.ts`, `backupMerge.ts`, `backupCrypto.ts`, `backupChecksum.ts`, `backupShare.ts`, `mergePreview.ts`, `backupMetadata.ts`, `csvExport.ts`
+- `src/lib/export/icsImport.ts`, `icsExport.ts`
 - `src/lib/study/studyDashboard/backupSchema.ts`
 
 **Related data:** All tables; backup format version 4 (no flashcards)
@@ -376,6 +393,7 @@ index.html
 
 **Important files:**
 - `src/components/control-deck/FolderSyncPanel.tsx`
+- `src/hooks/useFolderSync.ts` (starts orchestrator from `AppShell` via `useAppShellEffects`)
 - `src/lib/sync/syncOrchestrator.ts`, `syncPush.ts`, `syncPull.ts`
 - `src/lib/sync/fileSystemAccess.ts`, `desktopSyncAdapter.ts`
 - `src/db/repositories/syncHooks.ts`, `syncHandles.ts`
@@ -552,6 +570,21 @@ Orchestrated by `src/lib/sync/syncOrchestrator.ts`.
 1. First visit checks `localStorage` key `sanctuary_onboarding_completed`.
 2. `OnboardingModal` shown via `useAppShellOnboarding`.
 3. User completes or dismisses; key set to prevent re-show.
+4. After first timer completion, `lib/study/firstSession.ts` may set `focus_first_run_pending` → `FirstSessionBanner` on Focus tab.
+5. Settings tab shows setup checklist (`SettingsOnboardingBanners`) until daily goal and backup milestones are met or dismissed.
+
+### Background schedulers (AppShell)
+
+When `isDataReady`, `useAppShellEffects` wires non-UI background services:
+
+| Hook | Purpose |
+|------|---------|
+| `useStudyReminder` | Daily study reminder notification at configured time (`studyReminderEnabled`, `studyReminderTime`) |
+| `useAutoExport` | Scheduled vault auto-export (`autoExportEnabled`, `autoExportIntervalDays`) |
+| `useFolderSync` | Starts/stops `syncOrchestrator` when folder sync enabled |
+| Desktop init | Applies saved autostart/shortcut settings on Tauri startup (`lib/desktop/tauri.ts`) |
+
+Separately, `AppShell` runs `useBackupReminder()` for the export nudge banner (`BackupReminderBanner`).
 
 ### Error handling flow
 
@@ -617,7 +650,7 @@ UI (components/)
 | `db/repositories/`, `db/hooks/` | `db/db`, `db/types`, `lib/` | — |
 | Tests | `db/db` allowed for setup/teardown | — |
 
-Source: `eslint.config.js` (`no-restricted-imports` blocks `db/db` from non-repository code). ADR rationale for repository boundary and the `lib/sync/` + `lib/backup/` exception was documented as **ADR-003** and **ADR-014** in [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) — **that file is currently missing from `ai/`**; see layer table above and [AI_RULES.md](AI_RULES.md) for operational rules.
+Source: `eslint.config.js` (`no-restricted-imports` blocks `db/db` from non-repository code). ADR rationale for the repository boundary and the `lib/sync/` + `lib/backup/` exception (**ADR-003**, **ADR-014**) is documented in this section and [AI_RULES.md](AI_RULES.md) — a separate `ARCHITECTURE_DECISIONS.md` is intentionally not maintained.
 
 ### Design patterns
 
@@ -922,7 +955,9 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 ### src/context/sidebar/SidebarCollapseProvider.tsx
 
-**Purpose:** Persists desktop sidebar collapsed/expanded state (`localStorage` key `sidebar_collapsed`).
+**Purpose:** Provides desktop sidebar collapsed/expanded state to the app tree.
+
+**Implementation:** Delegates to `hooks/sidebar/useSidebarCollapse.ts`, which persists via `SIDEBAR_COLLAPSED_KEY` (`sidebar_collapsed` in `navigation/appNav.ts`).
 
 **Used by:** `src/App.tsx` (outermost provider)
 
@@ -1053,17 +1088,55 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 **Responsibilities:**
 - Consumes `useStudyData()` and `useStudyUI()` facades; delegates timer/backup to `useStudyTimerContext()`
+- Runs `useBackupReminder()` for export nudge banner state
 - Composes `AppShellLayout` (sidebar, tabs, mobile nav) and `AppShellBanners` (status + toast)
 - Lazy-loads command palette and quick notes drawer (`Suspense`)
 - Hosts modals (onboarding, hotkeys, level-up, reflection, zen overlay)
 - Runs background effects (sync, auto-export, reminders) via `useAppShellEffects`
 - Renders `E2eCrashProbe` (dev-only forced error for E2E error-boundary tests)
 
-**Subcomponents:** `app-shell/AppShellLayout.tsx`, `app-shell/AppShellBanners.tsx`, `app-shell/AppShellLoadingScreen.tsx`, `app-shell/DesktopTrayTimerBridge.tsx`
+**Subcomponents:** `app-shell/AppShellLayout.tsx`, `app-shell/AppShellBanners.tsx`, `app-shell/AppShellStatusBanners.tsx`, `app-shell/AppShellLoadingScreen.tsx`, `app-shell/DesktopTrayTimerBridge.tsx`
 
 **Used by:** `src/App.tsx`
 
 **Depends on:** Context facade hooks, tab components, app-shell subcomponents — **no repository imports**
+
+---
+
+### src/hooks/app-shell/useAppShellEffects.ts
+
+**Purpose:** Central background-effect orchestrator for AppShell.
+
+**Responsibilities:**
+- Offline/online listeners
+- `useStudyReminder`, `useAutoExport`, `useFolderSync` lifecycle
+- One-time Tauri desktop settings apply (autostart, global shortcuts)
+
+**Used by:** `AppShell.tsx`
+
+---
+
+### src/hooks/backup/useBackupIcs.ts
+
+**Purpose:** CSV/ICS export and ICS history import for Backup Vault reports section.
+
+**Used by:** `useSessionBackup.ts` → `CsvIcsReportsSection.tsx`
+
+---
+
+### src/lib/study/taskTemplates.ts
+
+**Purpose:** Persist reusable task templates in localStorage (`task_templates`).
+
+**Used by:** `TaskCreateForm.tsx`
+
+---
+
+### src/lib/export/weeklyReportExport.ts
+
+**Purpose:** Build and download weekly analytics reports as CSV or Markdown.
+
+**Used by:** `AnalyticsTab.tsx`
 
 ---
 
@@ -1120,6 +1193,54 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 - When `import.meta.env.DEV` and URL query `?e2e_force_error=1`, throws to trigger `ErrorBoundary`
 
 **Used by:** `AppShell.tsx`; tested via `e2e/error-boundary.spec.ts`
+
+---
+
+### src/lib/study/setupChecklist.ts
+
+**Purpose:** Tracks first-run setup milestones (daily goal configured, backup exported event).
+
+**Responsibilities:**
+- `DAILY_GOAL_CONFIGURED_KEY` (`daily_goal_configured`) in localStorage
+- `BACKUP_EXPORTED_EVENT` custom event — listened to by `SettingsOnboardingBanners`
+
+**Used by:** `OnboardingModal`, `TimerFocusPanel`, `SettingsOnboardingBanners`
+
+---
+
+### src/lib/study/firstSession.ts
+
+**Purpose:** First-focus-session banner state for new users.
+
+**Responsibilities:**
+- `FIRST_SESSION_KEY` (`focus_first_run_pending`) in localStorage
+- `FirstSessionBanner` in `FocusTabContent` consumes pending state
+
+**Used by:** `src/components/focus/FirstSessionBanner.tsx`, timer completion flow
+
+---
+
+### src/hooks/useStorageEstimate.ts
+
+**Purpose:** Combines `navigator.storage.estimate()` with per-table row counts for Backup Vault UI.
+
+**Used by:** `StorageUsagePanel` (via `SettingsPanelProvider` / `useSettingsPanel`)
+
+---
+
+### src/lib/backup/mergePreview.ts
+
+**Purpose:** Pure merge preview counts before non-destructive backup import.
+
+**Used by:** `useBackupVaultImport.ts`, import UI
+
+---
+
+### src/lib/backup/backupShare.ts
+
+**Purpose:** Web Share API wrapper for vault export on mobile-capable browsers.
+
+**Used by:** `useBackupVaultExport.ts`, `useSessionBackup.ts`
 
 ---
 
@@ -1317,13 +1438,23 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 ### localStorage / sessionStorage keys (not env vars)
 
-| Key | Purpose | Where |
-|-----|---------|-------|
-| `sanctuary_onboarding_completed` | Onboarding dismiss flag | Onboarding modal |
-| `sidebar_collapsed` | Sidebar collapse state | `src/navigation/appNav.ts` |
-| `pending_settings_scroll` | Deferred settings panel scroll | `settingsSections.ts` |
-| Timer heartbeat keys | Session interruption recovery | `useTimerSessionShadow.ts` |
-| `pending_journal_date` | Queued journal date for cross-tab navigation | `journalNavigation.ts` (`sessionStorage`) |
+| Key | Storage | Purpose | Where |
+|-----|---------|---------|-------|
+| `sanctuary_onboarding_completed` | localStorage | Onboarding dismiss flag | `useAppShellOnboarding.ts` |
+| `sidebar_collapsed` | localStorage | Sidebar collapse state | `navigation/appNav.ts` (`SIDEBAR_COLLAPSED_KEY`), `useSidebarCollapse.ts` |
+| `settings_show_advanced` | localStorage | Control Deck advanced panels | `lib/settings/settingsAdvancedMode.ts` |
+| `settings_setup_checklist_dismissed` | localStorage | Settings setup checklist dismiss | `SettingsOnboardingBanners.tsx` |
+| `daily_goal_configured` | localStorage | Setup checklist: daily goal set | `lib/study/setupChecklist.ts` |
+| `focus_first_run_pending` | localStorage | First-session banner on Focus tab | `lib/study/firstSession.ts` |
+| `last_backup_export_at` | localStorage | Last vault export timestamp | `lib/backup/backupMetadata.ts` |
+| `last_backup_dismissed_at` | localStorage | Backup reminder snooze | `lib/backup/backupMetadata.ts` |
+| `analytics_range` | localStorage | Analytics productivity window | `useAnalyticsHistoryRange.ts` |
+| `active_session_shadow` | sessionStorage | Timer interruption recovery | `useTimerSessionShadow.ts` |
+| `pending_journal_date` | sessionStorage | Queued journal date for cross-tab navigation | `journalNavigation.ts` |
+| `pending_settings_scroll` | sessionStorage | Deferred settings panel scroll target | `settingsSections.ts` |
+| `backup_import_mode` / `backup_import_passphrase` | sessionStorage | Brief import UI state (cleared after use) | `useBackupVaultPanelState.ts`, `useStudyTimerState.ts` |
+
+Other UI-preference keys (e.g. `completed_section_open`, `journal_hint_dismissed`, `task_templates`, `pwa_install_dismissed_until`, `completed_study_sessions_count`) are feature-local — grep `localStorage` / `sessionStorage` in `src/` when debugging.
 
 ---
 
@@ -1375,10 +1506,11 @@ npm run test:watch          # Watch mode
 npm run test:coverage       # Core coverage gate (80%/74%)
 npm run test:coverage:components  # Component gate (65%/50%)
 npm run test:coverage:settings    # Settings gate (60%/45%)
-npm run test:e2e            # Playwright E2E (chromium, mobile, visual)
+npm run test:e2e            # Playwright E2E (local: all projects; CI: see §13)
 npm run test:e2e:sync       # Folder-sync E2E only
+npm run screenshots         # Capture README tab screenshots (playwright.screenshots.config.ts)
 npm run lint                # ESLint
-npm run check:bundle        # Bundle size budget (~512 KB gzip)
+npm run check:bundle        # Bundle size budget (main ~512 KB gzip, total JS ~1.2 MB gzip)
 ```
 
 ### Building for production
@@ -1428,7 +1560,7 @@ See [README.md](../README.md#development) and [CONTRIBUTING.md](../CONTRIBUTING.
 |------|-------|
 | **New tab** | Add to `ActiveTab` type, `appNav.ts`, `appHashRouting.ts`, `AppShell.tsx`, create `src/components/tabs/NewTab.tsx` |
 | **New settings panel** | `src/components/control-deck/NewPanel.tsx`, register in `ControlDeck.tsx` and `settingsSections.ts` |
-| **New setting key** | `src/db/types.ts` (`SettingsKey`), defaults in `settingsFromRows.ts`, validation in `settingsValidation.ts`, UI control in panel |
+| **New setting key** | `src/db/types.ts` (`SettingsKey`), defaults in `lib/settings/settingsDefaults.ts` (`SETTINGS_DEFAULTS`), row parsing in `db/selectors/settingsFromRows.ts`, validation in `settingsValidation.ts`, UI control in panel |
 | **New DB table/field** | Bump `this.version(N)` in `src/db/db.ts`, add migration, update `types.ts`, add repository, add test in `db.migration.test.ts` |
 | **New reusable component** | `src/components/shared/` for primitives; feature-specific subfolder otherwise |
 | **New domain logic** | `src/lib/<domain>/` — keep pure, testable functions |
@@ -1467,7 +1599,7 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md#dexie-migrations).
 
 ### Safest way for an AI agent to make changes
 
-1. Read this document and [AI_RULES.md](AI_RULES.md) first (ADR details in missing [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) — use §6 here)
+1. Read this document and [AI_RULES.md](AI_RULES.md) first (layer rules and ADR-014 exception: §6 here)
 2. Identify the feature layer (UI → context → hooks → lib → repository)
 3. Follow existing patterns in the nearest similar feature
 4. Never bypass repository layer for DB access
@@ -1502,13 +1634,24 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md#dexie-migrations).
 
 | Tier | Command | Thresholds | Scope |
 |------|---------|------------|-------|
-| Core | `npm run test:coverage` | 80% lines / 74% branches | `lib`, `db`, timer/backup hooks |
-| Component | `npm run test:coverage:components` | 65% lines / 50% branches | Shared primitives, analytics UI |
+| Core | `npm run test:coverage` | 80% lines / 74% branches (also 80% functions & statements) | `lib`, `db`, timer/backup hooks |
+| Component | `npm run test:coverage:components` | 65% lines / 50% branches (also 65% functions & statements) | Shared primitives, analytics UI |
 | Settings | `npm run test:coverage:settings` | 60% lines / 45% branches | Control-deck panels, settings widgets |
 
 Full-app line coverage is intentionally not the goal — E2E covers integration paths.
 
 ### E2E spec files
+
+26 specs in `e2e/` (see list below). Playwright projects in `playwright.config.ts`: `chromium`, `mobile-chrome` (mobile.spec only), `firefox`, `webkit`, `visual` (visual-regression), `e2e-sync` (folder-sync specs with `VITE_E2E_SYNC=1`).
+
+**CI E2E jobs** (`.github/workflows/ci.yml` — separate from local `npm run test:e2e`):
+
+| Job | Projects / scope |
+|-----|------------------|
+| `e2e` | `chromium`, `mobile-chrome`, `visual` |
+| `e2e-sync` | `e2e-sync` (folder-sync specs) |
+| `e2e-firefox` | `firefox` smoke: `focus.spec.ts`, `tasks.spec.ts` |
+| `e2e-webkit` | `webkit` smoke: `focus.spec.ts`, `tasks.spec.ts` |
 
 `e2e/analytics.spec.ts`, `analytics-range.spec.ts`, `auto-export.spec.ts`, `backup.spec.ts`, `backup-export.spec.ts`, `backup-import.spec.ts`, `backup-import-cancel.spec.ts`, `backup-import-invalid.spec.ts`, `backup-reminder.spec.ts`, `command-palette.spec.ts`, `error-boundary.spec.ts`, `first-visit.spec.ts`, `focus.spec.ts`, `folder-sync.spec.ts`, `folder-sync-conflict.spec.ts`, `journal.spec.ts`, `keyboard.spec.ts`, `mobile.spec.ts`, `quick-notes.spec.ts`, `reflection.spec.ts`, `screenshots.capture.spec.ts`, `settings.spec.ts`, `tasks.spec.ts`, `timer.spec.ts`, `visual-regression.spec.ts`, `zen.spec.ts`
 
@@ -1520,7 +1663,7 @@ Full-app line coverage is intentionally not the goal — E2E covers integration 
 
 ### Bundle size
 
-- `npm run check:bundle` — gzip budget on main JS chunk (~512 KB)
+- `npm run check:bundle` — gzip budgets in `scripts/check-bundle-size.mjs`: main `index-*.js` chunk ≤ 512 KB; total JS ≤ 1.2 MB
 - Manual chunks for recharts, dexie, lucide-react in `vite.config.ts`
 
 ### Suggested tests to add first
@@ -1576,11 +1719,13 @@ Error handlers use `console.error` for diagnostics — not debug logging:
 - **Sync conflict resolution UX** — functional but complex; limited test coverage outside E2E
 - **IndexedDB quota** — recovery path exists but user may lose unsynced data if quota exceeded before export
 - **Safari PWA** — works offline but no folder sync
+- **Backup import passphrase in sessionStorage** — `useBackupVaultPanelState` briefly stores `backup_import_passphrase` for import retry; avoid logging or persisting longer than needed
 
 ### Documentation gaps
 
 - No `.env.example` file
-- Missing `ai/` companion docs: `CURRENT_STATE.md`, `ARCHITECTURE_DECISIONS.md`, `TASK_TEMPLATE.md`, `PROMPT_PATTERNS.md` (referenced but not present)
+- Optional `ai/` companion docs not maintained: `TASK_TEMPLATE.md`, `PROMPT_PATTERNS.md` (referenced in `.cursor/rules/` but not present)
+- `CURRENT_STATE.md` and `ARCHITECTURE_DECISIONS.md` intentionally omitted — confirmed; do not create
 - Parent [README.md](../../README.md) links to `web/ARCHITECTURE.md`, which does not exist — use this document §6 instead
 
 ---
@@ -1654,7 +1799,7 @@ For documentation maintenance rules and the AI-maintained doc registry, see [`AI
 
 ### Before editing
 
-1. Read this document and [AI_RULES.md](AI_RULES.md) (note: [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) is referenced but **missing** — use §6 layer rules here)
+1. Read this document and [AI_RULES.md](AI_RULES.md) (layer rules and ADR-014 exception: §6 here)
 2. Identify which layer your change affects — follow the strict pipeline: **UI → Context facades → Hooks → Lib → Repositories → Dexie**
 3. Read the nearest similar existing feature and match its patterns
 4. Check [`CHANGELOG.md`](CHANGELOG.md) for recent schema/feature changes
@@ -1679,6 +1824,7 @@ For documentation maintenance rules and the AI-maintained doc registry, see [`AI
 - `src/lib/backup/backupCrypto.ts` — encryption format changes break existing encrypted backups
 - `src/lib/sync/syncPull.ts` — merge logic can cause data loss if wrong
 - `src/lib/routing/appHashRouting.ts` — hash changes break bookmarks and E2E tests
+- `src/hooks/backup/useBackupVaultPanelState.ts` — import passphrase briefly stored in sessionStorage
 
 ### Conventions to preserve
 
@@ -1752,7 +1898,6 @@ npm run build                         # If build config or imports changed
 | Improvement | Why | First step | Related files |
 |-------------|-----|------------|---------------|
 | Add `.env.example` | Documents `VITE_E2E_SYNC` and other env vars for contributors | Create `.env.example` with commented vars | `src/vite-env.d.ts`, `playwright.config.ts` |
-| Restore missing `ai/` docs | Broken links to ADRs, CURRENT_STATE, templates | Create or remove stale references | `ai/ARCHITECTURE_DECISIONS.md`, etc. |
 | Create `web/ARCHITECTURE.md` or fix parent README link | Parent README 404 on architecture link | Point to `ai/PROJECT_CONTEXT.md` §6 or add thin redirect doc | Parent `README.md` |
 | Sync conflict integration test | Complex merge logic relies mainly on E2E | Add Vitest test for conflict detection path | `src/lib/sync/syncPull.ts` |
 
@@ -1825,7 +1970,7 @@ npm run tauri:dev            # Desktop dev
 
 | Task | Steps |
 |------|-------|
-| Add setting | `types.ts` → `settingsFromRows.ts` → `settingsValidation.ts` → panel UI |
+| Add setting | `types.ts` → `settingsDefaults.ts` → `settingsFromRows.ts` → `settingsValidation.ts` → panel UI |
 | Add migration | Bump version in `db.ts` → `.upgrade()` → `db.migration.test.ts` → CHANGELOG |
 | Add E2E spec | `e2e/feature.spec.ts` → use `e2e/helpers/studyApp.ts` |
 | Add component | `src/components/` → `__tests__/` → optional `.stories.tsx` |
@@ -1862,6 +2007,9 @@ npm run tauri:dev            # Desktop dev
 | **Sanctuary** | Internal naming prefix for onboarding localStorage key (`sanctuary_onboarding_completed`) |
 | **Facade hooks** | Public UI API in `useStudyApp.ts` (`useStudyData`, `useStudyUI`, …) over slice contexts |
 | **Deferred data flags** | `useDeferredDataEnabled` gates quick notes/full logs until drawer or palette opens |
+| **First session banner** | Focus-tab hint for new users; keyed by `focus_first_run_pending` in localStorage |
+| **Setup checklist** | Settings onboarding banners tracking daily goal and backup export milestones |
+| **Task templates** | Saved repeat-task presets in localStorage (`task_templates`) — not IndexedDB |
 | **Active tab store** | `useActiveTabStore()` in `lib/routing/activeTabSync.ts` (data layer) vs `useActiveTabSync` in `hooks/routing/` (hash sync) — do not merge |
 
 ---
@@ -1878,10 +2026,14 @@ npm run tauri:dev            # Desktop dev
 
 ### Areas needing human confirmation
 
-- Whether to create missing `ai/` companion docs (`ARCHITECTURE_DECISIONS.md`, `CURRENT_STATE.md`, etc.) or remove stale references from `.cursor/rules/`
 - Target locales for future i18n expansion
 - Whether Chromatic visual testing is actively used (CI job is conditional on secret)
 - Open-source licensing intentions (currently marked private)
+
+### Documentation policy (confirmed)
+
+- **`CURRENT_STATE.md`** — not maintained; use `CHANGELOG.md`, git history, and the active task for recent context
+- **`ARCHITECTURE_DECISIONS.md`** — not maintained; architectural rationale lives in this document §6 and `AI_RULES.md`
 
 ### Recommended next documentation updates
 
@@ -1896,11 +2048,11 @@ npm run tauri:dev            # Desktop dev
 |----------|----------|--------|
 | [README.md](../README.md) | Product overview, quick start, features, deployment | Present |
 | [AI_RULES.md](AI_RULES.md) | Agent operational rules and protected systems | Present |
-| [CURRENT_STATE.md](CURRENT_STATE.md) | Active work snapshot | **Missing** |
-| [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) | ADR log with architectural trade-offs | **Missing** |
+| [CURRENT_STATE.md](CURRENT_STATE.md) | Active work snapshot | **Intentionally omitted** |
+| [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) | ADR log with architectural trade-offs | **Intentionally omitted** — see §6 |
 | [CONTRIBUTING.md](../CONTRIBUTING.md) | Migrations, E2E patterns, settings conventions | Present |
 | [CHANGELOG.md](../CHANGELOG.md) | Release notes, schema and backup version history | Present |
 
 ---
 
-*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 23, 2026. Canonical location: `ai/PROJECT_CONTEXT.md`.*
+*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 24, 2026. Canonical location: `ai/PROJECT_CONTEXT.md`.*
