@@ -36,11 +36,10 @@ export const SidebarActionButton = memo(function SidebarActionButton({
       <button
         type="button"
         aria-label={flyoutText}
-        title={flyoutText}
         onClick={onClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="sidebar-rail-btn h-10 w-10 flex items-center justify-center rounded-lg text-xs font-semibold text-muted hover:surface-subtle hover:text-primary transition-all duration-200 cursor-pointer"
+        className="sidebar-rail-btn h-10 w-10 flex items-center justify-center rounded-chrome-md text-xs font-semibold text-muted hover:surface-subtle hover:text-primary transition-all duration-200 cursor-pointer focus-ring ios-active-scale"
       >
         <Icon className={`h-4 w-4 shrink-0 ${iconClassName}`} />
       </button>
@@ -55,19 +54,18 @@ export const SidebarActionButton = memo(function SidebarActionButton({
     <button
       type="button"
       aria-label={flyoutText}
-      title={flyoutText}
       onClick={onClick}
-      className={`w-full flex items-center border border-transparent bg-transparent text-secondary hover:surface-subtle hover:text-primary transition-all duration-200 ios-active-scale cursor-pointer ${sizeClass}`}
+      className={`w-full flex flex-col items-start border border-transparent bg-transparent text-secondary hover:surface-subtle hover:text-primary transition-all duration-200 ios-active-scale cursor-pointer focus-ring ${sizeClass}`}
     >
-      <Icon className={`shrink-0 ${compact ? 'h-4 w-4' : 'h-4.5 w-4.5'} ${iconClassName}`} />
-      <div className="flex flex-col items-start min-w-0 text-left">
+      <span className="flex items-center gap-3 w-full min-w-0 text-left">
+        <Icon className={`shrink-0 ${compact ? 'h-4 w-4' : 'h-4.5 w-4.5'} ${iconClassName}`} />
         <span className="whitespace-nowrap">{label}</span>
-        {subtitle && (
-          <span className="text-micro font-medium text-muted normal-case tracking-normal leading-tight truncate max-w-full">
-            {subtitle}
-          </span>
-        )}
-      </div>
+      </span>
+      {subtitle && (
+        <span className="text-micro font-medium text-muted normal-case tracking-normal leading-tight truncate max-w-full pl-7">
+          {subtitle}
+        </span>
+      )}
     </button>
   )
 })

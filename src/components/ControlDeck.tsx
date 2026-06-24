@@ -21,6 +21,7 @@ import { SettingsPanelProvider, useSettingsPanel } from '../context/settingsPane
 import { SettingsShell, SettingsSection } from './control-deck/SettingsShell'
 import { useSettingsAdvancedMode } from '../hooks/useSettingsAdvancedMode'
 import { useTranslation } from '../i18n/useTranslation'
+import { getSettingsSections, type SettingsSectionId } from '../lib/settings/settingsSections'
 
 interface ControlDeckProps {
   onShowOnboarding?: () => void
@@ -31,6 +32,8 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
   const { requestConfirm } = useConfirm()
   const { showAdvanced, setShowAdvanced } = useSettingsAdvancedMode()
   const { t } = useTranslation()
+  const sectionLabel = (id: SettingsSectionId) =>
+    getSettingsSections().find(section => section.id === id)?.label ?? id
 
   useEffect(() => {
     const { settingsSection } = readAppHashFromLocation()
@@ -64,7 +67,7 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
       showAdvanced={showAdvanced}
       onShowAdvancedChange={setShowAdvanced}
     >
-      <SettingsSection id="appearance" label="Appearance">
+      <SettingsSection id="appearance" label={sectionLabel('appearance')}>
         <Suspense fallback={<PanelFallback />}>
           <AestheticsPanel />
         </Suspense>
@@ -72,7 +75,7 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
 
       <SettingsSection
         id="focus"
-        label="Focus"
+        label={sectionLabel('focus')}
         onResetDefaults={() => void handleSectionReset('focus')}
       >
         <Suspense fallback={<PanelFallback />}>
@@ -84,7 +87,7 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
 
       <SettingsSection
         id="study"
-        label="Study"
+        label={sectionLabel('study')}
         onResetDefaults={() => void handleSectionReset('study')}
       >
         <Suspense fallback={<PanelFallback />}>
@@ -98,7 +101,7 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
         </Suspense>
       </SettingsSection>
 
-      <SettingsSection id="data" label="Data">
+      <SettingsSection id="data" label={sectionLabel('data')}>
         <Suspense fallback={<PanelFallback />}>
           <BackupVaultPanel />
           {showAdvanced && <DesktopSettingsPanel />}

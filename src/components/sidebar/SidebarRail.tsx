@@ -29,7 +29,7 @@ export function SidebarRailContent({
       <div className="flex flex-col gap-4 md:gap-6">
         <SidebarHeader collapsed onToggleCollapse={onToggleCollapse} />
 
-        <nav className="hidden md:grid justify-items-center gap-1">
+        <nav aria-label="Main navigation" className="hidden md:grid justify-items-center gap-1">
           {navTabs.map(tab => {
             const isActive = activeTab === tab.id
             const isLocked = enforceLockout && isTimerActive && timerMode === 'study' && tab.id !== 'focus'

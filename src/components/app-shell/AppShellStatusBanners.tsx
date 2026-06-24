@@ -100,22 +100,22 @@ export function AppShellStatusBanners({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="flex items-center justify-center gap-1 border-b border-card surface-subtle px-4 py-1.5 text-micro font-semibold text-muted hover:text-primary transition-colors"
+          className="focus-ring flex items-center justify-center gap-1 border-b border-card surface-subtle px-4 py-1.5 text-micro font-semibold text-muted hover:text-primary transition-colors ios-active-scale"
           aria-expanded={expanded}
         >
           <ChevronDown className="h-3 w-3" aria-hidden />
-          {hiddenCollapsibleCount} more alert{hiddenCollapsibleCount > 1 ? 's' : ''}
+          {t('bannerAlertsShowMore', { count: hiddenCollapsibleCount })}
         </button>
       )}
       {expanded && collapsible.length > 1 && (
         <button
           type="button"
           onClick={() => setExpanded(false)}
-          className="flex items-center justify-center gap-1 border-b border-card surface-subtle px-4 py-1.5 text-micro font-semibold text-muted hover:text-primary transition-colors"
+          className="focus-ring flex items-center justify-center gap-1 border-b border-card surface-subtle px-4 py-1.5 text-micro font-semibold text-muted hover:text-primary transition-colors ios-active-scale"
           aria-expanded={expanded}
         >
           <ChevronUp className="h-3 w-3" aria-hidden />
-          Hide alerts
+          {t('bannerAlertsHide')}
         </button>
       )}
     </div>

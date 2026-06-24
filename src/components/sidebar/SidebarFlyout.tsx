@@ -27,12 +27,11 @@ export function SidebarFlyoutProvider({ children }: { children: React.ReactNode 
       {children}
       {flyout && createPortal(
         <div
-          className="sidebar-flyout sidebar-flyout-enter glass-panel px-2.5 py-1 rounded-lg text-xs font-semibold text-primary whitespace-nowrap shadow-lg pointer-events-none border-l-2 border-l-accent-blue/40"
+          className="sidebar-flyout sidebar-flyout-enter glass-panel z-50 px-2.5 py-1 rounded-lg text-xs font-semibold text-primary whitespace-nowrap shadow-lg pointer-events-none border-l-2 border-l-accent-blue/40"
           style={{
             position: 'fixed',
             top: flyout.top,
             left: flyout.left,
-            zIndex: 50,
           }}
           aria-hidden="true"
         >

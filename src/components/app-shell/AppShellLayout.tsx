@@ -71,7 +71,7 @@ export const AppShellLayout = memo(function AppShellLayout({
         onShowOnboarding={onShowOnboarding}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 z-10">
+      <main id="main-content" className="flex-1 flex flex-col min-w-0 z-10">
         <AppShellBanners {...banners} />
         {!isZenMode && (
           <AppContentHeader
@@ -93,7 +93,7 @@ export const AppShellLayout = memo(function AppShellLayout({
           />
         )}
 
-        <div className={`app-content-main flex-1 p-4 md:p-6 lg:p-8 flex flex-col transition-all duration-700 ${isZenMode ? 'opacity-0 scale-95 pointer-events-none' : ''}`}>
+        <div className={`app-content-main flex-1 p-4 md:p-6 lg:p-8 flex flex-col transition-all duration-300 motion-reduce:transition-none ${isZenMode ? 'opacity-0 motion-safe:scale-95 pointer-events-none' : ''}`}>
           {!isZenMode && (
             <div key={activeTab} className="app-tab-panel flex-1 flex flex-col min-h-0" data-active-tab={activeTab}>
               {activeTab === 'focus' && (

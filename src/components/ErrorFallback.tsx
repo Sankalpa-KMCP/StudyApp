@@ -61,25 +61,25 @@ export function ErrorFallback({ message, stack, contextLabel, onRetry, onReload 
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--body-base)] p-6">
-      <div className="max-w-md rounded-2xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_80%,transparent)] p-8 text-center backdrop-blur-xl">
-        <h1 className="text-lg font-bold text-[var(--color-text-primary)] mb-2">
+      <div className="max-w-md rounded-2xl border border-card surface-overlay p-8 text-center backdrop-blur-xl">
+        <h1 className="text-lg font-bold text-primary mb-2">
           {contextLabel ? t('errorTabCrashed', { label: contextLabel }) : t('errorSomethingWrong')}
         </h1>
-        <p className="text-sm text-[var(--color-text-secondary)] font-mono mb-6">{message}</p>
+        <p role="alert" className="text-sm text-secondary font-mono mb-6">{message}</p>
         <div className="flex flex-wrap gap-3 justify-center">
-          <Button variant="secondary" size="sm" onClick={onRetry}>
+          <Button variant="secondary" size="sm" onClick={onRetry} className="focus-ring">
             {t('errorTryAgain')}
           </Button>
-          <Button variant="secondary" size="sm" onClick={handleCopyDebug}>
+          <Button variant="secondary" size="sm" onClick={handleCopyDebug} className="focus-ring">
             {t('errorCopyDebug')}
           </Button>
-          <Button variant="secondary" size="sm" onClick={handleExportData}>
+          <Button variant="secondary" size="sm" onClick={handleExportData} className="focus-ring">
             {t('errorExportData')}
           </Button>
-          <Button variant="danger" size="sm" onClick={handleResetDatabase}>
+          <Button variant="danger" size="sm" onClick={handleResetDatabase} className="focus-ring">
             {t('errorResetDatabase')}
           </Button>
-          <Button variant="primary" size="sm" onClick={onReload}>
+          <Button variant="primary" size="sm" onClick={onReload} className="focus-ring">
             {t('errorReloadApp')}
           </Button>
         </div>
