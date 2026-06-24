@@ -10,7 +10,7 @@ const RetentionChartPanel = lazy(() => import('./analytics/RetentionChartPanel')
 const BreakdownPanels = lazy(() => import('./analytics/BreakdownPanels').then(m => ({ default: m.BreakdownPanels })))
 
 function ChartPanelFallback() {
-  return <div className="h-48 animate-pulse rounded-2xl surface-subtle" aria-hidden />
+  return <div className="h-48 animate-pulse rounded-2xl surface-subtle" aria-busy="true" aria-label="Loading chart" />
 }
 import { AnalyticsEmptyHero } from './analytics/AnalyticsEmptyHero'
 import { AnalyticsRangeSelector } from './analytics/AnalyticsRangeSelector'

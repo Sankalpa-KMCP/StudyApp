@@ -61,15 +61,15 @@ export const HeatmapPanel = memo(function HeatmapPanel({ heatmapData, accentBlue
       <div className="relative w-full overflow-x-auto custom-scrollbar p-2 surface-subtle border border-card rounded-2xl">
         <div className="grid grid-flow-col grid-rows-7 gap-1 min-w-[650px] justify-start">
           {heatmapData.map(day => (
-            <div
+            <button
               key={day.dateStr}
-              role="img"
+              type="button"
               aria-label={t('analyticsHeatmapDayAria', { date: day.dateStr, minutes: day.minutes })}
               title={`${day.dateStr}: ${day.minutes}m`}
-              className="w-2.5 h-2.5 rounded-[2px] cursor-pointer transition-transform hover:scale-125 relative group"
+              className="focus-ring w-2.5 h-2.5 rounded-[2px] cursor-pointer transition-transform hover:scale-125 relative group"
               style={{
                 backgroundColor: day.minutes === 0
-                  ? 'rgba(255, 255, 255, 0.03)'
+                  ? 'color-mix(in srgb, var(--color-text-primary) 3%, transparent)'
                   : day.minutes < 60
                   ? `rgba(${rgbStr}, 0.20)`
                   : day.minutes < 120
@@ -79,14 +79,14 @@ export const HeatmapPanel = memo(function HeatmapPanel({ heatmapData, accentBlue
                   : `rgba(${rgbStr}, 1.00)`,
               }}
             >
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col w-32 surface-overlay border border-card p-2 rounded-[12px] text-micro font-mono text-left pointer-events-none z-30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] leading-normal">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex group-focus-within:flex flex-col w-32 surface-overlay border border-card p-2 rounded-2xl text-micro font-mono text-left pointer-events-none z-30 leading-normal" style={{ boxShadow: 'var(--shadow-elevated)' }}>
                 <div className="font-bold text-primary mb-0.5 border-b border-card pb-0.5">{day.dateStr}</div>
                 <div className="text-secondary">{t('analyticsHeatmapStudy', { minutes: day.minutes })}</div>
                 <div className="text-accent-blue font-bold mt-0.5">
                   {t('analyticsHeatmapIntensity', { level: getHeatmapIntensityLabel(day.minutes) })}
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
