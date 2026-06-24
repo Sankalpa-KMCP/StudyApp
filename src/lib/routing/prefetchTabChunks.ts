@@ -14,15 +14,3 @@ export function prefetchTabChunk(tab: ActiveTab) {
   prefetched.add(tab)
   void TAB_IMPORTS[tab]()
 }
-
-/** @deprecated Use prefetchTabChunk('settings') */
-export function prefetchControlDeck() {
-  prefetchTabChunk('settings')
-}
-
-export function prefetchIdleTabChunks() {
-  const tabs: Exclude<ActiveTab, 'focus'>[] = ['analytics', 'journal', 'settings']
-  for (const tab of tabs) {
-    prefetchTabChunk(tab)
-  }
-}
