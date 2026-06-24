@@ -101,6 +101,8 @@ export function SyncConflictModal() {
           size="md"
           disabled={isResolving}
           onClick={() => { void handleResolve('keepLocal') }}
+          aria-label={syncConflictKeepLocal()}
+          className="focus-ring"
         >
           {syncConflictKeepLocal()}
         </Button>
@@ -109,6 +111,8 @@ export function SyncConflictModal() {
           size="md"
           disabled={isResolving}
           onClick={() => { void handleResolve('keepRemote') }}
+          aria-label={syncConflictKeepRemote()}
+          className="focus-ring"
         >
           {syncConflictKeepRemote()}
         </Button>
@@ -118,6 +122,8 @@ export function SyncConflictModal() {
             size="md"
             disabled={isResolving}
             onClick={() => setShowPreview(true)}
+            aria-label={syncConflictPreviewTitle()}
+            className="focus-ring"
           >
             {syncConflictPreviewTitle()}
           </Button>
@@ -127,6 +133,8 @@ export function SyncConflictModal() {
             size="md"
             disabled={isResolving}
             onClick={() => { void handleResolve('merge') }}
+            aria-label={syncConflictMerge()}
+            className="focus-ring"
           >
             {syncConflictMerge()}
           </Button>

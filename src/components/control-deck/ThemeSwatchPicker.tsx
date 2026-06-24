@@ -45,14 +45,14 @@ function SwatchButton({
       aria-label={label}
       aria-pressed={selected}
       title={label}
-      className={`group relative flex flex-col gap-1.5 rounded-xl p-2 text-left transition-all ${
+      className={`group relative flex flex-col gap-1.5 rounded-xl p-2 text-left transition-all focus-ring ${
         selected
           ? 'ring-2 ring-accent-blue ring-offset-2 ring-offset-transparent'
-          : 'ring-1 ring-transparent hover:ring-[var(--color-border-card)]'
+          : 'ring-1 ring-transparent hover:ring-accent-blue/20'
       }`}
     >
       <div
-        className="h-10 w-full rounded-lg border border-[var(--color-border-card)] overflow-hidden"
+        className="h-10 w-full rounded-lg border border-card overflow-hidden"
         style={{ background: profile.pageGradient }}
       >
         <div className="flex h-full items-end gap-0.5 p-1.5">
@@ -109,13 +109,13 @@ export function ThemeSwatchPicker({
             type="button"
             onClick={selectSystem}
             aria-pressed={isSystem}
-            className={`rounded-xl p-2 text-left transition-all ${
+            className={`rounded-xl p-2 text-left transition-all focus-ring ${
               isSystem
                 ? 'ring-2 ring-accent-blue ring-offset-2 ring-offset-transparent'
-                : 'ring-1 ring-transparent hover:ring-[var(--color-border-card)]'
+                : 'ring-1 ring-transparent hover:ring-accent-blue/20'
             }`}
           >
-            <div className="h-10 w-full rounded-lg border border-[var(--color-border-card)] overflow-hidden flex">
+            <div className="h-10 w-full rounded-lg border border-card overflow-hidden flex">
               <div className="flex-1" style={{ background: THEME_PROFILES[themePreset]?.pageGradient }} />
               <div className="flex-1" style={{ background: THEME_PROFILES[lightThemePreset]?.pageGradient }} />
             </div>
@@ -155,7 +155,7 @@ export function ThemeSwatchPicker({
       </div>
 
       {isSystem && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[var(--color-border-card)]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-card">
           <div>
             <span className="settings-label block mb-2">{t('themeSystemDarkPreset')}</span>
             <div className="grid grid-cols-3 gap-2">

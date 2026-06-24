@@ -40,7 +40,7 @@ export function SoundFeedbackPanel() {
         <ToggleSetting label={t('soundSessionChimes')} checked={soundEnabled} onChange={v => updateSetting('soundEnabled', v)} />
         <ToggleSetting label={t('soundTactileFeedback')} checked={tactileEnabled} onChange={v => updateSetting('tactile_feedback', v)} />
 
-        <div className="border-t border-[var(--color-border-card)] pt-4 space-y-3">
+        <div className="border-t border-card pt-4 space-y-3">
           <ToggleSetting
             label={t('soundAmbientBackground')}
             description={t('soundAmbientBackgroundDesc')}
@@ -69,11 +69,12 @@ export function SoundFeedbackPanel() {
         </div>
 
         <div>
-          <span className="settings-label block mb-2">{t('soundMonospaceFont')}</span>
+          <label htmlFor="sound-monospace-font" className="settings-label block mb-2">{t('soundMonospaceFont')}</label>
           <select
+            id="sound-monospace-font"
             value={developerFont}
             onChange={e => updateSetting('developer_font', e.target.value)}
-            className="settings-select"
+            className="settings-select focus-ring"
           >
             {FONT_OPTIONS.map(f => (
               <option key={f} value={f}>{f}</option>

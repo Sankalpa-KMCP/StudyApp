@@ -8,6 +8,7 @@ import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
 import { SettingsPresetChips } from '../shared/settings/SettingsPresetChips'
+import { Button } from '../shared/Button'
 
 export function TimerFocusPanel() {
   const { t } = useTranslation()
@@ -72,15 +73,16 @@ export function TimerFocusPanel() {
           <p className="settings-muted mb-2">{t('timerFocusPomodoroPresetsHelper')}</p>
           <div className="flex flex-wrap gap-1.5">
             {pomodoroPresets.map(preset => (
-              <button
+              <Button
                 key={preset.id}
                 type="button"
                 title={preset.title}
+                variant="secondary"
+                size="sm"
                 onClick={() => applyPomodoroPreset(preset)}
-                className="rounded-full px-3 py-1.5 text-micro font-semibold border bg-[color-mix(in_srgb,var(--color-surface-card)_60%,transparent)] border-[var(--color-border-card)] settings-muted hover:border-accent-blue/40 hover:text-accent-blue transition-all ios-active-scale"
               >
                 {preset.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -105,13 +107,14 @@ export function TimerFocusPanel() {
         />
         {studyReminderEnabled && (
           <div className="space-y-3 pl-1">
-            <label className="block">
+            <label htmlFor="timer-focus-reminder-time" className="block">
               <span className="settings-label block mb-1">{t('timerFocusReminderTime')}</span>
               <input
+                id="timer-focus-reminder-time"
                 type="time"
                 value={studyReminderTime}
                 onChange={e => updateSetting('studyReminderTime', e.target.value)}
-                className="rounded-lg border border-card surface-subtle px-3 py-2 text-xs text-primary"
+                className="settings-input !rounded-lg !w-auto max-w-[200px] text-micro focus-ring"
               />
             </label>
             <ToggleSetting

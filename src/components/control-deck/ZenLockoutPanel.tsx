@@ -8,6 +8,8 @@ import { RangeSetting } from '../shared/settings/RangeSetting'
 
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
 
+import { SelectionChip } from '../shared/SelectionChip'
+
 import type { ActiveTab } from '../../types/app'
 
 
@@ -106,33 +108,27 @@ export function ZenLockoutPanel() {
 
               <span className="settings-label block mb-2">{t('zenLockoutMode')}</span>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2" role="group" aria-label={t('zenLockoutMode')}>
 
                 {(['strict', 'soft'] as const).map(mode => (
 
-                  <button
+                  <SelectionChip
 
                     key={mode}
 
-                    type="button"
+                    selected={lockoutMode === mode}
+
+                    accent="blue"
+
+                    size="sm"
 
                     onClick={() => updateSetting('lockoutMode', mode)}
-
-                    className={`rounded-full px-3 py-1.5 text-micro font-semibold border transition-all ${
-
-                      lockoutMode === mode
-
-                        ? 'border-accent-blue/40 text-accent-blue bg-accent-blue/10'
-
-                        : 'border-card settings-muted hover:border-card'
-
-                    }`}
 
                   >
 
                     {mode === 'strict' ? t('zenLockoutModeStrict') : t('zenLockoutModeSoft')}
 
-                  </button>
+                  </SelectionChip>
 
                 ))}
 
@@ -156,33 +152,27 @@ export function ZenLockoutPanel() {
 
               <span className="settings-label block mb-2">{t('zenLockoutAllowedTabs')}</span>
 
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('zenLockoutAllowedTabs')}>
 
                 {TAB_OPTIONS.map(tab => (
 
-                  <button
+                  <SelectionChip
 
                     key={tab.id}
 
-                    type="button"
+                    selected={allowed.includes(tab.id)}
+
+                    accent="green"
+
+                    size="sm"
 
                     onClick={() => toggleAllowedTab(tab.id)}
-
-                    className={`rounded-full px-3 py-1.5 text-micro font-semibold border transition-all ${
-
-                      allowed.includes(tab.id)
-
-                        ? 'border-accent-green/40 text-accent-green bg-accent-green/10'
-
-                        : 'border-card settings-muted'
-
-                    }`}
 
                   >
 
                     {t(tab.labelKey)}
 
-                  </button>
+                  </SelectionChip>
 
                 ))}
 

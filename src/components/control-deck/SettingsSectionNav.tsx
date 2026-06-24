@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { writeAppHash } from '../../lib/routing/appHashRouting'
 import { getSettingsSections, scrollToSettingsSection, type SettingsSectionId } from '../../lib/settings/settingsSections'
-import { useTranslation } from '../../i18n/useTranslation'
 
 interface SettingsSectionNavProps {
   className?: string
@@ -9,7 +8,6 @@ interface SettingsSectionNavProps {
 }
 
 export function SettingsSectionNav({ className = '', variant = 'sidebar' }: SettingsSectionNavProps) {
-  useTranslation()
   const settingsSections = getSettingsSections()
   const [activeId, setActiveId] = useState<SettingsSectionId>('appearance')
 
@@ -44,27 +42,29 @@ export function SettingsSectionNav({ className = '', variant = 'sidebar' }: Sett
       {settingsSections.map(section => {
         const isActive = activeId === section.id
         const Icon = section.icon
+        const panelId = `settings-${section.id}`
         return (
           <button
             key={section.id}
             type="button"
             id={`nav-${section.id}`}
             aria-current={isActive ? 'location' : undefined}
+            aria-controls={panelId}
             onClick={() => {
-              scrollToSettingsSection(`settings-${section.id}`)
+              scrollToSettingsSection(panelId)
               writeAppHash('settings', section.id)
             }}
             className={
               isPills
-                ? `shrink-0 flex items-center gap-2 rounded-full px-3 py-2 text-micro font-semibold transition-all ios-active-scale border ${
+                ? `shrink-0 flex items-center gap-2 rounded-full px-3 py-2 text-micro font-semibold transition-all ios-active-scale border focus-ring ${
                     isActive
                       ? 'bg-accent-blue/15 border-accent-blue/40 text-accent-blue'
-                      : 'bg-[color-mix(in_srgb,var(--color-surface-card)_60%,transparent)] border-[var(--color-border-card)] settings-muted'
+                      : 'bg-[color-mix(in_srgb,var(--color-surface-card)_60%,transparent)] border-card settings-muted hover:border-accent-blue/30 hover:text-primary'
                   }`
-                : `flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition-all ios-active-scale border-l-2 ${
+                : `flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition-all ios-active-scale border-l-2 focus-ring ${
                     isActive
-                      ? 'border-l-accent-blue bg-accent-blue/10 text-[var(--color-text-primary)]'
-                      : 'border-l-transparent settings-muted hover:bg-[color-mix(in_srgb,var(--color-surface-card)_50%,transparent)] hover:text-[var(--color-text-primary)]'
+                      ? 'border-l-accent-blue bg-accent-blue/10 text-primary'
+                      : 'border-l-transparent settings-muted hover:bg-[color-mix(in_srgb,var(--color-surface-card)_50%,transparent)] hover:text-primary'
                   }`
             }
           >
