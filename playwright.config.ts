@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const syncTests = '**/folder-sync*.spec.ts'
+const visualTests = '**/visual-regression.spec.ts'
+
 export default defineConfig({
   testDir: './e2e',
   testIgnore: ['**/screenshots.capture.spec.ts'],
@@ -29,7 +32,11 @@ export default defineConfig({
     },
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: [visualTests, syncTests],
+    },
     {
       name: 'mobile-chrome',
       testMatch: 'mobile.spec.ts',
@@ -38,8 +45,16 @@ export default defineConfig({
         viewport: { width: 375, height: 667 },
       },
     },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+      testIgnore: [visualTests, syncTests],
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+      testIgnore: [visualTests, syncTests],
+    },
     {
       name: 'visual',
       testMatch: 'visual-regression.spec.ts',

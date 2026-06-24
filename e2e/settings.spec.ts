@@ -33,8 +33,9 @@ test('section nav scrolls to backup vault', async ({ page }) => {
   await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
   await openSettingsTab(page)
 
-  await page.getByRole('button', { name: 'Data', exact: true }).click()
-  await expect(page.locator('#settings-backup-vault')).toBeInViewport({ timeout: 5000 })
+  await settingsSectionNav(page).getByRole('button', { name: 'Data', exact: true }).click()
+  await expect(page.locator('#settings-data')).toBeInViewport({ timeout: 10000 })
+  await expect(page.locator('#settings-backup-vault')).toBeVisible({ timeout: 5000 })
 })
 
 test('advanced panels hidden until toggle is enabled', async ({ page }) => {
