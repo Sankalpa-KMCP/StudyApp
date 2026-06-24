@@ -33,7 +33,7 @@ export function TimerDisplay({
   return (
     <div
       aria-label={t('timerRingAria', { mode: modeLabel, time: timeDisplay })}
-      className={`relative flex h-52 w-52 md:h-72 md:w-72 focus-timer-ring glass-hero items-center justify-center rounded-full overflow-hidden ${
+      className={`relative flex h-52 w-52 md:h-72 md:w-72 focus-timer-ring glass-hero items-center justify-center rounded-full overflow-hidden !border-card/10 ${
         timerMode === 'study' && isTimerActive ? 'focus-timer-ring--active' : ''
       }`}
       style={{ '--timer-ring-color': activeColor } as React.CSSProperties}
@@ -45,12 +45,18 @@ export function TimerDisplay({
         }}
       />
       <svg className="absolute h-[94%] w-[94%] -rotate-90 overflow-visible" viewBox="0 0 120 120" aria-hidden>
-        <circle cx="60" cy="60" r="50" fill="none" stroke="var(--color-border-card)" strokeWidth="2" />
+        <circle
+          cx="60" cy="60" r="50"
+          fill="none"
+          stroke="var(--color-border-card)"
+          strokeWidth="1"
+          strokeOpacity="0.18"
+        />
         <circle
           cx="60" cy="60" r="50"
           fill="none"
           stroke={activeColor}
-          strokeWidth="4.5"
+          strokeWidth="4"
           strokeLinecap="round"
           strokeDasharray="314.16"
           strokeDashoffset={String(314.16 * (1 - progress))}
@@ -69,7 +75,7 @@ export function TimerDisplay({
         >
           {timeDisplay}
         </p>
-        <span className="timer-mode-badge mt-3">
+        <span className="timer-mode-badge mt-3.5 text-sm px-3.5 py-1.5 text-primary font-semibold">
           <span className="timer-mode-badge__dot" aria-hidden />
           {modeLabel}
         </span>

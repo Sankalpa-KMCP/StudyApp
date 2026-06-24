@@ -11,7 +11,6 @@ import { useStudyData } from '../../context/useStudyApp'
 import { useStudyTimerContext, useStudyTimerDisplay } from '../../context/studyTimerContext'
 import { TimerDisplay } from './TimerDisplay'
 import { TimerControls } from './TimerControls'
-import { SessionProgress } from './SessionProgress'
 import { FocusActiveTaskLabel } from './FocusTaskSection'
 
 interface FocusTimerSectionProps {
@@ -101,10 +100,11 @@ export function FocusTimerSection({
   }
 
   return (
-    <PanelCard className="flex flex-col" role="region" aria-labelledby={timerSectionHeadingId}>
+    <PanelCard className="flex w-full flex-col" role="region" aria-labelledby={timerSectionHeadingId}>
       <PanelHeader
         id={timerSectionHeadingId}
         title={t('focusTimerTitle')}
+        bordered={false}
         action={
           <Button size="sm" onClick={() => setIsZenMode(true)} className="gap-1.5">
             <Sparkles className="h-3.5 w-3.5 text-accent-blue" />
@@ -152,7 +152,7 @@ export function FocusTimerSection({
       <button
         type="button"
         onClick={() => setShowDurationAdjust(v => !v)}
-        className="text-micro font-semibold text-accent-blue hover:text-accent-blue/80 mb-2 transition-colors"
+        className="text-label font-semibold text-accent-blue opacity-90 hover:opacity-100 mb-2 transition-opacity"
       >
         {showDurationAdjust ? t('hideLengthControls') : t('adjustLength')}
       </button>
@@ -253,16 +253,13 @@ export function FocusTimerSection({
           isTimerActive={isTimerActive}
           secondsElapsed={secondsElapsed}
           activeColor={activeColor}
+          completedSessionsInCycle={completedSessionsInCycle}
+          targetSessionsPerCycle={targetSessionsPerCycle}
           onToggleActive={handleToggleActive}
           onExtend={timerControls.extendSession}
           onComplete={() => { void timerControls.completeSession() }}
           onSkipBreak={onSkipBreak}
           skipBreak={skipBreak}
-        />
-
-        <SessionProgress
-          completedSessionsInCycle={completedSessionsInCycle}
-          targetSessionsPerCycle={targetSessionsPerCycle}
         />
       </div>
 

@@ -80,8 +80,8 @@ export function FocusTabContent() {
   }
 
   return (
-    <TabPageShell className="pb-20 lg:pb-0">
-      <div className="lg:col-span-5 order-1">
+    <TabPageShell className="h-full min-h-0 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] xl:pb-0 xl:content-center xl:items-center">
+      <div className="order-1 w-full min-h-0 max-w-md mx-auto xl:col-span-5 xl:max-w-none xl:mx-0 xl:self-center">
         {showFirstSessionBanner && (
           <FirstSessionBanner onDismiss={handleDismissFirstSession} />
         )}
@@ -99,7 +99,7 @@ export function FocusTabContent() {
           }}
         />
       </div>
-      <div className="lg:col-span-7 order-2">
+      <div className="order-2 w-full min-h-0 flex flex-col h-fit xl:col-span-7 xl:self-center">
         <MemoizedTaskRegistry
           tasks={tasks.tasks}
           categories={categories.categories}

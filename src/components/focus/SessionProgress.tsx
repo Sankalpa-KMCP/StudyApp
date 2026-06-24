@@ -9,7 +9,7 @@ export function SessionProgress({ completedSessionsInCycle, targetSessionsPerCyc
   const { t } = useTranslation()
 
   return (
-    <div className="flex flex-col items-center gap-1 mt-5 select-none">
+    <div className="flex flex-col items-center gap-1 select-none">
       <div className="flex items-center gap-3 text-label text-muted font-bold uppercase tracking-wider">
         <span>{t('sessionsBeforeLongBreak')}:</span>
         <div className="flex items-center gap-1.5">

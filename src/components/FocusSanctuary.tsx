@@ -24,7 +24,7 @@ export function FocusSanctuary({
   const { showReflectionModal, timerMode } = timerControls
 
   return (
-    <div className="flex flex-col gap-6 w-full flex-1 items-start">
+    <div className="flex flex-col gap-6 w-full max-w-md xl:max-w-none items-center xl:items-start">
       <div className="sr-only" aria-live="assertive" aria-atomic="true">
         {showReflectionModal && timerMode === 'study' ? t('studyBlockComplete') : ''}
       </div>
