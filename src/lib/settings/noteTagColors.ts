@@ -1,6 +1,11 @@
-export const NOTE_TAG_HEX_COLOR = /^#[0-9a-fA-F]{6}$/
+import { HEX_COLOR } from './hexColor'
 
 export const MAX_NOTE_TAG_COLORS = 8
+
+/** Initial note color when no note-tag palette is configured. */
+export function getDefaultNoteColor(noteTagColors: readonly string[]): string {
+  return noteTagColors[0] ?? 'var(--color-accent-blue)'
+}
 
 /**
  * Normalizes a JSON-parsed value into at most eight hex note-tag colors.
@@ -9,7 +14,7 @@ export const MAX_NOTE_TAG_COLORS = 8
 export function parseNoteTagColorsArray(parsed: unknown): string[] | null {
   if (!Array.isArray(parsed)) return null
   const colors = parsed.filter(
-    (c): c is string => typeof c === 'string' && NOTE_TAG_HEX_COLOR.test(c),
+    (c): c is string => typeof c === 'string' && HEX_COLOR.test(c),
   )
   return colors.length > 0 ? colors.slice(0, MAX_NOTE_TAG_COLORS) : null
 }

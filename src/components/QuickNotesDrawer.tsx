@@ -6,6 +6,7 @@ import { useNoteFilters } from '../hooks/quick-notes/useNoteFilters'
 import { useNoteEditor } from '../hooks/quick-notes/useNoteEditor'
 import { useConfirm } from '../context/useConfirm'
 import { useTranslation } from '../i18n/useTranslation'
+import { getDefaultNoteColor } from '../lib/settings/noteTagColors'
 import { NoteEditorPanel } from './quick-notes/NoteEditorPanel'
 import { NoteListPanel } from './quick-notes/NoteListPanel'
 
@@ -41,7 +42,7 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
   const trapRef = useFocusTrap(isOpen, onClose)
   const filters = useNoteFilters(notes, categories)
   const editor = useNoteEditor(updateNote)
-  const defaultNoteColor = noteTagColors[0] ?? 'var(--color-accent-blue)'
+  const defaultNoteColor = getDefaultNoteColor(noteTagColors)
 
   useEffect(() => {
     if (!isOpen || focusNoteId == null) return
