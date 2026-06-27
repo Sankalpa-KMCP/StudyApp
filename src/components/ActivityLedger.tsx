@@ -26,7 +26,6 @@ interface ActivityLedgerProps {
   dynamicGridCells: Array<number | null>
   activeMonthData: DayData[]
   isLiveMonth: boolean
-  totalDaysInMonth: number
   todayDayOfMonth: number
   todayStudyMinutes: number
   todayBreakMinutes: number

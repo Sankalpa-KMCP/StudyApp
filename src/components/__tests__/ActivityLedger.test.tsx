@@ -33,7 +33,6 @@ const baseProps = {
   dynamicGridCells: [1, 2, 3],
   activeMonthData: [],
   isLiveMonth: true,
-  totalDaysInMonth: 30,
   todayDayOfMonth: 10,
   todayStudyMinutes: 0,
   todayBreakMinutes: 0,
