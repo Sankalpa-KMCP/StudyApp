@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { useSettingsPanel } from '../../context/settingsPanelContext'
 
 import { useTranslation } from '../../i18n/useTranslation'
+
+import { useSyncFolderDisplay } from '../../hooks/useSyncFolderDisplay'
 
 import { SettingsDisclosure } from '../shared/settings/SettingsDisclosure'
 
@@ -18,15 +20,11 @@ import {
 
   disconnectSyncFolder,
 
-  getWebSyncFolderLabel,
-
   isFileSystemAccessSupported,
 
   syncNow,
 
 } from '../../lib/sync'
-
-import { subscribeSyncStatus, type SyncStatusSnapshot } from '../../lib/sync/syncState'
 
 import {
   syncConnectedToFolder,
@@ -68,67 +66,17 @@ export function FolderSyncPanel() {
 
   } = useSettingsPanel()
 
-
-
-  const [syncStatus, setSyncStatus] = useState<SyncStatusSnapshot>({
-
-    connection: 'disconnected',
-
-    lastSyncAt: '',
-
-    message: '',
-
+  const {
+    syncStatus,
+    setWebFolderLabel,
+    folderLabel,
+    folderConnected,
+  } = useSyncFolderDisplay({
+    syncFolderPath,
+    syncEnabled,
   })
 
-  const [webFolderLabel, setWebFolderLabel] = useState('')
-
   const [isConnecting, setIsConnecting] = useState(false)
-
-
-
-  useEffect(() => {
-
-    let mounted = true
-
-    const unsubscribe = subscribeSyncStatus(snapshot => {
-
-      if (mounted) setSyncStatus(snapshot)
-
-    })
-
-    return () => {
-
-      mounted = false
-
-      unsubscribe()
-
-    }
-
-  }, [])
-
-
-
-  useEffect(() => {
-
-    if (isTauri()) return
-
-    let mounted = true
-
-    void getWebSyncFolderLabel().then(label => {
-
-      if (mounted) setWebFolderLabel(label)
-
-    })
-
-    return () => { mounted = false }
-
-  }, [syncFolderPath, syncEnabled])
-
-
-
-  const folderLabel = isTauri() ? syncFolderPath : webFolderLabel
-
-  const folderConnected = Boolean(folderLabel)
 
   const fsAccessSupported = isFileSystemAccessSupported()
 

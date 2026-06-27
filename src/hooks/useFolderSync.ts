@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import {
   getWebSyncFolderLabel,
   startSyncOrchestrator,
   stopSyncOrchestrator,
-  subscribeSyncStatus,
-  type SyncStatusSnapshot,
 } from '../lib/sync'
 import { isTauri } from '../lib/desktop/tauri'
 
@@ -19,33 +17,6 @@ export function useFolderSync({
   syncFolderPath,
   isDataReady,
 }: UseFolderSyncOptions) {
-  const [syncStatus, setSyncStatus] = useState<SyncStatusSnapshot>(() => ({
-    connection: 'disconnected',
-    lastSyncAt: '',
-    message: '',
-  }))
-  const [webFolderLabel, setWebFolderLabel] = useState('')
-
-  useEffect(() => {
-    let mounted = true
-    const unsubscribe = subscribeSyncStatus(snapshot => {
-      if (mounted) setSyncStatus(snapshot)
-    })
-    return () => {
-      mounted = false
-      unsubscribe()
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!isDataReady || isTauri()) return
-    let mounted = true
-    void getWebSyncFolderLabel().then(label => {
-      if (mounted) setWebFolderLabel(label)
-    })
-    return () => { mounted = false }
-  }, [isDataReady, syncFolderPath, syncEnabled])
-
   useEffect(() => {
     if (!isDataReady || !syncEnabled) {
       stopSyncOrchestrator()
@@ -58,7 +29,6 @@ export function useFolderSync({
       if (!isTauri()) {
         const label = await getWebSyncFolderLabel()
         if (cancelled) return
-        setWebFolderLabel(label)
         if (!label && !syncFolderPath) {
           stopSyncOrchestrator()
           return
@@ -78,14 +48,4 @@ export function useFolderSync({
       stopSyncOrchestrator()
     }
   }, [isDataReady, syncEnabled, syncFolderPath])
-
-  const folderConnected = isTauri()
-    ? Boolean(syncFolderPath)
-    : Boolean(webFolderLabel)
-
-  return {
-    syncStatus,
-    webFolderLabel,
-    folderConnected,
-  }
 }
