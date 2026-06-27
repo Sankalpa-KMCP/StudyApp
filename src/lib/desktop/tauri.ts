@@ -32,10 +32,6 @@ export async function sendDesktopNotification(title: string, body: string): Prom
   sendNotification({ title, body })
 }
 
-export async function pickDesktopBackupFolder(): Promise<string | null> {
-  return pickSyncFolder()
-}
-
 export async function pickSyncFolder(): Promise<string | null> {
   if (!isTauri()) return null
   const { open } = await import('@tauri-apps/plugin-dialog')
@@ -138,19 +134,4 @@ export async function setDesktopGlobalShortcuts(enabled: boolean, shortcut = 'Sp
     window.dispatchEvent(new CustomEvent('desktop-timer-toggle'))
   })
   globalShortcutsRegistered = true
-}
-
-export async function readLatestBackupFromFolder(folderPath: string): Promise<string | null> {
-  if (!isTauri() || !folderPath) return null
-  const { readDir, readTextFile } = await import('@tauri-apps/plugin-fs')
-  const entries = await readDir(folderPath)
-  const backups = entries
-    .filter(e => e.name?.endsWith('.studybackup'))
-    .sort((a, b) => (b.name ?? '').localeCompare(a.name ?? ''))
-  const latest = backups[0]
-  if (!latest?.name) return null
-  const path = folderPath.endsWith('/') || folderPath.endsWith('\\')
-    ? `${folderPath}${latest.name}`
-    : `${folderPath}/${latest.name}`
-  return readTextFile(path)
 }
