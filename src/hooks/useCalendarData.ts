@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import type { DailyLog, HistoryEntry, TaskItem } from '../db/types'
 import type { DayData } from '../types/app'
 import { formatMinutes, getIntensity } from '../lib/study/studyDashboard'
-import { getHistoryDayKey } from '../lib/study/dates'
+import { getHistoryDayKey, buildDateString } from '../lib/study/dates'
 import { DAY_NAMES_SHORT, MONTH_NAMES } from '../lib/shared/dateConstants'
 
 interface UseCalendarDataOptions {
@@ -43,7 +43,7 @@ export function useCalendarData({
   const isLiveMonth = currentMonth === new Date().getMonth() && currentYear === new Date().getFullYear()
   const monthLogMap = new Map(monthLogsData.monthLogs.map(l => [parseInt(l.dateString.split('-')[2]), l]))
   const effectiveSelectedDay = Math.min(selectedDay, totalDaysInMonth)
-  const selectedDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(effectiveSelectedDay).padStart(2, '0')}`
+  const selectedDateStr = buildDateString(new Date(currentYear, currentMonth, effectiveSelectedDay))
   const selectedDayLog = monthLogMap.get(effectiveSelectedDay)
 
   const activeMonthData: DayData[] = Array.from({ length: totalDaysInMonth }, (_, i) => {
