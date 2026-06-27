@@ -162,9 +162,9 @@ web/                              # Git repository root
 │   │   │   ├── SettingsOnboardingBanners.tsx
 │   │   │   └── BackupVaultPanel.tsx  # Re-export barrel → backup-vault/
 │   │   ├── sidebar/              # Desktop sidebar navigation (+ SidebarFlyoutProvider)
-│   │   ├── focus/                # Timer display, controls; FocusTaskSection.tsx exports FocusStudyTipSection + FocusActiveTaskLabel
+│   │   ├── focus/                # Timer display, controls (TimerDurationControls, BreakBreathingPacer); FocusTaskSection.tsx exports FocusStudyTipSection + FocusActiveTaskLabel
 │   │   ├── analytics/            # Charts, heatmap, retention panels
-│   │   ├── activity-ledger/      # Journal sub-panels (MoodPicker, DayDetailPanel) — main ledger is ActivityLedger.tsx at components root
+│   │   ├── activity-ledger/      # Journal sub-panels (ActivityCalendarGrid, MoodPicker, DayDetailPanel) — main ledger is ActivityLedger.tsx at components root
 │   │   ├── task-registry/        # Task list, create form, filters
 │   │   ├── quick-notes/          # Notes drawer components
 │   │   ├── app-shell/            # Loading screen, banners, AppToastOverlay, layout
@@ -186,6 +186,7 @@ web/                              # Git repository root
 │   │   ├── hooks/                # Live query hooks (dexie-react-hooks)
 │   │   └── selectors/            # Row parsing (`settingsFromRows.ts`), task sorting
 │   ├── hooks/                    # App logic hooks (~81 files)
+│   │   ├── useSyncFolderDisplay.ts  # Folder sync status + label for FolderSyncPanel UI
 │   │   ├── timer/                # Timer engine sub-hooks
 │   │   ├── backup/               # Vault export/import hooks (+ types, helpers)
 │   │   ├── routing/              # Hash ↔ tab sync (`useActiveTabSync`)
@@ -199,13 +200,13 @@ web/                              # Git repository root
 │   │   ├── backup/               # Export, import, crypto, checksum, merge, share, metadata
 │   │   ├── sync/                 # Folder sync orchestrator, push/pull
 │   │   ├── study/                # Pomodoro math, SM-2/FSRS, lockout, setup checklist, first session
-│   │   ├── settings/             # Validation, defaults, sections, advanced mode
+│   │   ├── settings/             # Validation, defaults, sections, noteTagColors, hexColor, uiFontOptions, advanced mode
 │   │   ├── theme/                # Theme profiles, CSS variables
 │   │   ├── export/               # ICS import/export, weekly report export
 │   │   ├── desktop/              # Tauri bridge, wake lock, notifications
 │   │   ├── audio/                # Ambient sound engine
 │   │   ├── routing/              # Hash routing, activeTab store, command palette search, prefetch
-│   │   └── shared/               # Constants, dev logger, copyDebugInfo, UX terms
+│   │   └── shared/               # Constants (categoryConstants), dev logger, copyDebugInfo, UX terms
 │   ├── navigation/               # Tab definitions (appNav.ts), shared NavTabButton.tsx
 │   ├── i18n/                     # i18n: index.ts, locales/en.json, useTranslation.ts
 │   ├── types/                    # App-level types (ActiveTab, etc.)
@@ -258,7 +259,7 @@ index.html
 8. Review-due tasks surface `ReviewDueBanner` on Focus tab (`useReviewDueCount`, `lib/study/taskFilters.ts`); `ReviewQueueSection` in task list.
 
 **Important files:**
-- `src/components/tabs/FocusTab.tsx`, `src/components/focus/` (incl. `FirstSessionBanner.tsx`, `ReviewDueBanner.tsx`)
+- `src/components/tabs/FocusTab.tsx`, `src/components/focus/` (incl. `FocusTimerSection.tsx`, `TimerDurationControls.tsx`, `BreakBreathingPacer.tsx`, `FirstSessionBanner.tsx`, `ReviewDueBanner.tsx`)
 - `src/hooks/useTimerEngine.ts`, `src/hooks/timer/` (incl. `useWakeLock.ts`)
 - `src/hooks/useReviewDueCount.ts`
 - `src/lib/study/focusLockout.ts`, `src/lib/study/resolveTimerDurations.ts`, `src/lib/study/firstSession.ts`
@@ -321,13 +322,14 @@ index.html
 
 **How it works:**
 1. `JournalTab` shows calendar via `useJournalCalendar`.
-2. Selecting a day displays session entries from `history` and mood/notes from `daily_logs`.
-3. History filtered to current calendar month by `useHistoryForMonth`.
+2. `ActivityLedger` renders the month heatmap via `ActivityCalendarGrid` (intensity styles from `useLedgerIntensityStyles`).
+3. Selecting a day displays session entries from `history` and mood/notes from `daily_logs`.
+4. History filtered to current calendar month by `useHistoryForMonth`.
 
 **Important files:**
 - `src/components/tabs/JournalTab.tsx` (lazy-loads `ActivityLedger.tsx`)
 - `src/components/ActivityLedger.tsx`
-- `src/components/activity-ledger/` (`MoodPicker`, `DayDetailPanel`)
+- `src/components/activity-ledger/` (`ActivityCalendarGrid`, `MoodPicker`, `DayDetailPanel`)
 - `src/hooks/useJournalCalendar.ts`
 - `src/db/hooks/useAllDailyLogs.ts`, `src/db/hooks/useTodayLog.ts`
 
@@ -400,8 +402,9 @@ index.html
 5. Conflicts surface `SyncConflictModal` instead of silent overwrite.
 
 **Important files:**
-- `src/components/control-deck/FolderSyncPanel.tsx`
-- `src/hooks/useFolderSync.ts` (starts orchestrator from `AppShell` via `useAppShellEffects`)
+- `src/components/control-deck/FolderSyncPanel.tsx` (display state via `useSyncFolderDisplay`)
+- `src/hooks/useFolderSync.ts` (starts/stops orchestrator from `AppShell` via `useAppShellEffects` — side-effect hook, no return value)
+- `src/hooks/useSyncFolderDisplay.ts` (`syncStatus`, `folderLabel`, `folderConnected`, `setWebFolderLabel` for settings UI)
 - `src/lib/sync/syncOrchestrator.ts`, `syncPush.ts`, `syncPull.ts`
 - `src/lib/sync/fileSystemAccess.ts`, `desktopSyncAdapter.ts`
 - `src/db/repositories/syncHooks.ts`, `syncHandles.ts`
@@ -631,7 +634,7 @@ When `isDataReady`, `useAppShellEffects` wires non-UI background services:
 |------|---------|
 | `useStudyReminder` | Daily study reminder notification at configured time (`studyReminderEnabled`, `studyReminderTime`) |
 | `useAutoExport` | Scheduled vault auto-export (`autoExportEnabled`, `autoExportIntervalDays`) |
-| `useFolderSync` | Starts/stops `syncOrchestrator` when folder sync enabled |
+| `useFolderSync` | Starts/stops `syncOrchestrator` when folder sync enabled (side-effect hook only; folder label/status UI uses `useSyncFolderDisplay` in `FolderSyncPanel`) |
 | Desktop init | Applies saved autostart/shortcut settings on Tauri startup (`lib/desktop/tauri.ts`) |
 
 Separately, `AppShell` runs `useBackupReminder()` and passes `showBackupReminder` to `AppShellLayout` → Settings nav notification dot (`NavTabButton.showNotificationDot`). Status banners (offline, PWA install, quota recovery) are passed as a `banners` prop to `AppShellLayout` and rendered via `AppShellStatusBanners` (offline + PWA prominent; quota recovery collapsible). Toasts render at AppShell root via `AppShellToast` → `AppToastOverlay`, outside the layout.
@@ -1150,6 +1153,8 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 **Mount scope:** Provider wraps only the Settings tab content — not the full app.
 
+**Pending cleanup batch (uncommitted):** `useSettingsPanel()` surface trimmed — no longer exposes `isLoading`, `lastSyncAt`, `lastSyncChecksum`, or `desktopBackupFolderPath`. Underlying settings persistence is unchanged; `FolderSyncPanel` reads sync status via `useSyncFolderDisplay`, and `StorageUsagePanel` reads `storageEstimate.isLoading`.
+
 ---
 
 ### src/components/sidebar/SidebarFlyout.tsx — SidebarFlyoutProvider
@@ -1259,7 +1264,7 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 **Purpose:** Focus tab sanctuary layout — timer and study-tip columns.
 
-**Subcomponents:** `focus/FocusTimerSection.tsx`, `focus/FocusTaskSection.tsx` (exports `FocusStudyTipSection` and `FocusActiveTaskLabel`; timer display and controls live under `focus/`)
+**Subcomponents:** `focus/FocusTimerSection.tsx` (composes `TimerDurationControls`, `BreakBreathingPacer`), `focus/FocusTaskSection.tsx` (exports `FocusStudyTipSection` and `FocusActiveTaskLabel`; timer display and controls live under `focus/`)
 
 **Used by:** `FocusTabContent.tsx`
 
@@ -1418,7 +1423,7 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 - Starts/stops poll interval (8s) and push debounce (2s)
 - Exposes `syncNow()` for manual sync
 
-**Used by:** `useAppShellEffects`, `FolderSyncPanel`
+**Used by:** `useFolderSync` (orchestrator lifecycle from `useAppShellEffects`), `FolderSyncPanel` (manual `syncNow()` and display state via `useSyncFolderDisplay`)
 
 ---
 
@@ -1428,11 +1433,125 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 **Responsibilities:**
 - Numeric clamping with min/max/step
-- Enum validation for preset keys
-- Hex color regex for accent overrides
-- JSON array validation for `noteTagColors`
+- Enum validation for preset keys (`UI_FONT_OPTIONS` from `uiFontOptions.ts` — pending cleanup batch)
+- Hex color validation for accent overrides via `HEX_COLOR` from `hexColor.ts` (pending cleanup batch)
+- JSON array validation for `noteTagColors` via `parseNoteTagColorsArray()` in `noteTagColors.ts`
 
-**Used by:** `useSettingsUpdater.ts`
+**Used by:** `useSettingsUpdater.ts`, `settingsFromRows.ts` (via `noteTagColors.ts`)
+
+---
+
+### src/components/activity-ledger/ActivityCalendarGrid.tsx
+
+**Purpose:** Month calendar heatmap grid for the Journal tab.
+
+**Responsibilities:**
+- Renders day cells with study/break intensity from `getIntensity` / `useLedgerIntensityStyles`
+- Receives month/day props from `ActivityLedger.tsx` (selected day, grid cells, live month stats)
+
+**Used by:** `ActivityLedger.tsx`
+
+---
+
+### src/components/focus/TimerDurationControls.tsx
+
+**Purpose:** Study/break duration chip controls shown during an active timer.
+
+**Responsibilities:**
+- Toggleable duration adjust UI with `SelectionChip` presets
+- Reads current study/break minutes from props; calls `onDurationChange` on selection
+
+**Used by:** `FocusTimerSection.tsx`
+
+---
+
+### src/components/focus/BreakBreathingPacer.tsx
+
+**Purpose:** Animated respiration pacer shown during break mode.
+
+**Responsibilities:**
+- 12-step inhale/hold/exhale cycle with scaled visual indicator
+- Self-contained animation state (no external data dependencies)
+
+**Used by:** `FocusTimerSection.tsx` (break mode)
+
+---
+
+### src/hooks/useSyncFolderDisplay.ts
+
+**Purpose:** Folder sync display state for the Control Deck sync panel.
+
+**Responsibilities:**
+- Subscribes to `subscribeSyncStatus` for connection/last-sync snapshot
+- Resolves web folder label via `getWebSyncFolderLabel()` or desktop `syncFolderPath`
+- Exposes `folderLabel`, `folderConnected`, `setWebFolderLabel`
+
+**Used by:** `FolderSyncPanel.tsx`
+
+**Note:** Orchestrator start/stop remains in `useFolderSync.ts` (AppShell background hook).
+
+---
+
+### src/lib/settings/hexColor.ts
+
+**Purpose:** Canonical six-digit CSS hex matcher (`#RRGGBB`, case-insensitive).
+
+**Responsibilities:**
+- `HEX_COLOR` — shared regex used by note-tag parsing and accent-override validation
+
+**Status:** Pending cleanup batch (uncommitted). At HEAD, the equivalent pattern lived as `NOTE_TAG_HEX_COLOR` inside `noteTagColors.ts`; this module centralizes it.
+
+**Used by:** `noteTagColors.ts`, `settingsValidation.ts`
+
+---
+
+### src/lib/settings/uiFontOptions.ts
+
+**Purpose:** Allowed values for the `ui_font` settings key.
+
+**Responsibilities:**
+- `UI_FONT_OPTIONS` — `['Inter', 'Outfit', 'System']`
+- `UiFontOption` type
+
+**Status:** Pending cleanup batch (uncommitted).
+
+**Used by:** `settingsValidation.ts`, `AestheticsPanel.tsx`
+
+---
+
+### src/lib/settings/noteTagColors.ts
+
+**Purpose:** Shared helpers for the `noteTagColors` settings key and default note color.
+
+**Responsibilities:**
+- `parseNoteTagColorsArray()` — validates up to 8 hex colors (`MAX_NOTE_TAG_COLORS`); uses `HEX_COLOR` from `hexColor.ts` (pending cleanup batch)
+- `getDefaultNoteColor()` — first configured tag color or `var(--color-accent-blue)` fallback (pending cleanup batch)
+
+**Used by:** `settingsValidation.ts`, `db/selectors/settingsFromRows.ts`, `QuickNotesDrawer.tsx`, `NoteListPanel.tsx`
+
+---
+
+### src/lib/shared/categoryConstants.ts
+
+**Purpose:** Shared default color for category creation UI.
+
+**Responsibilities:**
+- `DEFAULT_CATEGORY_COLOR` (`#007aff`) — aligns with `--color-accent-blue` in `index.css` @theme
+
+**Used by:** `CategoriesPanel.tsx`, `InlineCategoryManager.tsx`
+
+---
+
+### src/components/task-registry/priorityLabels.ts
+
+**Purpose:** i18n key map for task priority labels.
+
+**Responsibilities:**
+- `PRIORITY_LABEL_KEYS` — maps `low` / `medium` / `high` to translation keys
+
+**Status:** Pending cleanup batch (uncommitted).
+
+**Used by:** `TaskCreateForm.tsx`, `TaskRow.tsx`
 
 ---
 
@@ -1771,6 +1890,8 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md#dexie-migrations).
 
 Full-app line coverage is intentionally not the goal — E2E covers integration paths.
 
+**Core tier notes:** `vitest.config.ts` no longer lists removed `useCategoriesMap.ts` in the coverage `include` list (hook file deleted). Recent extraction tests at HEAD: `noteTagColors.test.ts`, `useSyncFolderDisplay.test.ts`, `ActivityCalendarGrid.test.tsx`, `TimerDurationControls.test.tsx`, `BreakBreathingPacer.test.tsx`.
+
 ### E2E spec files
 
 26 specs in `e2e/` (see list below). Playwright projects in `playwright.config.ts`: `chromium`, `mobile-chrome` (mobile.spec only), `firefox`, `webkit`, `visual` (visual-regression), `e2e-sync` (folder-sync specs with `VITE_E2E_SYNC=1`).
@@ -1957,13 +2078,17 @@ For documentation maintenance rules and the AI-maintained doc registry, see [`AI
 - `src/lib/routing/appHashRouting.ts` — hash changes break bookmarks and E2E tests
 - `src/hooks/backup/useBackupVaultPanelState.ts` — import passphrase briefly stored in sessionStorage
 - **Backup reminder flow** — inspect together before changing: `useBackupReminder.ts`, `AppShell.tsx`, `AppShellLayout.tsx`, `NavTabButton.tsx`, `SidebarNavButton.tsx`, `SidebarExpanded.tsx`, `SidebarRail.tsx`, `MobileTabBar.tsx`, `e2e/backup-reminder.spec.ts`. Do not reintroduce a global banner without updating E2E and aria patterns.
+- **Folder sync UI** — inspect together: `useSyncFolderDisplay.ts`, `FolderSyncPanel.tsx`, `useFolderSync.ts`, `syncOrchestrator.ts`
+- **Focus timer UI** — inspect together: `FocusTimerSection.tsx`, `TimerDurationControls.tsx`, `BreakBreathingPacer.tsx`, `FocusSanctuary.tsx`
+- **Activity ledger calendar** — inspect together: `ActivityLedger.tsx`, `ActivityCalendarGrid.tsx`, `hooks/activity-ledger/useLedgerCalendar.ts`
+- **Note tag colors / category colors** — inspect together: `noteTagColors.ts`, `settingsValidation.ts`, `settingsFromRows.ts`, `categoryConstants.ts`, category/note UI panels
 
 ### Conventions to preserve
 
 - **Never import `db/db`, `db/repositories/`, or `db/hooks/` from `components/`** — use `useStudyData()` and related facades from `useStudyApp.ts`, or receive props from a parent hook
 - **Prefer `useStudyData()` in tab and feature components** — use granular slice hooks (`useStudyCore()`, etc.) only inside providers or when optimizing re-renders in a hot sub-component
 - **Never use `useStudyDataContext()` in new component code** — reserved for legacy `useStudyApp()` composition
-- **Validate settings before write** — add validation rule in `settingsValidation.ts`
+- **Validate settings before write** — add validation rule in `settingsValidation.ts`; color-array rules for `noteTagColors` belong in `noteTagColors.ts` and are consumed by validation and `settingsFromRows.ts`
 - **Use `t()` for user-facing strings** — add keys to `src/i18n/locales/en.json`
 - **Lazy-load heavy components** — follow `AppShell.tsx` pattern
 - **Co-locate tests** in `__tests__/` directories
@@ -2181,7 +2306,7 @@ npm run tauri:dev            # Desktop dev
 - Update this document when Dexie schema version bumps
 - Update glossary if new domain terms are introduced
 - Keep `CHANGELOG.md` in sync with migrations
-- Re-run PROJECT_CONTEXT maintenance after uncommitted Activity Ledger, Focus timer, and folder-sync refactors are committed (do not document WIP from the working tree until then)
+- After the pending cleanup batch commits, remove `(pending cleanup batch)` markers from module entries and reconcile this document with HEAD
 
 ### Related documentation
 
@@ -2196,4 +2321,4 @@ npm run tauri:dev            # Desktop dev
 
 ---
 
-*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 27, 2026 (pass 5). Canonical location: `ai/PROJECT_CONTEXT.md`.*
+*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 27, 2026 (pass 6). Canonical location: `ai/PROJECT_CONTEXT.md`.*
