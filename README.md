@@ -123,7 +123,7 @@ Firefox and Safari can still use manual vault export/import. Folder sync require
 | `longBreakDurationMinutes` | 15 | Long break length |
 | `targetSessionsPerCycle` | 4 | Study sessions before long break |
 | `historyRetentionDays` | 0 | Auto-archive threshold (0 = keep all) |
-| Backup reminder | 30 days | Reminds when no export; dismiss snoozes 7 days |
+| Backup reminder | 30 days | Settings nav notification dot when export is overdue; vault export clears reminder |
 
 ## Data model
 
@@ -150,7 +150,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes and migration history.
 
 **Stack:** React 19 · Vite 8 · TypeScript · Dexie (IndexedDB) · Tailwind v4 · Tauri 2 · Vitest · Playwright
 
-Data hooks live in [`src/db/hooks/`](src/db/hooks/) (repositories + per-domain hooks). Architecture, layer rules, and AI agent docs: [`ai/PROJECT_CONTEXT.md`](ai/PROJECT_CONTEXT.md) (§6) and [`ai/ARCHITECTURE_DECISIONS.md`](ai/ARCHITECTURE_DECISIONS.md).
+Data hooks live in [`src/db/hooks/`](src/db/hooks/) (repositories + per-domain hooks). Architecture, layer rules, and AI agent docs: [`ai/PROJECT_CONTEXT.md`](ai/PROJECT_CONTEXT.md) (§6) and [`ai/AI_RULES.md`](ai/AI_RULES.md).
 
 ## Development
 
