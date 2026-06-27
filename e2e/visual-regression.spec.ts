@@ -16,7 +16,6 @@ for (const tab of tabs) {
     await page.getByRole('button', { name: tab.name }).first().click()
     await expect(page.getByText(tab.marker).first()).toBeVisible({ timeout: 20000 })
     if (tab.name === 'Settings') {
-      await page.getByRole('button', { name: 'Dismiss backup reminder' }).click({ timeout: 2000 }).catch(() => {})
       await page.evaluate(() => {
         window.scrollTo(0, 0)
         document.querySelector('main')?.scrollTo(0, 0)

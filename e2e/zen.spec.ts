@@ -15,7 +15,6 @@ test('enters focus mode during active timer', async ({ page }) => {
 test('focus lockout blocks exit when enforce lockout is on', async ({ page }) => {
   await waitForAppReady(page)
   await openSettingsTab(page)
-  await page.getByRole('button', { name: 'Dismiss backup reminder' }).click({ timeout: 2000 }).catch(() => {})
 
   await page.getByRole('switch', { name: 'Show advanced settings' }).click()
   await settingsSectionNav(page).getByRole('button', { name: 'Focus', exact: true }).click()
