@@ -43,7 +43,6 @@ interface SettingsPanelContextValue {
   updateSettingSafe: (key: SettingsKey, val: SettingsValue, options?: { silent?: boolean }) => Promise<boolean>
   resetSectionDefaults: (sectionId: import('../lib/settings/settingsSections').SettingsSectionId) => Promise<boolean>
   resetKeys: (keys: SettingsKey[], successMessage: string) => Promise<boolean>
-  isLoading: boolean
   theme: string
   themePreset: string
   lightThemePreset: string
@@ -85,8 +84,6 @@ interface SettingsPanelContextValue {
   desktopGlobalTimerShortcut: string
   syncFolderPath: string
   syncEnabled: boolean
-  lastSyncAt: string
-  lastSyncChecksum: string
   ambientSoundEnabled: boolean
   ambientSoundPreset: 'rain' | 'white-noise' | 'cafe' | 'brown-noise'
   ambientVolume: number
@@ -96,7 +93,6 @@ interface SettingsPanelContextValue {
   desktopAutostartEnabled: boolean
   desktopGlobalShortcutsEnabled: boolean
   desktopNativeNotificationsEnabled: boolean
-  desktopBackupFolderPath: string
   backup: SettingsBackupApi
   categories: SettingsCategoriesApi
   isDragging: boolean
@@ -163,8 +159,6 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     desktopGlobalTimerShortcut: updater.desktopGlobalTimerShortcut,
     syncFolderPath: updater.syncFolderPath,
     syncEnabled: updater.syncEnabled,
-    lastSyncAt: updater.lastSyncAt,
-    lastSyncChecksum: updater.lastSyncChecksum,
     ambientSoundEnabled: updater.ambientSoundEnabled,
     ambientSoundPreset: updater.ambientSoundPreset,
     ambientVolume: updater.ambientVolume,
@@ -174,8 +168,6 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     desktopAutostartEnabled: updater.desktopAutostartEnabled,
     desktopGlobalShortcutsEnabled: updater.desktopGlobalShortcutsEnabled,
     desktopNativeNotificationsEnabled: updater.desktopNativeNotificationsEnabled,
-    desktopBackupFolderPath: updater.desktopBackupFolderPath,
-    isLoading: updater.isLoading,
     updateSetting: (key, val) => { void updater.updateSettingSafe(key, val) },
     updateSettingSafe: updater.updateSettingSafe,
     resetSectionDefaults: updater.resetSectionDefaults,
