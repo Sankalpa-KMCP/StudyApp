@@ -106,8 +106,6 @@ export const SECTION_DEFAULT_KEYS: Record<SettingsSectionId, SettingsKey[]> = {
     'desktopAutostartEnabled',
     'desktopGlobalShortcutsEnabled',
     'desktopNativeNotificationsEnabled',
-    'syncFolderPath',
-    'syncEnabled',
   ],
 }
 
