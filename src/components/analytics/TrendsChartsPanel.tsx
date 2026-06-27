@@ -22,16 +22,13 @@ interface TrendsChartsPanelProps {
   chartData: Array<{ day: string; hours: number; focus: number }>
   hasChartData: boolean
   activeThemeVars: ThemeProfile
-  tooltipStyle: CSSProperties
-  suppressEmptyState?: boolean
 }
 
 export const TrendsChartsPanel = memo(function TrendsChartsPanel({
   chartData,
   hasChartData,
   activeThemeVars,
-  suppressEmptyState = false,
-}: Omit<TrendsChartsPanelProps, 'tooltipStyle'>) {
+}: TrendsChartsPanelProps) {
   const { t } = useTranslation()
   const weekHours = useMemo(() => chartData.reduce((sum, row) => sum + row.hours, 0), [chartData])
   const topDay = useMemo(
@@ -74,7 +71,7 @@ export const TrendsChartsPanel = memo(function TrendsChartsPanel({
             </ResponsiveContainer>
           </div>
           </>
-        ) : suppressEmptyState ? null : (
+        ) : (
           <EmptyState
             icon={<BarChart3 className="h-8 w-8" />}
             title={t('analyticsNoStudyDataTitle')}
@@ -104,7 +101,7 @@ export const TrendsChartsPanel = memo(function TrendsChartsPanel({
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          ) : suppressEmptyState ? null : (
+          ) : (
             <EmptyState
               icon={<BarChart3 className="h-8 w-8" />}
               title={t('analyticsNoEfficiencyTitle')}
