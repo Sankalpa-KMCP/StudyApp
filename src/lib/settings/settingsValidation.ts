@@ -1,4 +1,5 @@
 import type { SettingsKey, SettingsValue } from '../../db/types'
+import { parseNoteTagColorsArray } from './noteTagColors'
 import { MAX_STUDY_BLOCK_MINUTES } from '../shared/timerConstants'
 
 const UI_FONT_OPTIONS = ['Inter', 'Outfit', 'System'] as const
@@ -41,10 +42,7 @@ function clampToStep(value: number, rule: NumericRule): number {
 function parseNoteTagColorsValue(raw: SettingsValue): string[] | null {
   if (typeof raw !== 'string') return null
   try {
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return null
-    const colors = parsed.filter((c): c is string => typeof c === 'string' && HEX_COLOR.test(c))
-    return colors.length > 0 ? colors.slice(0, 8) : null
+    return parseNoteTagColorsArray(JSON.parse(raw))
   } catch {
     return null
   }

@@ -4,15 +4,14 @@ import {
   SETTINGS_DEFAULTS,
   type ParsedSettings,
 } from '../../lib/settings/settingsDefaults'
+import { parseNoteTagColorsArray } from '../../lib/settings/noteTagColors'
 
 export { DEFAULT_NOTE_TAG_COLORS, SETTINGS_DEFAULTS, type ParsedSettings }
 
 function parseNoteTagColors(raw: string): string[] {
   try {
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return [...DEFAULT_NOTE_TAG_COLORS]
-    const colors = parsed.filter((c): c is string => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c))
-    return colors.length > 0 ? colors.slice(0, 8) : [...DEFAULT_NOTE_TAG_COLORS]
+    const colors = parseNoteTagColorsArray(JSON.parse(raw))
+    return colors ?? [...DEFAULT_NOTE_TAG_COLORS]
   } catch {
     return [...DEFAULT_NOTE_TAG_COLORS]
   }
