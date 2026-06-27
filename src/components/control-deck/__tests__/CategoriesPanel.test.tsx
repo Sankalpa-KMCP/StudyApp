@@ -1,98 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import './testUtils'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { CategoriesPanel } from '../CategoriesPanel'
 import { SettingsPanelProvider } from '../../../context/settingsPanelContext'
-
-const requestConfirm = vi.fn()
-const pushToast = vi.fn()
-const deleteCategory = vi.fn()
-
-vi.mock('../../../context/useConfirm', () => ({
-  useConfirm: () => ({ requestConfirm }),
-}))
-
-vi.mock('../../../context/useStudyApp', () => ({
-  useStudyData: () => ({
-    categories: {
-      categories: [{ id: 1, name: 'Math', color: '#3B82F6' }],
-      addCategory: vi.fn(),
-      updateCategory: vi.fn(),
-      deleteCategory,
-    },
-  }),
-}))
-
-vi.mock('../../../context/studyTimerContext', () => ({
-  useStudyTimerContext: () => ({
-    confirmImport: vi.fn(),
-    backup: {
-      exportStudyBackup: vi.fn(),
-      fileInputRef: { current: null },
-      resetData: vi.fn(),
-      resetDataSelective: vi.fn(),
-      clearSnapshots: vi.fn(),
-      exportStudyLogsCSV: vi.fn(),
-      exportTaskCompletionLogsCSV: vi.fn(),
-      archiveHistoryOlderThan: vi.fn().mockResolvedValue(0),
-    },
-  }),
-}))
-
-vi.mock('../../../context/studyUIContext', () => ({
-  useStudyUIContext: () => ({
-    pushToast,
-    isDragging: false,
-    setIsDragging: vi.fn(),
-    quotaExceeded: false,
-    handleFileDrop: vi.fn(),
-  }),
-}))
-
-vi.mock('../../../hooks/useSettingsUpdater', () => ({
-  useSettingsUpdater: () => ({
-    theme: 'midnight-slate',
-    themePreset: 'midnight-slate',
-    lightThemePreset: 'paper-day',
-    ui_font: 'Inter',
-    uiDensity: 'comfortable',
-    cardOpacity: 0.7,
-    backdropBlur: 8,
-    reduceVisualEffects: false,
-    backdropSaturate: 180,
-    cardBorderOpacity: 0.08,
-    accentBlueOverride: null,
-    accentPurpleOverride: null,
-    accentGreenOverride: null,
-    accentAmberOverride: null,
-    noteTagColors: [],
-    initialEasinessFactor: 2.5,
-    dailyGoalMinutes: 120,
-    studyBlockDurationMinutes: 25,
-    shortBreakDurationMinutes: 5,
-    longBreakDurationMinutes: 15,
-    targetSessionsPerCycle: 4,
-    recentHistoryLimit: 100,
-    historyRetentionDays: 0,
-    focusNotificationsEnabled: false,
-    soundEnabled: true,
-    tactile_feedback: false,
-    developer_font: 'JetBrains Mono',
-    enforce_lockout: false,
-    autoArchiveAncientTasks: false,
-    isLoading: false,
-    updateSetting: vi.fn(),
-    updateSettingSafe: vi.fn(),
-    resetSectionDefaults: vi.fn(),
-    resetKeys: vi.fn(),
-  }),
-}))
+import { mockRequestConfirm, mockStudyCategories } from './testUtils'
 
 describe('CategoriesPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    requestConfirm.mockResolvedValue(true)
-    deleteCategory.mockResolvedValue(undefined)
+    mockRequestConfirm.mockResolvedValue(true)
+    mockStudyCategories.categories = [{ id: 1, name: 'Math', color: '#3B82F6' }]
+    mockStudyCategories.deleteCategory.mockResolvedValue(undefined)
+  })
+
+  afterEach(() => {
+    mockStudyCategories.categories = []
   })
 
   it('uses confirm dialog instead of alert on delete', async () => {
@@ -108,7 +31,7 @@ describe('CategoriesPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Show' }))
     await user.click(screen.getByRole('button', { name: /delete category math/i }))
 
-    expect(requestConfirm).toHaveBeenCalled()
+    expect(mockRequestConfirm).toHaveBeenCalled()
     expect(alertSpy).not.toHaveBeenCalled()
     alertSpy.mockRestore()
   })
