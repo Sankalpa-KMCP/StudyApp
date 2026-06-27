@@ -5,10 +5,10 @@ import { useTranslation } from '../../i18n/useTranslation'
 import { useSettingsPanel } from '../../context/settingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { Button } from '../shared/Button'
+import { DEFAULT_CATEGORY_COLOR } from '../../lib/shared/categoryConstants'
 
 /** Aligns with theme accent palette in index.css @theme */
-const SWATCH_COLORS = ['#007aff', '#af52de', '#ec4899', '#ff453a', '#ff9500', '#34c759', '#64748B']
-const DEFAULT_CATEGORY_COLOR = SWATCH_COLORS[0]
+const SWATCH_COLORS = [DEFAULT_CATEGORY_COLOR, '#af52de', '#ec4899', '#ff453a', '#ff9500', '#34c759', '#64748B']
 
 function clampCategoryGoal(raw: number): number {
   const stepped = Math.round(raw / 15) * 15

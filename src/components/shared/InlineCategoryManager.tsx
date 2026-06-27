@@ -2,9 +2,7 @@ import { useId, useState } from 'react'
 import { t } from '../../i18n'
 import type { CategoryItem } from '../../db/types'
 import { Button } from './Button'
-
-/** Matches `--color-accent-blue` default in index.css @theme */
-const DEFAULT_CATEGORY_COLOR = '#007aff'
+import { DEFAULT_CATEGORY_COLOR } from '../../lib/shared/categoryConstants'
 
 type RequestConfirm = (options: {
   title: string
