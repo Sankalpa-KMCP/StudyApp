@@ -1,11 +1,11 @@
 import type { SettingsKey, SettingsValue } from '../../db/types'
 import { parseNoteTagColorsArray } from './noteTagColors'
+import { HEX_COLOR } from './hexColor'
+import { UI_FONT_OPTIONS } from './uiFontOptions'
 import { MAX_STUDY_BLOCK_MINUTES } from '../shared/timerConstants'
 
-const UI_FONT_OPTIONS = ['Inter', 'Outfit', 'System'] as const
 const UI_DENSITY_OPTIONS = ['comfortable', 'compact'] as const
 const AMBIENT_PRESET_OPTIONS = ['rain', 'white-noise', 'cafe', 'brown-noise'] as const
-const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
 
 interface NumericRule {
   min: number
