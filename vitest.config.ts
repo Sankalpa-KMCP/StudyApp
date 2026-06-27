@@ -27,7 +27,6 @@ export default mergeConfig(
           'src/hooks/useJournalCalendar.ts',
           'src/hooks/useAppToast.ts',
           'src/hooks/useGamification.ts',
-          'src/hooks/useCategoriesMap.ts',
           'src/hooks/useFocusTrap.ts',
           'src/hooks/useTimerEngine.ts',
           'src/hooks/useSessionBackup.ts',
