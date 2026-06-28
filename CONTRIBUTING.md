@@ -55,7 +55,7 @@ On pushes to `master` (excluding screenshot-only commits), CI rebuilds the app, 
 
 Shared utilities live in [`e2e/helpers/studyApp.ts`](e2e/helpers/studyApp.ts):
 
-- `clearStudyDatabase(page)` + `freshVisitStorage` — for first-install scenarios
+- `freshVisitStorage` — empty storage state for first-install E2E scenarios (`e2e/first-visit.spec.ts`)
 
 ## Adding a setting key
 
