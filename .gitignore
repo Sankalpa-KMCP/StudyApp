@@ -14,6 +14,7 @@ test-results
 dist
 dist-ssr
 *.local
+/screenshot-*.png
 
 # Editor directories and files
 .vscode/*
