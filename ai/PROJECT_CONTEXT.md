@@ -40,7 +40,7 @@
 
 **Development status:** Actively maintained at v1.2.0 (June 2026). CI runs on pushes to `V2` and `master`. GitHub Pages deploys the web app; Tauri releases trigger on `v*` tags.
 
-**Workspace layout:** The git repository root is `web/`. The parent `study app/` folder contains a delegating `package.json` that forwards `npm run dev`, `test`, `build`, `lint`, and `storybook` to `web/` — useful when the editor workspace is opened at the parent path.
+**Workspace layout:** The git repository root is `web/`. The parent `study app/` folder is an editor workspace shell only: `web/`, a delegating `package.json`, `README.md`, and `.gitignore`. Root scripts forward `dev`, `test`, `build`, `lint`, `storybook`, `preview`, `test:e2e`, `tauri:dev`, and `tauri:build` to `web/`.
 
 **License:** Private — not open source (see [README.md](../README.md#license)).
 
@@ -145,9 +145,9 @@ web/                              # Git repository root
 ├── .github/workflows/            # CI, deploy, Tauri release, screenshots
 ├── .githooks/                    # pre-push hook (commit author email check)
 ├── scripts/                      # Bundle size check, PWA icon generation
-├── public/                       # Static assets (manifest, icons, 404.html)
-├── docs/screenshots/             # README tab screenshots
-├── e2e/                          # Playwright E2E specs (26 files)
+├── public/                       # Static assets (manifest, favicon.svg, icons/, 404.html)
+├── docs/screenshots/             # README tab screenshots (focus, analytics, journal, settings)
+├── e2e/                          # Playwright E2E specs (25 files)
 ├── src/
 │   ├── main.tsx                  # Bootstrap: PWA SW, i18n, E2E sync adapter, render App
 │   ├── App.tsx                   # Provider tree → AppShell
@@ -1153,7 +1153,7 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 **Mount scope:** Provider wraps only the Settings tab content — not the full app.
 
-**Pending cleanup batch (uncommitted):** `useSettingsPanel()` surface trimmed — no longer exposes `isLoading`, `lastSyncAt`, `lastSyncChecksum`, or `desktopBackupFolderPath`. Underlying settings persistence is unchanged; `FolderSyncPanel` reads sync status via `useSyncFolderDisplay`, and `StorageUsagePanel` reads `storageEstimate.isLoading`.
+**Context surface:** `useSettingsPanel()` does not expose `isLoading`, `lastSyncAt`, `lastSyncChecksum`, or `desktopBackupFolderPath`. Underlying settings persistence is unchanged; `FolderSyncPanel` reads sync status via `useSyncFolderDisplay`, and `StorageUsagePanel` reads `storageEstimate.isLoading`.
 
 ---
 
@@ -1433,8 +1433,8 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 **Responsibilities:**
 - Numeric clamping with min/max/step
-- Enum validation for preset keys (`UI_FONT_OPTIONS` from `uiFontOptions.ts` — pending cleanup batch)
-- Hex color validation for accent overrides via `HEX_COLOR` from `hexColor.ts` (pending cleanup batch)
+- Enum validation for preset keys (`UI_FONT_OPTIONS` from `uiFontOptions.ts`)
+- Hex color validation for accent overrides via `HEX_COLOR` from `hexColor.ts`
 - JSON array validation for `noteTagColors` via `parseNoteTagColorsArray()` in `noteTagColors.ts`
 
 **Used by:** `useSettingsUpdater.ts`, `settingsFromRows.ts` (via `noteTagColors.ts`)
@@ -1499,8 +1499,6 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 **Responsibilities:**
 - `HEX_COLOR` — shared regex used by note-tag parsing and accent-override validation
 
-**Status:** Pending cleanup batch (uncommitted). At HEAD, the equivalent pattern lived as `NOTE_TAG_HEX_COLOR` inside `noteTagColors.ts`; this module centralizes it.
-
 **Used by:** `noteTagColors.ts`, `settingsValidation.ts`
 
 ---
@@ -1513,8 +1511,6 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 - `UI_FONT_OPTIONS` — `['Inter', 'Outfit', 'System']`
 - `UiFontOption` type
 
-**Status:** Pending cleanup batch (uncommitted).
-
 **Used by:** `settingsValidation.ts`, `AestheticsPanel.tsx`
 
 ---
@@ -1524,8 +1520,8 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 **Purpose:** Shared helpers for the `noteTagColors` settings key and default note color.
 
 **Responsibilities:**
-- `parseNoteTagColorsArray()` — validates up to 8 hex colors (`MAX_NOTE_TAG_COLORS`); uses `HEX_COLOR` from `hexColor.ts` (pending cleanup batch)
-- `getDefaultNoteColor()` — first configured tag color or `var(--color-accent-blue)` fallback (pending cleanup batch)
+- `parseNoteTagColorsArray()` — validates up to 8 hex colors (`MAX_NOTE_TAG_COLORS`); uses `HEX_COLOR` from `hexColor.ts`
+- `getDefaultNoteColor()` — first configured tag color or `var(--color-accent-blue)` fallback
 
 **Used by:** `settingsValidation.ts`, `db/selectors/settingsFromRows.ts`, `QuickNotesDrawer.tsx`, `NoteListPanel.tsx`
 
@@ -1548,8 +1544,6 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 **Responsibilities:**
 - `PRIORITY_LABEL_KEYS` — maps `low` / `medium` / `high` to translation keys
-
-**Status:** Pending cleanup batch (uncommitted).
 
 **Used by:** `TaskCreateForm.tsx`, `TaskRow.tsx`
 
@@ -1731,7 +1725,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-**Note:** If your editor workspace is the parent `study app` folder, the root `package.json` there delegates `dev`, `test`, `build`, `lint`, and `storybook` to `web/` — you can run those commands from either location; git operations and `npm ci` should use the `web/` directory.
+**Note:** If your editor workspace is the parent `study app` folder, the root `package.json` there delegates `dev`, `test`, `build`, `lint`, `storybook`, `preview`, `test:e2e`, `tauri:dev`, and `tauri:build` to `web/` — you can run those commands from either location; git operations and `npm ci` should use the `web/` directory.
 
 **Windows tip:** Avoid trailing `#` comments on npm script lines in CMD — they pass as extra args to Vite.
 
@@ -1868,14 +1862,14 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md#dexie-migrations).
 | Unit | Vitest 3 | `vitest.config.ts` | `src/lib/__tests__/`, `src/db/__tests__/`, `src/hooks/__tests__/` |
 | Component | Vitest + Testing Library | `vitest.config.ts` | `src/components/**/__tests__/` |
 | Integration | Vitest + providers | `vitest.config.ts` | `src/context/__tests__/` |
-| E2E | Playwright | `playwright.config.ts` | `e2e/` (26 spec files) |
+| E2E | Playwright | `playwright.config.ts` | `e2e/` (25 spec files) |
 | Visual / a11y | Storybook + addon-a11y | `.storybook/` | `src/**/*.stories.tsx` |
 | Performance | Lighthouse CI | `.lighthouserc.json` | CI pipeline |
 
 ### Test setup
 
 - `src/test/setup.ts` — `fake-indexeddb`, `@testing-library/jest-dom`, `matchMedia` mock
-- E2E helpers: `e2e/helpers/studyApp.ts` (`clearStudyDatabase`, `freshVisitStorage`)
+- E2E helpers: `e2e/helpers/studyApp.ts` (`freshVisitStorage`, `openSettingsTab`, `openFocusTab`, `waitForAppReady`, `settingsSectionNav`)
 - i18n key coverage: `src/i18n/__tests__/keys.test.ts`
 - Provider integration: `src/context/__tests__/StudyAppProvider.integration.test.tsx`
 - E2E error probe: `E2eCrashProbe.tsx` — add `?e2e_force_error=1` in dev to test `ErrorBoundary` (`e2e/error-boundary.spec.ts`)
@@ -1894,7 +1888,7 @@ Full-app line coverage is intentionally not the goal — E2E covers integration 
 
 ### E2E spec files
 
-26 specs in `e2e/` (see list below). Playwright projects in `playwright.config.ts`: `chromium`, `mobile-chrome` (mobile.spec only), `firefox`, `webkit`, `visual` (visual-regression), `e2e-sync` (folder-sync specs with `VITE_E2E_SYNC=1`).
+25 specs in `e2e/` (see list below). Playwright projects in `playwright.config.ts`: `chromium`, `mobile-chrome` (mobile.spec only), `firefox`, `webkit`, `visual` (visual-regression), `e2e-sync` (folder-sync specs with `VITE_E2E_SYNC=1`).
 
 **CI E2E jobs** (`.github/workflows/ci.yml` — separate from local `npm run test:e2e`):
 
@@ -1905,7 +1899,7 @@ Full-app line coverage is intentionally not the goal — E2E covers integration 
 | `e2e-firefox` | `firefox` smoke: `focus.spec.ts`, `tasks.spec.ts` |
 | `e2e-webkit` | `webkit` smoke: `focus.spec.ts`, `tasks.spec.ts` |
 
-`e2e/analytics.spec.ts`, `analytics-range.spec.ts`, `auto-export.spec.ts`, `backup.spec.ts`, `backup-export.spec.ts`, `backup-import.spec.ts`, `backup-import-cancel.spec.ts`, `backup-import-invalid.spec.ts`, `backup-reminder.spec.ts`, `command-palette.spec.ts`, `error-boundary.spec.ts`, `first-visit.spec.ts`, `focus.spec.ts`, `folder-sync.spec.ts`, `folder-sync-conflict.spec.ts`, `journal.spec.ts`, `keyboard.spec.ts`, `mobile.spec.ts`, `quick-notes.spec.ts`, `reflection.spec.ts`, `screenshots.capture.spec.ts`, `settings.spec.ts`, `tasks.spec.ts`, `timer.spec.ts`, `visual-regression.spec.ts`, `zen.spec.ts`
+`e2e/analytics.spec.ts`, `analytics-range.spec.ts`, `auto-export.spec.ts`, `backup-export.spec.ts`, `backup-import.spec.ts`, `backup-import-cancel.spec.ts`, `backup-import-invalid.spec.ts`, `backup-reminder.spec.ts`, `command-palette.spec.ts`, `error-boundary.spec.ts`, `first-visit.spec.ts`, `focus.spec.ts`, `folder-sync.spec.ts`, `folder-sync-conflict.spec.ts`, `journal.spec.ts`, `keyboard.spec.ts`, `mobile.spec.ts`, `quick-notes.spec.ts`, `reflection.spec.ts`, `screenshots.capture.spec.ts`, `settings.spec.ts`, `tasks.spec.ts`, `timer.spec.ts`, `visual-regression.spec.ts`, `zen.spec.ts`
 
 ### Linting and formatting
 
@@ -2293,7 +2287,6 @@ npm run tauri:dev            # Desktop dev
 - Whether Chromatic visual testing is actively used (CI job is conditional on secret)
 - Open-source licensing intentions (currently marked private)
 - Whether `dismissReminder()` should get UI again or be removed in a future cleanup
-- Intent of uncommitted `src-tauri/Cargo.toml` modification (not attributed to released state in this document)
 
 ### Documentation policy (confirmed)
 
@@ -2306,7 +2299,6 @@ npm run tauri:dev            # Desktop dev
 - Update this document when Dexie schema version bumps
 - Update glossary if new domain terms are introduced
 - Keep `CHANGELOG.md` in sync with migrations
-- After the pending cleanup batch commits, remove `(pending cleanup batch)` markers from module entries and reconcile this document with HEAD
 
 ### Related documentation
 
@@ -2321,4 +2313,4 @@ npm run tauri:dev            # Desktop dev
 
 ---
 
-*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 27, 2026 (pass 6). Canonical location: `ai/PROJECT_CONTEXT.md`.*
+*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 28, 2026 (pass 8 — full project cleanup: orphan assets, uxTerms removal, e2e helper dedup). Canonical location: `ai/PROJECT_CONTEXT.md`.*
