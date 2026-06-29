@@ -1,11 +1,12 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { studyDb } from './db/studyDb'
 
 describe('App', () => {
   beforeEach(async () => {
+    vi.restoreAllMocks()
     localStorage.clear()
     await studyDb.delete()
     await studyDb.open()
@@ -52,6 +53,21 @@ describe('App', () => {
     await waitFor(() => expect(screen.queryByText('Matrix practice')).not.toBeInTheDocument())
   })
 
+  it('opens new task and subject editors from the home hero', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const hero = await screen.findByLabelText('Today overview')
+    await user.click(within(hero).getByRole('button', { name: 'Task' }))
+    expect(await screen.findByRole('heading', { name: 'Tasks' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Task title')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    await user.click(within(screen.getByLabelText('Today overview')).getByRole('button', { name: 'Subject' }))
+    expect(await screen.findByRole('heading', { name: 'Subjects' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Subject name')).toBeInTheDocument()
+  })
+
   it('creates and opens a note', async () => {
     const user = userEvent.setup()
     render(<App />)
@@ -83,5 +99,66 @@ describe('App', () => {
     expect(screen.getByText('Power rule')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Remembered' }))
     expect(await screen.findByText('remembered')).toBeInTheDocument()
+  })
+
+  it('confirms before clearing all study data and reports success', async () => {
+    const user = userEvent.setup()
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+    await studyDb.tasks.add({
+      id: 'task-clear-test',
+      title: 'Keep until confirmed',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 30,
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    })
+
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: /Clear all data/ }))
+    expect(confirm).toHaveBeenCalledWith('Clear all study data? This cannot be undone.')
+
+    await user.click(screen.getByRole('button', { name: 'Tasks' }))
+    expect(await screen.findByText('Keep until confirmed')).toBeInTheDocument()
+
+    confirm.mockReturnValue(true)
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: /Clear all data/ }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Study data cleared.')
+
+    await user.click(screen.getByRole('button', { name: 'Tasks' }))
+    await waitFor(() => expect(screen.queryByText('Keep until confirmed')).not.toBeInTheDocument())
+  })
+
+  it('reports import success and failure', async () => {
+    const user = userEvent.setup()
+    const validExport = {
+      version: 1,
+      exportedAt: '2026-06-29T00:00:00.000Z',
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    const importInput = screen.getByLabelText(/Import data/)
+
+    await user.upload(importInput, new File([JSON.stringify(validExport)], 'study-dashboard.json', { type: 'application/json' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Study data imported.')
+
+    await user.upload(importInput, new File(['not valid json'], 'broken.json', { type: 'application/json' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Import failed. Choose a valid Study Dashboard export.')
   })
 })
