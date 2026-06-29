@@ -40,7 +40,7 @@
 
 **Development status:** Actively maintained at v1.2.0 (June 2026). CI runs on pushes to `V2` and `master`. GitHub Pages deploys the web app; Tauri releases trigger on `v*` tags.
 
-**Workspace layout:** The git repository root is `web/`. The parent `study app/` folder is an editor workspace shell only: `web/`, a delegating `package.json`, `README.md`, and `.gitignore`. Root scripts forward `dev`, `test`, `build`, `lint`, `storybook`, `preview`, `test:e2e`, `tauri:dev`, and `tauri:build` to `web/`.
+**Workspace layout:** The git repository root is the parent `study app/` folder. The React/Vite app lives in `frontend/`, the Tauri desktop backend lives in `backend/`, and root scripts forward `dev`, `test`, `build`, `lint`, `storybook`, `preview`, `test:e2e`, `tauri:dev`, and `tauri:build` to `frontend/`.
 
 **License:** Private — not open source (see [README.md](../README.md#license)).
 
@@ -77,10 +77,10 @@ Technologies identified from the codebase with source locations.
 
 | Technology | Identified from |
 |------------|-----------------|
-| **Tauri 2** | `package.json`, `src-tauri/`, `src-tauri/tauri.conf.json` |
+| **Tauri 2** | `package.json`, `../backend/`, `../backend/tauri.conf.json` |
 | **@tauri-apps/api** | `package.json`, `src/lib/desktop/tauri.ts` |
-| **Tauri plugins** (autostart, dialog, fs, global-shortcut, notification) | `package.json`, `src/lib/desktop/tauri.ts`, `src-tauri/capabilities/default.json` |
-| **Rust** (Tauri shell) | `src-tauri/Cargo.toml`, `src-tauri/src/lib.rs` |
+| **Tauri plugins** (autostart, dialog, fs, global-shortcut, notification) | `package.json`, `src/lib/desktop/tauri.ts`, `../backend/capabilities/default.json` |
+| **Rust** (Tauri shell) | `../backend/Cargo.toml`, `../backend/src/lib.rs` |
 
 ### PWA and offline
 
@@ -123,7 +123,14 @@ Technologies identified from the codebase with source locations.
 ## 3. Project Structure
 
 ```
-web/                              # Git repository root
+study app/                        # Git repository root and workspace
+├── package.json                   # Root script delegate to frontend/
+├── README.md
+├── backend/                       # Tauri 2 desktop backend
+│   ├── src/main.rs, lib.rs         # Tray, plugins, window lifecycle
+│   ├── tauri.conf.json            # App metadata, build config
+│   └── capabilities/default.json   # FS scope permissions
+└── frontend/                      # React/Vite app
 ├── index.html                    # HTML entry — mounts #root, GitHub Pages redirect script
 ├── package.json                  # Dependencies and npm scripts
 ├── package-lock.json             # npm lockfile
@@ -206,16 +213,12 @@ web/                              # Git repository root
 │   │   ├── desktop/              # Tauri bridge, wake lock, notifications
 │   │   ├── audio/                # Ambient sound engine
 │   │   ├── routing/              # Hash routing, activeTab store, command palette search, prefetch
-│   │   └── shared/               # Constants (categoryConstants), dev logger, copyDebugInfo, UX terms
+│   │   └── shared/               # Shared constants, shortcut toast copy, dev logger, copyDebugInfo
 │   ├── navigation/               # Tab definitions (appNav.ts), shared NavTabButton.tsx
 │   ├── i18n/                     # i18n: index.ts, locales/en.json, useTranslation.ts
 │   ├── types/                    # App-level types (ActiveTab, etc.)
 │   ├── styles/                   # tokens.css, animations.css, nav-accents.css, surfaces.css, controls.css, mood-picker.css (imported by index.css)
 │   └── test/                     # Vitest setup and test utilities
-├── src-tauri/                    # Tauri 2 desktop shell
-│   ├── src/main.rs, lib.rs       # Tray, plugins, window lifecycle
-│   ├── tauri.conf.json           # App metadata, build config
-│   └── capabilities/default.json # FS scope permissions
 ├── README.md
 ├── ai/                     # AI documentation system (this folder)
 ├── CONTRIBUTING.md
@@ -480,7 +483,7 @@ index.html
 - Install prompt via `usePwaInstall` → `InstallPromptBanner` (dismiss snooze: localStorage `pwa_install_dismissed_until`).
 
 **How it works (Desktop):**
-- Tauri wraps the same Vite `dist/` build (`src-tauri/tauri.conf.json` → `frontendDist: ../dist`, `beforeBuildCommand: npm run build`); tray menu (Show / Toggle timer / Quit).
+- Tauri wraps the same Vite `dist/` build (`../backend/tauri.conf.json` → `frontendDist: ../frontend/dist`, `beforeBuildCommand: npm --prefix ../frontend run build`); tray menu (Show / Toggle timer / Quit).
 - Plugins: autostart, global shortcut, native notifications, folder picker, FS writes.
 - Minimize-on-close option; wake lock during active study blocks.
 - Production base path is `/` (Tauri); web GitHub Pages build uses `/StudyApp/` (`vite.config.ts` when `TAURI_ENV_PLATFORM` is set).
@@ -509,7 +512,7 @@ flowchart LR
 - `src/lib/desktop/tauri.ts`, `wakeLock.ts`, `focusNotifications.ts`
 - `src/components/app-shell/DesktopTrayTimerBridge.tsx`
 - `src/components/InstallPromptBanner.tsx`, `src/hooks/usePwaInstall.ts`
-- `src-tauri/src/lib.rs`, `src-tauri/capabilities/default.json`
+- `../backend/src/lib.rs`, `../backend/capabilities/default.json`
 
 ---
 
@@ -966,7 +969,7 @@ Defined in `src/lib/routing/appHashRouting.ts`, `src/navigation/appNav.ts`.
 
 ### Tauri plugin interfaces (desktop only)
 
-Defined in `src/lib/desktop/tauri.ts`, `src-tauri/capabilities/default.json`.
+Defined in `src/lib/desktop/tauri.ts`, `../backend/capabilities/default.json`.
 
 | Capability | API | Purpose |
 |------------|-----|---------|
@@ -1658,7 +1661,7 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 | `SCREENSHOT_BASE_URL` | Base URL for screenshot capture CI | No | `http://localhost:4173` | `playwright.screenshots.config.ts` |
 | `CHROMATIC_PROJECT_TOKEN` | Optional Chromatic visual regression testing | No | `[REDACTED]` | `.github/workflows/ci.yml`, `.env.example` |
 
-**`.env.example`:** Present at repo root (`web/.env.example`). Documents `VITE_E2E_SYNC`, `SCREENSHOT_BASE_URL`, and `CHROMATIC_PROJECT_TOKEN` with safe placeholders. Normal dev does not require a `.env` file — copy to `.env.local` only when needed. Only `VITE_E2E_SYNC` is typed in `src/vite-env.d.ts`; other vars are consumed by Playwright/CI tooling. Do not commit real secrets.
+**`.env.example`:** Present in the frontend app (`frontend/.env.example`). Documents `VITE_E2E_SYNC`, `SCREENSHOT_BASE_URL`, and `CHROMATIC_PROJECT_TOKEN` with safe placeholders. Normal dev does not require a `.env` file — copy to `.env.local` only when needed. Only `VITE_E2E_SYNC` is typed in `src/vite-env.d.ts`; other vars are consumed by Playwright/CI tooling. Do not commit real secrets.
 
 ### Important configuration files
 
@@ -1674,8 +1677,8 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 | `vitest.settings.config.ts` | Settings tier: 60%/45% |
 | `playwright.config.ts` | E2E browsers and projects |
 | `.lighthouserc.json` | Lighthouse CI performance thresholds |
-| `src-tauri/tauri.conf.json` | Desktop app name, identifier, build settings |
-| `src-tauri/capabilities/default.json` | Tauri permission scopes |
+| `../backend/tauri.conf.json` | Desktop app name, identifier, build settings |
+| `../backend/capabilities/default.json` | Tauri permission scopes |
 | `.npmrc` | npm config (`engine-strict=false` — does not enforce Node engine in package.json) |
 | `.cursor/rules/ai-documentation-sync.mdc` | Cursor rule: keep `ai/` docs synchronized with code changes |
 
@@ -1713,19 +1716,20 @@ Other UI-preference keys (e.g. `completed_section_open`, `journal_hint_dismissed
 ### Installation
 
 ```bash
-# Clone the repository (git root is the web/ folder)
-cd web
+# Clone the repository
+cd "study app"
 
-# Install dependencies (use ci for reproducible installs)
-npm ci
+# Install frontend dependencies (use ci for reproducible installs)
+cd frontend && npm ci
 
-# Start development server
+# Start development server from the workspace root
+cd ..
 npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173).
 
-**Note:** If your editor workspace is the parent `study app` folder, the root `package.json` there delegates `dev`, `test`, `build`, `lint`, `storybook`, `preview`, `test:e2e`, `tauri:dev`, and `tauri:build` to `web/` — you can run those commands from either location; git operations and `npm ci` should use the `web/` directory.
+**Note:** The root `package.json` delegates `dev`, `test`, `build`, `lint`, `storybook`, `preview`, `test:e2e`, `tauri:dev`, and `tauri:build` to `frontend/`. Use `frontend/` for `npm ci`; git operations can run from the workspace root.
 
 **Windows tip:** Avoid trailing `#` comments on npm script lines in CMD — they pass as extra args to Vite.
 
@@ -1839,7 +1843,7 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md#dexie-migrations).
 
 - CI runs on pushes to `V2` and `master` branches
 - `.githooks/pre-push` enforces commit author email (repo policy)
-- No formal commit message convention detected in codebase
+- Recent history uses Conventional Commit-style messages (`refactor(...)`, `test(...)`, `docs(...)`), but no enforcement config is present
 
 ### Safest way for an AI agent to make changes
 
@@ -2000,7 +2004,7 @@ Error handlers use `console.error` for diagnostics — not debug logging:
 
 ### Desktop filesystem scope
 
-- Tauri FS writes restricted to `$HOME/**`, `$DOCUMENT/**`, `$DOWNLOAD/**` (`src-tauri/capabilities/default.json`)
+- Tauri FS writes restricted to `$HOME/**`, `$DOCUMENT/**`, `$DOWNLOAD/**` (`../backend/capabilities/default.json`)
 - No broad filesystem access
 
 ### Web sync permissions
@@ -2184,7 +2188,7 @@ npm run build                         # If build config or imports changed
 | App shell | `src/components/AppShell.tsx` |
 | **UI state facades** | `src/context/useStudyApp.ts` (`useStudyData`, `useStudyUI`, …) |
 | Database | `src/db/db.ts` (repositories/hooks only — not for components) |
-| Desktop | `src-tauri/src/main.rs` |
+| Desktop | `../backend/src/main.rs` |
 
 ### Main commands
 
@@ -2275,7 +2279,7 @@ npm run tauri:dev            # Desktop dev
 
 ### Assumptions made
 
-- Git repository root is the `web/` folder (per README)
+- Git repository root is the parent `study app/` workspace folder
 - Parent `study app/` folder with delegating `package.json` is actively used for editor workspaces (confirmed in parent `package.json`)
 - No hidden backend or microservices exist outside this repo
 - GitHub Pages deployment uses `/StudyApp/` base path in production
@@ -2313,4 +2317,4 @@ npm run tauri:dev            # Desktop dev
 
 ---
 
-*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 28, 2026 (pass 8 — full project cleanup: orphan assets, uxTerms removal, e2e helper dedup). Canonical location: `ai/PROJECT_CONTEXT.md`.*
+*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 28, 2026 (pass 9 — post-cleanup context accuracy refresh). Canonical location: `ai/PROJECT_CONTEXT.md`.*
