@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage', 'storybook-static', 'src-tauri/target']),
+  globalIgnores(['dist', 'coverage', 'storybook-static', '../backend/target']),
   jsxA11y.flatConfigs.recommended,
   {
     files: ['**/*.{ts,tsx}'],
