@@ -7,8 +7,6 @@ npm ci
 npm run dev
 ```
 
-If you plan to run folder-sync E2E tests locally (`npm run test:e2e:sync`), copy `.env.example` to `.env.local` (or `.env`) and keep `VITE_E2E_SYNC=1`. See `.env.example` for other optional CI/E2E variables.
-
 ## Tests
 
 | Command | Purpose |
@@ -17,21 +15,9 @@ If you plan to run folder-sync E2E tests locally (`npm run test:e2e:sync`), copy
 | `npm run test:coverage` | Main coverage gate (80% lines, 74% branches) |
 | `npm run test:coverage:components` | Shared/analytics component gate (65% lines, 50% branches) |
 | `npm run test:coverage:settings` | Control-deck / settings widget gate (60% lines, 45% branches) |
-| `npm run test:e2e` | Playwright user journeys (Chromium, mobile, Firefox smoke) |
-| `npm run test:e2e:sync` | Folder-sync Playwright specs only (`e2e-sync` project) |
+| `npm run test:e2e` | Playwright user journeys (Chromium desktop and mobile projects) |
 | `npm run lint` | ESLint including jsx-a11y rules (errors on CI) |
 | `npm run check:bundle` | Gzip budget on main JS chunk (~512 KB) |
-| `npm run screenshots` | Regenerate README images in `docs/screenshots/` |
-
-## README screenshots
-
-```bash
-npm run screenshots
-```
-
-Regenerates the four tab captures used in README (`focus`, `analytics`, `journal`, `settings`) into `docs/screenshots/`.
-
-On pushes to `master` (excluding screenshot-only commits), CI rebuilds the app, captures against the production preview URL, and auto-commits updated PNGs when they change.
 
 ## List virtualization
 
