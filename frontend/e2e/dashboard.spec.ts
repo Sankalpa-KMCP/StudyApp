@@ -37,6 +37,19 @@ test('creates a note and navigates with linked controls', async ({ page }) => {
   await expect(page.getByText('Sunday study plan')).toBeVisible()
 })
 
+test('opens new task and subject editors from the home hero', async ({ page }) => {
+  const hero = page.locator('section[aria-label="Today overview"]')
+
+  await hero.getByRole('button', { name: 'Task' }).click()
+  await expect(page.getByRole('heading', { name: 'Tasks' }).first()).toBeVisible()
+  await expect(page.getByLabel('Task title')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Home' }).click()
+  await hero.getByRole('button', { name: 'Subject' }).click()
+  await expect(page.getByRole('heading', { name: 'Subjects' }).first()).toBeVisible()
+  await expect(page.getByLabel('Subject name')).toBeVisible()
+})
+
 test('creates and reviews a flashcard', async ({ page }) => {
   await page.getByRole('button', { name: 'Flashcards' }).click()
   await page.getByRole('button', { name: 'New card' }).click()
@@ -49,7 +62,8 @@ test('creates and reviews a flashcard', async ({ page }) => {
   await page.getByRole('button', { name: 'Reveal' }).click()
   await expect(page.getByText('Plants convert light into chemical energy.')).toBeVisible()
   await page.getByRole('button', { name: 'Remembered' }).click()
-  await expect(page.getByText('remembered')).toBeVisible()
+  const card = page.locator('article.flashcard').filter({ hasText: 'Photosynthesis' })
+  await expect(card.locator('.status-badge')).toHaveText('remembered')
 })
 
 test('keeps the dashboard usable on mobile', async ({ page }) => {
@@ -60,4 +74,6 @@ test('keeps the dashboard usable on mobile', async ({ page }) => {
   await expect(page.getByPlaceholder('Search')).toBeVisible()
   await page.getByRole('button', { name: 'Tasks' }).click()
   await expect(page.getByRole('heading', { name: 'Tasks' }).first()).toBeVisible()
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await expect(page.getByRole('heading', { name: 'Settings' }).first()).toBeVisible()
 })
