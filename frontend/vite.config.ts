@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig(({ mode }) => {
@@ -9,7 +8,6 @@ export default defineConfig(({ mode }) => {
     base: isTauri ? '/' : (mode === 'production' ? '/StudyApp/' : '/'),
     plugins: [
       react(),
-      tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['manifest.webmanifest'],
@@ -32,7 +30,6 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (id.includes('node_modules/recharts')) return 'vendor-recharts'
             if (id.includes('node_modules/dexie')) return 'vendor-dexie'
             if (id.includes('node_modules/lucide-react')) return 'vendor-lucide'
           },
