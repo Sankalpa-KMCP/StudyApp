@@ -2,8 +2,8 @@
 .idea/
 .cursor/*.log
 
-# Local AI documentation (not published to GitHub)
-ai/
+# Local AI documentation at repo root (not published to GitHub)
+/ai/
 
 # OS
 Thumbs.db
