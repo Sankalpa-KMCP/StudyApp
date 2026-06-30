@@ -7,29 +7,37 @@ alwaysApply: true
 
 When implementing or reviewing changes, keep AI-maintained docs in sync with the real codebase.
 
-## Covered files
+## Entry points
 
-`ai/PROJECT_CONTEXT.md`, `ai/AI_RULES.md`, and `.cursor/rules/`.
+1. **[`AGENTS.md`](../../AGENTS.md)** — committed bootstrap for any AI agent (on GitHub).
+2. **Local `ai/`** (gitignored) — full docs; update here, never commit `ai/` to git.
 
-(`CURRENT_STATE.md`, `ARCHITECTURE_DECISIONS.md`, `TASK_TEMPLATE.md`, and `PROMPT_PATTERNS.md` are intentionally not maintained — see `PROJECT_CONTEXT.md` §20.)
+## Covered files (local `ai/`)
+
+- [`ai/PROJECT_CONTEXT.md`](../../ai/PROJECT_CONTEXT.md)
+- [`ai/AI_RULES.md`](../../ai/AI_RULES.md)
+- [`ai/ARCHITECTURE_DECISIONS.md`](../../ai/ARCHITECTURE_DECISIONS.md)
+
+Also keep this rule file aligned when agent behavior changes.
+
+(`CURRENT_STATE.md`, `TASK_TEMPLATE.md`, and `PROMPT_PATTERNS.md` are not maintained. Do not create `PROMPT_PATTERNS.md`.)
 
 ## Update docs when changes affect
 
-Architecture, features, APIs, database models, environment variables, workflows, setup steps, dependencies, risky systems (backup/sync/crypto), conventions, deployment behavior, auth/permissions, or major refactors.
+Architecture, features, APIs, database models, environment variables, workflows, setup steps, dependencies, risky systems (import/clear data), conventions, deployment behavior, Tauri capabilities, or major refactors.
 
 ## Agent behavior
 
-- Update affected documentation **as part of implementation work** when triggers apply.
+- Update affected **local** `ai/` documentation as part of implementation work when triggers apply.
 - **Inspect implementation first** — do not update docs blindly.
 - Prefer **incremental section edits** over full rewrites.
-- **Preserve useful historical context** (migrations, rationale) unless factually wrong.
-- **Minimize stale docs** — fix or remove outdated claims in the same task when practical.
-- Cross-link instead of duplicating large sections across files.
+- **Preserve useful historical context** unless factually wrong.
+- Cross-link to [`AGENTS.md`](../../AGENTS.md) instead of duplicating bootstrap rules in committed files.
 
 ## Avoid
 
-- Leaving architecture or workflow docs stale after behavioral changes
-- Rewriting unrelated documentation sections
+- Committing `ai/` to git (folder is gitignored)
+- Editing stale pointer files under `frontend/ai/` instead of local `ai/`
 - Documenting non-existent features without marking them as planned
 
-Full policy: [`AI_RULES.md`](../../ai/AI_RULES.md)
+Full policy: [`ai/AI_RULES.md`](../../ai/AI_RULES.md) (local)
