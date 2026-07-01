@@ -4,12 +4,25 @@ import { useDashboardData } from '../hooks/useDashboardData'
 import { useGamification } from '../hooks/useGamification'
 import { useLazyStudyFeatures } from '../hooks/useLazyStudyFeatures'
 
-export function useStudyDataState(activeTab: ActiveTab) {
-  const data = useDashboardData()
-  const { tasks, history, recentHistory, settings, todayLog, flashcards, quickNotes, categories, allLogs, isDataReady } = data
+interface StudyDataStateOptions {
+  notesEnabled?: boolean
+  fullLogsEnabled?: boolean
+}
+
+export function useStudyDataState(
+  activeTab: ActiveTab,
+  { notesEnabled = false, fullLogsEnabled = false }: StudyDataStateOptions = {},
+) {
+  const data = useDashboardData({ activeTab, notesEnabled, fullLogsEnabled })
+  const {
+    tasks, history, recentHistory, settings, todayLog, flashcards, quickNotes,
+    categories, allLogs, studySummaries, isDataReady,
+  } = data
+
+  const gamificationLogs = allLogs.allLogs.length > 0 ? allLogs.allLogs : studySummaries.summaries
 
   const { currentStreak, xpData, pendingLevelUp, dismissLevelUp } = useGamification({
-    allLogs: allLogs.allLogs,
+    allLogs: gamificationLogs,
     isDataReady,
   })
 

@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { applySavedDesktopSettings, initDesktopTrayBridge, isTauri, setDesktopTrayTooltip } from '../../lib/desktop/tauri'
-import { prefetchIdleTabChunks } from '../../lib/routing/prefetchTabChunks'
+import { applySavedDesktopSettings, initDesktopTrayBridge, isTauri } from '../../lib/desktop/tauri'
 import { useStudyReminder } from '../useStudyReminder'
 import { useAutoExport } from '../useAutoExport'
 import { useFolderSync } from '../useFolderSync'
 
 interface UseAppShellEffectsOptions {
   isDataReady: boolean
-  flashcardsEnabled: boolean
   studyReminderEnabled: boolean
   studyReminderTime: string
   studyReminderOnlyBelowGoal: boolean
@@ -22,17 +20,11 @@ interface UseAppShellEffectsOptions {
   exportBackup: () => void
   timerControls: {
     setIsTimerActive: React.Dispatch<React.SetStateAction<boolean>>
-    isTimerActive: boolean
-    timerMode: 'study' | 'break'
-  }
-  timerDisplay: {
-    remainingSeconds: number
   }
 }
 
 export function useAppShellEffects({
   isDataReady,
-  flashcardsEnabled,
   studyReminderEnabled,
   studyReminderTime,
   studyReminderOnlyBelowGoal,
@@ -46,7 +38,6 @@ export function useAppShellEffects({
   desktopGlobalShortcutsEnabled,
   exportBackup,
   timerControls,
-  timerDisplay,
 }: UseAppShellEffectsOptions) {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
 
@@ -101,31 +92,6 @@ export function useAppShellEffects({
     window.addEventListener('desktop-timer-toggle', onDesktopTimerToggle)
     return () => window.removeEventListener('desktop-timer-toggle', onDesktopTimerToggle)
   }, [timerControls])
-
-  useEffect(() => {
-    if (!isTauri()) return
-    const mins = Math.floor(timerDisplay.remainingSeconds / 60)
-    const secs = timerDisplay.remainingSeconds % 60
-    const time = `${mins}:${secs.toString().padStart(2, '0')}`
-    const mode = timerControls.timerMode === 'study' ? 'Focus' : 'Break'
-    const state = timerControls.isTimerActive ? 'Running' : 'Paused'
-    void setDesktopTrayTooltip(`Study Dashboard — ${mode} ${time} (${state})`)
-  }, [
-    timerDisplay.remainingSeconds,
-    timerControls.isTimerActive,
-    timerControls.timerMode,
-  ])
-
-  useEffect(() => {
-    if (!isDataReady) return
-    const id = window.requestIdleCallback
-      ? window.requestIdleCallback(() => prefetchIdleTabChunks(flashcardsEnabled))
-      : window.setTimeout(() => prefetchIdleTabChunks(flashcardsEnabled), 2000)
-    return () => {
-      if (typeof id === 'number') window.clearTimeout(id)
-      else window.cancelIdleCallback?.(id)
-    }
-  }, [isDataReady, flashcardsEnabled])
 
   return { isOffline }
 }

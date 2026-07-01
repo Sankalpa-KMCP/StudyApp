@@ -52,7 +52,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
       trapRef={trapRef}
       panelClassName="max-w-md rounded-[28px] p-7 pb-0 sm:pb-7 animate-slide-in-up flex flex-col max-h-[90vh]"
     >
-      <div className="mb-4 pb-2 border-b border-white/10 shrink-0">
+      <div className="mb-4 pb-2 border-b border-card shrink-0">
         <h3 id="reflection-modal-title" className="text-base font-semibold text-heading-primary">Session reflection</h3>
         <p id="reflection-modal-desc" className="text-caption text-muted mt-1">Rate how the session went before saving it to your log.</p>
       </div>
@@ -84,7 +84,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
                 type="button"
                 onClick={() => setAttentionRating(rating)}
                 aria-pressed={attentionRating === rating}
-                className={`aspect-square flex-1 flex items-center justify-center text-xs font-bold transition-all duration-200 rounded-full cursor-pointer ios-active-scale border ${attentionRating === rating ? 'bg-accent-blue text-white border-accent-blue/30 shadow-md shadow-accent-blue/15' : 'bg-white/5 text-muted border-white/8 hover:bg-white/10 hover:text-heading-primary'}`}
+                className={`aspect-square flex-1 flex items-center justify-center text-xs font-bold transition-all duration-200 rounded-full cursor-pointer ios-active-scale border ${attentionRating === rating ? 'bg-accent-blue text-on-accent border-accent-blue/30 shadow-md shadow-accent-blue/15' : 'surface-subtle text-muted border-card hover:surface-track hover:text-heading-primary'}`}
               >
                 {rating}
               </button>
@@ -105,7 +105,7 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
                 type="button"
                 onClick={() => setStabilityRating(rating)}
                 aria-pressed={stabilityRating === rating}
-                className={`aspect-square flex-1 flex items-center justify-center text-xs font-bold transition-all duration-200 rounded-full cursor-pointer ios-active-scale border ${stabilityRating === rating ? 'bg-accent-blue text-white border-accent-blue/30 shadow-md shadow-accent-blue/15' : 'bg-white/5 text-muted border-white/8 hover:bg-white/10 hover:text-heading-primary'}`}
+                className={`aspect-square flex-1 flex items-center justify-center text-xs font-bold transition-all duration-200 rounded-full cursor-pointer ios-active-scale border ${stabilityRating === rating ? 'bg-accent-blue text-on-accent border-accent-blue/30 shadow-md shadow-accent-blue/15' : 'surface-subtle text-muted border-card hover:surface-track hover:text-heading-primary'}`}
               >
                 {rating}
               </button>
@@ -130,12 +130,12 @@ export const ReflectionModal: React.FC<ReflectionModalProps> = ({
             onChange={e => setLocalSessionNotes(e.target.value.slice(0, 500))}
             maxLength={500}
             placeholder="What did you work on? Any wins or blockers?"
-            className={`w-full h-16 rounded-2xl border bg-white/4 px-4 py-3 text-xs text-heading-primary outline-none focus:bg-white/8 placeholder-white/25 resize-none font-sans transition-all duration-300 ${localSessionNotes.length >= 500 ? 'border-red-500/40 focus:border-red-500/60' : 'border-white/8 focus:border-accent-blue/30'}`}
+            className={`w-full h-16 rounded-2xl border surface-subtle px-4 py-3 text-xs text-heading-primary outline-none focus:surface-track placeholder:text-muted resize-none font-sans transition-all duration-300 ${localSessionNotes.length >= 500 ? 'border-red-500/40 focus:border-red-500/60' : 'border-card focus:border-accent-blue/30'}`}
           />
         </div>
       </div>
 
-      <div className="sticky bottom-0 -mx-7 px-7 py-4 mt-2 border-t border-white/10 bg-surface-elevated/95 backdrop-blur-md flex flex-col gap-2 sm:static sm:border-0 sm:bg-transparent sm:backdrop-blur-none sm:p-0 sm:mx-0 shrink-0">
+      <div className="sticky bottom-0 -mx-7 px-7 py-4 mt-2 border-t border-card surface-overlay backdrop-blur-md flex flex-col gap-2 sm:static sm:border-0 sm:bg-transparent sm:backdrop-blur-none sm:p-0 sm:mx-0 shrink-0">
         <Button
           variant="primary"
           size="md"

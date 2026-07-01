@@ -91,7 +91,8 @@ export function validateSetting(key: SettingsKey, value: SettingsValue): Validat
     key === 'studyReminderEnabled' ||
     key === 'studyReminderOnlyBelowGoal' ||
     key === 'desktopMinimizeOnCloseEnabled' ||
-    key === 'syncEnabled'
+    key === 'syncEnabled' ||
+    key === 'reduceVisualEffects'
   ) {
     if (typeof value !== 'boolean') return { ok: false, reason: `${key} must be a boolean` }
     return { ok: true, value }

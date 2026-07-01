@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useStudyDataContext } from './studyDataContext'
+import { useStudyCore, useStudyGamification, useStudyExtended } from './studyDataSlices'
 import { useStudyTimerContext, useStudyTimerDisplay } from './studyTimerContext'
 import { useStudyUIContext } from './studyUIContext'
 
@@ -22,42 +23,18 @@ export function useStudyApp() {
 }
 
 export function useStudyData() {
-  const ctx = useStudyDataContext()
+  const core = useStudyCore()
+  const gamification = useStudyGamification()
+  const extended = useStudyExtended()
   return useMemo(() => ({
-    tasks: ctx.tasks,
-    history: ctx.history,
-    recentHistory: ctx.recentHistory,
-    settings: ctx.settings,
-    todayLog: ctx.todayLog,
-    flashcards: ctx.flashcards,
-    quickNotes: ctx.quickNotes,
-    categories: ctx.categories,
-    allLogs: ctx.allLogs,
-    isDataReady: ctx.isDataReady,
-    currentStreak: ctx.currentStreak,
-    xpData: ctx.xpData,
-    pendingLevelUp: ctx.pendingLevelUp,
-    dismissLevelUp: ctx.dismissLevelUp,
-  }), [
-    ctx.tasks,
-    ctx.history,
-    ctx.recentHistory,
-    ctx.settings,
-    ctx.todayLog,
-    ctx.flashcards,
-    ctx.quickNotes,
-    ctx.categories,
-    ctx.allLogs,
-    ctx.isDataReady,
-    ctx.currentStreak,
-    ctx.xpData,
-    ctx.pendingLevelUp,
-    ctx.dismissLevelUp,
-  ])
+    ...core,
+    ...gamification,
+    ...extended,
+  }), [core, gamification, extended])
 }
 
 export function useStudyUI() {
-  const data = useStudyDataContext()
+  const core = useStudyCore()
   const timerCtx = useStudyTimerContext()
   const ui = useStudyUIContext()
   return useMemo(() => ({
@@ -85,10 +62,10 @@ export function useStudyUI() {
     setTaskCycleCount: timerCtx.setTaskCycleCount,
     activeThemeVars: ui.activeThemeVars,
     canvasRef: ui.canvasRef,
-    progress: data.progress,
+    progress: core.progress,
     notifyFocusLockout: ui.notifyFocusLockout,
     scheduleDelete: ui.scheduleDelete,
-  }), [data.progress, timerCtx, ui])
+  }), [core.progress, timerCtx, ui])
 }
 
 export function useStudyTimer() {
@@ -104,36 +81,30 @@ export function useStudyTimer() {
 }
 
 export function useStudyJournal() {
-  const data = useStudyDataContext()
+  const extended = useStudyExtended()
+  const core = useStudyCore()
   return useMemo(() => ({
-    journal: data.journal,
-    todayLog: data.todayLog,
-  }), [data.journal, data.todayLog])
+    journal: extended.journal,
+    todayLog: core.todayLog,
+  }), [extended.journal, core.todayLog])
 }
 
 export function useStudyAnalytics() {
-  const data = useStudyDataContext()
+  const gamification = useStudyGamification()
+  const extended = useStudyExtended()
   return useMemo(() => ({
-    currentStreak: data.currentStreak,
-    xpData: data.xpData,
-    insights: data.insights,
-    breakdownData: data.breakdownData,
-    analyticsRange: data.analyticsRange,
-    journal: data.journal,
-    allLogs: data.allLogs,
-  }), [
-    data.currentStreak,
-    data.xpData,
-    data.insights,
-    data.breakdownData,
-    data.analyticsRange,
-    data.journal,
-    data.allLogs,
-  ])
+    currentStreak: gamification.currentStreak,
+    xpData: gamification.xpData,
+    insights: extended.insights,
+    breakdownData: extended.breakdownData,
+    analyticsRange: extended.analyticsRange,
+    journal: extended.journal,
+    allLogs: extended.allLogs,
+  }), [gamification, extended])
 }
 
 export function useStudySettings() {
-  const data = useStudyDataContext()
+  const core = useStudyCore()
   const timerCtx = useStudyTimerContext()
   const ui = useStudyUIContext()
   const handleFileDrop = useMemo(
@@ -141,10 +112,10 @@ export function useStudySettings() {
     [ui, timerCtx.confirmImport],
   )
   return useMemo(() => ({
-    settings: data.settings,
+    settings: core.settings,
     backup: timerCtx.backup,
     confirmImport: timerCtx.confirmImport,
     handleFileDrop,
-    categories: data.categories,
-  }), [data.settings, data.categories, timerCtx.backup, timerCtx.confirmImport, handleFileDrop])
+    categories: core.categories,
+  }), [core.settings, core.categories, timerCtx.backup, timerCtx.confirmImport, handleFileDrop])
 }

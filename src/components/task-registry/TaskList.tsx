@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Check, Target, AlertCircle, ChevronDown, ChevronUp, Plus } from 'lucide-react'
 import { EmptyState } from '../shared/EmptyState'
+import { VirtualList } from '../shared/VirtualList'
 import type { CategoryItem, TaskItem } from '../../db/types'
 import { updateSubtasks } from '../../db/repositories/tasks'
 import { SM2_HELPER } from '../../lib/shared/uxTerms'
@@ -16,7 +17,9 @@ const SM2_GRADES = [
 const COMPLETED_SECTION_KEY = 'completed_section_open'
 const COMPLETED_DISPLAY_CAP = 20
 const VIRTUALIZE_THRESHOLD = 100
+const REVIEW_VIRTUALIZE_THRESHOLD = 25
 const TASK_ROW_ESTIMATE = 140
+const REVIEW_ROW_ESTIMATE = 72
 
 interface TaskListProps {
   activeTasksList: TaskItem[]
@@ -135,7 +138,7 @@ export function TaskList({
           completed
             ? 'opacity-70'
             : isActive
-            ? 'shadow-lg border-white/12 -translate-y-[1px] ring-1 ring-accent-blue/25 border-l-[4px] border-l-accent-blue'
+            ? 'shadow-lg border-card -translate-y-[1px] ring-1 ring-accent-blue/25 border-l-[4px] border-l-accent-blue'
             : 'dynamic-card-interactive hover:-translate-y-[2px]'
         } ${completed || isActive ? '' : priorityBorder}`}
       >
@@ -148,7 +151,7 @@ export function TaskList({
               className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-all duration-250 ease-out ios-active-scale ${
                 task.completed
                   ? 'border-accent-green bg-accent-green text-white shadow-sm'
-                  : 'border-white/20 hover:border-accent-blue hover:bg-white/5'
+                  : 'border-card hover:border-accent-blue hover:surface-subtle'
               }`}
             >
               {task.completed && <Check className="h-3 w-3 stroke-[2.5]" />}
@@ -167,7 +170,7 @@ export function TaskList({
                   ? 'bg-red-500/10 text-red-400 border-red-500/20'
                   : task.priority === 'low'
                   ? 'bg-accent-blue/10 text-accent-blue border-accent-blue/20'
-                  : 'bg-transparent text-white/40 border-white/10'
+                  : 'bg-transparent text-muted border-card'
               }`}>
                 {task.priority}
               </span>
@@ -176,16 +179,16 @@ export function TaskList({
               title={task.text}
               className={`flex-1 text-xs font-semibold select-none transition-colors ${
                 completed
-                  ? 'text-white/50 line-through truncate'
+                  ? 'text-muted line-through truncate'
                   : isActive
-                  ? 'text-white line-clamp-2'
-                  : 'text-white/80 truncate'
+                  ? 'text-primary line-clamp-2'
+                  : 'text-secondary truncate'
               }`}
             >
               {task.text}
             </span>
             {!completed && subtaskCount > 0 && !isActive && (
-              <span className="shrink-0 text-[9px] font-bold text-white/45 bg-white/5 border border-white/8 px-2 py-0.5 rounded-full">
+              <span className="shrink-0 text-[9px] font-bold text-muted surface-subtle border border-card px-2 py-0.5 rounded-full">
                 {subtaskCount} subtask{subtaskCount === 1 ? '' : 's'}
               </span>
             )}
@@ -201,12 +204,12 @@ export function TaskList({
                 className={`min-h-9 min-w-9 flex items-center justify-center rounded-full border transition-all ios-active-scale cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
                   isActive
                     ? 'border-accent-blue bg-accent-blue/15 text-accent-blue'
-                    : 'border-white/10 bg-white/5 text-white/50 hover:border-accent-blue/40 hover:text-accent-blue'
+                    : 'border-card surface-subtle text-muted hover:border-accent-blue/40 hover:text-accent-blue'
                 }`}
               >
                 <Target className="h-4 w-4" />
               </button>
-              <span className="text-[9px] font-mono font-bold text-white/60 flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+              <span className="text-[9px] font-mono font-bold text-secondary flex items-center gap-1 surface-subtle px-2.5 py-1 rounded-full border border-card">
                 <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1}</span>
               </span>
             </div>
@@ -214,11 +217,11 @@ export function TaskList({
         </div>
 
         {!completed && isActive && subtaskCount === 0 && (
-          <p className="pl-8 text-micro text-white/35 italic">Add subtasks to break this target into steps.</p>
+          <p className="pl-8 text-micro text-muted italic">Add subtasks to break this target into steps.</p>
         )}
 
         {!completed && isActive && (
-          <div data-subtask-panel className="pl-8 pr-2 pt-2.5 border-t border-white/5 space-y-3 cursor-default">
+          <div data-subtask-panel className="pl-8 pr-2 pt-2.5 border-t border-card space-y-3 cursor-default">
             {subtaskCount > 0 && (
               <div className="space-y-2">
                 {task.subtasks!.map(sub => (
@@ -229,19 +232,19 @@ export function TaskList({
                       className={`h-4 w-4 shrink-0 rounded flex items-center justify-center transition-all cursor-pointer ${
                         sub.completed
                           ? 'border-accent-green bg-accent-green text-white'
-                          : 'border-white/20 hover:border-accent-blue bg-white/5'
+                          : 'border-card hover:border-accent-blue surface-subtle'
                       }`}
                     >
                       {sub.completed && <Check className="h-2.5 w-2.5 stroke-[3]" />}
                     </button>
-                    <span className={`flex-1 truncate ${sub.completed ? 'text-white/30 line-through' : 'text-white/80'}`}>
+                    <span className={`flex-1 truncate ${sub.completed ? 'text-muted line-through' : 'text-secondary'}`}>
                       {sub.text}
                     </span>
                     <button
                       type="button"
                       aria-label={`Delete subtask ${sub.text}`}
                       onClick={() => handleDeleteSubtask(task, sub.id)}
-                      className="text-[10px] text-white/30 hover:text-red-400 font-bold transition-colors cursor-pointer pl-1 pr-1"
+                      className="text-[10px] text-muted hover:text-red-400 font-bold transition-colors cursor-pointer pl-1 pr-1"
                     >
                       ✕
                     </button>
@@ -253,7 +256,7 @@ export function TaskList({
               <input
                 type="text"
                 placeholder="Add subtask..."
-                className="flex-1 bg-black/30 border border-white/8 rounded-lg px-2.5 py-1.5 text-[10px] text-white placeholder-white/25 outline-none"
+                className="flex-1 surface-subtle border border-card rounded-lg px-2.5 py-1.5 text-[10px] text-primary placeholder:text-muted outline-none"
                 onKeyDown={async e => {
                   if (e.key === 'Enter') {
                     const target = e.target as HTMLInputElement
@@ -275,18 +278,23 @@ export function TaskList({
   return (
     <>
       {reviewQueueList.length > 0 && (
-        <div className="mb-6 p-4 rounded-[20px] bg-black/20 border border-white/5 flex flex-col gap-3 shadow-md animate-slide-in-up">
-          <div className="flex items-center justify-between border-b border-white/5 pb-2">
-            <span className="text-[9.5px] font-bold text-white/40 uppercase tracking-wider">Spaced Repetition Review</span>
+        <div className="mb-6 p-4 rounded-[20px] surface-subtle border border-card flex flex-col gap-3 shadow-md animate-slide-in-up">
+          <div className="flex items-center justify-between border-b border-card pb-2">
+            <span className="text-[9.5px] font-bold text-muted uppercase tracking-wider">Spaced Repetition Review</span>
             <span className="text-[8.5px] font-bold text-accent-amber bg-accent-amber/10 border border-accent-amber/20 px-2.5 py-0.5 rounded-full select-none">
               {reviewQueueList.length} Due
             </span>
           </div>
 
-          <p className="text-micro text-white/40">{SM2_HELPER}</p>
-          <div className="flex flex-col gap-1 max-h-[40vh] overflow-y-auto custom-scrollbar pr-1">
-            {reviewQueueList.map(task => (
-              <div key={task.id} className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2 border-b border-white/5 last:border-b-0 hover:bg-white/[0.03] px-1 rounded-xl transition-colors duration-200">
+          <p className="text-micro text-muted">{SM2_HELPER}</p>
+          <VirtualList
+            items={reviewQueueList}
+            className="flex flex-col gap-1 max-h-[40vh] overflow-y-auto custom-scrollbar pr-1"
+            estimateSize={REVIEW_ROW_ESTIMATE}
+            enabled={reviewQueueList.length > REVIEW_VIRTUALIZE_THRESHOLD}
+            getKey={task => task.id ?? task.text}
+            renderItem={task => (
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2 border-b border-card last:border-b-0 hover:surface-subtle px-1 rounded-xl transition-colors duration-200">
                 <div className="flex items-center gap-2.5 min-w-0">
                   {task.categoryId !== undefined && categoriesMap.has(task.categoryId) && (
                     <span
@@ -300,10 +308,10 @@ export function TaskList({
                       {categoriesMap.get(task.categoryId)!.name}
                     </span>
                   )}
-                  <span className="text-xs text-white/90 font-semibold truncate select-none" title={task.text}>{task.text}</span>
+                  <span className="text-xs text-primary font-semibold truncate select-none" title={task.text}>{task.text}</span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-[8px] text-white/40 font-bold uppercase tracking-wider mr-1.5 hidden sm:inline select-none">Recall:</span>
+                  <span className="text-[8px] text-muted font-bold uppercase tracking-wider mr-1.5 hidden sm:inline select-none">Recall:</span>
                   {SM2_GRADES.map(({ q, label, title }) => (
                     <button
                       key={q}
@@ -311,7 +319,7 @@ export function TaskList({
                       title={title}
                       aria-label={`Recall grade ${q} (${title}) for ${task.text}`}
                       onClick={() => submitRecallGrade(task, q)}
-                      className="min-h-11 min-w-11 sm:min-h-6 sm:min-w-6 rounded-full text-[9px] sm:text-[9px] font-bold bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 transition-all ios-active-scale cursor-pointer flex items-center justify-center px-1"
+                      className="min-h-11 min-w-11 sm:min-h-6 sm:min-w-6 rounded-full text-[9px] sm:text-[9px] font-bold surface-subtle hover:surface-track text-secondary border border-card transition-all ios-active-scale cursor-pointer flex items-center justify-center px-1"
                     >
                       <span className="sm:hidden">{label}</span>
                       <span className="hidden sm:inline font-mono">{q}</span>
@@ -319,8 +327,8 @@ export function TaskList({
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          />
         </div>
       )}
 
@@ -372,11 +380,11 @@ export function TaskList({
         )}
 
         {filteredCompleted.length > 0 && (
-          <div className="mt-4 border-t border-white/5 pt-4">
+          <div className="mt-4 border-t border-card pt-4">
             <button
               type="button"
               onClick={toggleCompletedSection}
-              className="flex w-full items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/45 hover:text-white/65 transition-colors mb-2"
+              className="flex w-full items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted hover:text-primary transition-colors mb-2"
               aria-expanded={completedOpen}
             >
               <span>Recently completed ({filteredCompleted.length})</span>
@@ -389,7 +397,7 @@ export function TaskList({
                   <button
                     type="button"
                     onClick={() => setCompletedVisibleCount(c => c + COMPLETED_DISPLAY_CAP)}
-                    className="mt-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-label font-semibold text-white/70 hover:bg-white/10"
+                    className="mt-2 rounded-full border border-card surface-subtle px-4 py-2 text-label font-semibold text-secondary hover:surface-track"
                   >
                     Show more ({filteredCompleted.length - completedVisibleCount} remaining)
                   </button>

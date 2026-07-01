@@ -1,17 +1,22 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { readAppHashFromLocation } from '../lib/routing/appHashRouting'
 import { scrollToSettingsSectionWhenReady, consumePendingSettingsPanelScroll } from '../lib/settings/settingsSections'
 import { useConfirm } from '../context/useConfirm'
-import { AestheticsPanel } from './control-deck/AestheticsPanel'
-import { FlashcardsPanel } from './control-deck/FlashcardsPanel'
-import { NotesSettingsPanel } from './control-deck/NotesSettingsPanel'
-import { TimerFocusPanel } from './control-deck/TimerFocusPanel'
-import { SoundFeedbackPanel } from './control-deck/SoundFeedbackPanel'
-import { AlgorithmPanel } from './control-deck/AlgorithmPanel'
-import { ZenLockoutPanel } from './control-deck/ZenLockoutPanel'
-import { BackupVaultPanel } from './control-deck/BackupVaultPanel'
-import { DesktopSettingsPanel } from './control-deck/DesktopSettingsPanel'
-import { CategoriesPanel } from './control-deck/CategoriesPanel'
+
+const AestheticsPanel = lazy(() => import('./control-deck/AestheticsPanel').then(m => ({ default: m.AestheticsPanel })))
+const FlashcardsPanel = lazy(() => import('./control-deck/FlashcardsPanel').then(m => ({ default: m.FlashcardsPanel })))
+const NotesSettingsPanel = lazy(() => import('./control-deck/NotesSettingsPanel').then(m => ({ default: m.NotesSettingsPanel })))
+const TimerFocusPanel = lazy(() => import('./control-deck/TimerFocusPanel').then(m => ({ default: m.TimerFocusPanel })))
+const SoundFeedbackPanel = lazy(() => import('./control-deck/SoundFeedbackPanel').then(m => ({ default: m.SoundFeedbackPanel })))
+const AlgorithmPanel = lazy(() => import('./control-deck/AlgorithmPanel').then(m => ({ default: m.AlgorithmPanel })))
+const ZenLockoutPanel = lazy(() => import('./control-deck/ZenLockoutPanel').then(m => ({ default: m.ZenLockoutPanel })))
+const BackupVaultPanel = lazy(() => import('./control-deck/BackupVaultPanel').then(m => ({ default: m.BackupVaultPanel })))
+const DesktopSettingsPanel = lazy(() => import('./control-deck/DesktopSettingsPanel').then(m => ({ default: m.DesktopSettingsPanel })))
+const CategoriesPanel = lazy(() => import('./control-deck/CategoriesPanel').then(m => ({ default: m.CategoriesPanel })))
+
+function PanelFallback() {
+  return <div className="h-16 animate-pulse rounded-2xl surface-subtle" aria-hidden />
+}
 import { SettingsOnboardingBanners } from './control-deck/SettingsOnboardingBanners'
 import { SettingsPanelProvider, useSettingsPanel } from './control-deck/SettingsPanelContext'
 import { SettingsShell, SettingsSection } from './control-deck/SettingsShell'
@@ -60,7 +65,9 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
       onShowAdvancedChange={setShowAdvanced}
     >
       <SettingsSection id="appearance" label="Appearance">
-        <AestheticsPanel />
+        <Suspense fallback={<PanelFallback />}>
+          <AestheticsPanel />
+        </Suspense>
       </SettingsSection>
 
       <SettingsSection
@@ -68,9 +75,11 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
         label="Focus"
         onResetDefaults={() => void handleSectionReset('focus')}
       >
-        <TimerFocusPanel />
-        <SoundFeedbackPanel />
-        {showAdvanced && <ZenLockoutPanel />}
+        <Suspense fallback={<PanelFallback />}>
+          <TimerFocusPanel />
+          <SoundFeedbackPanel />
+          {showAdvanced && <ZenLockoutPanel />}
+        </Suspense>
       </SettingsSection>
 
       <SettingsSection
@@ -78,19 +87,23 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
         label="Study"
         onResetDefaults={() => void handleSectionReset('study')}
       >
-        <FlashcardsPanel />
-        {showAdvanced && (
-          <>
-            <NotesSettingsPanel />
-            <AlgorithmPanel />
-            <CategoriesPanel />
-          </>
-        )}
+        <Suspense fallback={<PanelFallback />}>
+          <FlashcardsPanel />
+          {showAdvanced && (
+            <>
+              <NotesSettingsPanel />
+              <AlgorithmPanel />
+              <CategoriesPanel />
+            </>
+          )}
+        </Suspense>
       </SettingsSection>
 
       <SettingsSection id="data" label="Data">
-        <BackupVaultPanel />
-        {showAdvanced && <DesktopSettingsPanel />}
+        <Suspense fallback={<PanelFallback />}>
+          <BackupVaultPanel />
+          {showAdvanced && <DesktopSettingsPanel />}
+        </Suspense>
       </SettingsSection>
     </SettingsShell>
   )

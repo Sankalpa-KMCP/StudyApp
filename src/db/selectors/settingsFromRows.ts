@@ -34,6 +34,7 @@ export interface ParsedSettings {
   focusNotificationsEnabled: boolean
   cardOpacity: number
   backdropBlur: number
+  reduceVisualEffects: boolean
   tactile_feedback: boolean
   developer_font: string
   enforce_lockout: boolean
@@ -90,6 +91,7 @@ export const SETTINGS_DEFAULTS: ParsedSettings = {
   focusNotificationsEnabled: false,
   cardOpacity: 0.7,
   backdropBlur: 8,
+  reduceVisualEffects: false,
   tactile_feedback: false,
   developer_font: 'JetBrains Mono',
   enforce_lockout: false,
@@ -168,6 +170,7 @@ export function settingsFromRows(rows: SettingsRow[] | undefined): ParsedSetting
     focusNotificationsEnabled: getValue(rows, 'focusNotificationsEnabled', SETTINGS_DEFAULTS.focusNotificationsEnabled),
     cardOpacity: getValue(rows, 'cardOpacity', SETTINGS_DEFAULTS.cardOpacity),
     backdropBlur: getValue(rows, 'backdropBlur', SETTINGS_DEFAULTS.backdropBlur),
+    reduceVisualEffects: getValue(rows, 'reduceVisualEffects', SETTINGS_DEFAULTS.reduceVisualEffects),
     tactile_feedback: getValue(rows, 'tactile_feedback', SETTINGS_DEFAULTS.tactile_feedback),
     developer_font: getValue(rows, 'developer_font', SETTINGS_DEFAULTS.developer_font),
     enforce_lockout: getValue(rows, 'enforce_lockout', SETTINGS_DEFAULTS.enforce_lockout),

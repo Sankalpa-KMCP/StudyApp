@@ -5,7 +5,7 @@ import { useAmbientSynth } from '../hooks/useAmbientSynth'
 import { useAmbientSound } from '../hooks/useAmbientSound'
 import { useTimerEngine } from '../hooks/useTimerEngine'
 import { useTaskActions } from '../hooks/useTaskActions'
-import { useStudyDataContext } from './studyDataContext'
+import { useStudyCore } from './studyDataSlices'
 import type { TaskItem } from '../db/types'
 import type { useAppToast } from '../hooks/useAppToast'
 
@@ -20,7 +20,7 @@ export function useStudyTimerState(pushToast: PushToast) {
     settings,
     todayLog,
     categories,
-  } = useStudyDataContext()
+  } = useStudyCore()
 
   const [activeTaskId, setActiveTaskId] = useState<number | null>(null)
   const [taskCycleCount, setTaskCycleCount] = useState(1)

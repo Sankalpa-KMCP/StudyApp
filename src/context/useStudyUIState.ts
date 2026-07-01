@@ -10,13 +10,14 @@ import { useZenCanvas } from '../hooks/useZenCanvas'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useFocusLockoutNavigation } from '../hooks/useFocusLockoutNavigation'
 import { useOptionalSidebarCollapse } from '../components/sidebar/useSidebarCollapseContext'
-import { useStudyDataContext } from './studyDataContext'
-import { useStudyTimerContext, useStudyTimerDisplay } from './studyTimerContext'
+import { useStudyCore } from './studyDataSlices'
+import { useStudyTimerContext } from './studyTimerContext'
 import { useConfirm } from './useConfirm'
 import type { useAppToast } from '../hooks/useAppToast'
 import { useUndoDelete } from '../hooks/useUndoDelete'
 import { PAUSE_TIMER_TO_LEAVE } from '../lib/shared/uxTerms'
 import { setAppLocale } from '../i18n'
+import { setDeferredDataFlags } from '../hooks/useDeferredDataEnabled'
 
 const UI_FONT_STACKS: Record<string, string> = {
   Inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -27,9 +28,8 @@ const UI_FONT_STACKS: Record<string, string> = {
 type ToastApi = ReturnType<typeof useAppToast>
 
 export function useStudyUIState(toast: ToastApi) {
-  const { settings } = useStudyDataContext()
+  const { settings } = useStudyCore()
   const { timerControls } = useStudyTimerContext()
-  const timerDisplay = useStudyTimerDisplay()
   const { requestConfirm } = useConfirm()
   const { activeToast, setActiveToast, quotaExceeded, dismissQuotaRecovery } = toast
   const { scheduleDelete } = useUndoDelete({ setActiveToast })
@@ -78,7 +78,7 @@ export function useStudyUIState(toast: ToastApi) {
     timerMode: timerControls.timerMode,
     enforceLockout: settings.enforce_lockout,
     showReflectionModal: timerControls.showReflectionModal,
-    secondsElapsed: timerDisplay.secondsElapsed,
+    secondsElapsedRef: timerControls.secondsElapsedRef,
     completingRef: timerControls.completingRef,
     handleModeSwitch: timerControls.handleModeSwitch,
     completeSession: timerControls.completeSession,
@@ -99,6 +99,13 @@ export function useStudyUIState(toast: ToastApi) {
       navigateToTab('focus')
     }
   }, [settings.flashcardsEnabled, activeTab, navigateToTab])
+
+  useEffect(() => {
+    setDeferredDataFlags({
+      notesEnabled: isNotesOpen || isCommandPaletteOpen,
+      fullLogsEnabled: isCommandPaletteOpen,
+    })
+  }, [isNotesOpen, isCommandPaletteOpen])
 
   useEffect(() => {
     setAppLocale(settings.locale)

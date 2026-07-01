@@ -15,12 +15,12 @@ export function AppShellLoadingScreen({ pageGradient }: AppShellLoadingScreenPro
     >
       <div className="dynamic-card-static flex flex-col items-center gap-5 px-8 py-7 shadow-2xl">
         <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-gradient-to-tr from-accent-blue to-accent-purple shadow-md shadow-accent-blue/10">
-          <Brain className="h-6 w-6 text-white" />
+          <Brain className="h-6 w-6 text-primary" />
         </div>
         <div className="flex flex-col items-center gap-2">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-          <p className="text-sm text-white/60 font-semibold tracking-wide">Loading Study Dashboard</p>
-          <p className="text-caption text-white/35">Preparing your local sanctuary...</p>
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-card border-t-primary" />
+          <p className="text-sm text-secondary font-semibold tracking-wide">Loading Study Dashboard</p>
+          <p className="text-caption text-muted">Preparing your local sanctuary...</p>
         </div>
       </div>
     </div>

@@ -15,17 +15,17 @@ export async function loadAppFonts(uiFont: string, developerFont: string) {
   const jobs: Promise<void>[] = []
 
   if (uiFont === 'Inter') {
-    jobs.push(loadFontFamily('inter', ['400', '500', '600', '700']))
+    jobs.push(loadFontFamily('inter', ['400', '600']))
   } else if (uiFont === 'Outfit') {
-    jobs.push(loadFontFamily('outfit', ['400', '500', '600', '700']))
+    jobs.push(loadFontFamily('outfit', ['400', '600']))
   }
 
   if (developerFont === 'JetBrains Mono') {
-    jobs.push(loadFontFamily('jetbrains-mono', ['400', '500', '600', '700']))
+    jobs.push(loadFontFamily('jetbrains-mono', ['400', '600']))
   } else if (developerFont === 'Inter') {
-    jobs.push(loadFontFamily('inter', ['400', '500', '600', '700']))
+    jobs.push(loadFontFamily('inter', ['400', '600']))
   } else if (developerFont === 'Outfit') {
-    jobs.push(loadFontFamily('outfit', ['400', '500', '600', '700']))
+    jobs.push(loadFontFamily('outfit', ['400', '600']))
   }
 
   await Promise.all(jobs)

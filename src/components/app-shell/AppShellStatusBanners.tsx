@@ -100,7 +100,7 @@ export function AppShellStatusBanners({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="flex items-center justify-center gap-1 border-b border-white/5 bg-white/[0.03] px-4 py-1.5 text-micro font-semibold text-muted hover:text-primary transition-colors"
+          className="flex items-center justify-center gap-1 border-b border-card surface-subtle px-4 py-1.5 text-micro font-semibold text-muted hover:text-primary transition-colors"
           aria-expanded={expanded}
         >
           <ChevronDown className="h-3 w-3" aria-hidden />
@@ -111,7 +111,7 @@ export function AppShellStatusBanners({
         <button
           type="button"
           onClick={() => setExpanded(false)}
-          className="flex items-center justify-center gap-1 border-b border-white/5 bg-white/[0.03] px-4 py-1.5 text-micro font-semibold text-muted hover:text-primary transition-colors"
+          className="flex items-center justify-center gap-1 border-b border-card surface-subtle px-4 py-1.5 text-micro font-semibold text-muted hover:text-primary transition-colors"
           aria-expanded={expanded}
         >
           <ChevronUp className="h-3 w-3" aria-hidden />

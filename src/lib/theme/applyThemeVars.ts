@@ -31,6 +31,7 @@ export function buildThemeInlineStyles(
     '--surface-card-rgb': profile.surfaceCardRgb,
     '--surface-card-hover-rgb': hoverRgb,
     '--surface-overlay': `rgba(${profile.surfaceCardRgb}, 0.95)`,
+    '--overlay-backdrop': isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(0, 0, 0, 0.55)',
     '--body-base': profile.surface,
     '--body-ambient': profile.ambientGlow ?? 'none',
     '--scrollbar-thumb': profile.scrollbarThumb ?? (isLight ? 'rgba(0, 0, 0, 0.18)' : 'rgba(255, 255, 255, 0.12)'),

@@ -1,10 +1,9 @@
-import { memo } from 'react'
+import { lazy, memo, Suspense, useState, useEffect } from 'react'
 import { Sidebar } from './Sidebar'
 import { AppContentHeader } from './AppContentHeader'
 import { ZenOverlayContainer } from './ZenOverlayContainer'
 import { ReflectionModalContainer } from './ReflectionModalContainer'
 import { HotkeyModal } from './HotkeyModal'
-import { QuickNotesDrawer } from './QuickNotesDrawer'
 import { MobileTabBar } from './MobileTabBar'
 import { FocusTab } from './tabs/FocusTab'
 import { AnalyticsTab } from './tabs/AnalyticsTab'
@@ -12,7 +11,7 @@ import { JournalTab } from './tabs/JournalTab'
 import { CardsTab } from './tabs/CardsTab'
 import { SettingsTab } from './tabs/SettingsTab'
 import { useStudyData, useStudyUI } from '../context/useStudyApp'
-import { useStudyTimerContext, useStudyTimerDisplay } from '../context/studyTimerContext'
+import { useStudyTimerContext } from '../context/studyTimerContext'
 import { E2eCrashProbe } from './E2eCrashProbe'
 import { OnboardingModal } from './OnboardingModal'
 import { countDueFlashcards } from './flashcard/flashcardDue'
@@ -26,11 +25,18 @@ import { AppToastOverlay } from './app-shell/AppToastOverlay'
 import { LevelUpModal } from './LevelUpModal'
 import { ErrorBoundary } from './ErrorBoundary'
 import { CelebrationConfettiHost } from './shared/CelebrationConfettiHost'
-import { CommandPalette } from './CommandPalette'
 import { useAppShellEffects } from '../hooks/app-shell/useAppShellEffects'
 import { useCommandPaletteActions } from '../hooks/app-shell/useCommandPaletteActions'
 import { useAppShellOnboarding } from '../hooks/app-shell/useAppShellOnboarding'
 import { useNoteDeleteUndo } from '../hooks/app-shell/useNoteDeleteUndo'
+import { DesktopTrayTimerBridge } from './app-shell/DesktopTrayTimerBridge'
+
+const CommandPalette = lazy(() =>
+  import('./CommandPalette').then(m => ({ default: m.CommandPalette })),
+)
+const QuickNotesDrawer = lazy(() =>
+  import('./QuickNotesDrawer').then(m => ({ default: m.QuickNotesDrawer })),
+)
 
 export const AppShell = memo(function AppShell() {
   const {
@@ -53,11 +59,9 @@ export const AppShell = memo(function AppShell() {
   const pwaInstall = usePwaInstall()
   const backupReminder = useBackupReminder()
   const { timerControls, backup, activateTask } = useStudyTimerContext()
-  const timerDisplay = useStudyTimerDisplay()
 
   const { isOffline } = useAppShellEffects({
     isDataReady,
-    flashcardsEnabled: settings.flashcardsEnabled,
     studyReminderEnabled: settings.studyReminderEnabled,
     studyReminderTime: settings.studyReminderTime,
     studyReminderOnlyBelowGoal: settings.studyReminderOnlyBelowGoal,
@@ -73,7 +77,6 @@ export const AppShell = memo(function AppShell() {
       void backup.exportStudyBackup({ destination: 'auto' }).then(() => backupReminder.refresh())
     },
     timerControls,
-    timerDisplay,
   })
 
   const {
@@ -118,6 +121,16 @@ export const AppShell = memo(function AppShell() {
   })
 
   const { showOnboarding, handleCloseOnboarding, openOnboarding } = useAppShellOnboarding(isDataReady)
+  const [commandPaletteMounted, setCommandPaletteMounted] = useState(false)
+  const [notesDrawerMounted, setNotesDrawerMounted] = useState(false)
+
+  useEffect(() => {
+    if (isCommandPaletteOpen) setCommandPaletteMounted(true)
+  }, [isCommandPaletteOpen])
+
+  useEffect(() => {
+    if (isNotesOpen) setNotesDrawerMounted(true)
+  }, [isNotesOpen])
 
   const handleOnboardingClose = () => {
     handleCloseOnboarding()
@@ -149,10 +162,12 @@ export const AppShell = memo(function AppShell() {
       data-theme-mode={isLight ? 'light' : 'dark'}
       data-density={settings.uiDensity}
       data-ui-font={settings.ui_font}
+      data-reduce-effects={settings.reduceVisualEffects ? 'true' : 'false'}
       className="app-grain min-h-screen bg-transparent font-sans text-text-primary antialiased relative flex flex-col md:flex-row overflow-hidden pb-24 md:pb-0"
       style={inlineStyles}
     >
       <E2eCrashProbe />
+      <DesktopTrayTimerBridge />
       <Sidebar
         isZenMode={isZenMode}
         currentStreak={currentStreak}
@@ -252,17 +267,21 @@ export const AppShell = memo(function AppShell() {
 
       <ReflectionModalContainer studyBlockDurationMinutes={settings.studyBlockDurationMinutes} />
       <HotkeyModal isOpen={isHotkeyHudOpen} onClose={() => setIsHotkeyHudOpen(false)} flashcardsEnabled={settings.flashcardsEnabled} />
-      <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
-        onSelect={handleCommandPaletteSelect}
-        tasks={tasks.tasks}
-        notes={quickNotes.notes}
-        flashcards={flashcards.flashcards}
-        categories={categories.categories}
-        flashcardsEnabled={settings.flashcardsEnabled}
-        dailyLogs={allLogs.allLogs}
-      />
+      {commandPaletteMounted && (
+        <Suspense fallback={null}>
+          <CommandPalette
+            isOpen={isCommandPaletteOpen}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            onSelect={handleCommandPaletteSelect}
+            tasks={tasks.tasks}
+            notes={quickNotes.notes}
+            flashcards={flashcards.flashcards}
+            categories={categories.categories}
+            flashcardsEnabled={settings.flashcardsEnabled}
+            dailyLogs={allLogs.allLogs}
+          />
+        </Suspense>
+      )}
       <OnboardingModal
         isOpen={showOnboarding}
         onClose={handleOnboardingClose}
@@ -284,22 +303,26 @@ export const AppShell = memo(function AppShell() {
         />
       )}
 
-      <QuickNotesDrawer
-        isOpen={isNotesOpen}
-        onClose={() => {
-          setIsNotesOpen(false)
-          setFocusNoteId(null)
-        }}
-        focusNoteId={focusNoteId}
-        categories={categories.categories}
-        addCategory={categories.addCategory}
-        deleteCategory={categories.deleteCategory}
-        notes={quickNotes.notes}
-        addNote={quickNotes.addNote}
-        updateNote={quickNotes.updateNote}
-        deleteNote={handleDeleteNote}
-        noteTagColors={settings.noteTagColors}
-      />
+      {notesDrawerMounted && (
+        <Suspense fallback={null}>
+          <QuickNotesDrawer
+            isOpen={isNotesOpen}
+            onClose={() => {
+              setIsNotesOpen(false)
+              setFocusNoteId(null)
+            }}
+            focusNoteId={focusNoteId}
+            categories={categories.categories}
+            addCategory={categories.addCategory}
+            deleteCategory={categories.deleteCategory}
+            notes={quickNotes.notes}
+            addNote={quickNotes.addNote}
+            updateNote={quickNotes.updateNote}
+            deleteNote={handleDeleteNote}
+            noteTagColors={settings.noteTagColors}
+          />
+        </Suspense>
+      )}
 
       {!isZenMode && (
         <MobileTabBar

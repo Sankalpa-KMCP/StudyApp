@@ -37,10 +37,10 @@ export function NoteEditorPanel({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#090b14]/50 animate-fade-in">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-black/10 text-[10px] font-mono text-slate-500 select-none">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-card surface-subtle text-[10px] font-mono text-muted select-none">
         <button
           onClick={stopEditing}
-          className="px-2 py-1 rounded hover:bg-white/5 text-accent-blue font-bold cursor-pointer"
+          className="px-2 py-1 rounded hover:surface-subtle text-accent-blue font-bold cursor-pointer"
         >
           ← Back to list
         </button>
@@ -57,7 +57,7 @@ export function NoteEditorPanel({
               Auto-Saved
             </span>
           )}
-          {saveStatus === 'idle' && <span className="text-white/30">Synced</span>}
+          {saveStatus === 'idle' && <span className="text-muted">Synced</span>}
         </div>
       </div>
 
@@ -67,10 +67,10 @@ export function NoteEditorPanel({
           value={editTitle}
           onChange={e => handleTitleChange(e.target.value)}
           placeholder="Note Title"
-          className="bg-transparent text-sm font-bold text-white border-b border-white/5 focus:border-white/20 pb-2 outline-none w-full placeholder-white/25"
+          className="bg-transparent text-sm font-bold text-primary border-b border-card focus:border-card pb-2 outline-none w-full placeholder:text-muted"
         />
 
-        <div className="grid grid-cols-2 gap-3.5 bg-black/20 border border-white/5 p-3 rounded-xl select-none">
+        <div className="grid grid-cols-2 gap-3.5 surface-subtle border border-card p-3 rounded-xl select-none">
           <InlineCategoryManager
             label="Category"
             categories={categories}
@@ -82,7 +82,7 @@ export function NoteEditorPanel({
           />
 
           <div>
-            <span id="note-color-tag" className="block text-[8px] font-mono uppercase text-white/45 mb-1.5">Color Tag</span>
+            <span id="note-color-tag" className="block text-[8px] font-mono uppercase text-muted mb-1.5">Color Tag</span>
             <div className="flex items-center gap-1 overflow-x-auto max-w-full" role="group" aria-labelledby="note-color-tag">
               {noteTagColors.map(color => (
                 <button
@@ -102,7 +102,7 @@ export function NoteEditorPanel({
           value={editContent}
           onChange={e => handleContentChange(e.target.value)}
           placeholder="Type note details here..."
-          className="flex-1 bg-transparent text-xs text-white/90 placeholder-white/25 outline-none resize-none min-h-[300px] leading-relaxed"
+          className="flex-1 bg-transparent text-xs text-secondary placeholder:text-muted outline-none resize-none min-h-[300px] leading-relaxed"
         />
       </div>
     </div>

@@ -1,3 +1,4 @@
+import type { ActiveTab } from '../types/app'
 import {
   useTasks,
   useHistoryMutations,
@@ -6,32 +7,47 @@ import {
   useTodayLog,
   useCategories,
   useAllDailyLogs,
+  useStudyMinuteSummaries,
   useFlashcards,
   useQuickNotes,
 } from '../db/hooks'
 
-export function useDashboardData() {
+interface UseDashboardDataOptions {
+  activeTab: ActiveTab
+  notesEnabled?: boolean
+  fullLogsEnabled?: boolean
+}
+
+export function useDashboardData({
+  activeTab,
+  notesEnabled = false,
+  fullLogsEnabled,
+}: UseDashboardDataOptions) {
   const tasks = useTasks()
   const settings = useSettings()
   const history = useHistoryMutations()
   const recentHistory = useRecentHistory(settings.recentHistoryLimit)
   const todayLog = useTodayLog()
+  const categories = useCategories()
+  const studySummaries = useStudyMinuteSummaries()
+
   const flashcardsEnabled = !settings.isLoading && settings.flashcardsEnabled
   const flashcards = useFlashcards(flashcardsEnabled)
-  const quickNotes = useQuickNotes()
-  const categories = useCategories()
-  const allLogs = useAllDailyLogs()
+  const quickNotes = useQuickNotes(notesEnabled)
 
-  const isDataReady = !(
+  const logsEnabled = fullLogsEnabled || activeTab === 'analytics' || activeTab === 'journal'
+  const allLogs = useAllDailyLogs(logsEnabled)
+
+  const isCoreDataReady = !(
     tasks.isLoading
     || recentHistory.isLoading
     || settings.isLoading
     || todayLog.isLoading
-    || allLogs.isLoading
     || categories.isLoading
-    || flashcards.isLoading
-    || quickNotes.isLoading
+    || studySummaries.isLoading
   )
+
+  const isDataReady = isCoreDataReady
 
   return {
     tasks,
@@ -43,6 +59,9 @@ export function useDashboardData() {
     quickNotes,
     categories,
     allLogs,
+    studySummaries,
     isDataReady,
+    isCoreDataReady,
+    logsEnabled,
   }
 }

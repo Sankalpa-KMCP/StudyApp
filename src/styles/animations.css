@@ -1,0 +1,21 @@
+/* Tab panel enter transition (exit handled by key remount + opacity on content shell) */
+.app-content-main {
+  transition: opacity 280ms ease, transform 280ms ease;
+}
+
+@keyframes app-tab-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .app-tab-panel {
+    animation: app-tab-enter 220ms ease-out;
+  }
+}

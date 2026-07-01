@@ -282,7 +282,7 @@ export function FocusSanctuary({
 
           {timerMode !== 'study' && (
             <div className="mt-4 glass-tier-2 p-3.5 flex flex-col items-center gap-3.5 shadow-md transition-all duration-300 animate-slide-in-up">
-              <div className="flex justify-between w-full text-label tracking-wider text-white/40 uppercase font-bold">
+              <div className="flex justify-between w-full text-label tracking-wider text-muted uppercase font-bold">
                 <span>Respiration Pacer</span>
               </div>
 
@@ -314,7 +314,7 @@ export function FocusSanctuary({
                   <span className="text-xs font-bold tracking-wide text-accent-purple uppercase">
                     {breathTime < 5 ? 'Inhale' : breathTime < 7 ? 'Hold' : 'Exhale'}
                   </span>
-                  <span className="text-caption text-white/50 mt-1 leading-normal font-medium">
+                  <span className="text-caption text-muted mt-1 leading-normal font-medium">
                     Slow breathing helps reset focus between blocks.
                   </span>
                 </div>
@@ -326,15 +326,15 @@ export function FocusSanctuary({
         {timerMode === 'study' && (
           <PanelCard className="hidden md:flex select-none flex-col gap-3 !p-4.5">
             <div className="flex items-center justify-between">
-              <span className="text-label font-bold tracking-wider text-white/40 uppercase bg-white/5 border border-white/5 px-2 py-0.5 rounded-full">Study tip</span>
+              <span className="text-label font-bold tracking-wider text-muted uppercase surface-subtle border border-card px-2 py-0.5 rounded-full">Study tip</span>
               <div className="flex items-center gap-1.5 text-accent-purple">
                 <Heart className="h-3.5 w-3.5" />
                 <span className="text-label font-bold uppercase tracking-wider">Stay present</span>
               </div>
             </div>
             <div className="glass-tier-2 px-3.5 py-3">
-              <p className="text-xs font-bold text-white/90">One task at a time</p>
-              <p className="text-caption text-white/50 leading-relaxed mt-1">Pick a single focus target and protect this block from context switches.</p>
+              <p className="text-xs font-bold text-primary">One task at a time</p>
+              <p className="text-caption text-muted leading-relaxed mt-1">Pick a single focus target and protect this block from context switches.</p>
             </div>
           </PanelCard>
         )}

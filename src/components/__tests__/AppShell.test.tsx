@@ -16,6 +16,7 @@ vi.mock('../../context/useStudyApp', () => ({
       noteTagColors: [],
       uiDensity: 'comfortable',
       flashcardsEnabled: false,
+      reduceVisualEffects: false,
       autoExportEnabled: false,
       autoExportIntervalDays: 7,
       desktopAutostartEnabled: false,

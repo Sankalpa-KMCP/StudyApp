@@ -37,7 +37,7 @@ export function ModalShell({
     <div className={`fixed inset-0 ${zIndexClass} flex items-center justify-center p-4`} role="presentation">
       <button
         type="button"
-        className="absolute inset-0 bg-black/50 backdrop-blur-md border-0 p-0 cursor-default"
+        className="absolute inset-0 modal-backdrop backdrop-blur-md border-0 p-0 cursor-default"
         onClick={closeOnBackdrop ? onClose : undefined}
         aria-label="Close dialog"
         tabIndex={-1}
@@ -49,7 +49,7 @@ export function ModalShell({
         aria-labelledby={ariaLabelledby}
         aria-describedby={ariaDescribedby}
         aria-label={ariaLabel}
-        className={`relative w-full max-w-md rounded-2xl border border-white/10 surface-overlay shadow-2xl ${panelClassName}`.trim()}
+        className={`relative w-full max-w-md rounded-2xl border border-card surface-overlay shadow-2xl ${panelClassName}`.trim()}
       >
         {children}
       </div>

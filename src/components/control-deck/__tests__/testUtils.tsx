@@ -57,6 +57,7 @@ vi.mock('../../../hooks/useSettingsUpdater', () => ({
     uiDensity: 'comfortable',
     cardOpacity: 0.7,
     backdropBlur: 8,
+    reduceVisualEffects: false,
     backdropSaturate: 180,
     cardBorderOpacity: 0.08,
     accentBlueOverride: '#ff0000',

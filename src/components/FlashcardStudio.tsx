@@ -122,8 +122,8 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
           onClick={() => setActiveCategoryFilter('all')}
           className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all cursor-pointer ios-active-scale ${
             activeCategoryFilter === 'all'
-              ? 'bg-white/10 text-white border-white/10'
-              : 'bg-white/[0.02] text-white/60 border-white/5 hover:text-white'
+              ? 'surface-track text-primary border-card'
+              : 'surface-subtle text-secondary border-card hover:text-primary'
           }`}
         >
           All Decks
@@ -134,8 +134,8 @@ export const FlashcardStudio: React.FC<FlashcardStudioProps> = ({
             onClick={() => cat.id !== undefined && setActiveCategoryFilter(cat.id)}
             className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ios-active-scale ${
               activeCategoryFilter === cat.id
-                ? 'text-white border-white/10'
-                : 'bg-white/[0.02] text-white/60 border-white/5 hover:text-white'
+                ? 'text-primary border-card'
+                : 'surface-subtle text-secondary border-card hover:text-primary'
             }`}
             style={activeCategoryFilter === cat.id ? { backgroundColor: `${cat.color}25`, borderColor: cat.color } : {}}
           >

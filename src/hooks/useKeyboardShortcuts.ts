@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, type RefObject } from 'react'
 import type { ActiveTab, ToastState } from '../types/app'
 import { FOCUS_LOCKOUT_ACTIVE } from '../lib/shared/uxTerms'
 import { SHORTCUT_TOASTS } from '../lib/shared/shortcutToasts'
@@ -18,7 +18,7 @@ interface UseKeyboardShortcutsOptions {
   timerMode: 'study' | 'break'
   enforceLockout: boolean
   showReflectionModal: boolean
-  secondsElapsed: number
+  secondsElapsedRef: RefObject<number>
   completingRef: React.RefObject<boolean>
   handleModeSwitch: (mode: 'study' | 'break') => void
   completeSession: () => Promise<'reflection' | 'completed' | 'blocked'>
@@ -43,7 +43,7 @@ export function useKeyboardShortcuts({
   timerMode,
   enforceLockout,
   showReflectionModal,
-  secondsElapsed,
+  secondsElapsedRef,
   completingRef,
   handleModeSwitch,
   completeSession,
@@ -107,7 +107,7 @@ export function useKeyboardShortcuts({
           break
         case 'c':
           void (async () => {
-            if (secondsElapsed < 60 && !e.shiftKey) {
+            if (secondsElapsedRef.current < 60 && !e.shiftKey) {
               if (!requestConfirm) return
               const ok = await requestConfirm({
                 title: 'End study block early?',
@@ -184,7 +184,7 @@ export function useKeyboardShortcuts({
     timerMode,
     enforceLockout,
     showReflectionModal,
-    secondsElapsed,
+    secondsElapsedRef,
     completingRef,
     handleModeSwitch,
     completeSession,

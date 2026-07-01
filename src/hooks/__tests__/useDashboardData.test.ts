@@ -11,7 +11,7 @@ describe('useDashboardData', () => {
   })
 
   it('exposes recentHistory and history mutations', async () => {
-    const { result } = renderHook(() => useDashboardData())
+    const { result } = renderHook(() => useDashboardData({ activeTab: 'focus' }))
     await waitFor(() => expect(result.current.isDataReady).toBe(true))
     expect(result.current.recentHistory.history).toEqual([])
     expect(typeof result.current.history.addEntry).toBe('function')
@@ -23,7 +23,7 @@ describe('useDashboardData', () => {
     await db.settings.put({ key: 'flashcardsEnabled', value: false })
     await flashcardRepo.addFlashcard('Q1', 'A1')
 
-    const { result } = renderHook(() => useDashboardData())
+    const { result } = renderHook(() => useDashboardData({ activeTab: 'focus' }))
     await waitFor(() => expect(result.current.isDataReady).toBe(true))
 
     expect(result.current.settings.flashcardsEnabled).toBe(false)

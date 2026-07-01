@@ -85,21 +85,21 @@ export const QuickNotesDrawer: React.FC<QuickNotesDrawerProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="quick-notes-title"
-      className="fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-[color-mix(in_srgb,var(--body-base)_92%,transparent)] border-l border-white/10 backdrop-blur-2xl shadow-2xl transition-transform duration-500 ease-out flex flex-col translate-x-0"
+      className="fixed inset-y-0 right-0 z-50 w-full sm:w-96 bg-[color-mix(in_srgb,var(--body-base)_92%,transparent)] border-l border-card backdrop-blur-2xl shadow-2xl transition-transform duration-500 ease-out flex flex-col translate-x-0"
     >
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-black/20 select-none">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-card surface-subtle select-none">
         <div className="flex items-center gap-2">
           <Edit3 className="h-4 w-4 text-accent-blue shrink-0" />
           <div className="flex flex-col min-w-0">
-            <h3 id="quick-notes-title" className="text-xs font-bold uppercase tracking-wider text-white">Quick Notes</h3>
-            <p className="text-[10px] text-white/45 font-medium normal-case tracking-normal">{QUICK_NOTES_HELPER}</p>
+            <h3 id="quick-notes-title" className="text-xs font-bold uppercase tracking-wider text-primary">Quick Notes</h3>
+            <p className="text-micro text-muted font-medium normal-case tracking-normal">{QUICK_NOTES_HELPER}</p>
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close quick notes"
-          className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+          className="p-1 rounded-lg hover:surface-track text-muted hover:text-primary transition-colors cursor-pointer"
         >
           <X className="h-4.5 w-4.5" />
         </button>

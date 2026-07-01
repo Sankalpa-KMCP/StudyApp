@@ -24,7 +24,7 @@ describe('useKeyboardShortcuts', () => {
         timerMode: 'study',
         enforceLockout: false,
         showReflectionModal: false,
-        secondsElapsed: 30,
+        secondsElapsedRef: { current: 30 },
         completingRef: { current: false },
         handleModeSwitch: vi.fn(),
         completeSession,
@@ -47,7 +47,7 @@ describe('useKeyboardShortcuts', () => {
   })
 
   it('requires confirm before completing a short session', async () => {
-    renderShortcuts({ secondsElapsed: 10 })
+    renderShortcuts({ secondsElapsedRef: { current: 10 } })
     act(() => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', bubbles: true }))
     })

@@ -52,8 +52,10 @@ export function CommandPalette({
   const inputRef = useRef<HTMLInputElement>(null)
 
   const allItems = useMemo(
-    () => buildCommandPaletteItems({ tasks, notes, flashcards, categories, dailyLogs, flashcardsEnabled }),
-    [tasks, notes, flashcards, categories, dailyLogs, flashcardsEnabled],
+    () => (isOpen
+      ? buildCommandPaletteItems({ tasks, notes, flashcards, categories, dailyLogs, flashcardsEnabled })
+      : []),
+    [isOpen, tasks, notes, flashcards, categories, dailyLogs, flashcardsEnabled],
   )
 
   const results = useMemo(() => filterCommandPaletteItems(allItems, query), [allItems, query])
@@ -121,11 +123,11 @@ export function CommandPalette({
       open={isOpen}
       onClose={handleClose}
       ariaLabel="Command palette"
-      panelClassName="max-w-lg w-full bg-[#12121a]/95 border border-white/10 p-0 shadow-2xl overflow-hidden"
+      panelClassName="max-w-lg w-full surface-overlay border border-card p-0 shadow-2xl overflow-hidden"
       zIndexClass="z-[60]"
     >
-      <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
-        <Search className="h-4 w-4 text-white/40 shrink-0" aria-hidden />
+      <div className="flex items-center gap-3 border-b border-card px-4 py-3">
+        <Search className="h-4 w-4 text-muted shrink-0" aria-hidden />
         <input
           ref={inputRef}
           type="search"
@@ -137,18 +139,18 @@ export function CommandPalette({
           onKeyDown={handleKeyDown}
           placeholder="Search settings, tasks, notes, tabs…"
           aria-label="Search commands"
-          className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/35"
+          className="flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted"
           autoComplete="off"
         />
-        <kbd className="hidden sm:inline rounded border border-white/15 bg-white/5 px-1.5 py-0.5 text-[10px] font-mono text-white/50">Esc</kbd>
+        <kbd className="hidden sm:inline rounded border border-card surface-subtle px-1.5 py-0.5 text-[10px] font-mono text-muted">Esc</kbd>
       </div>
       <div className="max-h-80 overflow-y-auto p-2" role="listbox" aria-label="Search results">
         {flatResults.length === 0 ? (
-          <p className="px-3 py-6 text-center text-sm text-white/45">No matches</p>
+          <p className="px-3 py-6 text-center text-sm text-muted">No matches</p>
         ) : (
           grouped.map(group => (
             <div key={group.type} className="mb-2 last:mb-0">
-              <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/35">{group.label}</p>
+              <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-muted">{group.label}</p>
               {group.items.map(item => {
                 rowIndex += 1
                 const idx = rowIndex
@@ -160,14 +162,14 @@ export function CommandPalette({
                     role="option"
                     aria-selected={isActive}
                     className={`flex w-full flex-col items-start rounded-xl px-3 py-2.5 text-left transition-colors ${
-                      isActive ? 'bg-accent-blue/20 text-white' : 'text-white/85 hover:bg-white/5'
+                      isActive ? 'bg-accent-blue/20 text-primary' : 'text-secondary hover:surface-subtle'
                     }`}
                     onMouseEnter={() => setActiveIndex(idx)}
                     onClick={() => handleSelect(item)}
                   >
                     <span className="text-sm font-medium truncate w-full">{item.label}</span>
                     {item.subtitle && (
-                      <span className="text-xs text-white/45 truncate w-full mt-0.5">{item.subtitle}</span>
+                      <span className="text-xs text-muted truncate w-full mt-0.5">{item.subtitle}</span>
                     )}
                   </button>
                 )

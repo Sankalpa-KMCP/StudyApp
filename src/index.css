@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
+@import "./styles/animations.css";
 
 @theme {
   --color-surface: transparent;
@@ -111,9 +113,6 @@
     font-family: var(--font-sans-geom);
   }
 
-  .font-serif-luxury {
-    font-family: var(--font-sans-geom);
-  }
 }
 
 .sidebar-shell {
@@ -307,18 +306,6 @@
 
 .app-tab-panel {
   contain: layout style;
-  animation: app-tab-enter 220ms ease-out;
-}
-
-@keyframes app-tab-enter {
-  0% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 body {
@@ -869,7 +856,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .ios-switch.active {
-  background-color: #34c759;
+  background-color: var(--color-accent-green);
 }
 .ios-switch-thumb {
   width: 22px;
@@ -1017,6 +1004,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: var(--color-text-primary);
 }
 
+.text-heading-primary {
+  color: var(--color-text-primary);
+}
+
 .text-secondary {
   color: var(--color-text-secondary);
 }
@@ -1027,6 +1018,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .border-card {
   border-color: var(--color-border-card);
+}
+
+.modal-backdrop {
+  background-color: var(--overlay-backdrop, rgba(0, 0, 0, 0.5));
 }
 
 .surface-subtle {
@@ -1097,56 +1092,21 @@ input[type="range"]::-webkit-slider-thumb:hover {
     animation: none;
   }
 
-  .animate-blob-slow,
-  .animate-blob-medium,
-  .animate-blob-slowest {
-    animation: none !important;
-  }
 }
 
-/* Ambient Background Glow Blobs */
-@keyframes blob-float-slow {
-  0%, 100% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
-  }
-  33% {
-    transform: translate(30px, -50px) scale(1.1) rotate(120deg);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.95) rotate(240deg);
-  }
+[data-reduce-effects="true"] .dynamic-card,
+[data-reduce-effects="true"] .dynamic-card-static,
+[data-reduce-effects="true"] .dynamic-card-interactive,
+[data-reduce-effects="true"] .glass-panel,
+[data-reduce-effects="true"] .panel-shell {
+  --backdrop-blur: 6px;
+  --backdrop-saturate: 100%;
+  --card-opacity: 0.92;
 }
 
-@keyframes blob-float-medium {
-  0%, 100% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
-  }
-  33% {
-    transform: translate(-40px, 30px) scale(0.95) rotate(-120deg);
-  }
-  66% {
-    transform: translate(30px, -20px) scale(1.05) rotate(-240deg);
-  }
-}
-
-@keyframes blob-float-slowest {
-  0%, 100% {
-    transform: translate(0, 0) scale(1) rotate(0deg);
-  }
-  50% {
-    transform: translate(25px, 25px) scale(1.08) rotate(180deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .animate-blob-slow {
-    animation: blob-float-slow 25s ease-in-out infinite;
-  }
-  .animate-blob-medium {
-    animation: blob-float-medium 20s ease-in-out infinite;
-  }
-  .animate-blob-slowest {
-    animation: blob-float-slowest 30s ease-in-out infinite;
+@media (pointer: coarse) {
+  .dynamic-card-interactive::after {
+    opacity: 0 !important;
   }
 }
 

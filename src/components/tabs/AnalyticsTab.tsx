@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useMemo } from 'react'
 import { tooltipStyle } from '../../lib/theme/theme'
 import { calculateCategoryGoalTrend } from '../../lib/study/studyDashboard'
 import { buildWeeklyReportData, downloadWeeklyReport, weeklyReportToCsv, weeklyReportToMarkdown } from '../../lib/export/weeklyReportExport'
@@ -12,7 +12,10 @@ const AnalyticsStudio = lazy(() =>
 export function AnalyticsTab() {
   const { tasks, flashcards, settings, categories, recentHistory } = useStudyData()
   const { currentStreak, xpData, insights, breakdownData, journal, allLogs, analyticsRange } = useStudyAnalytics()
-  const categoryGoalTrends = calculateCategoryGoalTrend(allLogs.allLogs, categories.categories)
+  const categoryGoalTrends = useMemo(
+    () => calculateCategoryGoalTrend(allLogs.allLogs, categories.categories),
+    [allLogs.allLogs, categories.categories],
+  )
   const { activeThemeVars, setActiveTab } = useStudyUI()
   const { calendar } = journal
 

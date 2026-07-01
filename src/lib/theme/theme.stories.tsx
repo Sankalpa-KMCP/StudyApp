@@ -17,7 +17,7 @@ export const AllThemes: Story = {
         return (
           <div
             key={id}
-            className="rounded-xl p-4 border border-white/10"
+            className="rounded-xl p-4 border border-card"
             style={{ background: theme.pageGradient, color: textColor }}
           >
             <div className="flex items-center justify-between mb-2">

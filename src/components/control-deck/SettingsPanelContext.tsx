@@ -50,6 +50,7 @@ interface SettingsPanelContextValue {
   uiDensity: 'comfortable' | 'compact'
   cardOpacity: number
   backdropBlur: number
+  reduceVisualEffects: boolean
   backdropSaturate: number
   cardBorderOpacity: number
   accentBlueOverride: string | null
@@ -126,6 +127,7 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     uiDensity: updater.uiDensity,
     cardOpacity: updater.cardOpacity,
     backdropBlur: updater.backdropBlur,
+    reduceVisualEffects: updater.reduceVisualEffects,
     backdropSaturate: updater.backdropSaturate,
     cardBorderOpacity: updater.cardBorderOpacity,
     accentBlueOverride: updater.accentBlueOverride,

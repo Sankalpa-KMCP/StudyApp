@@ -12,14 +12,18 @@ interface ConfettiParticle {
   rotationSpeed: number
 }
 
-const COLORS = [
-  '#38bdf8', // Blue
-  '#a855f7', // Purple
-  '#ec4899', // Pink
-  '#eab308', // Amber
-  '#22c55e', // Green
-  '#f43f5e', // Rose
-]
+function readThemeConfettiColors(): string[] {
+  if (typeof document === 'undefined') {
+    return ['#007aff', '#af52de', '#34c759', '#ff9500']
+  }
+  const style = getComputedStyle(document.documentElement)
+  return [
+    style.getPropertyValue('--color-accent-blue').trim() || '#007aff',
+    style.getPropertyValue('--color-accent-purple').trim() || '#af52de',
+    style.getPropertyValue('--color-accent-green').trim() || '#34c759',
+    style.getPropertyValue('--color-accent-amber').trim() || '#ff9500',
+  ]
+}
 
 export function CelebrationConfetti() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -44,6 +48,7 @@ export function CelebrationConfetti() {
     const createBurst = (x: number, y: number, count: number = 80) => {
       const isReduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
       if (isReduced) return
+      const colors = readThemeConfettiColors()
 
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2
@@ -54,7 +59,7 @@ export function CelebrationConfetti() {
           y,
           vx: Math.cos(angle) * velocity,
           vy: Math.sin(angle) * velocity - Math.random() * 3,
-          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          color: colors[Math.floor(Math.random() * colors.length)],
           shape: shapes[Math.floor(Math.random() * shapes.length)],
           size: Math.random() * 6 + 4,
           rotation: Math.random() * 360,

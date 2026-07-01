@@ -97,7 +97,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
             type="button"
             onClick={dismissJournalHint}
             aria-label="Dismiss journal hint"
-            className="shrink-0 rounded-full p-1 text-muted hover:text-primary hover:bg-white/10 transition-all"
+            className="shrink-0 rounded-full p-1 text-muted hover:text-primary hover:surface-track transition-all"
           >
             <X className="h-4 w-4" />
           </button>
@@ -114,13 +114,13 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
               <span className="text-sm font-bold text-text-primary">{monthNames[currentMonth]} {currentYear}</span>
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" aria-label="Previous month" onClick={goPrevMonth} className="h-7 w-7 rounded-full border border-white/8 bg-white/5 hover:bg-white/10 text-sm transition-all flex items-center justify-center cursor-pointer active:scale-90 ios-active-scale">‹</button>
-              <button type="button" aria-label="Next month" onClick={goNextMonth} className="h-7 w-7 rounded-full border border-white/8 bg-white/5 hover:bg-white/10 text-sm transition-all flex items-center justify-center cursor-pointer active:scale-90 ios-active-scale">›</button>
+              <button type="button" aria-label="Previous month" onClick={goPrevMonth} className="h-7 w-7 rounded-full border border-card surface-subtle hover:surface-track text-sm transition-all flex items-center justify-center cursor-pointer active:scale-90 ios-active-scale">‹</button>
+              <button type="button" aria-label="Next month" onClick={goNextMonth} className="h-7 w-7 rounded-full border border-card surface-subtle hover:surface-track text-sm transition-all flex items-center justify-center cursor-pointer active:scale-90 ios-active-scale">›</button>
               <select
                 value={calendarCategoryFilter === 'all' ? 'all' : String(calendarCategoryFilter)}
                 onChange={e => setCalendarCategoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
                 aria-label="Filter calendar by subject"
-                className="rounded-full border border-white/8 bg-white/5 hover:bg-white/10 px-3.5 py-1 text-xs text-text-secondary outline-none cursor-pointer transition-all active:scale-95 ios-active-scale"
+                className="rounded-full border border-card surface-subtle hover:surface-track px-3.5 py-1 text-xs text-text-secondary outline-none cursor-pointer transition-all active:scale-95 ios-active-scale"
               >
                 <option value="all" className="bg-surface">All Subjects</option>
                 {categories.map(cat => (
@@ -161,8 +161,8 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                 >
                   <span>{cell}</span>
                   {dayData && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden md:group-hover:flex flex-col w-36 surface-overlay border border-white/10 p-2.5 rounded-[16px] text-micro font-mono text-left pointer-events-none z-30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] leading-normal animate-slide-in-up">
-                      <div className="font-bold text-text-primary mb-1 border-b border-white/10 pb-0.5">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden md:group-hover:flex flex-col w-36 surface-overlay border border-card p-2.5 rounded-[16px] text-micro font-mono text-left pointer-events-none z-30 shadow-[0_8px_32px_rgba(0,0,0,0.35)] leading-normal animate-slide-in-up">
+                      <div className="font-bold text-text-primary mb-1 border-b border-card pb-0.5">
                         {monthNames[currentMonth]} {cell}, {currentYear}
                       </div>
                       <div className="flex items-center gap-1 text-text-secondary">
@@ -186,7 +186,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
             })}
           </div>
 
-          <div className="md:hidden mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2 text-micro font-mono text-text-secondary">
+          <div className="md:hidden mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-card surface-subtle px-3 py-2 text-micro font-mono text-text-secondary">
             <span className="font-bold text-text-primary w-full text-[10px] uppercase tracking-wider">
               {monthNames[currentMonth]} {selectedDay}
             </span>
@@ -206,7 +206,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
             </span>
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-label text-text-secondary border-t border-white/5 pt-4">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-label text-text-secondary border-t border-card pt-4">
             <div className="flex items-center gap-3">
               {[
                 { label: '0-1h', intensity: 0 as const },
@@ -215,7 +215,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                 { label: '3+h', intensity: 3 as const },
               ].map(item => (
                 <div key={item.label} className="flex items-center gap-1 font-bold">
-                  <div className="h-2.5 w-2.5 rounded-md border border-white/5" style={getLegendStyle(item.intensity)} />
+                  <div className="h-2.5 w-2.5 rounded-md border border-card" style={getLegendStyle(item.intensity)} />
                   <span>{item.label}</span>
                 </div>
               ))}

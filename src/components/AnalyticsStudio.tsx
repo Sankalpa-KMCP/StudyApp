@@ -1,12 +1,17 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import type { TaskItem, DailyLog, FlashcardItem } from '../db/types'
 import type { ThemeProfile } from '../types/app'
 import type { CSSProperties } from 'react'
 import { SummaryMetricsRow } from './analytics/SummaryMetricsRow'
-import { TrendsChartsPanel } from './analytics/TrendsChartsPanel'
-import { RetentionChartPanel } from './analytics/RetentionChartPanel'
 import { HeatmapPanel } from './analytics/HeatmapPanel'
-import { BreakdownPanels } from './analytics/BreakdownPanels'
+
+const TrendsChartsPanel = lazy(() => import('./analytics/TrendsChartsPanel').then(m => ({ default: m.TrendsChartsPanel })))
+const RetentionChartPanel = lazy(() => import('./analytics/RetentionChartPanel').then(m => ({ default: m.RetentionChartPanel })))
+const BreakdownPanels = lazy(() => import('./analytics/BreakdownPanels').then(m => ({ default: m.BreakdownPanels })))
+
+function ChartPanelFallback() {
+  return <div className="h-48 animate-pulse rounded-2xl surface-subtle" aria-hidden />
+}
 import { AnalyticsEmptyHero } from './analytics/AnalyticsEmptyHero'
 import { AnalyticsRangeSelector } from './analytics/AnalyticsRangeSelector'
 import { CategoryGoalTrendPanel } from './analytics/CategoryGoalTrendPanel'
@@ -105,24 +110,28 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
         {isFullyEmpty && onStartFocus ? (
           <AnalyticsEmptyHero onStartFocus={onStartFocus} />
         ) : (
-          <TrendsChartsPanel
-            chartData={chartData}
-            hasChartData={hasChartData}
-            activeThemeVars={activeThemeVars}
-            tooltipStyle={tooltipStyle}
-            suppressEmptyState={isFullyEmpty}
-          />
+          <Suspense fallback={<ChartPanelFallback />}>
+            <TrendsChartsPanel
+              chartData={chartData}
+              hasChartData={hasChartData}
+              activeThemeVars={activeThemeVars}
+              tooltipStyle={tooltipStyle}
+              suppressEmptyState={isFullyEmpty}
+            />
+          </Suspense>
         )}
       </TabSection>
 
       {!isFullyEmpty && (
         <>
           <TabSection label="Retention" className="lg:col-span-6">
-            <RetentionChartPanel
-              retentionData={retentionData}
-              tooltipStyle={tooltipStyle}
-              suppressEmptyState={retentionData.length > 0}
-            />
+            <Suspense fallback={<ChartPanelFallback />}>
+              <RetentionChartPanel
+                retentionData={retentionData}
+                tooltipStyle={tooltipStyle}
+                suppressEmptyState={retentionData.length > 0}
+              />
+            </Suspense>
           </TabSection>
 
           <TabSection label="Activity map" className="lg:col-span-6">
@@ -146,15 +155,17 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
         <p className="text-micro settings-muted mb-4 -mt-2">
           Productivity metrics below reflect {analyticsRangeLabel.toLowerCase()}. Streak and XP use all-time data.
         </p>
-        <BreakdownPanels
-          categoryBreakdown={categoryBreakdown}
-          moodDistribution={moodDistribution}
-          topSubject={topSubject}
-          avgMin={avgMin}
-          completionRate={completionRate}
-          peakDay={peakDay}
-          estimationInsight={estimationInsight}
-        />
+        <Suspense fallback={<ChartPanelFallback />}>
+          <BreakdownPanels
+            categoryBreakdown={categoryBreakdown}
+            moodDistribution={moodDistribution}
+            topSubject={topSubject}
+            avgMin={avgMin}
+            completionRate={completionRate}
+            peakDay={peakDay}
+            estimationInsight={estimationInsight}
+          />
+        </Suspense>
         {categoryGoalTrends.length > 0 && (
           <div className="mt-4">
             <CategoryGoalTrendPanel trends={categoryGoalTrends} />

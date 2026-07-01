@@ -290,6 +290,7 @@ export function useTimerEngine({
     resetTimerState,
     wakeLockActive,
     completingRef: completingRef as RefObject<boolean>,
+    secondsElapsedRef: secondsElapsedRef as RefObject<number>,
   }), [
     timerCategoryId,
     isTimerActive,

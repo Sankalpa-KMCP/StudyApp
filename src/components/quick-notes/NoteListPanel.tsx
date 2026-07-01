@@ -6,7 +6,7 @@ import { VirtualList } from '../shared/VirtualList'
 
 type NoteFiltersApi = ReturnType<typeof useNoteFilters>
 
-const VIRTUALIZE_THRESHOLD = 50
+const VIRTUALIZE_THRESHOLD = 25
 const NOTE_ROW_ESTIMATE = 120
 
 interface NoteListPanelProps {
@@ -45,7 +45,7 @@ function NoteRow({
           onStartEditing(note)
         }
       }}
-      className="group relative p-3.5 rounded-xl border border-white/5 bg-white/[0.015] hover:bg-white/[0.03] hover:border-white/10 hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col gap-2.5 overflow-hidden mb-2.5"
+      className="group relative p-3.5 rounded-xl border border-card surface-subtle hover:surface-subtle hover:border-card hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col gap-2.5 overflow-hidden mb-2.5"
     >
       <div className="absolute left-0 inset-y-0 w-1" style={{ backgroundColor: note.color || '#06b6d4' }} />
       <div className="flex items-start justify-between gap-4">
@@ -58,13 +58,13 @@ function NoteRow({
               {cat.name}
             </span>
           )}
-          <h4 className="text-xs font-bold text-white leading-normal truncate pr-2 select-none">
+          <h4 className="text-xs font-bold text-primary leading-normal truncate pr-2 select-none">
             {note.title || 'Untitled note'}
           </h4>
         </div>
         <button
           onClick={e => note.id !== undefined && onDelete(note.id, e)}
-          className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white/5 cursor-pointer shrink-0"
+          className="text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:surface-subtle cursor-pointer shrink-0"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -72,7 +72,7 @@ function NoteRow({
       <p className="text-caption text-slate-450 leading-relaxed truncate select-none italic">
         {note.content ? note.content : 'No additional scratch details.'}
       </p>
-      <div className="flex justify-between items-center text-micro font-mono text-slate-500 select-none">
+      <div className="flex justify-between items-center text-micro font-mono text-muted select-none">
         <span>Updated: {new Date(note.updatedAt).toLocaleDateString()}</span>
         <span>{updatedTimeStr}</span>
       </div>
@@ -102,9 +102,9 @@ export function NoteListPanel({
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="p-3 border-b border-white/5 flex flex-col gap-2 bg-black/10 select-none">
-        <div className="relative flex items-center bg-white/[0.02] border border-white/5 rounded-xl px-2.5 py-1.5 focus-within:border-white/10 transition-all">
-          <Search className="h-3.5 w-3.5 text-slate-500 mr-2" />
+      <div className="p-3 border-b border-card flex flex-col gap-2 surface-subtle select-none">
+        <div className="relative flex items-center surface-subtle border border-card rounded-xl px-2.5 py-1.5 focus-within:border-card transition-all">
+          <Search className="h-3.5 w-3.5 text-muted mr-2" />
           <input
             type="text"
             value={searchQuery}
@@ -113,17 +113,17 @@ export function NoteListPanel({
             onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
             placeholder="Search notes or use #tag..."
             aria-label="Search notes"
-            className="bg-transparent text-xs text-white outline-none w-full placeholder-white/20"
+            className="bg-transparent text-xs text-primary outline-none w-full placeholder:text-muted"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="text-slate-500 hover:text-white cursor-pointer p-0.5">
+            <button onClick={() => setSearchQuery('')} className="text-muted hover:text-primary cursor-pointer p-0.5">
               <X className="h-3 w-3" />
             </button>
           )}
         </div>
 
         {searchFocused && categories.length > 0 && (
-          <div className="flex flex-wrap gap-1 bg-black/40 border border-white/5 p-2 rounded-xl animate-fade-in">
+          <div className="flex flex-wrap gap-1 surface-subtle border border-card p-2 rounded-xl animate-fade-in">
             <span className="text-micro font-mono text-slate-450 w-full mb-0.5">Quick tag search tags:</span>
             {categories.map(c => {
               const tagText = `#${c.name.replace(/\s+/g, '')}`
@@ -142,8 +142,8 @@ export function NoteListPanel({
                   }}
                   className={`text-micro font-mono px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
                     isActive
-                      ? 'text-white border-white/20'
-                      : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                      ? 'text-primary border-card'
+                      : 'surface-subtle border-card text-muted hover:text-primary hover:surface-track'
                   }`}
                   style={{ borderLeftColor: c.color, borderLeftWidth: '3px' }}
                 >
@@ -159,8 +159,8 @@ export function NoteListPanel({
             onClick={() => setActiveCategoryId('all')}
             className={`px-2.5 py-1 rounded-lg text-micro font-bold border shrink-0 transition-all cursor-pointer ${
               activeCategoryId === 'all'
-                ? 'bg-white/10 text-white border-white/10'
-                : 'bg-white/[0.01] text-white/40 border-white/5 hover:text-white'
+                ? 'surface-track text-primary border-card'
+                : 'surface-subtle text-muted border-card hover:text-primary'
             }`}
           >
             All
@@ -171,8 +171,8 @@ export function NoteListPanel({
               onClick={() => c.id !== undefined && setActiveCategoryId(c.id)}
               className={`px-2.5 py-1 rounded-lg text-micro font-bold border shrink-0 transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeCategoryId === c.id
-                  ? 'text-white border-white/15'
-                  : 'bg-white/[0.01] text-white/40 border-white/5 hover:text-white'
+                  ? 'text-primary border-card'
+                  : 'surface-subtle text-muted border-card hover:text-primary'
               }`}
               style={activeCategoryId === c.id ? { backgroundColor: `${c.color}15`, borderColor: c.color } : {}}
             >
@@ -193,7 +193,7 @@ export function NoteListPanel({
               <button
                 type="button"
                 onClick={onCreateNote}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-white/10 border border-white/10 text-white hover:bg-white/15 transition-all cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-bold surface-track border border-card text-primary hover:surface-track transition-all cursor-pointer"
               >
                 Create note
               </button>
@@ -218,10 +218,10 @@ export function NoteListPanel({
         )}
       </div>
 
-      <div className="p-3 border-t border-white/5 bg-black/20 flex select-none">
+      <div className="p-3 border-t border-card surface-subtle flex select-none">
         <button
           onClick={onCreateNote}
-          className="w-full py-2 rounded-xl text-xs font-bold bg-white/10 border border-white/10 text-white hover:bg-white/15 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] active:scale-95"
+          className="w-full py-2 rounded-xl text-xs font-bold surface-track border border-card text-primary hover:surface-track transition-all cursor-pointer flex items-center justify-center gap-2 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] active:scale-95"
         >
           <Plus className="h-4 w-4" />
           <span>Create Note</span>

@@ -20,6 +20,7 @@ export function AestheticsPanel() {
     backdropBlur,
     backdropSaturate,
     cardBorderOpacity,
+    reduceVisualEffects,
     accentBlueOverride,
     accentPurpleOverride,
     accentGreenOverride,
@@ -62,6 +63,17 @@ export function AestheticsPanel() {
             ))}
           </select>
         </div>
+
+        <label className="flex items-center justify-between gap-3 cursor-pointer">
+          <span className="settings-label">Reduce visual effects</span>
+          <input
+            type="checkbox"
+            checked={reduceVisualEffects}
+            onChange={e => updateSetting('reduceVisualEffects', e.target.checked)}
+            className="h-4 w-4 rounded border-card accent-accent-blue"
+          />
+        </label>
+        <p className="settings-muted -mt-4 mb-2">Lowers glass blur and saturation for smoother performance on older devices.</p>
 
         <div>
           <span className="settings-label block mb-2">UI density</span>

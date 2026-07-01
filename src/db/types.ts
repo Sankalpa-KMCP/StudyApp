@@ -83,6 +83,7 @@ export type SettingsKey =
   | 'focusNotificationsEnabled'
   | 'cardOpacity'
   | 'backdropBlur'
+  | 'reduceVisualEffects'
   | 'tactile_feedback'
   | 'developer_font'
   | 'enforce_lockout'
