@@ -82,7 +82,7 @@ export function MobileHeaderMenu({
                 type="button"
                 role="menuitem"
                 onClick={item.onClick}
-                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-label font-semibold text-primary hover:bg-white/5 transition-colors ios-active-scale"
+                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-label font-semibold text-primary hover:surface-subtle transition-colors ios-active-scale"
               >
                 <Icon className="h-4 w-4 text-accent-blue shrink-0" />
                 <span className="flex-1">{item.label}</span>

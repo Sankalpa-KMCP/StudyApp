@@ -49,7 +49,7 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({
       onClose={onClose}
       ariaLabelledby="hotkey-modal-title"
       ariaDescribedby="hotkey-modal-desc"
-      panelClassName="max-w-sm bg-white/5 p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)]"
+      panelClassName="max-w-sm surface-subtle p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)]"
     >
       <p id="hotkey-modal-desc" className="sr-only">Keyboard shortcuts for timer controls, focus mode, and this help panel.</p>
       <div className="mb-5 flex items-center justify-between border-b border-card pb-3">

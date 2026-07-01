@@ -41,7 +41,7 @@ export function AlgorithmPanel() {
               className={`rounded-full px-3 py-1.5 text-micro font-semibold border transition-all ${
                 schedulingAlgorithm === algo
                   ? 'border-accent-purple/40 text-accent-purple bg-accent-purple/10'
-                  : 'border-white/10 settings-muted hover:border-white/20'
+                  : 'border-card settings-muted hover:border-card'
               }`}
             >
               {algo.toUpperCase()}

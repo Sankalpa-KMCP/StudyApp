@@ -61,7 +61,7 @@ export function ZenLockoutPanel() {
                     className={`rounded-full px-3 py-1.5 text-micro font-semibold border transition-all ${
                       lockoutMode === mode
                         ? 'border-accent-blue/40 text-accent-blue bg-accent-blue/10'
-                        : 'border-white/10 settings-muted hover:border-white/20'
+                        : 'border-card settings-muted hover:border-card'
                     }`}
                   >
                     {mode === 'strict' ? 'Strict' : 'Soft (confirm)'}
@@ -86,7 +86,7 @@ export function ZenLockoutPanel() {
                     className={`rounded-full px-3 py-1.5 text-micro font-semibold border transition-all ${
                       allowed.includes(tab.id)
                         ? 'border-accent-green/40 text-accent-green bg-accent-green/10'
-                        : 'border-white/10 settings-muted'
+                        : 'border-card settings-muted'
                     }`}
                   >
                     {tab.label}

@@ -30,7 +30,7 @@ export function CategoryGoalTrendPanel({ trends }: CategoryGoalTrendPanelProps) 
                   <span className="font-semibold text-text-primary truncate">{t.name}</span>
                   <span className="text-muted font-mono">{t.hitDays}/{t.totalDays} days · {t.hitRate}%</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
+                <div className="h-1.5 rounded-full surface-track overflow-hidden">
                   <div className="h-full rounded-full transition-all" style={{ width: `${t.hitRate}%`, backgroundColor: t.color }} />
                 </div>
               </div>

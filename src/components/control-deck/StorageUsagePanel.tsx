@@ -34,7 +34,7 @@ export function StorageUsagePanel() {
               ['Snapshots', rowCounts.snapshots],
             ] as const
           ).filter(([label]) => label !== 'Flashcards' || flashcardsEnabled).map(([label, count]) => (
-            <div key={label} className="rounded-lg bg-white/[0.03] px-2 py-1.5">
+            <div key={label} className="rounded-lg surface-subtle px-2 py-1.5">
               <dt className="settings-muted">{label}</dt>
               <dd className="font-bold text-primary">{count}</dd>
             </div>

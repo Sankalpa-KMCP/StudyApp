@@ -150,7 +150,7 @@ export function TaskList({
               onClick={() => toggleTask(task.id!)}
               className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-all duration-250 ease-out ios-active-scale ${
                 task.completed
-                  ? 'border-accent-green bg-accent-green text-white shadow-sm'
+                  ? 'border-accent-green bg-accent-green text-on-accent shadow-sm'
                   : 'border-card hover:border-accent-blue hover:surface-subtle'
               }`}
             >
@@ -231,7 +231,7 @@ export function TaskList({
                       onClick={() => handleToggleSubtask(task, sub.id)}
                       className={`h-4 w-4 shrink-0 rounded flex items-center justify-center transition-all cursor-pointer ${
                         sub.completed
-                          ? 'border-accent-green bg-accent-green text-white'
+                          ? 'border-accent-green bg-accent-green text-on-accent'
                           : 'border-card hover:border-accent-blue surface-subtle'
                       }`}
                     >

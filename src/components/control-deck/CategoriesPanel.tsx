@@ -97,7 +97,7 @@ export function CategoriesPanel() {
         <button
           type="button"
           onClick={() => void handleAdd()}
-          className="rounded-full bg-accent-blue hover:bg-accent-blue/90 text-white px-4 py-1.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
+          className="rounded-full bg-accent-blue hover:bg-accent-blue/90 text-on-accent px-4 py-1.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
         >
           Add
         </button>

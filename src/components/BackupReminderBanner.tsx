@@ -20,12 +20,12 @@ export function BackupReminderBanner({ onExport, onDismiss, daysSinceExport }: B
       aria-label="Backup reminder"
       className="flex items-center justify-between gap-3 border-b border-accent-amber/20 bg-accent-amber/10 px-4 py-2.5"
     >
-      <p className="text-label font-semibold text-white/90 truncate min-w-0">{message}</p>
+      <p className="text-label font-semibold text-primary truncate min-w-0">{message}</p>
       <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
           onClick={onExport}
-          className="rounded-full bg-accent-amber px-3 py-1 text-label font-bold text-white ios-active-scale"
+          className="rounded-full bg-accent-amber px-3 py-1 text-label font-bold text-on-accent ios-active-scale"
         >
           Export
         </button>
@@ -33,7 +33,7 @@ export function BackupReminderBanner({ onExport, onDismiss, daysSinceExport }: B
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss backup reminder"
-          className="flex h-7 w-7 items-center justify-center rounded-full text-white/50 hover:text-white hover:bg-white/10 ios-active-scale"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-muted hover:text-primary hover:surface-track ios-active-scale"
         >
           <X className="h-4 w-4" />
         </button>

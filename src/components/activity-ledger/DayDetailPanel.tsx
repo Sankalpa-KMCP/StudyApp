@@ -60,15 +60,15 @@ export function DayDetailPanel({
       <p className="text-sm font-bold text-text-primary mb-4">{dateTitle}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-        <div className="bg-white/4 p-3.5 rounded-[20px] border border-white/8">
+        <div className="surface-subtle p-3.5 rounded-[20px] border border-card">
           <span className="text-micro font-bold text-muted uppercase tracking-wide block">Study block</span>
           <span className="text-base font-extrabold text-accent-blue mt-0.5 font-mono">{liveDay.studyTime}</span>
         </div>
-        <div className="bg-white/4 p-3.5 rounded-[20px] border border-white/8">
+        <div className="surface-subtle p-3.5 rounded-[20px] border border-card">
           <span className="text-micro font-bold text-muted uppercase tracking-wide block">Break cooldown</span>
           <span className="text-base font-extrabold text-accent-amber mt-0.5 font-mono">{liveDay.breakTime}</span>
         </div>
-        <div className="bg-white/4 p-3.5 rounded-[20px] border border-white/8">
+        <div className="surface-subtle p-3.5 rounded-[20px] border border-card">
           <span className="text-micro font-bold text-muted uppercase tracking-wide block">Efficiency score</span>
           <span className="text-base font-extrabold text-accent-green mt-0.5 font-mono">{liveDay.focusScore}</span>
         </div>
@@ -104,12 +104,12 @@ export function DayDetailPanel({
           aria-labelledby="reflection-log-label"
           placeholder="How did you perform? Note down any wins, hurdles, or focal points for today..."
           rows={3}
-          className={`w-full resize-none rounded-2xl border bg-white/4 focus:bg-white/8 px-4 py-3 text-xs text-text-primary placeholder:text-muted outline-none transition-all duration-200 ${
+          className={`w-full resize-none rounded-2xl border surface-subtle focus:surface-track px-4 py-3 text-xs text-text-primary placeholder:text-muted outline-none transition-all duration-200 ${
             draftNotes.length >= 500
               ? 'border-red-500/40 focus:border-red-500/60'
               : draftNotes.length > 450
               ? 'border-amber-500/40 focus:border-amber-500/60'
-              : 'border-white/8 focus:border-accent-blue/40'
+              : 'border-card focus:border-accent-blue/40'
           }`}
         />
         {draftNotes.length >= 500 && (
@@ -119,7 +119,7 @@ export function DayDetailPanel({
         )}
       </div>
 
-      <div className="border-t border-white/8 pt-5">
+      <div className="border-t border-card pt-5">
         <p className="text-caption font-semibold text-muted uppercase tracking-wider mb-3">Session timeline (24h)</p>
         {selectedDayHistory.length === 0 ? (
           <EmptyState
@@ -128,8 +128,8 @@ export function DayDetailPanel({
             description="Complete a focus block on this day to see your timeline."
           />
         ) : (
-        <div className="relative w-full bg-white/4 border border-white/8 rounded-2xl p-4.5">
-          <div className="relative h-6 w-full bg-white/5 rounded-full border border-white/8 overflow-hidden">
+        <div className="relative w-full surface-subtle border border-card rounded-2xl p-4.5">
+          <div className="relative h-6 w-full surface-subtle rounded-full border border-card overflow-hidden">
             {selectedDayHistory.map((entry, idx) => {
               const parts = entry.timestamp.split(' ')
               if (parts.length < 3) return null

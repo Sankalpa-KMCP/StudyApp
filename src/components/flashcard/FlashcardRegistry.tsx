@@ -51,7 +51,7 @@ export function FlashcardRegistry({
     return (
       <div
         key={card.id}
-        className="group p-4.5 rounded-[22px] border border-white/8 bg-white/4 hover:bg-white/8 transition-all flex flex-col justify-between gap-3 relative shadow-sm mb-3"
+        className="group p-4.5 rounded-[22px] border border-card surface-subtle hover:surface-track transition-all flex flex-col justify-between gap-3 relative shadow-sm mb-3"
       >
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
@@ -67,19 +67,19 @@ export function FlashcardRegistry({
             type="button"
             aria-label={`Delete flashcard ${card.question}`}
             onClick={() => card.id !== undefined && onDelete(card.id)}
-            className="text-muted hover:text-red-400 opacity-100 sm:opacity-60 sm:group-hover:opacity-100 transition-opacity p-1.5 min-h-9 min-w-9 flex items-center justify-center rounded-full hover:bg-white/5 cursor-pointer"
+            className="text-muted hover:text-red-400 opacity-100 sm:opacity-60 sm:group-hover:opacity-100 transition-opacity p-1.5 min-h-9 min-w-9 flex items-center justify-center rounded-full hover:surface-subtle cursor-pointer"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
-        <div className="h-px bg-white/5" />
+        <div className="h-px surface-subtle" />
         <p className="text-label text-muted leading-normal line-clamp-2 italic">{card.answer}</p>
         <div className="flex items-center justify-between text-micro font-mono text-muted mt-1 select-none">
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
             Next:{' '}
             {card.nextReviewDate ? (
-              <span className={isCardDue ? 'text-accent-amber font-bold' : 'text-white/45'}>
+              <span className={isCardDue ? 'text-accent-amber font-bold' : 'text-muted'}>
                 {card.nextReviewDate} {isCardDue && '(Due)'}
               </span>
             ) : (
@@ -99,7 +99,7 @@ export function FlashcardRegistry({
         bordered={false}
         className="mb-4"
         action={
-          <div className="flex bg-black/35 border border-white/5 p-1 rounded-xl">
+          <div className="flex surface-subtle border border-card p-1 rounded-xl">
             {(['all', 'new', 'due', 'completed'] as const).map(status => {
               const count = flashcards.filter(c => {
                 const matchesCategory = activeCategoryFilter === 'all' || c.categoryId === activeCategoryFilter
@@ -118,7 +118,7 @@ export function FlashcardRegistry({
                   aria-pressed={activeSpacingFilter === status}
                   onClick={() => setActiveSpacingFilter(status)}
                   className={`px-2.5 py-1 rounded-lg text-micro font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                    activeSpacingFilter === status ? 'bg-white/10 text-text-primary shadow-sm' : 'text-muted hover:text-text-primary'
+                    activeSpacingFilter === status ? 'surface-track text-text-primary shadow-sm' : 'text-muted hover:text-text-primary'
                   }`}
                 >
                   {status} ({count})

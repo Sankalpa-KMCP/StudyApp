@@ -14,13 +14,13 @@ export function InstallPromptBanner({ onInstall, onDismiss }: InstallPromptBanne
     >
       <div className="flex items-center gap-2 min-w-0">
         <Sparkles className="h-4 w-4 shrink-0 text-accent-blue" aria-hidden />
-        <p className="text-label font-semibold text-white/90 truncate">Install Study Dashboard for quick access</p>
+        <p className="text-label font-semibold text-primary truncate">Install Study Dashboard for quick access</p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
           onClick={onInstall}
-          className="rounded-full bg-accent-blue px-3 py-1 text-label font-bold text-white ios-active-scale"
+          className="rounded-full bg-accent-blue px-3 py-1 text-label font-bold text-on-accent ios-active-scale"
         >
           Install
         </button>
@@ -28,7 +28,7 @@ export function InstallPromptBanner({ onInstall, onDismiss }: InstallPromptBanne
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss install prompt"
-          className="flex h-7 w-7 items-center justify-center rounded-full text-white/50 hover:text-white hover:bg-white/10 ios-active-scale"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-muted hover:text-primary hover:surface-track ios-active-scale"
         >
           <X className="h-4 w-4" />
         </button>
