@@ -108,7 +108,7 @@ export function TaskCreateForm({
           const cat = categories.find(c => c.id === sessionCategoryId)
           if (!cat?.dailyGoalMinutes) return null
           return (
-            <span className="inline-flex mt-2 text-[10px] font-bold text-accent-blue bg-accent-blue/10 border border-accent-blue/20 px-2.5 py-1 rounded-full">
+            <span className="inline-flex mt-2 text-micro font-bold text-accent-blue bg-accent-blue/10 border border-accent-blue/20 px-2.5 py-1 rounded-full">
               Subject goal: {cat.dailyGoalMinutes} min/day
             </span>
           )

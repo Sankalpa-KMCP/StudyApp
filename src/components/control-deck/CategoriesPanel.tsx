@@ -104,7 +104,7 @@ export function CategoriesPanel() {
       </div>
 
       <div className="flex items-center gap-2.5 mb-4 px-2 select-none">
-        <span className="settings-muted font-bold uppercase tracking-wider text-[9px]">Swatches:</span>
+        <span className="settings-muted font-bold uppercase tracking-wider text-micro">Swatches:</span>
         <div className="flex flex-wrap gap-2">
           {SWATCH_COLORS.map(color => (
             <button
@@ -201,7 +201,7 @@ export function CategoriesPanel() {
                     commitGoal(cat.id, (e.target as HTMLInputElement).value)
                   }
                 }}
-                className="w-16 rounded-lg settings-input px-2 py-1 text-[10px]"
+                className="w-16 rounded-lg settings-input px-2 py-1 text-micro"
               />
               <button
                 type="button"

@@ -151,7 +151,7 @@ export function FolderSyncPanel() {
 
         {folderConnected && (
           <p className="text-micro settings-muted">
-            Folder: <span className="font-mono text-[10px] break-all">{folderLabel}</span>
+            Folder: <span className="font-mono text-micro break-all">{folderLabel}</span>
           </p>
         )}
 

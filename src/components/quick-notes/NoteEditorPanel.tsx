@@ -37,7 +37,7 @@ export function NoteEditorPanel({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#090b14]/50 animate-fade-in">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-card surface-subtle text-[10px] font-mono text-muted select-none">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-card surface-subtle text-micro font-mono text-muted select-none">
         <button
           onClick={stopEditing}
           className="px-2 py-1 rounded hover:surface-subtle text-accent-blue font-bold cursor-pointer"

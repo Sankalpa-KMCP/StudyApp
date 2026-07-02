@@ -54,11 +54,11 @@ export function InlineCategoryManager({
   return (
     <div>
       <div className="flex justify-between items-center mb-1.5 select-none">
-        <label className="text-[10px] font-bold uppercase text-muted">{label}</label>
+        <label className="text-micro font-bold uppercase text-muted">{label}</label>
         <button
           type="button"
           onClick={() => setShowManager(!showManager)}
-          className="text-[9px] font-bold text-accent-blue hover:underline cursor-pointer"
+          className="text-micro font-bold text-accent-blue hover:underline cursor-pointer"
         >
           {showManager ? 'Done' : '✏️ Manage'}
         </button>
@@ -99,7 +99,7 @@ export function InlineCategoryManager({
           </div>
           <div className="max-h-24 overflow-y-auto custom-scrollbar space-y-1.5 pr-1 border-t border-card pt-2">
             {categories.map(c => (
-              <div key={c.id} className="flex items-center justify-between text-[10px] font-semibold surface-subtle px-2.5 py-1.5 rounded-lg">
+              <div key={c.id} className="flex items-center justify-between text-micro font-semibold surface-subtle px-2.5 py-1.5 rounded-lg">
                 <div className="flex items-center gap-1.5 truncate">
                   <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
                   <span className="text-secondary truncate">{c.name}</span>

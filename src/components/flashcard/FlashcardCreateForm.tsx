@@ -48,7 +48,7 @@ export function FlashcardCreateForm({
         <PanelHeader title="Create new flashcard" bordered={false} className="mb-4" />
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label htmlFor="flashcard-question" className="block text-[10px] font-bold uppercase text-muted mb-1.5 select-none">Question / Term</label>
+            <label htmlFor="flashcard-question" className="block text-micro font-bold uppercase text-muted mb-1.5 select-none">Question / Term</label>
             <textarea
               id="flashcard-question"
               required
@@ -60,7 +60,7 @@ export function FlashcardCreateForm({
             />
           </div>
           <div>
-            <label htmlFor="flashcard-answer" className="block text-[10px] font-bold uppercase text-muted mb-1.5 select-none">Answer / Definition</label>
+            <label htmlFor="flashcard-answer" className="block text-micro font-bold uppercase text-muted mb-1.5 select-none">Answer / Definition</label>
             <textarea
               id="flashcard-answer"
               required

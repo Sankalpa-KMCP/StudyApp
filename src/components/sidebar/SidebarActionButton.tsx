@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { useSidebarFlyout } from './useSidebarFlyout'
 
 interface SidebarActionButtonProps {
@@ -10,7 +11,7 @@ interface SidebarActionButtonProps {
   compact?: boolean
 }
 
-export function SidebarActionButton({
+export const SidebarActionButton = memo(function SidebarActionButton({
   variant,
   label,
   subtitle,
@@ -62,11 +63,11 @@ export function SidebarActionButton({
       <div className="flex flex-col items-start min-w-0 text-left">
         <span className="whitespace-nowrap">{label}</span>
         {subtitle && (
-          <span className="text-[10px] font-medium text-muted normal-case tracking-normal leading-tight truncate max-w-full">
+          <span className="text-micro font-medium text-muted normal-case tracking-normal leading-tight truncate max-w-full">
             {subtitle}
           </span>
         )}
       </div>
     </button>
   )
-}
+})

@@ -61,7 +61,7 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
       >
         {!canExit && <Lock className="h-3 w-3 text-accent-amber" />}
         <span className="hidden sm:inline">Exit</span>
-        {!canExit && <span className="text-[10px] text-accent-amber ml-0.5">(Locked)</span>}
+        {!canExit && <span className="text-micro text-accent-amber ml-0.5">(Locked)</span>}
       </button>
 
       <div className="relative z-10 flex flex-col items-center text-center space-y-8 select-none max-w-md px-6 animate-slide-in-up">

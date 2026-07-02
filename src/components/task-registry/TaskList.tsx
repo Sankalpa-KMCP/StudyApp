@@ -188,7 +188,7 @@ export function TaskList({
               {task.text}
             </span>
             {!completed && subtaskCount > 0 && !isActive && (
-              <span className="shrink-0 text-[9px] font-bold text-muted surface-subtle border border-card px-2 py-0.5 rounded-full">
+              <span className="shrink-0 text-micro font-bold text-muted surface-subtle border border-card px-2 py-0.5 rounded-full">
                 {subtaskCount} subtask{subtaskCount === 1 ? '' : 's'}
               </span>
             )}
@@ -209,7 +209,7 @@ export function TaskList({
               >
                 <Target className="h-4 w-4" />
               </button>
-              <span className="text-[9px] font-mono font-bold text-secondary flex items-center gap-1 surface-subtle px-2.5 py-1 rounded-full border border-card">
+              <span className="text-micro font-mono font-bold text-secondary flex items-center gap-1 surface-subtle px-2.5 py-1 rounded-full border border-card">
                 <span>{task.actualCycles ?? 0}/{task.estimatedCycles ?? 1}</span>
               </span>
             </div>
@@ -244,7 +244,7 @@ export function TaskList({
                       type="button"
                       aria-label={`Delete subtask ${sub.text}`}
                       onClick={() => handleDeleteSubtask(task, sub.id)}
-                      className="text-[10px] text-muted hover:text-red-400 font-bold transition-colors cursor-pointer pl-1 pr-1"
+                      className="text-micro text-muted hover:text-red-400 font-bold transition-colors cursor-pointer pl-1 pr-1"
                     >
                       ✕
                     </button>
@@ -256,7 +256,7 @@ export function TaskList({
               <input
                 type="text"
                 placeholder="Add subtask..."
-                className="flex-1 surface-subtle border border-card rounded-lg px-2.5 py-1.5 text-[10px] text-primary placeholder:text-muted outline-none"
+                className="flex-1 surface-subtle border border-card rounded-lg px-2.5 py-1.5 text-micro text-primary placeholder:text-muted outline-none"
                 onKeyDown={async e => {
                   if (e.key === 'Enter') {
                     const target = e.target as HTMLInputElement
@@ -319,7 +319,7 @@ export function TaskList({
                       title={title}
                       aria-label={`Recall grade ${q} (${title}) for ${task.text}`}
                       onClick={() => submitRecallGrade(task, q)}
-                      className="min-h-11 min-w-11 sm:min-h-6 sm:min-w-6 rounded-full text-[9px] sm:text-[9px] font-bold surface-subtle hover:surface-track text-secondary border border-card transition-all ios-active-scale cursor-pointer flex items-center justify-center px-1"
+                      className="min-h-11 min-w-11 sm:min-h-6 sm:min-w-6 rounded-full text-micro sm:text-micro font-bold surface-subtle hover:surface-track text-secondary border border-card transition-all ios-active-scale cursor-pointer flex items-center justify-center px-1"
                     >
                       <span className="sm:hidden">{label}</span>
                       <span className="hidden sm:inline font-mono">{q}</span>
@@ -384,7 +384,7 @@ export function TaskList({
             <button
               type="button"
               onClick={toggleCompletedSection}
-              className="flex w-full items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted hover:text-primary transition-colors mb-2"
+              className="flex w-full items-center justify-between text-micro font-bold uppercase tracking-wider text-muted hover:text-primary transition-colors mb-2"
               aria-expanded={completedOpen}
             >
               <span>Recently completed ({filteredCompleted.length})</span>

@@ -141,7 +141,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       <div className="flex items-center justify-between border-b border-card pb-3.5 mb-5 select-none">
         <div className="flex items-center gap-1.5">
           <Sparkles className="h-4 w-4 text-accent-blue" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted">Getting Started</span>
+          <span className="text-micro font-bold uppercase tracking-wider text-muted">Getting Started</span>
         </div>
         <button
           type="button"
@@ -175,7 +175,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="leading-relaxed">{bullet.text}</span>
                   {bullet.helper && (
-                    <span className="text-[10px] font-medium text-muted leading-relaxed">{bullet.helper}</span>
+                    <span className="text-micro font-medium text-muted leading-relaxed">{bullet.helper}</span>
                   )}
                 </div>
               </li>
@@ -185,7 +185,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
         {slide.showGoalPicker && (
           <div className="w-full pt-3 border-t border-card text-left">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2">Set your daily goal (optional)</p>
+            <p className="text-micro font-bold uppercase tracking-wider text-muted mb-2">Set your daily goal (optional)</p>
             <div className="flex flex-wrap gap-2">
               {GOAL_OPTIONS.map(mins => (
                 <SelectionChip
@@ -199,14 +199,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </SelectionChip>
               ))}
             </div>
-            <p className="text-[10px] text-muted mt-2 leading-relaxed">
+            <p className="text-micro text-muted mt-2 leading-relaxed">
               Fine-tune anytime in Settings → Timer &amp; Focus.
             </p>
             {onReplayTour && (
               <button
                 type="button"
                 onClick={onReplayTour}
-                className="mt-3 text-[10px] font-semibold text-accent-blue hover:underline cursor-pointer"
+                className="mt-3 text-micro font-semibold text-accent-blue hover:underline cursor-pointer"
               >
                 Learn more — replay anytime from Settings → Getting started, or the ⋯ menu on mobile
               </button>
@@ -232,7 +232,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               handleFinish()
               onOpenBackup()
             }}
-            className="text-[10px] font-semibold text-muted hover:text-accent-blue transition-colors cursor-pointer"
+            className="text-micro font-semibold text-muted hover:text-accent-blue transition-colors cursor-pointer"
           >
             {t('onboardingImportData')}
           </button>
@@ -259,7 +259,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             <button
               type="button"
               onClick={handlePrev}
-              className="px-3 py-1.5 rounded-lg text-[10px] font-bold surface-subtle border border-card hover:surface-track text-on-accent transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-lg text-micro font-bold surface-subtle border border-card hover:surface-track text-on-accent transition-all cursor-pointer"
             >
               {t('onboardingBack')}
             </button>
@@ -267,7 +267,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           <button
             type="button"
             onClick={handleNext}
-            className="flex items-center gap-1 px-4 py-1.5 rounded-lg text-[10px] font-bold bg-accent-blue hover:bg-accent-blue/90 border border-card text-on-accent transition-all cursor-pointer shadow-md shadow-accent-blue/15"
+            className="flex items-center gap-1 px-4 py-1.5 rounded-lg text-micro font-bold bg-accent-blue hover:bg-accent-blue/90 border border-card text-on-accent transition-all cursor-pointer shadow-md shadow-accent-blue/15"
           >
             <span>{currentSlide === slides.length - 1 ? t('onboardingFinish') : t('onboardingNext')}</span>
             {currentSlide === slides.length - 1 ? <Check className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}

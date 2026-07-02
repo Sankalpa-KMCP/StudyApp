@@ -187,7 +187,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
           </div>
 
           <div className="md:hidden mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-card surface-subtle px-3 py-2 text-micro font-mono text-text-secondary">
-            <span className="font-bold text-text-primary w-full text-[10px] uppercase tracking-wider">
+            <span className="font-bold text-text-primary w-full text-micro uppercase tracking-wider">
               {monthNames[currentMonth]} {selectedDay}
             </span>
             <span className="inline-flex items-center gap-1">
