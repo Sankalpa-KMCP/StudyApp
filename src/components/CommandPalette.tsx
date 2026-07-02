@@ -142,7 +142,7 @@ export function CommandPalette({
           className="flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted"
           autoComplete="off"
         />
-        <kbd className="hidden sm:inline rounded border border-card surface-subtle px-1.5 py-0.5 text-[10px] font-mono text-muted">Esc</kbd>
+        <kbd className="hidden sm:inline rounded border border-card surface-subtle px-1.5 py-0.5 text-micro font-mono text-muted">Esc</kbd>
       </div>
       <div className="max-h-80 overflow-y-auto p-2" role="listbox" aria-label="Search results">
         {flatResults.length === 0 ? (
@@ -150,7 +150,7 @@ export function CommandPalette({
         ) : (
           grouped.map(group => (
             <div key={group.type} className="mb-2 last:mb-0">
-              <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-muted">{group.label}</p>
+              <p className="px-3 py-1 text-micro font-bold uppercase tracking-wider text-muted">{group.label}</p>
               {group.items.map(item => {
                 rowIndex += 1
                 const idx = rowIndex

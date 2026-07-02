@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { FileText, Sparkles, Keyboard } from 'lucide-react'
 import type { ActiveTab } from '../../types/app'
 import { getVisibleNavTabs } from './constants'
@@ -20,9 +21,7 @@ export function SidebarRailContent({
   onShowOnboarding,
   onToggleCollapse,
 }: SidebarModeProps) {
-  const handleTabClick = (tabId: ActiveTab) => {
-    setActiveTab(tabId)
-  }
+  const onActivateTab = useCallback((tabId: ActiveTab) => setActiveTab(tabId), [setActiveTab])
 
   return (
     <div className="flex flex-col justify-between gap-4 md:gap-6 h-full min-h-0">
@@ -45,7 +44,7 @@ export function SidebarRailContent({
                 isActive={isActive}
                 isLocked={isLocked}
                 badge={tab.id === 'cards' ? cardsDueCount : undefined}
-                onClick={() => handleTabClick(tab.id)}
+                onActivate={onActivateTab}
               />
             )
           })}

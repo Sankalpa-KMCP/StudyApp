@@ -69,7 +69,7 @@ function NoteRow({
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
-      <p className="text-caption text-slate-450 leading-relaxed truncate select-none italic">
+      <p className="text-caption text-muted leading-relaxed truncate select-none italic">
         {note.content ? note.content : 'No additional scratch details.'}
       </p>
       <div className="flex justify-between items-center text-micro font-mono text-muted select-none">
@@ -124,7 +124,7 @@ export function NoteListPanel({
 
         {searchFocused && categories.length > 0 && (
           <div className="flex flex-wrap gap-1 surface-subtle border border-card p-2 rounded-xl animate-fade-in">
-            <span className="text-micro font-mono text-slate-450 w-full mb-0.5">Quick tag search tags:</span>
+            <span className="text-micro font-mono text-muted w-full mb-0.5">Quick tag search tags:</span>
             {categories.map(c => {
               const tagText = `#${c.name.replace(/\s+/g, '')}`
               const isActive = searchQuery.includes(tagText)

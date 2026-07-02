@@ -78,19 +78,19 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({
             {FLASHCARD_SHORTCUTS.map(item => (
               <div key={item.keys} className="flex items-center justify-between rounded-xl border border-card surface-subtle px-3 py-2">
                 <span className="text-xs text-secondary">{item.action}</span>
-                <kbd className="rounded border border-card surface-track px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-primary">{item.keys}</kbd>
+                <kbd className="rounded border border-card surface-track px-2 py-0.5 font-mono text-micro font-bold uppercase text-primary">{item.keys}</kbd>
               </div>
             ))}
           </div>
-          <p className="mt-2 text-center text-[10px] text-slate-500">Flashcard shortcuts apply only while the study modal is open.</p>
+          <p className="mt-2 text-center text-micro text-muted">Flashcard shortcuts apply only while the study modal is open.</p>
         </div>
       )}
       <p className="mt-4 text-center text-label text-muted">Shortcuts are disabled while typing in input fields.</p>
-      <p className="mt-2 text-center text-label text-slate-500">
+      <p className="mt-2 text-center text-label text-muted">
         Timer shortcuts still work on Settings while a study block is active. Tab through navigation to reach every section without a mouse.
       </p>
       {flashcardsEnabled && (
-        <p className="mt-2 text-center text-label text-slate-500">
+        <p className="mt-2 text-center text-label text-muted">
           Selecting a flashcard in the command palette opens the Cards tab (it does not start a review session).
         </p>
       )}

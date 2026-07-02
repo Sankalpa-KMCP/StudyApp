@@ -106,7 +106,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
       <div className="lg:col-span-5 flex flex-col gap-6">
         <PanelCard>
           <PanelHeader title={JOURNAL_HELPER} bordered={false} className="mb-1" />
-          <p className="text-[10px] text-muted font-medium mb-4">{JOURNAL_PANEL_HELPER}</p>
+          <p className="text-micro text-muted font-medium mb-4">{JOURNAL_PANEL_HELPER}</p>
 
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">

@@ -1,3 +1,4 @@
+import { memo, useCallback } from 'react'
 import type { ActiveTab } from '../../types/app'
 import { NavTabButton } from '../../navigation/NavTabButton'
 import { useSidebarFlyout } from './useSidebarFlyout'
@@ -13,10 +14,10 @@ interface SidebarNavButtonProps {
   isActive: boolean
   isLocked: boolean
   badge?: number
-  onClick: () => void
+  onActivate: (tabId: ActiveTab) => void
 }
 
-export function SidebarNavButton({
+export const SidebarNavButton = memo(function SidebarNavButton({
   variant,
   tabId,
   label,
@@ -26,18 +27,25 @@ export function SidebarNavButton({
   isActive,
   isLocked,
   badge,
-  onClick,
+  onActivate,
 }: SidebarNavButtonProps) {
   const flyout = useSidebarFlyout()
 
-  const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-    prefetchTabChunk(tabId)
-    if (variant === 'rail') flyout.showFlyout(label, e.currentTarget)
-  }
+  const handleClick = useCallback(() => {
+    onActivate(tabId)
+  }, [onActivate, tabId])
 
-  const handleMouseLeave = () => {
+  const handleMouseEnter = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      prefetchTabChunk(tabId)
+      if (variant === 'rail') flyout.showFlyout(label, e.currentTarget)
+    },
+    [tabId, variant, label, flyout],
+  )
+
+  const handleMouseLeave = useCallback(() => {
     if (variant === 'rail') flyout.hideFlyout()
-  }
+  }, [variant, flyout])
 
   return (
     <NavTabButton
@@ -50,9 +58,9 @@ export function SidebarNavButton({
       isActive={isActive}
       isLocked={isLocked}
       badge={badge}
-      onClick={onClick}
+      onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={variant === 'rail' ? handleMouseLeave : undefined}
     />
   )
-}
+})
