@@ -1,0 +1,43 @@
+---
+description: Keep AI-maintained documentation synchronized with codebase changes
+alwaysApply: true
+---
+
+# AI Documentation Synchronization
+
+When implementing or reviewing changes, keep AI-maintained docs in sync with the real codebase.
+
+## Entry points
+
+1. **[`AGENTS.md`](../../AGENTS.md)** — committed bootstrap for any AI agent (on GitHub).
+2. **Local `ai/`** (gitignored) — full docs; update here, never commit `ai/` to git.
+
+## Covered files (local `ai/`)
+
+- [`ai/PROJECT_CONTEXT.md`](../../ai/PROJECT_CONTEXT.md)
+- [`ai/AI_RULES.md`](../../ai/AI_RULES.md)
+- [`ai/ARCHITECTURE_DECISIONS.md`](../../ai/ARCHITECTURE_DECISIONS.md)
+
+Also keep this rule file aligned when agent behavior changes.
+
+(`CURRENT_STATE.md`, `TASK_TEMPLATE.md`, and `PROMPT_PATTERNS.md` are not maintained. Do not create `PROMPT_PATTERNS.md`.)
+
+## Update docs when changes affect
+
+Architecture, features, APIs, database models, environment variables, workflows, setup steps, dependencies, risky systems (import/clear data), conventions, deployment behavior, Tauri capabilities, or major refactors.
+
+## Agent behavior
+
+- Update affected **local** `ai/` documentation as part of implementation work when triggers apply.
+- **Inspect implementation first** — do not update docs blindly.
+- Prefer **incremental section edits** over full rewrites.
+- **Preserve useful historical context** unless factually wrong.
+- Cross-link to [`AGENTS.md`](../../AGENTS.md) instead of duplicating bootstrap rules in committed files.
+
+## Avoid
+
+- Committing `ai/` to git (folder is gitignored)
+- Editing stale pointer files under `frontend/ai/` instead of local `ai/`
+- Documenting non-existent features without marking them as planned
+
+Full policy: [`ai/AI_RULES.md`](../../ai/AI_RULES.md) (local)

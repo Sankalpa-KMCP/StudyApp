@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Study Dashboard logo">
+  <rect width="96" height="96" rx="24" fill="#0f3f39"/>
+  <path d="M22 31.5 48 18l26 13.5-26 13.5L22 31.5Z" fill="#f8faf8"/>
+  <path d="m22 43.5 26 13.5 26-13.5" fill="none" stroke="#79dbc7" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m22 56.5 26 13.5 26-13.5" fill="none" stroke="#f08a5d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="48" cy="45" r="8" fill="#0f3f39" stroke="#f8faf8" stroke-width="5"/>
+</svg>

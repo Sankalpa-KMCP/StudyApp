@@ -1,1 +1,0 @@
-export const MAX_STUDY_BLOCK_MINUTES = 120
