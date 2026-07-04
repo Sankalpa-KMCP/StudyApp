@@ -1,53 +1,41 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
-  BarChart3,
   Bell,
   BookOpen,
   CalendarDays,
   Check,
   CircleUserRound,
   Download,
-  Edit3,
   FileText,
-  Flame,
   Home,
   Layers3,
   NotebookText,
   PanelLeftClose,
   PanelLeftOpen,
-  Play,
   Plus,
   RotateCcw,
-  Save,
   Search,
   Settings,
-  Square,
-  StopCircle,
   Target,
-  Trash2,
   TrendingUp,
   Upload,
   X,
 } from 'lucide-react'
 import {
   buildSearchResults,
-  calculateStreak,
   clamp,
   formatDate,
   formatDateTime,
-  formatElapsed,
   formatFlashcardDue,
   formatHours,
   formatMinutes,
-  formatShortTime,
   getGoalProgress,
   getSubjectProgress,
   getTodayFocusMinutes,
   getWeeklyStudyDays,
   isDerivedGoal,
   isFlashcardDue,
-  linePoints,
   nextFlashcardSchedule,
   parseTags,
   percent,
@@ -55,7 +43,6 @@ import {
   todayInputValue,
   toInputDate,
   toInputTime,
-  type SearchResult,
   type WeeklyStudyDay,
 } from './appUtils'
 import {
@@ -79,13 +66,16 @@ import type {
   StudySession,
   StudySubject,
   StudyTask,
-  TaskPriority,
 } from './db/types'
+import { EmptyState, PanelHeader, TextInput, NumberInput, SubjectSelect, EditorActions, RowActionButtons, MetricCard, ProgressBar } from './components/ui'
+import { ReviewQueue, StreakCard, StudyTime, SubjectDistribution, Upcoming, WeeklyProgress } from './components/RightColumn'
+import { HomeView } from './home/HomeView'
+import { TasksView } from './views/TasksView'
 
-type View = 'Home' | 'Tasks' | 'Notes' | 'Subjects' | 'Calendar' | 'Flashcards' | 'Progress' | 'Goals' | 'Settings'
+export type View = 'Home' | 'Tasks' | 'Notes' | 'Subjects' | 'Calendar' | 'Flashcards' | 'Progress' | 'Goals' | 'Settings'
 type TaskFilter = 'all' | 'open' | 'done'
 type SettingsFeedback = { tone: 'success' | 'error'; message: string }
-type ActiveSession = { subjectId: string; startedAt: string; startedAtMs: number; plannedMinutes: number }
+export type ActiveSession = { subjectId: string; startedAt: string; startedAtMs: number; plannedMinutes: number }
 type ThemeMode = 'light' | 'dark' | 'aurora' | 'ember'
 
 const EMPTY_DATA: StudyData = {
@@ -580,383 +570,6 @@ function HeroRow(props: {
         <strong>{formatMinutes(props.dailyGoalMinutes)}</strong>
         <span>daily goal</span>
       </div>
-    </section>
-  )
-}
-
-function HomeView(props: {
-  data: StudyData
-  subjectMap: Map<string, StudySubject>
-  weeklyStudyDays: WeeklyStudyDay[]
-  quickNotes: string[]
-  dailyGoalMinutes: number
-  todayFocusMinutes: number
-  activeSession: ActiveSession | null
-  elapsedSeconds: number
-  sessionLimitSeconds: number
-  sessionNotice: string
-  subjects: StudySubject[]
-  focusSubjectId: string
-  focusDurationMinutes: number
-  search: string
-  searchResults: SearchResult[]
-  onFocusSubjectChange: (subjectId: string) => void
-  onFocusDurationChange: (minutes: number) => void
-  onQuickNotesChange: (value: string) => Promise<void>
-  onStartSession: () => void
-  onStopSession: () => Promise<void>
-  onNavigate: (view: View) => void
-}) {
-  const openTasks = props.data.tasks.filter((task) => task.status === 'open').slice(0, 5)
-  const recentNotes = props.data.notes.slice(0, 3)
-  const subjectStats = props.data.subjects.slice(0, 5)
-  const dueCards = props.data.flashcards.filter((card) => isFlashcardDue(card)).length
-  const weekHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
-
-  return (
-    <>
-      {props.search.trim() ? (
-        <HomeSearchResults query={props.search} results={props.searchResults} onNavigate={props.onNavigate} />
-      ) : null}
-      <div className="insight-grid" aria-label="Study pulse">
-        <InsightTile icon={Target} label="Today target" value={`${Math.round(percent(props.todayFocusMinutes, props.dailyGoalMinutes))}%`} detail={`${formatMinutes(props.todayFocusMinutes)} of ${formatMinutes(props.dailyGoalMinutes)}`} />
-        <InsightTile icon={Flame} label="Week momentum" value={formatHours(weekHours)} detail={`${props.weeklyStudyDays.filter((day) => day.hours > 0).length} active days`} />
-        <InsightTile icon={NotebookText} label="Review queue" value={`${dueCards}`} detail={dueCards === 1 ? 'card due now' : 'cards due now'} />
-      </div>
-      <div className="summary-grid">
-        <TaskCard tasks={openTasks} subjectMap={props.subjectMap} onOpen={() => props.onNavigate('Tasks')} />
-        <FocusCard
-          focusMinutes={props.todayFocusMinutes}
-          goalMinutes={props.dailyGoalMinutes}
-          activeSession={props.activeSession}
-          elapsedSeconds={props.elapsedSeconds}
-          sessionLimitSeconds={props.sessionLimitSeconds}
-          sessionNotice={props.sessionNotice}
-          subjects={props.subjects}
-          selectedSubjectId={props.focusSubjectId}
-          durationMinutes={props.focusDurationMinutes}
-          onSubjectChange={props.onFocusSubjectChange}
-          onDurationChange={props.onFocusDurationChange}
-          onStart={props.onStartSession}
-          onStop={props.onStopSession}
-        />
-        <QuickNoteCard notes={props.quickNotes} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
-      </div>
-      <SubjectsSection subjects={subjectStats} sessions={props.data.studySessions} onViewAll={() => props.onNavigate('Subjects')} />
-      <div className="bottom-grid">
-        <RecentNotes notes={recentNotes} subjectMap={props.subjectMap} onViewAll={() => props.onNavigate('Notes')} />
-        <StudyTime days={props.weeklyStudyDays} />
-      </div>
-    </>
-  )
-}
-
-function InsightTile({ icon: Icon, label, value, detail }: { icon: typeof Target; label: string; value: string; detail: string }) {
-  return (
-    <article className="insight-tile">
-      <div className="insight-icon">
-        <Icon size={20} aria-hidden="true" />
-      </div>
-      <div>
-        <span>{label}</span>
-        <strong>{value}</strong>
-        <small>{detail}</small>
-      </div>
-    </article>
-  )
-}
-
-function HomeSearchResults({ query, results, onNavigate }: { query: string; results: SearchResult[]; onNavigate: (view: View) => void }) {
-  return (
-    <section className="card search-results-card" aria-labelledby="home-search-title">
-      <div className="card-heading">
-        <div>
-          <h2 id="home-search-title">Search Results</h2>
-          <span>{results.length} matches for "{query.trim()}"</span>
-        </div>
-      </div>
-      {results.length > 0 ? (
-        <div className="search-result-list">
-          {results.map((result) => (
-            <button
-              className="search-result-row"
-              type="button"
-              key={`${result.type}-${result.id}`}
-              aria-label={`${result.type}: ${result.title}, ${result.meta}`}
-              onClick={() => onNavigate(result.view)}
-            >
-              <span className="pill">{result.type}</span>
-              <strong>{result.title}</strong>
-              <small>{result.meta}</small>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <p className="muted-copy">No tasks, notes, subjects, events, or flashcards match that search.</p>
-      )}
-    </section>
-  )
-}
-
-function TaskCard({ tasks, subjectMap, onOpen }: { tasks: StudyTask[]; subjectMap: Map<string, StudySubject>; onOpen: () => void }) {
-  return (
-    <section className="card task-card" aria-labelledby="tasks-title">
-      <div className="card-heading">
-        <div>
-          <h2 id="tasks-title">Study Tasks</h2>
-          <span>{tasks.length} open</span>
-        </div>
-        <button className="text-command" type="button" onClick={onOpen}>View</button>
-      </div>
-      {tasks.length > 0 ? (
-        <ul className="task-list">
-          {tasks.map((task) => (
-            <li className="task" key={task.id}>
-              <Square size={18} aria-hidden="true" />
-              <span>{task.title}</span>
-              <small>{subjectMap.get(task.subjectId)?.name ?? 'General'}</small>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyState icon={Check} title="No tasks yet" body="Create your first task and it will stay here after refresh." actionLabel="New task" onAction={onOpen} />
-      )}
-    </section>
-  )
-}
-
-function FocusCard(props: {
-  focusMinutes: number
-  goalMinutes: number
-  activeSession: ActiveSession | null
-  elapsedSeconds: number
-  sessionLimitSeconds: number
-  sessionNotice: string
-  subjects: StudySubject[]
-  selectedSubjectId: string
-  durationMinutes: number
-  onSubjectChange: (subjectId: string) => void
-  onDurationChange: (minutes: number) => void
-  onStart: () => void
-  onStop: () => Promise<void>
-}) {
-  const focusPercent = percent(props.focusMinutes, props.goalMinutes)
-  const timerPercent = props.sessionLimitSeconds > 0 ? percent(props.elapsedSeconds, props.sessionLimitSeconds) : focusPercent
-  const remainingSeconds = props.sessionLimitSeconds > 0 ? Math.max(0, props.sessionLimitSeconds - props.elapsedSeconds) : 0
-  return (
-    <section className="card focus-card" aria-labelledby="focus-title">
-      <h2 id="focus-title">Focus Engine</h2>
-      <div className="focus-ring" style={{ '--focus-percent': `${timerPercent}%` } as React.CSSProperties}>
-        <div>
-          <strong>{props.activeSession ? formatElapsed(props.sessionLimitSeconds > 0 ? remainingSeconds : props.elapsedSeconds) : formatMinutes(props.focusMinutes)}</strong>
-          <span>{props.activeSession ? (props.sessionLimitSeconds > 0 ? 'remaining' : 'elapsed') : `of ${formatMinutes(props.goalMinutes)}`}</span>
-        </div>
-      </div>
-      <div className="focus-stat-row" aria-label="Daily focus progress">
-        <span>Daily target</span>
-        <strong>{Math.round(focusPercent)}%</strong>
-      </div>
-      <label className="field focus-subject-field">
-        <span>Session length</span>
-        <select value={props.durationMinutes} onChange={(event) => props.onDurationChange(Number(event.target.value))} disabled={Boolean(props.activeSession)}>
-          <option value={25}>25 min Pomodoro</option>
-          <option value={50}>50 min deep work</option>
-          <option value={0}>Open ended</option>
-        </select>
-      </label>
-      <label className="field focus-subject-field">
-        <span>Focus subject</span>
-        <select value={props.selectedSubjectId} onChange={(event) => props.onSubjectChange(event.target.value)}>
-          <option value="">General</option>
-          {props.subjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.name}</option>)}
-        </select>
-      </label>
-      {props.activeSession ? (
-        <p className="session-elapsed" aria-live="polite">
-          <span>Elapsed</span>
-          <strong>{formatElapsed(props.elapsedSeconds)}</strong>
-        </p>
-      ) : null}
-      {props.sessionNotice ? <p className="session-complete" role="status">{props.sessionNotice}</p> : null}
-      {props.activeSession ? (
-        <button className="primary-command session-button" type="button" onClick={() => void props.onStop()}>
-          <StopCircle size={18} aria-hidden="true" />
-          Stop session
-        </button>
-      ) : (
-        <button className="primary-command session-button" type="button" onClick={props.onStart}>
-          <Play size={18} aria-hidden="true" />
-          Start focus
-        </button>
-      )}
-    </section>
-  )
-}
-
-function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onChange: (value: string) => Promise<void>; onOpenNotes: () => void }) {
-  return (
-    <section className="card quick-card" aria-labelledby="quick-notes-title">
-      <div className="card-heading">
-        <h2 id="quick-notes-title">Quick Notes</h2>
-        <button className="text-command" type="button" onClick={onOpenNotes}>Open Notes</button>
-      </div>
-      <label className="note-paper editable-paper">
-        <span className="sr-only">Quick notes</span>
-        <textarea
-          value={notes.join('\n')}
-          placeholder="Capture fast ideas, formulas, or reminders..."
-          onChange={(event) => void onChange(event.target.value)}
-        />
-      </label>
-    </section>
-  )
-}
-
-function SubjectsSection({ subjects, sessions, onViewAll }: { subjects: StudySubject[]; sessions: StudySession[]; onViewAll: () => void }) {
-  return (
-    <section className="subject-section" aria-labelledby="subjects-title">
-      <div className="section-heading">
-        <h2 id="subjects-title">Subjects</h2>
-        <button type="button" onClick={onViewAll}>View all</button>
-      </div>
-      {subjects.length > 0 ? (
-        <div className="subject-grid">
-          {subjects.map((subject) => <SubjectCard subject={subject} progressValue={getSubjectProgress(subject, sessions)} key={subject.id} />)}
-        </div>
-      ) : (
-        <EmptyState icon={BookOpen} title="No subjects yet" body="Subjects organize tasks, notes, flashcards, and study time." actionLabel="Create subject" onAction={onViewAll} />
-      )}
-    </section>
-  )
-}
-
-function RecentNotes({ notes, subjectMap, onViewAll }: { notes: StudyNote[]; subjectMap: Map<string, StudySubject>; onViewAll: () => void }) {
-  return (
-    <section className="card notes-card" aria-labelledby="notes-title">
-      <div className="section-heading">
-        <h2 id="notes-title">Recent Notes</h2>
-        <button type="button" onClick={onViewAll}>View all</button>
-      </div>
-      {notes.length > 0 ? (
-        <div className="note-list">
-          {notes.map((note) => (
-            <article className="note-row" key={note.id}>
-              <FileText size={18} aria-hidden="true" />
-              <h3>{note.title}</h3>
-              <span className="pill">{subjectMap.get(note.subjectId)?.name ?? 'General'}</span>
-              <time>{formatDate(note.updatedAt)}</time>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <EmptyState icon={FileText} title="No notes saved" body="Write a note from the Notes workspace and it will appear here." actionLabel="Go to notes workspace" onAction={onViewAll} />
-      )}
-    </section>
-  )
-}
-
-function TasksView({
-  tasks,
-  subjects,
-  filter,
-  openEditorRequest,
-  onFilterChange,
-}: {
-  tasks: StudyTask[]
-  subjects: StudySubject[]
-  filter: TaskFilter
-  openEditorRequest: number
-  onFilterChange: (filter: TaskFilter) => void
-}) {
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
-  const [draft, setDraft] = useState({ title: '', subjectId: '', dueDate: '', priority: 'normal' as TaskPriority, minutes: 30 })
-  const handledEditorRequest = useRef(0)
-
-  const openEditor = useCallback((task?: StudyTask) => {
-    setEditingTaskId(task?.id ?? 'new')
-    setDraft({
-      title: task?.title ?? '',
-      subjectId: task?.subjectId ?? subjects[0]?.id ?? '',
-      dueDate: task?.dueDate ?? '',
-      priority: task?.priority ?? 'normal',
-      minutes: task?.minutes ?? 30,
-    })
-  }, [subjects])
-
-  useEffect(() => {
-    if (openEditorRequest > handledEditorRequest.current) {
-      handledEditorRequest.current = openEditorRequest
-      openEditor()
-    }
-  }, [openEditor, openEditorRequest])
-
-  const saveTask = async () => {
-    const title = draft.title.trim()
-    if (!title) return
-    const timestamp = nowIso()
-    if (editingTaskId && editingTaskId !== 'new') {
-      await studyDb.tasks.update(editingTaskId, { ...draft, title, minutes: clamp(draft.minutes, 5, 720), updatedAt: timestamp })
-    } else {
-      await studyDb.tasks.add({
-        id: createId('task'),
-        title,
-        subjectId: draft.subjectId,
-        dueDate: draft.dueDate,
-        priority: draft.priority,
-        status: 'open',
-        minutes: clamp(draft.minutes, 5, 720),
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      })
-    }
-    setEditingTaskId(null)
-    setDraft({ title: '', subjectId: subjects[0]?.id ?? '', dueDate: '', priority: 'normal', minutes: 30 })
-  }
-
-  return (
-    <section className="workspace-panel" aria-labelledby="tasks-workspace-title">
-      <PanelHeader title="Tasks" actionLabel="New task" onAction={() => openEditor()} />
-      <SegmentedControl<TaskFilter> value={filter} options={['all', 'open', 'done']} onChange={onFilterChange} />
-      {editingTaskId ? (
-        <div className="editor-card">
-          <TextInput label="Task title" value={draft.title} onChange={(title) => setDraft({ ...draft, title })} />
-          <SubjectSelect subjects={subjects} value={draft.subjectId} onChange={(subjectId) => setDraft({ ...draft, subjectId })} />
-          <label className="field">
-            <span>Priority</span>
-            <select value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}>
-              <option value="low">Low</option>
-              <option value="normal">Normal</option>
-              <option value="high">High</option>
-            </select>
-          </label>
-          <TextInput label="Due date" type="date" value={draft.dueDate} onChange={(dueDate) => setDraft({ ...draft, dueDate })} />
-          <NumberInput label="Minutes" value={draft.minutes} min={5} max={720} onChange={(minutes) => setDraft({ ...draft, minutes })} />
-          <EditorActions onSave={() => void saveTask()} onCancel={() => setEditingTaskId(null)} />
-        </div>
-      ) : null}
-      {tasks.length > 0 ? (
-        <div className="table-list">
-          {tasks.map((task) => (
-            <article className={task.status === 'done' ? 'list-row is-done' : 'list-row'} key={task.id}>
-              <button
-                type="button"
-                className="task-check"
-                onClick={() => void studyDb.tasks.update(task.id, { status: task.status === 'done' ? 'open' : 'done', updatedAt: nowIso() })}
-                aria-label={`Toggle ${task.title}`}
-              >
-                {task.status === 'done' ? <Check size={14} /> : <Square size={16} />}
-              </button>
-              <div>
-                <h3>{task.title}</h3>
-                <p>{task.priority} priority - {task.minutes} min{task.dueDate ? ` - due ${task.dueDate}` : ''}</p>
-              </div>
-              <RowActionButtons label={task.title} onEdit={() => openEditor(task)} onDelete={() => void studyDb.tasks.delete(task.id)} />
-            </article>
-          ))}
-        </div>
-      ) : (
-        <EmptyState icon={Check} title="No matching tasks" body="Add a task or adjust the filter to shape today's queue." actionLabel="Create first task" onAction={() => openEditor()} />
-      )}
     </section>
   )
 }
@@ -1511,137 +1124,6 @@ function SettingsView({
   )
 }
 
-function WeeklyProgress({ days }: { days: WeeklyStudyDay[] }) {
-  const total = days.reduce((sum, day) => sum + day.hours, 0)
-  return (
-    <section className="card weekly-card" aria-labelledby="weekly-title">
-      <div className="card-heading">
-        <h2 id="weekly-title">Weekly Progress</h2>
-        <BarChart3 size={20} aria-hidden="true" />
-      </div>
-      <strong className="large-stat">{formatHours(total)}</strong>
-      <p>logged in the last seven days</p>
-      <BarChart days={days} />
-    </section>
-  )
-}
-
-function StudyTime({ days }: { days: WeeklyStudyDay[] }) {
-  const values = days.map((day) => day.hours)
-  return (
-    <section className="card chart-card" aria-labelledby="study-time-title">
-      <div className="card-heading">
-        <div>
-          <h2 id="study-time-title">Study Time</h2>
-          <strong>{formatHours(values.reduce((sum, hours) => sum + hours, 0))}</strong>
-        </div>
-      </div>
-      <div className="line-chart" aria-label="Study time trend">
-        <svg viewBox="0 0 360 160" role="img" aria-label="Study time by day">
-          <polyline points={linePoints(values)} />
-          {values.map((value, index) => (
-            <circle cx={index * 52 + 24} cy={146 - Math.min(value, 8) * 16} r="4" key={`${value}-${index}`} />
-          ))}
-        </svg>
-        <div className="line-days" aria-hidden="true">
-          {days.map((day) => <span key={day.key}>{day.label}</span>)}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function Upcoming({ events, subjectMap, onViewAll }: { events: CalendarEvent[]; subjectMap: Map<string, StudySubject>; onViewAll: () => void }) {
-  return (
-    <section className="card upcoming-card" aria-labelledby="upcoming-title">
-      <div className="section-heading">
-        <h2 id="upcoming-title">Upcoming</h2>
-        <button type="button" onClick={onViewAll}>View all</button>
-      </div>
-      {events.length > 0 ? (
-        <div className="timeline">
-          {events.map((event) => (
-            <article className="event is-strong" key={event.id}>
-              <time>{formatShortTime(event.startAt)}</time>
-              <div>
-                <h3>{event.title}</h3>
-                <p>{subjectMap.get(event.subjectId)?.name ?? 'General'}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <EmptyState icon={CalendarDays} title="No upcoming events" body="Scheduled study blocks will appear here." actionLabel="Open calendar" onAction={onViewAll} />
-      )}
-    </section>
-  )
-}
-
-function StreakCard({ sessions }: { sessions: StudySession[] }) {
-  const streak = calculateStreak(sessions)
-  return (
-    <section className="card streak-card" aria-labelledby="streak-title">
-      <h2 id="streak-title">Streak</h2>
-      <div className="flame-disc">
-        <Flame size={33} aria-hidden="true" />
-      </div>
-      <strong>{streak}</strong>
-      <p>days with logged study</p>
-      <span>{streak > 0 ? 'Consistency is building.' : 'Log a session to start.'}</span>
-    </section>
-  )
-}
-
-function ReviewQueue({ count, onOpen }: { count: number; onOpen: () => void }) {
-  return (
-    <section className="card review-card" aria-labelledby="review-title">
-      <h2 id="review-title">Review Queue</h2>
-      <strong>{count}</strong>
-      <p>cards waiting for another pass</p>
-      <button className="secondary-command" type="button" onClick={onOpen}>Review cards</button>
-    </section>
-  )
-}
-
-function SubjectCard({ subject, progressValue = subject.progress }: { subject: StudySubject; progressValue?: number }) {
-  return (
-    <article className="card subject-card" style={{ '--subject-color': subject.color } as React.CSSProperties}>
-      <div className="subject-icon" style={{ backgroundColor: subject.color }}>
-        <BookOpen size={21} aria-hidden="true" />
-      </div>
-      <h3>{subject.name}</h3>
-      <p>{subject.targetHours}h target</p>
-      <ProgressBar value={progressValue} label={`${Math.round(progressValue)}%`} />
-    </article>
-  )
-}
-
-function SubjectDistribution({ subjects, sessions, subjectMap }: { subjects: StudySubject[]; sessions: StudySession[]; subjectMap: Map<string, StudySubject> }) {
-  const rows = subjects.map((subject) => ({
-    subject,
-    minutes: sessions.filter((session) => session.subjectId === subject.id).reduce((sum, session) => sum + session.minutes, 0),
-  }))
-
-  return (
-    <section className="card distribution-card" aria-labelledby="distribution-title">
-      <h2 id="distribution-title">Subject Distribution</h2>
-      {rows.some((row) => row.minutes > 0) ? (
-        <div className="distribution-list">
-          {rows.map((row) => (
-            <ProgressBar
-              key={row.subject.id}
-              value={percent(row.minutes, Math.max(1, sessions.reduce((sum, session) => sum + session.minutes, 0)))}
-              label={`${subjectMap.get(row.subject.id)?.name ?? row.subject.name} - ${formatMinutes(row.minutes)}`}
-            />
-          ))}
-        </div>
-      ) : (
-        <p className="muted-copy">Log study sessions to see where your time is going.</p>
-      )}
-    </section>
-  )
-}
-
 function CalendarStrip({ events }: { events: CalendarEvent[] }) {
   const days = Array.from({ length: 7 }, (_, index) => {
     const date = new Date()
@@ -1664,135 +1146,6 @@ function CalendarStrip({ events }: { events: CalendarEvent[] }) {
           <small>{day.count} events</small>
         </article>
       ))}
-    </div>
-  )
-}
-
-function BarChart({ days }: { days: WeeklyStudyDay[] }) {
-  const values = days.map((day) => day.hours)
-  return (
-    <>
-      <div className="bar-chart" aria-label="Weekly progress by day">
-        {days.map((day) => (
-          <span className={day.hours === Math.max(...values) && day.hours > 0 ? 'bar is-peak' : 'bar'} key={`${day.key}-${day.hours}`}>
-            <span style={{ height: `${clamp((day.hours / Math.max(1, Math.max(...values))) * 100, 8, 100)}%` }} />
-          </span>
-        ))}
-      </div>
-      <div className="bar-days" aria-hidden="true">
-        {days.map((day) => <span key={day.key}>{day.label}</span>)}
-      </div>
-    </>
-  )
-}
-
-function EmptyState({ icon: Icon, title, body, actionLabel, onAction }: { icon: typeof Check; title: string; body: string; actionLabel: string; onAction: () => void }) {
-  return (
-    <div className="empty-state">
-      <div className="empty-icon">
-        <Icon size={24} aria-hidden="true" />
-      </div>
-      <h3>{title}</h3>
-      <p>{body}</p>
-      <button className="secondary-command" type="button" onClick={onAction}>{actionLabel}</button>
-    </div>
-  )
-}
-
-function PanelHeader({ title, actionLabel, onAction }: { title: View | string; actionLabel: string; onAction: () => void }) {
-  const headingId = `${String(title).toLowerCase()}-workspace-title`
-  const ActionIcon = actionLabel.toLowerCase().startsWith('clear') ? X : Plus
-  return (
-    <div className="workspace-heading">
-      <div>
-        <h2 id={headingId}>{title}</h2>
-        <p>Manage your local-first study data.</p>
-      </div>
-      <button className="primary-command" type="button" onClick={onAction}>
-        <ActionIcon size={18} aria-hidden="true" />
-        <span>{actionLabel}</span>
-      </button>
-    </div>
-  )
-}
-
-function TextInput({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
-    </label>
-  )
-}
-
-function NumberInput({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      <input type="number" min={min} max={max} value={value} onChange={(event) => onChange(clamp(Number(event.target.value), min, max))} />
-    </label>
-  )
-}
-
-function SubjectSelect({ subjects, value, onChange }: { subjects: StudySubject[]; value: string; onChange: (value: string) => void }) {
-  return (
-    <label className="field">
-      <span>Subject</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">General</option>
-        {subjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.name}</option>)}
-      </select>
-    </label>
-  )
-}
-
-function SegmentedControl<T extends string>({ value, options, onChange }: { value: T; options: T[]; onChange: (value: T) => void }) {
-  return (
-    <div className="segmented-control" role="group" aria-label="Task filter">
-      {options.map((option) => (
-        <button className={value === option ? 'is-active' : ''} type="button" key={option} onClick={() => onChange(option)}>
-          {option}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function EditorActions({ onSave, onCancel }: { onSave: () => void; onCancel: () => void }) {
-  return (
-    <div className="editor-actions">
-      <button className="primary-command" type="button" onClick={onSave}>
-        <Save size={16} aria-hidden="true" />
-        Save
-      </button>
-      <button className="secondary-command" type="button" onClick={onCancel}>Cancel</button>
-    </div>
-  )
-}
-
-function RowActionButtons({ label, onEdit, onDelete }: { label: string; onEdit: () => void; onDelete: () => void }) {
-  return (
-    <div className="row-actions">
-      <button type="button" aria-label={`Edit ${label}`} onClick={onEdit}><Edit3 size={16} /></button>
-      <button type="button" aria-label={`Delete ${label}`} onClick={onDelete}><Trash2 size={16} /></button>
-    </div>
-  )
-}
-
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <article className="card metric-card">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </article>
-  )
-}
-
-function ProgressBar({ value, label }: { value: number; label: string }) {
-  return (
-    <div className="progress-row">
-      <span className="progress-track" aria-hidden="true"><span style={{ width: `${clamp(value, 0, 100)}%` }} /></span>
-      <strong>{label}</strong>
     </div>
   )
 }

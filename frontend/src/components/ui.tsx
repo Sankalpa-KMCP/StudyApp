@@ -1,0 +1,127 @@
+import { clamp } from '../appUtils'
+import type { StudySubject } from '../db/types'
+import { BookOpen, Check, Edit3, Plus, Save, Trash2, X } from 'lucide-react'
+
+export function SubjectCard({ subject, progressValue = subject.progress }: { subject: StudySubject; progressValue?: number }) {
+  return (
+    <article className="card subject-card" style={{ '--subject-color': subject.color } as React.CSSProperties}>
+      <div className="subject-icon" style={{ backgroundColor: subject.color }}>
+        <BookOpen size={21} aria-hidden="true" />
+      </div>
+      <h3>{subject.name}</h3>
+      <p>{subject.targetHours}h target</p>
+      <ProgressBar value={progressValue} label={`${Math.round(progressValue)}%`} />
+    </article>
+  )
+}
+
+export function EmptyState({ icon: Icon, title, body, actionLabel, onAction }: { icon: typeof Check; title: string; body: string; actionLabel: string; onAction: () => void }) {
+  return (
+    <div className="empty-state">
+      <div className="empty-icon">
+        <Icon size={24} aria-hidden="true" />
+      </div>
+      <h3>{title}</h3>
+      <p>{body}</p>
+      <button className="secondary-command" type="button" onClick={onAction}>{actionLabel}</button>
+    </div>
+  )
+}
+
+export function PanelHeader({ title, actionLabel, onAction }: { title: string; actionLabel: string; onAction: () => void }) {
+  const headingId = `${String(title).toLowerCase()}-workspace-title`
+  const ActionIcon = actionLabel.toLowerCase().startsWith('clear') ? X : Plus
+  return (
+    <div className="workspace-heading">
+      <div>
+        <h2 id={headingId}>{title}</h2>
+        <p>Manage your local-first study data.</p>
+      </div>
+      <button className="primary-command" type="button" onClick={onAction}>
+        <ActionIcon size={18} aria-hidden="true" />
+        <span>{actionLabel}</span>
+      </button>
+    </div>
+  )
+}
+
+export function TextInput({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+    </label>
+  )
+}
+
+export function NumberInput({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <input type="number" min={min} max={max} value={value} onChange={(event) => onChange(clamp(Number(event.target.value), min, max))} />
+    </label>
+  )
+}
+
+export function SubjectSelect({ subjects, value, onChange }: { subjects: StudySubject[]; value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="field">
+      <span>Subject</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="">General</option>
+        {subjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.name}</option>)}
+      </select>
+    </label>
+  )
+}
+
+export function SegmentedControl<T extends string>({ value, options, onChange }: { value: T; options: T[]; onChange: (value: T) => void }) {
+  return (
+    <div className="segmented-control" role="group" aria-label="Task filter">
+      {options.map((option) => (
+        <button className={value === option ? 'is-active' : ''} type="button" key={option} onClick={() => onChange(option)}>
+          {option}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export function EditorActions({ onSave, onCancel }: { onSave: () => void; onCancel: () => void }) {
+  return (
+    <div className="editor-actions">
+      <button className="primary-command" type="button" onClick={onSave}>
+        <Save size={16} aria-hidden="true" />
+        Save
+      </button>
+      <button className="secondary-command" type="button" onClick={onCancel}>Cancel</button>
+    </div>
+  )
+}
+
+export function RowActionButtons({ label, onEdit, onDelete }: { label: string; onEdit: () => void; onDelete: () => void }) {
+  return (
+    <div className="row-actions">
+      <button type="button" aria-label={`Edit ${label}`} onClick={onEdit}><Edit3 size={16} /></button>
+      <button type="button" aria-label={`Delete ${label}`} onClick={onDelete}><Trash2 size={16} /></button>
+    </div>
+  )
+}
+
+export function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="card metric-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </article>
+  )
+}
+
+export function ProgressBar({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="progress-row">
+      <span className="progress-track" aria-hidden="true"><span style={{ width: `${clamp(value, 0, 100)}%` }} /></span>
+      <strong>{label}</strong>
+    </div>
+  )
+}
