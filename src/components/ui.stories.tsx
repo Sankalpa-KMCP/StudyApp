@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { Check } from 'lucide-react'
 import { ProgressBar, EmptyState, PanelHeader, MetricCard, SubjectCard } from './ui'
-import { StudySubject } from '../db/types'
+import type { StudySubject } from '../db/types'
 
 const meta = {
   title: 'Components/UI',
@@ -47,7 +47,8 @@ const mockSubject: StudySubject = {
   targetHours: 10,
   color: '#4f46e5',
   createdAt: new Date().toISOString(),
-  progress: 45
+  updatedAt: new Date().toISOString(),
+  progress: 45,
 }
 
 export const DefaultSubjectCard: StoryObj<typeof SubjectCard> = {

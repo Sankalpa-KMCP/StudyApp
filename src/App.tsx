@@ -202,16 +202,6 @@ function App() {
     const payload = await exportStudyData()
     const serialized = JSON.stringify(payload, null, 2)
     const filename = `study-dashboard-${new Date().toISOString().slice(0, 10)}.json`
-    try {
-      const [{ save }, { writeTextFile }] = await Promise.all([import('@tauri-apps/plugin-dialog'), import('@tauri-apps/plugin-fs')])
-      const path = await save({ defaultPath: filename, filters: [{ name: 'Study Dashboard export', extensions: ['json'] }] })
-      if (path) {
-        await writeTextFile(path, serialized)
-        return
-      }
-    } catch {
-      // Browser fallback below.
-    }
     const blob = new Blob([serialized], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
@@ -223,14 +213,6 @@ function App() {
 
   const importData = async (file: File) => {
     await importStudyData(JSON.parse(await file.text()) as unknown)
-  }
-
-  const importNativeData = async () => {
-    const [{ open }, { readTextFile }] = await Promise.all([import('@tauri-apps/plugin-dialog'), import('@tauri-apps/plugin-fs')])
-    const path = await open({ multiple: false, filters: [{ name: 'Study Dashboard export', extensions: ['json'] }] })
-    if (typeof path !== 'string') return false
-    await importStudyData(JSON.parse(await readTextFile(path)) as unknown)
-    return true
   }
 
   const openNewTask = () => {
@@ -285,27 +267,6 @@ function App() {
     setFocusSubjectId(subjectId)
     setActiveSession((session) => session ? { ...session, subjectId } : session)
   }
-
-  useEffect(() => {
-    let disposed = false
-    let unlisten: (() => void) | undefined
-
-    void import('@tauri-apps/api/event')
-      .then(({ listen }) => listen('desktop-timer-toggle', () => {
-        if (activeSession) void stopSession()
-        else startSession()
-      }))
-      .then((cleanup) => {
-        if (disposed) cleanup()
-        else unlisten = cleanup
-      })
-      .catch(() => undefined)
-
-    return () => {
-      disposed = true
-      unlisten?.()
-    }
-  }, [activeSession, startSession, stopSession])
 
   return (
     <div className={sidebarCollapsed ? 'app-shell is-sidebar-collapsed' : 'app-shell'}>
@@ -437,7 +398,6 @@ function App() {
                     profileNotice={profileNotice}
                     theme={theme}
                     onThemeChange={setTheme}
-                    onNativeImport={importNativeData}
                   />
                 ) : null}
               </section>
@@ -1011,7 +971,6 @@ function SettingsView({
   profileNotice,
   theme,
   onThemeChange,
-  onNativeImport,
 }: {
   onExport: () => void
   onImport: (file: File) => Promise<void>
@@ -1020,7 +979,6 @@ function SettingsView({
   profileNotice: string
   theme: ThemeMode
   onThemeChange: (theme: ThemeMode) => void
-  onNativeImport: () => Promise<boolean>
 }) {
   const [feedback, setFeedback] = useState<SettingsFeedback | null>(null)
 
@@ -1049,15 +1007,6 @@ function SettingsView({
     }
   }
 
-  const handleNativeImport = async () => {
-    try {
-      const imported = await onNativeImport()
-      if (imported) setFeedback({ tone: 'success', message: 'Study data imported.' })
-    } catch {
-      setFeedback({ tone: 'error', message: 'Native import failed. Choose a valid Study Dashboard export.' })
-    }
-  }
-
   return (
     <section className="workspace-panel" aria-labelledby="settings-workspace-title">
       <PanelHeader title="Settings" actionLabel="Clear search" onAction={onClearSearch} />
@@ -1071,7 +1020,7 @@ function SettingsView({
         <button className="action-card" type="button" onClick={onExport}>
           <Download size={24} aria-hidden="true" />
           <strong>Export data</strong>
-          <span>Download or save an IndexedDB-backed JSON snapshot.</span>
+          <span>Download an IndexedDB-backed JSON snapshot.</span>
         </button>
         <label className="action-card import-card">
           <Upload size={24} aria-hidden="true" />
@@ -1079,11 +1028,6 @@ function SettingsView({
           <span>Restore a previously exported study snapshot.</span>
           <input className="sr-only" type="file" accept="application/json" onChange={(event) => void handleImport(event)} />
         </label>
-        <button className="action-card" type="button" onClick={() => void handleNativeImport()}>
-          <Upload size={24} aria-hidden="true" />
-          <strong>Native import</strong>
-          <span>Open a JSON export through the desktop file picker when running in Tauri.</span>
-        </button>
         <button className="action-card" type="button" onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}>
           <CircleUserRound size={24} aria-hidden="true" />
           <strong>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</strong>
