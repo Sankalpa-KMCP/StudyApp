@@ -1,4 +1,4 @@
----
+﻿---
 description: Keep AI-maintained documentation synchronized with codebase changes
 alwaysApply: true
 ---
@@ -9,8 +9,8 @@ When implementing or reviewing changes, keep AI-maintained docs in sync with the
 
 ## Entry points
 
-1. **[`AGENTS.md`](../../AGENTS.md)** — committed bootstrap for any AI agent (on GitHub).
-2. **Local `ai/`** (gitignored) — full docs; update here, never commit `ai/` to git.
+1. **[`AGENTS.md`](../../AGENTS.md)** ΓÇö committed bootstrap for any AI agent (on GitHub).
+2. **Local `ai/`** (gitignored) ΓÇö full docs; update here, never commit `ai/` to git.
 
 ## Covered files (local `ai/`)
 
@@ -29,7 +29,7 @@ Architecture, features, APIs, database models, environment variables, workflows,
 ## Agent behavior
 
 - Update affected **local** `ai/` documentation as part of implementation work when triggers apply.
-- **Inspect implementation first** — do not update docs blindly.
+- **Inspect implementation first** ΓÇö do not update docs blindly.
 - Prefer **incremental section edits** over full rewrites.
 - **Preserve useful historical context** unless factually wrong.
 - Cross-link to [`AGENTS.md`](../../AGENTS.md) instead of duplicating bootstrap rules in committed files.
