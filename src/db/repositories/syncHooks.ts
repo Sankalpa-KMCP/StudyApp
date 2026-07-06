@@ -11,7 +11,6 @@ export function registerSyncDbHooks(onChange: () => void): void {
     db.history,
     db.daily_logs,
     db.categories,
-    db.flashcards,
     db.quick_notes,
   ] as const
 

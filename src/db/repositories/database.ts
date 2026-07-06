@@ -2,7 +2,6 @@ import { db } from '../db'
 import type {
   CategoryItem,
   DailyLog,
-  FlashcardItem,
   HistoryEntry,
   QuickNoteItem,
   SettingsRow,
@@ -15,32 +14,29 @@ export interface ExportedTables {
   dailyLogs: DailyLog[]
   settings: SettingsRow[]
   categories: CategoryItem[]
-  flashcards: FlashcardItem[]
   quickNotes: QuickNoteItem[]
 }
 
 export async function exportAllTables(): Promise<ExportedTables> {
-  const [tasks, history, dailyLogs, settings, categories, flashcards, quickNotes] = await Promise.all([
+  const [tasks, history, dailyLogs, settings, categories, quickNotes] = await Promise.all([
     db.tasks.toArray(),
     db.history.toArray(),
     db.daily_logs.toArray(),
     db.settings.toArray(),
     db.categories.toArray(),
-    db.flashcards.toArray(),
     db.quick_notes.toArray(),
   ])
-  return { tasks, history, dailyLogs, settings, categories, flashcards, quickNotes }
+  return { tasks, history, dailyLogs, settings, categories, quickNotes }
 }
 
 export async function replaceAllTables(data: ExportedTables): Promise<void> {
-  await db.transaction('rw', [db.tasks, db.history, db.daily_logs, db.settings, db.categories, db.flashcards, db.quick_notes, db.snapshots], async () => {
+  await db.transaction('rw', [db.tasks, db.history, db.daily_logs, db.settings, db.categories, db.quick_notes, db.snapshots], async () => {
     await Promise.all([
       db.tasks.clear(),
       db.history.clear(),
       db.daily_logs.clear(),
       db.settings.clear(),
       db.categories.clear(),
-      db.flashcards.clear(),
       db.quick_notes.clear(),
       db.snapshots.clear(),
     ])
@@ -50,7 +46,6 @@ export async function replaceAllTables(data: ExportedTables): Promise<void> {
     if (data.dailyLogs.length > 0) await db.daily_logs.bulkAdd(data.dailyLogs)
     if (data.settings.length > 0) await db.settings.bulkAdd(data.settings)
     if (data.categories.length > 0) await db.categories.bulkAdd(data.categories)
-    if (data.flashcards.length > 0) await db.flashcards.bulkAdd(data.flashcards)
     if (data.quickNotes.length > 0) await db.quick_notes.bulkAdd(data.quickNotes)
   })
 }
@@ -85,7 +80,6 @@ export async function clearAllTables(): Promise<void> {
     db.daily_logs.clear(),
     db.settings.clear(),
     db.categories.clear(),
-    db.flashcards.clear(),
     db.quick_notes.clear(),
     db.snapshots.clear(),
   ])
@@ -101,19 +95,17 @@ export interface SelectiveResetOptions {
   tasks: boolean
   history: boolean
   categories: boolean
-  cards: boolean
   notes: boolean
 }
 
 export async function resetSelective(options: SelectiveResetOptions): Promise<void> {
-  await db.transaction('rw', [db.tasks, db.history, db.daily_logs, db.categories, db.flashcards, db.quick_notes], async () => {
+  await db.transaction('rw', [db.tasks, db.history, db.daily_logs, db.categories, db.quick_notes], async () => {
     if (options.tasks) await db.tasks.clear()
     if (options.history) {
       await db.history.clear()
       await db.daily_logs.clear()
     }
     if (options.categories) await db.categories.clear()
-    if (options.cards) await db.flashcards.clear()
     if (options.notes) await db.quick_notes.clear()
   })
 }
@@ -132,7 +124,7 @@ function historyKey(h: HistoryEntry): string {
 }
 
 export async function mergeBackupData(data: ExportedTables): Promise<void> {
-  await db.transaction('rw', [db.tasks, db.history, db.daily_logs, db.settings, db.categories, db.flashcards, db.quick_notes], async () => {
+  await db.transaction('rw', [db.tasks, db.history, db.daily_logs, db.settings, db.categories, db.quick_notes], async () => {
     const existingCategories = await db.categories.toArray()
     const categoryIdMap = new Map<number, number>()
 
@@ -156,15 +148,6 @@ export async function mergeBackupData(data: ExportedTables): Promise<void> {
         data.tasks.map(t => ({
           ...t,
           categoryId: remapCategory(t.categoryId),
-        })),
-      )
-    }
-
-    if (data.flashcards.length > 0) {
-      await db.flashcards.bulkPut(
-        data.flashcards.map(f => ({
-          ...f,
-          categoryId: remapCategory(f.categoryId),
         })),
       )
     }
@@ -203,6 +186,7 @@ export async function mergeBackupData(data: ExportedTables): Promise<void> {
     const localSettings = await db.settings.toArray()
     const localByKey = new Map(localSettings.map(s => [s.key, s]))
     for (const row of data.settings) {
+      if ((row.key as string) === 'flashcardsEnabled') continue
       if (!localByKey.has(row.key)) {
         await db.settings.put(row)
       }
