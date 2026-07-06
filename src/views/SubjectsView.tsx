@@ -132,6 +132,8 @@ export function SubjectsView({
             )
           })}
         </div>
+      ) : (document.querySelector('.search-field input') as HTMLInputElement)?.value.trim().length > 0 ? (
+        <EmptyState icon={BookOpen} title="No matches found" body="No subjects match that search." actionLabel="Clear search" onAction={() => document.querySelector<HTMLButtonElement>('.clear-button')?.click()} />
       ) : (
         <EmptyState icon={BookOpen} title="No subjects yet" body="Create subjects first, then connect tasks, notes, events, and cards." actionLabel="Create first subject" onAction={() => openEditor()} />
       )}
