@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 export interface PieChartLegendItem {
   name: string
   color: string
@@ -12,7 +14,7 @@ interface PieChartLegendProps {
   className?: string
 }
 
-export function PieChartLegend({ items, className = '' }: PieChartLegendProps) {
+export const PieChartLegend = memo(function PieChartLegend({ items, className = '' }: PieChartLegendProps) {
   return (
     <div className={`flex flex-col gap-2 flex-1 max-w-[150px] ${className}`}>
       {items.map((item, i) => (
@@ -34,4 +36,4 @@ export function PieChartLegend({ items, className = '' }: PieChartLegendProps) {
       ))}
     </div>
   )
-}
+})
