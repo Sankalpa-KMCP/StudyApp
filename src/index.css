@@ -95,6 +95,17 @@ textarea {
   color: var(--ink);
 }
 
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a[href]:focus-visible,
+summary:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 .skip-link {
   position: fixed;
   left: 1rem;
@@ -319,7 +330,7 @@ button.brand-dot {
   display: flex;
   align-items: end;
   justify-content: space-between;
-  margin: 0 20px 0 15px;
+  margin: 0;
 }
 
 .hero-row h1 {
@@ -447,7 +458,7 @@ button.brand-dot {
 }
 
 .task.is-done .task-check {
-  background: #c8c8c6;
+  background: #616161;
 }
 
 .text-command {
@@ -2160,7 +2171,7 @@ textarea:focus-visible {
   }
 }
 
-@media (max-width: 1600px) {
+@media (max-width: 1180px) {
   .content-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2198,6 +2209,14 @@ textarea:focus-visible {
 
   .dashboard {
     padding-inline: 28px;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .subject-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }
 
