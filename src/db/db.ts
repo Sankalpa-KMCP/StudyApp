@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { TaskItem, HistoryEntry, DailyLog, SettingsRow, CategoryItem, FlashcardItem, QuickNoteItem, SnapshotRow, SyncHandleRow } from './types'
+import type { TaskItem, HistoryEntry, DailyLog, SettingsRow, CategoryItem, QuickNoteItem, SnapshotRow, SyncHandleRow } from './types'
 import { parseLegacyHistoryTimestamp } from '../lib/study/studyDashboard'
 
 type LegacyTaskRecord = TaskItem & {
@@ -14,7 +14,6 @@ class StudyDashboardDB extends Dexie {
   daily_logs!: Table<DailyLog, string>
   settings!: Table<SettingsRow, string>
   categories!: Table<CategoryItem, number>
-  flashcards!: Table<FlashcardItem, number>
   quick_notes!: Table<QuickNoteItem, number>
   snapshots!: Table<SnapshotRow, number>
   sync_handles!: Table<SyncHandleRow, number>
@@ -184,6 +183,38 @@ class StudyDashboardDB extends Dexie {
       const lastSyncChecksum = await settingsTable.get('lastSyncChecksum')
       if (lastSyncChecksum === undefined) {
         await settingsTable.put({ key: 'lastSyncChecksum', value: '' })
+      }
+    })
+    this.version(12).stores({
+      tasks: '++id, text, completed, createdAt, categoryId, recurrenceParentId',
+      history: '++id, timestamp, createdAt, type, durationMinutes, categoryId, taskId',
+      settings: '&key, value',
+      daily_logs: '&dateString, studyMinutes, breakMinutes',
+      categories: '++id, name, color',
+      quick_notes: '++id, title, content, categoryId, updatedAt',
+      snapshots: '++id, timestamp',
+      sync_handles: '++id, kind',
+    }).upgrade(async tx => {
+      try {
+        await tx.table('flashcards').clear()
+      } catch {
+        // table may already be absent on re-run
+      }
+      await tx.table('settings').delete('flashcardsEnabled')
+      const lockoutRow = await tx.table('settings').get('lockoutAllowedTabs')
+      if (lockoutRow && typeof lockoutRow.value === 'string') {
+        try {
+          const parsed = JSON.parse(lockoutRow.value) as unknown
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter((t: unknown) => t !== 'cards')
+            await tx.table('settings').put({
+              key: 'lockoutAllowedTabs',
+              value: JSON.stringify(filtered),
+            })
+          }
+        } catch {
+          // keep existing value if malformed
+        }
       }
     })
   }

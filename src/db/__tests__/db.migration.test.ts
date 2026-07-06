@@ -56,33 +56,68 @@ describe('db migration helpers', () => {
     expect(entry?.createdAt).toBe(before)
   })
 
-  it('migrates from v7 to v8, setting flashcardsEnabled to true', async () => {
-    const tempDbName = 'StudyDashboardDB_migration_test'
+  it('opens database at version 12 without flashcards data', async () => {
+    expect(db.verno).toBeGreaterThanOrEqual(12)
+    const enabled = await db.settings.get('flashcardsEnabled')
+    expect(enabled).toBeUndefined()
+    // fake-indexeddb may retain an empty orphan store; app schema v12 no longer uses it
+    if (db.tables.some(t => t.name === 'flashcards')) {
+      expect(await db.table('flashcards').count()).toBe(0)
+    }
+  })
+
+  it('removes flashcardsEnabled and sanitizes lockoutAllowedTabs on v12', async () => {
+    const tempDbName = 'StudyDashboardDB_v12_migration_test'
     await Dexie.delete(tempDbName)
     const dbOld = new Dexie(tempDbName)
-    dbOld.version(7).stores({
+    dbOld.version(11).stores({
       settings: '&key, value',
+      flashcards: '++id, question, answer',
     })
     await dbOld.open()
-    await dbOld.table('settings').put({ key: 'soundEnabled', value: true })
+    await dbOld.table('settings').bulkPut([
+      { key: 'flashcardsEnabled', value: true },
+      { key: 'lockoutAllowedTabs', value: '["cards","journal"]' },
+    ])
+    await dbOld.table('flashcards').add({
+      question: 'Q',
+      answer: 'A',
+      createdAt: Date.now(),
+      repetitionCount: 0,
+      easinessFactor: 2.5,
+      intervalDays: 0,
+    })
     dbOld.close()
 
     const dbNew = new Dexie(tempDbName)
-    dbNew.version(7).stores({
+    dbNew.version(11).stores({
       settings: '&key, value',
+      flashcards: '++id, question, answer',
     })
-    dbNew.version(8).stores({
+    dbNew.version(12).stores({
       settings: '&key, value',
     }).upgrade(async tx => {
-      const settingsTable = tx.table('settings')
-      const flashcardsEnabledSetting = await settingsTable.get('flashcardsEnabled')
-      if (flashcardsEnabledSetting === undefined) {
-        await settingsTable.put({ key: 'flashcardsEnabled', value: true })
+      try {
+        await tx.table('flashcards').clear()
+      } catch { /* noop */ }
+      await tx.table('settings').delete('flashcardsEnabled')
+      const lockoutRow = await tx.table('settings').get('lockoutAllowedTabs')
+      if (lockoutRow && typeof lockoutRow.value === 'string') {
+        const parsed = JSON.parse(lockoutRow.value) as unknown
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter((t: unknown) => t !== 'cards')
+          await tx.table('settings').put({
+            key: 'lockoutAllowedTabs',
+            value: JSON.stringify(filtered),
+          })
+        }
       }
     })
     await dbNew.open()
-    const row = await dbNew.table('settings').get('flashcardsEnabled')
-    expect(row).toEqual({ key: 'flashcardsEnabled', value: true })
+    expect(dbNew.verno).toBe(12)
+    expect(await dbNew.table('settings').get('flashcardsEnabled')).toBeUndefined()
+    const lockout = await dbNew.table('settings').get('lockoutAllowedTabs')
+    expect(lockout?.value).toBe('["journal"]')
     dbNew.close()
     await Dexie.delete(tempDbName)
   })
