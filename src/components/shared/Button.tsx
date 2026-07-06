@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { memo, type ButtonHTMLAttributes, type ReactNode } from 'react'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type ButtonSize = 'sm' | 'md'
@@ -21,7 +21,7 @@ const sizeClass: Record<ButtonSize, string> = {
   md: 'px-4 py-2 text-caption font-semibold',
 }
 
-export function Button({
+export const Button = memo(function Button({
   variant = 'secondary',
   size = 'md',
   className = '',
@@ -38,4 +38,4 @@ export function Button({
       {children}
     </button>
   )
-}
+})
