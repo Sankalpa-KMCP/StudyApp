@@ -949,13 +949,13 @@ button.brand-dot {
   gap: 9px;
   padding: 0 16px;
   border-radius: var(--radius-sm);
-  color: #fff;
-  background: #111;
+  color: var(--on-accent);
+  background: var(--accent);
 }
 
 .secondary-command {
   color: var(--ink);
-  background: #ededeb;
+  background: var(--surface-raised);
 }
 
 .primary-command:hover {
@@ -1159,7 +1159,7 @@ button.brand-dot {
 }
 
 .brand-dot {
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .eyebrow {
@@ -1253,11 +1253,11 @@ button.brand-dot {
   display: grid;
   place-items: center;
   border-radius: 16px;
-  color: #fff;
+  color: var(--on-accent);
   background:
-    radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.28), transparent 34%),
-    linear-gradient(145deg, #111827, #334155);
-  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.18);
+    radial-gradient(circle at 28% 20%, color-mix(in srgb, var(--surface-glass) 28%, transparent), transparent 34%),
+    linear-gradient(145deg, var(--panel-strong), var(--bg));
+  box-shadow: 0 18px 34px color-mix(in srgb, var(--shadow) 20%, transparent);
 }
 
 .task small {
@@ -1314,7 +1314,7 @@ button.brand-dot {
 }
 
 .swatch.is-active {
-  border-color: var(--on-accent);
+  border-color: var(--swatch-active-border, var(--on-accent));
   outline: 2px solid var(--accent);
 }
 
@@ -1393,10 +1393,8 @@ button.brand-dot {
 }
 
 .calendar-day.has-events {
-  border-color: rgba(37, 99, 235, 0.35);
-  background:
-    linear-gradient(145deg, rgba(219, 234, 254, 0.8), rgba(255, 255, 255, 0.9)),
-    #fff;
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--surface-raised) 90%, var(--accent-soft));
 }
 
 .review-card,
@@ -1453,7 +1451,7 @@ button.brand-dot {
 }
 
 .subject-icon {
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .subject-card .row-actions {
@@ -1778,7 +1776,7 @@ textarea:focus-visible {
   place-items: center;
   flex: 0 0 auto;
   border-radius: 14px;
-  color: #fff;
+  color: var(--on-accent);
   background: linear-gradient(145deg, var(--accent-strong), var(--accent));
   box-shadow: 0 14px 28px color-mix(in srgb, var(--accent) 24%, transparent);
 }
@@ -2002,9 +2000,9 @@ textarea:focus-visible {
 }
 
 .flame-disc {
-  color: #fff;
+  color: var(--on-accent);
   background:
-    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.32), transparent 35%),
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--surface-raised) 32%, transparent), transparent 35%),
     linear-gradient(145deg, var(--accent-warm), var(--gold));
 }
 
