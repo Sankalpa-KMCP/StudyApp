@@ -405,8 +405,7 @@ button.brand-dot {
 }
 
 .card-heading > span,
-.section-heading button,
-.select-button {
+.section-heading button {
   color: #3f3f3f;
   background: transparent;
 }
@@ -451,8 +450,7 @@ button.brand-dot {
   background: #c8c8c6;
 }
 
-.text-command,
-.wide-command {
+.text-command {
   display: flex;
   align-items: center;
   gap: 13px;
@@ -581,26 +579,8 @@ button.brand-dot {
   gap: 15px;
 }
 
-.wide-command {
-  width: 100%;
-  min-height: 52px;
-  justify-content: space-between;
-  padding: 0 16px;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #f3f3f2, #ededeb);
-}
-
-.wide-command span {
-  flex: 1;
-  color: var(--ink);
-  text-align: left;
-}
-
 .text-command:hover,
-.wide-command:hover,
-.section-heading button:hover,
-.select-button:hover,
-.subject-edit-button:hover {
+.section-heading button:hover {
   color: var(--ink);
   filter: brightness(0.97);
 }
@@ -625,13 +605,6 @@ button.brand-dot {
   padding: 24px;
   display: grid;
   align-content: start;
-}
-
-.subject-edit-button {
-  width: fit-content;
-  padding: 0;
-  border-radius: 50%;
-  background: transparent;
 }
 
 .subject-icon,
@@ -741,12 +714,6 @@ button.brand-dot {
   color: var(--ink);
 }
 
-.select-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .line-chart {
   position: relative;
   min-height: 174px;
@@ -754,17 +721,6 @@ button.brand-dot {
   padding: 4px 0 0 42px;
   background:
     linear-gradient(var(--line) 1px, transparent 1px) 42px 12px / calc(100% - 42px) 40px repeat-y;
-}
-
-.chart-labels {
-  position: absolute;
-  left: 0;
-  top: 7px;
-  height: 126px;
-  display: grid;
-  align-content: space-between;
-  color: #777;
-  font-size: 0.82rem;
 }
 
 .line-chart svg {
@@ -1141,12 +1097,6 @@ button.brand-dot {
   color: var(--muted);
 }
 
-.flip-card {
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(235, 235, 232, 0.75)),
-    var(--panel);
-}
-
 .metric-grid {
   grid-template-columns: repeat(3, minmax(160px, 1fr));
 }
@@ -1176,14 +1126,6 @@ button.brand-dot {
 
 .danger-card {
   border-color: rgba(120, 40, 40, 0.22);
-}
-
-.danger-link {
-  width: fit-content;
-  margin-top: 12px;
-  padding: 0;
-  color: #7b2929;
-  background: transparent;
 }
 
 .editable-subject {
@@ -1867,8 +1809,7 @@ textarea:focus-visible {
 }
 
 .text-command,
-.section-heading button,
-.select-button {
+.section-heading button {
   min-height: 34px;
   padding: 0 10px;
   border-radius: 999px;
@@ -1877,8 +1818,7 @@ textarea:focus-visible {
 }
 
 .text-command:hover,
-.section-heading button:hover,
-.select-button:hover {
+.section-heading button:hover {
   background: var(--accent-soft);
 }
 
