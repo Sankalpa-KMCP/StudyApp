@@ -104,8 +104,22 @@ export function TasksView({
             </article>
           ))}
         </div>
+      ) : filter !== 'all' ? (
+        <EmptyState
+          icon={Check}
+          title="No matching tasks"
+          body="No tasks match the current filter."
+          actionLabel="Clear filter"
+          onAction={() => onFilterChange('all')}
+        />
       ) : (
-        <EmptyState icon={Check} title="No matching tasks" body="Add a task or adjust the filter to shape today's queue." actionLabel="Create first task" onAction={() => openEditor()} />
+        <EmptyState
+          icon={Check}
+          title="No matching tasks"
+          body="Add a task to shape today's queue."
+          actionLabel="Create first task"
+          onAction={() => openEditor()}
+        />
       )}
     </section>
   )
