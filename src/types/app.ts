@@ -46,7 +46,7 @@ export interface DayData {
   intensity: 0 | 1 | 2 | 3
 }
 
-export type ActiveTab = 'focus' | 'analytics' | 'journal' | 'cards' | 'settings'
+export type ActiveTab = 'focus' | 'analytics' | 'journal' | 'settings'
 
 export interface ToastAction {
   label: string

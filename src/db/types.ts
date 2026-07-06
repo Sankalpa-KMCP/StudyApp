@@ -114,30 +114,12 @@ export type SettingsKey =
   | 'desktopNativeNotificationsEnabled'
   | 'desktopBackupFolderPath'
   | 'historyRetentionDays'
-  | 'flashcardsEnabled'
 
 export type SettingsValue = number | boolean | string | null
 
 export interface SettingsRow {
   key: SettingsKey
   value: SettingsValue
-}
-
-export interface FlashcardItem {
-  id?: number
-  question: string
-  answer: string
-  categoryId?: number
-  createdAt: number
-  repetitionCount: number
-  easinessFactor: number
-  intervalDays: number
-  nextReviewDate?: string
-  latestGrade?: number
-  imageDataUrl?: string
-  stability?: number
-  difficulty?: number
-  elapsedDays?: number
 }
 
 export interface QuickNoteItem {
