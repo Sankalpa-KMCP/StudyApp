@@ -1,0 +1,54 @@
+/* Shared nav accent tokens — used by .nav-tab, .sidebar-rail-btn, .mobile-nav-btn */
+
+.nav-tab[data-active="true"][data-accent="focus"],
+.sidebar-rail-btn[data-active="true"][data-accent="focus"],
+.mobile-nav-btn[data-active="true"][data-accent="focus"] {
+  --nav-accent: var(--color-accent-blue);
+}
+
+.nav-tab[data-active="true"][data-accent="cards"],
+.sidebar-rail-btn[data-active="true"][data-accent="cards"],
+.mobile-nav-btn[data-active="true"][data-accent="cards"] {
+  --nav-accent: var(--color-accent-purple);
+}
+
+.nav-tab[data-active="true"][data-accent="analytics"],
+.sidebar-rail-btn[data-active="true"][data-accent="analytics"],
+.mobile-nav-btn[data-active="true"][data-accent="analytics"] {
+  --nav-accent: var(--color-accent-green);
+}
+
+.nav-tab[data-active="true"][data-accent="journal"],
+.sidebar-rail-btn[data-active="true"][data-accent="journal"],
+.mobile-nav-btn[data-active="true"][data-accent="journal"] {
+  --nav-accent: var(--color-accent-amber);
+}
+
+.nav-tab[data-active="true"][data-accent="settings"],
+.sidebar-rail-btn[data-active="true"][data-accent="settings"],
+.mobile-nav-btn[data-active="true"][data-accent="settings"] {
+  --nav-accent: var(--color-text-primary);
+}
+
+.nav-tab[data-active="true"][data-accent] {
+  color: var(--color-nav-active-text, var(--color-text-primary));
+  background-color: color-mix(in srgb, var(--nav-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--nav-accent) 20%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--nav-accent) 10%, transparent);
+  font-weight: 600;
+}
+
+.sidebar-rail-btn[data-active="true"][data-accent] {
+  color: var(--color-nav-active-text, var(--color-text-primary));
+  background-color: color-mix(in srgb, var(--nav-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--nav-accent) 25%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--nav-accent) 15%, transparent);
+  font-weight: 700;
+}
+
+.mobile-nav-btn[data-active="true"][data-accent] {
+  color: var(--color-nav-active-text, var(--color-text-primary));
+  background-color: color-mix(in srgb, var(--nav-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--nav-accent) 25%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--nav-accent) 12%, transparent);
+}

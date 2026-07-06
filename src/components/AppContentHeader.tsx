@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Brain, FileText, Flame, Lock, Search } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
 import { TAB_CHROME } from '../navigation/appNav'
@@ -23,7 +24,7 @@ interface AppContentHeaderProps {
   onOpenCommandPalette?: () => void
 }
 
-export function AppContentHeader({
+export const AppContentHeader = memo(function AppContentHeader({
   activeTab,
   isTimerActive,
   timerMode,
@@ -170,7 +171,7 @@ export function AppContentHeader({
       </header>
     </>
   )
-}
+})
 
 function formatGoalLabel(goalMinutes: number): string {
   if (goalMinutes <= 0) return '—'

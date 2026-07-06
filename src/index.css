@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./styles/tokens.css";
 @import "./styles/animations.css";
+@import "./styles/nav-accents.css";
 
 @theme {
   --color-surface: transparent;
@@ -184,46 +185,6 @@
   transform: scale(1.04);
 }
 
-.sidebar-rail-btn[data-active="true"][data-accent="focus"] {
-  background-color: color-mix(in srgb, var(--color-accent-blue) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-blue) 25%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-blue) 15%, transparent);
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  font-weight: 700;
-}
-
-.sidebar-rail-btn[data-active="true"][data-accent="cards"] {
-  background-color: color-mix(in srgb, var(--color-accent-purple) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-purple) 25%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-purple) 15%, transparent);
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  font-weight: 700;
-}
-
-.sidebar-rail-btn[data-active="true"][data-accent="analytics"] {
-  background-color: color-mix(in srgb, var(--color-accent-green) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-green) 25%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-green) 15%, transparent);
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  font-weight: 700;
-}
-
-.sidebar-rail-btn[data-active="true"][data-accent="journal"] {
-  background-color: color-mix(in srgb, var(--color-accent-amber) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-amber) 25%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-amber) 15%, transparent);
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  font-weight: 700;
-}
-
-.sidebar-rail-btn[data-active="true"][data-accent="settings"] {
-  background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-text-primary) 6%, transparent);
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  font-weight: 700;
-}
-
 @keyframes sidebar-flyout-enter {
   0% {
     opacity: 0;
@@ -267,41 +228,6 @@
   border-radius: 9999px;
   background-color: currentColor;
   opacity: 0.85;
-}
-
-.mobile-nav-btn[data-active="true"][data-accent="focus"] {
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  background-color: color-mix(in srgb, var(--color-accent-blue) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-blue) 25%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-blue) 12%, transparent);
-}
-
-.mobile-nav-btn[data-active="true"][data-accent="cards"] {
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  background-color: color-mix(in srgb, var(--color-accent-purple) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-purple) 25%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-purple) 12%, transparent);
-}
-
-.mobile-nav-btn[data-active="true"][data-accent="analytics"] {
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  background-color: color-mix(in srgb, var(--color-accent-green) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-green) 25%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-green) 12%, transparent);
-}
-
-.mobile-nav-btn[data-active="true"][data-accent="journal"] {
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  background-color: color-mix(in srgb, var(--color-accent-amber) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-amber) 25%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-amber) 12%, transparent);
-}
-
-.mobile-nav-btn[data-active="true"][data-accent="settings"] {
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-text-primary) 12%, transparent);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--color-text-primary) 5%, transparent);
 }
 
 .app-tab-panel {
@@ -703,46 +629,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: var(--color-text-primary);
   background-color: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
   transform: translateX(2px);
-}
-
-.nav-tab[data-active="true"][data-accent="focus"] {
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  background-color: color-mix(in srgb, var(--color-accent-blue) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-blue) 20%, transparent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--color-accent-blue) 10%, transparent);
-  font-weight: 600;
-}
-
-.nav-tab[data-active="true"][data-accent="cards"] {
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  background-color: color-mix(in srgb, var(--color-accent-purple) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-purple) 20%, transparent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--color-accent-purple) 10%, transparent);
-  font-weight: 600;
-}
-
-.nav-tab[data-active="true"][data-accent="analytics"] {
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  background-color: color-mix(in srgb, var(--color-accent-green) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-green) 20%, transparent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--color-accent-green) 10%, transparent);
-  font-weight: 600;
-}
-
-.nav-tab[data-active="true"][data-accent="journal"] {
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  background-color: color-mix(in srgb, var(--color-accent-amber) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-amber) 20%, transparent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--color-accent-amber) 10%, transparent);
-  font-weight: 600;
-}
-
-.nav-tab[data-active="true"][data-accent="settings"] {
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-text-primary) 5%, transparent);
-  font-weight: 600;
 }
 
 /* Custom Scrollbar for list scroll areas */
