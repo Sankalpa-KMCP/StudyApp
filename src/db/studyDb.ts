@@ -106,10 +106,24 @@ export async function importStudyData(payload: unknown) {
   })
 }
 
-export async function clearStudyData() {
+export async function clearAllStudyData() {
   await studyDb.transaction('rw', studyTables, async () => {
-    await Promise.all(studyTables.map((table) => table.clear()))
-    await studyDb.settings.put({ key: LEGACY_MIGRATION_KEY, value: true })
+    await Promise.all([
+      studyDb.tasks.clear(),
+      studyDb.subjects.clear(),
+      studyDb.notes.clear(),
+      studyDb.events.clear(),
+      studyDb.flashcards.clear(),
+      studyDb.studySessions.clear(),
+      studyDb.goals.clear(),
+    ])
+
+    // Clean up study-related settings but preserve theme and migration keys
+    await studyDb.settings.delete('quickNotes')
+
+    // Note: We don't clear dailyGoalMinutes because it is a preference/setting,
+    // but if it's considered data, we can reset it. The prompt says preserve non-data UI preferences.
+    // 'theme' is explicitly preserved by not deleting it.
   })
 }
 
