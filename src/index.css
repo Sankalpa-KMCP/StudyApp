@@ -2,6 +2,7 @@
 @import "./styles/tokens.css";
 @import "./styles/animations.css";
 @import "./styles/nav-accents.css";
+@import "./styles/surfaces.css";
 
 @theme {
   --color-surface: transparent;
@@ -261,158 +262,6 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
-}
-
-/* Slide in transitions */
-@keyframes slide-in-up {
-  0% {
-    transform: translateY(12px);
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-.animate-slide-in-up {
-  animation: slide-in-up var(--motion-slow) cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes fade-in {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
-}
-.animate-fade-in {
-  animation: fade-in var(--motion-normal) ease-out forwards;
-}
-
-@keyframes slide-down {
-  0% {
-    transform: translate(-50%, -12px);
-    opacity: 0;
-  }
-  100% {
-    transform: translate(-50%, 0);
-    opacity: 1;
-  }
-}
-.animate-slide-down {
-  animation: slide-down 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* iOS glassmorphism cards */
-.dynamic-card,
-.dynamic-card-static,
-.dynamic-card-interactive {
-  position: relative;
-  background-color: color-mix(in srgb, var(--color-surface-card) calc(var(--card-opacity, 0.7) * 100%), transparent);
-  border: 1px solid var(--color-border-card);
-  border-radius: var(--radius-card);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.25), 
-    inset 0 1px 0px rgba(255, 255, 255, 0.08), 
-    inset 0 -1px 0px rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(var(--backdrop-saturate, 180%));
-  -webkit-backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(var(--backdrop-saturate, 180%));
-  transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
-  transform: none;
-}
-
-.dynamic-card-interactive:hover {
-  background-color: color-mix(in srgb, var(--color-surface-card-hover) calc(var(--card-opacity, 0.7) * 100%), transparent);
-  border-color: var(--color-border-card);
-  box-shadow: var(--shadow-elevated);
-  transform: translateY(-2px) scale(1.005);
-}
-
-@media (hover: none) {
-  .dynamic-card-interactive:hover {
-    transform: none;
-  }
-}
-
-/* Spotlight Hover Glow Effects */
-.dynamic-card-interactive::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px; /* border thickness */
-  background: radial-gradient(
-    250px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
-    color-mix(in srgb, var(--color-accent-blue, #38bdf8) 40%, rgba(255, 255, 255, 0.2)),
-    transparent 80%
-  );
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--motion-normal) ease;
-  z-index: 2;
-}
-
-.dynamic-card-interactive::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(
-    350px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
-    color-mix(in srgb, var(--color-accent-blue, #38bdf8) 8%, rgba(255, 255, 255, 0.04)),
-    transparent 80%
-  );
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--motion-normal) ease;
-  z-index: 1;
-}
-
-.dynamic-card-interactive:hover::before,
-.dynamic-card-interactive:hover::after {
-  opacity: 1;
-}
-
-
-.glass-tier-2 {
-  background-color: color-mix(in srgb, var(--color-surface-card) 40%, transparent);
-  border: 1px solid var(--color-border-card);
-  border-radius: 20px;
-}
-
-.glass-tier-3 {
-  background-color: color-mix(in srgb, var(--color-surface-card) 55%, transparent);
-  border: 1px solid var(--color-border-card);
-}
-
-/* Glass depth tiers */
-.glass-hero {
-  background-color: color-mix(in srgb, var(--color-surface-card) calc(var(--card-opacity, 0.7) * 100% + 8%), transparent);
-  border: 1px solid color-mix(in srgb, var(--color-text-primary) 12%, transparent);
-  border-radius: 9999px;
-  box-shadow:
-    0 20px 56px rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(calc(var(--backdrop-blur, 28px) + 4px)) saturate(var(--backdrop-saturate, 180%));
-  -webkit-backdrop-filter: blur(calc(var(--backdrop-blur, 28px) + 4px)) saturate(var(--backdrop-saturate, 180%));
-}
-
-.glass-quiet.dynamic-card,
-.glass-quiet.dynamic-card-static,
-.glass-quiet.dynamic-card-interactive {
-  background-color: color-mix(in srgb, var(--color-surface-card) calc(var(--card-opacity, 0.7) * 52%), transparent);
-  border-color: var(--color-border-subtle);
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.glass-quiet.dynamic-card-interactive:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
 }
 
 .header-stat-chip {
@@ -826,37 +675,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: rgba(0, 0, 0, 0.45);
 }
 
-[data-theme-mode="light"] .dynamic-card,
-[data-theme-mode="light"] .dynamic-card-static,
-[data-theme-mode="light"] .dynamic-card-interactive {
-  background: color-mix(in srgb, var(--color-surface-card) 92%, white);
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0px rgba(255, 255, 255, 0.6),
-    inset 0 -1px 0px rgba(0, 0, 0, 0.04);
-}
-
-[data-theme-mode="light"] .dynamic-card:hover {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-}
-
 [data-theme-mode="light"] .glass-panel {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.75),
     0 4px 24px rgba(0, 0, 0, 0.06);
-}
-
-[data-theme-mode="light"] .glass-hero {
-  border-color: rgba(0, 0, 0, 0.1);
-  box-shadow:
-    0 16px 40px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.85);
-}
-
-[data-theme-mode="light"] .glass-quiet.dynamic-card,
-[data-theme-mode="light"] .glass-quiet.dynamic-card-static,
-[data-theme-mode="light"] .glass-quiet.dynamic-card-interactive {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme-mode="light"] .app-grain::before {
@@ -949,6 +771,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 [data-reduce-effects="true"] .dynamic-card-interactive::before,
 [data-reduce-effects="true"] .dynamic-card-interactive::after {
   display: none;
+}
+
+[data-reduce-effects="true"] .dynamic-card-interactive:hover,
+[data-reduce-effects="true"] .glass-quiet.dynamic-card-interactive:hover {
+  transform: none;
 }
 
 [data-reduce-effects="true"] .sidebar-rail-btn:hover {

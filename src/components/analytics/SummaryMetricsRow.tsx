@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import { Clock, Coffee, Calendar, Flame } from 'lucide-react'
 import type { DailyLog } from '../../db/types'
 import { MetricCard } from '../shared/MetricCard'
@@ -10,21 +11,27 @@ interface SummaryMetricsRowProps {
   currentStreak: number
 }
 
-export function SummaryMetricsRow({
+export const SummaryMetricsRow = memo(function SummaryMetricsRow({
   monthLogs,
   totalMonthHours,
   totalWeeklyBreakHours,
   totalDaysInMonth,
   currentStreak,
 }: SummaryMetricsRowProps) {
-  const activeStudyDays = new Set(monthLogs.filter(l => l.studyMinutes > 0).map(l => l.dateString)).size
+  const activeStudyDays = useMemo(
+    () => new Set(monthLogs.filter(l => l.studyMinutes > 0).map(l => l.dateString)).size,
+    [monthLogs],
+  )
 
-  const items = [
-    { label: 'Monthly Study Time', value: `${totalMonthHours.toFixed(1)}h`, icon: Clock, accent: 'blue' as const },
-    { label: 'Weekly Break Cooldown', value: `${totalWeeklyBreakHours}h`, icon: Coffee, accent: 'purple' as const },
-    { label: 'Active Study Days', value: `${activeStudyDays} / ${totalDaysInMonth}`, icon: Calendar, accent: 'green' as const },
-    { label: 'Streak Status', value: `${currentStreak} Days`, icon: Flame, accent: 'amber' as const },
-  ]
+  const items = useMemo(
+    () => [
+      { label: 'Monthly Study Time', value: `${totalMonthHours.toFixed(1)}h`, icon: Clock, accent: 'blue' as const },
+      { label: 'Weekly Break Cooldown', value: `${totalWeeklyBreakHours}h`, icon: Coffee, accent: 'purple' as const },
+      { label: 'Active Study Days', value: `${activeStudyDays} / ${totalDaysInMonth}`, icon: Calendar, accent: 'green' as const },
+      { label: 'Streak Status', value: `${currentStreak} Days`, icon: Flame, accent: 'amber' as const },
+    ],
+    [activeStudyDays, totalMonthHours, totalWeeklyBreakHours, totalDaysInMonth, currentStreak],
+  )
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -33,4 +40,4 @@ export function SummaryMetricsRow({
       ))}
     </div>
   )
-}
+})

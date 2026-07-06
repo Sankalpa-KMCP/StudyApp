@@ -1,4 +1,4 @@
-import type { FC } from 'react'
+import { memo, type FC } from 'react'
 import { PanelCard } from './PanelCard'
 
 type MetricAccent = 'blue' | 'green' | 'purple' | 'amber'
@@ -18,7 +18,7 @@ interface MetricCardProps {
   accent?: MetricAccent
 }
 
-export function MetricCard({ label, value, icon: Icon, valueClassName = '', accent = 'blue' }: MetricCardProps) {
+export const MetricCard = memo(function MetricCard({ label, value, icon: Icon, valueClassName = '', accent = 'blue' }: MetricCardProps) {
   const accentClass = ACCENT_WELL[accent]
   return (
     <PanelCard className="flex items-center justify-between">
@@ -33,4 +33,4 @@ export function MetricCard({ label, value, icon: Icon, valueClassName = '', acce
       )}
     </PanelCard>
   )
-}
+})
