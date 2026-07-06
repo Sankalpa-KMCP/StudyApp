@@ -5,7 +5,7 @@ import { createId, nowIso, studyDb } from '../db/studyDb'
 import type { StudyNote, StudySubject } from '../db/types'
 import { formatDate, parseTags } from '../appUtils'
 
-export function NotesView({ notes, subjects, subjectMap }: { notes: StudyNote[]; subjects: StudySubject[]; subjectMap: Map<string, StudySubject> }) {
+export function NotesView({ notes, subjects, subjectMap, search = '', onClearSearch = () => {} }: { notes: StudyNote[]; subjects: StudySubject[]; subjectMap: Map<string, StudySubject>; search?: string; onClearSearch?: () => void }) {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [draft, setDraft] = useState({ title: '', body: '', subjectId: '', tags: '' })
 
@@ -65,8 +65,8 @@ export function NotesView({ notes, subjects, subjectMap }: { notes: StudyNote[];
             </article>
           ))}
         </div>
-      ) : (document.querySelector('.search-field input') as HTMLInputElement)?.value.trim().length > 0 ? (
-        <EmptyState icon={FileText} title="No matches found" body="No notes match that search." actionLabel="Clear search" onAction={() => document.querySelector<HTMLButtonElement>('.clear-button')?.click()} />
+      ) : search.trim().length > 0 ? (
+        <EmptyState icon={FileText} title="No matches found" body="No notes match that search." actionLabel="Clear search" onAction={onClearSearch} />
       ) : (
         <EmptyState icon={FileText} title="No notes yet" body="Capture summaries, formulas, and review prompts in your local database." actionLabel="Create first note" onAction={() => openEditor()} />
       )}

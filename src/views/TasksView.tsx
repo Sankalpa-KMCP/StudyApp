@@ -9,12 +9,16 @@ export function TasksView({
   tasks,
   subjects,
   filter,
+  search = '',
+  onClearSearch = () => {},
   openEditorRequest,
   onFilterChange,
 }: {
   tasks: StudyTask[]
   subjects: StudySubject[]
   filter: 'all' | 'open' | 'done'
+  search: string
+  onClearSearch: () => void
   openEditorRequest: number
   onFilterChange: (filter: 'all' | 'open' | 'done') => void
 }) {
@@ -112,13 +116,13 @@ export function TasksView({
           actionLabel="Clear filter"
           onAction={() => onFilterChange('all')}
         />
-      ) : (document.querySelector('.search-field input') as HTMLInputElement)?.value.trim().length > 0 ? (
+      ) : search.trim().length > 0 ? (
         <EmptyState
           icon={Check}
           title="No matches found"
           body="No tasks match that search."
           actionLabel="Clear search"
-          onAction={() => document.querySelector<HTMLButtonElement>('.clear-button')?.click()}
+          onAction={onClearSearch}
         />
       ) : (
         <EmptyState

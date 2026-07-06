@@ -37,6 +37,7 @@ export function HomeView(props: {
   onStartSession: () => void
   onStopSession: () => Promise<void>
   onNavigate: (view: View) => void
+  onClearSearch?: () => void
 }) {
   const openTasks = props.data.tasks.filter((task) => task.status === 'open').slice(0, 5)
   const recentNotes = props.data.notes.slice(0, 3)
@@ -47,7 +48,7 @@ export function HomeView(props: {
   return (
     <>
       {props.search.trim() ? (
-        <HomeSearchResults query={props.search} results={props.searchResults} onNavigate={props.onNavigate} />
+        <HomeSearchResults query={props.search} results={props.searchResults} onNavigate={props.onNavigate} onClearSearch={props.onClearSearch || (() => {})} />
       ) : null}
       <div className="insight-grid" aria-label="Study pulse">
         <InsightTile icon={Target} label="Today target" value={`${Math.round(percent(props.todayFocusMinutes, props.dailyGoalMinutes))}%`} detail={`${formatMinutes(props.todayFocusMinutes)} of ${formatMinutes(props.dailyGoalMinutes)}`} />
@@ -97,7 +98,7 @@ function InsightTile({ icon: Icon, label, value, detail }: { icon: typeof Target
   )
 }
 
-function HomeSearchResults({ query, results, onNavigate }: { query: string; results: SearchResult[]; onNavigate: (view: View) => void }) {
+function HomeSearchResults({ query, results, onNavigate, onClearSearch }: { query: string; results: SearchResult[]; onNavigate: (view: View) => void; onClearSearch: () => void }) {
   return (
     <section className="card search-results-card" aria-labelledby="home-search-title">
       <div className="card-heading">
@@ -128,7 +129,7 @@ function HomeSearchResults({ query, results, onNavigate }: { query: string; resu
           title="No matches found"
           body="No tasks, notes, subjects, events, or flashcards match that search."
           actionLabel="Clear search"
-          onAction={() => document.querySelector<HTMLButtonElement>('.clear-button')?.click()}
+          onAction={onClearSearch}
         />
       )}
     </section>
