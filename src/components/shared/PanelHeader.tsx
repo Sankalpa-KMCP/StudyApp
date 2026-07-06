@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { memo, type ReactNode } from 'react'
 
 interface PanelHeaderProps {
   title: string
@@ -8,7 +8,7 @@ interface PanelHeaderProps {
   id?: string
 }
 
-export function PanelHeader({ title, action, bordered = true, className = '', id }: PanelHeaderProps) {
+export const PanelHeader = memo(function PanelHeader({ title, action, bordered = true, className = '', id }: PanelHeaderProps) {
   return (
     <div
       className={`flex items-center justify-between select-none ${
@@ -19,4 +19,4 @@ export function PanelHeader({ title, action, bordered = true, className = '', id
       {action}
     </div>
   )
-}
+})

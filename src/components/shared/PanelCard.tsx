@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from 'react'
+import { memo, type HTMLAttributes, type ReactNode } from 'react'
 import { Card } from './Card'
 
 interface PanelCardProps extends HTMLAttributes<HTMLDivElement> {
@@ -6,10 +6,10 @@ interface PanelCardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
 }
 
-export function PanelCard({ children, className = '', interactive = false, ...props }: PanelCardProps) {
+export const PanelCard = memo(function PanelCard({ children, className = '', interactive = false, ...props }: PanelCardProps) {
   return (
     <Card variant="elevated" padding="md" interactive={interactive} className={className} {...props}>
       {children}
     </Card>
   )
-}
+})

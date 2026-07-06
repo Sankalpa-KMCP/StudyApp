@@ -1,4 +1,4 @@
-import { useRef, type HTMLAttributes, type ReactNode } from 'react'
+import { memo, useCallback, useRef, type HTMLAttributes, type ReactNode } from 'react'
 
 type CardVariant = 'default' | 'elevated' | 'inset'
 
@@ -23,7 +23,7 @@ function cardShellClass(variant: CardVariant, interactive: boolean): string {
   return `${hoverClass}${shadow}`
 }
 
-export function Card({
+export const Card = memo(function Card({
   variant = 'default',
   padding = 'md',
   interactive = false,
@@ -34,19 +34,15 @@ export function Card({
 }: CardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const card = cardRef.current
-    if (card && interactive) {
+    if (card && interactive && !card.closest('[data-reduce-effects="true"]')) {
       const rect = card.getBoundingClientRect()
-      const x = e.clientX - rect.left
-      const y = e.clientY - rect.top
-      card.style.setProperty('--mouse-x', `${x}px`)
-      card.style.setProperty('--mouse-y', `${y}px`)
+      card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
+      card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
     }
-    if (onMouseMove) {
-      onMouseMove(e)
-    }
-  }
+    onMouseMove?.(e)
+  }, [interactive, onMouseMove])
 
   return (
     <div
@@ -58,4 +54,4 @@ export function Card({
       {children}
     </div>
   )
-}
+})
