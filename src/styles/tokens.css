@@ -62,3 +62,72 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
 }
+
+.text-gradient-metallic {
+  color: var(--color-nav-active-text, var(--color-text-primary));
+}
+
+.text-gradient-accent {
+  background: linear-gradient(
+    135deg,
+    var(--color-text-primary) 0%,
+    color-mix(in srgb, var(--color-accent-blue) 35%, var(--color-text-primary)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gradient-amber {
+  color: var(--color-accent-amber);
+}
+
+.text-gradient-green {
+  color: var(--color-accent-green);
+}
+
+.text-on-accent {
+  color: var(--color-on-accent);
+}
+
+.surface-overlay {
+  background-color: var(--surface-overlay, rgba(var(--surface-card-rgb), 0.95));
+  backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--backdrop-blur, 28px)) saturate(180%);
+}
+
+.settings-label {
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+.settings-muted {
+  color: var(--color-text-muted);
+  font-size: var(--text-micro);
+}
+
+.settings-input,
+.settings-select {
+  width: 100%;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border-card);
+  background-color: color-mix(in srgb, var(--color-surface-card) 50%, transparent);
+  color: var(--color-text-primary);
+  padding: 0.625rem 1rem;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.settings-input:hover,
+.settings-select:hover {
+  background-color: color-mix(in srgb, var(--color-surface-card) 70%, transparent);
+}
+
+.settings-input:focus-visible,
+.settings-select:focus-visible {
+  border-color: color-mix(in srgb, var(--color-accent-blue) 40%, transparent);
+}

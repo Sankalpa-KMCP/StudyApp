@@ -101,11 +101,10 @@ export function TaskList({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const card = e.currentTarget
+    if (card.closest('[data-reduce-effects="true"]')) return
     const rect = card.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    card.style.setProperty('--mouse-x', `${x}px`)
-    card.style.setProperty('--mouse-y', `${y}px`)
+    card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
+    card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
   }
 
   const renderTaskRow = (task: TaskItem, { completed = false }: { completed?: boolean } = {}) => {

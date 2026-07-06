@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { memo, type ReactNode } from 'react'
 
 interface EmptyStateProps {
   icon?: ReactNode
@@ -8,7 +8,7 @@ interface EmptyStateProps {
   compact?: boolean
 }
 
-export function EmptyState({ icon, title, description, action, compact = false }: EmptyStateProps) {
+export const EmptyState = memo(function EmptyState({ icon, title, description, action, compact = false }: EmptyStateProps) {
   return (
     <div
       role="status"
@@ -22,4 +22,4 @@ export function EmptyState({ icon, title, description, action, compact = false }
       {action && <div className="mt-4">{action}</div>}
     </div>
   )
-}
+})

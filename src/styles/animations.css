@@ -58,3 +58,14 @@
 .animate-slide-down {
   animation: slide-down 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+@keyframes timer-cta-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--timer-cta-color, var(--color-accent-blue)) 35%, transparent); }
+  50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--timer-cta-color, var(--color-accent-blue)) 0%, transparent); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .timer-cta-idle {
+    animation: timer-cta-pulse 2.5s ease-in-out infinite;
+  }
+}

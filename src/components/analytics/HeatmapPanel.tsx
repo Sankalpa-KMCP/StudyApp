@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { hexToRgb } from '../../lib/study/studyDashboard'
 import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
@@ -16,7 +16,7 @@ interface HeatmapPanelProps {
   suppressEmptyState?: boolean
 }
 
-export function HeatmapPanel({ heatmapData, accentBlue, className = '', suppressEmptyState = false }: HeatmapPanelProps) {
+export const HeatmapPanel = memo(function HeatmapPanel({ heatmapData, accentBlue, className = '', suppressEmptyState = false }: HeatmapPanelProps) {
   const rgbStr = useMemo(() => {
     const rgb = hexToRgb(accentBlue) || { r: 59, g: 130, b: 246 }
     return `${rgb.r}, ${rgb.g}, ${rgb.b}`
@@ -90,4 +90,4 @@ export function HeatmapPanel({ heatmapData, accentBlue, className = '', suppress
       )}
     </PanelCard>
   )
-}
+})
