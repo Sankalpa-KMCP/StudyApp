@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react'
+import { memo, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from 'react'
 
 export type ChipAccent = 'blue' | 'amber' | 'green' | 'purple' | 'neutral' | 'red'
 
@@ -19,7 +19,7 @@ interface SelectionChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md'
 }
 
-export function SelectionChip({
+export const SelectionChip = memo(function SelectionChip({
   selected,
   accent = 'blue',
   accentColor,
@@ -58,4 +58,4 @@ export function SelectionChip({
       {children}
     </button>
   )
-}
+})
