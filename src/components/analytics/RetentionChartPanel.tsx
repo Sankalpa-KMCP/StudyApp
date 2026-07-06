@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { memo, type CSSProperties } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
@@ -12,7 +12,7 @@ interface RetentionChartPanelProps {
   suppressEmptyState?: boolean
 }
 
-export function RetentionChartPanel({ retentionData, tooltipStyle, className = '', suppressEmptyState = false }: RetentionChartPanelProps) {
+export const RetentionChartPanel = memo(function RetentionChartPanel({ retentionData, tooltipStyle, className = '', suppressEmptyState = false }: RetentionChartPanelProps) {
   const hasRetentionData = retentionData.length > 0
   const latestGrade = hasRetentionData ? retentionData[retentionData.length - 1]?.avgGrade : 0
 
@@ -51,4 +51,4 @@ export function RetentionChartPanel({ retentionData, tooltipStyle, className = '
       )}
     </PanelCard>
   )
-}
+})

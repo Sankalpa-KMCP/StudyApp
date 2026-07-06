@@ -1,4 +1,71 @@
-/* Shared nav accent tokens — used by .nav-tab, .sidebar-rail-btn, .mobile-nav-btn */
+/* Navigation chrome — base styles and shared accent tokens */
+
+.nav-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 14px;
+  font-size: 0.85rem;
+  font-weight: 550;
+  transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+}
+
+.nav-tab:hover {
+  color: var(--color-text-primary);
+  background-color: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  transform: translateX(2px);
+}
+
+.sidebar-rail-btn {
+  border: 1px solid transparent;
+  color: var(--color-text-secondary);
+}
+
+.sidebar-rail-btn:hover {
+  background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+  color: var(--color-nav-active-text, var(--color-text-primary));
+  transform: scale(1.04);
+}
+
+.mobile-nav-btn {
+  color: var(--color-text-muted);
+  border: 1px solid transparent;
+  position: relative;
+}
+
+.mobile-nav-btn[data-active="true"]::after {
+  content: '';
+  position: absolute;
+  bottom: 0.15rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.125rem;
+  height: 0.1875rem;
+  border-radius: 9999px;
+  background-color: currentColor;
+  opacity: 0.85;
+}
+
+[data-theme-mode="light"] .nav-tab {
+  color: var(--color-text-secondary);
+}
+
+[data-theme-mode="light"] .nav-tab:hover {
+  color: var(--color-text-primary);
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme-mode="light"] .nav-tab-active {
+  background-color: color-mix(in srgb, var(--color-accent-blue) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent-blue) 20%, transparent);
+}
+
+[data-theme-mode="light"] .mobile-nav-btn {
+  color: rgba(0, 0, 0, 0.45);
+}
 
 .nav-tab[data-active="true"][data-accent="focus"],
 .sidebar-rail-btn[data-active="true"][data-accent="focus"],

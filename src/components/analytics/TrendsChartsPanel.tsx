@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { memo, useMemo, type CSSProperties } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import type { ThemeProfile } from '../../types/app'
@@ -15,18 +15,21 @@ interface TrendsChartsPanelProps {
   suppressEmptyState?: boolean
 }
 
-export function TrendsChartsPanel({
+export const TrendsChartsPanel = memo(function TrendsChartsPanel({
   chartData,
   hasChartData,
   activeThemeVars,
   tooltipStyle,
   suppressEmptyState = false,
 }: TrendsChartsPanelProps) {
-  const weekHours = chartData.reduce((sum, row) => sum + row.hours, 0)
-  const topDay = chartData.reduce<{ day: string; hours: number } | null>((best, row) => {
-    if (!best || row.hours > best.hours) return { day: row.day, hours: row.hours }
-    return best
-  }, null)
+  const weekHours = useMemo(() => chartData.reduce((sum, row) => sum + row.hours, 0), [chartData])
+  const topDay = useMemo(
+    () => chartData.reduce<{ day: string; hours: number } | null>((best, row) => {
+      if (!best || row.hours > best.hours) return { day: row.day, hours: row.hours }
+      return best
+    }, null),
+    [chartData],
+  )
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -96,4 +99,4 @@ export function TrendsChartsPanel({
       </PanelCard>
     </div>
   )
-}
+})

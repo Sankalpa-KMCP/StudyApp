@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
 import { EmptyState } from '../shared/EmptyState'
@@ -13,7 +14,7 @@ interface CategoryGoalTrendPanelProps {
   }>
 }
 
-export function CategoryGoalTrendPanel({ trends }: CategoryGoalTrendPanelProps) {
+export const CategoryGoalTrendPanel = memo(function CategoryGoalTrendPanel({ trends }: CategoryGoalTrendPanelProps) {
   return (
     <PanelCard>
       <PanelHeader title="Category goal trends" bordered={false} className="mb-4" />
@@ -40,4 +41,4 @@ export function CategoryGoalTrendPanel({ trends }: CategoryGoalTrendPanelProps) 
       )}
     </PanelCard>
   )
-}
+})

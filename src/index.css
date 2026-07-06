@@ -175,17 +175,6 @@
   transform: rotate(0deg);
 }
 
-.sidebar-rail-btn {
-  border: 1px solid transparent;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.sidebar-rail-btn:hover {
-  background-color: rgba(255, 255, 255, 0.06);
-  color: var(--color-nav-active-text, var(--color-text-primary));
-  transform: scale(1.04);
-}
-
 @keyframes sidebar-flyout-enter {
   0% {
     opacity: 0;
@@ -210,25 +199,6 @@
   width: 1px;
   background: linear-gradient(180deg, rgba(0, 122, 255, 0.35), rgba(175, 82, 222, 0.15), transparent);
   pointer-events: none;
-}
-
-.mobile-nav-btn {
-  color: rgba(255, 255, 255, 0.5);
-  border: 1px solid transparent;
-  position: relative;
-}
-
-.mobile-nav-btn[data-active="true"]::after {
-  content: '';
-  position: absolute;
-  bottom: 0.15rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 1.125rem;
-  height: 0.1875rem;
-  border-radius: 9999px;
-  background-color: currentColor;
-  opacity: 0.85;
 }
 
 .app-tab-panel {
@@ -350,59 +320,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.15);
 }
 
-.nav-tab {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.9rem;
-  border-radius: 14px;
-  font-size: 0.85rem;
-  font-weight: 550;
-  transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
-  color: var(--color-text-secondary);
-  border: 1px solid transparent;
-}
-
-.nav-tab:hover {
-  color: var(--color-text-primary);
-  background-color: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
-  transform: translateX(2px);
-}
-
-/* 3D Flip Card Utilities */
-.flashcard-wrapper {
-  perspective: 1000px;
-  width: 100%;
-  height: 100%;
-}
-.flashcard-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-style: preserve-3d;
-}
-.flashcard-inner.flipped {
-  transform: rotateY(180deg);
-}
-.flashcard-front, .flashcard-back {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  border-radius: 28px;
-}
-.flashcard-back {
-  transform: rotateY(180deg);
-}
-
 /* Remove AI/Neon visuals */
 .animate-zen-breath,
 .animate-hrv-pacer,
@@ -510,24 +427,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
   }
-}
-
-[data-theme-mode="light"] .nav-tab {
-  color: var(--color-text-secondary);
-}
-
-[data-theme-mode="light"] .nav-tab:hover {
-  color: var(--color-text-primary);
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-[data-theme-mode="light"] .nav-tab-active {
-  background-color: color-mix(in srgb, var(--color-accent-blue) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-blue) 20%, transparent);
-}
-
-[data-theme-mode="light"] .mobile-nav-btn {
-  color: rgba(0, 0, 0, 0.45);
 }
 
 [data-theme-mode="light"] .app-grain::before {
