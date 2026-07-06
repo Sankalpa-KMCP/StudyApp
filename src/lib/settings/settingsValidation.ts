@@ -82,7 +82,6 @@ export function validateSetting(key: SettingsKey, value: SettingsValue): Validat
     key === 'enforce_lockout' ||
     key === 'autoArchiveAncientTasks' ||
     key === 'ambientSoundEnabled' ||
-    key === 'flashcardsEnabled' ||
     key === 'autoExportEnabled' ||
     key === 'desktopAutostartEnabled' ||
     key === 'desktopGlobalShortcutsEnabled' ||
