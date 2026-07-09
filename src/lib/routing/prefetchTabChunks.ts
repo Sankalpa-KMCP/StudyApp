@@ -4,7 +4,6 @@ const prefetched = new Set<ActiveTab>()
 
 const TAB_IMPORTS: Record<Exclude<ActiveTab, 'focus'>, () => Promise<unknown>> = {
   analytics: () => import('../../components/AnalyticsStudio'),
-  cards: () => import('../../components/FlashcardStudio'),
   journal: () => import('../../components/ActivityLedger'),
   settings: () => import('../../components/ControlDeck'),
 }
@@ -21,10 +20,9 @@ export function prefetchControlDeck() {
   prefetchTabChunk('settings')
 }
 
-export function prefetchIdleTabChunks(flashcardsEnabled = true) {
-  const tabs: Exclude<ActiveTab, 'focus'>[] = ['analytics', 'cards', 'journal', 'settings']
+export function prefetchIdleTabChunks() {
+  const tabs: Exclude<ActiveTab, 'focus'>[] = ['analytics', 'journal', 'settings']
   for (const tab of tabs) {
-    if (tab === 'cards' && !flashcardsEnabled) continue
     prefetchTabChunk(tab)
   }
 }

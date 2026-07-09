@@ -1,7 +1,7 @@
 import type { ActiveTab } from '../../types/app'
 import type { SettingsSectionId } from '../settings/settingsSections'
 
-const TAB_IDS: ActiveTab[] = ['focus', 'analytics', 'journal', 'cards', 'settings']
+const TAB_IDS: ActiveTab[] = ['focus', 'analytics', 'journal', 'settings']
 const SETTINGS_SECTIONS: SettingsSectionId[] = ['appearance', 'focus', 'study', 'data']
 
 export interface AppHashState {
@@ -14,7 +14,9 @@ export function parseAppHash(hash: string): AppHashState {
   if (!raw) return { tab: 'focus' }
 
   const [tabPart, sectionPart] = raw.split('/')
-  const tab = TAB_IDS.includes(tabPart as ActiveTab) ? (tabPart as ActiveTab) : 'focus'
+  // Legacy #cards bookmarks redirect to focus
+  const normalizedTab = tabPart === 'cards' ? 'focus' : tabPart
+  const tab = TAB_IDS.includes(normalizedTab as ActiveTab) ? (normalizedTab as ActiveTab) : 'focus'
 
   if (tab !== 'settings' || !sectionPart) {
     return { tab }
@@ -47,9 +49,7 @@ export function writeAppHash(tab: ActiveTab, settingsSection?: SettingsSectionId
   }
 }
 
-export function resolveAppHash(tab: ActiveTab, flashcardsEnabled: boolean): ActiveTab {
-  if (tab === 'cards' && !flashcardsEnabled) {
-    return 'focus'
-  }
-  return tab
+export function resolveAppHash(tab: ActiveTab): ActiveTab {
+  if (tab === 'cards' as ActiveTab) return 'focus'
+  return TAB_IDS.includes(tab) ? tab : 'focus'
 }
