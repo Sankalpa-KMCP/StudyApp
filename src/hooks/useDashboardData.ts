@@ -8,7 +8,6 @@ import {
   useCategories,
   useAllDailyLogs,
   useStudyMinuteSummaries,
-  useFlashcards,
   useQuickNotes,
 } from '../db/hooks'
 
@@ -30,9 +29,6 @@ export function useDashboardData({
   const todayLog = useTodayLog()
   const categories = useCategories()
   const studySummaries = useStudyMinuteSummaries()
-
-  const flashcardsEnabled = !settings.isLoading && settings.flashcardsEnabled
-  const flashcards = useFlashcards(flashcardsEnabled)
   const quickNotes = useQuickNotes(notesEnabled)
 
   const logsEnabled = fullLogsEnabled || activeTab === 'analytics' || activeTab === 'journal'
@@ -55,7 +51,6 @@ export function useDashboardData({
     recentHistory,
     settings,
     todayLog,
-    flashcards,
     quickNotes,
     categories,
     allLogs,

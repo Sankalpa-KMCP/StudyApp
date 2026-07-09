@@ -15,7 +15,7 @@ export function useStudyDataState(
 ) {
   const data = useDashboardData({ activeTab, notesEnabled, fullLogsEnabled })
   const {
-    tasks, history, recentHistory, settings, todayLog, flashcards, quickNotes,
+    tasks, history, recentHistory, settings, todayLog, quickNotes,
     categories, allLogs, studySummaries, isDataReady,
   } = data
 
@@ -49,7 +49,6 @@ export function useStudyDataState(
     recentHistory,
     settings,
     todayLog,
-    flashcards,
     quickNotes,
     categories,
     allLogs,
@@ -69,7 +68,6 @@ export function useStudyDataState(
     recentHistory,
     settings,
     todayLog,
-    flashcards,
     quickNotes,
     categories,
     allLogs,
