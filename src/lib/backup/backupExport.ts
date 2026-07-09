@@ -8,7 +8,7 @@ export type ExportProgressCallback = (progress: number) => void
 
 export async function collectStudyBackupPayload(onProgress?: ExportProgressCallback): Promise<StudyBackupPayload> {
   let step = 0
-  const totalSteps = 7
+  const totalSteps = 6
   const tick = () => {
     step += 1
     onProgress?.(Math.round((step / totalSteps) * 100))
@@ -18,14 +18,13 @@ export async function collectStudyBackupPayload(onProgress?: ExportProgressCallb
   for (let i = 0; i < totalSteps; i++) tick()
 
   const base: Omit<StudyBackupPayload, 'checksumSha256'> = {
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
     tasks: tables.tasks,
     history: tables.history,
     dailyLogs: tables.dailyLogs,
-    settings: tables.settings,
+    settings: tables.settings.filter(s => (s.key as string) !== 'flashcardsEnabled'),
     categories: tables.categories,
-    flashcards: tables.flashcards,
     quickNotes: tables.quickNotes,
   }
 
