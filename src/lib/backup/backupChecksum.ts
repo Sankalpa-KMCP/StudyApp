@@ -1,4 +1,4 @@
-import type { StudyBackupPayload } from '../study/studyDashboard'
+import type { ParsedStudyBackupPayload, StudyBackupPayload } from '../study/studyDashboard'
 
 export async function computeBackupChecksum(payload: Omit<StudyBackupPayload, 'checksumSha256'>): Promise<string> {
   const canonical = JSON.stringify(payload)
@@ -7,11 +7,20 @@ export async function computeBackupChecksum(payload: Omit<StudyBackupPayload, 'c
   return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-export async function verifyBackupChecksum(payload: StudyBackupPayload): Promise<boolean> {
+function canonicalizeForChecksum(payload: ParsedStudyBackupPayload): Omit<StudyBackupPayload, 'checksumSha256'> {
+  const { checksumSha256: _checksum, rawVersion: _rawVersion, _legacyFlashcards, ...rest } = payload
+  void _checksum
+  void _rawVersion
+  if (payload.version < 4 && _legacyFlashcards) {
+    return { ...rest, flashcards: _legacyFlashcards } as Omit<StudyBackupPayload, 'checksumSha256'> & {
+      flashcards: typeof _legacyFlashcards
+    }
+  }
+  return rest
+}
+
+export async function verifyBackupChecksum(payload: ParsedStudyBackupPayload): Promise<boolean> {
   if (!payload.checksumSha256) return true
-  const { checksumSha256, ...rest } = payload
-  const canonical = { ...rest } as Omit<StudyBackupPayload, 'checksumSha256'>
-  delete (canonical as StudyBackupPayload & { rawVersion?: unknown }).rawVersion
-  const expected = await computeBackupChecksum(canonical)
-  return expected === checksumSha256
+  const expected = await computeBackupChecksum(canonicalizeForChecksum(payload))
+  return expected === payload.checksumSha256
 }
