@@ -1,4 +1,4 @@
-import type { CategoryItem, DailyLog, FlashcardItem, HistoryEntry, QuickNoteItem, SettingsRow, TaskItem } from '../../../db/types'
+import type { CategoryItem, DailyLog, HistoryEntry, QuickNoteItem, SettingsRow, TaskItem } from '../../../db/types'
 
 export interface StudyBackupPayload {
   version: number
@@ -9,8 +9,14 @@ export interface StudyBackupPayload {
   dailyLogs: DailyLog[]
   settings: SettingsRow[]
   categories: CategoryItem[]
-  flashcards: FlashcardItem[]
   quickNotes: QuickNoteItem[]
+}
+
+/** Legacy flashcard rows from v1–v3 backups (parse/checksum only; not persisted). */
+export interface LegacyFlashcardRow {
+  question: string
+  answer: string
+  [key: string]: unknown
 }
 
 export interface StudyLogLike {
@@ -47,4 +53,6 @@ export interface StudyBackupInput {
 
 export interface ParsedStudyBackupPayload extends StudyBackupPayload {
   rawVersion: unknown
+  /** Set when importing legacy backups that included flashcards (checksum + user notice). */
+  _legacyFlashcards?: LegacyFlashcardRow[]
 }

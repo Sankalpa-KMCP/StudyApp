@@ -41,4 +41,4 @@ export {
 export { calculateSM2 } from './sm2'
 export { calculateFSRS } from './fsrs'
 
-export { parseStudyBackupPayload, validateBackupPayload } from './backupSchema'
+export { parseStudyBackupPayload, validateBackupPayload, backupPayloadToTables } from './backupSchema'
