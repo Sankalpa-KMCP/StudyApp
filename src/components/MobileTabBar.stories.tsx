@@ -14,7 +14,6 @@ export const FocusActive: Story = {
   args: {
     activeTab: 'focus',
     setActiveTab: () => {},
-    cardsDueCount: 3,
     isTimerActive: false,
     timerMode: 'study',
     enforceLockout: false,

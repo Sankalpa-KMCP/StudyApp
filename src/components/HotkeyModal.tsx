@@ -1,44 +1,25 @@
 import React from 'react'
 import { X } from 'lucide-react'
 import { ModalShell } from './shared/ModalShell'
+import { FOCUS_MODE } from '../lib/shared/uxTerms'
 
 interface HotkeyModalProps {
   isOpen: boolean
   onClose: () => void
-  flashcardsEnabled?: boolean
 }
-
-import { FOCUS_MODE } from '../lib/shared/uxTerms'
-
-const FLASHCARD_SHORTCUTS = [
-  { keys: 'Space', action: 'Flip card' },
-  { keys: '1 / 2 / 4 / 5', action: 'Grade recall (when answer is visible)' },
-  { keys: 'Escape', action: 'End study session (with confirm)' },
-]
 
 export const HotkeyModal: React.FC<HotkeyModalProps> = ({
   isOpen,
   onClose,
-  flashcardsEnabled = true,
 }) => {
   const shortcuts = [
-    {
-      keys: 'Ctrl+K',
-      action: flashcardsEnabled
-        ? 'Open command palette (tasks, notes, flashcards, tabs)'
-        : 'Open command palette (tasks, notes, tabs)',
-    },
+    { keys: 'Ctrl+K', action: 'Open command palette (tasks, notes, tabs)' },
     { keys: 'Space', action: 'Toggle play / pause' },
     { keys: 'S', action: 'Switch to study mode' },
     { keys: 'B', action: 'Switch to break mode' },
     { keys: 'C / Shift+C', action: 'Complete study block (Shift+C ends early)' },
     { keys: 'Z', action: `Toggle ${FOCUS_MODE.toLowerCase()}` },
-    {
-      keys: flashcardsEnabled ? '1–5' : '1–4',
-      action: flashcardsEnabled
-        ? 'Jump to Focus, Cards, Analytics, Journal, Settings'
-        : 'Jump to Focus, Analytics, Journal, Settings',
-    },
+    { keys: '1–4', action: 'Jump to Focus, Analytics, Journal, Settings' },
     { keys: '?', action: 'Toggle this shortcut panel' },
     { keys: '[', action: 'Toggle sidebar collapse (desktop)' },
   ]
@@ -71,29 +52,10 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({
           </div>
         ))}
       </div>
-      {flashcardsEnabled && (
-        <div className="mt-5 border-t border-card pt-4">
-          <p className="text-label font-bold uppercase tracking-wider text-muted mb-3">During flashcard study</p>
-          <div className="space-y-2">
-            {FLASHCARD_SHORTCUTS.map(item => (
-              <div key={item.keys} className="flex items-center justify-between rounded-xl border border-card surface-subtle px-3 py-2">
-                <span className="text-xs text-secondary">{item.action}</span>
-                <kbd className="rounded border border-card surface-track px-2 py-0.5 font-mono text-micro font-bold uppercase text-primary">{item.keys}</kbd>
-              </div>
-            ))}
-          </div>
-          <p className="mt-2 text-center text-micro text-muted">Flashcard shortcuts apply only while the study modal is open.</p>
-        </div>
-      )}
       <p className="mt-4 text-center text-label text-muted">Shortcuts are disabled while typing in input fields.</p>
       <p className="mt-2 text-center text-label text-muted">
         Timer shortcuts still work on Settings while a study block is active. Tab through navigation to reach every section without a mouse.
       </p>
-      {flashcardsEnabled && (
-        <p className="mt-2 text-center text-label text-muted">
-          Selecting a flashcard in the command palette opens the Cards tab (it does not start a review session).
-        </p>
-      )}
     </ModalShell>
   )
 }

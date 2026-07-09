@@ -1,6 +1,6 @@
-import { memo, useRef, useCallback, useMemo } from 'react'
+import { memo, useRef, useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
-import { getVisibleNavTabs } from '../navigation/appNav'
+import { NAV_TABS } from '../navigation/appNav'
 import { NavTabButton } from '../navigation/NavTabButton'
 import { prefetchTabChunk } from '../lib/routing/prefetchTabChunks'
 
@@ -10,8 +10,6 @@ interface MobileTabBarProps {
   isTimerActive: boolean
   timerMode: 'study' | 'break'
   enforceLockout: boolean
-  cardsDueCount?: number
-  flashcardsEnabled?: boolean
 }
 
 export const MobileTabBar = memo(function MobileTabBar({
@@ -20,12 +18,8 @@ export const MobileTabBar = memo(function MobileTabBar({
   isTimerActive,
   timerMode,
   enforceLockout,
-  cardsDueCount = 0,
-  flashcardsEnabled = true,
 }: MobileTabBarProps) {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
-
-  const visibleTabs = useMemo(() => getVisibleNavTabs(!!flashcardsEnabled), [flashcardsEnabled])
 
   const activateTab = useCallback(
     (tabId: ActiveTab) => setActiveTab(tabId),
@@ -53,7 +47,7 @@ export const MobileTabBar = memo(function MobileTabBar({
       className="fixed bottom-4 left-4 right-4 z-30 flex md:hidden items-center justify-around glass-panel shadow-2xl px-2 py-2 safe-area-pb rounded-[22px] border border-card"
       aria-label="Main navigation"
     >
-      {visibleTabs.map(tab => {
+      {NAV_TABS.map(tab => {
         const isActive = activeTab === tab.id
         const isLocked = enforceLockout && isTimerActive && timerMode === 'study' && tab.id !== 'focus'
         return (
@@ -67,7 +61,6 @@ export const MobileTabBar = memo(function MobileTabBar({
             accent={tab.accent}
             isActive={isActive}
             isLocked={isLocked}
-            badge={tab.id === 'cards' ? cardsDueCount : undefined}
             onClick={handleTabClick}
             onMouseEnter={() => handlePrefetch(tab.id)}
             onTouchStart={() => handlePrefetch(tab.id)}

@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { FileText, Sparkles, Keyboard } from 'lucide-react'
 import type { ActiveTab } from '../../types/app'
-import { getVisibleNavTabs } from './constants'
+import { NAV_TABS } from './constants'
 import type { SidebarModeProps } from './types'
 import { SidebarHeader } from './SidebarHeader'
 import { SidebarNavButton } from './SidebarNavButton'
@@ -15,8 +15,6 @@ export function SidebarRailContent({
   isTimerActive,
   timerMode,
   enforceLockout,
-  cardsDueCount = 0,
-  flashcardsEnabled = true,
   onToggleNotes,
   onShowOnboarding,
   onToggleCollapse,
@@ -29,7 +27,7 @@ export function SidebarRailContent({
         <SidebarHeader collapsed onToggleCollapse={onToggleCollapse} />
 
         <nav className="hidden md:grid justify-items-center gap-1">
-          {getVisibleNavTabs(!!flashcardsEnabled).map(tab => {
+          {NAV_TABS.map(tab => {
             const isActive = activeTab === tab.id
             const isLocked = enforceLockout && isTimerActive && timerMode === 'study' && tab.id !== 'focus'
             return (
@@ -43,7 +41,6 @@ export function SidebarRailContent({
                 accent={tab.accent}
                 isActive={isActive}
                 isLocked={isLocked}
-                badge={tab.id === 'cards' ? cardsDueCount : undefined}
                 onActivate={onActivateTab}
               />
             )

@@ -56,7 +56,7 @@ export function useKeyboardShortcuts({
   navigateToTab,
   toggleSidebarCollapse,
   requestConfirm,
-  visibleTabs = ['focus', 'cards', 'analytics', 'journal', 'settings'],
+  visibleTabs = ['focus', 'analytics', 'journal', 'settings'],
 }: UseKeyboardShortcutsOptions) {
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {

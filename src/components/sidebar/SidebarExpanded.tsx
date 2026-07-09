@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { Flame, FileText, Sparkles, Keyboard } from 'lucide-react'
 import type { ActiveTab } from '../../types/app'
-import { getVisibleNavTabs } from './constants'
+import { NAV_TABS } from './constants'
 import type { SidebarModeProps } from './types'
 import { SidebarHeader } from './SidebarHeader'
 import { SidebarNavButton } from './SidebarNavButton'
@@ -18,8 +18,6 @@ export function SidebarExpandedContent({
   isTimerActive,
   timerMode,
   enforceLockout,
-  cardsDueCount = 0,
-  flashcardsEnabled = true,
   onToggleNotes,
   onShowOnboarding,
   onToggleCollapse,
@@ -57,7 +55,7 @@ export function SidebarExpandedContent({
 
         <p className="hidden md:block px-1 text-label font-bold uppercase tracking-wider text-muted select-none">Workspace</p>
         <nav className="hidden md:flex flex-col gap-1">
-          {getVisibleNavTabs(!!flashcardsEnabled).map(tab => {
+          {NAV_TABS.map(tab => {
             const isActive = activeTab === tab.id
             const isLocked = enforceLockout && isTimerActive && timerMode === 'study' && tab.id !== 'focus'
             return (
@@ -71,7 +69,6 @@ export function SidebarExpandedContent({
                 accent={tab.accent}
                 isActive={isActive}
                 isLocked={isLocked}
-                badge={tab.id === 'cards' ? cardsDueCount : undefined}
                 onActivate={onActivateTab}
               />
             )
