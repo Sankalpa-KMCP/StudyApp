@@ -14,7 +14,7 @@ import { setLastBackupExportAt } from '../lib/backup/backupMetadata'
 import { canShareStudyBackup, shareStudyBackup } from '../lib/backup/backupShare'
 import { buildStudyHistoryIcs, downloadIcs } from '../lib/export/icsExport'
 import { verifyBackupChecksum } from '../lib/backup/backupChecksum'
-import { parseStudyBackupPayload, validateBackupPayload } from '../lib/study/studyDashboard'
+import { parseStudyBackupPayload, validateBackupPayload, backupPayloadToTables } from '../lib/study/studyDashboard'
 import { devLog } from '../lib/shared/devLogger'
 import {
   BACKUP_CSV_EXPORT_FAILED,
@@ -80,9 +80,9 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
 
   async function createDatabaseSnapshot() {
     try {
-      const { tasks, history, dailyLogs, settings, categories, flashcards, quickNotes } = await exportAllTables()
+      const { tasks, history, dailyLogs, settings, categories, quickNotes } = await exportAllTables()
       const timestamp = new Date().toISOString()
-      const snapshot = { timestamp, tasks, history, dailyLogs, settings, categories, flashcards, quickNotes }
+      const snapshot = { timestamp, tasks, history, dailyLogs, settings, categories, quickNotes }
       await addSnapshot({ timestamp, payload: JSON.stringify(snapshot) })
       await trimSnapshotsToMax(MAX_SNAPSHOTS)
     } catch (err) {
@@ -281,29 +281,20 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
       }
 
       if (options?.mode === 'merge') {
-        await mergeBackupData({
-          tasks: data.tasks,
-          history: data.history,
-          dailyLogs: data.dailyLogs,
-          settings: data.settings,
-          categories: data.categories,
-          flashcards: data.flashcards,
-          quickNotes: data.quickNotes,
-        })
+        await mergeBackupData(backupPayloadToTables(data))
+        if (data._legacyFlashcards?.length) {
+          pushToast('BACKUP', 'Flashcard data in backup was not restored (feature removed)')
+        }
         pushToast('BACKUP', 'Backup merged successfully')
         devLog('backup', 'merge-success', { tasks: data.tasks.length, history: data.history.length })
         return
       }
 
-      await replaceAllTables({
-        tasks: data.tasks,
-        history: data.history,
-        dailyLogs: data.dailyLogs,
-        settings: data.settings,
-        categories: data.categories,
-        flashcards: data.flashcards,
-        quickNotes: data.quickNotes,
-      })
+      await replaceAllTables(backupPayloadToTables(data))
+
+      if (data._legacyFlashcards?.length) {
+        pushToast('BACKUP', 'Flashcard data in backup was not restored (feature removed)')
+      }
 
       localStorage.removeItem('study_dashboard_snapshots')
       localStorage.removeItem('completed_study_sessions_count')
@@ -322,7 +313,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
     window.location.reload()
   }
 
-  async function resetDataSelective(options: { tasks: boolean; history: boolean; categories: boolean; cards: boolean; notes: boolean }) {
+  async function resetDataSelective(options: { tasks: boolean; history: boolean; categories: boolean; notes: boolean }) {
     try {
       await resetSelective(options)
       if (options.history) {
