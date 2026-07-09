@@ -1,6 +1,6 @@
-import type { CategoryItem, DailyLog, FlashcardItem, HistoryEntry, QuickNoteItem, SettingsRow, TaskItem } from '../../../db/types'
+import type { CategoryItem, DailyLog, HistoryEntry, QuickNoteItem, SettingsRow, TaskItem } from '../../../db/types'
 import { parseLegacyHistoryTimestamp } from './dateTime'
-import type { ParsedStudyBackupPayload, StudyBackupInput } from './types'
+import type { LegacyFlashcardRow, ParsedStudyBackupPayload, StudyBackupInput } from './types'
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -17,6 +17,10 @@ export function parseStudyBackupPayload(raw: string): ParsedStudyBackupPayload |
 
     const payload = parsed as StudyBackupInput
     const quickNotes = toArray<QuickNoteItem>(payload.quickNotes ?? payload.quick_notes)
+    const legacyFlashcards = toArray<LegacyFlashcardRow>(payload.flashcards)
+    const settings = toArray<SettingsRow>(payload.settings).filter(
+      s => (s.key as string) !== 'flashcardsEnabled',
+    )
 
     return {
       rawVersion: payload.version,
@@ -28,11 +32,11 @@ export function parseStudyBackupPayload(raw: string): ParsedStudyBackupPayload |
         createdAt: h.createdAt ?? parseLegacyHistoryTimestamp(h.timestamp),
       })),
       dailyLogs: toArray<DailyLog>(payload.dailyLogs),
-      settings: toArray<SettingsRow>(payload.settings),
+      settings,
       categories: toArray<CategoryItem>(payload.categories),
-      flashcards: toArray<FlashcardItem>(payload.flashcards),
       quickNotes,
       checksumSha256: typeof payload.checksumSha256 === 'string' ? payload.checksumSha256 : undefined,
+      _legacyFlashcards: legacyFlashcards.length > 0 ? legacyFlashcards : undefined,
     }
   } catch {
     return null
@@ -109,4 +113,15 @@ export function validateBackupPayload(parsed: unknown): boolean {
   }
 
   return true
+}
+
+export function backupPayloadToTables(data: ParsedStudyBackupPayload) {
+  return {
+    tasks: data.tasks,
+    history: data.history,
+    dailyLogs: data.dailyLogs,
+    settings: data.settings,
+    categories: data.categories,
+    quickNotes: data.quickNotes,
+  }
 }
