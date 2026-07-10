@@ -24,7 +24,7 @@ export const RetentionChartPanel = memo(function RetentionChartPanel({ retention
         className="mb-5"
         id="analytics-retention"
       />
-      <p className="text-micro text-muted mb-4 -mt-2">Average recall score from card reviews</p>
+      <p className="text-micro text-muted mb-4 -mt-2">Average recall score from task reviews</p>
       {hasRetentionData ? (
         <>
         <ChartSummary>
@@ -46,7 +46,7 @@ export const RetentionChartPanel = memo(function RetentionChartPanel({ retention
         <EmptyState
           icon={<span className="text-2xl">📈</span>}
           title="No retention data yet"
-          description="Complete active recall reviews to display retention metrics."
+          description="Complete active recall reviews on study subjects to display retention metrics."
         />
       )}
     </PanelCard>

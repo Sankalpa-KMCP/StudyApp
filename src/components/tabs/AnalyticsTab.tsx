@@ -10,7 +10,7 @@ const AnalyticsStudio = lazy(() =>
 )
 
 export function AnalyticsTab() {
-  const { tasks, flashcards, settings, categories, recentHistory } = useStudyData()
+  const { tasks, settings, categories, recentHistory } = useStudyData()
   const { currentStreak, xpData, insights, breakdownData, journal, allLogs, analyticsRange } = useStudyAnalytics()
   const categoryGoalTrends = useMemo(
     () => calculateCategoryGoalTrend(allLogs.allLogs, categories.categories),
@@ -23,7 +23,6 @@ export function AnalyticsTab() {
     <Suspense fallback={<TabLoadingFallback label="analytics" variant="analytics" />}>
       <AnalyticsStudio
         tasks={tasks.tasks}
-        flashcards={settings.flashcardsEnabled ? flashcards.flashcards : []}
         monthLogs={calendar.monthLogs}
         allLogs={allLogs.allLogs}
         totalMonthHours={calendar.totalMonthHours}
