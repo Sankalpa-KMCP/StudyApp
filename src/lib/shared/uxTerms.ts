@@ -46,7 +46,4 @@ export const JOURNAL_TAB_SUBTITLE = t('journalTabSubtitle')
 export const ARCHIVED_TASKS = (count: number) =>
   count === 1 ? t('archivedTasksOne') : t('archivedTasksMany', { count })
 
-export const END_FLASHCARD_SESSION = t('endFlashcardSession')
-export const END_FLASHCARD_SESSION_BODY = t('endFlashcardSessionBody')
-
 export const HOTKEY_HINT = t('hotkeyHint')

@@ -24,8 +24,3 @@ export function sessionRestoredMessage(minutes: number, mode: 'study' | 'break')
   return t('sessionRestored', { minutes, mode: modeLabel })
 }
 
-export const DELETE_FLASHCARD_TITLE = t('deleteFlashcardTitle')
-export function deleteFlashcardMessage(question: string) {
-  const preview = question.length > 80 ? `${question.slice(0, 80)}…` : question
-  return `"${preview}" will be removed permanently.`
-}
