@@ -43,8 +43,8 @@ function createMockAdapter(overrides: Partial<SyncAdapter> = {}): SyncAdapter {
 }
 
 const samplePayload = {
-  version: 3,
-  rawVersion: 3,
+  version: 4,
+  rawVersion: 4,
   exportedAt: '2026-06-12T12:00:00.000Z',
   checksumSha256: 'abc123',
   tasks: [],
@@ -52,7 +52,6 @@ const samplePayload = {
   dailyLogs: [],
   settings: [],
   categories: [],
-  flashcards: [],
   quickNotes: [],
 }
 

@@ -194,10 +194,42 @@ describe('useSessionBackup hook', () => {
     expect((await db.tasks.toArray())[0].text).toBe('Keep on bad checksum')
   })
 
+  it('imports v3 backup with flashcards but does not restore flashcard rows', async () => {
+    const reload = vi.fn()
+    vi.stubGlobal('location', { ...window.location, reload })
+
+    const payload = {
+      version: 3,
+      exportedAt: new Date().toISOString(),
+      tasks: [{ text: 'Imported task', completed: false, createdAt: Date.now() }],
+      history: [],
+      dailyLogs: [],
+      settings: [],
+      categories: [],
+      flashcards: [{ question: 'Q', answer: 'A', createdAt: Date.now(), repetitionCount: 0, easinessFactor: 2.5, intervalDays: 0 }],
+      quickNotes: [],
+    }
+
+    const { result } = renderHook(() => useSessionBackup(pushToast))
+    await result.current.importStudyBackup(JSON.stringify(payload))
+
+    const tasks = await db.tasks.toArray()
+    expect(tasks).toHaveLength(1)
+    expect(tasks[0].text).toBe('Imported task')
+    if (db.tables.some(t => t.name === 'flashcards')) {
+      expect(await db.table('flashcards').count()).toBe(0)
+    }
+    expect(pushToast).toHaveBeenCalledWith(
+      'BACKUP',
+      expect.stringMatching(/flashcard/i),
+    )
+    expect(reload).toHaveBeenCalled()
+  })
+
   it('resetDataSelective clears only chosen tables', async () => {
     await seedTask('Task')
     const { result } = renderHook(() => useSessionBackup(pushToast))
-    await result.current.resetDataSelective({ tasks: true, history: false, categories: false, cards: false, notes: false })
+    await result.current.resetDataSelective({ tasks: true, history: false, categories: false, notes: false })
     expect(await db.tasks.count()).toBe(0)
     expect(pushToast).toHaveBeenCalledWith('RESET', 'Selected data cleared')
   })
