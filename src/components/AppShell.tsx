@@ -8,13 +8,11 @@ import { MobileTabBar } from './MobileTabBar'
 import { FocusTab } from './tabs/FocusTab'
 import { AnalyticsTab } from './tabs/AnalyticsTab'
 import { JournalTab } from './tabs/JournalTab'
-import { CardsTab } from './tabs/CardsTab'
 import { SettingsTab } from './tabs/SettingsTab'
 import { useStudyData, useStudyUI } from '../context/useStudyApp'
 import { useStudyTimerContext } from '../context/studyTimerContext'
 import { E2eCrashProbe } from './E2eCrashProbe'
 import { OnboardingModal } from './OnboardingModal'
-import { countDueFlashcards } from './flashcard/flashcardDue'
 import { getEffectiveDailyGoal, getTodayCategoryStudyMinutes } from '../lib/study/studyDashboard'
 import { usePwaInstall } from '../hooks/usePwaInstall'
 import { useBackupReminder } from '../hooks/useBackupReminder'
@@ -50,12 +48,10 @@ export const AppShell = memo(function AppShell() {
     pendingLevelUp,
     dismissLevelUp,
     todayLog,
-    flashcards,
     recentHistory,
     allLogs,
   } = useStudyData()
 
-  const cardsDueCount = settings.flashcardsEnabled ? countDueFlashcards(flashcards.flashcards) : 0
   const pwaInstall = usePwaInstall()
   const backupReminder = useBackupReminder()
   const { timerControls, backup, activateTask } = useStudyTimerContext()
@@ -179,8 +175,6 @@ export const AppShell = memo(function AppShell() {
         isTimerActive={timerControls.isTimerActive}
         timerMode={timerControls.timerMode}
         enforceLockout={settings.enforce_lockout}
-        cardsDueCount={cardsDueCount}
-        flashcardsEnabled={settings.flashcardsEnabled}
         onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
         onShowOnboarding={openOnboarding}
       />
@@ -240,11 +234,6 @@ export const AppShell = memo(function AppShell() {
                   <JournalTab />
                 </ErrorBoundary>
               )}
-              {settings.flashcardsEnabled && activeTab === 'cards' && (
-                <ErrorBoundary fallbackLabel="Cards">
-                  <CardsTab />
-                </ErrorBoundary>
-              )}
               {activeTab === 'settings' && (
                 <ErrorBoundary fallbackLabel="Settings">
                   <SettingsTab onShowOnboarding={openOnboarding} />
@@ -266,7 +255,7 @@ export const AppShell = memo(function AppShell() {
       />
 
       <ReflectionModalContainer studyBlockDurationMinutes={settings.studyBlockDurationMinutes} />
-      <HotkeyModal isOpen={isHotkeyHudOpen} onClose={() => setIsHotkeyHudOpen(false)} flashcardsEnabled={settings.flashcardsEnabled} />
+      <HotkeyModal isOpen={isHotkeyHudOpen} onClose={() => setIsHotkeyHudOpen(false)} />
       {commandPaletteMounted && (
         <Suspense fallback={null}>
           <CommandPalette
@@ -275,9 +264,7 @@ export const AppShell = memo(function AppShell() {
             onSelect={handleCommandPaletteSelect}
             tasks={tasks.tasks}
             notes={quickNotes.notes}
-            flashcards={flashcards.flashcards}
             categories={categories.categories}
-            flashcardsEnabled={settings.flashcardsEnabled}
             dailyLogs={allLogs.allLogs}
           />
         </Suspense>
@@ -331,8 +318,6 @@ export const AppShell = memo(function AppShell() {
           isTimerActive={timerControls.isTimerActive}
           timerMode={timerControls.timerMode}
           enforceLockout={settings.enforce_lockout}
-          cardsDueCount={cardsDueCount}
-          flashcardsEnabled={settings.flashcardsEnabled}
         />
       )}
       <CelebrationConfettiHost />

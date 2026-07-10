@@ -6,22 +6,18 @@ import { useStudyData, useStudyUI } from '../../context/useStudyApp'
 import { useStudyTimerContext } from '../../context/studyTimerContext'
 import { useConfirm } from '../../context/useConfirm'
 import { useTranslation } from '../../i18n/useTranslation'
-import { scrollToSettingsSectionWhenReady } from '../../lib/settings/settingsSections'
 import {
   clearFirstSessionPending,
   FIRST_SESSION_CHANGED_EVENT,
   isFirstSessionPending,
 } from '../../lib/study/firstSession'
-import { FlashcardsDueBanner } from '../flashcard/FlashcardsDueBanner'
-import { FlashcardsEnableBanner } from '../flashcard/FlashcardsEnableBanner'
 import { FirstSessionBanner } from '../focus/FirstSessionBanner'
-import { setFlashcardReviewPending } from '../../lib/study/flashcardReviewPending'
 
 const MemoizedTaskRegistry = memo(TaskRegistry)
 
 export function FocusTabContent() {
-  const { settings, tasks, categories, flashcards } = useStudyData()
-  const { setIsZenMode, setActiveTab, activeTaskId, setActiveTaskId, taskCycleCount, setTaskCycleCount } = useStudyUI()
+  const { tasks, categories } = useStudyData()
+  const { setIsZenMode, activeTaskId, setActiveTaskId, taskCycleCount, setTaskCycleCount } = useStudyUI()
   const {
     timerControls,
     ensureAudio,
@@ -94,23 +90,6 @@ export function FocusTabContent() {
         />
       </div>
       <div className="lg:col-span-7 order-2">
-        {!settings.flashcardsEnabled && (
-          <FlashcardsEnableBanner
-            onEnable={() => {
-              void setActiveTab('settings')
-              scrollToSettingsSectionWhenReady('settings-flashcards')
-            }}
-          />
-        )}
-        {settings.flashcardsEnabled && (
-          <FlashcardsDueBanner
-            flashcards={flashcards.flashcards}
-            onReview={() => {
-              setFlashcardReviewPending()
-              void setActiveTab('cards')
-            }}
-          />
-        )}
         <MemoizedTaskRegistry
           tasks={tasks.tasks}
           categories={categories.categories}
