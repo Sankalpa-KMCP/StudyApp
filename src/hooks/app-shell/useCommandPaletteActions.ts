@@ -2,7 +2,6 @@ import { useCallback } from 'react'
 import type { CommandPaletteSelection } from '../../components/CommandPalette'
 import type { TaskItem } from '../../db/types'
 import { scrollToSettingsSectionWhenReady } from '../../lib/settings/settingsSections'
-import { setFlashcardReviewPending } from '../../lib/study/flashcardReviewPending'
 import { queueJournalDateNavigation } from '../../lib/routing/journalNavigation'
 import type { ActiveTab } from '../../types/app'
 
@@ -50,10 +49,6 @@ export function useCommandPaletteActions({
         case 'open-hotkeys':
           setIsHotkeyHudOpen(true)
           break
-        case 'review-due-cards':
-          setFlashcardReviewPending()
-          void setActiveTab('cards')
-          break
         case 'add-task':
           void setActiveTab('focus')
           break
@@ -74,10 +69,6 @@ export function useCommandPaletteActions({
     if (selection.noteId != null) {
       setFocusNoteId(selection.noteId)
       setIsNotesOpen(true)
-    }
-    if (selection.flashcardId != null) {
-      setFlashcardReviewPending()
-      void setActiveTab('cards')
     }
     if (selection.journalDate) {
       queueJournalDateNavigation(selection.journalDate)

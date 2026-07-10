@@ -8,14 +8,13 @@ import {
   type CommandPaletteItem,
   type CommandPaletteItemType,
 } from '../lib/routing/commandPaletteSearch'
-import type { CategoryItem, DailyLog, FlashcardItem, QuickNoteItem, TaskItem } from '../db/types'
+import type { CategoryItem, DailyLog, QuickNoteItem, TaskItem } from '../db/types'
 import type { ActiveTab } from '../types/app'
 
 export interface CommandPaletteSelection {
   type: CommandPaletteItem['type']
   taskId?: number
   noteId?: number
-  flashcardId?: number
   tab?: ActiveTab
   settingsSection?: string
   actionId?: string
@@ -28,13 +27,11 @@ interface CommandPaletteProps {
   onSelect: (selection: CommandPaletteSelection) => void
   tasks: TaskItem[]
   notes: QuickNoteItem[]
-  flashcards: FlashcardItem[]
   categories: CategoryItem[]
-  flashcardsEnabled: boolean
   dailyLogs?: DailyLog[]
 }
 
-const GROUP_ORDER: CommandPaletteItemType[] = ['action', 'settings', 'tab', 'task', 'note', 'journal', 'flashcard']
+const GROUP_ORDER: CommandPaletteItemType[] = ['action', 'settings', 'tab', 'task', 'note', 'journal']
 
 export function CommandPalette({
   isOpen,
@@ -42,9 +39,7 @@ export function CommandPalette({
   onSelect,
   tasks,
   notes,
-  flashcards,
   categories,
-  flashcardsEnabled,
   dailyLogs = [],
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
@@ -53,9 +48,9 @@ export function CommandPalette({
 
   const allItems = useMemo(
     () => (isOpen
-      ? buildCommandPaletteItems({ tasks, notes, flashcards, categories, dailyLogs, flashcardsEnabled })
+      ? buildCommandPaletteItems({ tasks, notes, categories, dailyLogs })
       : []),
-    [isOpen, tasks, notes, flashcards, categories, dailyLogs, flashcardsEnabled],
+    [isOpen, tasks, notes, categories, dailyLogs],
   )
 
   const results = useMemo(() => filterCommandPaletteItems(allItems, query), [allItems, query])
@@ -94,7 +89,6 @@ export function CommandPalette({
       type: item.type,
       taskId: item.taskId,
       noteId: item.noteId,
-      flashcardId: item.flashcardId,
       tab: item.tab,
       settingsSection: item.settingsSection,
       actionId: item.actionId,

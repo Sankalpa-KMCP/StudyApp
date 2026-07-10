@@ -1,9 +1,8 @@
 import type { ActiveTab } from '../../types/app'
-import type { CategoryItem, DailyLog, FlashcardItem, QuickNoteItem, TaskItem } from '../../db/types'
-import { getVisibleNavTabs } from '../../navigation/appNav'
-import { TAB_CHROME } from '../../navigation/appNav'
+import type { CategoryItem, DailyLog, QuickNoteItem, TaskItem } from '../../db/types'
+import { NAV_TABS, TAB_CHROME } from '../../navigation/appNav'
 
-export type CommandPaletteItemType = 'action' | 'task' | 'note' | 'flashcard' | 'tab' | 'settings' | 'journal'
+export type CommandPaletteItemType = 'action' | 'task' | 'note' | 'tab' | 'settings' | 'journal'
 
 export interface CommandPaletteItem {
   id: string
@@ -12,7 +11,6 @@ export interface CommandPaletteItem {
   subtitle?: string
   taskId?: number
   noteId?: number
-  flashcardId?: number
   tab?: ActiveTab
   settingsSection?: string
   actionId?: string
@@ -24,13 +22,11 @@ export const COMMAND_ACTIONS: Array<{ id: string; label: string; subtitle: strin
   { id: 'toggle-zen', label: 'Toggle focus mode', subtitle: 'Enter or exit zen overlay' },
   { id: 'export-backup', label: 'Export backup', subtitle: 'Download .studybackup vault' },
   { id: 'open-hotkeys', label: 'Keyboard shortcuts', subtitle: 'Show hotkey reference' },
-  { id: 'review-due-cards', label: 'Review due cards', subtitle: 'Start flashcard review session' },
   { id: 'add-task', label: 'Go to Focus', subtitle: 'Add or select a focus target' },
 ]
 
 const SETTINGS_SHORTCUTS: Array<{ id: string; label: string; subtitle: string; settingsSection: string }> = [
   { id: 'settings-daily-goal', label: 'Daily goal', subtitle: 'Settings → Timer & Focus', settingsSection: 'settings-timer-focus' },
-  { id: 'settings-flashcards', label: 'Enable flashcards', subtitle: 'Settings → Study', settingsSection: 'settings-flashcards' },
   { id: 'settings-backup', label: 'Export backup', subtitle: 'Settings → Backup Vault', settingsSection: 'settings-backup-vault' },
   { id: 'settings-theme', label: 'Theme', subtitle: 'Settings → Appearance', settingsSection: 'settings-aesthetics' },
 ]
@@ -44,18 +40,15 @@ function matchesQuery(query: string, ...parts: (string | undefined)[]): boolean 
 export function buildCommandPaletteItems(options: {
   tasks: TaskItem[]
   notes: QuickNoteItem[]
-  flashcards: FlashcardItem[]
   categories: CategoryItem[]
   dailyLogs?: DailyLog[]
-  flashcardsEnabled: boolean
 }): CommandPaletteItem[] {
-  const { tasks, notes, flashcards, categories, dailyLogs = [], flashcardsEnabled } = options
+  const { tasks, notes, categories, dailyLogs = [] } = options
   const categoryName = (id?: number) => categories.find(c => c.id === id)?.name
 
   const items: CommandPaletteItem[] = []
 
   for (const action of COMMAND_ACTIONS) {
-    if (action.id === 'review-due-cards' && !flashcardsEnabled) continue
     items.push({
       id: `action-${action.id}`,
       type: 'action',
@@ -75,7 +68,7 @@ export function buildCommandPaletteItems(options: {
     })
   }
 
-  for (const tab of getVisibleNavTabs(flashcardsEnabled)) {
+  for (const tab of NAV_TABS) {
     const chrome = TAB_CHROME[tab.id]
     items.push({
       id: `tab-${tab.id}`,
@@ -118,18 +111,6 @@ export function buildCommandPaletteItems(options: {
     })
   }
 
-  if (flashcardsEnabled) {
-    for (const card of flashcards) {
-      items.push({
-        id: `flashcard-${card.id}`,
-        type: 'flashcard',
-        label: card.question,
-        subtitle: card.answer.slice(0, 80) || 'Flashcard',
-        flashcardId: card.id,
-      })
-    }
-  }
-
   return items
 }
 
@@ -148,5 +129,4 @@ export const COMMAND_PALETTE_GROUP_LABELS: Record<CommandPaletteItemType, string
   task: 'Tasks',
   note: 'Notes',
   journal: 'Journal',
-  flashcard: 'Flashcards',
 }
