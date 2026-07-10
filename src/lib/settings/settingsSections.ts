@@ -14,7 +14,6 @@ export const SETTINGS_PANEL_TIERS: Record<string, SettingsPanelTier> = {
   'settings-timer-focus': 'essential',
   'settings-sound-feedback': 'essential',
   'settings-zen-lockout': 'advanced',
-  'settings-flashcards': 'essential',
   'settings-notes': 'advanced',
   'settings-algorithm': 'advanced',
   'settings-categories': 'advanced',
@@ -50,7 +49,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     id: 'study',
     label: 'Study',
     icon: BookOpen,
-    panelIds: ['settings-flashcards', 'settings-notes', 'settings-algorithm', 'settings-categories'],
+    panelIds: ['settings-notes', 'settings-algorithm', 'settings-categories'],
   },
   {
     id: 'data',
@@ -94,7 +93,7 @@ export const SECTION_DEFAULT_KEYS: Record<SettingsSectionId, SettingsKey[]> = {
     'autoArchiveAncientTasks',
     'autoArchiveAfterDays',
   ],
-  study: ['flashcardsEnabled', 'initialEasinessFactor', 'noteTagColors', 'autoArchiveAncientTasks', 'autoArchiveAfterDays'],
+  study: ['initialEasinessFactor', 'schedulingAlgorithm', 'noteTagColors', 'autoArchiveAncientTasks', 'autoArchiveAfterDays'],
   data: [
     'historyRetentionDays',
     'autoExportEnabled',
@@ -113,7 +112,6 @@ export const SECTION_DEFAULT_KEYS: Record<SettingsSectionId, SettingsKey[]> = {
 
 export const STUDY_NOTES_RESET_KEYS: SettingsKey[] = ['noteTagColors']
 export const STUDY_ALGORITHM_RESET_KEYS: SettingsKey[] = ['initialEasinessFactor', 'schedulingAlgorithm']
-export const STUDY_FLASHCARDS_RESET_KEYS: SettingsKey[] = ['flashcardsEnabled']
 
 export const POMODORO_PRESETS = [
   {

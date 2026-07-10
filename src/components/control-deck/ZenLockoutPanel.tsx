@@ -7,7 +7,6 @@ import type { ActiveTab } from '../../types/app'
 
 const TAB_OPTIONS: { id: ActiveTab; label: string }[] = [
   { id: 'journal', label: 'Journal' },
-  { id: 'cards', label: 'Cards' },
   { id: 'analytics', label: 'Analytics' },
   { id: 'settings', label: 'Settings' },
 ]

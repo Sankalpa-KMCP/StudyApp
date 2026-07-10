@@ -2,7 +2,7 @@ import { useSettingsPanel } from './SettingsPanelContext'
 import { useStorageEstimate, formatBytes } from '../../hooks/useStorageEstimate'
 
 export function StorageUsagePanel() {
-  const { historyRetentionDays, flashcardsEnabled } = useSettingsPanel()
+  const { historyRetentionDays } = useSettingsPanel()
   const { usageBytes, quotaBytes, rowCounts, isLoading, isSupported } = useStorageEstimate()
 
   const usageLabel =
@@ -28,12 +28,11 @@ export function StorageUsagePanel() {
               ['Tasks', rowCounts.tasks],
               ['History', rowCounts.history],
               ['Daily logs', rowCounts.dailyLogs],
-              ['Flashcards', rowCounts.flashcards],
               ['Notes', rowCounts.quickNotes],
               ['Categories', rowCounts.categories],
               ['Snapshots', rowCounts.snapshots],
             ] as const
-          ).filter(([label]) => label !== 'Flashcards' || flashcardsEnabled).map(([label, count]) => (
+          ).map(([label, count]) => (
             <div key={label} className="rounded-lg surface-subtle px-2 py-1.5">
               <dt className="settings-muted">{label}</dt>
               <dd className="font-bold text-primary">{count}</dd>

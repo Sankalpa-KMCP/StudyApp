@@ -23,7 +23,6 @@ export interface SettingsBackupApi {
     tasks: boolean
     history: boolean
     categories: boolean
-    cards: boolean
     notes: boolean
   }) => void
   clearSnapshots: () => void
@@ -96,7 +95,6 @@ interface SettingsPanelContextValue {
   desktopGlobalShortcutsEnabled: boolean
   desktopNativeNotificationsEnabled: boolean
   desktopBackupFolderPath: string
-  flashcardsEnabled: boolean
   backup: SettingsBackupApi
   categories: SettingsCategoriesApi
   isDragging: boolean
@@ -173,7 +171,6 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     desktopGlobalShortcutsEnabled: updater.desktopGlobalShortcutsEnabled,
     desktopNativeNotificationsEnabled: updater.desktopNativeNotificationsEnabled,
     desktopBackupFolderPath: updater.desktopBackupFolderPath,
-    flashcardsEnabled: updater.flashcardsEnabled,
     isLoading: updater.isLoading,
     updateSetting: (key, val) => { void updater.updateSettingSafe(key, val) },
     updateSettingSafe: updater.updateSettingSafe,

@@ -5,7 +5,7 @@ import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
 
 export function AlgorithmPanel() {
-  const { initialEasinessFactor, schedulingAlgorithm, flashcardsEnabled, updateSetting, resetKeys } = useSettingsPanel()
+  const { initialEasinessFactor, schedulingAlgorithm, updateSetting, resetKeys } = useSettingsPanel()
   const { requestConfirm } = useConfirm()
 
   const handleReset = async () => {
@@ -24,11 +24,7 @@ export function AlgorithmPanel() {
       title="Spaced Repetition"
       defaultCollapsed
       onResetDefaults={() => void handleReset()}
-      description={
-        flashcardsEnabled
-          ? 'Choose SM-2 or FSRS scheduling for study subjects and flashcards.'
-          : 'Choose SM-2 or FSRS scheduling for study subjects.'
-      }
+      description="Choose SM-2 or FSRS scheduling for study subjects."
     >
       <div className="mb-4">
         <span className="settings-label block mb-2">Scheduling algorithm</span>

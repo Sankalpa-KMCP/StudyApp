@@ -46,7 +46,6 @@ export function BackupVaultPanel() {
   const [sweepTasks, setSweepTasks] = useState(false)
   const [sweepHistory, setSweepHistory] = useState(false)
   const [sweepCategories, setSweepCategories] = useState(false)
-  const [sweepCards, setSweepCards] = useState(false)
   const [sweepNotes, setSweepNotes] = useState(false)
   const [storageKey, setStorageKey] = useState(0)
   const [encryptPassphrase, setEncryptPassphrase] = useState('')
@@ -90,7 +89,7 @@ export function BackupVaultPanel() {
                   danger: true,
                 })
                 if (!ok) return
-                resetDataSelective({ tasks: false, history: true, categories: false, cards: false, notes: false })
+                resetDataSelective({ tasks: false, history: true, categories: false, notes: false })
               }}
             >
               3. Sweep logs
@@ -339,7 +338,6 @@ export function BackupVaultPanel() {
                 { label: 'Tasks & Subtasks', checked: sweepTasks, set: setSweepTasks },
                 { label: 'Study Logs & History', checked: sweepHistory, set: setSweepHistory },
                 { label: 'Subject Categories', checked: sweepCategories, set: setSweepCategories },
-                { label: 'Flashcard Decks', checked: sweepCards, set: setSweepCards },
                 { label: 'Quick Notes', checked: sweepNotes, set: setSweepNotes },
               ].map(item => (
                 <label key={item.label} className="flex items-center gap-2.5 settings-muted font-semibold cursor-pointer select-none">
@@ -355,7 +353,7 @@ export function BackupVaultPanel() {
             </div>
             <div className="flex flex-wrap gap-3">
               <button
-                disabled={!sweepTasks && !sweepHistory && !sweepCategories && !sweepCards && !sweepNotes}
+                disabled={!sweepTasks && !sweepHistory && !sweepCategories && !sweepNotes}
                 onClick={async () => {
                   const ok = await requestConfirm({
                     title: 'Clear selected data?',
@@ -368,13 +366,11 @@ export function BackupVaultPanel() {
                     tasks: sweepTasks,
                     history: sweepHistory,
                     categories: sweepCategories,
-                    cards: sweepCards,
                     notes: sweepNotes,
                   })
                   setSweepTasks(false)
                   setSweepHistory(false)
                   setSweepCategories(false)
-                  setSweepCards(false)
                   setSweepNotes(false)
                 }}
                 className="rounded-full bg-red-500/10 border border-red-500/20 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 disabled:opacity-40 disabled:pointer-events-none transition-all ios-active-scale cursor-pointer"

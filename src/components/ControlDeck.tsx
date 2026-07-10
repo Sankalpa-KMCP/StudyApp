@@ -4,7 +4,6 @@ import { scrollToSettingsSectionWhenReady, consumePendingSettingsPanelScroll } f
 import { useConfirm } from '../context/useConfirm'
 
 const AestheticsPanel = lazy(() => import('./control-deck/AestheticsPanel').then(m => ({ default: m.AestheticsPanel })))
-const FlashcardsPanel = lazy(() => import('./control-deck/FlashcardsPanel').then(m => ({ default: m.FlashcardsPanel })))
 const NotesSettingsPanel = lazy(() => import('./control-deck/NotesSettingsPanel').then(m => ({ default: m.NotesSettingsPanel })))
 const TimerFocusPanel = lazy(() => import('./control-deck/TimerFocusPanel').then(m => ({ default: m.TimerFocusPanel })))
 const SoundFeedbackPanel = lazy(() => import('./control-deck/SoundFeedbackPanel').then(m => ({ default: m.SoundFeedbackPanel })))
@@ -27,7 +26,7 @@ interface ControlDeckProps {
 }
 
 function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
-  const { dailyGoalMinutes, flashcardsEnabled, resetSectionDefaults } = useSettingsPanel()
+  const { dailyGoalMinutes, resetSectionDefaults } = useSettingsPanel()
   const { requestConfirm } = useConfirm()
   const { showAdvanced, setShowAdvanced } = useSettingsAdvancedMode()
 
@@ -53,7 +52,6 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
   const banners = (
     <SettingsOnboardingBanners
       dailyGoalMinutes={dailyGoalMinutes}
-      flashcardsEnabled={flashcardsEnabled}
       onShowOnboarding={onShowOnboarding}
     />
   )
@@ -88,7 +86,6 @@ function ControlDeckContent({ onShowOnboarding }: ControlDeckProps) {
         onResetDefaults={() => void handleSectionReset('study')}
       >
         <Suspense fallback={<PanelFallback />}>
-          <FlashcardsPanel />
           {showAdvanced && (
             <>
               <NotesSettingsPanel />
