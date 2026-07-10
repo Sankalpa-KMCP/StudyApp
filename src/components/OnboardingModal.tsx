@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Sparkles, Clock, Target, ChevronRight, Check, Lock, Heart, RefreshCw, Layers } from 'lucide-react'
+import { Sparkles, Clock, Target, ChevronRight, Check, Lock, Heart, RefreshCw } from 'lucide-react'
 import { ModalShell } from './shared/ModalShell'
 import { SelectionChip } from './shared/SelectionChip'
 import { useTranslation } from '../i18n/useTranslation'
@@ -58,7 +58,6 @@ const SLIDE_BULLET_DEFS: Array<Omit<OnboardingSlide, 'title' | 'description' | '
       { textKey: 'onboardingBulletFocusTargets', helperKey: 'onboardingBulletFocusTargetsHelper', icon: Target },
       { textKey: 'onboardingBulletStudyBlocks', helperKey: 'onboardingBulletStudyBlocksHelper', icon: Clock },
       { textKey: 'onboardingBulletFocusLockout', helperKey: 'onboardingBulletFocusLockoutHelper', icon: RefreshCw },
-      { textKey: 'onboardingBulletFlashcards', helperKey: 'onboardingBulletFlashcardsHelper', icon: Layers },
     ],
     showGoalPicker: true,
   },
@@ -74,7 +73,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const { t } = useTranslation()
   const [currentSlide, setCurrentSlide] = useState(0)
   const [dailyGoalMinutes, setDailyGoalMinutes] = useState<number | null>(null)
-  const [enableFlashcards, setEnableFlashcards] = useState(false)
 
   const slides: OnboardingSlide[] = SLIDE_BULLET_DEFS.map((def, index) => ({
     title: index === 0
@@ -96,9 +94,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     if (dailyGoalMinutes != null && updateSetting) {
       updateSetting('dailyGoalMinutes', dailyGoalMinutes)
       markDailyGoalConfigured()
-    }
-    if (enableFlashcards && updateSetting) {
-      updateSetting('flashcardsEnabled', true)
     }
     onClose()
     requestAnimationFrame(() => {
@@ -211,15 +206,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 Learn more — replay anytime from Settings → Getting started, or the ⋯ menu on mobile
               </button>
             )}
-            <label className="mt-4 flex items-center gap-2.5 cursor-pointer rounded-xl border border-card surface-subtle px-3 py-2.5">
-              <input
-                type="checkbox"
-                checked={enableFlashcards}
-                onChange={e => setEnableFlashcards(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-card accent-accent-blue"
-              />
-              <span className="text-[11px] font-semibold text-secondary">Enable recall deck (optional)</span>
-            </label>
           </div>
         )}
       </div>

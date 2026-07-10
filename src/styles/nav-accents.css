@@ -73,12 +73,6 @@
   --nav-accent: var(--color-accent-blue);
 }
 
-.nav-tab[data-active="true"][data-accent="cards"],
-.sidebar-rail-btn[data-active="true"][data-accent="cards"],
-.mobile-nav-btn[data-active="true"][data-accent="cards"] {
-  --nav-accent: var(--color-accent-purple);
-}
-
 .nav-tab[data-active="true"][data-accent="analytics"],
 .sidebar-rail-btn[data-active="true"][data-accent="analytics"],
 .mobile-nav-btn[data-active="true"][data-accent="analytics"] {

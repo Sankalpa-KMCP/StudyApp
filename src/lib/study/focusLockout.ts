@@ -13,7 +13,7 @@ export function parseLockoutAllowedTabs(raw: string): ActiveTab[] {
   try {
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
-    const valid: ActiveTab[] = ['focus', 'cards', 'analytics', 'journal', 'settings']
+    const valid: ActiveTab[] = ['focus', 'analytics', 'journal', 'settings']
     return parsed.filter((t): t is ActiveTab => typeof t === 'string' && valid.includes(t as ActiveTab))
   } catch {
     return []
