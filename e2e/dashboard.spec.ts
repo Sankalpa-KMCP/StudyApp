@@ -70,10 +70,10 @@ test('keeps the dashboard usable on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Good morning' })).toBeVisible()
   await expect(page.getByPlaceholder('Search')).toBeVisible()
   await page.getByRole('button', { name: 'Tasks' }).click()
-  await expect(page.getByRole('heading', { name: 'Tasks' }).first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Tasks', level: 1 })).toBeVisible()
   await page.getByRole('button', { name: 'Settings' }).click()
-  await expect(page.getByRole('heading', { name: 'Settings' }).first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible()
 })

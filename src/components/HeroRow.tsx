@@ -16,16 +16,16 @@ export function HeroRow(props: {
       <div className="hero-copy">
         <span className="eyebrow">{todayLabel}</span>
         <h1>Good morning</h1>
-        <p>{props.activeView === 'Home' ? 'Build today from real study data, saved offline on this device.' : `Working in ${props.activeView}.`}</p>
+        <p>{props.activeView === 'Home' ? 'A quiet place to turn intention into progress—one focused block at a time.' : `${props.activeView} is open. Everything stays saved on this device.`}</p>
       </div>
       <div className="hero-metrics" aria-label="Today focus summary">
         <span>
           <strong>{formatMinutes(props.todayFocusMinutes)}</strong>
-          logged today
+          focused today
         </span>
         <span>
           <strong>{Math.round(percent(props.todayFocusMinutes, props.dailyGoalMinutes))}%</strong>
-          daily target
+          goal complete
         </span>
       </div>
       <div className="hero-actions">

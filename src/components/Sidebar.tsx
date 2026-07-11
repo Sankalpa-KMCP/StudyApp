@@ -30,8 +30,8 @@ export function Sidebar({
           <img src="/brand-mark.svg" alt="" />
         </button>
         <div className="brand-copy">
-          <strong>Study</strong>
-          <span>Command center</span>
+          <strong>Study room</strong>
+          <span>Local · private · yours</span>
         </div>
         <button className="sidebar-toggle" type="button" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-pressed={collapsed} onClick={onToggleCollapsed}>
           {collapsed ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
@@ -39,14 +39,14 @@ export function Sidebar({
       </div>
       <nav>
         {navItems.map(({ label, icon: Icon }) => (
-          <button className={activeView === label ? 'nav-item is-active' : 'nav-item'} type="button" key={label} onClick={() => onNavigate(label)}>
+          <button className={activeView === label ? 'nav-item is-active' : 'nav-item'} type="button" key={label} title={collapsed ? label : undefined} onClick={() => onNavigate(label)}>
             <Icon size={21} strokeWidth={1.8} aria-hidden="true" />
             <span>{label}</span>
           </button>
         ))}
       </nav>
       <div className="sidebar-footer">
-        <button className={activeView === 'Settings' ? 'nav-item is-active' : 'nav-item'} type="button" onClick={() => onNavigate('Settings')}>
+        <button className={activeView === 'Settings' ? 'nav-item is-active' : 'nav-item'} type="button" title={collapsed ? 'Settings' : undefined} onClick={() => onNavigate('Settings')}>
           <Settings size={21} strokeWidth={1.8} aria-hidden="true" />
           <span>Settings</span>
         </button>
