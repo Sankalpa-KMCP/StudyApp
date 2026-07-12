@@ -39,13 +39,3 @@ export async function waitForAppReady(page: Page): Promise<void> {
   }
 }
 
-export async function enableFlashcards(page: Page): Promise<void> {
-  await openSettingsTab(page)
-  await settingsSectionNav(page).getByRole('button', { name: 'Study', exact: true }).click()
-  const toggle = page.getByRole('switch', { name: 'Enable flashcards' })
-  await expect(toggle).toBeVisible({ timeout: 10000 })
-  if ((await toggle.getAttribute('aria-checked')) === 'false') {
-    await toggle.click()
-    await expect(toggle).toHaveAttribute('aria-checked', 'true')
-  }
-}
