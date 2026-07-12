@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import * as fs from 'fs'
 import * as path from 'path'
 import { fileURLToPath } from 'url'
-import { enableFlashcards, openSettingsTab, waitForAppReady } from './helpers/studyApp'
+import { openSettingsTab, waitForAppReady } from './helpers/studyApp'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const outDir = path.join(__dirname, '..', 'docs', 'screenshots')
@@ -18,12 +18,6 @@ test('capture readme screenshots', async ({ page }) => {
   await page.waitForLoadState('networkidle')
   await page.screenshot({ path: path.join(outDir, 'focus.png'), fullPage: false })
 
-  await enableFlashcards(page)
-  await page.getByRole('button', { name: 'Cards' }).first().click()
-  await expect(page.getByText(/loading recall deck|flashcards registry/i).first()).toBeVisible({ timeout: 15000 })
-  await expect(page.getByText('Flashcards Registry')).toBeVisible({ timeout: 20000 })
-  await page.screenshot({ path: path.join(outDir, 'cards.png'), fullPage: false })
-
   await page.getByRole('button', { name: 'Analytics' }).first().click()
   const analyticsReady = page
     .getByText(/loading analytics/i)
@@ -31,6 +25,13 @@ test('capture readme screenshots', async ({ page }) => {
     .or(page.getByText('No study data yet'))
   await expect(analyticsReady).toBeVisible({ timeout: 20000 })
   await page.screenshot({ path: path.join(outDir, 'analytics.png'), fullPage: false })
+
+  await page.getByRole('button', { name: 'Journal' }).first().click()
+  const journalReady = page
+    .getByText(/loading journal/i)
+    .or(page.getByText('Day Journal'))
+  await expect(journalReady).toBeVisible({ timeout: 20000 })
+  await page.screenshot({ path: path.join(outDir, 'journal.png'), fullPage: false })
 
   await openSettingsTab(page)
   await expect(page.locator('#settings-timer-focus')).toBeVisible({ timeout: 20000 })
