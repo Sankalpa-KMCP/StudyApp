@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { openSettingsTab, settingsSectionNav, waitForAppReady } from './helpers/studyApp'
 
 test('enters focus mode during active timer', async ({ page }) => {
   await page.goto('/')
@@ -12,13 +13,22 @@ test('enters focus mode during active timer', async ({ page }) => {
 })
 
 test('focus lockout blocks exit when enforce lockout is on', async ({ page }) => {
-  await page.goto('/')
-  await expect(page.getByText('Study Dashboard').first()).toBeVisible({ timeout: 15000 })
+  await waitForAppReady(page)
+  await openSettingsTab(page)
+  await page.getByRole('button', { name: 'Dismiss backup reminder' }).click({ timeout: 2000 }).catch(() => {})
 
-  await page.getByRole('button', { name: 'Settings' }).first().click()
-  await expect(page.getByText('Focus lockout')).toBeVisible({ timeout: 20000 })
-  const lockoutToggle = page.getByRole('switch', { name: /enforced|bypassed/i })
-  if (await lockoutToggle.getAttribute('aria-checked') !== 'true') {
+  await page.getByRole('switch', { name: 'Show advanced settings' }).click()
+  await settingsSectionNav(page).getByRole('button', { name: 'Focus', exact: true }).click()
+
+  const zenCard = page.locator('#settings-zen-lockout')
+  await expect(zenCard).toBeVisible({ timeout: 10000 })
+  const showBtn = zenCard.getByRole('button', { name: 'Show' })
+  if (await showBtn.isVisible().catch(() => false)) {
+    await showBtn.click()
+  }
+
+  const lockoutToggle = page.getByRole('switch', { name: 'Focus lockout' })
+  if ((await lockoutToggle.getAttribute('aria-checked')) !== 'true') {
     await lockoutToggle.click()
     await expect(lockoutToggle).toHaveAttribute('aria-checked', 'true')
   }
