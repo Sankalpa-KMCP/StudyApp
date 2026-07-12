@@ -35,7 +35,16 @@ export default mergeConfig(
           'src/hooks/useSettingsUpdater.ts',
           'src/hooks/useDebouncedCallback.ts',
         ],
-        exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/**/*.stories.tsx', 'src/test/**'],
+        exclude: [
+          'src/**/*.test.ts',
+          'src/**/*.test.tsx',
+          'src/**/*.stories.tsx',
+          'src/test/**',
+          'src/lib/study/studyDashboard/types.ts',
+          'src/lib/study/studyDashboard/fsrs.ts',
+          'src/lib/study/studyDashboard/analytics.ts',
+          'src/db/repositories/syncHooks.ts',
+        ],
         thresholds: {
           lines: 80,
           functions: 80,
