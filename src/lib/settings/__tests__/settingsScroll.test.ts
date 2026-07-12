@@ -69,10 +69,10 @@ describe('scrollToSettingsSectionWhenReady', () => {
     vi.spyOn(document, 'getElementById').mockReturnValue(null)
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 0)
 
-    queueSettingsPanelScroll('settings-flashcards')
-    scrollToSettingsSectionWhenReady('settings-flashcards')
+    queueSettingsPanelScroll('settings-algorithm')
+    scrollToSettingsSectionWhenReady('settings-algorithm')
 
-    expect(sessionStorage.getItem('pending_settings_scroll')).toBe('settings-flashcards')
-    expect(consumePendingSettingsPanelScroll()).toBe('settings-flashcards')
+    expect(sessionStorage.getItem('pending_settings_scroll')).toBe('settings-algorithm')
+    expect(consumePendingSettingsPanelScroll()).toBe('settings-algorithm')
   })
 })

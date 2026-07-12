@@ -71,7 +71,7 @@ describe('useKeyboardShortcuts', () => {
     act(() => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: '2', bubbles: true }))
     })
-    expect(navigateToTab).toHaveBeenCalledWith('cards')
+    expect(navigateToTab).toHaveBeenCalledWith('analytics')
   })
 
   it('remaps number keys when visibleTabs is overridden', () => {

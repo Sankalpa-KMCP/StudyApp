@@ -7,7 +7,6 @@ import { AlgorithmPanel } from '../AlgorithmPanel'
 import { ZenLockoutPanel } from '../ZenLockoutPanel'
 import { NotesSettingsPanel } from '../NotesSettingsPanel'
 import { BackupVaultPanel } from '../BackupVaultPanel'
-import { FlashcardsPanel } from '../FlashcardsPanel'
 import { DesktopSettingsPanel } from '../DesktopSettingsPanel'
 import * as tauri from '../../../lib/desktop/tauri'
 import { SettingsOnboardingBanners } from '../SettingsOnboardingBanners'
@@ -69,7 +68,6 @@ describe('control-deck panel smoke tests', () => {
     render(
       <SettingsOnboardingBanners
         dailyGoalMinutes={480}
-        flashcardsEnabled={false}
       />,
     )
     expect(screen.getByText('Setup checklist')).toBeInTheDocument()
@@ -102,13 +100,4 @@ describe('control-deck panel smoke tests', () => {
     vi.mocked(tauri.isTauri).mockRestore()
   })
 
-  it('renders FlashcardsPanel', () => {
-    render(
-      <SettingsPanelProvider>
-        <FlashcardsPanel />
-      </SettingsPanelProvider>,
-    )
-    expect(screen.getByText('Flashcards Settings')).toBeInTheDocument()
-    expect(screen.getByRole('switch', { name: 'Enable flashcards' })).toBeInTheDocument()
-  })
 })

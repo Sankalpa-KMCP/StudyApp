@@ -12,7 +12,6 @@ describe('SettingsOnboardingBanners', () => {
     render(
       <SettingsOnboardingBanners
         dailyGoalMinutes={120}
-        flashcardsEnabled={false}
         onShowOnboarding={vi.fn()}
       />,
     )
@@ -25,7 +24,6 @@ describe('SettingsOnboardingBanners', () => {
     render(
       <SettingsOnboardingBanners
         dailyGoalMinutes={120}
-        flashcardsEnabled={false}
         onShowOnboarding={onShowOnboarding}
       />,
     )

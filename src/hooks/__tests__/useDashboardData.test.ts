@@ -2,8 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useDashboardData } from '../useDashboardData'
 import { resetDatabase } from '../../test/dbTestUtils'
-import { db } from '../../db/db'
-import * as flashcardRepo from '../../db/repositories/flashcards'
 
 describe('useDashboardData', () => {
   beforeEach(async () => {
@@ -19,18 +17,9 @@ describe('useDashboardData', () => {
     expect(result.current.history.isLoading).toBe(false)
   })
 
-  it('skips flashcard query when flashcardsEnabled is false', async () => {
-    await db.settings.put({ key: 'flashcardsEnabled', value: false })
-    await flashcardRepo.addFlashcard('Q1', 'A1')
-
+  it('does not expose flashcard data', async () => {
     const { result } = renderHook(() => useDashboardData({ activeTab: 'focus' }))
     await waitFor(() => expect(result.current.isDataReady).toBe(true))
-
-    expect(result.current.settings.flashcardsEnabled).toBe(false)
-    expect(result.current.flashcards.flashcards).toEqual([])
-    expect(result.current.flashcards.isLoading).toBe(false)
-
-    await result.current.flashcards.addFlashcard('Q2', 'A2')
-    expect(await db.flashcards.count()).toBe(1)
+    expect('flashcards' in result.current).toBe(false)
   })
 })

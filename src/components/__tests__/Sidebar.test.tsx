@@ -89,19 +89,19 @@ describe('Sidebar', () => {
 
   it('uses square centered nav buttons when collapsed with active tab', () => {
     localStorage.setItem('sidebar_collapsed', 'true')
-    const { container } = renderSidebar({ ...baseProps, activeTab: 'cards' })
+    const { container } = renderSidebar({ ...baseProps, activeTab: 'analytics' })
 
     const shell = container.querySelector('.sidebar-shell')
     const nav = shell?.querySelector('nav')
     expect(nav).toHaveClass('justify-items-center')
 
-    const cardsButton = screen.getByRole('button', { name: 'Cards', hidden: true })
-    expect(cardsButton).toHaveClass('h-10')
-    expect(cardsButton).toHaveClass('w-10')
-    expect(cardsButton).toHaveAttribute('data-active', 'true')
-    expect(cardsButton).toHaveAttribute('data-accent', 'cards')
-    expect(cardsButton.querySelectorAll('span:not([aria-hidden="true"])')).toHaveLength(0)
-    expect(cardsButton.querySelector('svg')).toBeInTheDocument()
+    const analyticsButton = screen.getByRole('button', { name: 'Analytics', hidden: true })
+    expect(analyticsButton).toHaveClass('h-10')
+    expect(analyticsButton).toHaveClass('w-10')
+    expect(analyticsButton).toHaveAttribute('data-active', 'true')
+    expect(analyticsButton).toHaveAttribute('data-accent', 'analytics')
+    expect(analyticsButton.querySelectorAll('span:not([aria-hidden="true"])')).toHaveLength(0)
+    expect(analyticsButton.querySelector('svg')).toBeInTheDocument()
   })
 
   it('expands from icon rail and clears collapsed preference', async () => {
