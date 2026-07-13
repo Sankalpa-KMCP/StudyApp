@@ -88,7 +88,7 @@ export function SubjectsView({
 
   return (
     <section className="workspace-panel" aria-labelledby="subjects-workspace-title">
-      <PanelHeader title="Subjects" actionLabel="New subject" onAction={() => openEditor()} />
+      <PanelHeader title="Subjects" description="Organize material, targets, and time by subject." actionLabel="New subject" onAction={() => openEditor()} />
       {feedback ? <p className={`settings-feedback ${feedback.tone}`} role={feedback.tone === 'error' ? 'alert' : 'status'}>{feedback.message}</p> : null}
       {editingSubjectId ? (
         <div className="editor-card">
@@ -131,7 +131,7 @@ export function SubjectsView({
                 <ProgressBar value={progressValue} label={`${Math.round(progressValue)}%`} />
                 <p>{taskCount} tasks - {formatMinutes(minutes)} logged</p>
                 {linkedTotal > 0 ? <small className="muted-copy">{linkedTotal} linked records must be moved or deleted first.</small> : null}
-                <RowActionButtons label={subject.name} onEdit={() => openEditor(subject)} onDelete={() => void deleteSubject(subject)} />
+                <RowActionButtons label={subject.name} onEdit={() => openEditor(subject)} onDelete={() => void deleteSubject(subject)} confirmDelete={false} />
               </article>
             )
           })}

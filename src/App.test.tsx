@@ -64,8 +64,10 @@ describe('App', () => {
     expect(screen.getByText('Matrix practice')).toBeInTheDocument()
     expect(screen.queryByText('Chemistry lab report')).not.toBeInTheDocument()
 
+    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
     await user.click(screen.getByLabelText('Delete Matrix practice'))
     await waitFor(() => expect(screen.queryByText('Matrix practice')).not.toBeInTheDocument())
+    confirmDelete.mockRestore()
   })
 
   it('opens new task and subject editors from the home hero', async () => {
@@ -190,7 +192,7 @@ describe('App', () => {
     render(<App />)
 
     await user.click(await screen.findByRole('button', { name: 'Settings' }))
-    await user.click(screen.getByRole('button', { name: /Dark mode/ }))
+    await user.click(screen.getByRole('radio', { name: /Midnight/ }))
 
     expect(document.documentElement.dataset.theme).toBe('dark')
   })
@@ -500,7 +502,7 @@ describe('App', () => {
     render(<App />)
 
     await user.click(await screen.findByRole('button', { name: 'Settings' }))
-    await user.click(screen.getByRole('button', { name: /Dark mode/ }))
+    await user.click(screen.getByRole('radio', { name: /Midnight/ }))
     expect(localStorage.getItem('study-dashboard-theme')).toBe('dark')
 
     await user.click(screen.getByRole('radio', { name: /Aurora/ }))
@@ -518,8 +520,7 @@ describe('App', () => {
     expect(screen.getByPlaceholderText('Search')).toHaveValue('biology')
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
-    const clearButtons = screen.getAllByRole('button', { name: 'Clear search' })
-    await user.click(clearButtons[clearButtons.length - 1])
+    await user.click(screen.getByRole('button', { name: 'Clear search' }))
 
     expect(screen.getByPlaceholderText('Search')).toHaveValue('')
   })

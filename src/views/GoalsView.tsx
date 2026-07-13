@@ -37,7 +37,7 @@ export function GoalsView({
 
   return (
     <section className="workspace-panel" aria-labelledby="goals-workspace-title">
-      <PanelHeader title="Goals" actionLabel="New goal" onAction={() => openEditor()} />
+      <PanelHeader title="Goals" description="Turn study intentions into measurable targets." actionLabel="New goal" onAction={() => openEditor()} />
       {editingGoalId ? (
         <div className="editor-card">
           <TextInput label="Goal title" value={draft.title} onChange={(title) => setDraft({ ...draft, title })} />

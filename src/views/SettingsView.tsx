@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, Upload, CircleUserRound, Layers3, RotateCcw } from 'lucide-react'
+import { Download, Upload, Layers3, RotateCcw } from 'lucide-react'
 import { PanelHeader } from '../components/ui'
 import type { ThemeMode } from '../App'
 
@@ -16,7 +16,6 @@ export function SettingsView({
   onExport,
   onImport,
   onClear,
-  onClearSearch,
   profileNotice,
   theme,
   onThemeChange,
@@ -24,7 +23,6 @@ export function SettingsView({
   onExport: () => void
   onImport: (file: File) => Promise<void>
   onClear: () => Promise<void>
-  onClearSearch: () => void
   profileNotice: string
   theme: ThemeMode
   onThemeChange: (theme: ThemeMode) => void
@@ -62,7 +60,7 @@ export function SettingsView({
 
   return (
     <section className="workspace-panel" aria-labelledby="settings-workspace-title">
-      <PanelHeader title="Settings" actionLabel="Clear search" onAction={onClearSearch} />
+      <PanelHeader title="Settings" description="Manage appearance, backups, and local data." />
       {profileNotice ? <p className="settings-feedback" role="status">{profileNotice}</p> : null}
       {feedback ? (
         <p className={`settings-feedback ${feedback.tone}`} role={feedback.tone === 'error' ? 'alert' : 'status'} aria-live="polite">
@@ -73,23 +71,18 @@ export function SettingsView({
         <button className="action-card" type="button" onClick={onExport}>
           <Download size={24} aria-hidden="true" />
           <strong>Export data</strong>
-          <span>Download an IndexedDB-backed JSON snapshot.</span>
+          <span>Download a complete JSON backup.</span>
         </button>
         <label className="action-card import-card">
           <Upload size={24} aria-hidden="true" />
           <strong>Import data</strong>
-          <span>Restore a previously exported study snapshot.</span>
+          <span>Replace local data from a Study Dashboard backup.</span>
           <input className="sr-only" type="file" accept="application/json" onChange={(event) => void handleImport(event)} />
         </label>
-        <button className="action-card" type="button" onClick={() => onThemeChange(theme === 'dark' ? 'light' : 'dark')}>
-          <CircleUserRound size={24} aria-hidden="true" />
-          <strong>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</strong>
-          <span>Switch the local visual theme for this device.</span>
-        </button>
         <div className="action-card theme-card">
           <Layers3 size={24} aria-hidden="true" />
-          <strong>Atmosphere</strong>
-          <span>Choose the room you want to study in.</span>
+          <strong>Appearance</strong>
+          <span>Choose a theme for this device.</span>
           <div className="theme-grid" role="radiogroup" aria-label="Theme">
             {themeOptions.map((option) => (
               <button
@@ -112,7 +105,7 @@ export function SettingsView({
           </div>
         </div>
       </div>
-      <div className="section-heading" style={{ marginTop: '24px' }}>
+      <div className="section-heading danger-heading">
         <h2>Danger zone</h2>
       </div>
       <div className="card-grid danger-zone">

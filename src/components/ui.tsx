@@ -28,19 +28,21 @@ export function EmptyState({ icon: Icon, title, body, actionLabel, onAction }: {
   )
 }
 
-export function PanelHeader({ title, actionLabel, onAction }: { title: string; actionLabel: string; onAction: () => void }) {
+export function PanelHeader({ title, description, actionLabel, onAction }: { title: string; description: string; actionLabel?: string; onAction?: () => void }) {
   const headingId = `${String(title).toLowerCase()}-workspace-title`
-  const ActionIcon = actionLabel.toLowerCase().startsWith('clear') ? X : Plus
+  const ActionIcon = actionLabel?.toLowerCase().startsWith('clear') ? X : Plus
   return (
     <div className="workspace-heading">
       <div>
         <h1 id={headingId}>{title}</h1>
-        <p>Manage your local-first study data.</p>
+        <p>{description}</p>
       </div>
-      <button className="primary-command" type="button" onClick={onAction}>
-        <ActionIcon size={18} aria-hidden="true" />
-        <span>{actionLabel}</span>
-      </button>
+      {actionLabel && onAction ? (
+        <button className="primary-command" type="button" onClick={onAction}>
+          <ActionIcon size={18} aria-hidden="true" />
+          <span>{actionLabel}</span>
+        </button>
+      ) : null}
     </div>
   )
 }
@@ -79,7 +81,7 @@ export function SegmentedControl<T extends string>({ value, options, onChange }:
   return (
     <div className="segmented-control" role="group" aria-label="Task filter">
       {options.map((option) => (
-        <button className={value === option ? 'is-active' : ''} type="button" key={option} onClick={() => onChange(option)}>
+        <button className={value === option ? 'is-active' : ''} type="button" aria-pressed={value === option} key={option} onClick={() => onChange(option)}>
           {option}
         </button>
       ))}
@@ -99,11 +101,15 @@ export function EditorActions({ onSave, onCancel }: { onSave: () => void; onCanc
   )
 }
 
-export function RowActionButtons({ label, onEdit, onDelete }: { label: string; onEdit: () => void; onDelete: () => void }) {
+export function RowActionButtons({ label, onEdit, onDelete, confirmDelete = true }: { label: string; onEdit: () => void; onDelete: () => void; confirmDelete?: boolean }) {
+  const handleDelete = () => {
+    if (!confirmDelete || window.confirm(`Delete ${label}? This cannot be undone.`)) onDelete()
+  }
+
   return (
     <div className="row-actions">
-      <button type="button" aria-label={`Edit ${label}`} onClick={onEdit}><Edit3 size={16} /></button>
-      <button type="button" aria-label={`Delete ${label}`} onClick={onDelete}><Trash2 size={16} /></button>
+      <button type="button" aria-label={`Edit ${label}`} onClick={onEdit}><Edit3 size={16} aria-hidden="true" /></button>
+      <button className="danger-action" type="button" aria-label={`Delete ${label}`} onClick={handleDelete}><Trash2 size={16} aria-hidden="true" /></button>
     </div>
   )
 }
@@ -118,9 +124,10 @@ export function MetricCard({ label, value }: { label: string; value: string }) {
 }
 
 export function ProgressBar({ value, label }: { value: number; label: string }) {
+  const boundedValue = clamp(value, 0, 100)
   return (
-    <div className="progress-row">
-      <span className="progress-track" aria-hidden="true"><span style={{ width: `${clamp(value, 0, 100)}%` }} /></span>
+    <div className="progress-row" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={boundedValue} aria-valuetext={label}>
+      <span className="progress-track" aria-hidden="true"><span style={{ width: `${boundedValue}%` }} /></span>
       <strong>{label}</strong>
     </div>
   )

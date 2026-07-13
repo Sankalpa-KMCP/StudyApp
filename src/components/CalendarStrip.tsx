@@ -19,7 +19,7 @@ export function CalendarStrip({ events }: { events: CalendarEvent[] }) {
         <article className={day.count > 0 ? 'calendar-day has-events' : 'calendar-day'} key={day.key}>
           <span>{day.day}</span>
           <strong>{day.date}</strong>
-          <small>{day.count} events</small>
+          <small>{day.count} {day.count === 1 ? 'event' : 'events'}</small>
         </article>
       ))}
     </div>

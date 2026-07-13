@@ -190,7 +190,7 @@ function FocusCard(props: {
   const remainingSeconds = props.sessionLimitSeconds > 0 ? Math.max(0, props.sessionLimitSeconds - elapsedSeconds) : 0
   return (
     <section className="card focus-card" aria-labelledby="focus-title">
-      <h2 id="focus-title">Focus Engine</h2>
+      <h2 id="focus-title">Focus session</h2>
       <div className="focus-ring" style={{ '--focus-percent': `${timerPercent}%` } as React.CSSProperties}>
         <div>
           <strong>{props.activeSession ? formatElapsed(props.sessionLimitSeconds > 0 ? remainingSeconds : elapsedSeconds) : formatMinutes(props.focusMinutes)}</strong>

@@ -15,7 +15,7 @@ export function ProgressView(props: {
   const weeklyHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
   return (
     <section className="workspace-panel" aria-labelledby="progress-workspace-title">
-      <PanelHeader title="Progress" actionLabel="Log session" onAction={props.onLogSession} />
+      <PanelHeader title="Progress" description="See where your study time and effort are going." actionLabel="Log session" onAction={props.onLogSession} />
       <div className="metric-grid">
         <MetricCard label="Weekly study" value={formatHours(weeklyHours)} />
         <MetricCard label="Tasks complete" value={`${completed}/${props.data.tasks.length}`} />

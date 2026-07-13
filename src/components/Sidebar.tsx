@@ -27,7 +27,7 @@ export function Sidebar({
     <aside className="sidebar" aria-label="Main navigation">
       <div className="brand-row">
         <button className="brand-dot" type="button" aria-label="Go to dashboard" onClick={() => onNavigate('Home')}>
-          <img src="/brand-mark.svg" alt="" />
+          <img src={`${import.meta.env.BASE_URL}brand-mark.svg`} alt="" />
         </button>
         <div className="brand-copy">
           <strong>Study room</strong>

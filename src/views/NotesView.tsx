@@ -38,7 +38,7 @@ export function NotesView({ notes, subjects, subjectMap, search = '', onClearSea
 
   return (
     <section className="workspace-panel" aria-labelledby="notes-workspace-title">
-      <PanelHeader title="Notes" actionLabel="New note" onAction={() => openEditor()} />
+      <PanelHeader title="Notes" description="Keep study notes searchable and close to the work." actionLabel="New note" onAction={() => openEditor()} />
       {editingNoteId ? (
         <div className="editor-card note-editor">
           <TextInput label="Note title" value={draft.title} onChange={(title) => setDraft({ ...draft, title })} />
