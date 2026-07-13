@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { Lock } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
-import { FOCUS_LOCKOUT } from '../lib/shared/uxTerms'
+import { useTranslation } from '../i18n/useTranslation'
 
 export type NavTabButtonVariant = 'sidebar-expanded' | 'sidebar-rail' | 'mobile'
 
@@ -62,6 +62,7 @@ export const NavTabButton = memo(function NavTabButton({
   onTouchStart,
   buttonRef,
 }: NavTabButtonProps) {
+  const { t } = useTranslation()
   const lockedClass = isLocked ? 'opacity-50' : ''
   const ariaLabel = buildAriaLabel(label, badge, isLocked)
 
@@ -132,7 +133,7 @@ export const NavTabButton = memo(function NavTabButton({
       {...sharedDataAttrs}
       aria-current={isActive ? 'page' : undefined}
       aria-label={ariaLabel}
-      title={isLocked ? `${FOCUS_LOCKOUT} active` : label}
+      title={isLocked ? `${t('focusLockout')} active` : label}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

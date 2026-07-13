@@ -1,49 +1,54 @@
-/** @deprecated Import `t` from `../../i18n` or use `useTranslation()` in components. */
+/** UX copy helpers — call at runtime for locale reactivity. */
 import { t } from '../../i18n'
 
-export const PRODUCT_NAME = t('productName')
+export function productName() { return t('productName') }
 
-export const FOCUS_MODE = t('focusMode')
-export const FOCUS_MODE_ON = t('focusModeOn')
-export const FOCUS_MODE_OFF = t('focusModeOff')
+export function focusMode() { return t('focusMode') }
+export function focusModeOn() { return t('focusModeOn') }
+export function focusModeOff() { return t('focusModeOff') }
 
-export const FOCUS_LOCKOUT = t('focusLockout')
-export const FOCUS_LOCKOUT_ACTIVE = t('focusLockoutActive')
+export function focusLockout() { return t('focusLockout') }
+export function focusLockoutActive() { return t('focusLockoutActive') }
 
-export const STUDY_BLOCK = t('studyBlock')
-export const STUDY_BLOCK_SAVED = t('studyBlockSaved')
-export const STUDY_BLOCK_COMPLETE = t('studyBlockComplete')
+export function studyBlock() { return t('studyBlock') }
+export function studyBlockSaved() { return t('studyBlockSaved') }
+export function studyBlockComplete() { return t('studyBlockComplete') }
 
-export const FOCUS_TARGET = t('focusTarget')
-export const FOCUS_TARGETS = t('focusTargets')
-export const NO_FOCUS_TARGET = t('noFocusTarget')
-export const WORKING_ON = t('workingOn')
+export function focusTarget() { return t('focusTarget') }
+export function focusTargets() { return t('focusTargets') }
+export function noFocusTarget() { return t('noFocusTarget') }
+export function workingOn() { return t('workingOn') }
 
-export const SESSIONS_BEFORE_LONG_BREAK = t('sessionsBeforeLongBreak')
+export function sessionsBeforeLongBreak() { return t('sessionsBeforeLongBreak') }
 
-export const TIMER_RUNNING = t('timerRunning')
-export const TIMER_PAUSED = t('timerPaused')
-export const SWITCHED_TO_STUDY = t('switchedToStudy')
-export const SWITCHED_TO_BREAK = t('switchedToBreak')
+export function timerRunning() { return t('timerRunning') }
+export function timerPaused() { return t('timerPaused') }
+export function switchedToStudy() { return t('switchedToStudy') }
+export function switchedToBreak() { return t('switchedToBreak') }
 
-export const PAUSE_TIMER_TO_LEAVE = t('pauseTimerToLeave')
+export function pauseTimerToLeave() { return t('pauseTimerToLeave') }
 
-export const END_STUDY_BLOCK_EARLY = t('endStudyBlockEarly')
-export const END_STUDY_BLOCK_EARLY_BODY = t('endStudyBlockEarlyBody')
+export function endStudyBlockEarly() { return t('endStudyBlockEarly') }
+export function endStudyBlockEarlyBody() { return t('endStudyBlockEarlyBody') }
 
-export const BREAK_ENDED = t('breakEnded')
-export const END_BREAK_EARLY = t('endBreakEarly')
-export const END_BREAK_EARLY_CONFIRM = t('endBreakEarlyConfirm')
-export const END_BREAK_EARLY_BODY = t('endBreakEarlyBody')
+export function breakEnded() { return t('breakEnded') }
+export function endBreakEarly() { return t('endBreakEarly') }
+export function endBreakEarlyConfirm() { return t('endBreakEarlyConfirm') }
+export function endBreakEarlyBody() { return t('endBreakEarlyBody') }
 
-export const SM2_HELPER = t('sm2Helper')
+export function sm2Helper() { return t('sm2Helper') }
 
-export const QUICK_NOTES_HELPER = t('quickNotesHelper')
-export const JOURNAL_HELPER = t('journalHelper')
-export const JOURNAL_PANEL_HELPER = t('journalPanelHelper')
-export const JOURNAL_TAB_SUBTITLE = t('journalTabSubtitle')
+export function quickNotesHelper() { return t('quickNotesHelper') }
+export function journalHelper() { return t('journalHelper') }
+export function journalPanelHelper() { return t('journalPanelHelper') }
+export function journalTabSubtitle() { return t('journalTabSubtitle') }
 
-export const ARCHIVED_TASKS = (count: number) =>
-  count === 1 ? t('archivedTasksOne') : t('archivedTasksMany', { count })
+export function archivedTasks(count: number) {
+  return count === 1 ? t('archivedTasksOne') : t('archivedTasksMany', { count })
+}
 
-export const HOTKEY_HINT = t('hotkeyHint')
+export function hotkeyHint() { return t('hotkeyHint') }
+
+export function shortcutsPanelOpened() { return t('shortcutsPanelOpened') }
+export function shortcutsPanelClosed() { return t('shortcutsPanelClosed') }
+export function sidebarToggled() { return t('sidebarToggled') }

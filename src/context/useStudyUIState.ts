@@ -15,8 +15,7 @@ import { useStudyTimerContext } from './studyTimerContext'
 import { useConfirm } from './useConfirm'
 import type { useAppToast } from '../hooks/useAppToast'
 import { useUndoDelete } from '../hooks/useUndoDelete'
-import { PAUSE_TIMER_TO_LEAVE } from '../lib/shared/uxTerms'
-import { setAppLocale } from '../i18n'
+import { setAppLocale, t } from '../i18n'
 import { setDeferredDataFlags } from '../hooks/useDeferredDataEnabled'
 
 const UI_FONT_STACKS: Record<string, string> = {
@@ -55,7 +54,7 @@ export function useStudyUIState(toast: ToastApi) {
   const notifyFocusLockout = useCallback(() => {
     setActiveToast({
       key: 'LOCK',
-      message: PAUSE_TIMER_TO_LEAVE,
+      message: t('pauseTimerToLeave'),
       id: Date.now(),
     })
   }, [setActiveToast])

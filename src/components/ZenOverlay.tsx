@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Play, Pause, Check, ChevronLeft, Lock } from 'lucide-react'
 import type { TaskItem } from '../db/types'
-import { FOCUS_LOCKOUT, FOCUS_MODE } from '../lib/shared/uxTerms'
+import { useTranslation } from '../i18n/useTranslation'
 
 interface ZenOverlayProps {
   isZenMode: boolean
@@ -32,6 +32,7 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
   setIsZenMode,
   pageGradient,
 }) => {
+  const { t } = useTranslation()
   const [showLockoutExitConfirm, setShowLockoutExitConfirm] = useState(false)
   if (!isZenMode) return null
 
@@ -55,9 +56,9 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
 
       <button
         onClick={handleExitAttempt}
-        aria-label={canExit ? `Exit ${FOCUS_MODE.toLowerCase()}` : `${FOCUS_LOCKOUT} active — confirm to exit`}
+        aria-label={canExit ? `Exit ${t('focusMode').toLowerCase()}` : `${t('focusLockout')} active — confirm to exit`}
         className="absolute top-6 right-6 z-20 flex items-center gap-2 rounded-full surface-track border border-card px-4 py-2 text-caption font-semibold text-secondary hover:opacity-90 hover:text-primary transition-all cursor-pointer ios-active-scale"
-        title={canExit ? `Exit ${FOCUS_MODE.toLowerCase()}` : `${FOCUS_LOCKOUT} active`}
+        title={canExit ? `Exit ${t('focusMode').toLowerCase()}` : `${t('focusLockout')} active`}
       >
         {!canExit && <Lock className="h-3 w-3 text-accent-amber" />}
         <span className="hidden sm:inline">Exit</span>
@@ -102,8 +103,8 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
       <button
         onClick={handleExitAttempt}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full surface-subtle border border-card hover:surface-track text-secondary hover:text-primary transition-all duration-300 cursor-pointer shadow-md ios-active-scale md:hidden"
-        title={`Exit ${FOCUS_MODE.toLowerCase()}`}
-        aria-label={`Exit ${FOCUS_MODE.toLowerCase()}`}
+        title={`Exit ${t('focusMode').toLowerCase()}`}
+        aria-label={`Exit ${t('focusMode').toLowerCase()}`}
       >
         <ChevronLeft className="h-5 w-5" />
       </button>
@@ -114,7 +115,7 @@ export const ZenOverlay: React.FC<ZenOverlayProps> = ({
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-amber/10 border border-accent-amber/20 text-accent-amber mx-auto">
               <Lock className="h-5 w-5" />
             </div>
-            <h4 className="text-sm font-bold text-primary uppercase tracking-wider">{FOCUS_LOCKOUT} active</h4>
+            <h4 className="text-sm font-bold text-primary uppercase tracking-wider">{t('focusLockout')} active</h4>
             <p className="text-caption text-secondary leading-relaxed">
               You enabled lockout to prevent distraction. Pause your study timer to exit focus mode.
             </p>

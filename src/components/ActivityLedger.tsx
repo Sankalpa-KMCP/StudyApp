@@ -4,12 +4,12 @@ import type { CategoryItem, HistoryEntry } from '../db/types'
 import type { DayData } from '../types/app'
 import type { JournalSaveStatus } from '../hooks/useJournalCalendar'
 import { formatMinutes, getIntensity } from '../lib/study/studyDashboard'
-import { JOURNAL_HELPER, JOURNAL_PANEL_HELPER } from '../lib/shared/uxTerms'
 import { DayDetailPanel } from './activity-ledger/DayDetailPanel'
 import { useLedgerIntensityStyles } from './activity-ledger/useLedgerCalendar'
 import { TabPageShell } from './shared/TabPageShell'
 import { PanelCard } from './shared/PanelCard'
 import { PanelHeader } from './shared/PanelHeader'
+import { useTranslation } from '../i18n/useTranslation'
 
 interface ActivityLedgerProps {
   selectedDay: number
@@ -69,6 +69,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
   selectedDayHistory,
   saveStatus,
 }) => {
+  const { t } = useTranslation()
   const [draftMood, setDraftMood] = useState(initialDraftMood)
   const [draftNotes, setDraftNotes] = useState(initialDraftNotes)
   const [journalHintDismissed, setJournalHintDismissed] = useState(
@@ -86,17 +87,24 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
     setJournalHintDismissed(true)
   }
 
+  const legendItems = [
+    { label: t('journalLegend0to1h'), intensity: 0 as const },
+    { label: t('journalLegend1to2h'), intensity: 1 as const },
+    { label: t('journalLegend2to3h'), intensity: 2 as const },
+    { label: t('journalLegend3plus'), intensity: 3 as const },
+  ]
+
   return (
     <TabPageShell>
       {showJournalHint && (
         <div className="lg:col-span-12 flex items-start justify-between gap-3 rounded-2xl border border-accent-blue/20 bg-accent-blue/10 px-4 py-3">
           <p className="text-xs text-text-secondary leading-relaxed">
-            Your study sessions will appear here. Start a focus block on the Focus tab.
+            {t('journalHintBody')}
           </p>
           <button
             type="button"
             onClick={dismissJournalHint}
-            aria-label="Dismiss journal hint"
+            aria-label={t('journalHintDismiss')}
             className="shrink-0 rounded-full p-1 text-muted hover:text-primary hover:surface-track transition-all"
           >
             <X className="h-4 w-4" />
@@ -105,8 +113,8 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
       )}
       <div className="lg:col-span-5 flex flex-col gap-6">
         <PanelCard>
-          <PanelHeader title={JOURNAL_HELPER} bordered={false} className="mb-1" />
-          <p className="text-micro text-muted font-medium mb-4">{JOURNAL_PANEL_HELPER}</p>
+          <PanelHeader title={t('journalHelper')} bordered={false} className="mb-1" />
+          <p className="text-micro text-muted font-medium mb-4">{t('journalPanelHelper')}</p>
 
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
@@ -114,15 +122,15 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
               <span className="text-sm font-bold text-text-primary">{monthNames[currentMonth]} {currentYear}</span>
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" aria-label="Previous month" onClick={goPrevMonth} className="h-7 w-7 rounded-full border border-card surface-subtle hover:surface-track text-sm transition-all flex items-center justify-center cursor-pointer active:scale-90 ios-active-scale">‹</button>
-              <button type="button" aria-label="Next month" onClick={goNextMonth} className="h-7 w-7 rounded-full border border-card surface-subtle hover:surface-track text-sm transition-all flex items-center justify-center cursor-pointer active:scale-90 ios-active-scale">›</button>
+              <button type="button" aria-label={t('journalPreviousMonth')} onClick={goPrevMonth} className="h-7 w-7 rounded-full border border-card surface-subtle hover:surface-track text-sm transition-all flex items-center justify-center cursor-pointer active:scale-90 ios-active-scale">‹</button>
+              <button type="button" aria-label={t('journalNextMonth')} onClick={goNextMonth} className="h-7 w-7 rounded-full border border-card surface-subtle hover:surface-track text-sm transition-all flex items-center justify-center cursor-pointer active:scale-90 ios-active-scale">›</button>
               <select
                 value={calendarCategoryFilter === 'all' ? 'all' : String(calendarCategoryFilter)}
                 onChange={e => setCalendarCategoryFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                aria-label="Filter calendar by subject"
+                aria-label={t('journalFilterSubjects')}
                 className="rounded-full border border-card surface-subtle hover:surface-track px-3.5 py-1 text-xs text-text-secondary outline-none cursor-pointer transition-all active:scale-95 ios-active-scale"
               >
-                <option value="all" className="bg-surface">All Subjects</option>
+                <option value="all" className="bg-surface">{t('journalAllSubjects')}</option>
                 {categories.map(cat => (
                   <option key={cat.id} value={cat.id} className="bg-surface">{cat.name}</option>
                 ))}
@@ -136,7 +144,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-2.5" role="grid" aria-label={`${monthNames[currentMonth]} ${currentYear} study calendar`}>
+          <div className="grid grid-cols-7 gap-2.5" role="grid" aria-label={t('journalCalendarAria', { month: monthNames[currentMonth], year: currentYear })}>
             {dynamicGridCells.map((cell, i) => {
               const dayData = cell ? activeMonthData[cell - 1] : null
               const isLiveDay = isLiveMonth && cell === todayDayOfMonth
@@ -149,7 +157,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                   key={i}
                   type="button"
                   role="gridcell"
-                  aria-label={`${cellLabel}, focus ${studyLabel}`}
+                  aria-label={t('journalCellAria', { date: cellLabel, study: studyLabel })}
                   aria-selected={cell === selectedDay}
                   onClick={() => setSelectedDay(cell)}
                   className={`group relative aspect-square min-h-[40px] rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300 ease-out cursor-pointer ios-active-scale active:scale-95 ${
@@ -167,15 +175,15 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
                       </div>
                       <div className="flex items-center gap-1 text-text-secondary">
                         <Timer className="h-3 w-3 shrink-0" aria-hidden />
-                        Focus: {isLiveDay ? formatMinutes(todayStudyMinutes) : dayData.studyTime}
+                        {t('journalTooltipFocus', { time: isLiveDay ? formatMinutes(todayStudyMinutes) : dayData.studyTime })}
                       </div>
                       <div className="flex items-center gap-1 text-muted">
                         <Coffee className="h-3 w-3 shrink-0" aria-hidden />
-                        Break: {isLiveDay ? formatMinutes(todayBreakMinutes) : dayData.breakTime}
+                        {t('journalTooltipBreak', { time: isLiveDay ? formatMinutes(todayBreakMinutes) : dayData.breakTime })}
                       </div>
                       <div className="flex items-center gap-1 text-accent-blue font-bold mt-0.5">
                         <Target className="h-3 w-3 shrink-0" aria-hidden />
-                        Score: {isLiveDay ? `${progressPercent}%` : dayData.focusScore}
+                        {t('journalTooltipScore', { score: isLiveDay ? `${progressPercent}%` : dayData.focusScore })}
                       </div>
                     </div>
                   )}
@@ -208,12 +216,7 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-label text-text-secondary border-t border-card pt-4">
             <div className="flex items-center gap-3">
-              {[
-                { label: '0-1h', intensity: 0 as const },
-                { label: '1-2h', intensity: 1 as const },
-                { label: '2-3h', intensity: 2 as const },
-                { label: '3+h', intensity: 3 as const },
-              ].map(item => (
+              {legendItems.map(item => (
                 <div key={item.label} className="flex items-center gap-1 font-bold">
                   <div className="h-2.5 w-2.5 rounded-md border border-card" style={getLegendStyle(item.intensity)} />
                   <span>{item.label}</span>
@@ -221,11 +224,11 @@ export const ActivityLedger: React.FC<ActivityLedgerProps> = ({
               ))}
             </div>
             <div className="flex items-center gap-1.5 font-bold">
-              <span>Low</span>
+              <span>{t('commonLow')}</span>
               {[0.3, 0.6, 1].map((opacity, i) => (
                 <div key={i} className="h-2 w-2 rounded-full" style={{ backgroundColor: activeThemeVars.accentBlue, opacity }} />
               ))}
-              <span>High</span>
+              <span>{t('commonHigh')}</span>
             </div>
           </div>
         </PanelCard>

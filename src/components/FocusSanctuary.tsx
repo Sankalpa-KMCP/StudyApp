@@ -6,12 +6,6 @@ import { PanelCard } from './shared/PanelCard'
 import { PanelHeader } from './shared/PanelHeader'
 import { SelectionChip } from './shared/SelectionChip'
 import { useTranslation } from '../i18n/useTranslation'
-import {
-  FOCUS_MODE,
-  NO_FOCUS_TARGET,
-  STUDY_BLOCK_COMPLETE,
-  WORKING_ON,
-} from '../lib/shared/uxTerms'
 import type { TaskItem } from '../db/types'
 import { useStudyData } from '../context/useStudyApp'
 import { useStudyTimerContext, useStudyTimerDisplay } from '../context/studyTimerContext'
@@ -108,7 +102,7 @@ export function FocusSanctuary({
   return (
     <div className="grid grid-cols-1 gap-6 w-full flex-1 items-start">
       <div className="sr-only" aria-live="assertive" aria-atomic="true">
-        {showReflectionModal && timerMode === 'study' ? STUDY_BLOCK_COMPLETE : ''}
+        {showReflectionModal && timerMode === 'study' ? t('studyBlockComplete') : ''}
       </div>
 
       <div className="flex flex-col gap-6 w-full">
@@ -118,7 +112,7 @@ export function FocusSanctuary({
             action={
               <Button size="sm" onClick={() => setIsZenMode(true)} className="gap-1.5">
                 <Sparkles className="h-3.5 w-3.5 text-accent-blue" />
-                <span>{FOCUS_MODE}</span>
+                <span>{t('focusMode')}</span>
               </Button>
             }
           />
@@ -159,8 +153,8 @@ export function FocusSanctuary({
 
           <p className="text-center text-caption text-muted mb-3 select-none">
             {activeTask
-              ? `${WORKING_ON}: ${activeTask.text}`
-              : NO_FOCUS_TARGET}
+              ? `${t('workingOn')}: ${activeTask.text}`
+              : t('noFocusTarget')}
           </p>
 
           <button

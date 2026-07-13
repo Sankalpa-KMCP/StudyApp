@@ -8,7 +8,7 @@ import { createAnchorState } from './timer/timerAnchor'
 import { useTimerSessionShadow } from './timer/useTimerSessionShadow'
 import { useTimerCompletion } from './timer/useTimerCompletion'
 import { useWakeLock } from './timer/useWakeLock'
-import { BREAK_ENDED } from '../lib/shared/uxTerms'
+import { t } from '../i18n'
 import { useTimerReflection } from './timer/useTimerReflection'
 import { useTimerTick } from './timer/useTimerTick'
 
@@ -219,7 +219,7 @@ export function useTimerEngine({
     setTimerMode('study')
     setIsTimerActive(true)
     playChime()
-    pushToast('TIMER', BREAK_ENDED)
+    pushToast('TIMER', t('breakEnded'))
   }, [timerMode, playChime, pushToast, setIsTimerActive, resetAnchor])
 
   const submitRecallGrade = useCallback(async (task: TaskItem, q: number) => {
