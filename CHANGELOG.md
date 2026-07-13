@@ -24,6 +24,8 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-13
+
 ### Removed
 - **Flashcards / Cards tab** — deck UI, `flashcards` IndexedDB table, and `flashcardsEnabled` setting (Dexie v12 migration). Task-based SM-2/FSRS scheduling on focus targets is unchanged. Legacy backups with `flashcards` still import; card data is not restored.
 
@@ -37,9 +39,11 @@
 - Smarter focus lockout modes, study reminders, per-entity timer presets
 - Recurring tasks, FSRS scheduling option
 - Journal search in command palette; Tauri minimize-on-close and configurable shortcuts
-- i18n (English + stub locale), mobile focus parity, PWA offline documentation
+- i18n string catalog (`en.json`), mobile focus parity, PWA offline documentation
 
 ## [1.1.0] - 2026-06-12
+
+> **Note:** Flashcard features listed below were removed in v1.2.0 (Dexie v12). Task-based SM-2/FSRS on focus targets remains.
 
 ### Added
 - Command palette (Ctrl/Cmd+K) for tasks, notes, flashcards, and tab navigation

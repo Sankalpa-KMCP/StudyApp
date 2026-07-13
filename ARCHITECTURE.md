@@ -100,13 +100,31 @@ ESLint enforces `no-restricted-imports` on `components`, `hooks`, and `lib`. Bul
 
 Tab-gated analytics/journal work uses `useLazyStudyFeatures(activeTab)` from `StudyDataProvider`.
 
-Dexie schema version: **10** (`db.verno`).
+Dexie schema version: **12** (`db.verno`).
+
+## Folder sync
+
+Bidirectional sync between web (Chrome/Edge File System Access) and Tauri desktop via a shared `study-vault.sync.studybackup` file:
+
+```mermaid
+flowchart LR
+  dbChange[Dexie change] -->|debounce 2s| push[syncPush]
+  poll[Poll every 8s] --> pull[syncPull]
+  push --> syncFile[(sync file)]
+  pull --> syncFile
+  pull --> merge[mergeBackupData]
+```
+
+- **Orchestrator:** `lib/sync/syncOrchestrator.ts` — adapter resolution, poll, push debounce, manual `syncNow`.
+- **Adapters:** `fileSystemAccess.ts` (web), `desktopSyncAdapter.ts` (Tauri).
+- **Settings UI:** `FolderSyncPanel` in Backup Vault; lifecycle via `useFolderSync` from `useAppShellEffects`.
 
 ## `lib/` layout
 
 | Folder | Contents |
 |--------|----------|
 | `lib/backup/` | Vault export/import, checksum, crypto, merge |
+| `lib/sync/` | Folder sync orchestrator, push/pull, adapters |
 | `lib/export/` | ICS and weekly report export |
 | `lib/theme/` | Theme profiles, CSS variables, fonts |
 | `lib/desktop/` | Tauri bridge, native notifications, wake lock |
