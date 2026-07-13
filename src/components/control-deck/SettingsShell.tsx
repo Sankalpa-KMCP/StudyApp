@@ -43,7 +43,7 @@ export function SettingsShell({
 
       <div className="hidden lg:block lg:col-span-3">
         <div className="sticky top-4">
-        <p className="panel-title mb-3 px-1">Sections</p>
+        <p className="panel-title mb-3 px-1">{t('settingsShellSections')}</p>
           <SettingsSectionNav variant="sidebar" />
         </div>
       </div>
@@ -63,6 +63,8 @@ interface SettingsSectionProps {
 }
 
 export function SettingsSection({ id, label, children, onResetDefaults }: SettingsSectionProps) {
+  const { t } = useTranslation()
+
   return (
     <section
       id={`settings-${id}`}
@@ -80,7 +82,7 @@ export function SettingsSection({ id, label, children, onResetDefaults }: Settin
             onClick={onResetDefaults}
             className="text-micro font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors ios-active-scale"
           >
-            Reset section
+            {t('settingsShellResetSection')}
           </button>
         )}
       </div>

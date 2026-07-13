@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { useConfirm } from '../../context/useConfirm'
+import { useTranslation } from '../../i18n/useTranslation'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 
@@ -12,6 +13,7 @@ function clampCategoryGoal(raw: number): number {
 }
 
 export function CategoriesPanel() {
+  const { t } = useTranslation()
   const { categories: catApi, pushToast } = useSettingsPanel()
   const { requestConfirm } = useConfirm()
   const { categories, addCategory, updateCategory, deleteCategory } = catApi
@@ -28,7 +30,7 @@ export function CategoriesPanel() {
     if (!val) return
     const goal = newCategoryGoal.trim() ? clampCategoryGoal(Number(newCategoryGoal)) : undefined
     await addCategory(val, newCategoryColor, goal)
-    pushToast('SETTINGS', `Category "${val}" added`)
+    pushToast('SETTINGS', t('categoriesAddedToast', { name: val }))
     setNewCategoryName('')
     setNewCategoryGoal('')
   }
@@ -50,30 +52,30 @@ export function CategoriesPanel() {
 
   const handleDelete = async (catId: number, name: string) => {
     const ok = await requestConfirm({
-      title: `Delete "${name}"?`,
-      message: 'Tasks linked to this category will keep their data but lose the category label.',
-      confirmLabel: 'Delete',
+      title: t('categoriesDeleteConfirmTitle', { name }),
+      message: t('categoriesDeleteConfirmMessage'),
+      confirmLabel: t('categoriesDeleteConfirmLabel'),
       danger: true,
     })
     if (!ok) return
     try {
       await deleteCategory(catId)
-      pushToast('SETTINGS', `Category "${name}" removed`)
+      pushToast('SETTINGS', t('categoriesRemovedToast', { name }))
     } catch {
-      pushToast('SETTINGS', 'Cannot delete the last category')
+      pushToast('SETTINGS', t('categoriesCannotDeleteLast'))
     }
   }
 
   return (
-    <SettingsCard id="settings-categories" title="Subject Categories" defaultCollapsed>
+    <SettingsCard id="settings-categories" title={t('categoriesPanelTitle')} defaultCollapsed>
       <div className="flex gap-2 mb-4 settings-input border border-[var(--color-border-card)] p-2 rounded-full flex-wrap sm:flex-nowrap">
         <input
           id="category-name-input"
           value={newCategoryName}
           onChange={e => setNewCategoryName(e.target.value)}
           type="text"
-          placeholder="Label (e.g. Science)"
-          aria-label="Category name"
+          placeholder={t('categoriesNamePlaceholder')}
+          aria-label={t('categoriesNameAria')}
           className="flex-1 min-w-[120px] rounded-full bg-transparent px-3 py-1.5 text-xs outline-none transition-all"
           onKeyDown={e => { if (e.key === 'Enter') void handleAdd() }}
         />
@@ -84,8 +86,8 @@ export function CategoriesPanel() {
           min={15}
           max={960}
           step={15}
-          placeholder="Goal (min)"
-          aria-label="Category daily goal minutes"
+          placeholder={t('categoriesGoalPlaceholder')}
+          aria-label={t('categoriesGoalAria')}
           className="w-24 rounded-full bg-transparent px-3 py-1.5 text-xs outline-none transition-all"
         />
         <input
@@ -99,12 +101,12 @@ export function CategoriesPanel() {
           onClick={() => void handleAdd()}
           className="rounded-full bg-accent-blue hover:bg-accent-blue/90 text-on-accent px-4 py-1.5 text-xs font-bold transition-all ios-active-scale cursor-pointer"
         >
-          Add
+          {t('categoriesAdd')}
         </button>
       </div>
 
       <div className="flex items-center gap-2.5 mb-4 px-2 select-none">
-        <span className="settings-muted font-bold uppercase tracking-wider text-micro">Swatches:</span>
+        <span className="settings-muted font-bold uppercase tracking-wider text-micro">{t('categoriesSwatches')}</span>
         <div className="flex flex-wrap gap-2">
           {SWATCH_COLORS.map(color => (
             <button
@@ -118,7 +120,7 @@ export function CategoriesPanel() {
               }`}
               style={{ backgroundColor: color }}
               title={color}
-              aria-label={`Category color ${color}`}
+              aria-label={t('categoriesColorAria', { color })}
             />
           ))}
         </div>
@@ -126,14 +128,14 @@ export function CategoriesPanel() {
 
       <div className="flex-1 overflow-y-auto max-h-[260px] custom-scrollbar space-y-2 pr-1">
         {categories.length === 0 ? (
-          <p className="text-xs italic settings-muted text-center py-4">No categories configured yet.</p>
+          <p className="text-xs italic settings-muted text-center py-4">{t('categoriesEmpty')}</p>
         ) : (
           categories.map(cat => (
             <div
               key={cat.id}
               className="flex items-center gap-2.5 rounded-[16px] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] border border-[var(--color-border-card)] px-3.5 py-2.5"
             >
-              <label className="relative h-3 w-3 shrink-0 cursor-pointer" title="Change category color">
+              <label className="relative h-3 w-3 shrink-0 cursor-pointer" title={t('categoriesChangeColorTitle')}>
                 <span className="block h-3 w-3 rounded-full border border-[var(--color-border-card)]" style={{ backgroundColor: cat.color }} />
                 <input
                   type="color"
@@ -143,7 +145,7 @@ export function CategoriesPanel() {
                     void updateCategory(cat.id, { color: e.target.value })
                   }}
                   className="absolute inset-0 opacity-0 cursor-pointer"
-                  aria-label={`Color for ${cat.name}`}
+                  aria-label={t('categoriesColorForAria', { name: cat.name })}
                 />
               </label>
               {editingCategoryId === cat.id ? (
@@ -165,7 +167,7 @@ export function CategoriesPanel() {
                   }}
                   ref={el => el?.focus()}
                   className="flex-1 min-w-0 rounded-lg settings-input px-2 py-1 text-xs"
-                  aria-label={`Edit name for ${cat.name}`}
+                  aria-label={t('categoriesEditNameAria', { name: cat.name })}
                 />
               ) : (
                 <button
@@ -185,8 +187,8 @@ export function CategoriesPanel() {
                 min={15}
                 max={960}
                 step={15}
-                aria-label={`Daily goal minutes for ${cat.name}`}
-                placeholder="Goal"
+                aria-label={t('categoriesDailyGoalAria', { name: cat.name })}
+                placeholder={t('categoriesGoalShort')}
                 value={cat.id !== undefined && goalDrafts[cat.id] !== undefined ? goalDrafts[cat.id] : (cat.dailyGoalMinutes ?? '')}
                 onChange={e => {
                   if (cat.id === undefined) return
@@ -206,7 +208,7 @@ export function CategoriesPanel() {
               <button
                 type="button"
                 onClick={() => cat.id !== undefined && void handleDelete(cat.id, cat.name)}
-                aria-label={`Delete category ${cat.name}`}
+                aria-label={t('categoriesDeleteAria', { name: cat.name })}
                 className="flex h-6 w-6 items-center justify-center rounded-full settings-muted hover:text-red-400 hover:bg-red-500/10 transition-all ios-active-scale cursor-pointer"
               >
                 <X className="h-4 w-4" />

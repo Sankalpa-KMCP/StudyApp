@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { MAX_STUDY_BLOCK_MINUTES } from '../../lib/shared/timerConstants'
-import { POMODORO_PRESETS } from '../../lib/settings/settingsSections'
+import { getPomodoroPresets } from '../../lib/settings/settingsSections'
 import { markDailyGoalConfigured } from '../../lib/study/setupChecklist'
+import { useTranslation } from '../../i18n/useTranslation'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
@@ -9,6 +10,8 @@ import { ToggleSetting } from '../shared/settings/ToggleSetting'
 import { SettingsPresetChips } from '../shared/settings/SettingsPresetChips'
 
 export function TimerFocusPanel() {
+  const { t } = useTranslation()
+  const pomodoroPresets = getPomodoroPresets()
   const {
     dailyGoalMinutes,
     studyBlockDurationMinutes,
@@ -28,9 +31,13 @@ export function TimerFocusPanel() {
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
 
   const summary = useMemo(
-    () =>
-      `${studyBlockDurationMinutes}m focus · ${shortBreakDurationMinutes}m break · ${longBreakDurationMinutes}m long · every ${targetSessionsPerCycle} sessions`,
-    [studyBlockDurationMinutes, shortBreakDurationMinutes, longBreakDurationMinutes, targetSessionsPerCycle],
+    () => t('timerFocusSummary', {
+      focus: studyBlockDurationMinutes,
+      shortBreak: shortBreakDurationMinutes,
+      longBreak: longBreakDurationMinutes,
+      sessions: targetSessionsPerCycle,
+    }),
+    [t, studyBlockDurationMinutes, shortBreakDurationMinutes, longBreakDurationMinutes, targetSessionsPerCycle],
   )
 
   const handleNotificationsToggle = async (enabled: boolean) => {
@@ -41,30 +48,30 @@ export function TimerFocusPanel() {
     updateSetting('focusNotificationsEnabled', enabled)
   }
 
-  const applyPomodoroPreset = (preset: (typeof POMODORO_PRESETS)[number]) => {
+  const applyPomodoroPreset = (preset: ReturnType<typeof getPomodoroPresets>[number]) => {
     Object.entries(preset.values).forEach(([key, val]) => {
       updateSetting(key as keyof typeof preset.values, val)
     })
   }
 
   const fields = [
-    { key: 'dailyGoalMinutes' as const, label: 'Daily goal (minutes)', value: dailyGoalMinutes, min: 30, max: 960, step: 30, chips: [60, 120, 240, 480] },
-    { key: 'studyBlockDurationMinutes' as const, label: 'Study block (minutes)', value: studyBlockDurationMinutes, min: 5, max: MAX_STUDY_BLOCK_MINUTES, step: 5, chips: [15, 25, 45, 60] },
-    { key: 'shortBreakDurationMinutes' as const, label: 'Short break (minutes)', value: shortBreakDurationMinutes, min: 1, max: 30, step: 1, chips: [3, 5, 10, 15] },
-    { key: 'longBreakDurationMinutes' as const, label: 'Long break (minutes)', value: longBreakDurationMinutes, min: 5, max: 60, step: 5, chips: [10, 15, 20, 30] },
-    { key: 'targetSessionsPerCycle' as const, label: 'Sessions before long break', value: targetSessionsPerCycle, min: 1, max: 10, step: 1, chips: [2, 4, 6, 8] },
-    { key: 'recentHistoryLimit' as const, label: 'Recent history window', value: recentHistoryLimit, min: 50, max: 500, step: 25, chips: undefined },
-    { key: 'historyRetentionDays' as const, label: 'History retention (days, 0 = keep all)', value: historyRetentionDays, min: 0, max: 365, step: 30, chips: [0, 90, 180, 365] },
+    { key: 'dailyGoalMinutes' as const, label: t('timerFocusDailyGoalMinutes'), value: dailyGoalMinutes, min: 30, max: 960, step: 30, chips: [60, 120, 240, 480] },
+    { key: 'studyBlockDurationMinutes' as const, label: t('timerFocusStudyBlockMinutes'), value: studyBlockDurationMinutes, min: 5, max: MAX_STUDY_BLOCK_MINUTES, step: 5, chips: [15, 25, 45, 60] },
+    { key: 'shortBreakDurationMinutes' as const, label: t('timerFocusShortBreakMinutes'), value: shortBreakDurationMinutes, min: 1, max: 30, step: 1, chips: [3, 5, 10, 15] },
+    { key: 'longBreakDurationMinutes' as const, label: t('timerFocusLongBreakMinutes'), value: longBreakDurationMinutes, min: 5, max: 60, step: 5, chips: [10, 15, 20, 30] },
+    { key: 'targetSessionsPerCycle' as const, label: t('sessionsBeforeLongBreak'), value: targetSessionsPerCycle, min: 1, max: 10, step: 1, chips: [2, 4, 6, 8] },
+    { key: 'recentHistoryLimit' as const, label: t('timerFocusRecentHistoryWindow'), value: recentHistoryLimit, min: 50, max: 500, step: 25, chips: undefined },
+    { key: 'historyRetentionDays' as const, label: t('timerFocusHistoryRetentionDays'), value: historyRetentionDays, min: 0, max: 365, step: 30, chips: [0, 90, 180, 365] },
   ]
 
   return (
-    <SettingsCard id="settings-timer-focus" title="Timer & Focus" description={summary}>
+    <SettingsCard id="settings-timer-focus" title={t('timerFocusPanelTitle')} description={summary}>
       <div className="space-y-5">
         <div>
-          <span className="settings-label block mb-2">Pomodoro presets</span>
-          <p className="settings-muted mb-2">Updates stored durations only — does not interrupt an active timer.</p>
+          <span className="settings-label block mb-2">{t('timerFocusPomodoroPresets')}</span>
+          <p className="settings-muted mb-2">{t('timerFocusPomodoroPresetsHelper')}</p>
           <div className="flex flex-wrap gap-1.5">
-            {POMODORO_PRESETS.map(preset => (
+            {pomodoroPresets.map(preset => (
               <button
                 key={preset.id}
                 type="button"
@@ -79,27 +86,27 @@ export function TimerFocusPanel() {
         </div>
 
         <ToggleSetting
-          label="Focus block notifications"
-          description="Browser reminder when a study block completes"
+          label={t('timerFocusBlockNotifications')}
+          description={t('timerFocusBlockNotificationsDesc')}
           checked={focusNotificationsEnabled}
           onChange={v => void handleNotificationsToggle(v)}
         />
         {notificationPermission === 'denied' && (
           <p className="settings-muted text-micro rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
-            Notifications are blocked in your browser. Enable them in site settings to use focus reminders.
+            {t('timerFocusNotificationsBlocked')}
           </p>
         )}
 
         <ToggleSetting
-          label="Daily study reminder"
-          description="Nudge if you have not met your daily goal by the chosen time"
+          label={t('timerFocusDailyReminder')}
+          description={t('timerFocusDailyReminderDesc')}
           checked={studyReminderEnabled}
           onChange={v => updateSetting('studyReminderEnabled', v)}
         />
         {studyReminderEnabled && (
           <div className="space-y-3 pl-1">
             <label className="block">
-              <span className="settings-label block mb-1">Reminder time</span>
+              <span className="settings-label block mb-1">{t('timerFocusReminderTime')}</span>
               <input
                 type="time"
                 value={studyReminderTime}
@@ -108,7 +115,7 @@ export function TimerFocusPanel() {
               />
             </label>
             <ToggleSetting
-              label="Only if below daily goal"
+              label={t('timerFocusOnlyBelowGoal')}
               checked={studyReminderOnlyBelowGoal}
               onChange={v => updateSetting('studyReminderOnlyBelowGoal', v)}
             />

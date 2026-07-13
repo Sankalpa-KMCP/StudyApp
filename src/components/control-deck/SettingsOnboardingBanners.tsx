@@ -4,6 +4,7 @@ import { SettingsCard } from '../shared/settings/SettingsCard'
 import { scrollToSettingsSection } from '../../lib/settings/settingsSections'
 import { getLastBackupExportAt } from '../../lib/backup/backupMetadata'
 import { BACKUP_EXPORTED_EVENT, isDailyGoalConfigured } from '../../lib/study/setupChecklist'
+import { useTranslation } from '../../i18n/useTranslation'
 
 const CHECKLIST_DISMISS_KEY = 'settings_setup_checklist_dismissed'
 
@@ -43,6 +44,7 @@ export function SettingsOnboardingBanners({
   dailyGoalMinutes,
   onShowOnboarding,
 }: SettingsOnboardingBannersProps) {
+  const { t } = useTranslation()
   const [dismissed, setDismissed] = useState(
     () => typeof window !== 'undefined' && !!localStorage.getItem(CHECKLIST_DISMISS_KEY),
   )
@@ -65,38 +67,38 @@ export function SettingsOnboardingBanners({
   if (dismissed) {
     if (!onShowOnboarding) return null
     return (
-      <SettingsCard id="settings-getting-started" title="Getting started">
+      <SettingsCard id="settings-getting-started" title={t('onboardingGettingStartedTitle')}>
         <button
           type="button"
           onClick={onShowOnboarding}
           className="flex w-full items-center gap-3 rounded-xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] px-4 py-3 text-left text-xs font-semibold text-[var(--color-text-primary)] hover:bg-[color-mix(in_srgb,var(--color-surface-card)_60%,transparent)] transition-all ios-active-scale"
         >
           <Sparkles className="h-4 w-4 text-accent-blue shrink-0" />
-          <span>Replay the Getting Started tour</span>
+          <span>{t('onboardingReplayTour')}</span>
         </button>
       </SettingsCard>
     )
   }
 
   return (
-    <SettingsCard title="Setup checklist">
+    <SettingsCard title={t('onboardingSetupChecklistTitle')}>
       <p className="settings-muted leading-relaxed mb-3">
-        Two essentials to configure your sanctuary on day one.
+        {t('onboardingSetupChecklistHelper')}
         {showHighGoalNudge && (
           <span className="block mt-2 text-accent-amber">
-            8h is a lot for day one — consider starting with 2h in Timer &amp; Focus.
+            {t('onboardingHighGoalNudge')}
           </span>
         )}
       </p>
       <div className="flex flex-col gap-2.5">
         <ChecklistItem
           done={goalSet}
-          label="Set your daily goal"
+          label={t('onboardingSetDailyGoal')}
           onClick={() => scrollToSettingsSection('settings-timer-focus')}
         />
         <ChecklistItem
           done={backupDone}
-          label="Export a backup vault"
+          label={t('onboardingExportBackupVault')}
           onClick={() => scrollToSettingsSection('settings-backup-vault')}
         />
       </div>
@@ -107,7 +109,7 @@ export function SettingsOnboardingBanners({
             onClick={onShowOnboarding}
             className="text-micro font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors"
           >
-            Take the tour
+            {t('onboardingTakeTour')}
           </button>
         )}
         <button
@@ -115,7 +117,7 @@ export function SettingsOnboardingBanners({
           onClick={dismissChecklist}
           className="text-micro font-semibold settings-muted hover:text-[var(--color-text-primary)] transition-colors"
         >
-          Dismiss checklist
+          {t('onboardingDismissChecklist')}
         </button>
       </div>
     </SettingsCard>

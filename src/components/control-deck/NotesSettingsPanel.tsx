@@ -1,9 +1,11 @@
 import { useConfirm } from '../../context/useConfirm'
 import { STUDY_NOTES_RESET_KEYS } from '../../lib/settings/settingsSections'
+import { useTranslation } from '../../i18n/useTranslation'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 
 export function NotesSettingsPanel() {
+  const { t } = useTranslation()
   const { noteTagColors, updateSetting, resetKeys } = useSettingsPanel()
   const { requestConfirm } = useConfirm()
 
@@ -15,17 +17,17 @@ export function NotesSettingsPanel() {
 
   const handleReset = async () => {
     const ok = await requestConfirm({
-      title: 'Reset note tag colors?',
-      message: 'Restores the default palette for Quick Notes tags.',
-      confirmLabel: 'Reset',
+      title: t('notesResetConfirmTitle'),
+      message: t('notesResetConfirmMessage'),
+      confirmLabel: t('notesResetConfirmLabel'),
     })
     if (!ok) return
-    void resetKeys(STUDY_NOTES_RESET_KEYS, 'Note tag colors restored')
+    void resetKeys(STUDY_NOTES_RESET_KEYS, t('notesTagColorsRestored'))
   }
 
   return (
-    <SettingsCard id="settings-notes" title="Notes" defaultCollapsed onResetDefaults={() => void handleReset()}>
-      <p className="settings-muted mb-3">Customize Quick Notes tag colors (up to 8).</p>
+    <SettingsCard id="settings-notes" title={t('notesPanelTitle')} defaultCollapsed onResetDefaults={() => void handleReset()}>
+      <p className="settings-muted mb-3">{t('notesPanelDescription')}</p>
       <div className="flex flex-wrap gap-3">
         {noteTagColors.map((color, index) => (
           <div key={index} className="flex flex-col items-center gap-1">
@@ -34,7 +36,7 @@ export function NotesSettingsPanel() {
               value={color}
               onChange={e => handleColorChange(index, e.target.value)}
               className="h-8 w-8 rounded-lg border border-[var(--color-border-card)] bg-transparent cursor-pointer"
-              aria-label={`Note tag color ${index + 1}`}
+              aria-label={t('notesTagColorAria', { index: index + 1 })}
             />
             <span className="settings-muted font-mono">{index + 1}</span>
           </div>

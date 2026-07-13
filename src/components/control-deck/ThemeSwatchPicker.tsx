@@ -1,11 +1,27 @@
 import { THEME_PROFILES, DARK_THEME_PRESETS, LIGHT_THEME_PRESETS } from '../../lib/theme/theme'
 import type { SettingsKey, SettingsValue } from '../../db/types'
+import { useTranslation } from '../../i18n/useTranslation'
+import type { TranslationKey } from '../../i18n'
 
 interface ThemeSwatchPickerProps {
   theme: string
   themePreset: string
   lightThemePreset: string
   updateSetting: (key: SettingsKey, val: SettingsValue) => void
+}
+
+const THEME_PRESET_LABEL_KEYS: Record<string, TranslationKey> = {
+  'midnight-slate': 'themePresetMidnightSlate',
+  'midnight-oled': 'themePresetMidnightOled',
+  'nordic-frost': 'themePresetNordicFrost',
+  'amber-retro': 'themePresetAmberRetro',
+  'nebula-purple': 'themePresetNebulaPurple',
+  'forest-dusk': 'themePresetForestDusk',
+  'cosmos-ink': 'themePresetCosmosInk',
+  'paper-day': 'themePresetPaperDay',
+  'mist-slate': 'themePresetMistSlate',
+  'linen-warm': 'themePresetLinenWarm',
+  'arctic-clean': 'themePresetArcticClean',
 }
 
 function SwatchButton({
@@ -60,8 +76,14 @@ export function ThemeSwatchPicker({
   lightThemePreset,
   updateSetting,
 }: ThemeSwatchPickerProps) {
+  const { t } = useTranslation()
   const isSystem = theme === 'system'
   const activePreset = isSystem ? null : theme
+
+  const presetLabel = (id: string) => {
+    const key = THEME_PRESET_LABEL_KEYS[id]
+    return key ? t(key) : id
+  }
 
   const selectPreset = (id: string, isLight: boolean) => {
     if (isLight) {
@@ -81,7 +103,7 @@ export function ThemeSwatchPicker({
   return (
     <div className="space-y-4">
       <div>
-        <span className="settings-label block mb-2">Theme mode</span>
+        <span className="settings-label block mb-2">{t('themeMode')}</span>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           <button
             type="button"
@@ -97,19 +119,19 @@ export function ThemeSwatchPicker({
               <div className="flex-1" style={{ background: THEME_PROFILES[themePreset]?.pageGradient }} />
               <div className="flex-1" style={{ background: THEME_PROFILES[lightThemePreset]?.pageGradient }} />
             </div>
-            <span className="settings-muted block mt-1.5 px-0.5">Match system</span>
+            <span className="settings-muted block mt-1.5 px-0.5">{t('themeMatchSystem')}</span>
           </button>
         </div>
       </div>
 
       <div>
-        <span className="settings-label block mb-2">Dark presets</span>
+        <span className="settings-label block mb-2">{t('themeDarkPresets')}</span>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {DARK_THEME_PRESETS.map(p => (
             <SwatchButton
               key={p.id}
               id={p.id}
-              label={p.label}
+              label={presetLabel(p.id)}
               selected={!isSystem && activePreset === p.id}
               onClick={() => selectPreset(p.id, false)}
             />
@@ -118,13 +140,13 @@ export function ThemeSwatchPicker({
       </div>
 
       <div>
-        <span className="settings-label block mb-2">Light presets</span>
+        <span className="settings-label block mb-2">{t('themeLightPresets')}</span>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {LIGHT_THEME_PRESETS.map(p => (
             <SwatchButton
               key={p.id}
               id={p.id}
-              label={p.label}
+              label={presetLabel(p.id)}
               selected={!isSystem && activePreset === p.id}
               onClick={() => selectPreset(p.id, true)}
             />
@@ -135,13 +157,13 @@ export function ThemeSwatchPicker({
       {isSystem && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[var(--color-border-card)]">
           <div>
-            <span className="settings-label block mb-2">System dark preset</span>
+            <span className="settings-label block mb-2">{t('themeSystemDarkPreset')}</span>
             <div className="grid grid-cols-3 gap-2">
               {DARK_THEME_PRESETS.map(p => (
                 <SwatchButton
                   key={p.id}
                   id={p.id}
-                  label={p.label}
+                  label={presetLabel(p.id)}
                   selected={themePreset === p.id}
                   onClick={() => updateSetting('themePreset', p.id)}
                 />
@@ -149,13 +171,13 @@ export function ThemeSwatchPicker({
             </div>
           </div>
           <div>
-            <span className="settings-label block mb-2">System light preset</span>
+            <span className="settings-label block mb-2">{t('themeSystemLightPreset')}</span>
             <div className="grid grid-cols-3 gap-2">
               {LIGHT_THEME_PRESETS.map(p => (
                 <SwatchButton
                   key={p.id}
                   id={p.id}
-                  label={p.label}
+                  label={presetLabel(p.id)}
                   selected={lightThemePreset === p.id}
                   onClick={() => updateSetting('lightThemePreset', p.id)}
                 />
