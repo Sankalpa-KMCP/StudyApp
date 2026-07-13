@@ -5,10 +5,12 @@ React + Vite PWA for a local-first study workspace. Tasks, subjects, notes, cale
 ## Product surface
 
 - Home dashboard with cross-entity search results
+- Data-derived first-study checklist for creating a subject, planning work, and recording the first session
 - Tasks, notes, subjects, calendar, flashcards, progress, goals, and settings workspaces
 - Focus timer with subject selection, Pomodoro-style duration, open-ended mode, and local session logging
 - Flashcards with a simple review schedule (`dueAt`, `intervalDays`, `reviewCount`)
-- Progress and subject cards derive completion from logged study sessions where possible
+- Progress includes a local-date study journal with manual session logging, correction, and deletion
+- Progress, Home totals, subject cards, and derived goals update from logged study sessions
 - Settings include JSON import/export, clear-all confirmation, and local theme palettes
 
 ## Quick start
@@ -43,7 +45,7 @@ npm run dev         # http://localhost:5173
 
 Study data is local-first. Everything is saved in the browser with Dexie + IndexedDB. There is no HTTP API server and no cloud database.
 
-First launch starts empty with create-first actions. Existing customized data from the older `study-dashboard-v2` browser storage key is migrated once when it is safe to do so.
+First launch starts empty with create-first actions. Existing customized data from the older `study-dashboard-v2` browser storage key is migrated once when it is safe to do so. JSON backups use format version 1 and are structurally validated before they replace local data.
 
 ## Documentation
 

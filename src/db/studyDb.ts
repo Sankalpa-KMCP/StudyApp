@@ -162,15 +162,143 @@ function isStudyExport(value: unknown): value is StudyExport {
   const record = value as Record<string, unknown>
   return (
     record.version === 1 &&
-    Array.isArray(record.tasks) &&
-    Array.isArray(record.subjects) &&
-    Array.isArray(record.notes) &&
-    Array.isArray(record.events) &&
-    Array.isArray(record.flashcards) &&
-    Array.isArray(record.studySessions) &&
-    Array.isArray(record.goals) &&
-    Array.isArray(record.settings)
+    isDate(record.exportedAt) &&
+    isArrayOf(record.tasks, isStudyTask) &&
+    isArrayOf(record.subjects, isStudySubject) &&
+    isArrayOf(record.notes, isStudyNote) &&
+    isArrayOf(record.events, isCalendarEvent) &&
+    isArrayOf(record.flashcards, isFlashcard) &&
+    isArrayOf(record.studySessions, isStudySession) &&
+    isArrayOf(record.goals, isStudyGoal) &&
+    isArrayOf(record.settings, isStudySetting)
   )
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isArrayOf<T>(value: unknown, validate: (item: unknown) => item is T): value is T[] {
+  return Array.isArray(value) && value.every(validate)
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string'
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function isDate(value: unknown): value is string {
+  return isString(value) && value.length > 0 && !Number.isNaN(Date.parse(value))
+}
+
+function isDateOrEmpty(value: unknown): value is string {
+  return value === '' || isDate(value)
+}
+
+function hasRecordIdentity(record: Record<string, unknown>) {
+  return isString(record.id) && record.id.length > 0
+}
+
+function hasTimestamps(record: Record<string, unknown>) {
+  return isDate(record.createdAt) && isDate(record.updatedAt)
+}
+
+function isStudyTask(value: unknown): value is StudyTask {
+  if (!isRecord(value)) return false
+  return (
+    hasRecordIdentity(value) &&
+    isString(value.title) &&
+    isString(value.subjectId) &&
+    isDateOrEmpty(value.dueDate) &&
+    (value.priority === 'low' || value.priority === 'normal' || value.priority === 'high') &&
+    (value.status === 'open' || value.status === 'done') &&
+    isNumber(value.minutes) &&
+    hasTimestamps(value)
+  )
+}
+
+function isStudySubject(value: unknown): value is StudySubject {
+  if (!isRecord(value)) return false
+  return (
+    hasRecordIdentity(value) &&
+    isString(value.name) &&
+    isString(value.color) &&
+    isNumber(value.targetHours) &&
+    isNumber(value.progress) &&
+    hasTimestamps(value)
+  )
+}
+
+function isStudyNote(value: unknown): value is StudyNote {
+  if (!isRecord(value)) return false
+  return (
+    hasRecordIdentity(value) &&
+    isString(value.title) &&
+    isString(value.body) &&
+    isString(value.subjectId) &&
+    isArrayOf(value.tags, isString) &&
+    hasTimestamps(value)
+  )
+}
+
+function isCalendarEvent(value: unknown): value is CalendarEvent {
+  if (!isRecord(value)) return false
+  return (
+    hasRecordIdentity(value) &&
+    isString(value.title) &&
+    isString(value.subjectId) &&
+    isDate(value.startAt) &&
+    isDate(value.endAt) &&
+    isString(value.location) &&
+    hasTimestamps(value)
+  )
+}
+
+function isFlashcard(value: unknown): value is Flashcard {
+  if (!isRecord(value)) return false
+  return (
+    hasRecordIdentity(value) &&
+    isString(value.front) &&
+    isString(value.back) &&
+    isString(value.subjectId) &&
+    (value.status === 'new' || value.status === 'learning' || value.status === 'remembered') &&
+    isDateOrEmpty(value.lastReviewedAt) &&
+    (value.dueAt === undefined || isDate(value.dueAt)) &&
+    (value.intervalDays === undefined || isNumber(value.intervalDays)) &&
+    (value.reviewCount === undefined || isNumber(value.reviewCount)) &&
+    hasTimestamps(value)
+  )
+}
+
+function isStudySession(value: unknown): value is StudySession {
+  if (!isRecord(value)) return false
+  return (
+    hasRecordIdentity(value) &&
+    isString(value.subjectId) &&
+    isDate(value.startedAt) &&
+    isDate(value.endedAt) &&
+    isNumber(value.minutes) &&
+    isString(value.note)
+  )
+}
+
+function isStudyGoal(value: unknown): value is StudyGoal {
+  if (!isRecord(value)) return false
+  return (
+    hasRecordIdentity(value) &&
+    isString(value.title) &&
+    isNumber(value.target) &&
+    isNumber(value.progress) &&
+    (value.period === 'daily' || value.period === 'weekly' || value.period === 'monthly') &&
+    hasTimestamps(value)
+  )
+}
+
+function isStudySetting(value: unknown): value is StudySetting {
+  return isRecord(value) && isString(value.key) && value.key.length > 0 && 'value' in value
 }
 
 type LegacyData = {
