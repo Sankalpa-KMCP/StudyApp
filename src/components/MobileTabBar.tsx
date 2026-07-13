@@ -1,6 +1,7 @@
 import { memo, useRef, useCallback } from 'react'
 import type { ActiveTab } from '../types/app'
-import { NAV_TABS } from '../navigation/appNav'
+import { getNavTabs } from '../navigation/appNav'
+import { useTranslation } from '../i18n/useTranslation'
 import { NavTabButton } from '../navigation/NavTabButton'
 import { prefetchTabChunk } from '../lib/routing/prefetchTabChunks'
 
@@ -19,6 +20,8 @@ export const MobileTabBar = memo(function MobileTabBar({
   timerMode,
   enforceLockout,
 }: MobileTabBarProps) {
+  useTranslation()
+  const navTabs = getNavTabs()
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   const activateTab = useCallback(
@@ -47,7 +50,7 @@ export const MobileTabBar = memo(function MobileTabBar({
       className="fixed bottom-4 left-4 right-4 z-30 flex md:hidden items-center justify-around glass-panel shadow-2xl px-2 py-2 safe-area-pb rounded-[22px] border border-card"
       aria-label="Main navigation"
     >
-      {NAV_TABS.map(tab => {
+      {navTabs.map(tab => {
         const isActive = activeTab === tab.id
         const isLocked = enforceLockout && isTimerActive && timerMode === 'study' && tab.id !== 'focus'
         return (

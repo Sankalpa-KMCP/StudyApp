@@ -4,10 +4,11 @@ import { ModalShell } from './shared/ModalShell'
 import {
   buildCommandPaletteItems,
   filterCommandPaletteItems,
-  COMMAND_PALETTE_GROUP_LABELS,
+  getCommandPaletteGroupLabels,
   type CommandPaletteItem,
   type CommandPaletteItemType,
 } from '../lib/routing/commandPaletteSearch'
+import { useTranslation } from '../i18n/useTranslation'
 import type { CategoryItem, DailyLog, QuickNoteItem, TaskItem } from '../db/types'
 import type { ActiveTab } from '../types/app'
 
@@ -42,6 +43,7 @@ export function CommandPalette({
   categories,
   dailyLogs = [],
 }: CommandPaletteProps) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -68,6 +70,7 @@ export function CommandPalette({
   }
 
   const grouped = useMemo(() => {
+    const groupLabels = getCommandPaletteGroupLabels()
     const map = new Map<CommandPaletteItemType, CommandPaletteItem[]>()
     for (const item of results) {
       const list = map.get(item.type) ?? []
@@ -76,7 +79,7 @@ export function CommandPalette({
     }
     return GROUP_ORDER.filter(t => map.has(t)).map(type => ({
       type,
-      label: COMMAND_PALETTE_GROUP_LABELS[type],
+      label: groupLabels[type],
       items: map.get(type) ?? [],
     }))
   }, [results])
@@ -116,7 +119,7 @@ export function CommandPalette({
     <ModalShell
       open={isOpen}
       onClose={handleClose}
-      ariaLabel="Command palette"
+      ariaLabel={t('commandPaletteAria')}
       panelClassName="max-w-lg w-full surface-overlay border border-card p-0 shadow-2xl overflow-hidden"
       zIndexClass="z-[60]"
     >
@@ -131,16 +134,16 @@ export function CommandPalette({
             setActiveIndex(0)
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Search settings, tasks, notes, tabs…"
-          aria-label="Search commands"
+          placeholder={t('commandPaletteSearchPlaceholder')}
+          aria-label={t('commandPaletteSearchAria')}
           className="flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted"
           autoComplete="off"
         />
         <kbd className="hidden sm:inline rounded border border-card surface-subtle px-1.5 py-0.5 text-micro font-mono text-muted">Esc</kbd>
       </div>
-      <div className="max-h-80 overflow-y-auto p-2" role="listbox" aria-label="Search results">
+      <div className="max-h-80 overflow-y-auto p-2" role="listbox" aria-label={t('commandPaletteResultsAria')}>
         {flatResults.length === 0 ? (
-          <p className="px-3 py-6 text-center text-sm text-muted">No matches</p>
+          <p className="px-3 py-6 text-center text-sm text-muted">{t('commandPaletteNoMatches')}</p>
         ) : (
           grouped.map(group => (
             <div key={group.type} className="mb-2 last:mb-0">

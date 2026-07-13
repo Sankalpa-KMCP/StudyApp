@@ -1,6 +1,7 @@
 import type { ActiveTab } from '../../types/app'
 import type { CategoryItem, DailyLog, QuickNoteItem, TaskItem } from '../../db/types'
-import { NAV_TABS, TAB_CHROME } from '../../navigation/appNav'
+import { t } from '../../i18n'
+import { getNavTabs, getTabChrome } from '../../navigation/appNav'
 
 export type CommandPaletteItemType = 'action' | 'task' | 'note' | 'tab' | 'settings' | 'journal'
 
@@ -17,19 +18,38 @@ export interface CommandPaletteItem {
   journalDate?: string
 }
 
-export const COMMAND_ACTIONS: Array<{ id: string; label: string; subtitle: string }> = [
-  { id: 'toggle-timer', label: 'Toggle timer', subtitle: 'Start or pause the focus timer' },
-  { id: 'toggle-zen', label: 'Toggle focus mode', subtitle: 'Enter or exit zen overlay' },
-  { id: 'export-backup', label: 'Export backup', subtitle: 'Download .studybackup vault' },
-  { id: 'open-hotkeys', label: 'Keyboard shortcuts', subtitle: 'Show hotkey reference' },
-  { id: 'add-task', label: 'Go to Focus', subtitle: 'Add or select a focus target' },
-]
+function getCommandActions(): Array<{ id: string; label: string; subtitle: string }> {
+  return [
+    { id: 'toggle-timer', label: t('commandPaletteToggleTimer'), subtitle: t('commandPaletteToggleTimerSubtitle') },
+    { id: 'toggle-zen', label: t('commandPaletteToggleZen'), subtitle: t('commandPaletteToggleZenSubtitle') },
+    { id: 'export-backup', label: t('commandPaletteExportBackup'), subtitle: t('commandPaletteExportBackupSubtitle') },
+    { id: 'open-hotkeys', label: t('commandPaletteOpenHotkeys'), subtitle: t('commandPaletteOpenHotkeysSubtitle') },
+    { id: 'add-task', label: t('commandPaletteGoToFocus'), subtitle: t('commandPaletteGoToFocusSubtitle') },
+  ]
+}
 
-const SETTINGS_SHORTCUTS: Array<{ id: string; label: string; subtitle: string; settingsSection: string }> = [
-  { id: 'settings-daily-goal', label: 'Daily goal', subtitle: 'Settings → Timer & Focus', settingsSection: 'settings-timer-focus' },
-  { id: 'settings-backup', label: 'Export backup', subtitle: 'Settings → Backup Vault', settingsSection: 'settings-backup-vault' },
-  { id: 'settings-theme', label: 'Theme', subtitle: 'Settings → Appearance', settingsSection: 'settings-aesthetics' },
-]
+function getSettingsShortcuts(): Array<{ id: string; label: string; subtitle: string; settingsSection: string }> {
+  return [
+    {
+      id: 'settings-daily-goal',
+      label: t('commandPaletteDailyGoal'),
+      subtitle: t('commandPaletteDailyGoalSubtitle'),
+      settingsSection: 'settings-timer-focus',
+    },
+    {
+      id: 'settings-backup',
+      label: t('commandPaletteSettingsBackup'),
+      subtitle: t('commandPaletteSettingsBackupSubtitle'),
+      settingsSection: 'settings-backup-vault',
+    },
+    {
+      id: 'settings-theme',
+      label: t('commandPaletteTheme'),
+      subtitle: t('commandPaletteThemeSubtitle'),
+      settingsSection: 'settings-aesthetics',
+    },
+  ]
+}
 
 function matchesQuery(query: string, ...parts: (string | undefined)[]): boolean {
   const q = query.trim().toLowerCase()
@@ -48,7 +68,7 @@ export function buildCommandPaletteItems(options: {
 
   const items: CommandPaletteItem[] = []
 
-  for (const action of COMMAND_ACTIONS) {
+  for (const action of getCommandActions()) {
     items.push({
       id: `action-${action.id}`,
       type: 'action',
@@ -58,7 +78,7 @@ export function buildCommandPaletteItems(options: {
     })
   }
 
-  for (const shortcut of SETTINGS_SHORTCUTS) {
+  for (const shortcut of getSettingsShortcuts()) {
     items.push({
       id: shortcut.id,
       type: 'settings',
@@ -68,8 +88,8 @@ export function buildCommandPaletteItems(options: {
     })
   }
 
-  for (const tab of NAV_TABS) {
-    const chrome = TAB_CHROME[tab.id]
+  for (const tab of getNavTabs()) {
+    const chrome = getTabChrome()[tab.id]
     items.push({
       id: `tab-${tab.id}`,
       type: 'tab',
@@ -85,7 +105,7 @@ export function buildCommandPaletteItems(options: {
       id: `task-${task.id}`,
       type: 'task',
       label: task.text,
-      subtitle: categoryName(task.categoryId) ?? 'Task',
+      subtitle: categoryName(task.categoryId) ?? t('commandPaletteTaskFallback'),
       taskId: task.id,
     })
   }
@@ -94,8 +114,8 @@ export function buildCommandPaletteItems(options: {
     items.push({
       id: `note-${note.id}`,
       type: 'note',
-      label: note.title || 'Untitled note',
-      subtitle: note.content.slice(0, 80) || 'Quick note',
+      label: note.title || t('commandPaletteUntitledNote'),
+      subtitle: note.content.slice(0, 80) || t('commandPaletteQuickNote'),
       noteId: note.id,
     })
   }
@@ -105,8 +125,8 @@ export function buildCommandPaletteItems(options: {
     items.push({
       id: `journal-${log.dateString}`,
       type: 'journal',
-      label: log.notes?.slice(0, 60) || `Mood: ${log.mood}`,
-      subtitle: `Journal · ${log.dateString}`,
+      label: log.notes?.slice(0, 60) || t('commandPaletteJournalMood', { mood: log.mood ?? '' }),
+      subtitle: t('commandPaletteJournalSubtitle', { date: log.dateString }),
       journalDate: log.dateString,
     })
   }
@@ -122,11 +142,13 @@ export function filterCommandPaletteItems(items: CommandPaletteItem[], query: st
   return filtered.slice(0, 20)
 }
 
-export const COMMAND_PALETTE_GROUP_LABELS: Record<CommandPaletteItemType, string> = {
-  action: 'Actions',
-  settings: 'Settings',
-  tab: 'Go to',
-  task: 'Tasks',
-  note: 'Notes',
-  journal: 'Journal',
+export function getCommandPaletteGroupLabels(): Record<CommandPaletteItemType, string> {
+  return {
+    action: t('commandPaletteGroupActions'),
+    settings: t('commandPaletteGroupSettings'),
+    tab: t('commandPaletteGroupGoTo'),
+    task: t('commandPaletteGroupTasks'),
+    note: t('commandPaletteGroupNotes'),
+    journal: t('commandPaletteGroupJournal'),
+  }
 }
