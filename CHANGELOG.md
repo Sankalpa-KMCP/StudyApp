@@ -4,6 +4,7 @@
 
 | Version | Changes |
 |---------|---------|
+| **v12** | Drop `flashcards` table; remove `flashcardsEnabled` setting; filter `cards` from `lockoutAllowedTabs` JSON |
 | **v11** | `sync_handles` table; folder sync settings (`syncEnabled`, `lastSyncAt`, `lastSyncChecksum`); migrates `desktopBackupFolderPath` → `syncFolderPath` |
 | **v10** | Task/category timer overrides, recurring tasks, flashcard images, FSRS fields |
 | **v9** | Optional `taskId` on `history` entries |
@@ -17,20 +18,24 @@
 
 ## Backup format vs database schema
 
-- **Backup `version: 3`** in `.studybackup` JSON exports is the **export file format** revision (adds `checksumSha256`; v2 imports remain supported).
-- **DB schema v8** (Dexie `db.verno`) is the **IndexedDB migration** version — these are intentionally separate.
+- **Backup `version: 4`** omits `flashcards`; v2/v3 imports still accepted (flashcard rows discarded on restore).
+- **Backup `version: 3`** added `checksumSha256`; v2 imports remain supported.
+- **DB schema v12** (Dexie `db.verno`) is the **IndexedDB migration** version — separate from backup file format.
 
 ## [Unreleased]
+
+### Removed
+- **Flashcards / Cards tab** — deck UI, `flashcards` IndexedDB table, and `flashcardsEnabled` setting (Dexie v12 migration). Task-based SM-2/FSRS scheduling on focus targets is unchanged. Legacy backups with `flashcards` still import; card data is not restored.
 
 ### Added
 - **Folder sync** — bidirectional shared-folder sync between GitHub Pages (Chrome/Edge) and the Tauri desktop app via `study-vault.sync.studybackup`
 - Configurable auto-archive threshold (`autoArchiveAfterDays`)
-- Command palette actions (toggle timer, zen, export backup, hotkeys, review cards)
+- Command palette actions (toggle timer, zen, export backup, hotkeys)
 - Task-linked session history (Dexie v9 `taskId` on history entries)
 - Per-task analytics, category goal trends, weekly report export (CSV/Markdown)
 - Encrypted `.studybackup` v4, merge import, ICS import, sync folder workflow
 - Smarter focus lockout modes, study reminders, per-entity timer presets
-- Recurring tasks, FSRS scheduling option, rich flashcard markdown/images
+- Recurring tasks, FSRS scheduling option
 - Journal search in command palette; Tauri minimize-on-close and configurable shortcuts
 - i18n (English + stub locale), mobile focus parity, PWA offline documentation
 
