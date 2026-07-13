@@ -5,12 +5,29 @@ import App from './App'
 import { formatShortTime, toInputDate, toInputTime } from './appUtils'
 import { studyDb } from './db/studyDb'
 
+const THEME_CASES = [
+  ['monochrome', '#111111'],
+  ['light', '#f4f0e8'],
+  ['dark', '#10141d'],
+  ['aurora', '#111323'],
+  ['ember', '#f3e4d2'],
+  ['blueprint', '#153f73'],
+  ['moss', '#294633'],
+] as const
+
 describe('App', () => {
   beforeEach(async () => {
     vi.useRealTimers()
     vi.restoreAllMocks()
     localStorage.clear()
-    document.documentElement.dataset.theme = 'light'
+    document.documentElement.dataset.theme = 'monochrome'
+    let themeColorMeta = document.querySelector('meta[name="theme-color"]')
+    if (!themeColorMeta) {
+      themeColorMeta = document.createElement('meta')
+      themeColorMeta.setAttribute('name', 'theme-color')
+      document.head.append(themeColorMeta)
+    }
+    themeColorMeta.setAttribute('content', '#111111')
     await studyDb.delete()
     await studyDb.open()
   })
@@ -24,6 +41,9 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Home' })).toHaveClass('is-active')
     expect(screen.getByText('No tasks yet')).toBeInTheDocument()
     expect(screen.queryByText('Chemistry lab report')).not.toBeInTheDocument()
+    expect(document.documentElement.dataset.theme).toBe('monochrome')
+    expect(localStorage.getItem('study-dashboard-theme')).toBe('monochrome')
+    expect(document.querySelector('meta[name="theme-color"]')).toHaveAttribute('content', '#111111')
 
     const checklist = screen.getByRole('region', { name: 'Your first study loop' })
     const progress = within(checklist).getByRole('progressbar', { name: 'First study loop progress' })
@@ -471,7 +491,27 @@ describe('App', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
   })
 
-  it('supports the production theme picker and collapsible sidebar', async () => {
+  it.each(THEME_CASES)('restores the saved %s theme preference', async (theme, themeColor) => {
+    localStorage.setItem('study-dashboard-theme', theme)
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Good morning' })).toBeInTheDocument()
+    expect(document.documentElement.dataset.theme).toBe(theme)
+    expect(localStorage.getItem('study-dashboard-theme')).toBe(theme)
+    expect(document.querySelector('meta[name="theme-color"]')).toHaveAttribute('content', themeColor)
+  })
+
+  it('falls back to Monochrome when a saved theme preference is invalid', async () => {
+    localStorage.setItem('study-dashboard-theme', 'unknown-theme')
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Good morning' })).toBeInTheDocument()
+    expect(document.documentElement.dataset.theme).toBe('monochrome')
+    expect(localStorage.getItem('study-dashboard-theme')).toBe('monochrome')
+    expect(document.querySelector('meta[name="theme-color"]')).toHaveAttribute('content', '#111111')
+  })
+
+  it('collapses and expands the desktop sidebar', async () => {
     const user = userEvent.setup()
     render(<App />)
 
@@ -480,13 +520,45 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'Expand sidebar' }))
     expect(document.querySelector('.app-shell')).not.toHaveClass('is-sidebar-collapsed')
+  })
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(await screen.findByRole('radio', { name: /Aurora/ }))
-    expect(document.documentElement.dataset.theme).toBe('aurora')
+  it('supports all seven theme choices and updates new theme metadata', async () => {
+    const user = userEvent.setup()
+    render(<App />)
 
-    await user.click(screen.getByRole('radio', { name: /Ember/ }))
-    expect(document.documentElement.dataset.theme).toBe('ember')
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    const themeGroup = screen.getByRole('radiogroup', { name: 'Theme' })
+    expect(within(themeGroup).getAllByRole('radio')).toHaveLength(7)
+    const monochromeOption = within(themeGroup).getByRole('radio', { name: /Monochrome/ })
+    const canvasOption = within(themeGroup).getByRole('radio', { name: /Canvas/ })
+    const emberOption = within(themeGroup).getByRole('radio', { name: /Ember/ })
+    expect(monochromeOption).toHaveAttribute('aria-checked', 'true')
+    expect(monochromeOption).toHaveAttribute('tabindex', '0')
+    expect(canvasOption).toHaveAttribute('tabindex', '-1')
+
+    monochromeOption.focus()
+    await user.keyboard('{ArrowRight}')
+    expect(canvasOption).toHaveFocus()
+    expect(canvasOption).toHaveAttribute('aria-checked', 'true')
+    await user.keyboard('{End}')
+    expect(emberOption).toHaveFocus()
+    expect(emberOption).toHaveAttribute('aria-checked', 'true')
+    await user.keyboard('{Home}')
+    expect(monochromeOption).toHaveFocus()
+    expect(monochromeOption).toHaveAttribute('aria-checked', 'true')
+
+    for (const [label, theme, themeColor] of [
+      ['Blueprint', 'blueprint', '#153f73'],
+      ['Moss Library', 'moss', '#294633'],
+      ['Monochrome', 'monochrome', '#111111'],
+    ] as const) {
+      const option = within(themeGroup).getByRole('radio', { name: new RegExp(label) })
+      await user.click(option)
+      expect(option).toHaveAttribute('aria-checked', 'true')
+      expect(document.documentElement.dataset.theme).toBe(theme)
+      expect(localStorage.getItem('study-dashboard-theme')).toBe(theme)
+      expect(document.querySelector('meta[name="theme-color"]')).toHaveAttribute('content', themeColor)
+    }
   })
 
   it('creates and opens a note', async () => {
@@ -771,7 +843,7 @@ describe('App', () => {
     expect(tasks).toHaveLength(0)
   })
 
-  it('persists theme choice to localStorage', async () => {
+  it('persists existing theme choices to localStorage', async () => {
     const user = userEvent.setup()
     render(<App />)
 

@@ -38,7 +38,7 @@ export type View = 'Home' | 'Tasks' | 'Notes' | 'Subjects' | 'Calendar' | 'Flash
 type TaskFilter = 'all' | 'open' | 'done'
 export type SettingsFeedback = { tone: 'success' | 'error'; message: string }
 export type ActiveSession = { subjectId: string; startedAt: string; startedAtMs: number; plannedMinutes: number }
-export type ThemeMode = 'light' | 'dark' | 'aurora' | 'ember'
+export type ThemeMode = 'monochrome' | 'light' | 'dark' | 'aurora' | 'ember' | 'blueprint' | 'moss'
 
 const EMPTY_DATA: StudyData = {
   tasks: [],
@@ -52,14 +52,23 @@ const EMPTY_DATA: StudyData = {
 }
 
 const THEME_COLORS: Record<ThemeMode, string> = {
+  monochrome: '#111111',
   light: '#f4f0e8',
   dark: '#10141d',
   aurora: '#111323',
   ember: '#f3e4d2',
+  blueprint: '#153f73',
+  moss: '#294633',
 }
 
 function isThemeMode(value: string | null): value is ThemeMode {
-  return value === 'light' || value === 'dark' || value === 'aurora' || value === 'ember'
+  return value === 'monochrome'
+    || value === 'light'
+    || value === 'dark'
+    || value === 'aurora'
+    || value === 'ember'
+    || value === 'blueprint'
+    || value === 'moss'
 }
 
 function App() {
@@ -76,7 +85,7 @@ function App() {
   const [sessionNotice, setSessionNotice] = useState('')
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const savedTheme = localStorage.getItem('study-dashboard-theme')
-    return isThemeMode(savedTheme) ? savedTheme : 'light'
+    return isThemeMode(savedTheme) ? savedTheme : 'monochrome'
   })
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('study-dashboard-sidebar') === 'collapsed')
   const [revealedCards, setRevealedCards] = useState<Set<string>>(() => new Set())

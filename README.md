@@ -11,7 +11,7 @@ React + Vite PWA for a local-first study workspace. Tasks, subjects, notes, cale
 - Flashcards with a simple review schedule (`dueAt`, `intervalDays`, `reviewCount`)
 - Progress includes a local-date study journal with manual session logging, correction, and deletion
 - Progress, Home totals, subject cards, and derived goals update from logged study sessions
-- Settings include JSON import/export, clear-all confirmation, and local theme palettes
+- Settings include JSON import/export, clear-all confirmation, and seven local theme palettes; Monochrome is the default
 
 ## Quick start
 
