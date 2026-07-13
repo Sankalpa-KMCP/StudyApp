@@ -330,10 +330,6 @@ function App() {
                     dailyGoalMinutes={dailyGoalMinutes}
                     todayFocusMinutes={todayFocusMinutes}
                     subjectMap={subjectMap}
-                    onLogSession={() => {
-                      setActiveView('Home')
-                      if (!activeSession) startSession()
-                    }}
                   />
                 ) : null}
                 {activeView === 'Goals' ? (

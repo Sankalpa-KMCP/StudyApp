@@ -2,10 +2,12 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { formatShortTime, toInputDate, toInputTime } from './appUtils'
 import { studyDb } from './db/studyDb'
 
 describe('App', () => {
   beforeEach(async () => {
+    vi.useRealTimers()
     vi.restoreAllMocks()
     localStorage.clear()
     document.documentElement.dataset.theme = 'light'
@@ -182,9 +184,194 @@ describe('App', () => {
     expect(notices.length).toBeGreaterThan(0)
 
     await user.click(screen.getByRole('button', { name: 'Progress' }))
+    const logSessionButton = screen.getByRole('button', { name: 'Log session' })
+    await user.click(logSessionButton)
+    expect(await screen.findByRole('heading', { name: 'Log study session' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Subject')).toHaveFocus()
+    expect(screen.queryByRole('button', { name: 'Stop session' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('heading', { name: 'Log study session' })).not.toBeInTheDocument()
+    expect(logSessionButton).toHaveFocus()
+  })
+
+  it('creates, edits, and deletes journal sessions while updating derived progress', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 13, 15, 0))
+    const user = userEvent.setup()
+    const timestamp = new Date().toISOString()
+    await studyDb.subjects.add({
+      id: 'subject-journal',
+      name: 'Physics',
+      color: '#2563eb',
+      targetHours: 1,
+      progress: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await studyDb.goals.add({
+      id: 'goal-journal',
+      title: 'Daily focus',
+      target: 60,
+      progress: 0,
+      period: 'daily',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    const start = new Date(2026, 6, 13, 13, 0)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Progress' }))
     await user.click(screen.getByRole('button', { name: 'Log session' }))
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText('Subject'), 'subject-journal')
+    await user.clear(screen.getByLabelText('Date'))
+    await user.type(screen.getByLabelText('Date'), toInputDate(start))
+    await user.clear(screen.getByLabelText('Start time'))
+    await user.type(screen.getByLabelText('Start time'), toInputTime(start))
+    await user.clear(screen.getByLabelText('Duration (minutes)'))
+    await user.type(screen.getByLabelText('Duration (minutes)'), '30')
+    await user.type(screen.getByLabelText('Note Optional'), 'Worked through momentum problems')
+    await user.click(screen.getByRole('button', { name: 'Save session' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Session logged.')
+    const journal = screen.getByRole('region', { name: 'Study journal' })
+    expect(within(journal).getByLabelText(/Physics, .*30m/)).toBeInTheDocument()
+    expect(within(journal).getByText('Worked through momentum problems')).toBeInTheDocument()
+    expect(within(screen.getByText('Weekly study').closest('article')! as HTMLElement).getByText('0h 30m')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(within(screen.getByLabelText('Today overview')).getByText('30m')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Subjects' }))
+    expect(screen.getByRole('progressbar', { name: '50%' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Goals' }))
+    expect(screen.getByRole('progressbar', { name: '30/60' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Progress' }))
+    const editSessionButton = screen.getByLabelText(/Edit Physics session at/)
+    await user.click(editSessionButton)
+    expect(screen.getByLabelText('Subject')).toHaveFocus()
+    await user.clear(screen.getByLabelText('Duration (minutes)'))
+    await user.type(screen.getByLabelText('Duration (minutes)'), '35')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(editSessionButton).toHaveFocus()
+    expect((await studyDb.studySessions.toArray())[0].minutes).toBe(30)
+
+    await user.click(editSessionButton)
+    await user.clear(screen.getByLabelText('Duration (minutes)'))
+    await user.type(screen.getByLabelText('Duration (minutes)'), '45')
+    await user.clear(screen.getByLabelText('Note Optional'))
+    await user.type(screen.getByLabelText('Note Optional'), 'Momentum and force review')
+    await user.click(screen.getByRole('button', { name: 'Update session' }))
+
+    await waitFor(async () => expect((await studyDb.studySessions.toArray())[0]).toMatchObject({ minutes: 45, note: 'Momentum and force review' }))
+    await waitFor(() => expect(screen.getByLabelText(/Physics, .*45m/)).toBeInTheDocument())
+    expect(editSessionButton).toHaveFocus()
+
+    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+    await user.click(screen.getByLabelText(/Delete Physics session at/))
+    expect(await studyDb.studySessions.count()).toBe(1)
+    await user.click(screen.getByLabelText(/Delete Physics session at/))
+    await waitFor(() => expect(screen.queryByLabelText(/Physics, .*45m/)).not.toBeInTheDocument())
+    expect(screen.getByRole('status')).toHaveTextContent('Session deleted.')
+    expect(confirmDelete).toHaveBeenCalledWith(`Delete session from ${formatShortTime(start.toISOString())}? This cannot be undone.`)
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(within(screen.getByLabelText('Today overview')).getByText('0m')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Goals' }))
+    expect(screen.getByRole('progressbar', { name: '0/60' })).toBeInTheDocument()
+  })
+
+  it('groups cross-midnight sessions by local start date while crediting metrics on their local end date', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 13, 0, 30))
+    const user = userEvent.setup()
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Progress' }))
+    await user.click(screen.getByRole('button', { name: 'Log session' }))
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-07-12' } })
+    fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '23:45' } })
+    await user.clear(screen.getByLabelText('Duration (minutes)'))
+    await user.type(screen.getByLabelText('Duration (minutes)'), '25')
+    await user.click(screen.getByRole('button', { name: 'Save session' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Session logged.')
+    const journal = screen.getByRole('region', { name: 'Study journal' })
+    expect(within(journal).getByRole('region', { name: 'Yesterday' })).toBeInTheDocument()
+    expect(within(journal).getByLabelText(/General, .*25m/)).toBeInTheDocument()
+    expect(within(screen.getByText('Weekly study').closest('article')! as HTMLElement).getByText('0h 25m')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(within(screen.getByLabelText('Today overview')).getByText('25m')).toBeInTheDocument()
+  })
+
+  it('validates manual session fields and rejects future end times', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 13, 15, 0))
+    await studyDb.studySessions.add({
+      id: 'session-needs-subject',
+      subjectId: 'missing-subject',
+      startedAt: new Date(2026, 6, 13, 14, 0).toISOString(),
+      endedAt: new Date(2026, 6, 13, 14, 30).toISOString(),
+      minutes: 30,
+      note: '',
+    })
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Progress' }))
+    await user.click(screen.getByLabelText(/Edit Missing subject session at/))
+    await user.click(screen.getByRole('button', { name: 'Update session' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Choose an available subject or General.')
+    expect(screen.getByLabelText('Subject')).toHaveFocus()
+
+    await user.selectOptions(screen.getByLabelText('Subject'), '')
+    await user.click(screen.getByRole('button', { name: 'Update session' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Session updated.')
+    expect((await studyDb.studySessions.toArray())[0].subjectId).toBe('')
+
+    await user.click(screen.getByRole('button', { name: 'Log session' }))
+    await user.clear(screen.getByLabelText('Duration (minutes)'))
+    await user.type(screen.getByLabelText('Duration (minutes)'), '0')
+    await user.click(screen.getByRole('button', { name: 'Save session' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Duration must be at least 1 minute.')
+    expect(screen.getByLabelText('Duration (minutes)')).toHaveFocus()
+
+    await user.clear(screen.getByLabelText('Date'))
+    await user.clear(screen.getByLabelText('Duration (minutes)'))
+    await user.type(screen.getByLabelText('Duration (minutes)'), '30')
+    await user.click(screen.getByRole('button', { name: 'Save session' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a valid date and start time.')
+    expect(screen.getByLabelText('Date')).toHaveFocus()
+
+    const now = new Date()
+    await user.type(screen.getByLabelText('Date'), toInputDate(now))
+    await user.clear(screen.getByLabelText('Start time'))
+    await user.type(screen.getByLabelText('Start time'), toInputTime(now))
+    await user.clear(screen.getByLabelText('Duration (minutes)'))
+    await user.type(screen.getByLabelText('Duration (minutes)'), '1')
+    await user.click(screen.getByRole('button', { name: 'Save session' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Session end time cannot be in the future.')
+    expect(screen.getByLabelText('Duration (minutes)')).toHaveFocus()
+    expect((await studyDb.studySessions.toArray()).map((session) => session.id)).toEqual(['session-needs-subject'])
+  })
+
+  it('labels sessions whose subject no longer exists', async () => {
+    const now = new Date()
+    const startedAt = new Date(now.getTime() - 30 * 60_000)
+    await studyDb.studySessions.add({
+      id: 'session-missing-subject',
+      subjectId: 'deleted-subject',
+      startedAt: startedAt.toISOString(),
+      endedAt: now.toISOString(),
+      minutes: 30,
+      note: 'Imported study record',
+    })
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Progress' }))
+    expect(screen.getByText('Missing subject')).toHaveClass('is-missing')
+    expect(screen.getByText('Imported study record')).toBeInTheDocument()
   })
 
   it('toggles dark mode from settings', async () => {

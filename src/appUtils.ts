@@ -6,6 +6,12 @@ export type WeeklyStudyDay = {
   hours: number
 }
 
+export type StudySessionGroup = {
+  key: string
+  label: string
+  sessions: StudySession[]
+}
+
 export type SearchResult = {
   id: string
   type: 'Task' | 'Note' | 'Subject' | 'Event' | 'Flashcard'
@@ -15,8 +21,8 @@ export type SearchResult = {
 }
 
 export function getTodayFocusMinutes(sessions: StudySession[]) {
-  const today = new Date().toISOString().slice(0, 10)
-  return sessions.filter((session) => session.endedAt.slice(0, 10) === today).reduce((sum, session) => sum + session.minutes, 0)
+  const today = localDateKey(new Date())
+  return sessions.filter((session) => localDateKey(session.endedAt) === today).reduce((sum, session) => sum + session.minutes, 0)
 }
 
 export function getSubjectStudyMinutes(subjectId: string, sessions: StudySession[]) {
@@ -69,13 +75,31 @@ export function getWeeklyStudyDays(sessions: StudySession[]): WeeklyStudyDay[] {
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(today)
     date.setDate(today.getDate() - (6 - index))
-    const key = date.toISOString().slice(0, 10)
+    const key = localDateKey(date)
     return {
       key,
       label: new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date),
-      hours: sessions.filter((session) => session.endedAt.slice(0, 10) === key).reduce((sum, session) => sum + session.minutes, 0) / 60,
+      hours: sessions.filter((session) => localDateKey(session.endedAt) === key).reduce((sum, session) => sum + session.minutes, 0) / 60,
     }
   })
+}
+
+export function groupStudySessionsByLocalDate(sessions: StudySession[], now = new Date()): StudySessionGroup[] {
+  const sorted = [...sessions].sort((a, b) => dateTimestamp(b.startedAt) - dateTimestamp(a.startedAt))
+  const groups = new Map<string, StudySession[]>()
+
+  for (const session of sorted) {
+    const key = localDateKey(session.startedAt) || 'unknown-date'
+    const existing = groups.get(key)
+    if (existing) existing.push(session)
+    else groups.set(key, [session])
+  }
+
+  return Array.from(groups, ([key, groupedSessions]) => ({
+    key,
+    label: formatSessionGroupLabel(key, now),
+    sessions: groupedSessions,
+  }))
 }
 
 export function buildSearchResults(data: StudyData, subjectMap: Map<string, StudySubject>, query: string): SearchResult[] {
@@ -105,10 +129,10 @@ export function buildSearchResults(data: StudyData, subjectMap: Map<string, Stud
 }
 
 export function calculateStreak(sessions: StudySession[]) {
-  const daysWithSessions = new Set(sessions.map((session) => session.endedAt.slice(0, 10)))
+  const daysWithSessions = new Set(sessions.map((session) => localDateKey(session.endedAt)).filter(Boolean))
   let streak = 0
   const cursor = new Date()
-  while (daysWithSessions.has(cursor.toISOString().slice(0, 10))) {
+  while (daysWithSessions.has(localDateKey(cursor))) {
     streak += 1
     cursor.setDate(cursor.getDate() - 1)
   }
@@ -126,11 +150,40 @@ export function todayInputValue() {
 }
 
 export function toInputDate(date: Date) {
-  return date.toISOString().slice(0, 10)
+  return localDateKey(date)
 }
 
 export function toInputTime(date: Date) {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+export function parseLocalDateTime(dateValue: string, timeValue: string) {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue)
+  const timeMatch = /^(\d{2}):(\d{2})$/.exec(timeValue)
+  if (!dateMatch || !timeMatch) return null
+
+  const year = Number(dateMatch[1])
+  const month = Number(dateMatch[2]) - 1
+  const day = Number(dateMatch[3])
+  const hours = Number(timeMatch[1])
+  const minutes = Number(timeMatch[2])
+  const parsed = new Date(year, month, day, hours, minutes, 0, 0)
+
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month ||
+    parsed.getDate() !== day ||
+    parsed.getHours() !== hours ||
+    parsed.getMinutes() !== minutes
+  ) return null
+
+  return parsed
+}
+
+export function localDateKey(value: string | Date) {
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
 export function parseTags(value: string) {
@@ -179,4 +232,27 @@ export function percent(value: number, total: number) {
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min))
+}
+
+function dateTimestamp(value: string) {
+  const timestamp = new Date(value).getTime()
+  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp
+}
+
+function formatSessionGroupLabel(key: string, now: Date) {
+  if (key === 'unknown-date') return 'Unknown date'
+  if (key === localDateKey(now)) return 'Today'
+
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (key === localDateKey(yesterday)) return 'Yesterday'
+
+  const [year, month, day] = key.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: year === now.getFullYear() ? undefined : 'numeric',
+  }).format(date)
 }
