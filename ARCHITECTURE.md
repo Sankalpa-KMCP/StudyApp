@@ -30,7 +30,6 @@ flowchart TB
   end
   subgraph ui [UI Tabs]
     focus[FocusTab]
-    cards[CardsTab]
     analytics[AnalyticsTab]
     journalTab[JournalTab]
     settings[SettingsTab]
@@ -45,7 +44,6 @@ flowchart TB
   dataP --> focus
   timerP --> focus
   uiP --> focus
-  dataP --> cards
   dataP --> analytics
   dataP --> journalTab
   timerP --> settings
@@ -84,7 +82,7 @@ flowchart LR
 
 - **Repositories** encapsulate Dexie CRUD (`src/db/repositories`).
 - **Domain hooks** (`src/db/hooks`) expose live queries via `dexie-react-hooks`.
-- **StudyDataProvider** aggregates settings, tasks, history, categories, flashcards, notes.
+- **StudyDataProvider** aggregates settings, tasks, history, categories, notes.
 - **StudyTimerProvider** owns timer engine, backup import/export, and task actions.
 - **StudyUIProvider** owns tab routing, zen mode, toasts, and theme CSS variables.
 

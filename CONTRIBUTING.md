@@ -26,13 +26,13 @@ npm run dev
 npm run screenshots
 ```
 
-Regenerates the four tab captures used in README (`focus`, `cards`, `analytics`, `settings`) into `docs/screenshots/`.
+Regenerates the four tab captures used in README (`focus`, `analytics`, `journal`, `settings`) into `docs/screenshots/`.
 
 On pushes to `master` (excluding screenshot-only commits), CI rebuilds the app, captures against the production preview URL, and auto-commits updated PNGs when they change.
 
 ## List virtualization
 
-`TaskList` and `FlashcardRegistry` virtualize when count exceeds 100. `NoteListPanel` virtualizes above 50 notes. Completed tasks cap at 20 with a **Show more** control (+20 per click).
+`TaskList` virtualizes when count exceeds 100. `NoteListPanel` virtualizes above 50 notes. Completed tasks cap at 20 with a **Show more** control (+20 per click).
 
 ## CSV export safety
 
@@ -44,16 +44,15 @@ On pushes to `master` (excluding screenshot-only commits), CI rebuilds the app, 
 2. Add `.stores({ ... })` and optional `.upgrade()` handler.
 3. Add or extend tests in [`src/db/__tests__/db.migration.test.ts`](src/db/__tests__/db.migration.test.ts).
 
-**v8 note:** On upgrade from v7, missing `flashcardsEnabled` is set to `true` (preserves Cards tab for existing users). Fresh installs default to `false` via `SETTINGS_DEFAULTS`.
+**v12 note:** Drops the `flashcards` table, removes `flashcardsEnabled`, and filters `cards` from `lockoutAllowedTabs`. `#cards` URLs redirect to Focus.
 
-**v9–v10:** v9 adds optional `taskId` on history entries; v10 adds `recurrenceParentId` on tasks. See [`src/db/db.ts`](src/db/db.ts) for full migration chain.
+**v9–v11:** v9 adds optional `taskId` on history entries; v10 adds `recurrenceParentId` on tasks; v11 adds folder sync. See [`src/db/db.ts`](src/db/db.ts) for full migration chain.
 
 ## E2E helpers
 
 Shared utilities live in [`e2e/helpers/studyApp.ts`](e2e/helpers/studyApp.ts):
 
-- `enableFlashcards(page)` — required before any spec that clicks the Cards tab (new installs hide it by default)
-- `clearStudyDatabase(page)` + `freshVisitStorage` — for first-install scenarios (`flashcards-optional.spec.ts`)
+- `clearStudyDatabase(page)` + `freshVisitStorage` — for first-install scenarios
 
 ## Adding a setting key
 
@@ -68,7 +67,6 @@ Shared utilities live in [`e2e/helpers/studyApp.ts`](e2e/helpers/studyApp.ts):
 2. Start with `page.goto('/')` and wait for `Study Dashboard`.
 3. For lazy tabs, assert loading fallback then content (`/loading analytics/i`).
 4. Run `npm run test:e2e -- e2e/<feature>.spec.ts` locally before pushing.
-5. Specs that use the Cards tab must call `enableFlashcards(page)` from `e2e/helpers/studyApp.ts`.
 
 ## Storybook
 

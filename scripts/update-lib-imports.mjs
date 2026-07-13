@@ -36,8 +36,6 @@ const replacements = [
   ['lib/focusLockout', 'lib/study/focusLockout'],
   ['lib/taskTemplates', 'lib/study/taskTemplates'],
   ['lib/setupChecklist', 'lib/study/setupChecklist'],
-  ['lib/flashcardReviewPending', 'lib/study/flashcardReviewPending'],
-  ['lib/flashcardImport', 'lib/study/flashcardImport'],
   ['lib/uxTerms', 'lib/shared/uxTerms'],
   ['lib/dateConstants', 'lib/shared/dateConstants'],
   ['lib/timerConstants', 'lib/shared/timerConstants'],
