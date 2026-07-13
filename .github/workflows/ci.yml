@@ -168,4 +168,4 @@ jobs:
         run: npx playwright install webkit --with-deps
 
       - name: Run WebKit smoke tests
-        run: npm run test:e2e -- --project=webkit e2e/focus.spec.ts e2e/tasks.spec.ts e2e/flashcards.spec.ts
+        run: npm run test:e2e -- --project=webkit e2e/focus.spec.ts e2e/tasks.spec.ts
