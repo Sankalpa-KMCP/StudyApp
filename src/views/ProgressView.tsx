@@ -32,11 +32,15 @@ export function ProgressView(props: {
   dailyGoalMinutes: number
   todayFocusMinutes: number
   subjectMap: Map<string, StudySubject>
+  openEditorOnMount: boolean
 }) {
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(() =>
+    props.openEditorOnMount ? 'new' : null,
+  )
   const [draft, setDraft] = useState<SessionDraft>(() => defaultSessionDraft())
   const [feedback, setFeedback] = useState<SessionFeedback | null>(null)
   const editorTriggerRef = useRef<HTMLElement | null>(null)
+  const logSessionButtonRef = useRef<HTMLButtonElement | null>(null)
   const restoreEditorFocusRef = useRef(false)
   const subjectFieldRef = useRef<HTMLSelectElement | null>(null)
   const dateFieldRef = useRef<HTMLInputElement | null>(null)
@@ -52,7 +56,8 @@ export function ProgressView(props: {
     }
     if (restoreEditorFocusRef.current) {
       restoreEditorFocusRef.current = false
-      if (editorTriggerRef.current?.isConnected) editorTriggerRef.current.focus()
+      const focusTarget = editorTriggerRef.current?.isConnected ? editorTriggerRef.current : logSessionButtonRef.current
+      focusTarget?.focus()
     }
   }, [editingSessionId])
 
@@ -153,7 +158,7 @@ export function ProgressView(props: {
 
   return (
     <section className="workspace-panel" aria-labelledby="progress-workspace-title">
-      <PanelHeader title="Progress" description="Review the work you logged and where your study time went." actionLabel="Log session" onAction={() => openEditor()} />
+      <PanelHeader title="Progress" description="Review the work you logged and where your study time went." actionLabel="Log session" actionRef={logSessionButtonRef} onAction={() => openEditor()} />
       {feedback && (!editingSessionId || feedback.tone === 'success') ? <p className={`settings-feedback ${feedback.tone}`} role={feedback.tone === 'error' ? 'alert' : 'status'} aria-live="polite">{feedback.message}</p> : null}
       {editingSessionId ? (
         <form className="editor-card session-editor" aria-labelledby="session-editor-title" noValidate onSubmit={(event) => { event.preventDefault(); void saveSession() }}>

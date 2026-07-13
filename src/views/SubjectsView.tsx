@@ -33,6 +33,7 @@ export function SubjectsView({
   const [draft, setDraft] = useState({ name: '', color: colorSwatches[0], targetHours: 5, progress: 0 })
   const [feedback, setFeedback] = useState<SettingsFeedback | null>(null)
   const handledEditorRequest = useRef(0)
+  const nameFieldRef = useRef<HTMLInputElement | null>(null)
 
   const openEditor = useCallback((subject?: StudySubject) => {
     setEditingSubjectId(subject?.id ?? 'new')
@@ -50,6 +51,10 @@ export function SubjectsView({
       openEditor()
     }
   }, [openEditor, openEditorRequest])
+
+  useEffect(() => {
+    if (editingSubjectId) nameFieldRef.current?.focus()
+  }, [editingSubjectId])
 
   const saveSubject = async () => {
     const name = draft.name.trim()
@@ -92,7 +97,7 @@ export function SubjectsView({
       {feedback ? <p className={`settings-feedback ${feedback.tone}`} role={feedback.tone === 'error' ? 'alert' : 'status'}>{feedback.message}</p> : null}
       {editingSubjectId ? (
         <div className="editor-card">
-          <TextInput label="Subject name" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
+          <TextInput label="Subject name" value={draft.name} inputRef={nameFieldRef} onChange={(name) => setDraft({ ...draft, name })} />
           <label className="field">
             <span>Color</span>
             <div className="swatch-row">

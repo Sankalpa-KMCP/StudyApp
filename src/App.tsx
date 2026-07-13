@@ -69,6 +69,7 @@ function App() {
   const [taskFilter, setTaskFilter] = useState<TaskFilter>('all')
   const [taskEditorRequest, setTaskEditorRequest] = useState(0)
   const [subjectEditorRequest, setSubjectEditorRequest] = useState(0)
+  const [progressEditorRequested, setProgressEditorRequested] = useState(false)
   const [profileNotice, setProfileNotice] = useState('')
   const [focusSubjectId, setFocusSubjectId] = useState('')
   const [focusDurationMinutes, setFocusDurationMinutes] = useState(25)
@@ -80,6 +81,11 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('study-dashboard-sidebar') === 'collapsed')
   const [revealedCards, setRevealedCards] = useState<Set<string>>(() => new Set())
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
+
+  const navigateToView = useCallback((view: View) => {
+    setProgressEditorRequested(false)
+    setActiveView(view)
+  }, [])
 
   useEffect(() => {
     void migrateLegacyLocalStorage()
@@ -162,20 +168,25 @@ function App() {
   }
 
   const openNewTask = () => {
-    setActiveView('Tasks')
+    navigateToView('Tasks')
     setTaskEditorRequest((request) => request + 1)
   }
 
   const handleClearData = async () => {
     await clearAllStudyData()
     setProfileNotice('All study data has been permanently deleted.')
-    setActiveView('Home')
+    navigateToView('Home')
     setTimeout(() => setProfileNotice(''), 5000)
   }
 
   const openNewSubject = () => {
-    setActiveView('Subjects')
+    navigateToView('Subjects')
     setSubjectEditorRequest((request) => request + 1)
+  }
+
+  const openManualSession = () => {
+    setProgressEditorRequested(true)
+    setActiveView('Progress')
   }
 
   const startSession = useCallback(() => {
@@ -228,7 +239,7 @@ function App() {
       <Sidebar
         activeView={activeView}
         collapsed={sidebarCollapsed}
-        onNavigate={setActiveView}
+        onNavigate={navigateToView}
         onToggleCollapsed={() => setSidebarCollapsed((collapsed) => !collapsed)}
       />
       <div className="workspace">
@@ -240,7 +251,7 @@ function App() {
           onClearSearch={clearSearch}
           onToggleNotices={() => setNoticeOpen((open) => !open)}
           onOpenProfile={() => {
-            setActiveView('Settings')
+            navigateToView('Settings')
             setProfileNotice('Profile settings live in this local Settings workspace for now.')
           }}
         />
@@ -286,7 +297,10 @@ function App() {
                     onQuickNotesChange={addQuickNote}
                     onStartSession={startSession}
                     onStopSession={stopSession}
-                    onNavigate={setActiveView}
+                    onNavigate={navigateToView}
+                    onCreateSubject={openNewSubject}
+                    onCreatePlan={openNewTask}
+                    onLogSession={openManualSession}
                   />
                 ) : null}
                 {activeView === 'Tasks' ? (
@@ -330,6 +344,7 @@ function App() {
                     dailyGoalMinutes={dailyGoalMinutes}
                     todayFocusMinutes={todayFocusMinutes}
                     subjectMap={subjectMap}
+                    openEditorOnMount={progressEditorRequested}
                   />
                 ) : null}
                 {activeView === 'Goals' ? (
@@ -354,9 +369,9 @@ function App() {
               {activeView === 'Home' ? (
                 <aside className="right-column" aria-label="Progress and schedule">
                   <WeeklyProgress days={weeklyStudyDays} />
-                  <Upcoming events={upcomingEvents} subjectMap={subjectMap} onViewAll={() => setActiveView('Calendar')} />
+                  <Upcoming events={upcomingEvents} subjectMap={subjectMap} onViewAll={() => navigateToView('Calendar')} />
                   <StreakCard sessions={data.studySessions} />
-                  <ReviewQueue count={dueCards.length} onOpen={() => setActiveView('Flashcards')} />
+                  <ReviewQueue count={dueCards.length} onOpen={() => navigateToView('Flashcards')} />
                 </aside>
               ) : null}
             </div>

@@ -24,6 +24,93 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Home' })).toHaveClass('is-active')
     expect(screen.getByText('No tasks yet')).toBeInTheDocument()
     expect(screen.queryByText('Chemistry lab report')).not.toBeInTheDocument()
+
+    const checklist = screen.getByRole('region', { name: 'Your first study loop' })
+    const progress = within(checklist).getByRole('progressbar', { name: 'First study loop progress' })
+    expect(progress).toHaveAttribute('aria-valuenow', '0')
+    expect(progress).toHaveAttribute('aria-valuetext', '0 of 3 steps complete')
+    expect(within(checklist).getByRole('button', { name: 'Create subject' })).toBeInTheDocument()
+    expect(within(checklist).getByRole('button', { name: 'Plan task' })).toBeInTheDocument()
+    expect(within(checklist).getByRole('button', { name: 'Log session' })).toBeInTheDocument()
+  })
+
+  it('derives checklist progress from subjects, tasks or events, and sessions with live updates', async () => {
+    await addFirstStudySubject()
+    render(<App />)
+
+    const checklist = await screen.findByRole('region', { name: 'Your first study loop' })
+    expect(within(checklist).getByRole('progressbar', { name: 'First study loop progress' })).toHaveAttribute('aria-valuenow', '1')
+    expect(within(screen.getByRole('heading', { name: 'Create a subject' }).closest('li')! as HTMLElement).getByText('Complete')).toBeInTheDocument()
+
+    await studyDb.tasks.add({
+      id: 'first-study-task',
+      title: 'Review chapter one',
+      subjectId: 'first-study-subject',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 30,
+      createdAt: FIRST_STUDY_TIMESTAMP,
+      updatedAt: FIRST_STUDY_TIMESTAMP,
+    })
+    await waitFor(() => expect(within(screen.getByRole('region', { name: 'Your first study loop' })).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2'))
+
+    await studyDb.tasks.delete('first-study-task')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Plan task' })).toBeInTheDocument())
+
+    await addFirstStudyEvent()
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Plan task' })).not.toBeInTheDocument())
+
+    await addFirstStudySession()
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Your first study loop' })).not.toBeInTheDocument())
+
+    await studyDb.studySessions.delete('first-study-session')
+    expect(await screen.findByRole('region', { name: 'Your first study loop' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Log session' })).toBeInTheDocument()
+  })
+
+  it('keeps the checklist hidden for existing users who completed the study loop', async () => {
+    await addFirstStudySubject()
+    await addFirstStudyEvent()
+    await addFirstStudySession()
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Good morning' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Your first study loop' })).not.toBeInTheDocument()
+  })
+
+  it('opens checklist workflows with native keyboard actions and supported focus', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const createSubject = within(await screen.findByRole('region', { name: 'Your first study loop' })).getByRole('button', { name: 'Create subject' })
+    createSubject.focus()
+    await user.keyboard('{Enter}')
+    expect(await screen.findByLabelText('Subject name')).toHaveFocus()
+
+    await user.type(screen.getByLabelText('Subject name'), 'Physics')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+
+    const planTask = screen.getByRole('button', { name: 'Plan task' })
+    planTask.focus()
+    await user.keyboard('{Enter}')
+    expect(await screen.findByLabelText('Task title')).toHaveFocus()
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    const logSession = screen.getByRole('button', { name: 'Log session' })
+    logSession.focus()
+    await user.keyboard('{Enter}')
+
+    expect(await screen.findByRole('form', { name: 'Log study session' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Subject')).toHaveFocus()
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByRole('button', { name: 'Log session' })).toHaveFocus()
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    await user.click(screen.getByRole('button', { name: 'Progress' }))
+    expect(screen.queryByRole('form', { name: 'Log study session' })).not.toBeInTheDocument()
   })
 
   it('focuses and clears global search with keyboard shortcuts', async () => {
@@ -864,3 +951,41 @@ describe('App', () => {
     expect(await screen.findByRole('button', { name: 'New card' })).toBeInTheDocument()
   })
 })
+
+const FIRST_STUDY_TIMESTAMP = '2026-07-13T08:00:00.000Z'
+
+async function addFirstStudySubject() {
+  await studyDb.subjects.add({
+    id: 'first-study-subject',
+    name: 'Physics',
+    color: '#2563eb',
+    targetHours: 2,
+    progress: 0,
+    createdAt: FIRST_STUDY_TIMESTAMP,
+    updatedAt: FIRST_STUDY_TIMESTAMP,
+  })
+}
+
+async function addFirstStudyEvent() {
+  await studyDb.events.add({
+    id: 'first-study-event',
+    title: 'Practice block',
+    subjectId: 'first-study-subject',
+    startAt: '2026-07-14T08:00:00.000Z',
+    endAt: '2026-07-14T09:00:00.000Z',
+    location: '',
+    createdAt: FIRST_STUDY_TIMESTAMP,
+    updatedAt: FIRST_STUDY_TIMESTAMP,
+  })
+}
+
+async function addFirstStudySession() {
+  await studyDb.studySessions.add({
+    id: 'first-study-session',
+    subjectId: 'first-study-subject',
+    startedAt: '2026-07-13T08:00:00.000Z',
+    endedAt: '2026-07-13T08:30:00.000Z',
+    minutes: 30,
+    note: 'First study loop',
+  })
+}

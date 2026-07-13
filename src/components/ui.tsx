@@ -1,6 +1,7 @@
 import { clamp } from '../appUtils'
 import type { StudySubject } from '../db/types'
 import { BookOpen, Check, Edit3, Plus, Save, Trash2, X } from 'lucide-react'
+import type { Ref } from 'react'
 
 export function SubjectCard({ subject, progressValue = subject.progress }: { subject: StudySubject; progressValue?: number }) {
   return (
@@ -28,7 +29,7 @@ export function EmptyState({ icon: Icon, title, body, actionLabel, onAction }: {
   )
 }
 
-export function PanelHeader({ title, description, actionLabel, onAction }: { title: string; description: string; actionLabel?: string; onAction?: () => void }) {
+export function PanelHeader({ title, description, actionLabel, onAction, actionRef }: { title: string; description: string; actionLabel?: string; onAction?: () => void; actionRef?: Ref<HTMLButtonElement> }) {
   const headingId = `${String(title).toLowerCase()}-workspace-title`
   const ActionIcon = actionLabel?.toLowerCase().startsWith('clear') ? X : Plus
   return (
@@ -38,7 +39,7 @@ export function PanelHeader({ title, description, actionLabel, onAction }: { tit
         <p>{description}</p>
       </div>
       {actionLabel && onAction ? (
-        <button className="primary-command" type="button" onClick={onAction}>
+        <button ref={actionRef} className="primary-command" type="button" onClick={onAction}>
           <ActionIcon size={18} aria-hidden="true" />
           <span>{actionLabel}</span>
         </button>
@@ -47,11 +48,11 @@ export function PanelHeader({ title, description, actionLabel, onAction }: { tit
   )
 }
 
-export function TextInput({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
+export function TextInput({ label, value, onChange, type = 'text', inputRef }: { label: string; value: string; onChange: (value: string) => void; type?: string; inputRef?: Ref<HTMLInputElement> }) {
   return (
     <label className="field">
       <span>{label}</span>
-      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+      <input ref={inputRef} type={type} value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
   )
 }

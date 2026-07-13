@@ -15,6 +15,7 @@ import { EmptyState, SubjectCard } from '../components/ui'
 import { StudyTime } from '../components/RightColumn'
 import type { ActiveSession, View } from '../App'
 import { useEffect, useState } from 'react'
+import { FirstStudyChecklist } from './FirstStudyChecklist'
 
 export function HomeView(props: {
   data: StudyData
@@ -37,6 +38,9 @@ export function HomeView(props: {
   onStartSession: () => void
   onStopSession: () => Promise<void>
   onNavigate: (view: View) => void
+  onCreateSubject: () => void
+  onCreatePlan: () => void
+  onLogSession: () => void
   onClearSearch?: () => void
 }) {
   const openTasks = props.data.tasks.filter((task) => task.status === 'open').slice(0, 5)
@@ -49,6 +53,16 @@ export function HomeView(props: {
     <>
       {props.search.trim() ? (
         <HomeSearchResults query={props.search} results={props.searchResults} onNavigate={props.onNavigate} onClearSearch={props.onClearSearch || (() => {})} />
+      ) : null}
+      {!props.search.trim() ? (
+        <FirstStudyChecklist
+          hasSubject={props.data.subjects.length > 0}
+          hasPlan={props.data.tasks.length > 0 || props.data.events.length > 0}
+          hasSession={props.data.studySessions.length > 0}
+          onCreateSubject={props.onCreateSubject}
+          onCreatePlan={props.onCreatePlan}
+          onLogSession={props.onLogSession}
+        />
       ) : null}
       <div className="insight-grid" aria-label="Study pulse">
         <InsightTile icon={Target} label="Today target" value={`${Math.round(percent(props.todayFocusMinutes, props.dailyGoalMinutes))}%`} detail={`${formatMinutes(props.todayFocusMinutes)} of ${formatMinutes(props.dailyGoalMinutes)}`} />
