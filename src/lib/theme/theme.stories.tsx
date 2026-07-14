@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { THEME_PROFILES, THEME_PRESET_META } from './theme'
+import { THEME_PROFILES, getThemePresetMeta } from './theme'
 
 const meta: Meta = {
   title: 'Theme/Profiles',
@@ -11,7 +11,7 @@ type Story = StoryObj
 export const AllThemes: Story = {
   render: () => (
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-6">
-      {THEME_PRESET_META.map(({ id, label, description, isLight }) => {
+      {getThemePresetMeta().map(({ id, label, description, isLight }) => {
         const theme = THEME_PROFILES[id]
         const textColor = theme.textPrimary ?? (isLight ? '#1a1a2e' : '#ffffff')
         return (

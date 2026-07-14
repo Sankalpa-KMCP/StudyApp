@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { ThemePresetMeta, ThemeProfile } from '../../types/app'
+import { t, type TranslationKey } from '../../i18n'
 
 export interface ThemeAccentOverrides {
   accentBlueOverride?: string | null
@@ -223,18 +224,64 @@ export const THEME_PROFILES: Record<string, ThemeProfile> = {
 }
 
 export const THEME_PRESET_META: ThemePresetMeta[] = [
-  { id: 'midnight-slate', label: 'Midnight Slate', description: 'Cool slate default with blue ambient glow', isLight: false, swatchOrder: 0 },
-  { id: 'midnight-oled', label: 'Midnight OLED', description: 'True black surfaces for OLED displays', isLight: false, swatchOrder: 1 },
-  { id: 'nordic-frost', label: 'Nordic Frost', description: 'Icy blue-violet Scandinavian palette', isLight: false, swatchOrder: 2 },
-  { id: 'amber-retro', label: 'Amber Retro', description: 'Warm sepia tones with vintage amber glow', isLight: false, swatchOrder: 3 },
-  { id: 'nebula-purple', label: 'Nebula Purple', description: 'Deep cosmic magenta and violet', isLight: false, swatchOrder: 4 },
-  { id: 'forest-dusk', label: 'Forest Dusk', description: 'Deep teal-green study sanctuary', isLight: false, swatchOrder: 5 },
-  { id: 'cosmos-ink', label: 'Cosmos Ink', description: 'Indigo-black with cyan starlight accents', isLight: false, swatchOrder: 6 },
-  { id: 'paper-day', label: 'Paper Day', description: 'Warm paper white for daylight reading', isLight: true, swatchOrder: 7 },
-  { id: 'mist-slate', label: 'Mist Slate', description: 'Cool grey-blue light workspace', isLight: true, swatchOrder: 8 },
-  { id: 'linen-warm', label: 'Linen Warm', description: 'Cream linen with brown-ink text', isLight: true, swatchOrder: 9 },
-  { id: 'arctic-clean', label: 'Arctic Clean', description: 'Crisp white-blue clinical clarity', isLight: true, swatchOrder: 10 },
+  { id: 'midnight-slate', label: '', description: '', isLight: false, swatchOrder: 0 },
+  { id: 'midnight-oled', label: '', description: '', isLight: false, swatchOrder: 1 },
+  { id: 'nordic-frost', label: '', description: '', isLight: false, swatchOrder: 2 },
+  { id: 'amber-retro', label: '', description: '', isLight: false, swatchOrder: 3 },
+  { id: 'nebula-purple', label: '', description: '', isLight: false, swatchOrder: 4 },
+  { id: 'forest-dusk', label: '', description: '', isLight: false, swatchOrder: 5 },
+  { id: 'cosmos-ink', label: '', description: '', isLight: false, swatchOrder: 6 },
+  { id: 'paper-day', label: '', description: '', isLight: true, swatchOrder: 7 },
+  { id: 'mist-slate', label: '', description: '', isLight: true, swatchOrder: 8 },
+  { id: 'linen-warm', label: '', description: '', isLight: true, swatchOrder: 9 },
+  { id: 'arctic-clean', label: '', description: '', isLight: true, swatchOrder: 10 },
 ]
+
+const THEME_PRESET_LABEL_KEYS: Record<string, TranslationKey> = {
+  'midnight-slate': 'themePresetMidnightSlate',
+  'midnight-oled': 'themePresetMidnightOled',
+  'nordic-frost': 'themePresetNordicFrost',
+  'amber-retro': 'themePresetAmberRetro',
+  'nebula-purple': 'themePresetNebulaPurple',
+  'forest-dusk': 'themePresetForestDusk',
+  'cosmos-ink': 'themePresetCosmosInk',
+  'paper-day': 'themePresetPaperDay',
+  'mist-slate': 'themePresetMistSlate',
+  'linen-warm': 'themePresetLinenWarm',
+  'arctic-clean': 'themePresetArcticClean',
+}
+
+const THEME_PRESET_DESC_KEYS: Record<string, TranslationKey> = {
+  'midnight-slate': 'themePresetMidnightSlateDesc',
+  'midnight-oled': 'themePresetMidnightOledDesc',
+  'nordic-frost': 'themePresetNordicFrostDesc',
+  'amber-retro': 'themePresetAmberRetroDesc',
+  'nebula-purple': 'themePresetNebulaPurpleDesc',
+  'forest-dusk': 'themePresetForestDuskDesc',
+  'cosmos-ink': 'themePresetCosmosInkDesc',
+  'paper-day': 'themePresetPaperDayDesc',
+  'mist-slate': 'themePresetMistSlateDesc',
+  'linen-warm': 'themePresetLinenWarmDesc',
+  'arctic-clean': 'themePresetArcticCleanDesc',
+}
+
+export function getThemePresetLabel(id: string): string {
+  const key = THEME_PRESET_LABEL_KEYS[id]
+  return key ? t(key) : id
+}
+
+export function getThemePresetDescription(id: string): string {
+  const key = THEME_PRESET_DESC_KEYS[id]
+  return key ? t(key) : ''
+}
+
+export function getThemePresetMeta(): ThemePresetMeta[] {
+  return THEME_PRESET_META.map(preset => ({
+    ...preset,
+    label: getThemePresetLabel(preset.id),
+    description: getThemePresetDescription(preset.id),
+  }))
+}
 
 export const DARK_THEME_PRESETS = THEME_PRESET_META.filter(p => !p.isLight)
 export const LIGHT_THEME_PRESETS = THEME_PRESET_META.filter(p => p.isLight)
