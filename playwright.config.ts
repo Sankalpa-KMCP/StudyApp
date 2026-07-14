@@ -50,6 +50,9 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
+    env: {
+      VITE_E2E_SYNC: '1',
+    },
   },
 })
 

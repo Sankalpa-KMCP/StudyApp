@@ -5,6 +5,11 @@ import {
 } from '../../db/repositories/syncHandles'
 import { SYNC_FILE_NAME } from './syncConstants'
 import type { SyncAdapter, SyncFileMetadata } from './syncAdapter'
+import {
+  E2E_SYNC_FOLDER_NAME,
+  isE2eFolderConnected,
+  isE2eSyncMode,
+} from './testSyncAdapter'
 
 export function isFileSystemAccessSupported(): boolean {
   return typeof window !== 'undefined' && 'showDirectoryPicker' in window
@@ -20,6 +25,10 @@ export async function ensureDirectoryPermission(
 }
 
 export async function connectSyncFolder(): Promise<FileSystemDirectoryHandle | null> {
+  if (isE2eSyncMode()) {
+    window.__studySyncTestAdapterController?.connectFolder()
+    return { name: E2E_SYNC_FOLDER_NAME } as FileSystemDirectoryHandle
+  }
   if (!isFileSystemAccessSupported()) return null
   const handle = await window.showDirectoryPicker({ mode: 'readwrite' })
   const granted = await ensureDirectoryPermission(handle, 'readwrite')
@@ -29,6 +38,10 @@ export async function connectSyncFolder(): Promise<FileSystemDirectoryHandle | n
 }
 
 export async function disconnectSyncFolder(): Promise<void> {
+  if (isE2eSyncMode()) {
+    window.__studySyncTestAdapterController?.disconnectFolder()
+    return
+  }
   await clearDirectorySyncHandle()
 }
 
@@ -92,6 +105,9 @@ export async function createWebSyncAdapter(): Promise<SyncAdapter | null> {
 }
 
 export async function getWebSyncFolderLabel(): Promise<string> {
+  if (isE2eSyncMode() && isE2eFolderConnected()) {
+    return E2E_SYNC_FOLDER_NAME
+  }
   const handle = await getDirectorySyncHandle()
   return handle?.name ?? ''
 }
