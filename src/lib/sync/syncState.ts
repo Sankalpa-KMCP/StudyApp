@@ -1,9 +1,19 @@
-export type SyncConnectionStatus = 'disconnected' | 'connected' | 'syncing' | 'error'
+import type { MergePreviewSummary } from '../backup/mergePreview'
+import type { ParsedStudyBackupPayload } from '../study/studyDashboard'
+
+export type SyncConnectionStatus = 'disconnected' | 'connected' | 'syncing' | 'error' | 'conflict'
 
 export interface SyncStatusSnapshot {
   connection: SyncConnectionStatus
   lastSyncAt: string
   message: string
+}
+
+export interface SyncConflictSnapshot {
+  remotePayload: ParsedStudyBackupPayload
+  localChecksum: string
+  remoteChecksum: string
+  preview: MergePreviewSummary
 }
 
 let syncInProgress = false
@@ -15,8 +25,10 @@ let status: SyncStatusSnapshot = {
   lastSyncAt: '',
   message: '',
 }
+let conflict: SyncConflictSnapshot | null = null
 
 const listeners = new Set<(snapshot: SyncStatusSnapshot) => void>()
+const conflictListeners = new Set<(snapshot: SyncConflictSnapshot | null) => void>()
 
 export function isSyncInProgress(): boolean {
   return syncInProgress
@@ -65,6 +77,30 @@ export function subscribeSyncStatus(listener: (snapshot: SyncStatusSnapshot) => 
   return () => listeners.delete(listener)
 }
 
+export function hasActiveSyncConflict(): boolean {
+  return conflict !== null
+}
+
+export function getSyncConflict(): SyncConflictSnapshot | null {
+  return conflict
+}
+
+export function setSyncConflict(snapshot: SyncConflictSnapshot): void {
+  conflict = snapshot
+  conflictListeners.forEach(listener => listener(conflict))
+}
+
+export function clearSyncConflict(): void {
+  conflict = null
+  conflictListeners.forEach(listener => listener(conflict))
+}
+
+export function subscribeSyncConflict(listener: (snapshot: SyncConflictSnapshot | null) => void): () => void {
+  conflictListeners.add(listener)
+  listener(conflict)
+  return () => conflictListeners.delete(listener)
+}
+
 export function resetSyncRuntimeState(): void {
   syncInProgress = false
   lastKnownRemoteChecksum = ''
@@ -72,6 +108,7 @@ export function resetSyncRuntimeState(): void {
   if (pollTimer) clearInterval(pollTimer)
   pushTimer = null
   pollTimer = null
+  conflict = null
   status = {
     connection: 'disconnected',
     lastSyncAt: '',
