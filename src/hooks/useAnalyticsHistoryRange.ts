@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getAllHistoryOrderedByCreatedAt, getHistoryForDateRange } from '../db/repositories/history'
+import { t } from '../i18n'
 
 export type AnalyticsHistoryRange = '7d' | '30d' | '90d' | 'all'
 
@@ -12,11 +13,15 @@ const RANGE_MS: Record<Exclude<AnalyticsHistoryRange, 'all'>, number> = {
   '90d': 90 * 24 * 60 * 60 * 1000,
 }
 
-export const ANALYTICS_RANGE_LABELS: Record<AnalyticsHistoryRange, string> = {
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  '90d': 'Last 90 days',
-  all: 'All time',
+const ANALYTICS_RANGE_LABEL_KEYS: Record<AnalyticsHistoryRange, 'analyticsRange7d' | 'analyticsRange30d' | 'analyticsRange90d' | 'analyticsRangeAll'> = {
+  '7d': 'analyticsRange7d',
+  '30d': 'analyticsRange30d',
+  '90d': 'analyticsRange90d',
+  all: 'analyticsRangeAll',
+}
+
+export function getAnalyticsRangeLabel(range: AnalyticsHistoryRange): string {
+  return t(ANALYTICS_RANGE_LABEL_KEYS[range])
 }
 
 function readStoredRange(): AnalyticsHistoryRange {
@@ -51,6 +56,6 @@ export function useAnalyticsHistoryRange(enabled = true) {
     setRange,
     history: history ?? [],
     isLoading: history === undefined,
-    rangeLabel: ANALYTICS_RANGE_LABELS[range],
+    rangeLabel: getAnalyticsRangeLabel(range),
   }
 }

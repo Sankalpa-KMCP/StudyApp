@@ -1,7 +1,8 @@
 import { memo, useCallback } from 'react'
 import type { AnalyticsHistoryRange } from '../../hooks/useAnalyticsHistoryRange'
-import { ANALYTICS_RANGE_LABELS } from '../../hooks/useAnalyticsHistoryRange'
+import { getAnalyticsRangeLabel } from '../../hooks/useAnalyticsHistoryRange'
 import { SelectionChip } from '../shared/SelectionChip'
+import { useTranslation } from '../../i18n/useTranslation'
 
 const RANGES: AnalyticsHistoryRange[] = ['7d', '30d', '90d', 'all']
 
@@ -11,11 +12,12 @@ interface AnalyticsRangeSelectorProps {
 }
 
 export const AnalyticsRangeSelector = memo(function AnalyticsRangeSelector({ range, onChange }: AnalyticsRangeSelectorProps) {
+  const { t } = useTranslation()
   const selectRange = useCallback((key: AnalyticsHistoryRange) => () => onChange(key), [onChange])
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mb-4" role="group" aria-label="Analytics time range">
-      <span className="text-micro font-semibold settings-muted mr-1">Productivity window</span>
+    <div className="flex flex-wrap items-center gap-2 mb-4" role="group" aria-label={t('analyticsProductivityWindow')}>
+      <span className="text-micro font-semibold settings-muted mr-1">{t('analyticsProductivityWindow')}</span>
       {RANGES.map(key => (
         <SelectionChip
           key={key}
@@ -24,7 +26,7 @@ export const AnalyticsRangeSelector = memo(function AnalyticsRangeSelector({ ran
           size="sm"
           onClick={selectRange(key)}
         >
-          {ANALYTICS_RANGE_LABELS[key]}
+          {getAnalyticsRangeLabel(key)}
         </SelectionChip>
       ))}
     </div>

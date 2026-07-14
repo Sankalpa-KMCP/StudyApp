@@ -4,6 +4,7 @@ import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
 import { EmptyState } from '../shared/EmptyState'
 import { ChartSummary } from './ChartSummary'
+import { useTranslation } from '../../i18n/useTranslation'
 
 interface RetentionChartPanelProps {
   retentionData: Array<{ date: string; avgGrade: number }>
@@ -13,22 +14,23 @@ interface RetentionChartPanelProps {
 }
 
 export const RetentionChartPanel = memo(function RetentionChartPanel({ retentionData, tooltipStyle, className = '', suppressEmptyState = false }: RetentionChartPanelProps) {
+  const { t } = useTranslation()
   const hasRetentionData = retentionData.length > 0
   const latestGrade = hasRetentionData ? retentionData[retentionData.length - 1]?.avgGrade : 0
 
   return (
     <PanelCard className={className} aria-labelledby="analytics-retention">
       <PanelHeader
-        title="Recall over time"
+        title={t('analyticsRecallOverTime')}
         bordered={false}
         className="mb-5"
         id="analytics-retention"
       />
-      <p className="text-micro text-muted mb-4 -mt-2">Average recall score from task reviews</p>
+      <p className="text-micro text-muted mb-4 -mt-2">{t('analyticsRecallHelper')}</p>
       {hasRetentionData ? (
         <>
         <ChartSummary>
-          {`Retention trend across ${retentionData.length} review sessions. Latest average recall score: ${latestGrade.toFixed(1)} out of 5.`}
+          {t('analyticsRetentionSummary', { count: retentionData.length, grade: latestGrade.toFixed(1) })}
         </ChartSummary>
         <div className="h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -36,7 +38,7 @@ export const RetentionChartPanel = memo(function RetentionChartPanel({ retention
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" horizontal={true} vertical={false} />
               <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 600 }} />
               <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 600 }} />
-              <Tooltip contentStyle={tooltipStyle} formatter={(val) => [`${val} / 5`, 'Avg Recall Score']} />
+              <Tooltip contentStyle={tooltipStyle} formatter={(val) => [`${val} / 5`, t('analyticsAvgRecallScore')]} />
               <Line type="monotone" dataKey="avgGrade" stroke="var(--color-accent-amber)" strokeWidth={2.5} activeDot={{ r: 6 }} dot={{ strokeWidth: 2, r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
@@ -45,8 +47,8 @@ export const RetentionChartPanel = memo(function RetentionChartPanel({ retention
       ) : suppressEmptyState ? null : (
         <EmptyState
           icon={<span className="text-2xl">📈</span>}
-          title="No retention data yet"
-          description="Complete active recall reviews on study subjects to display retention metrics."
+          title={t('analyticsNoRetentionTitle')}
+          description={t('analyticsNoRetentionDesc')}
         />
       )}
     </PanelCard>

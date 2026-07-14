@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react'
 import { Clock, Coffee, Calendar, Flame } from 'lucide-react'
 import type { DailyLog } from '../../db/types'
 import { MetricCard } from '../shared/MetricCard'
+import { useTranslation } from '../../i18n/useTranslation'
 
 interface SummaryMetricsRowProps {
   monthLogs: DailyLog[]
@@ -18,6 +19,8 @@ export const SummaryMetricsRow = memo(function SummaryMetricsRow({
   totalDaysInMonth,
   currentStreak,
 }: SummaryMetricsRowProps) {
+  const { t } = useTranslation()
+
   const activeStudyDays = useMemo(
     () => new Set(monthLogs.filter(l => l.studyMinutes > 0).map(l => l.dateString)).size,
     [monthLogs],
@@ -25,12 +28,12 @@ export const SummaryMetricsRow = memo(function SummaryMetricsRow({
 
   const items = useMemo(
     () => [
-      { label: 'Monthly Study Time', value: `${totalMonthHours.toFixed(1)}h`, icon: Clock, accent: 'blue' as const },
-      { label: 'Weekly Break Cooldown', value: `${totalWeeklyBreakHours}h`, icon: Coffee, accent: 'purple' as const },
-      { label: 'Active Study Days', value: `${activeStudyDays} / ${totalDaysInMonth}`, icon: Calendar, accent: 'green' as const },
-      { label: 'Streak Status', value: `${currentStreak} Days`, icon: Flame, accent: 'amber' as const },
+      { label: t('analyticsMetricMonthlyStudy'), value: `${totalMonthHours.toFixed(1)}h`, icon: Clock, accent: 'blue' as const },
+      { label: t('analyticsMetricWeeklyBreak'), value: `${totalWeeklyBreakHours}h`, icon: Coffee, accent: 'purple' as const },
+      { label: t('analyticsMetricActiveDays'), value: `${activeStudyDays} / ${totalDaysInMonth}`, icon: Calendar, accent: 'green' as const },
+      { label: t('analyticsMetricStreak'), value: t('analyticsMetricStreakValue', { count: currentStreak }), icon: Flame, accent: 'amber' as const },
     ],
-    [activeStudyDays, totalMonthHours, totalWeeklyBreakHours, totalDaysInMonth, currentStreak],
+    [activeStudyDays, totalMonthHours, totalWeeklyBreakHours, totalDaysInMonth, currentStreak, t],
   )
 
   return (

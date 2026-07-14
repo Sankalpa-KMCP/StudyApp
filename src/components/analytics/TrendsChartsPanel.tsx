@@ -6,6 +6,7 @@ import { PanelCard } from '../shared/PanelCard'
 import { PanelHeader } from '../shared/PanelHeader'
 import { EmptyState } from '../shared/EmptyState'
 import { ChartSummary } from './ChartSummary'
+import { useTranslation } from '../../i18n/useTranslation'
 
 interface TrendsChartsPanelProps {
   chartData: Array<{ day: string; hours: number; focus: number }>
@@ -22,6 +23,7 @@ export const TrendsChartsPanel = memo(function TrendsChartsPanel({
   tooltipStyle,
   suppressEmptyState = false,
 }: TrendsChartsPanelProps) {
+  const { t } = useTranslation()
   const weekHours = useMemo(() => chartData.reduce((sum, row) => sum + row.hours, 0), [chartData])
   const topDay = useMemo(
     () => chartData.reduce<{ day: string; hours: number } | null>((best, row) => {
@@ -31,15 +33,20 @@ export const TrendsChartsPanel = memo(function TrendsChartsPanel({
     [chartData],
   )
 
+  const weeklySummary = topDay
+    ? t('analyticsWeeklySummary', {
+        hours: weekHours.toFixed(1),
+        topDay: t('analyticsWeeklyTopDay', { day: topDay.day, hours: topDay.hours.toFixed(1) }),
+      })
+    : t('analyticsWeeklySummary', { hours: weekHours.toFixed(1), topDay: '' })
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <PanelCard className="lg:col-span-8" aria-labelledby="analytics-weekly-trends">
-        <PanelHeader title="Weekly performance trends" bordered={false} className="mb-5" id="analytics-weekly-trends" />
+        <PanelHeader title={t('analyticsWeeklyTrends')} bordered={false} className="mb-5" id="analytics-weekly-trends" />
         {hasChartData ? (
           <>
-          <ChartSummary>
-            {`This week: ${weekHours.toFixed(1)} hours studied.${topDay ? ` Top day: ${topDay.day} (${topDay.hours.toFixed(1)} hours).` : ''}`}
-          </ChartSummary>
+          <ChartSummary>{weeklySummary}</ChartSummary>
           <div className="h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
@@ -61,15 +68,15 @@ export const TrendsChartsPanel = memo(function TrendsChartsPanel({
         ) : suppressEmptyState ? null : (
           <EmptyState
             icon={<BarChart3 className="h-8 w-8" />}
-            title="No study data yet"
-            description="Complete a focus block to see your weekly trends here."
+            title={t('analyticsNoStudyDataTitle')}
+            description={t('analyticsNoStudyDataDesc')}
           />
         )}
       </PanelCard>
 
       <PanelCard className="lg:col-span-4 flex flex-col justify-between" aria-labelledby="analytics-efficiency-index">
         <div>
-          <PanelHeader title="Daily efficiency index" bordered={false} className="mb-5" id="analytics-efficiency-index" />
+          <PanelHeader title={t('analyticsEfficiencyIndex')} bordered={false} className="mb-5" id="analytics-efficiency-index" />
           {hasChartData ? (
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -83,7 +90,7 @@ export const TrendsChartsPanel = memo(function TrendsChartsPanel({
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.02)" horizontal={true} vertical={false} />
                   <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 600 }} />
                   <YAxis hide />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(val) => [`${val}%`, 'Efficiency']} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(val) => [`${val}%`, t('analyticsEfficiencyTooltip')]} />
                   <Bar dataKey="focus" fill="url(#effGrad)" radius={[4, 4, 0, 0]} maxBarSize={16} />
                 </BarChart>
               </ResponsiveContainer>
@@ -91,8 +98,8 @@ export const TrendsChartsPanel = memo(function TrendsChartsPanel({
           ) : suppressEmptyState ? null : (
             <EmptyState
               icon={<BarChart3 className="h-8 w-8" />}
-              title="No efficiency data"
-              description="Your focus scores will appear after you log sessions."
+              title={t('analyticsNoEfficiencyTitle')}
+              description={t('analyticsNoEfficiencyDesc')}
             />
           )}
         </div>

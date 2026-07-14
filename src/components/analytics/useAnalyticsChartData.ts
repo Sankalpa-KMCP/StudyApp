@@ -1,6 +1,15 @@
 import { useMemo } from 'react'
 import type { DailyLog, TaskItem } from '../../db/types'
 import type { ThemeProfile } from '../../types/app'
+import { t } from '../../i18n'
+import type { TranslationKey } from '../../i18n'
+
+const MOOD_LABEL_KEYS: Record<string, TranslationKey> = {
+  focused: 'analyticsMoodFocused',
+  energetic: 'analyticsMoodEnergetic',
+  tired: 'analyticsMoodTired',
+  distracted: 'analyticsMoodDistracted',
+}
 
 export function useRetentionData(tasks: TaskItem[]) {
   return useMemo(() => {
@@ -60,7 +69,7 @@ export function useHeatmapData(allLogs: DailyLog[]) {
 export function useEstimationInsight(tasks: TaskItem[]) {
   return useMemo(() => {
     const completedTasks = tasks.filter(t => t.completed && t.estimatedCycles > 0)
-    if (completedTasks.length === 0) return 'No data'
+    if (completedTasks.length === 0) return t('commonNoData')
 
     let totalEstimated = 0
     let totalActual = 0
@@ -71,8 +80,11 @@ export function useEstimationInsight(tasks: TaskItem[]) {
 
     const diff = Math.abs(totalActual - totalEstimated)
     const errorRate = Math.round((diff / totalEstimated) * 100)
-    if (totalActual === totalEstimated) return '0% Dev (Perfect)'
-    return `${errorRate}% Dev (${totalActual > totalEstimated ? 'Under' : 'Over'})`
+    if (totalActual === totalEstimated) return t('analyticsEstimationPerfect')
+    return t('analyticsEstimationDev', {
+      rate: errorRate,
+      direction: totalActual > totalEstimated ? t('analyticsEstimationUnder') : t('analyticsEstimationOver'),
+    })
   }, [tasks])
 }
 
@@ -111,7 +123,7 @@ export function useMoodDistribution(monthLogs: DailyLog[], activeThemeVars: Them
       const count = counts[key]
       const percentage = totalLogged > 0 ? Math.round((count / totalLogged) * 100) : 0
       return {
-        name: key.charAt(0).toUpperCase() + key.slice(1),
+        name: t(MOOD_LABEL_KEYS[key]),
         value: count,
         percentage,
         color: colors[key],
@@ -119,4 +131,11 @@ export function useMoodDistribution(monthLogs: DailyLog[], activeThemeVars: Them
       }
     })
   }, [monthLogs, activeThemeVars])
+}
+
+export function getHeatmapIntensityLabel(minutes: number): string {
+  if (minutes < 60) return t('analyticsIntensityLow')
+  if (minutes < 120) return t('analyticsIntensityMed')
+  if (minutes < 180) return t('analyticsIntensityHigh')
+  return t('analyticsIntensityEpic')
 }
