@@ -12,6 +12,8 @@ import {
   isFirstSessionPending,
 } from '../../lib/study/firstSession'
 import { FirstSessionBanner } from '../focus/FirstSessionBanner'
+import { ReviewDueBanner } from '../focus/ReviewDueBanner'
+import { useReviewDueCount } from '../../hooks/useReviewDueCount'
 
 const MemoizedTaskRegistry = memo(TaskRegistry)
 
@@ -27,6 +29,7 @@ export function FocusTabContent() {
   } = useStudyTimerContext()
   const { requestConfirm } = useConfirm()
   const { t } = useTranslation()
+  const reviewDueCount = useReviewDueCount(tasks.tasks)
   const [firstSessionActive, setFirstSessionActive] = useState(isFirstSessionPending)
 
   useEffect(() => {
@@ -56,7 +59,7 @@ export function FocusTabContent() {
     const ok = await requestConfirm({
       title: t('endBreakEarlyConfirm'),
       message: t('endBreakEarlyBody'),
-      confirmLabel: 'End break',
+      confirmLabel: t('endBreakEarly'),
     })
     if (ok) timerControls.skipBreak()
   }
@@ -72,11 +75,18 @@ export function FocusTabContent() {
     return handleAddTask(...args)
   }
 
+  const handleViewReviewQueue = () => {
+    document.getElementById('review-queue')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <TabPageShell className="pb-20 lg:pb-0">
       <div className="lg:col-span-5 order-1">
         {showFirstSessionBanner && (
           <FirstSessionBanner onDismiss={handleDismissFirstSession} />
+        )}
+        {reviewDueCount > 0 && (
+          <ReviewDueBanner count={reviewDueCount} onViewQueue={handleViewReviewQueue} />
         )}
         <FocusSanctuary
           activeTask={activeTask}

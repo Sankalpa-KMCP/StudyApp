@@ -53,8 +53,8 @@ export function useFocusLockoutNavigation({
       if (lockoutMode === 'strict') return
       const ok = await requestConfirm({
         title: `${t('focusLockout')} active`,
-        message: 'Your lockout setting prevents leaving Focus during an active study block. Pause the timer to navigate away.',
-        confirmLabel: 'Pause & navigate',
+        message: t('focusLockoutNavigateMessage'),
+        confirmLabel: t('focusLockoutPauseNavigate'),
         danger: true,
       })
       if (ok) {

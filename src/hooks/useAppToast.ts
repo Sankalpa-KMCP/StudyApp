@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { t } from '../i18n'
 import type { ToastAction, ToastState } from '../types/app'
 
 export function useAppToast() {
@@ -16,8 +17,8 @@ export function useAppToast() {
   useEffect(() => {
     if (!activeToast) return
     const duration = activeToast.durationMs ?? (activeToast.key === 'LEVEL UP' ? 4000 : activeToast.action ? 5000 : 1500)
-    const t = setTimeout(() => setActiveToast(null), duration)
-    return () => clearTimeout(t)
+    const timeoutId = setTimeout(() => setActiveToast(null), duration)
+    return () => clearTimeout(timeoutId)
   }, [activeToast])
 
   useEffect(() => {
@@ -27,9 +28,9 @@ export function useAppToast() {
       const message = error?.message || 'Database transaction failed'
       if (name === 'QuotaExceededError' || message.toLowerCase().includes('quota') || message.toLowerCase().includes('exhausted')) {
         setQuotaExceeded(true)
-        pushToast('DATABASE', 'Storage quota exceeded — export a backup in Settings')
+        pushToast('DATABASE', t('storageQuotaExceeded'))
       } else {
-        pushToast('DATABASE', `DB ERROR: ${name.toUpperCase()}`)
+        pushToast('DATABASE', t('dbError', { name: name.toUpperCase() }))
       }
     }
     window.addEventListener('dexie-error', handleDexieError)

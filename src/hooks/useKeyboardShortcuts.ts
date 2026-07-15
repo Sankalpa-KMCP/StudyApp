@@ -110,10 +110,10 @@ export function useKeyboardShortcuts({
             if (secondsElapsedRef.current < 60 && !e.shiftKey) {
               if (!requestConfirm) return
               const ok = await requestConfirm({
-                title: 'End study block early?',
-                message: 'This session is under a minute. Save it anyway?',
-                confirmLabel: 'Save session',
-                cancelLabel: 'Keep going',
+                title: t('endStudyBlockEarly'),
+                message: t('endStudyBlockEarlyBody'),
+                confirmLabel: t('saveSession'),
+                cancelLabel: t('keepGoing'),
               })
               if (!ok) return
             }

@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { t } from '../i18n'
 import { useConfirm } from './useConfirm'
 import { useSessionBackup } from '../hooks/useSessionBackup'
 import { useAmbientSynth } from '../hooks/useAmbientSynth'
@@ -100,13 +101,17 @@ export function useStudyTimerState(pushToast: PushToast) {
     sessionStorage.removeItem('backup_import_mode')
     sessionStorage.removeItem('backup_import_passphrase')
     const ok = await requestConfirm({
-      title: warn ? 'Import during active session?' : mode === 'merge' ? 'Merge backup?' : 'Import backup?',
-      message: warn
-        ? 'Importing will affect workspace data. An active timer or reflection is in progress.'
+      title: warn
+        ? t('backupImportDuringSessionTitle')
         : mode === 'merge'
-        ? 'Merge adds new records and combines daily logs. Local settings are kept.'
-        : 'Importing will replace all workspace data. Continue?',
-      confirmLabel: mode === 'merge' ? 'Merge' : 'Import',
+          ? t('backupMergeConfirmTitle')
+          : t('backupImportConfirmTitle'),
+      message: warn
+        ? t('backupImportDuringSessionMessage')
+        : mode === 'merge'
+          ? t('backupMergeConfirmMessage')
+          : t('backupImportConfirmMessage'),
+      confirmLabel: mode === 'merge' ? t('backupMergeConfirmLabel') : t('backupImportConfirmLabel'),
       danger: mode !== 'merge',
     })
     if (!ok) return

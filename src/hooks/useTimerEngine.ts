@@ -207,7 +207,7 @@ export function useTimerEngine({
 
   const extendSession = useCallback(() => {
     setExtendedMinutes(m => m + 5)
-    pushToast('TIMER', 'Added 5 minutes to current timer')
+    pushToast('TIMER', t('timerAddedFiveMinutes'))
   }, [pushToast])
 
   const skipBreak = useCallback(() => {

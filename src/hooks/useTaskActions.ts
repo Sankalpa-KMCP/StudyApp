@@ -95,10 +95,10 @@ export function useTaskActions({
         if (task.recurrenceRule) {
           void spawnNextRecurrence({ ...task, completed: true, lastCompletedAt: Date.now() })
         }
-        pushToast('UNDO', 'Task completed', {
+        pushToast('UNDO', t('taskCompleted'), {
           durationMs: 5000,
           action: {
-            label: 'Undo',
+            label: t('undo'),
             onClick: () => { void uncompleteTask(id) },
           },
         })
