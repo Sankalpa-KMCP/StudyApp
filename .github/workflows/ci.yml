@@ -116,6 +116,33 @@ jobs:
       - name: Run Playwright tests
         run: npm run test:e2e -- --project=chromium --project=mobile-chrome --project=visual
 
+  e2e-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run folder-sync E2E tests
+        run: npm run test:e2e:sync
+
   e2e-firefox:
     runs-on: ubuntu-latest
     steps:

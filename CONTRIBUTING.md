@@ -15,7 +15,8 @@ npm run dev
 | `npm run test:coverage` | Main coverage gate (80% lines, 74% branches) |
 | `npm run test:coverage:components` | Shared/analytics component gate (65% lines, 50% branches) |
 | `npm run test:coverage:settings` | Control-deck / settings widget gate (60% lines, 45% branches) |
-| `npm run test:e2e` | Playwright user journeys (Chromium, mobile, Firefox smoke, folder sync) |
+| `npm run test:e2e` | Playwright user journeys (Chromium, mobile, Firefox smoke) |
+| `npm run test:e2e:sync` | Folder-sync Playwright specs only (`e2e-sync` project) |
 | `npm run lint` | ESLint including jsx-a11y rules (errors on CI) |
 | `npm run check:bundle` | Gzip budget on main JS chunk (~512 KB) |
 | `npm run screenshots` | Regenerate README images in `docs/screenshots/` |
@@ -68,7 +69,7 @@ Shared utilities live in [`e2e/helpers/studyApp.ts`](e2e/helpers/studyApp.ts):
 3. For lazy tabs, assert loading fallback then content (`/loading analytics/i`).
 4. Run `npm run test:e2e -- e2e/<feature>.spec.ts` locally before pushing.
 
-Folder sync specs: `e2e/folder-sync.spec.ts`, `e2e/folder-sync-conflict.spec.ts` (mock adapter via `VITE_E2E_SYNC=1`).
+Folder sync specs: `e2e/folder-sync.spec.ts`, `e2e/folder-sync-conflict.spec.ts` (mock adapter via `VITE_E2E_SYNC=1` on the dev server). Run locally with `npm run test:e2e:sync`. CI runs these in a dedicated `e2e-sync` job via the `e2e-sync` Playwright project.
 
 ## Storybook
 

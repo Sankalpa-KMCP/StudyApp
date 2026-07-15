@@ -45,6 +45,11 @@ export default defineConfig({
       testMatch: 'visual-regression.spec.ts',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'e2e-sync',
+      testMatch: /folder-sync.*\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
   ],
   webServer: {
     command: 'npm run dev',
