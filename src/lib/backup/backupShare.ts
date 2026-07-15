@@ -1,4 +1,5 @@
 import type { StudyBackupPayload } from '../study/studyDashboard'
+import { t } from '../../i18n'
 import type { BackupFilenamePrefix } from './backupExport'
 
 function buildBackupFilename(prefix: BackupFilenamePrefix): string {
@@ -15,6 +16,6 @@ export async function shareStudyBackup(payload: StudyBackupPayload, filenamePref
   if (!canShareStudyBackup()) return false
   const filename = buildBackupFilename(filenamePrefix)
   const file = new File([JSON.stringify(payload, null, 2)], filename, { type: 'application/json' })
-  await navigator.share({ files: [file], title: 'Study vault backup' })
+  await navigator.share({ files: [file], title: t('backupShareTitle') })
   return true
 }

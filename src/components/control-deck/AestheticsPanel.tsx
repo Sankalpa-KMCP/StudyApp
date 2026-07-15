@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { useConfirm } from '../../context/useConfirm'
 import { APPEARANCE_ADVANCED_KEYS } from '../../lib/settings/settingsSections'
 import { useTranslation } from '../../i18n/useTranslation'
+import { SUPPORTED_LOCALES } from '../../i18n/locales'
 import { useSettingsPanel } from './SettingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
@@ -17,6 +18,7 @@ export function AestheticsPanel() {
     themePreset,
     lightThemePreset,
     ui_font: uiFont,
+    locale,
     uiDensity,
     cardOpacity,
     backdropBlur,
@@ -64,6 +66,21 @@ export function AestheticsPanel() {
               <option key={f} value={f}>{f}</option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <span className="settings-label block mb-2">{t('aestheticsLocale')}</span>
+          <select
+            value={locale}
+            onChange={e => updateSetting('locale', e.target.value)}
+            className="settings-select"
+            aria-label={t('aestheticsLocale')}
+          >
+            {SUPPORTED_LOCALES.map(({ code, labelKey }) => (
+              <option key={code} value={code}>{t(labelKey)}</option>
+            ))}
+          </select>
+          <p className="settings-muted mt-2">{t('aestheticsLocaleHelper')}</p>
         </div>
 
         <label className="flex items-center justify-between gap-3 cursor-pointer">

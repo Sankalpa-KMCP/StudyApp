@@ -4,6 +4,7 @@ import type { TaskItem, CategoryItem } from '../db/types'
 import { TaskCreateForm } from './task-registry/TaskCreateForm'
 import { TaskList } from './task-registry/TaskList'
 import { useTaskFilters, useTodayDateString } from './task-registry/useTaskFilters'
+import { useTranslation } from '../i18n/useTranslation'
 import { PanelCard } from './shared/PanelCard'
 import { PanelHeader } from './shared/PanelHeader'
 
@@ -48,6 +49,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
   taskCycleCount,
   setTaskCycleCount,
 }) => {
+  const { t } = useTranslation()
   const [taskText, setTaskText] = useState('')
   const [taskPriority, setTaskPriority] = useState<'low' | 'medium' | 'high'>('medium')
   const [taskIsStudySubject, setTaskIsStudySubject] = useState(false)
@@ -67,7 +69,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
   return (
     <div className="flex flex-col gap-6 h-full w-full min-h-0">
       <PanelCard className="flex flex-col h-full min-h-0 glass-quiet">
-        <PanelHeader title="Focus targets" bordered={false} className="mb-4" />
+        <PanelHeader title={t('focusTargets')} bordered={false} className="mb-4" />
 
         <div className="hidden lg:block">
         <TaskCreateForm
@@ -96,8 +98,8 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
               type="search"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search targets…"
-              aria-label="Search focus targets"
+              placeholder={t('taskSearchTargetsPlaceholder')}
+              aria-label={t('taskSearchTargetsAria')}
               className="w-full rounded-full border border-card surface-subtle pl-9 pr-4 py-2 text-xs text-text-primary placeholder:text-muted outline-none focus:border-accent-blue/40"
             />
           </div>
@@ -124,8 +126,8 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           value={taskText}
           onChange={e => setTaskText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') submitNewTask() }}
-          placeholder="Add focus target…"
-          aria-label="Add focus target"
+          placeholder={t('taskAddFocusTarget')}
+          aria-label={t('taskAddFocusTargetAria')}
           className="flex-1 min-w-0 rounded-xl border border-card surface-subtle px-3 py-2.5 text-xs text-primary placeholder:text-muted outline-none focus:border-accent-blue/40"
         />
         <button
@@ -134,7 +136,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           disabled={!taskText.trim()}
           className="shrink-0 rounded-xl bg-accent-blue px-4 py-2.5 text-xs font-bold text-on-accent disabled:opacity-40 transition-all ios-active-scale"
         >
-          Add
+          {t('taskAddButton')}
         </button>
       </div>
     </div>

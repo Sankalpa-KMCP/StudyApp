@@ -38,10 +38,12 @@ function NavTabBadge({ count, className = '' }: { count: number; className?: str
   )
 }
 
+import { t } from '../i18n'
+
 function buildAriaLabel(label: string, badge: number, isLocked: boolean): string {
-  let aria = badge > 0 ? `${label}, ${badge} due for review` : label
+  let aria = badge > 0 ? `${label}, ${t('navTabDueForReview', { count: badge })}` : label
   if (isLocked) {
-    aria = `${aria}, focus lockout active — pause timer to navigate`
+    aria = `${aria}, ${t('navTabLockoutSuffix')}`
   }
   return aria
 }
