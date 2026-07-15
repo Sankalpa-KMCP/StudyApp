@@ -308,6 +308,12 @@ body {
     animation: none;
   }
 
+  .animate-pulse,
+  .animate-ping,
+  .animate-spin {
+    animation: none !important;
+  }
+
 }
 
 [data-reduce-effects="true"] .dynamic-card,
