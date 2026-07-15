@@ -289,7 +289,7 @@ export function TaskList({
   return (
     <>
       {reviewQueueList.length > 0 && (
-        <div className="mb-6 p-4 rounded-[20px] surface-subtle border border-card flex flex-col gap-3 shadow-md animate-slide-in-up">
+        <div id="review-queue" className="mb-6 p-4 rounded-[20px] surface-subtle border border-card flex flex-col gap-3 shadow-md animate-slide-in-up">
           <div className="flex items-center justify-between border-b border-card pb-2">
             <span className="text-[9.5px] font-bold text-muted uppercase tracking-wider">{t('taskSpacedRepetitionReview')}</span>
             <span className="text-[8.5px] font-bold text-accent-amber bg-accent-amber/10 border border-accent-amber/20 px-2.5 py-0.5 rounded-full select-none">

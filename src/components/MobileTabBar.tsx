@@ -11,6 +11,7 @@ interface MobileTabBarProps {
   isTimerActive: boolean
   timerMode: 'study' | 'break'
   enforceLockout: boolean
+  reviewDueCount?: number
 }
 
 export const MobileTabBar = memo(function MobileTabBar({
@@ -19,6 +20,7 @@ export const MobileTabBar = memo(function MobileTabBar({
   isTimerActive,
   timerMode,
   enforceLockout,
+  reviewDueCount = 0,
 }: MobileTabBarProps) {
   useTranslation()
   const navTabs = getNavTabs()
@@ -64,6 +66,7 @@ export const MobileTabBar = memo(function MobileTabBar({
             accent={tab.accent}
             isActive={isActive}
             isLocked={isLocked}
+            badge={tab.id === 'focus' ? reviewDueCount : undefined}
             onClick={handleTabClick}
             onMouseEnter={() => handlePrefetch(tab.id)}
             onTouchStart={() => handlePrefetch(tab.id)}

@@ -15,6 +15,7 @@ export function SidebarRailContent({
   isTimerActive,
   timerMode,
   enforceLockout,
+  reviewDueCount = 0,
   onToggleNotes,
   onShowOnboarding,
   onToggleCollapse,
@@ -43,6 +44,7 @@ export function SidebarRailContent({
                 accent={tab.accent}
                 isActive={isActive}
                 isLocked={isLocked}
+                badge={tab.id === 'focus' ? reviewDueCount : undefined}
                 onActivate={onActivateTab}
               />
             )

@@ -32,4 +32,21 @@ describe('MobileTabBar', () => {
     expect(focusSpy).not.toHaveBeenCalled()
     focusSpy.mockRestore()
   })
+
+  it('shows review badge on focus tab when reviewDueCount is positive', () => {
+    const { container } = render(
+      <MobileTabBar
+        activeTab="focus"
+        setActiveTab={vi.fn()}
+        isTimerActive={false}
+        timerMode="study"
+        enforceLockout={false}
+        reviewDueCount={3}
+      />,
+    )
+
+    const focusTab = container.querySelector('[data-tab="focus"]')
+    expect(focusTab?.getAttribute('aria-label')).toContain('3 due for review')
+    expect(container.textContent).toContain('3')
+  })
 })

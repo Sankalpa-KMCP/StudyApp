@@ -18,6 +18,7 @@ export function SidebarExpandedContent({
   isTimerActive,
   timerMode,
   enforceLockout,
+  reviewDueCount = 0,
   onToggleNotes,
   onShowOnboarding,
   onToggleCollapse,
@@ -71,6 +72,7 @@ export function SidebarExpandedContent({
                 accent={tab.accent}
                 isActive={isActive}
                 isLocked={isLocked}
+                badge={tab.id === 'focus' ? reviewDueCount : undefined}
                 onActivate={onActivateTab}
               />
             )

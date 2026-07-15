@@ -27,6 +27,7 @@ import { useAppShellEffects } from '../hooks/app-shell/useAppShellEffects'
 import { useCommandPaletteActions } from '../hooks/app-shell/useCommandPaletteActions'
 import { useAppShellOnboarding } from '../hooks/app-shell/useAppShellOnboarding'
 import { useNoteDeleteUndo } from '../hooks/app-shell/useNoteDeleteUndo'
+import { useReviewDueCount } from '../hooks/useReviewDueCount'
 import { DesktopTrayTimerBridge } from './app-shell/DesktopTrayTimerBridge'
 
 const CommandPalette = lazy(() =>
@@ -54,6 +55,7 @@ export const AppShell = memo(function AppShell() {
 
   const pwaInstall = usePwaInstall()
   const backupReminder = useBackupReminder()
+  const reviewDueCount = useReviewDueCount(tasks.tasks)
   const { timerControls, backup, activateTask } = useStudyTimerContext()
 
   const { isOffline } = useAppShellEffects({
@@ -175,6 +177,7 @@ export const AppShell = memo(function AppShell() {
         isTimerActive={timerControls.isTimerActive}
         timerMode={timerControls.timerMode}
         enforceLockout={settings.enforce_lockout}
+        reviewDueCount={reviewDueCount}
         onToggleNotes={() => setIsNotesOpen(!isNotesOpen)}
         onShowOnboarding={openOnboarding}
       />
@@ -318,6 +321,7 @@ export const AppShell = memo(function AppShell() {
           isTimerActive={timerControls.isTimerActive}
           timerMode={timerControls.timerMode}
           enforceLockout={settings.enforce_lockout}
+          reviewDueCount={reviewDueCount}
         />
       )}
       <CelebrationConfettiHost />
