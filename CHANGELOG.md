@@ -22,8 +22,6 @@
 - **Backup `version: 3`** added `checksumSha256`; v2 imports remain supported.
 - **DB schema v12** (Dexie `db.verno`) is the **IndexedDB migration** version — separate from backup file format.
 
-## [Unreleased]
-
 ## [1.2.0] - 2026-06-13
 
 ### Removed
