@@ -109,6 +109,7 @@ export function FocusTabContent() {
           setActiveTaskId={setActiveTaskId}
           activateTask={activateTask}
           toggleTask={handleToggleTask}
+          updateSubtasks={tasks.updateSubtasks}
           handleAddTask={handleAddTaskWithFirstSessionClear}
           submitRecallGrade={timerControls.submitRecallGrade}
           timerCategoryId={timerControls.timerCategoryId}

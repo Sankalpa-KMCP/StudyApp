@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { Search } from 'lucide-react'
-import type { TaskItem, CategoryItem } from '../db/types'
+import type { TaskItem, CategoryItem, SubTask } from '../db/types'
 import { TaskCreateForm } from './task-registry/TaskCreateForm'
 import { TaskList } from './task-registry/TaskList'
-import { useTaskFilters, useTodayDateString } from './task-registry/useTaskFilters'
+import { useTaskFilters, useTodayDateString } from '../hooks/useTaskFilters'
 import { useTranslation } from '../i18n/useTranslation'
 import { PanelCard } from './shared/PanelCard'
 import { PanelHeader } from './shared/PanelHeader'
@@ -17,6 +17,7 @@ interface TaskRegistryProps {
   setActiveTaskId: (id: number | null) => void
   activateTask: (task: TaskItem) => void
   toggleTask: (id: number) => Promise<void>
+  updateSubtasks: (id: number, subtasks: SubTask[]) => Promise<void>
   handleAddTask: (
     text: string,
     categoryId?: number,
@@ -41,6 +42,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
   setActiveTaskId,
   activateTask,
   toggleTask,
+  updateSubtasks,
   handleAddTask,
   submitRecallGrade,
   timerCategoryId,
@@ -114,6 +116,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           setActiveTaskId={setActiveTaskId}
           onActivateTask={activateTask}
           toggleTask={toggleTask}
+          updateSubtasks={updateSubtasks}
           submitRecallGrade={submitRecallGrade}
           searchQuery={searchQuery}
         />

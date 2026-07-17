@@ -22,6 +22,7 @@ const baseProps = {
   setActiveTaskId: vi.fn(),
   activateTask: vi.fn(),
   toggleTask: vi.fn(),
+  updateSubtasks: vi.fn(),
   handleAddTask: vi.fn(),
   submitRecallGrade: vi.fn(),
   timerCategoryId: undefined,
