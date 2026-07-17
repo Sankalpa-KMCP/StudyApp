@@ -18,6 +18,7 @@ export function useTasks() {
     addTask: taskRepo.addTask,
     toggleTask: taskRepo.toggleTask,
     incrementTaskCycle: taskRepo.incrementTaskCycle,
+    updateSubtasks: taskRepo.updateSubtasks,
     isLoading: tasks === undefined,
   }
 }

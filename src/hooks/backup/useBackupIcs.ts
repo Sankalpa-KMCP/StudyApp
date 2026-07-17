@@ -1,4 +1,4 @@
-import { getAllHistory, bulkAddHistory } from '../../db/repositories/history'
+import { getAllHistory, bulkAddHistory, archiveHistoryOlderThan } from '../../db/repositories/history'
 import { getAllCategories } from '../../db/repositories/categories'
 import { getAllDailyLogs } from '../../db/repositories/dailyLogs'
 import { getAllTasks } from '../../db/repositories/tasks'
@@ -70,5 +70,6 @@ export function useBackupIcs(pushToast: PushToast) {
     exportStudyLogsCSV,
     exportTaskCompletionLogsCSV,
     importStudyHistoryIcs,
+    archiveHistoryOlderThan,
   }
 }

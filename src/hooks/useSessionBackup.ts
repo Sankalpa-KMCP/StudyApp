@@ -35,6 +35,7 @@ export function useSessionBackup(pushToast: (key: string, message: string) => vo
     exportTaskCompletionLogsCSV: ics.exportTaskCompletionLogsCSV,
     importStudyBackup: vaultImport.importStudyBackup,
     importStudyHistoryIcs: ics.importStudyHistoryIcs,
+    archiveHistoryOlderThan: ics.archiveHistoryOlderThan,
     resetData: reset.resetData,
     resetDataSelective: reset.resetDataSelective,
   }

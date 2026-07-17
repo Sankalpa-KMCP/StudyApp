@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { t } from '../i18n'
-import { spawnNextRecurrence } from '../lib/study/recurrence'
+import { spawnNextRecurrence } from './useTaskRecurrence'
 import { archiveTasks, getAllTasks, uncompleteTask, updateLastCompleted } from '../db/repositories/tasks'
 import type { TaskItem } from '../db/types'
 
