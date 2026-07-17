@@ -1,10 +1,47 @@
-# Study Dashboard // The Cognitive Focus Console
+# Study Dashboard
 
-A focus-first, local-first study dashboard with Pomodoro timing, task tracking, journal, and analytics.
+**The Cognitive Focus Console** — a focus-first, local-first study dashboard with Pomodoro timing, task tracking, journal, analytics, and optional desktop sync.
 
-**Created by Sankalpa KMCP**
+Created by **Sankalpa KMCP**
 
-[![Live demo](https://img.shields.io/badge/demo-GitHub%20Pages-3B82F6)](https://github.com/SankalpaKMCP/StudyApp/deployments/github-pages)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue)](CHANGELOG.md)
+[![Live demo](https://img.shields.io/badge/demo-GitHub%20Pages-3B82F6)](https://it25100142.github.io/StudyApp/)
+[![Node](https://img.shields.io/badge/node-22-green)](https://nodejs.org/)
+
+## Quick start
+
+**Prerequisites:** Node.js 22 (matches CI). npm comes with Node.
+
+```bash
+npm ci
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173). On Windows, avoid trailing `#` comments on npm scripts — CMD passes them as extra args to Vite.
+
+| Goal | Command |
+|------|---------|
+| Production build | `npm run build` |
+| Unit tests | `npm test` |
+| Desktop dev | `npm run tauri:dev` |
+| E2E tests | `npm run test:e2e` |
+
+If your editor workspace is the parent `study app` folder, run `npm run dev` from there — the root `package.json` delegates to this directory.
+
+## Table of contents
+
+- [Screenshots](#screenshots)
+- [Why local-first](#why-local-first)
+- [Features](#features)
+- [Audio](#audio)
+- [Timer defaults](#timer-defaults)
+- [Data model](#data-model)
+- [Architecture](#architecture)
+- [Development](#development)
+- [Desktop app (Tauri)](#desktop-app-tauri)
+- [PWA install](#pwa-install)
+- [Deployment](#deployment-github-pages)
+- [License](#license)
 
 ## Screenshots
 
@@ -12,78 +49,71 @@ A focus-first, local-first study dashboard with Pomodoro timing, task tracking, 
 |-------|-----------|---------|----------|
 | ![Focus tab](docs/screenshots/focus.png) | ![Analytics tab](docs/screenshots/analytics.png) | ![Journal tab](docs/screenshots/journal.png) | ![Settings tab](docs/screenshots/settings.png) |
 
----
+Regenerate with `npm run screenshots` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
-## Core Premise: Local-First & Offline
+## Why local-first
 
-- **Zero Cloud Dependency:** All data stays in IndexedDB on your device.
-- **Absolute Privacy:** No telemetry, tracking, or remote APIs.
-- **Self-Contained:** Runs entirely in the browser or as a Tauri desktop app.
+- **Zero cloud dependency** — all data lives in IndexedDB on your device
+- **Private by default** — no telemetry, tracking, or remote APIs
+- **Runs anywhere** — browser PWA or Tauri desktop app, fully offline after first load
+
+### Sync and portability
+
+| Method | Best for |
+|--------|----------|
+| **Vault export/import** (`.studybackup`) | Manual backups, moving data between devices |
+| **Folder sync** (Chrome/Edge + desktop) | Keeping the GitHub Pages site and Tauri app in sync on the same PC |
+
+**Folder sync setup**
+
+1. Install the desktop app from [GitHub Releases](https://github.com/IT25100142/StudyApp/releases).
+2. In **Settings → Backup Vault → Folder sync**, choose a folder and enable sync in the desktop app.
+3. On the [live site](https://it25100142.github.io/StudyApp/) (Chrome or Edge), open the same panel, pick the **same folder**, and enable sync.
+4. Both clients share `study-vault.sync.studybackup` and stay in sync automatically.
+
+Firefox and Safari can still use manual vault export/import. Folder sync requires the File System Access API.
 
 ### Known limits
 
-- **Localization** — English UI with an i18n-ready string catalog in `src/i18n/locales/en.json`; additional locales can be added without restructuring components.
-- **Local-first** — no cloud sync; use `.studybackup` vault export/import for cross-device transfer, or **folder sync** to share data between the GitHub Pages site and desktop app on the same PC.
-- **Folder sync (web + desktop)** — enable in Settings → Backup Vault → Folder sync. Choose the same folder in both clients (e.g. `Documents/StudyDashboard`). Requires Chrome or Edge for the website; Firefox/Safari can still use manual backup import/export.
-- **Private license** — not open source (see [License](#license)).
-- **Ambient soundscapes** — procedural rain, white noise, café, and brown-noise presets (not sampled audio files).
-
-### Folder sync setup (web + desktop)
-
-1. Install the desktop app from GitHub Releases.
-2. Open **Settings → Backup Vault → Folder sync** in the desktop app, choose a folder, and enable folder sync.
-3. Open the GitHub Pages site in **Chrome or Edge**, go to the same settings panel, choose the **same folder**, and enable folder sync.
-4. Both clients share `study-vault.sync.studybackup` in that folder and stay in sync automatically.
-
----
+- **Localization** — English UI with an i18n-ready catalog in `src/i18n/locales/en.json`
+- **No cloud sync** — use vault files or folder sync for cross-device transfer
+- **Ambient soundscapes** — procedural rain, white noise, café, and brown-noise presets (not sampled audio files)
+- **Private license** — not open source (see [License](#license))
 
 ## Features
 
-### Refined glass UI
-- Frosted panels with shared `Card`, `Button`, and `ModalShell` primitives
-- Theme opacity and blur sliders in Control Deck affect all glass cards in real time
-- Per-theme page gradients and consistent 11–12px minimum label typography
+### Focus engine
+- Configurable study, short break, and long break durations with Pomodoro cycle tracking
+- Optional zen lockout during study blocks; screen wake lock while a block is active
+- Session reflection with attention/stability ratings; interrupted-session recovery via `sessionStorage` heartbeat
+- SM-2 / FSRS spaced repetition on focus targets; review-due banner on the Focus tab
 
-### Focus Engine
-- Configurable study block, short break, and long break durations
-- Pomodoro cycle tracking with optional zen lockout during study
-- Session reflection with attention/stability ratings
-- Interrupted session recovery via `sessionStorage` heartbeat
-- Screen wake lock during active study blocks
+### Task registry
+- Priority-sorted tasks with cycle estimates, subtasks, and recurring tasks
+- Task templates saved from the focus task form; virtual scrolling for large lists
+- Auto-archive of completed tasks (configurable threshold, default 90+ days)
 
-### Task Registry
-- Priority-sorted tasks with cycle estimates
-- SM-2 / FSRS spaced repetition for study subjects
-- Subtasks and auto-archive of completed tasks (90+ days)
+### Analytics studio
+- Weekly charts, category breakdown, retention curves, and configurable productivity window (7 / 30 / 90 days or all time)
+- Streak and XP leveling from study minutes; per-task and category goal trends
 
-### Analytics Studio
-- Weekly charts, category breakdown, retention curves (task recall reviews)
-- Configurable productivity window (7 / 30 / 90 days or all time)
-- Streak and XP leveling from study minutes (all-time)
+### Activity ledger
+- Calendar heatmap, daily mood/notes journal, and per-day session history
 
-### Activity Ledger
-- Calendar heatmap and daily mood/notes journal
-- Per-day session history
-
-### Control Deck
-- Theme, opacity, blur, timer, sound, font, and backup settings
+### Control deck
+- Theme, opacity, blur, timer, sound, font, and backup settings with live glass-card preview
 - Export/import `.studybackup` vault files, CSV reports, and ICS calendar
-- Storage usage panel and optional history archival
-- Web Share backup on supported mobile browsers
+- Command palette (`Ctrl`/`Cmd`+`K`), storage usage panel, optional history archival, Web Share backup on mobile
 
-### Task productivity
-- Task templates saved from the focus task form
-- Virtual scrolling for large task lists
-
----
+### UI
+- Frosted glass panels built from shared `Card`, `Button`, and `ModalShell` primitives
+- Per-theme page gradients; 11–12px minimum label typography
 
 ## Audio
 
-The app plays **short session chimes** when blocks complete (toggle in Settings). **Optional ambient loops** (rain or white noise) play during active study blocks only — independent of chimes and toggled in Sound & Feedback.
+**Session chimes** play when blocks complete (toggle in Settings). **Optional ambient loops** (rain, white noise, café, brown noise) play during active study blocks only — independent of chimes.
 
----
-
-## Timer Settings
+## Timer defaults
 
 | Setting | Default | Description |
 |---------|---------|-------------|
@@ -92,44 +122,43 @@ The app plays **short session chimes** when blocks complete (toggle in Settings)
 | `shortBreakDurationMinutes` | 5 | Short break length |
 | `longBreakDurationMinutes` | 15 | Long break length |
 | `targetSessionsPerCycle` | 4 | Study sessions before long break |
-| `historyRetentionDays` | 0 | Auto-archive threshold (0 = keep all; manual sweep in Backup Vault) |
-| Backup reminder interval | 30 days | Reminds when no export; dismiss snoozes 7 days |
+| `historyRetentionDays` | 0 | Auto-archive threshold (0 = keep all) |
+| Backup reminder | 30 days | Reminds when no export; dismiss snoozes 7 days |
 
----
+## Data model
 
-## Data Model
+- **History entries** include `createdAt` (epoch ms) for date filtering plus a human-readable `timestamp`
+- **Emergency snapshots** in IndexedDB (`snapshots` table) — last 3 automatic backups retained
+- **Schema version:** 12 (Dexie `db.verno`)
+- **Backup format `version: 4`** in `.studybackup` JSON omits flashcards (legacy v2/v3 imports accepted; card rows discarded). v3 added `checksumSha256`. Separate from the DB schema version.
 
-- **History entries** include `createdAt` (epoch ms) for reliable date filtering, plus a human-readable `timestamp` for display.
-- **Emergency snapshots** are stored in IndexedDB (`snapshots` table), keeping the last 3 automatic backups.
-- **Schema version:** 12 (Dexie `db.verno` — IndexedDB migration version).
-- **Backup `version: 4`** in `.studybackup` JSON exports omits flashcards (legacy v2/v3 imports still accepted; flashcard rows are discarded). **v3** added `checksumSha256`. Separate from the DB schema version above.
-- See [CHANGELOG.md](CHANGELOG.md) for release notes.
+See [CHANGELOG.md](CHANGELOG.md) for release notes and migration history.
 
 ### Data limits
 
 | Limit | Value | Used by |
 |-------|-------|---------|
-| Recent history window | 100 entries (configurable 50–500) | Timer settings (`recentHistoryLimit`) |
-| Analytics productivity window | 7d / 30d / 90d / all (default 30d) | Analytics insights (`useAnalyticsHistoryRange`) |
+| Recent history window | 100 entries (50–500 configurable) | Timer settings (`recentHistoryLimit`) |
+| Analytics window | 7d / 30d / 90d / all (default 30d) | `useAnalyticsHistoryRange` |
 | Journal history | Current calendar month | `useHistoryForMonth` |
-| Full history table | Unbounded | Backup export only (`db.history.toArray`) |
-| Auto snapshots retained | 3 | `useSessionBackup` |
+| Full history export | Unbounded | Backup export (`db.history.toArray`) |
+| Auto snapshots | 3 retained | `useSessionBackup` |
 | Shadow restore threshold | ≥ 60s elapsed | `useTimerEngine` sessionStorage heartbeat |
-| Reflection notes max | 500 chars | Activity ledger / reflection modal |
-
----
+| Reflection notes max | 500 chars | Reflection modal |
 
 ## Architecture
 
-Data hooks live in [`src/db/hooks/`](src/db/hooks/) (repositories + per-domain hooks). Full diagrams and context tree: [ARCHITECTURE.md](ARCHITECTURE.md).
+**Stack:** React 19 · Vite 8 · TypeScript · Dexie (IndexedDB) · Tailwind v4 · Tauri 2 · Vitest · Playwright
+
+Data hooks live in [`src/db/hooks/`](src/db/hooks/) (repositories + per-domain hooks). Full context tree and diagrams: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Development
 
-The git repository root is the `web/` folder. If your editor workspace is the parent `study app` directory, you can run scripts from there via the root delegate `package.json` (`npm run dev` → `npm --prefix web run dev`).
+The git repository root is this `web/` folder.
 
 ```bash
 npm ci
-npm run dev
+npm run dev          # http://localhost:5173
 npm run build
 npm test
 npm run test:coverage
@@ -138,57 +167,54 @@ npm run test:coverage:settings
 npm run check:bundle
 npm run test:watch
 npm run test:e2e
+npm run test:e2e:sync   # folder-sync specs only
 npm run storybook
 npm run build-storybook
 npm run test:storybook
 npm run lint
 ```
 
-`npm run dev` serves the app at http://localhost:5173. On Windows, run commands without trailing `#` comments — CMD does not treat `#` as a comment and will pass those words to Vite as extra args.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for migrations, settings conventions, and E2E patterns.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for migrations, settings, and E2E conventions.
-
-### Testing guide
+### Testing
 
 | Layer | Command | Location |
 |-------|---------|----------|
 | Unit / hooks | `npm test` | `src/lib/__tests__`, `src/db/__tests__`, `src/hooks/__tests__` |
-| Component | `npm test` | `src/components/**/__tests__` |
+| Components | `npm test` | `src/components/**/__tests__` |
 | Context / integration | `npm test` | `src/context/__tests__` |
-| Coverage gate | `npm run test:coverage` | 80% lines / 74% branches on scoped modules |
-| Component gate | `npm run test:coverage:components` | 65% lines / 50% branches on shared primitives and analytics |
-| Settings gate | `npm run test:coverage:settings` | 60% lines / 45% branches on control-deck and settings widgets |
-| E2E | `npm run test:e2e` | `e2e/` including analytics, journal, zen, mobile, invalid backup |
+| Coverage gate | `npm run test:coverage` | 80% lines / 74% branches |
+| Component gate | `npm run test:coverage:components` | 65% lines / 50% branches |
+| Settings gate | `npm run test:coverage:settings` | 60% lines / 45% branches |
+| E2E | `npm run test:e2e` | `e2e/` |
 | Storybook + a11y | `npm run storybook` | `@storybook/addon-a11y` on all stories |
 
-### Tauri Desktop App
+## Desktop app (Tauri)
 
 ```bash
-npm run tauri:dev    # Desktop dev with hot reload
-npm run tauri:build  # Build native installer
+npm run tauri:dev     # Desktop dev with hot reload
+npm run tauri:build   # Native installer
 ```
 
-Push a version tag (`v*`, e.g. `v1.0.0`) to trigger the Tauri release build workflow (`.github/workflows/tauri-release.yml`).
+Push a version tag (`v*`, e.g. `v1.2.0`) to trigger the Tauri release workflow (`.github/workflows/tauri-release.yml`).
 
----
+## PWA install
 
-## PWA Install
-
-The app includes a web manifest and service worker (`vite-plugin-pwa`) for offline app-shell caching. The service worker precaches the app shell; IndexedDB is the source of truth (no remote API). An offline banner appears when the network is unavailable. Deploy to GitHub Pages or any static host.
-
----
+Web manifest and service worker (`vite-plugin-pwa`) cache the app shell for offline use. IndexedDB is the source of truth — no remote API. An offline banner appears when the network is unavailable.
 
 ## Deployment (GitHub Pages)
 
-Pushes to `master` or `V2` trigger automatic deployment via `.github/workflows/deploy-pages.yml`.
+Pushes to `master` or `V2` deploy via `.github/workflows/deploy-pages.yml`.
 
-Base path: `/StudyApp/` (configured in `vite.config.ts`).
+- **Live URL:** [https://it25100142.github.io/StudyApp/](https://it25100142.github.io/StudyApp/)
+- **Base path:** `/StudyApp/` (configured in `vite.config.ts`)
 
-**One-time repo setup (required):** In GitHub → Settings → Pages → Build and deployment, set **Source** to **GitHub Actions** (not “Deploy from a branch”). Without this, `deploy-pages` fails with `401 Requires authentication`.
+**One-time repo setup**
 
-**Actions permissions:** Settings → Actions → General → Workflow permissions → **Read and write permissions**.
+1. GitHub → Settings → Pages → Build and deployment → **Source: GitHub Actions**
+2. Settings → Actions → General → Workflow permissions → **Read and write permissions**
 
----
+Without GitHub Actions as the Pages source, `deploy-pages` fails with `401 Requires authentication`.
 
 ## License
 
