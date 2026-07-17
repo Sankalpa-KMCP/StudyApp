@@ -6,20 +6,19 @@ import { ErrorFallback } from '../ErrorFallback'
 import * as backupExport from '../../lib/backup/backupExport'
 import * as copyDebug from '../../lib/shared/copyDebugInfo'
 
+vi.mock('../../hooks/useDatabaseRecovery', () => ({
+  useDatabaseRecovery: () => ({
+    getSchemaVersion: () => 7,
+    deleteAndReopen: vi.fn().mockResolvedValue(undefined),
+  }),
+}))
+
 vi.mock('../../lib/backup/backupExport', () => ({
   exportStudyBackupFile: vi.fn().mockResolvedValue({ version: 2 }),
 }))
 
 vi.mock('../../lib/shared/copyDebugInfo', () => ({
   copyDebugInfo: vi.fn().mockResolvedValue(undefined),
-}))
-
-vi.mock('../../db/db', () => ({
-  db: {
-    verno: 7,
-    delete: vi.fn().mockResolvedValue(undefined),
-    open: vi.fn().mockResolvedValue(undefined),
-  },
 }))
 
 function renderFallback(props: Partial<React.ComponentProps<typeof ErrorFallback>> = {}) {

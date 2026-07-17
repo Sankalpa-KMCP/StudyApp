@@ -1,5 +1,5 @@
 import { useConfirm } from '../context/useConfirm'
-import { deleteAndReopen, getSchemaVersion } from '../db/repositories/database'
+import { useDatabaseRecovery } from '../hooks/useDatabaseRecovery'
 import { exportStudyBackupFile } from '../lib/backup/backupExport'
 import { setLastBackupExportAt } from '../lib/backup/backupMetadata'
 import { copyDebugInfo } from '../lib/shared/copyDebugInfo'
@@ -17,6 +17,7 @@ interface ErrorFallbackProps {
 export function ErrorFallback({ message, stack, contextLabel, onRetry, onReload }: ErrorFallbackProps) {
   const { requestConfirm } = useConfirm()
   const { t } = useTranslation()
+  const { getSchemaVersion, deleteAndReopen } = useDatabaseRecovery()
 
   const handleCopyDebug = async () => {
     const debugInfo = [
