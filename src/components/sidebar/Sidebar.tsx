@@ -1,6 +1,6 @@
 import type { SidebarProps } from './types'
 import { SidebarShell } from './SidebarShell'
-import { useSidebarCollapseContext } from './useSidebarCollapseContext'
+import { useSidebarCollapseContext } from '../../context/sidebar/sidebarCollapseContext'
 
 export type { SidebarProps } from './types'
 

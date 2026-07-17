@@ -1,11 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
-import type { CategoryItem, SettingsKey, SettingsValue } from '../../db/types'
-import { useStudyDataContext } from '../../context/studyDataContext'
-import { useStudyTimerContext } from '../../context/studyTimerContext'
-import { useStudyUIContext } from '../../context/studyUIContext'
-import { useSettingsUpdater } from '../../hooks/useSettingsUpdater'
-import type { StudyBackupExportOptions } from '../../hooks/useSessionBackup'
+import type { CategoryItem, SettingsKey, SettingsValue } from '../db/types'
+import { useStudyData } from './useStudyApp'
+import { useStudyTimerContext } from './studyTimerContext'
+import { useStudyUIContext } from './studyUIContext'
+import { useSettingsUpdater } from '../hooks/useSettingsUpdater'
+import type { StudyBackupExportOptions } from '../hooks/useSessionBackup'
 
 export interface SettingsBackupApi {
   exportStudyBackup: (options?: StudyBackupExportOptions) => void
@@ -16,6 +16,7 @@ export interface SettingsBackupApi {
   exportProgress?: number
   exportStudyLogsCSV: () => void
   exportTaskCompletionLogsCSV: () => void
+  archiveHistoryOlderThan: (days: number) => Promise<number>
   importStudyBackup: (val: string, options?: { mode?: 'replace' | 'merge'; passphrase?: string }) => void
   importStudyHistoryIcs?: (val: string) => void
   resetData: () => void
@@ -39,7 +40,7 @@ export interface SettingsCategoriesApi {
 interface SettingsPanelContextValue {
   updateSetting: (key: SettingsKey, val: SettingsValue) => void | Promise<boolean>
   updateSettingSafe: (key: SettingsKey, val: SettingsValue, options?: { silent?: boolean }) => Promise<boolean>
-  resetSectionDefaults: (sectionId: import('../../lib/settings/settingsSections').SettingsSectionId) => Promise<boolean>
+  resetSectionDefaults: (sectionId: import('../lib/settings/settingsSections').SettingsSectionId) => Promise<boolean>
   resetKeys: (keys: SettingsKey[], successMessage: string) => Promise<boolean>
   isLoading: boolean
   theme: string
@@ -108,7 +109,7 @@ const SettingsPanelContext = createContext<SettingsPanelContextValue | null>(nul
 
 export function SettingsPanelProvider({ children }: { children: ReactNode }) {
   const { pushToast, isDragging, setIsDragging, quotaExceeded, handleFileDrop: uiHandleFileDrop } = useStudyUIContext()
-  const { categories } = useStudyDataContext()
+  const { categories } = useStudyData()
   const timerCtx = useStudyTimerContext()
   const updater = useSettingsUpdater(pushToast)
 
@@ -186,6 +187,7 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
       exportProgress: timerCtx.backup.exportProgress,
       exportStudyLogsCSV: timerCtx.backup.exportStudyLogsCSV,
       exportTaskCompletionLogsCSV: timerCtx.backup.exportTaskCompletionLogsCSV,
+      archiveHistoryOlderThan: timerCtx.backup.archiveHistoryOlderThan,
       importStudyBackup: timerCtx.confirmImport,
       importStudyHistoryIcs: (val: string) => { void timerCtx.backup.importStudyHistoryIcs(val) },
       resetData: timerCtx.backup.resetData,
