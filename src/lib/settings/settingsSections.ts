@@ -2,7 +2,7 @@ import type { ComponentType } from 'react'
 import { Sliders, Clock, BookOpen, Database } from 'lucide-react'
 import type { SettingsKey, SettingsValue } from '../../db/types'
 import { SETTINGS_DEFAULTS } from '../../db/selectors/settingsFromRows'
-import { enableAdvancedSettings } from '../../hooks/useSettingsAdvancedMode'
+import { enableAdvancedSettings } from './settingsAdvancedMode'
 import { t } from '../../i18n'
 
 export type SettingsSectionId = 'appearance' | 'focus' | 'study' | 'data'

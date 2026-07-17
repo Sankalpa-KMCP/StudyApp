@@ -1,5 +1,5 @@
 import { db } from '../db'
-import { buildDateString } from '../../lib/study/studyDashboard'
+import { buildDateString } from '../../lib/study/dates'
 
 export async function incrementStudyMinutes() {
   const current = buildDateString()

@@ -7,7 +7,7 @@ import {
   incrementBreakMinutes,
   updateDailyReflection,
 } from '../repositories/dailyLogs'
-import { buildDateString } from '../../lib/study/studyDashboard'
+import { buildDateString } from '../../lib/study/dates'
 
 describe('dailyLogs repository', () => {
   beforeEach(async () => {

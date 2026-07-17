@@ -8,15 +8,7 @@ export type {
   ParsedStudyBackupPayload,
 } from './types'
 
-export {
-  buildDateString,
-  formatMinutes,
-  formatHistoryTimestamp,
-  parseLegacyHistoryTimestamp,
-  parseHistoryCreatedAt,
-  getHistoryDate,
-  getHistoryDayKey,
-} from './dateTime'
+export { formatMinutes } from './dateTime'
 
 export type { DailyFocusStatus } from './dailyFocus'
 export {

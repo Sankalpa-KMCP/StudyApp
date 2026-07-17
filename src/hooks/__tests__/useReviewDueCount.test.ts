@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { countReviewDueTasks } from '../../components/task-registry/useTaskFilters'
+import { countReviewDueTasks } from '../../lib/study/taskFilters'
 import { useReviewDueCount } from '../useReviewDueCount'
 import type { TaskItem } from '../../db/types'
 

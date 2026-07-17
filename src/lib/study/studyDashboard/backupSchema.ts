@@ -1,5 +1,5 @@
 import type { CategoryItem, DailyLog, HistoryEntry, QuickNoteItem, SettingsRow, TaskItem } from '../../../db/types'
-import { parseLegacyHistoryTimestamp } from './dateTime'
+import { parseLegacyHistoryTimestamp } from '../dates'
 import type { LegacyFlashcardRow, ParsedStudyBackupPayload, StudyBackupInput } from './types'
 
 export function isRecord(value: unknown): value is Record<string, unknown> {

@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import type { TaskItem, HistoryEntry, DailyLog, SettingsRow, CategoryItem, QuickNoteItem, SnapshotRow, SyncHandleRow } from './types'
-import { parseLegacyHistoryTimestamp } from '../lib/study/studyDashboard'
+import { parseLegacyHistoryTimestamp } from '../lib/study/dates'
 
 type LegacyTaskRecord = TaskItem & {
   title?: string
