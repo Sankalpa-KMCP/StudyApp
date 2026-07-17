@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TimerFocusPanel } from '../TimerFocusPanel'
-import { SettingsPanelProvider } from '../SettingsPanelContext'
+import { SettingsPanelProvider } from '../../../context/settingsPanelContext'
 import { mockUpdateSetting } from './testUtils'
 
 describe('TimerFocusPanel', () => {

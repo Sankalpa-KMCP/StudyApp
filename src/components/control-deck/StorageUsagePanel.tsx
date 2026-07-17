@@ -1,4 +1,4 @@
-import { useSettingsPanel } from './SettingsPanelContext'
+import { useSettingsPanel } from '../../context/settingsPanelContext'
 import { useTranslation } from '../../i18n/useTranslation'
 import { useStorageEstimate, formatBytes } from '../../hooks/useStorageEstimate'
 

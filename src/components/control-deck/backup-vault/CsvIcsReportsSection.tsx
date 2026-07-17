@@ -1,6 +1,5 @@
 import { Button } from '../../shared/Button'
 import { useTranslation } from '../../../i18n/useTranslation'
-import { archiveHistoryOlderThan } from '../../../db/repositories/history'
 import { backupArchiveHistoryResult } from '../../../lib/backup/backupTerms'
 
 interface CsvIcsReportsSectionProps {
@@ -8,6 +7,7 @@ interface CsvIcsReportsSectionProps {
   exportStudyLogsCSV: () => void
   exportStudyHistoryIcs?: () => void
   exportTaskCompletionLogsCSV: () => void
+  archiveHistoryOlderThan: (days: number) => Promise<number>
   importStudyHistoryIcs?: (fileString: string) => void
   pushToast: (key: string, message: string) => void
   onArchiveComplete: () => void
@@ -24,6 +24,7 @@ export function CsvIcsReportsSection({
   exportStudyLogsCSV,
   exportStudyHistoryIcs,
   exportTaskCompletionLogsCSV,
+  archiveHistoryOlderThan,
   importStudyHistoryIcs,
   pushToast,
   onArchiveComplete,

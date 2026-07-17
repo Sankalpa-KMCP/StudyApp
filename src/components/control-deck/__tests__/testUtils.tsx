@@ -1,14 +1,14 @@
 /* eslint-disable react-refresh/only-export-components */
 import type { ReactNode } from 'react'
 import { vi } from 'vitest'
-import { SettingsPanelProvider } from '../SettingsPanelContext'
+import { SettingsPanelProvider } from '../../../context/settingsPanelContext'
 
 vi.mock('../../../context/useConfirm', () => ({
   useConfirm: () => ({ requestConfirm: vi.fn().mockResolvedValue(false) }),
 }))
 
-vi.mock('../../../context/studyDataContext', () => ({
-  useStudyDataContext: () => ({
+vi.mock('../../../context/useStudyApp', () => ({
+  useStudyData: () => ({
     categories: {
       categories: [],
       addCategory: vi.fn(),
@@ -27,6 +27,7 @@ vi.mock('../../../context/studyTimerContext', () => ({
       exportProgress: 0,
       exportStudyLogsCSV: vi.fn(),
       exportTaskCompletionLogsCSV: vi.fn(),
+      archiveHistoryOlderThan: vi.fn().mockResolvedValue(0),
       importStudyBackup: vi.fn(),
       resetData: vi.fn(),
       resetDataSelective: vi.fn(),

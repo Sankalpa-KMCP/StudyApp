@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { useSettingsPanel } from './SettingsPanelContext'
+import { useSettingsPanel } from '../../context/settingsPanelContext'
 
 import { useTranslation } from '../../i18n/useTranslation'
 

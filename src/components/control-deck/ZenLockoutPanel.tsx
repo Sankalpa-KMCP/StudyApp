@@ -1,6 +1,6 @@
 import { useTranslation } from '../../i18n/useTranslation'
 
-import { useSettingsPanel } from './SettingsPanelContext'
+import { useSettingsPanel } from '../../context/settingsPanelContext'
 
 import { SettingsCard } from '../shared/settings/SettingsCard'
 

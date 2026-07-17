@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AestheticsPanel } from '../AestheticsPanel'
-import { SettingsPanelProvider } from '../SettingsPanelContext'
+import { SettingsPanelProvider } from '../../../context/settingsPanelContext'
 import { mockUpdateSetting } from './testUtils'
 
 vi.mock('../../../context/useConfirm', () => ({
