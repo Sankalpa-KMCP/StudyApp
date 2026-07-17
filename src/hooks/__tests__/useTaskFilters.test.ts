@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useTaskFilters } from '../useTaskFilters'
-import type { TaskItem, CategoryItem } from '../../../db/types'
+import type { TaskItem, CategoryItem } from '../../db/types'
 
 const todayStr = '2026-06-11'
 

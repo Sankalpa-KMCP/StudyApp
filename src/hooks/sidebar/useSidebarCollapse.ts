@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { SIDEBAR_COLLAPSED_KEY } from './constants'
+import { SIDEBAR_COLLAPSED_KEY } from '../../navigation/appNav'
 
 const TRANSITION_FADE_MS = 80
 const TRANSITION_REVEAL_MS = 180
