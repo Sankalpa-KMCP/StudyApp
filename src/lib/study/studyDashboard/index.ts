@@ -26,7 +26,6 @@ export {
   calculateStreak,
   calculateXpLevel,
   calculateProductivityInsights,
-  calculateTaskStudyMinutes,
   calculateCategoryGoalTrend,
 } from './analytics'
 
