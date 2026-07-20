@@ -4,6 +4,7 @@ import type { useStudyUIState } from './useStudyUIState'
 
 export type StudyUIContextValue = ReturnType<typeof useStudyUIState> & {
   activeThemeVars: ThemeProfile
+  handleDeleteNote: (id: number) => Promise<void>
 }
 
 export const StudyUIContext = createContext<StudyUIContextValue | null>(null)

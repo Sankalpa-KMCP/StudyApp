@@ -28,7 +28,7 @@ export function useActiveTabSync({ activeTab, navigateToTab }: ActiveTabSyncOpti
         writeAppHash(resolved)
       }
       if (resolved === activeTabRef.current) return
-      void navigateToTab(resolved).then(() => {
+      void Promise.resolve(navigateToTab(resolved)).then(() => {
         if (activeTabRef.current !== resolved) {
           writeAppHash(activeTabRef.current)
         }

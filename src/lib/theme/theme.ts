@@ -343,7 +343,4 @@ export function tooltipStyle(profile: ThemeProfile): CSSProperties {
   }
 }
 
-/** @deprecated Use tooltipStyle(profile) for theme-aware tooltips */
-export const TOOLTIP_STYLE = tooltipStyle(THEME_PROFILES['midnight-slate'])
-
 export { DAY_NAMES_SHORT, MONTH_NAMES } from '../shared/dateConstants'

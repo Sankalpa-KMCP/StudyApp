@@ -29,7 +29,7 @@ export function parseAppHash(hash: string): AppHashState {
   return { tab, settingsSection }
 }
 
-export function buildAppHash(tab: ActiveTab, settingsSection?: SettingsSectionId): string {
+function buildAppHash(tab: ActiveTab, settingsSection?: SettingsSectionId): string {
   if (tab === 'settings' && settingsSection) {
     return `#settings/${settingsSection}`
   }

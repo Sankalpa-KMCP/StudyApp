@@ -160,26 +160,6 @@ export function calculateProductivityInsights(
   return { topSubject, avgMin, completionRate, peakDay }
 }
 
-export function calculateTaskStudyMinutes(
-  allHistory: HistoryEntry[],
-  tasks: { id?: number; text: string }[],
-) {
-  const taskMap = new Map(tasks.filter(t => t.id !== undefined).map(t => [t.id!, t.text]))
-  const grouped = new Map<number, number>()
-  for (const entry of allHistory) {
-    if (entry.type !== 'study' || entry.taskId === undefined) continue
-    grouped.set(entry.taskId, (grouped.get(entry.taskId) ?? 0) + entry.durationMinutes)
-  }
-  return Array.from(grouped.entries())
-    .map(([taskId, minutes]) => ({
-      taskId,
-      name: taskMap.get(taskId) ?? `Task #${taskId}`,
-      hours: Number.parseFloat((minutes / 60).toFixed(1)) || 0,
-      minutes,
-    }))
-    .sort((a, b) => b.minutes - a.minutes)
-}
-
 export function calculateCategoryGoalTrend(
   allLogs: StudyLogLike[],
   categories: CategoryItem[],

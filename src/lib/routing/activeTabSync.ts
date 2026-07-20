@@ -10,11 +10,7 @@ export function setActiveTabSync(tab: ActiveTab) {
   for (const listener of listeners) listener()
 }
 
-export function getActiveTabSync(): ActiveTab {
-  return activeTab
-}
-
-export function useActiveTabSync(): ActiveTab {
+export function useActiveTabStore(): ActiveTab {
   return useSyncExternalStore(
     onStoreChange => {
       listeners.add(onStoreChange)

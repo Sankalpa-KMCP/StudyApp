@@ -17,7 +17,6 @@ import { CelebrationConfettiHost } from './shared/CelebrationConfettiHost'
 import { useAppShellEffects } from '../hooks/app-shell/useAppShellEffects'
 import { useCommandPaletteActions } from '../hooks/app-shell/useCommandPaletteActions'
 import { useAppShellOnboarding } from '../hooks/app-shell/useAppShellOnboarding'
-import { useNoteDeleteUndo } from '../hooks/app-shell/useNoteDeleteUndo'
 import { DesktopTrayTimerBridge } from './app-shell/DesktopTrayTimerBridge'
 
 const CommandPalette = lazy(() =>
@@ -82,7 +81,7 @@ export const AppShell = memo(function AppShell() {
     setIsCommandPaletteOpen,
     focusNoteId,
     setFocusNoteId,
-    scheduleDelete,
+    handleDeleteNote,
   } = useStudyUI()
 
   const handleCommandPaletteSelect = useCommandPaletteActions({
@@ -96,12 +95,6 @@ export const AppShell = memo(function AppShell() {
     setIsHotkeyHudOpen,
     setFocusNoteId,
     setIsNotesOpen,
-  })
-
-  const { handleDeleteNote } = useNoteDeleteUndo({
-    notes: quickNotes.notes,
-    deleteNote: quickNotes.deleteNote,
-    scheduleDelete,
   })
 
   const { showOnboarding, handleCloseOnboarding, openOnboarding } = useAppShellOnboarding(isDataReady)

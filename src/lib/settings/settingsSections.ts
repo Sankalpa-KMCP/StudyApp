@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
 import { Sliders, Clock, BookOpen, Database } from 'lucide-react'
 import type { SettingsKey, SettingsValue } from '../../db/types'
-import { SETTINGS_DEFAULTS } from '../../db/selectors/settingsFromRows'
+import { SETTINGS_DEFAULTS } from './settingsDefaults'
 import { enableAdvancedSettings } from './settingsAdvancedMode'
 import { t } from '../../i18n'
 
@@ -61,8 +61,6 @@ export function getSettingsSections(): SettingsSection[] {
     },
   ]
 }
-
-export { SETTINGS_DEFAULTS }
 
 export const APPEARANCE_ADVANCED_KEYS: SettingsKey[] = [
   'cardOpacity',
