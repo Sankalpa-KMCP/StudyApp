@@ -5,6 +5,7 @@ import { useStudyData } from './useStudyApp'
 import { useStudyTimerContext } from './studyTimerContext'
 import { useStudyUIContext } from './studyUIContext'
 import { useSettingsUpdater } from '../hooks/useSettingsUpdater'
+import { useStorageEstimate, type StorageEstimate } from '../hooks/useStorageEstimate'
 import type { StudyBackupExportOptions } from '../hooks/useSessionBackup'
 
 export interface SettingsBackupApi {
@@ -103,6 +104,7 @@ interface SettingsPanelContextValue {
   quotaExceeded: boolean
   handleFileDrop: (e: React.DragEvent) => void
   pushToast: (key: string, message: string) => void
+  storageEstimate: StorageEstimate
 }
 
 const SettingsPanelContext = createContext<SettingsPanelContextValue | null>(null)
@@ -112,6 +114,7 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
   const { categories } = useStudyData()
   const timerCtx = useStudyTimerContext()
   const updater = useSettingsUpdater(pushToast)
+  const storageEstimate = useStorageEstimate()
 
   const handleFileDrop = useMemo(
     () => (e: React.DragEvent) => uiHandleFileDrop(e, timerCtx.confirmImport),
@@ -205,7 +208,8 @@ export function SettingsPanelProvider({ children }: { children: ReactNode }) {
     setIsDragging,
     quotaExceeded,
     handleFileDrop,
-  }), [updater, pushToast, timerCtx, categories, isDragging, setIsDragging, quotaExceeded, handleFileDrop])
+    storageEstimate,
+  }), [updater, pushToast, timerCtx, categories, isDragging, setIsDragging, quotaExceeded, handleFileDrop, storageEstimate])
 
   return (
     <SettingsPanelContext.Provider value={value}>

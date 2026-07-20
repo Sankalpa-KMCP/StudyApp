@@ -6,8 +6,8 @@ import { ErrorFallback } from '../ErrorFallback'
 import * as backupExport from '../../lib/backup/backupExport'
 import * as copyDebug from '../../lib/shared/copyDebugInfo'
 
-vi.mock('../../hooks/useDatabaseRecovery', () => ({
-  useDatabaseRecovery: () => ({
+vi.mock('../../context/useStudyApp', () => ({
+  useStudyRecovery: () => ({
     getSchemaVersion: () => 7,
     deleteAndReopen: vi.fn().mockResolvedValue(undefined),
   }),

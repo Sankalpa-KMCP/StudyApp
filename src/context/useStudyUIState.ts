@@ -13,6 +13,7 @@ import type { useAppToast } from '../hooks/useAppToast'
 import { useUndoDelete } from '../hooks/useUndoDelete'
 import { setAppLocale, t } from '../i18n'
 import { setDeferredDataFlags } from '../hooks/useDeferredDataEnabled'
+import { useDatabaseRecovery } from '../hooks/useDatabaseRecovery'
 
 type ToastApi = ReturnType<typeof useAppToast>
 
@@ -22,6 +23,7 @@ export function useStudyUIState(toast: ToastApi) {
   const { requestConfirm } = useConfirm()
   const { activeToast, setActiveToast, quotaExceeded, dismissQuotaRecovery } = toast
   const { scheduleDelete } = useUndoDelete({ setActiveToast })
+  const databaseRecovery = useDatabaseRecovery()
 
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [isZenMode, setIsZenMode] = useState(false)
@@ -126,6 +128,7 @@ export function useStudyUIState(toast: ToastApi) {
     handleFileDrop,
     notifyFocusLockout,
     scheduleDelete,
+    databaseRecovery,
   }), [
     toast.pushToast,
     activeToast,
@@ -142,5 +145,6 @@ export function useStudyUIState(toast: ToastApi) {
     handleFileDrop,
     notifyFocusLockout,
     scheduleDelete,
+    databaseRecovery,
   ])
 }

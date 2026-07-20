@@ -49,6 +49,24 @@ vi.mock('../../../context/studyUIContext', () => ({
 
 const mockUpdateSetting = vi.fn().mockResolvedValue(true)
 
+vi.mock('../../../hooks/useStorageEstimate', () => ({
+  useStorageEstimate: () => ({
+    usageBytes: 1024,
+    quotaBytes: 1024 * 1024,
+    rowCounts: {
+      tasks: 1,
+      history: 2,
+      dailyLogs: 3,
+      quickNotes: 4,
+      categories: 5,
+      snapshots: 0,
+    },
+    isLoading: false,
+    isSupported: true,
+  }),
+  formatBytes: (bytes: number) => `${bytes} B`,
+}))
+
 vi.mock('../../../hooks/useSettingsUpdater', () => ({
   useSettingsUpdater: () => ({
     theme: 'midnight-slate',
