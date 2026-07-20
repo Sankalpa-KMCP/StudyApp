@@ -7,6 +7,8 @@ interface VirtualListProps<T> {
   overscan?: number
   className?: string
   enabled?: boolean
+  id?: string
+  listAriaLabel?: string
   renderItem: (item: T, index: number) => ReactNode
   getKey?: (item: T, index: number) => string | number
 }
@@ -17,6 +19,8 @@ export function VirtualList<T>({
   overscan = 5,
   className = '',
   enabled = true,
+  id,
+  listAriaLabel,
   renderItem,
   getKey,
 }: VirtualListProps<T>) {
@@ -30,9 +34,13 @@ export function VirtualList<T>({
     enabled: enabled && items.length > 0,
   })
 
+  const listProps = listAriaLabel
+    ? { role: 'list' as const, 'aria-label': listAriaLabel }
+    : {}
+
   if (!enabled || items.length === 0) {
     return (
-      <div className={className}>
+      <div className={className} id={id} {...listProps}>
         {items.map((item, index) => (
           <div key={getKey?.(item, index) ?? index}>{renderItem(item, index)}</div>
         ))}
@@ -41,7 +49,12 @@ export function VirtualList<T>({
   }
 
   return (
-    <div ref={parentRef} className={`overflow-y-auto custom-scrollbar ${className}`.trim()}>
+    <div
+      ref={parentRef}
+      id={id}
+      className={`overflow-y-auto custom-scrollbar ${className}`.trim()}
+      {...listProps}
+    >
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,

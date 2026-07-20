@@ -1,6 +1,10 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { t } from '../../i18n'
 import type { CategoryItem } from '../../db/types'
+import { Button } from './Button'
+
+/** Matches `--color-accent-blue` default in index.css @theme */
+const DEFAULT_CATEGORY_COLOR = '#007aff'
 
 type RequestConfirm = (options: {
   title: string
@@ -32,7 +36,8 @@ export function InlineCategoryManager({
 }: InlineCategoryManagerProps) {
   const [showManager, setShowManager] = useState(false)
   const [inlineName, setInlineName] = useState('')
-  const [inlineColor, setInlineColor] = useState('#3B82F6')
+  const [inlineColor, setInlineColor] = useState(DEFAULT_CATEGORY_COLOR)
+  const panelId = useId()
 
   const handleDelete = async (c: CategoryItem) => {
     if (c.id === undefined) return
@@ -53,36 +58,46 @@ export function InlineCategoryManager({
   }
 
   return (
-    <div>
+    <fieldset className="border-0 p-0 m-0 min-w-0">
       <div className="flex justify-between items-center mb-1.5 select-none">
-        <label className="text-micro font-bold uppercase text-muted">{label}</label>
-        <button
+        <legend className="text-micro font-bold uppercase text-muted">{label}</legend>
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => setShowManager(!showManager)}
-          className="text-micro font-bold text-accent-blue hover:underline cursor-pointer"
+          aria-expanded={showManager}
+          aria-controls={panelId}
+          className="!px-0 !py-0 text-micro font-bold text-accent-blue hover:underline"
         >
           {showManager ? 'Done' : '✏️ Manage'}
-        </button>
+        </Button>
       </div>
 
       {showManager ? (
-        <div className="space-y-2.5 surface-subtle border border-card p-3 rounded-2xl animate-fade-in mb-2">
+        <div
+          id={panelId}
+          className="space-y-2.5 surface-subtle border border-card p-3 rounded-2xl animate-fade-in mb-2"
+        >
           <div className="flex gap-2">
             <input
               type="text"
               value={inlineName}
               onChange={e => setInlineName(e.target.value)}
               placeholder="New category label..."
-              className="flex-1 rounded-full surface-subtle border border-card px-3 py-1.5 text-xs text-primary placeholder:text-muted outline-none"
+              className="settings-input flex-1 !rounded-full !py-1.5 !px-3 text-micro"
             />
             <input
               type="color"
               value={inlineColor}
               onChange={e => setInlineColor(e.target.value)}
+              aria-label="Category color"
               className="h-7 w-7 shrink-0 cursor-pointer rounded-full border border-card surface-subtle p-0.5"
             />
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={async () => {
                 const name = inlineName.trim()
                 if (name) {
@@ -93,10 +108,9 @@ export function InlineCategoryManager({
                   }
                 }
               }}
-              className="px-3 rounded-full bg-accent-blue text-on-accent text-xs font-bold transition-all ios-active-scale cursor-pointer"
             >
               Add
-            </button>
+            </Button>
           </div>
           <div className="max-h-24 overflow-y-auto custom-scrollbar space-y-1.5 pr-1 border-t border-card pt-2">
             {categories.map(c => (
@@ -105,14 +119,16 @@ export function InlineCategoryManager({
                   <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
                   <span className="text-secondary truncate">{c.name}</span>
                 </div>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => void handleDelete(c)}
                   aria-label={`Delete category ${c.name}`}
-                  className="text-muted hover:text-red-400 font-bold transition-colors cursor-pointer"
+                  className="!px-1.5 !py-0.5 text-muted hover:text-danger font-bold"
                 >
                   ✕
-                </button>
+                </Button>
               </div>
             ))}
           </div>
@@ -121,7 +137,7 @@ export function InlineCategoryManager({
         <select
           value={selectedCategoryId ?? ''}
           onChange={e => onSelectCategory(e.target.value ? parseInt(e.target.value) : undefined)}
-          className="w-full rounded-full border border-card surface-subtle px-4 py-2.5 text-xs text-primary outline-none transition-all focus:border-accent-blue/30 cursor-pointer settings-input"
+          className="settings-select text-micro"
         >
           <option value="">Uncategorized</option>
           {categories.map(c => (
@@ -131,6 +147,6 @@ export function InlineCategoryManager({
           ))}
         </select>
       ) : null}
-    </div>
+    </fieldset>
   )
 }
