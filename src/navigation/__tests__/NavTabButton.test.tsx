@@ -4,7 +4,7 @@ import { NavTabButton } from '../NavTabButton'
 import { Target } from 'lucide-react'
 
 describe('NavTabButton', () => {
-  it('uses locked aria-label without aria-disabled when focus lockout is active', () => {
+  it('uses locked aria-label and aria-disabled when focus lockout is active', () => {
     render(
       <NavTabButton
         variant="sidebar-expanded"
@@ -20,7 +20,8 @@ describe('NavTabButton', () => {
     )
 
     const button = screen.getByRole('button', { name: /Analytics, focus lockout active/i })
-    expect(button).not.toHaveAttribute('aria-disabled')
+    expect(button).toHaveAttribute('aria-disabled', 'true')
     expect(button).toHaveAttribute('data-locked', 'true')
+    expect(button.className).toContain('cursor-not-allowed')
   })
 })
