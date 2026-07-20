@@ -118,12 +118,13 @@ export async function clearAllStudyData() {
       studyDb.goals.clear(),
     ])
 
-    // Clean up study-related settings but preserve theme and migration keys
-    await studyDb.settings.delete('quickNotes')
-
-    // Note: We don't clear dailyGoalMinutes because it is a preference/setting,
-    // but if it's considered data, we can reset it. The prompt says preserve non-data UI preferences.
-    // 'theme' is explicitly preserved by not deleting it.
+    // Clean up study-related settings but preserve preference and migration keys
+    // (`dailyGoalMinutes`, `legacy-localstorage-migrated-v1`). Theme lives in localStorage.
+    // Key must match ACTIVE_FOCUS_SESSION_KEY in activeFocusSession.ts.
+    await Promise.all([
+      studyDb.settings.delete('quickNotes'),
+      studyDb.settings.delete('activeFocusSession'),
+    ])
   })
 }
 
