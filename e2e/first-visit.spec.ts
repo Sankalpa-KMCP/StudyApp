@@ -46,7 +46,7 @@ test.describe('first visit', () => {
     await page.goto('/')
     const onboarding = page.getByRole('dialog', { name: 'Welcome to Study Dashboard' })
     await expect(onboarding).toBeVisible({ timeout: 15000 })
-    await page.getByLabel('Close dialog').click({ position: { x: 4, y: 4 } })
+    await page.locator('button.modal-backdrop').click({ position: { x: 4, y: 4 } })
     await expect(onboarding).toBeVisible()
     await expect(page.getByRole('button', { name: 'Skip onboarding tour' })).toBeVisible()
   })
