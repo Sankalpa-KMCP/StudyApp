@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   buildSearchResults,
@@ -19,7 +19,14 @@ import {
   nowIso,
   studyDb,
 } from './db/studyDb'
-import type { StudyData } from './db/types'
+import {
+  createActiveFocusSession,
+  finalizeActiveFocusSession,
+  getActiveFocusElapsedMs,
+  getActiveFocusSession,
+  updateActiveFocusSession,
+} from './db/activeFocusSession'
+import type { ActiveFocusSession, StudyData } from './db/types'
 import { ReviewQueue, StreakCard, Upcoming, WeeklyProgress } from './components/RightColumn'
 import { HomeView } from './home/HomeView'
 import { TasksView } from './views/TasksView'
@@ -37,7 +44,8 @@ import { SettingsView } from './views/SettingsView'
 export type View = 'Home' | 'Tasks' | 'Notes' | 'Subjects' | 'Calendar' | 'Flashcards' | 'Progress' | 'Goals' | 'Settings'
 type TaskFilter = 'all' | 'open' | 'done'
 export type SettingsFeedback = { tone: 'success' | 'error'; message: string }
-export type ActiveSession = { subjectId: string; startedAt: string; startedAtMs: number; plannedMinutes: number }
+/** @deprecated Use ActiveFocusSession — kept as alias for existing imports. */
+export type ActiveSession = ActiveFocusSession
 export type ThemeMode = 'monochrome' | 'light' | 'dark' | 'aurora' | 'ember' | 'blueprint' | 'moss'
 
 const EMPTY_DATA: StudyData = {
@@ -89,7 +97,9 @@ function App() {
   })
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('study-dashboard-sidebar') === 'collapsed')
   const [revealedCards, setRevealedCards] = useState<Set<string>>(() => new Set())
-  const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
+  const [activeSession, setActiveSession] = useState<ActiveFocusSession | null>(null)
+  const [focusRestoreReady, setFocusRestoreReady] = useState(false)
+  const finalizingSessionIdRef = useRef<string | null>(null)
 
   const navigateToView = useCallback((view: View) => {
     setProgressEditorRequested(false)
@@ -98,6 +108,23 @@ function App() {
 
   useEffect(() => {
     void migrateLegacyLocalStorage()
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const restored = await getActiveFocusSession()
+      if (cancelled) return
+      if (restored) {
+        setActiveSession(restored)
+        setFocusSubjectId(restored.subjectId)
+        setFocusDurationMinutes(restored.plannedMinutes)
+      }
+      setFocusRestoreReady(true)
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const liveData = useLiveQuery(() => getStudyData(), [])
@@ -117,6 +144,7 @@ function App() {
   const dueCards = useMemo(() => data.flashcards.filter((card) => isFlashcardDue(card)), [data.flashcards])
   const homeSearchResults = useMemo(() => buildSearchResults(data, subjectMap, deferredSearch), [data, deferredSearch, subjectMap])
   const sessionLimitSeconds = activeSession && activeSession.plannedMinutes > 0 ? activeSession.plannedMinutes * 60 : 0
+  const canStartFocus = focusRestoreReady && !activeSession
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -183,6 +211,8 @@ function App() {
 
   const handleClearData = async () => {
     await clearAllStudyData()
+    setActiveSession(null)
+    finalizingSessionIdRef.current = null
     setProfileNotice('All study data has been permanently deleted.')
     navigateToView('Home')
     setTimeout(() => setProfileNotice(''), 5000)
@@ -198,47 +228,103 @@ function App() {
     setActiveView('Progress')
   }
 
-  const startSession = useCallback(() => {
-    const startedAtMs = Date.now()
-    setActiveSession({
+  const startSession = useCallback(async () => {
+    if (!focusRestoreReady || activeSession) return
+
+    const session: ActiveFocusSession = {
+      id: createId('focus'),
       subjectId: focusSubjectId,
       startedAt: nowIso(),
-      startedAtMs,
       plannedMinutes: focusDurationMinutes,
-    })
-    setSessionNotice('')
-  }, [focusDurationMinutes, focusSubjectId])
+      status: 'running',
+      pausedAt: null,
+      accumulatedPausedMs: 0,
+    }
+
+    const result = await createActiveFocusSession(session)
+    if (result.ok) {
+      setActiveSession(result.session)
+      setSessionNotice('')
+      return
+    }
+
+    if (result.reason === 'conflict') {
+      setActiveSession(result.existing)
+      setFocusSubjectId(result.existing.subjectId)
+      setFocusDurationMinutes(result.existing.plannedMinutes)
+      setSessionNotice('An unfinished focus session was restored.')
+    }
+  }, [activeSession, focusDurationMinutes, focusRestoreReady, focusSubjectId])
 
   const stopSession = useCallback(async (completed = false) => {
     if (!activeSession) return
-    const endedAt = nowIso()
-    const actualMinutes = Math.round((Date.now() - activeSession.startedAtMs) / 60_000)
-    const minutes = Math.max(1, completed && activeSession.plannedMinutes > 0 ? activeSession.plannedMinutes : actualMinutes)
-    await studyDb.studySessions.add({
-      id: createId('session'),
-      subjectId: activeSession.subjectId,
-      startedAt: activeSession.startedAt,
-      endedAt,
-      minutes,
-      note: completed ? 'Completed focus session' : activeSession.subjectId ? 'Focus session' : 'General focus session',
-    })
-    setActiveSession(null)
-    setSessionNotice(completed ? `Session complete: ${formatMinutes(minutes)} logged.` : `Session stopped: ${formatMinutes(minutes)} logged.`)
+    if (finalizingSessionIdRef.current === activeSession.id) return
+
+    finalizingSessionIdRef.current = activeSession.id
+    const sessionToFinalize = activeSession
+    const elapsedMs = getActiveFocusElapsedMs(sessionToFinalize)
+    const actualMinutes = Math.round(elapsedMs / 60_000)
+    const minutes = Math.max(1, completed && sessionToFinalize.plannedMinutes > 0 ? sessionToFinalize.plannedMinutes : actualMinutes)
+
+    try {
+      const result = await finalizeActiveFocusSession(sessionToFinalize.id, {
+        subjectId: sessionToFinalize.subjectId,
+        startedAt: sessionToFinalize.startedAt,
+        endedAt: nowIso(),
+        minutes,
+        note: completed ? 'Completed focus session' : sessionToFinalize.subjectId ? 'Focus session' : 'General focus session',
+      })
+
+      if (!result.ok) {
+        if (result.reason === 'conflict') {
+          setActiveSession(result.existing)
+          setFocusSubjectId(result.existing.subjectId)
+          setFocusDurationMinutes(result.existing.plannedMinutes)
+        }
+        return
+      }
+
+      setActiveSession(null)
+      setSessionNotice(completed ? `Session complete: ${formatMinutes(result.history.minutes)} logged.` : `Session stopped: ${formatMinutes(result.history.minutes)} logged.`)
+    } catch {
+      // Keep local + durable unfinished state recoverable after a persistence failure.
+    } finally {
+      if (finalizingSessionIdRef.current === sessionToFinalize.id) {
+        finalizingSessionIdRef.current = null
+      }
+    }
   }, [activeSession])
 
   useEffect(() => {
-    if (!activeSession || sessionLimitSeconds <= 0) return undefined
-    const remainingMs = Math.max(0, sessionLimitSeconds * 1000 - (Date.now() - activeSession.startedAtMs))
+    if (!activeSession || activeSession.status !== 'running' || activeSession.plannedMinutes <= 0) return undefined
+
+    const limitMs = activeSession.plannedMinutes * 60_000
+    const remainingMs = Math.max(0, limitMs - getActiveFocusElapsedMs(activeSession))
+
     const timer = window.setTimeout(() => {
       void stopSession(true)
     }, remainingMs)
     return () => window.clearTimeout(timer)
-  }, [activeSession, sessionLimitSeconds, stopSession])
+  }, [activeSession, stopSession])
 
   const updateFocusSubject = useCallback((subjectId: string) => {
     setFocusSubjectId(subjectId)
-    setActiveSession((session) => session ? { ...session, subjectId } : session)
-  }, [])
+    if (!activeSession) return
+
+    const nextSession: ActiveFocusSession = { ...activeSession, subjectId }
+    setActiveSession(nextSession)
+    void updateActiveFocusSession(nextSession).then((result) => {
+      if (result.ok) {
+        setActiveSession(result.session)
+        return
+      }
+      if (result.reason === 'conflict') {
+        setActiveSession(result.existing)
+        setFocusSubjectId(result.existing.subjectId)
+        setFocusDurationMinutes(result.existing.plannedMinutes)
+      }
+    })
+  }, [activeSession])
 
   const clearSearch = useCallback(() => setSearch(''), [])
 
@@ -296,6 +382,7 @@ function App() {
                     activeSession={activeSession}
                     sessionLimitSeconds={sessionLimitSeconds}
                     sessionNotice={sessionNotice}
+                    canStartFocus={canStartFocus}
                     subjects={data.subjects}
                     focusSubjectId={focusSubjectId}
                     focusDurationMinutes={focusDurationMinutes}
@@ -304,8 +391,8 @@ function App() {
                     onFocusSubjectChange={updateFocusSubject}
                     onFocusDurationChange={setFocusDurationMinutes}
                     onQuickNotesChange={addQuickNote}
-                    onStartSession={startSession}
-                    onStopSession={stopSession}
+                    onStartSession={() => void startSession()}
+                    onStopSession={() => stopSession(false)}
                     onNavigate={navigateToView}
                     onCreateSubject={openNewSubject}
                     onCreatePlan={openNewTask}

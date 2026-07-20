@@ -4,6 +4,7 @@ import {
   ACTIVE_FOCUS_SESSION_STALE_AFTER_MS,
   clearActiveFocusSession,
   createActiveFocusSession,
+  finalizeActiveFocusSession,
   getActiveFocusElapsedMs,
   getActiveFocusSession,
   isActiveFocusSession,
@@ -197,5 +198,58 @@ describe('activeFocusSession persistence', () => {
   it('rejects invalid create/update payloads', async () => {
     expect(await createActiveFocusSession(makeSession({ id: '' }))).toEqual({ ok: false, reason: 'invalid' })
     expect(await updateActiveFocusSession(makeSession())).toEqual({ ok: false, reason: 'missing' })
+  })
+
+  it('finalizes a matching session into one history row and clears the unfinished record', async () => {
+    const session = makeSession()
+    await createActiveFocusSession(session)
+
+    const first = await finalizeActiveFocusSession(session.id, {
+      subjectId: session.subjectId,
+      startedAt: session.startedAt,
+      endedAt: '2026-07-20T10:25:00.000Z',
+      minutes: 25,
+      note: 'Completed focus session',
+    })
+    expect(first).toEqual({
+      ok: true,
+      history: {
+        id: session.id,
+        subjectId: session.subjectId,
+        startedAt: session.startedAt,
+        endedAt: '2026-07-20T10:25:00.000Z',
+        minutes: 25,
+        note: 'Completed focus session',
+      },
+    })
+    expect(await getActiveFocusSession()).toBeNull()
+    expect(await studyDb.studySessions.toArray()).toHaveLength(1)
+
+    const second = await finalizeActiveFocusSession(session.id, {
+      subjectId: session.subjectId,
+      startedAt: session.startedAt,
+      endedAt: '2026-07-20T11:00:00.000Z',
+      minutes: 99,
+      note: 'Duplicate attempt',
+    })
+    expect(second).toEqual(first)
+    expect(await studyDb.studySessions.toArray()).toHaveLength(1)
+    expect((await studyDb.studySessions.get(session.id))?.minutes).toBe(25)
+  })
+
+  it('refuses to finalize when a different unfinished session is persisted', async () => {
+    const existing = makeSession({ id: 'focus-existing' })
+    await createActiveFocusSession(existing)
+
+    const result = await finalizeActiveFocusSession('focus-other', {
+      subjectId: '',
+      startedAt: STARTED_AT,
+      endedAt: '2026-07-20T10:25:00.000Z',
+      minutes: 25,
+      note: 'Wrong session',
+    })
+    expect(result).toEqual({ ok: false, reason: 'conflict', existing })
+    expect(await getActiveFocusSession()).toEqual(existing)
+    expect(await studyDb.studySessions.count()).toBe(0)
   })
 })
