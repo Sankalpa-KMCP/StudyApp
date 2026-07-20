@@ -30,7 +30,7 @@ export function MoodPicker({ draftMood, onSelect }: MoodPickerProps) {
               type="button"
               aria-pressed={isSelected}
               onClick={() => onSelect(m.value)}
-              className={`mood-btn mood-${m.value} ${isSelected ? 'mood-active' : ''}`}
+              className={`focus-ring mood-btn mood-${m.value} ${isSelected ? 'mood-active' : ''}`}
             >
               <div className="mood-icon-wrapper">
                 <Icon className="h-5 w-5" aria-hidden />
