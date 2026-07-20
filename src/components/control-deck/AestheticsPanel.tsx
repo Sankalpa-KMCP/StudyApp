@@ -8,8 +8,16 @@ import { useSettingsPanel } from '../../context/settingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
 import { ThemeSwatchPicker } from './ThemeSwatchPicker'
+import { Button } from '../shared/Button'
 
 const UI_FONT_OPTIONS = ['Inter', 'Outfit', 'System'] as const
+
+const ACCENT_OVERRIDE_DEFAULTS = {
+  accentBlueOverride: '#007aff',
+  accentPurpleOverride: '#af52de',
+  accentGreenOverride: '#34c759',
+  accentAmberOverride: '#ff9500',
+} as const
 
 export function AestheticsPanel() {
   const { t } = useTranslation()
@@ -56,11 +64,12 @@ export function AestheticsPanel() {
         />
 
         <div>
-          <span className="settings-label block mb-2">{t('aestheticsUiFont')}</span>
+          <label htmlFor="aesthetics-ui-font" className="settings-label block mb-2">{t('aestheticsUiFont')}</label>
           <select
+            id="aesthetics-ui-font"
             value={uiFont}
             onChange={e => updateSetting('ui_font', e.target.value)}
-            className="settings-select"
+            className="settings-select focus-ring"
           >
             {UI_FONT_OPTIONS.map(f => (
               <option key={f} value={f}>{f}</option>
@@ -69,12 +78,12 @@ export function AestheticsPanel() {
         </div>
 
         <div>
-          <span className="settings-label block mb-2">{t('aestheticsLocale')}</span>
+          <label htmlFor="aesthetics-locale" className="settings-label block mb-2">{t('aestheticsLocale')}</label>
           <select
+            id="aesthetics-locale"
             value={locale}
             onChange={e => updateSetting('locale', e.target.value)}
-            className="settings-select"
-            aria-label={t('aestheticsLocale')}
+            className="settings-select focus-ring"
           >
             {SUPPORTED_LOCALES.map(({ code, labelKey }) => (
               <option key={code} value={code}>{t(labelKey)}</option>
@@ -89,41 +98,38 @@ export function AestheticsPanel() {
             type="checkbox"
             checked={reduceVisualEffects}
             onChange={e => updateSetting('reduceVisualEffects', e.target.checked)}
-            className="h-4 w-4 rounded border-card accent-accent-blue"
+            className="h-4 w-4 rounded border-card accent-accent-blue focus-ring"
           />
         </label>
         <p className="settings-muted -mt-4 mb-2">{t('aestheticsReduceVisualEffectsHelper')}</p>
 
         <div>
-          <span className="settings-label block mb-2">{t('aestheticsUiDensity')}</span>
+          <label htmlFor="aesthetics-ui-density" className="settings-label block mb-2">{t('aestheticsUiDensity')}</label>
           <select
+            id="aesthetics-ui-density"
             value={uiDensity}
             onChange={e => updateSetting('uiDensity', e.target.value)}
-            className="settings-select"
+            className="settings-select focus-ring"
           >
             <option value="comfortable">{t('aestheticsUiDensityComfortable')}</option>
             <option value="compact">{t('aestheticsUiDensityCompact')}</option>
           </select>
         </div>
 
-        <div className="border-t border-[var(--color-border-card)] pt-4">
+        <div className="border-t border-card pt-4">
           <div className="flex items-center justify-between gap-3 mb-3">
             <button
               type="button"
               onClick={() => setAdvancedOpen(o => !o)}
-              className="flex items-center gap-2 settings-label"
+              className="flex items-center gap-2 settings-label focus-ring rounded-lg px-1"
               aria-expanded={advancedOpen}
             >
-              <ChevronDown className={`h-4 w-4 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown aria-hidden className={`h-4 w-4 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
               {t('aestheticsAdvancedGlassAccents')}
             </button>
-            <button
-              type="button"
-              onClick={() => void handleResetAdvanced()}
-              className="text-micro font-semibold text-accent-blue hover:text-accent-blue/80"
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={() => void handleResetAdvanced()} className="!px-0">
               {t('aestheticsReset')}
-            </button>
+            </Button>
           </div>
           {advancedOpen && (
           <div className="space-y-4">
@@ -172,29 +178,36 @@ export function AestheticsPanel() {
                   ['accentPurpleOverride', t('aestheticsAccentPurple'), accentPurpleOverride],
                   ['accentGreenOverride', t('aestheticsAccentGreen'), accentGreenOverride],
                   ['accentAmberOverride', t('aestheticsAccentAmber'), accentAmberOverride],
-                ] as const).map(([key, label, value]) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={value || '#3b82f6'}
-                      onChange={e => updateSetting(key, e.target.value)}
-                      className="h-8 w-8 rounded-lg border border-[var(--color-border-card)] bg-transparent cursor-pointer"
-                      aria-label={t('aestheticsAccentOverrideAria', { color: label })}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="settings-muted font-semibold block">{label}</span>
-                      {value && (
-                        <button
-                          type="button"
-                          onClick={() => updateSetting(key, null)}
-                          className="text-micro text-accent-blue hover:text-accent-blue/80"
-                        >
-                          {t('aestheticsResetToPreset')}
-                        </button>
-                      )}
+                ] as const).map(([key, label, value]) => {
+                  const inputId = `aesthetics-${key}`
+                  return (
+                    <div key={key} className="flex items-center gap-2">
+                      <label htmlFor={inputId} className="sr-only">{label}</label>
+                      <input
+                        id={inputId}
+                        type="color"
+                        value={value || ACCENT_OVERRIDE_DEFAULTS[key]}
+                        onChange={e => updateSetting(key, e.target.value)}
+                        className="h-8 w-8 rounded-lg border border-card bg-transparent cursor-pointer focus-ring"
+                        aria-label={t('aestheticsAccentOverrideAria', { color: label })}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="settings-muted font-semibold block">{label}</span>
+                        {value && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateSetting(key, null)}
+                            className="!h-auto !px-0 !py-0 text-micro"
+                          >
+                            {t('aestheticsResetToPreset')}
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>

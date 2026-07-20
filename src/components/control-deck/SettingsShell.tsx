@@ -28,7 +28,7 @@ export function SettingsShell({
       )}
 
       {onShowAdvancedChange && (
-        <div className="lg:col-span-12 rounded-2xl border border-[var(--color-border-card)] bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] px-4 py-3">
+        <div className="lg:col-span-12 rounded-2xl border border-card bg-[color-mix(in_srgb,var(--color-surface-card)_40%,transparent)] px-4 py-3">
           <ToggleSetting
             label={t('showAdvancedSettings')}
             checked={showAdvanced}
@@ -41,11 +41,9 @@ export function SettingsShell({
         <SettingsSectionNav variant="pills" />
       </div>
 
-      <div className="hidden lg:block lg:col-span-3">
-        <div className="sticky top-4">
+      <div className="hidden lg:block lg:col-span-3 sticky top-4 self-start">
         <p className="panel-title mb-3 px-1">{t('settingsShellSections')}</p>
-          <SettingsSectionNav variant="sidebar" />
-        </div>
+        <SettingsSectionNav variant="sidebar" />
       </div>
 
       <div className="lg:col-span-9 flex flex-col gap-10">
@@ -64,23 +62,25 @@ interface SettingsSectionProps {
 
 export function SettingsSection({ id, label, children, onResetDefaults }: SettingsSectionProps) {
   const { t } = useTranslation()
+  const headingId = `heading-${id}`
 
   return (
     <section
       id={`settings-${id}`}
       data-settings-section
-      aria-labelledby={`nav-${id}`}
+      aria-labelledby={headingId}
       className="flex flex-col gap-4 scroll-mt-4"
     >
       <div className="flex items-center justify-between gap-3 px-1">
-        <h2 id={`heading-${id}`} className="text-title text-[var(--color-text-primary)]">
+        <h2 id={headingId} className="text-title text-primary">
           {label}
         </h2>
         {onResetDefaults && (
           <button
             type="button"
             onClick={onResetDefaults}
-            className="text-micro font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors ios-active-scale"
+            aria-label={`${t('settingsShellResetSection')}: ${label}`}
+            className="text-micro font-semibold text-accent-blue hover:text-accent-blue/80 transition-colors ios-active-scale focus-ring"
           >
             {t('settingsShellResetSection')}
           </button>
