@@ -27,6 +27,10 @@
   background-color: var(--color-accent-green);
 }
 
+.ios-switch--blue.active {
+  background-color: var(--color-accent-blue);
+}
+
 .ios-switch-thumb {
   width: 22px;
   height: 22px;
@@ -95,5 +99,50 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 [data-reduce-effects="true"] input[type="range"]::-webkit-slider-thumb:hover {
+  transform: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: 2px;
+}
+
+.chrome-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border-card);
+  background-color: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+  color: var(--color-text-muted);
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+}
+
+.chrome-icon-btn:hover {
+  background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  color: var(--color-text-primary);
+}
+
+.chrome-icon-btn:focus-visible {
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: 2px;
+}
+
+.chrome-icon-btn:active {
+  transform: scale(0.96);
+}
+
+.chrome-icon-btn--sm {
+  height: 2rem;
+  width: 2rem;
+}
+
+.chrome-icon-btn--md {
+  height: 2.25rem;
+  width: 2.25rem;
+}
+
+[data-reduce-effects="true"] .chrome-icon-btn:active {
   transform: none;
 }
