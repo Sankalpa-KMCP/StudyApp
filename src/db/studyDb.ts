@@ -1,7 +1,9 @@
 import Dexie, { type Table } from 'dexie'
+import { inferLegacyGoalMetric } from './goalMetricInference'
 import type {
   CalendarEvent,
   Flashcard,
+  GoalPeriod,
   StudyData,
   StudyExport,
   StudyGoal,
@@ -11,11 +13,27 @@ import type {
   StudySubject,
   StudyTask,
 } from './types'
+import { isGoalMetric } from './types'
 
 const STUDY_DB_NAME = 'study-dashboard-db'
 const LEGACY_STORAGE_KEY = 'study-dashboard-v2'
 const LEGACY_MIGRATION_KEY = 'legacy-localstorage-migrated-v1'
 const DEFAULT_SUBJECT_COLORS = ['#111827', '#2563eb', '#0f766e', '#b45309', '#7c3aed', '#be123c']
+
+const STUDY_DB_STORES = {
+  tasks: '&id, status, priority, dueDate, subjectId, createdAt, updatedAt',
+  subjects: '&id, name, color, createdAt, updatedAt',
+  notes: '&id, subjectId, createdAt, updatedAt, *tags',
+  events: '&id, subjectId, startAt, endAt, createdAt, updatedAt',
+  flashcards: '&id, subjectId, status, lastReviewedAt, createdAt, updatedAt',
+  studySessions: '&id, subjectId, startedAt, endedAt',
+  goals: '&id, period, createdAt, updatedAt',
+  settings: '&key',
+} as const
+
+function isGoalPeriod(value: unknown): value is GoalPeriod {
+  return value === 'daily' || value === 'weekly' || value === 'monthly'
+}
 
 export class StudyDatabase extends Dexie {
   tasks!: Table<StudyTask, string>
@@ -29,15 +47,15 @@ export class StudyDatabase extends Dexie {
 
   constructor() {
     super(STUDY_DB_NAME)
-    this.version(1).stores({
-      tasks: '&id, status, priority, dueDate, subjectId, createdAt, updatedAt',
-      subjects: '&id, name, color, createdAt, updatedAt',
-      notes: '&id, subjectId, createdAt, updatedAt, *tags',
-      events: '&id, subjectId, startAt, endAt, createdAt, updatedAt',
-      flashcards: '&id, subjectId, status, lastReviewedAt, createdAt, updatedAt',
-      studySessions: '&id, subjectId, startedAt, endedAt',
-      goals: '&id, period, createdAt, updatedAt',
-      settings: '&key',
+    this.version(1).stores(STUDY_DB_STORES)
+    this.version(2).stores(STUDY_DB_STORES).upgrade(async (transaction) => {
+      const goals = transaction.table('goals')
+      await goals.toCollection().modify((goal: Record<string, unknown>) => {
+        if (isGoalMetric(goal.metric)) return
+        const period = isGoalPeriod(goal.period) ? goal.period : 'daily'
+        const title = typeof goal.title === 'string' ? goal.title : ''
+        goal.metric = inferLegacyGoalMetric(period, title)
+      })
     })
   }
 }

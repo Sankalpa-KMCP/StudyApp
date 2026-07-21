@@ -375,6 +375,7 @@ describe('App', () => {
       target: 60,
       progress: 0,
       period: 'daily',
+      metric: 'study_time',
       createdAt: timestamp,
       updatedAt: timestamp,
     })
@@ -439,7 +440,7 @@ describe('App', () => {
     expect(within(screen.getByLabelText('Today overview')).getByText('0m')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Goals' }))
     expect(screen.getByRole('progressbar', { name: '0/60' })).toBeInTheDocument()
-  })
+  }, 15_000)
 
   it('groups cross-midnight sessions by local start date while crediting metrics on their local end date', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })

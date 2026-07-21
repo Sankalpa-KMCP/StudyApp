@@ -1,5 +1,41 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import Dexie, { type Table } from 'dexie'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { clearAllStudyData, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, studyDb } from './studyDb'
+import type { StudyGoal } from './types'
+
+const STUDY_DB_NAME = 'study-dashboard-db'
+
+const V1_STORES = {
+  tasks: '&id, status, priority, dueDate, subjectId, createdAt, updatedAt',
+  subjects: '&id, name, color, createdAt, updatedAt',
+  notes: '&id, subjectId, createdAt, updatedAt, *tags',
+  events: '&id, subjectId, startAt, endAt, createdAt, updatedAt',
+  flashcards: '&id, subjectId, status, lastReviewedAt, createdAt, updatedAt',
+  studySessions: '&id, subjectId, startedAt, endedAt',
+  goals: '&id, period, createdAt, updatedAt',
+  settings: '&key',
+} as const
+
+/** Opens only Dexie version 1 so upgrade to the app schema can be exercised. */
+class StudyDatabaseV1Only extends Dexie {
+  goals!: Table<Record<string, unknown>, string>
+
+  constructor() {
+    super(STUDY_DB_NAME)
+    this.version(1).stores(V1_STORES)
+  }
+}
+
+async function seedVersion1Goals(goals: Array<Record<string, unknown>>) {
+  if (studyDb.isOpen()) studyDb.close()
+  await studyDb.delete()
+
+  const v1 = new StudyDatabaseV1Only()
+  await v1.open()
+  expect(v1.verno).toBe(1)
+  await v1.table('goals').bulkAdd(goals)
+  v1.close()
+}
 
 describe('studyDb', () => {
   beforeEach(async () => {
@@ -103,6 +139,7 @@ describe('studyDb', () => {
         target: 120,
         progress: 25,
         period: 'weekly',
+        metric: 'study_time',
         createdAt: timestamp,
         updatedAt: timestamp,
       }),
@@ -182,5 +219,151 @@ describe('studyDb', () => {
     expect(data.tasks[0]?.title).toBe('Custom revision')
     expect(data.notes[0]?.title).toBe('Treaty summary')
     expect(data.settings.find((setting) => setting.key === 'dailyGoalMinutes')?.value).toBe(180)
+  })
+})
+
+describe('goal metric Dexie version 2 upgrade', () => {
+  afterEach(async () => {
+    if (studyDb.isOpen()) studyDb.close()
+    await studyDb.delete()
+  })
+
+  it('upgrades version-1 goals with inferred metrics and preserves fields', async () => {
+    const timestamp = '2026-07-21T10:00:00.000Z'
+    await seedVersion1Goals([
+      {
+        id: 'goal-daily-focus',
+        title: 'Daily Focus',
+        target: 120,
+        progress: 15,
+        period: 'daily',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: 'goal-weekly-study',
+        title: 'Weekly study hours',
+        target: 10,
+        progress: 2,
+        period: 'weekly',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: 'goal-weekly-focus',
+        title: 'Focus week',
+        target: 8,
+        progress: 1,
+        period: 'weekly',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: 'goal-daily-study-only',
+        title: 'Study 2 hours daily',
+        target: 120,
+        progress: 40,
+        period: 'daily',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: 'goal-weekly-manual',
+        title: 'Read chapters',
+        target: 5,
+        progress: 1,
+        period: 'weekly',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: 'goal-monthly-focus',
+        title: 'Monthly focus',
+        target: 20,
+        progress: 3,
+        period: 'monthly',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: 'goal-preassigned-manual',
+        title: 'Daily focus',
+        target: 90,
+        progress: 0,
+        period: 'daily',
+        metric: 'manual',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ])
+
+    await studyDb.open()
+    expect(studyDb.verno).toBe(2)
+
+    const goals = await studyDb.goals.toArray()
+    const byId = new Map(goals.map((goal) => [goal.id, goal]))
+
+    expect(byId.get('goal-daily-focus')).toEqual({
+      id: 'goal-daily-focus',
+      title: 'Daily Focus',
+      target: 120,
+      progress: 15,
+      period: 'daily',
+      metric: 'study_time',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    expect(byId.get('goal-weekly-study')?.metric).toBe('study_time')
+    expect(byId.get('goal-weekly-focus')?.metric).toBe('study_time')
+    expect(byId.get('goal-daily-study-only')?.metric).toBe('manual')
+    expect(byId.get('goal-weekly-manual')?.metric).toBe('manual')
+    expect(byId.get('goal-monthly-focus')?.metric).toBe('manual')
+    expect(byId.get('goal-preassigned-manual')).toEqual({
+      id: 'goal-preassigned-manual',
+      title: 'Daily focus',
+      target: 90,
+      progress: 0,
+      period: 'daily',
+      metric: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+  })
+
+  it('does not reinfer metrics on reopen or after renaming a migrated goal', async () => {
+    const timestamp = '2026-07-21T11:00:00.000Z'
+    await seedVersion1Goals([
+      {
+        id: 'goal-stable-metric',
+        title: 'Daily focus',
+        target: 60,
+        progress: 10,
+        period: 'daily',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ])
+
+    await studyDb.open()
+    expect((await studyDb.goals.get('goal-stable-metric'))?.metric).toBe('study_time')
+
+    studyDb.close()
+    await studyDb.open()
+    expect((await studyDb.goals.get('goal-stable-metric'))?.metric).toBe('study_time')
+
+    await studyDb.goals.update('goal-stable-metric', {
+      title: 'Renamed without focus word',
+      updatedAt: '2026-07-21T12:00:00.000Z',
+    })
+
+    studyDb.close()
+    await studyDb.open()
+
+    const renamed = await studyDb.goals.get('goal-stable-metric') as StudyGoal
+    expect(renamed.title).toBe('Renamed without focus word')
+    expect(renamed.metric).toBe('study_time')
+    expect(renamed.target).toBe(60)
+    expect(renamed.progress).toBe(10)
+    expect(renamed.createdAt).toBe(timestamp)
   })
 })
