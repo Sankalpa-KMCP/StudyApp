@@ -7,6 +7,8 @@ npm ci
 npm run dev
 ```
 
+If you plan to run folder-sync E2E tests locally (`npm run test:e2e:sync`), copy `.env.example` to `.env.local` (or `.env`) and keep `VITE_E2E_SYNC=1`. See `.env.example` for other optional CI/E2E variables.
+
 ## Tests
 
 | Command | Purpose |
