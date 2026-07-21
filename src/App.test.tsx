@@ -1361,6 +1361,60 @@ describe('App', () => {
     expect(await studyDb.studySessions.count()).toBe(0)
   })
 
+  it('clears obsolete focus UI when Stop finds no matching persisted session', async () => {
+    const user = userEvent.setup()
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-missing-stop',
+      subjectId: '',
+      plannedMinutes: 0,
+    }))
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+
+    await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
+    expect(await getActiveFocusSession()).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Stop session' }))
+
+    expect(await screen.findByText(/no longer saved/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Session complete:/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Session stopped:/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Stop session' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Unfinished focus session' })).not.toBeInTheDocument()
+    await waitForFocusStartEnabled()
+    expect(await studyDb.studySessions.count()).toBe(0)
+    expect(await getActiveFocusSession()).toBeNull()
+  })
+
+  it('hydrates a different durable session when Stop conflicts instead of clearing it', async () => {
+    const user = userEvent.setup()
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-stop-local',
+      subjectId: '',
+      plannedMinutes: 0,
+    }))
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+
+    const other = makeDurableFocusSession({
+      id: 'focus-stop-other',
+      subjectId: '',
+      plannedMinutes: 50,
+      startedAt: new Date(Date.now() - 2 * 60_000).toISOString(),
+    })
+    await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: other })
+
+    await user.click(screen.getByRole('button', { name: 'Stop session' }))
+
+    expect(await screen.findByText('Focus session was updated elsewhere.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Session length')).toHaveValue('50')
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-stop-other', plannedMinutes: 50 })
+    expect(await studyDb.studySessions.count()).toBe(0)
+  })
+
   it('does not create duplicate history rows for repeated finalization', async () => {
     const session = makeDurableFocusSession({
       id: 'focus-idempotent',
