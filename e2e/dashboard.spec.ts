@@ -159,8 +159,67 @@ test('logs, edits, and confirms deletion of a study session', async ({ page }) =
 
   page.once('dialog', async (dialog) => dialog.accept())
   await journal.getByRole('button', { name: /Delete Physics session at/ }).click()
-  await expect(page.getByText('Session deleted.')).toBeVisible()
+  await expect(page.getByText('Study session deleted.')).toBeVisible()
   await expect(page.getByText('No sessions logged')).toBeVisible()
+})
+
+test('rapid double save creates a single task that survives reload', async ({ page }) => {
+  await page.getByRole('button', { name: 'Tasks' }).click()
+  await page.getByRole('button', { name: 'New task' }).click()
+  await page.getByLabel('Task title').fill('Single persistence task')
+  await page.getByLabel('Minutes').fill('25')
+
+  // Synchronous double activation before React can re-render; component tests prove the pending guard.
+  await page.getByRole('button', { name: 'Save' }).evaluate((button: HTMLButtonElement) => {
+    button.click()
+    button.click()
+  })
+
+  await expect(page.getByRole('status')).toContainText('Task created.', { timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'Single persistence task' })).toHaveCount(1)
+
+  await page.reload()
+  await page.getByRole('button', { name: 'Tasks' }).click()
+  await expect(page.getByRole('heading', { name: 'Single persistence task' })).toHaveCount(1)
+})
+
+test('shows subject and task mutation feedback through create, edit, complete, and delete', async ({ page }) => {
+  await page.getByRole('button', { name: 'Subjects' }).click()
+  await page.getByRole('button', { name: 'New subject' }).click()
+  await page.getByLabel('Subject name').fill('Mutation Chemistry')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toContainText('Subject created.', { timeout: 15_000 })
+  await expect(page.getByText('Mutation Chemistry')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Tasks' }).click()
+  await page.getByRole('button', { name: 'New task' }).click()
+  await page.getByLabel('Task title').fill('Lab write-up')
+  await page.getByLabel('Subject').selectOption({ label: 'Mutation Chemistry' })
+  await page.getByLabel('Minutes').fill('40')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toContainText('Task created.', { timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'Lab write-up' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Edit Lab write-up' }).click()
+  await page.getByLabel('Task title').fill('Lab write-up revised')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toContainText('Task updated.', { timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'Lab write-up revised' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Toggle Lab write-up revised' }).click()
+  await expect(page.getByRole('status')).toContainText('Task marked complete.', { timeout: 15_000 })
+  await expect(page.locator('article.list-row.is-done').filter({ hasText: 'Lab write-up revised' })).toBeVisible()
+
+  page.once('dialog', async (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Delete Lab write-up revised' }).click()
+  await expect(page.getByRole('status')).toContainText('Task deleted.', { timeout: 15_000 })
+  await expect(page.getByText('Lab write-up revised')).toHaveCount(0)
+
+  await page.reload()
+  await page.getByRole('button', { name: 'Tasks' }).click()
+  await expect(page.getByText('Lab write-up revised')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Subjects' }).click()
+  await expect(page.getByText('Mutation Chemistry')).toBeVisible()
 })
 
 test('collapses the sidebar at medium desktop widths and persists the preference', async ({ page }) => {
@@ -275,7 +334,7 @@ test('explicit goal metrics use persisted metric rather than title text', async 
   await sessionForm.getByLabel('Start time').fill(localStart.time)
   await sessionForm.getByLabel('Duration (minutes)').fill('60')
   await sessionForm.getByRole('button', { name: 'Save session' }).click()
-  await expect(page.getByRole('status')).toContainText('Session logged.', { timeout: 15_000 })
+  await expect(page.getByRole('status')).toContainText('Study session recorded.', { timeout: 15_000 })
 
   await page.getByRole('button', { name: 'Goals' }).click()
   await expect(studyGoal.getByText('1/5 hours')).toBeVisible()
