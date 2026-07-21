@@ -11,12 +11,12 @@
 | [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) | This document — canonical codebase reference | Present |
 | [CURRENT_STATE.md](CURRENT_STATE.md) | Active work snapshot | **Intentionally omitted** — use git history, `CHANGELOG.md`, and task context |
 | [ARCHITECTURE_DECISIONS.md](ARCHITECTURE_DECISIONS.md) | ADR log (includes ADR-014: lib/sync + lib/backup repository access) | **Intentionally omitted** — ADR rationale inlined in this document §6 |
-| [TASK_TEMPLATE.md](TASK_TEMPLATE.md) | Scoped task template | **Missing** — not yet created |
-| [PROMPT_PATTERNS.md](PROMPT_PATTERNS.md) | Reusable prompt patterns | **Missing** — not yet created |
+| [TASK_TEMPLATE.md](TASK_TEMPLATE.md) | Scoped task template | **Not present** |
+| [PROMPT_PATTERNS.md](PROMPT_PATTERNS.md) | Reusable prompt patterns | **Not present** |
 
 **Human-oriented docs:** [README.md](../README.md), [CONTRIBUTING.md](../CONTRIBUTING.md), [CHANGELOG.md](../CHANGELOG.md)
 
-**Note:** Parent workspace [README.md](../../README.md) links to `web/ARCHITECTURE.md`, which does **not** exist. Use this document (§6) and [AI_RULES.md](AI_RULES.md) for architecture guidance until that file is created.
+**Note:** Parent workspace [README.md](../../README.md) links to `web/ARCHITECTURE.md`, which does **not** exist. [README.md](../README.md) §Architecture still links to the intentionally omitted `ARCHITECTURE_DECISIONS.md` — use this document (§6) and [AI_RULES.md](AI_RULES.md) for architecture guidance.
 
 ---
 
@@ -138,6 +138,7 @@ web/                              # Git repository root
 ├── playwright.config.ts          # E2E test config
 ├── playwright.screenshots.config.ts
 ├── .lighthouserc.json            # Lighthouse CI thresholds
+├── .env.example                  # Documented optional env vars (copy to .env.local when needed)
 ├── .npmrc                        # npm config (`engine-strict=false`)
 ├── .cursor/rules/                # Cursor agent rules (e.g. ai-documentation-sync.mdc)
 ├── .storybook/                   # Storybook configuration
@@ -252,10 +253,13 @@ index.html
 4. SM-2 or FSRS algorithm updates task review dates (`nextReviewDate`, `easinessFactor`, etc.).
 5. Zen lockout (`enforce_lockout`) blocks navigation away from Focus tab during active study.
 6. Interrupted sessions can be recovered via `sessionStorage` heartbeat (`useTimerSessionShadow`).
+7. Screen wake lock during active study blocks via `hooks/timer/useWakeLock.ts` → `lib/desktop/wakeLock.ts`.
+8. Review-due tasks surface `ReviewDueBanner` on Focus tab (`useReviewDueCount`, `lib/study/taskFilters.ts`); `ReviewQueueSection` in task list.
 
 **Important files:**
-- `src/components/tabs/FocusTab.tsx`, `src/components/focus/` (incl. `FirstSessionBanner.tsx`)
-- `src/hooks/useTimerEngine.ts`, `src/hooks/timer/`
+- `src/components/tabs/FocusTab.tsx`, `src/components/focus/` (incl. `FirstSessionBanner.tsx`, `ReviewDueBanner.tsx`)
+- `src/hooks/useTimerEngine.ts`, `src/hooks/timer/` (incl. `useWakeLock.ts`)
+- `src/hooks/useReviewDueCount.ts`
 - `src/lib/study/focusLockout.ts`, `src/lib/study/resolveTimerDurations.ts`, `src/lib/study/firstSession.ts`
 - `src/db/repositories/history.ts`, `src/db/repositories/tasks.ts`
 
@@ -296,10 +300,12 @@ index.html
 3. Recharts renders weekly trends, category goals, retention charts.
 4. XP and streaks computed from `daily_logs` and `history` in `lib/study/studyDashboard/`.
 5. Weekly report export (CSV/Markdown) via `lib/export/weeklyReportExport.ts` in `AnalyticsTab`.
+6. Level-up celebration UI: `LevelUpModal` + `CelebrationConfettiHost` when XP thresholds crossed (`useGamification`, `pendingLevelUp` in `useStudyData`).
 
 **Important files:**
 - `src/components/tabs/AnalyticsTab.tsx`
 - `src/components/analytics/`
+- `src/components/LevelUpModal.tsx`, `src/components/shared/CelebrationConfettiHost.tsx`
 - `src/hooks/useAnalyticsHistoryRange.ts`
 - `src/lib/study/studyDashboard/`
 - `src/lib/export/weeklyReportExport.ts`
@@ -412,11 +418,13 @@ index.html
 1. `QuickNotesDrawer` lazy-loads from `AppShell`.
 2. Notes CRUD via `db/repositories/quickNotes.ts` and `db/hooks/useQuickNotes`.
 3. Virtualized list when count > 50.
+4. Deletes use delayed commit with undo toast (`useUndoDelete`, `hooks/app-shell/useNoteDeleteUndo.ts` → `restoreNote` in repository).
 
 **Important files:**
 - `src/components/QuickNotesDrawer.tsx`
 - `src/components/quick-notes/`
 - `src/db/repositories/quickNotes.ts`
+- `src/hooks/useUndoDelete.ts`, `src/hooks/app-shell/useNoteDeleteUndo.ts`
 
 **Related data:** `quick_notes`
 
@@ -438,6 +446,24 @@ index.html
 
 ---
 
+### Audio (chimes and ambient)
+
+**Purpose:** Block-completion chimes and optional procedural ambient loops during active study blocks.
+
+**How it works:**
+1. `useAmbientSynth` (`hooks/useAmbientSynth.ts`) plays completion chimes when `soundEnabled`; optional tactile feedback via Web Audio API.
+2. `useAmbientSound` drives procedural presets (`rain`, `white-noise`, `cafe`, `brown-noise`) from `lib/audio/ambientAudio.ts` — plays only during active **study** blocks when `ambientSoundEnabled`.
+3. Both wired in `context/useStudyTimerState.ts` (hosted by `StudyTimerProvider`).
+
+**Settings:** `soundEnabled`, `ambientSoundEnabled`, `ambientSoundPreset`, `ambientVolume`, `tactile_feedback`
+
+**Important files:**
+- `src/hooks/useAmbientSynth.ts`, `src/hooks/useAmbientSound.ts`
+- `src/lib/audio/ambientAudio.ts`
+- `src/context/useStudyTimerState.ts`
+
+---
+
 ### PWA and Desktop
 
 **Purpose:** Offline app shell, install prompt, and native desktop experience.
@@ -446,6 +472,7 @@ index.html
 - `vite-plugin-pwa` registers service worker in `main.tsx`.
 - Static assets precached; IndexedDB is source of truth.
 - `AppShellStatusBanners` shows offline banner when `navigator.onLine` is false.
+- Install prompt via `usePwaInstall` → `InstallPromptBanner` (dismiss snooze: localStorage `pwa_install_dismissed_until`).
 
 **How it works (Desktop):**
 - Tauri wraps Vite build; tray menu (Show / Toggle timer / Quit).
@@ -456,6 +483,7 @@ index.html
 - `src/main.tsx`, `vite.config.ts`
 - `src/lib/desktop/tauri.ts`, `wakeLock.ts`, `focusNotifications.ts`
 - `src/components/app-shell/DesktopTrayTimerBridge.tsx`
+- `src/components/InstallPromptBanner.tsx`, `src/hooks/usePwaInstall.ts`
 - `src-tauri/src/lib.rs`, `src-tauri/capabilities/default.json`
 
 ---
@@ -866,6 +894,21 @@ Full details: `CHANGELOG.md`, `src/db/db.ts`
 | `syncHooks.ts` | Hooks on all data tables → sync push |
 | `storageStats.ts` | Read-only stats across tables |
 
+### Operational data limits (not schema caps)
+
+| Limit | Value | Source |
+|-------|-------|--------|
+| Recent history window | Default 100 entries (50–500 via `recentHistoryLimit`) | `useDashboardData` → `useRecentHistory` |
+| Analytics window | 7d / 30d / 90d / all (default 30d) | `useAnalyticsHistoryRange` |
+| Journal history query | Current calendar month | `useHistoryForMonth` in `useJournalCalendar` |
+| Full backup export | Unbounded (`history.toArray`) | `db/repositories/database.ts` |
+| Emergency snapshots retained | 3 max | `hooks/backup/useBackupSnapshots.ts` (`MAX_SNAPSHOTS`) |
+| Shadow session restore | ≥ 60s elapsed | `hooks/timer/useTimerSessionShadow.ts` |
+| Reflection notes max | 500 chars | `ReflectionModal.tsx` |
+| Backup reminder interval / snooze | 30 days / 7 days | `hooks/useBackupReminder.ts` |
+
+**Note:** Task templates (`task_templates` in localStorage) are **not** included in vault backup — by design they are browser-local presets.
+
 ---
 
 ## 8. API Routes and Endpoints
@@ -1012,13 +1055,26 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 **Purpose:** Timer engine and backup/session actions.
 
 **Responsibilities:**
-- Hosts `useTimerEngine` and `useSessionBackup` via `useStudyTimerState`
+- Hosts `useStudyTimerState` which composes `useTimerEngine`, `useSessionBackup`, `useAmbientSynth`, `useAmbientSound`, and `useTaskActions`
 - Exposes `timerControls`, `backup`, `activateTask` on `StudyTimerContext`
 - Nests `StudyTimerDisplayContext` with tick-sensitive display state (remaining time, block type) separate from action context — limits re-renders in `DesktopTrayTimerBridge` and zen overlay
 
 **Used by:** `FocusTab`, `AppShell`, command palette
 
 **Consumer hook:** `useStudyTimerDisplay()` from `studyTimerContext.ts` for display-only subscribers.
+
+---
+
+### src/context/useStudyTimerState.ts
+
+**Purpose:** Timer provider composition hook — wires engine, backup, audio, and task activation.
+
+**Responsibilities:**
+- Reads `useStudyCore()` for tasks, history, settings, categories, today log
+- `useTimerEngine` + `useSessionBackup` + `useAmbientSynth` + `useAmbientSound`
+- `activateTask()` starts timer and sets category when selecting a focus target
+
+**Used by:** `StudyTimerProvider.tsx` only — not imported directly by components
 
 ---
 
@@ -1091,7 +1147,7 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 - Runs `useBackupReminder()` for export nudge banner state
 - Composes `AppShellLayout` (sidebar, tabs, mobile nav) and `AppShellBanners` (status + toast)
 - Lazy-loads command palette and quick notes drawer (`Suspense`)
-- Hosts modals (onboarding, hotkeys, level-up, reflection, zen overlay)
+- Hosts modals: `OnboardingModal`, `HotkeyModal`, `LevelUpModal`, `ZenOverlayContainer`, `ReflectionModalContainer`
 - Runs background effects (sync, auto-export, reminders) via `useAppShellEffects`
 - Renders `E2eCrashProbe` (dev-only forced error for E2E error-boundary tests)
 
@@ -1414,15 +1470,16 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 | `TAURI_ENV_PLATFORM` | Tauri build detection; changes Vite `base` to `/` | Build-time only | Set by Tauri CLI | `vite.config.ts` |
 | `CI` | Enables Playwright retries and `forbidOnly` | CI only | `true` | `playwright.config.ts` |
 | `SCREENSHOT_BASE_URL` | Base URL for screenshot capture CI | No | `http://localhost:4173` | `playwright.screenshots.config.ts` |
-| `CHROMATIC_PROJECT_TOKEN` | Optional Chromatic visual regression testing | No | `[REDACTED]` | `.github/workflows/ci.yml` |
+| `CHROMATIC_PROJECT_TOKEN` | Optional Chromatic visual regression testing | No | `[REDACTED]` | `.github/workflows/ci.yml`, `.env.example` |
 
-**Warning:** No `.env.example` file exists in the repository. Contributors must discover env vars from this document or source code. Do not commit real secrets.
+**`.env.example`:** Present at repo root (`web/.env.example`). Documents `VITE_E2E_SYNC`, `SCREENSHOT_BASE_URL`, and `CHROMATIC_PROJECT_TOKEN` with safe placeholders. Normal dev does not require a `.env` file — copy to `.env.local` only when needed. Only `VITE_E2E_SYNC` is typed in `src/vite-env.d.ts`; other vars are consumed by Playwright/CI tooling. Do not commit real secrets.
 
 ### Important configuration files
 
 | File | Purpose |
 |------|---------|
 | `package.json` | Dependencies, npm scripts, version |
+| `.env.example` | Optional env var reference — copy to `.env.local` when needed |
 | `vite.config.ts` | Build config, PWA, base path (`/StudyApp/` prod, `/` Tauri), code splitting |
 | `tsconfig.json` / `tsconfig.app.json` | TypeScript compiler options |
 | `eslint.config.js` | Lint rules, jsx-a11y, `db/db` import guard |
@@ -1449,6 +1506,7 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 | `last_backup_export_at` | localStorage | Last vault export timestamp | `lib/backup/backupMetadata.ts` |
 | `last_backup_dismissed_at` | localStorage | Backup reminder snooze | `lib/backup/backupMetadata.ts` |
 | `analytics_range` | localStorage | Analytics productivity window | `useAnalyticsHistoryRange.ts` |
+| `pwa_install_dismissed_until` | localStorage | PWA install banner snooze timestamp | `usePwaInstall.ts` |
 | `active_session_shadow` | sessionStorage | Timer interruption recovery | `useTimerSessionShadow.ts` |
 | `pending_journal_date` | sessionStorage | Queued journal date for cross-tab navigation | `journalNavigation.ts` |
 | `pending_settings_scroll` | sessionStorage | Deferred settings panel scroll target | `settingsSections.ts` |
@@ -1487,7 +1545,7 @@ Open [http://localhost:5173](http://localhost:5173).
 
 ### Environment setup
 
-No `.env` file is required for normal development. For folder-sync E2E tests:
+No `.env` file is required for normal development. See `.env.example` for optional variables. For folder-sync E2E tests:
 
 ```bash
 # E2E sync tests use VITE_E2E_SYNC=1 (configured in playwright.config.ts webServer env)
@@ -1723,10 +1781,9 @@ Error handlers use `console.error` for diagnostics — not debug logging:
 
 ### Documentation gaps
 
-- No `.env.example` file
-- Optional `ai/` companion docs not maintained: `TASK_TEMPLATE.md`, `PROMPT_PATTERNS.md` (referenced in `.cursor/rules/` but not present)
+- Optional `ai/` companion docs not maintained: `TASK_TEMPLATE.md`, `PROMPT_PATTERNS.md`
 - `CURRENT_STATE.md` and `ARCHITECTURE_DECISIONS.md` intentionally omitted — confirmed; do not create
-- Parent [README.md](../../README.md) links to `web/ARCHITECTURE.md`, which does not exist — use this document §6 instead
+- Parent [README.md](../../README.md) links to missing `web/ARCHITECTURE.md`; [README.md](../README.md) §Architecture links to omitted `ARCHITECTURE_DECISIONS.md` — use this document §6 instead
 
 ---
 
@@ -1785,7 +1842,8 @@ Error handlers use `console.error` for diagnostics — not debug logging:
 
 ### Secret exposure
 
-- No `.env` files found in repository
+- `.env.example` documents optional vars with placeholders only — never commit real tokens
+- `.gitignore` includes `*.local` (covers `.env.local`); do not commit filled env files with secrets
 - `CHROMATIC_PROJECT_TOKEN` referenced in CI as GitHub secret — not committed
 - **Do not commit API keys, tokens, or credentials**
 
@@ -1887,6 +1945,7 @@ npm run build                         # If build config or imports changed
 - Forgetting to update `lockoutAllowedTabs` or hash routing when adding tabs
 - Adding cloud dependencies (Firebase, Supabase, etc.) — project is local-first by design
 - Importing repositories from `lib/study/` or other non-sync/backup lib modules (violates ADR-014 boundary)
+- Assuming task templates (`task_templates` localStorage) are included in vault backup — they are not
 - Using `pnpm` or `yarn` — project uses `npm` (`package-lock.json`)
 
 ---
@@ -1897,8 +1956,7 @@ npm run build                         # If build config or imports changed
 
 | Improvement | Why | First step | Related files |
 |-------------|-----|------------|---------------|
-| Add `.env.example` | Documents `VITE_E2E_SYNC` and other env vars for contributors | Create `.env.example` with commented vars | `src/vite-env.d.ts`, `playwright.config.ts` |
-| Create `web/ARCHITECTURE.md` or fix parent README link | Parent README 404 on architecture link | Point to `ai/PROJECT_CONTEXT.md` §6 or add thin redirect doc | Parent `README.md` |
+| Create `web/ARCHITECTURE.md` or fix README architecture links | Parent `README.md` 404 + `web/README.md` links to omitted `ARCHITECTURE_DECISIONS.md` | Point both to `ai/PROJECT_CONTEXT.md` §6 | Parent `README.md`, `web/README.md` |
 | Sync conflict integration test | Complex merge logic relies mainly on E2E | Add Vitest test for conflict detection path | `src/lib/sync/syncPull.ts` |
 
 ### Medium Priority
@@ -1963,7 +2021,9 @@ npm run tauri:dev            # Desktop dev
 
 | Variable | When needed |
 |----------|-------------|
-| `VITE_E2E_SYNC=1` | Folder-sync E2E tests |
+| `VITE_E2E_SYNC=1` | Folder-sync E2E tests (see `.env.example`) |
+| `SCREENSHOT_BASE_URL` | Screenshot CI (`playwright.screenshots.config.ts`) |
+| `CHROMATIC_PROJECT_TOKEN` | Optional Chromatic CI (GitHub secret) |
 | `TAURI_ENV_PLATFORM` | Set automatically by Tauri build |
 
 ### Common development tasks
@@ -2037,7 +2097,7 @@ npm run tauri:dev            # Desktop dev
 
 ### Recommended next documentation updates
 
-- Create `.env.example` when adding new environment variables
+- Keep `.env.example` in sync when adding new environment variables
 - Update this document when Dexie schema version bumps
 - Update glossary if new domain terms are introduced
 - Keep `CHANGELOG.md` in sync with migrations
@@ -2055,4 +2115,4 @@ npm run tauri:dev            # Desktop dev
 
 ---
 
-*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 24, 2026. Canonical location: `ai/PROJECT_CONTEXT.md`.*
+*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 24, 2026 (pass 3). Canonical location: `ai/PROJECT_CONTEXT.md`.*
