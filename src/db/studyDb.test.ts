@@ -157,6 +157,277 @@ describe('studyDb', () => {
     expect(restored.events[0]?.title).toBe('Review block')
     expect(restored.studySessions[0]?.note).toBe('Practice')
     expect(restored.goals[0]?.title).toBe('Study goal')
+    expect(snapshot.version).toBe(2)
+    expect(restored.goals[0]?.metric).toBe('study_time')
+  })
+
+  it('exports version 2 with explicit goal metrics and round-trips them', async () => {
+    const timestamp = nowIso()
+    await studyDb.goals.bulkAdd([
+      {
+        id: 'goal-manual-export',
+        title: 'Daily focus',
+        target: 90,
+        progress: 10,
+        period: 'daily',
+        metric: 'manual',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: 'goal-study-export',
+        title: 'Read chapters',
+        target: 5,
+        progress: 1,
+        period: 'weekly',
+        metric: 'study_time',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ])
+
+    const snapshot = await exportStudyData()
+    expect(snapshot.version).toBe(2)
+    expect(snapshot.goals.every((goal) => goal.metric === 'manual' || goal.metric === 'study_time')).toBe(true)
+
+    await clearAllStudyData()
+    await importStudyData(snapshot)
+
+    const restored = await studyDb.goals.toArray()
+    const byId = new Map(restored.map((goal) => [goal.id, goal]))
+    expect(byId.get('goal-manual-export')?.metric).toBe('manual')
+    expect(byId.get('goal-study-export')?.metric).toBe('study_time')
+    expect(byId.get('goal-manual-export')?.title).toBe('Daily focus')
+  })
+
+  it('imports version-1 backups by normalizing legacy goal metrics', async () => {
+    const timestamp = '2026-07-21T08:00:00.000Z'
+    const version1Backup = {
+      version: 1 as const,
+      exportedAt: timestamp,
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [
+        {
+          id: 'v1-daily-focus',
+          title: 'Daily Focus',
+          target: 120,
+          progress: 15,
+          period: 'daily' as const,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'v1-weekly-study',
+          title: 'Weekly study hours',
+          target: 10,
+          progress: 2,
+          period: 'weekly' as const,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'v1-weekly-focus',
+          title: 'Focus week',
+          target: 8,
+          progress: 1,
+          period: 'weekly' as const,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'v1-daily-study-only',
+          title: 'Study 2 hours daily',
+          target: 120,
+          progress: 40,
+          period: 'daily' as const,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'v1-weekly-manual',
+          title: 'Read chapters',
+          target: 5,
+          progress: 1,
+          period: 'weekly' as const,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'v1-monthly-focus',
+          title: 'Monthly focus',
+          target: 20,
+          progress: 3,
+          period: 'monthly' as const,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ],
+      settings: [{ key: 'dailyGoalMinutes', value: 200 }],
+    }
+
+    await importStudyData(version1Backup)
+    const byId = new Map((await studyDb.goals.toArray()).map((goal) => [goal.id, goal]))
+
+    expect(byId.get('v1-daily-focus')).toEqual({
+      id: 'v1-daily-focus',
+      title: 'Daily Focus',
+      target: 120,
+      progress: 15,
+      period: 'daily',
+      metric: 'study_time',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    expect(byId.get('v1-weekly-study')?.metric).toBe('study_time')
+    expect(byId.get('v1-weekly-focus')?.metric).toBe('study_time')
+    expect(byId.get('v1-daily-study-only')?.metric).toBe('manual')
+    expect(byId.get('v1-weekly-manual')?.metric).toBe('manual')
+    expect(byId.get('v1-monthly-focus')?.metric).toBe('manual')
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(200)
+  })
+
+  it('imports version-2 metrics exactly and rejects invalid metrics without clearing data', async () => {
+    const timestamp = nowIso()
+    await studyDb.subjects.add({
+      id: 'subject-keep',
+      name: 'Keep me',
+      color: '#111827',
+      targetHours: 5,
+      progress: 10,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await studyDb.settings.put({
+      key: 'activeFocusSession',
+      value: {
+        id: 'focus-keep',
+        subjectId: '',
+        startedAt: timestamp,
+        plannedMinutes: 0,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      },
+    })
+
+    const validV2 = {
+      version: 2 as const,
+      exportedAt: timestamp,
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [
+        {
+          id: 'v2-manual',
+          title: 'Daily focus',
+          target: 60,
+          progress: 5,
+          period: 'daily' as const,
+          metric: 'manual' as const,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'v2-study',
+          title: 'Quiet reading',
+          target: 4,
+          progress: 0,
+          period: 'weekly' as const,
+          metric: 'study_time' as const,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ],
+      settings: [
+        {
+          key: 'activeFocusSession',
+          value: {
+            id: 'focus-imported',
+            subjectId: '',
+            startedAt: timestamp,
+            plannedMinutes: 25,
+            status: 'paused',
+            pausedAt: timestamp,
+            accumulatedPausedMs: 0,
+          },
+        },
+      ],
+    }
+
+    await importStudyData(validV2)
+    expect((await studyDb.goals.get('v2-manual'))?.metric).toBe('manual')
+    expect((await studyDb.goals.get('v2-study'))?.metric).toBe('study_time')
+    expect((await studyDb.goals.get('v2-manual'))?.title).toBe('Daily focus')
+    expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ id: 'focus-imported', status: 'paused' })
+
+    await studyDb.subjects.add({
+      id: 'subject-seeded',
+      name: 'Seeded subject',
+      color: '#2563eb',
+      targetHours: 3,
+      progress: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+
+    const missingMetric = {
+      ...validV2,
+      goals: [{
+        id: 'v2-missing-metric',
+        title: 'Daily focus',
+        target: 60,
+        progress: 0,
+        period: 'daily',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    }
+    await expect(importStudyData(missingMetric)).rejects.toThrow('Import file is not a Study Dashboard export.')
+    expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+
+    const unknownMetric = {
+      ...validV2,
+      goals: [{
+        id: 'v2-unknown-metric',
+        title: 'Daily focus',
+        target: 60,
+        progress: 0,
+        period: 'daily',
+        metric: 'derived',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    }
+    await expect(importStudyData(unknownMetric)).rejects.toThrow('Import file is not a Study Dashboard export.')
+    expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+
+    const nonStringMetric = {
+      ...validV2,
+      goals: [{
+        id: 'v2-nonstring-metric',
+        title: 'Daily focus',
+        target: 60,
+        progress: 0,
+        period: 'daily',
+        metric: 1,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    }
+    await expect(importStudyData(nonStringMetric)).rejects.toThrow('Import file is not a Study Dashboard export.')
+    expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+
+    await expect(importStudyData({ ...validV2, version: 3 })).rejects.toThrow('Import file is not a Study Dashboard export.')
+    expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+    expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ id: 'focus-imported' })
   })
 
   it('rejects malformed records without replacing existing data', async () => {

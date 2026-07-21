@@ -7,6 +7,7 @@ import type {
   StudyData,
   StudyExport,
   StudyGoal,
+  StudyGoalV1,
   StudyNote,
   StudySession,
   StudySetting,
@@ -98,28 +99,26 @@ export async function getStudyData(): Promise<StudyData> {
 
 export async function exportStudyData(): Promise<StudyExport> {
   return {
-    version: 1,
+    version: 2,
     exportedAt: nowIso(),
     ...(await getStudyData()),
   }
 }
 
 export async function importStudyData(payload: unknown) {
-  if (!isStudyExport(payload)) {
-    throw new Error('Import file is not a Study Dashboard export.')
-  }
+  const normalized = parseAndNormalizeStudyExport(payload)
 
   await studyDb.transaction('rw', studyTables, async () => {
     await Promise.all(studyTables.map((table) => table.clear()))
     await Promise.all([
-      studyDb.tasks.bulkPut(payload.tasks),
-      studyDb.subjects.bulkPut(payload.subjects),
-      studyDb.notes.bulkPut(payload.notes),
-      studyDb.events.bulkPut(payload.events),
-      studyDb.flashcards.bulkPut(payload.flashcards),
-      studyDb.studySessions.bulkPut(payload.studySessions),
-      studyDb.goals.bulkPut(payload.goals),
-      studyDb.settings.bulkPut(payload.settings),
+      studyDb.tasks.bulkPut(normalized.tasks),
+      studyDb.subjects.bulkPut(normalized.subjects),
+      studyDb.notes.bulkPut(normalized.notes),
+      studyDb.events.bulkPut(normalized.events),
+      studyDb.flashcards.bulkPut(normalized.flashcards),
+      studyDb.studySessions.bulkPut(normalized.studySessions),
+      studyDb.goals.bulkPut(normalized.goals),
+      studyDb.settings.bulkPut(normalized.settings),
     ])
   })
 }
@@ -176,21 +175,67 @@ export async function migrateLegacyLocalStorage() {
   }
 }
 
-function isStudyExport(value: unknown): value is StudyExport {
-  if (!value || typeof value !== 'object') return false
-  const record = value as Record<string, unknown>
-  return (
-    record.version === 1 &&
-    isDate(record.exportedAt) &&
-    isArrayOf(record.tasks, isStudyTask) &&
-    isArrayOf(record.subjects, isStudySubject) &&
-    isArrayOf(record.notes, isStudyNote) &&
-    isArrayOf(record.events, isCalendarEvent) &&
-    isArrayOf(record.flashcards, isFlashcard) &&
-    isArrayOf(record.studySessions, isStudySession) &&
-    isArrayOf(record.goals, isStudyGoal) &&
-    isArrayOf(record.settings, isStudySetting)
-  )
+/**
+ * Validates a version-1 or version-2 backup and normalizes it to the current export shape.
+ * Throws before any database mutation when the payload is unsupported or invalid.
+ */
+function parseAndNormalizeStudyExport(value: unknown): StudyExport {
+  if (!isRecord(value)) {
+    throw new Error('Import file is not a Study Dashboard export.')
+  }
+
+  const version = value.version
+  if (version !== 1 && version !== 2) {
+    throw new Error('Import file is not a Study Dashboard export.')
+  }
+
+  if (
+    !isDate(value.exportedAt)
+    || !isArrayOf(value.tasks, isStudyTask)
+    || !isArrayOf(value.subjects, isStudySubject)
+    || !isArrayOf(value.notes, isStudyNote)
+    || !isArrayOf(value.events, isCalendarEvent)
+    || !isArrayOf(value.flashcards, isFlashcard)
+    || !isArrayOf(value.studySessions, isStudySession)
+    || !isArrayOf(value.settings, isStudySetting)
+  ) {
+    throw new Error('Import file is not a Study Dashboard export.')
+  }
+
+  const tables = {
+    exportedAt: value.exportedAt,
+    tasks: value.tasks,
+    subjects: value.subjects,
+    notes: value.notes,
+    events: value.events,
+    flashcards: value.flashcards,
+    studySessions: value.studySessions,
+    settings: value.settings,
+  }
+
+  if (version === 1) {
+    if (!isArrayOf(value.goals, isLegacyStudyGoal)) {
+      throw new Error('Import file is not a Study Dashboard export.')
+    }
+    return {
+      version: 2,
+      ...tables,
+      goals: value.goals.map((goal) => ({
+        ...goal,
+        metric: inferLegacyGoalMetric(goal.period, goal.title),
+      })),
+    }
+  }
+
+  if (!isArrayOf(value.goals, isCurrentStudyGoal)) {
+    throw new Error('Import file is not a Study Dashboard export.')
+  }
+
+  return {
+    version: 2,
+    ...tables,
+    goals: value.goals,
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -304,7 +349,7 @@ function isStudySession(value: unknown): value is StudySession {
   )
 }
 
-function isStudyGoal(value: unknown): value is StudyGoal {
+function isLegacyStudyGoal(value: unknown): value is StudyGoalV1 {
   if (!isRecord(value)) return false
   return (
     hasRecordIdentity(value) &&
@@ -314,6 +359,11 @@ function isStudyGoal(value: unknown): value is StudyGoal {
     (value.period === 'daily' || value.period === 'weekly' || value.period === 'monthly') &&
     hasTimestamps(value)
   )
+}
+
+function isCurrentStudyGoal(value: unknown): value is StudyGoal {
+  if (!isRecord(value) || !isGoalMetric(value.metric)) return false
+  return isLegacyStudyGoal(value)
 }
 
 function isStudySetting(value: unknown): value is StudySetting {
