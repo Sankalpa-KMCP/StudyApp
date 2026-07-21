@@ -1,0 +1,67 @@
+.due-copy {
+  color: var(--muted);
+}
+
+.due-copy.is-due {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.status-badge.learning {
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
+  background: var(--warning-bg);
+}
+
+.status-badge.remembered {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.swatch-row {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.swatch {
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+
+.swatch.is-active {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+
+.task-check {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+
+.note-detail {
+  justify-content: space-between;
+}
+
+.flashcard {
+  min-height: 250px;
+}
+
+.flashcard .button-row {
+  margin-top: auto;
+}
