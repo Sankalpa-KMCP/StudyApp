@@ -3,38 +3,31 @@ import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { useTranslation } from '../../i18n/useTranslation'
 import { InstallPromptBanner } from '../InstallPromptBanner'
 import { QuotaRecoveryBanner } from '../QuotaRecoveryBanner'
-import { BackupReminderBanner } from '../BackupReminderBanner'
 
 interface AppShellStatusBannersProps {
   isOffline: boolean
   isZenMode: boolean
   showPwaBanner: boolean
   quotaExceeded: boolean
-  showBackupReminder: boolean
-  backupDaysSinceExport?: number | null
   onPwaInstall: () => void
   onPwaDismiss: () => void
   onExportBackup: () => void
   onOpenRecovery: () => void
   onDismissQuota: () => void
-  onDismissBackupReminder: () => void
 }
 
-type BannerKey = 'quota' | 'offline' | 'pwa' | 'backup'
+type BannerKey = 'quota' | 'offline' | 'pwa'
 
 export function AppShellStatusBanners({
   isOffline,
   isZenMode,
   showPwaBanner,
   quotaExceeded,
-  showBackupReminder,
-  backupDaysSinceExport,
   onPwaInstall,
   onPwaDismiss,
   onExportBackup,
   onOpenRecovery,
   onDismissQuota,
-  onDismissBackupReminder,
 }: AppShellStatusBannersProps) {
   const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
@@ -47,7 +40,6 @@ export function AppShellStatusBanners({
   if (isOffline) prominent.push('offline')
   if (!isZenMode && showPwaBanner) prominent.push('pwa')
   if (!isZenMode && quotaExceeded) collapsible.push('quota')
-  if (!isZenMode && showBackupReminder) collapsible.push('backup')
 
   if (prominent.length === 0 && collapsible.length === 0) return null
 
@@ -79,15 +71,6 @@ export function AppShellStatusBanners({
       case 'pwa':
         return (
           <InstallPromptBanner key="pwa" onInstall={onPwaInstall} onDismiss={onPwaDismiss} />
-        )
-      case 'backup':
-        return (
-          <BackupReminderBanner
-            key="backup"
-            onExport={onExportBackup}
-            onDismiss={onDismissBackupReminder}
-            daysSinceExport={backupDaysSinceExport}
-          />
         )
     }
   }

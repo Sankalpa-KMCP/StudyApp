@@ -14,6 +14,7 @@ interface SidebarNavButtonProps {
   isActive: boolean
   isLocked: boolean
   badge?: number
+  showNotificationDot?: boolean
   onActivate: (tabId: ActiveTab) => void
 }
 
@@ -27,6 +28,7 @@ export const SidebarNavButton = memo(function SidebarNavButton({
   isActive,
   isLocked,
   badge,
+  showNotificationDot,
   onActivate,
 }: SidebarNavButtonProps) {
   const flyout = useSidebarFlyout()
@@ -58,6 +60,7 @@ export const SidebarNavButton = memo(function SidebarNavButton({
       isActive={isActive}
       isLocked={isLocked}
       badge={badge}
+      showNotificationDot={showNotificationDot}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={variant === 'rail' ? handleMouseLeave : undefined}

@@ -69,11 +69,11 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-6 h-full w-full min-h-0">
-      <PanelCard className="flex flex-col h-full min-h-0 glass-quiet">
-        <PanelHeader title={t('focusTargets')} bordered={false} className="mb-4" />
+    <div className="flex flex-col gap-6 h-fit w-full min-h-0">
+      <PanelCard className="flex flex-col h-fit overflow-hidden glass-quiet">
+        <PanelHeader title={t('focusTargets')} bordered={false} />
 
-        <div className="hidden lg:block">
+        <div className="hidden xl:block shrink-0">
         <TaskCreateForm
           taskText={taskText}
           setTaskText={setTaskText}
@@ -94,7 +94,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
         </div>
 
         {(activeTasksList.length > 0 || completedTasksList.length > 0) && (
-          <div className="relative mb-4">
+          <div className="relative mb-4 shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted pointer-events-none" aria-hidden />
             <input
               type="search"
@@ -102,12 +102,13 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={t('taskSearchTargetsPlaceholder')}
               aria-label={t('taskSearchTargetsAria')}
-              className="w-full rounded-chrome-lg border border-card surface-subtle pl-9 pr-4 py-2 text-xs text-primary placeholder:text-muted outline-none focus-ring"
+              className="w-full rounded-chrome-lg border border-card/30 surface-subtle pl-9 pr-4 py-2 text-xs text-primary placeholder:text-muted outline-none focus-ring"
             />
           </div>
         )}
 
-        <TaskList
+        <div className="flex flex-col">
+          <TaskList
           activeTasksList={activeTasksList}
           reviewQueueList={reviewQueueList}
           completedTasksList={completedTasksList}
@@ -120,9 +121,10 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           submitRecallGrade={submitRecallGrade}
           searchQuery={searchQuery}
         />
+        </div>
       </PanelCard>
 
-      <div className="lg:hidden fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] left-4 right-4 z-20 flex gap-2 p-2 rounded-2xl glass-panel border border-card shadow-2xl">
+      <div className="xl:hidden fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] inset-x-4 z-20 flex gap-2 p-2 rounded-2xl glass-panel border border-card shadow-2xl">
         <input
           id="task-input-mobile"
           type="text"
@@ -131,7 +133,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           onKeyDown={e => { if (e.key === 'Enter') submitNewTask() }}
           placeholder={t('taskAddFocusTarget')}
           aria-label={t('taskAddFocusTargetAria')}
-          className="flex-1 min-w-0 rounded-chrome-lg border border-card surface-subtle px-3 py-2.5 text-xs text-primary placeholder:text-muted outline-none focus-ring"
+          className="flex-1 min-w-0 rounded-chrome-lg border border-card/30 surface-subtle pl-4 pr-3 py-2.5 text-xs text-primary placeholder:text-muted outline-none focus-ring"
         />
         <button
           type="button"

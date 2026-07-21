@@ -19,6 +19,7 @@ export function SidebarExpandedContent({
   timerMode,
   enforceLockout,
   reviewDueCount = 0,
+  showBackupReminder = false,
   onToggleNotes,
   onShowOnboarding,
   onToggleCollapse,
@@ -74,6 +75,7 @@ export function SidebarExpandedContent({
                 isActive={isActive}
                 isLocked={isLocked}
                 badge={tab.id === 'focus' ? reviewDueCount : undefined}
+                showNotificationDot={tab.id === 'settings' && showBackupReminder}
                 onActivate={onActivateTab}
               />
             )

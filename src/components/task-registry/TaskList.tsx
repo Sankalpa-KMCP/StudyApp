@@ -97,6 +97,7 @@ export function TaskList({
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col pr-1">
         {filteredActive.length === 0 && filteredCompleted.length === 0 ? (
           <EmptyState
+            borderless
             icon={<AlertCircle className="h-8 w-8" />}
             title={normalizedQuery ? t('taskNoMatchingTargets') : t('taskNoTargetsYet')}
             description={normalizedQuery
@@ -104,11 +105,11 @@ export function TaskList({
               : t('taskAddTargetBelow')}
             action={!normalizedQuery ? (
               <>
-                <span className="hidden lg:inline-flex items-center gap-1.5 text-label text-muted">
+                <span className="hidden xl:inline-flex items-center gap-1.5 text-label text-muted">
                   <Plus className="h-3.5 w-3.5" aria-hidden />
                   {t('taskUseFormAbove')}
                 </span>
-                <span className="inline-flex lg:hidden items-center gap-1.5 text-label text-muted">
+                <span className="inline-flex xl:hidden items-center gap-1.5 text-label text-muted">
                   <Plus className="h-3.5 w-3.5" aria-hidden />
                   {t('taskUseBottomBar')}
                 </span>

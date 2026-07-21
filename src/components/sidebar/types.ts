@@ -12,6 +12,7 @@ export interface SidebarProps {
   timerMode: 'study' | 'break'
   enforceLockout: boolean
   reviewDueCount?: number
+  showBackupReminder?: boolean
   onToggleNotes: () => void
   onShowOnboarding: () => void
 }

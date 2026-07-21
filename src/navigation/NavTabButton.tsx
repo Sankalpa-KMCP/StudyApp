@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { Lock } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
+import { t } from '../i18n'
 import { useTranslation } from '../i18n/useTranslation'
 
 export type NavTabButtonVariant = 'sidebar-expanded' | 'sidebar-rail' | 'mobile'
@@ -15,6 +16,7 @@ interface NavTabButtonProps {
   isActive: boolean
   isLocked: boolean
   badge?: number
+  showNotificationDot?: boolean
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
   onMouseEnter?: (e: React.MouseEvent<HTMLButtonElement>) => void
   onMouseLeave?: () => void
@@ -38,10 +40,25 @@ function NavTabBadge({ count, className = '' }: { count: number; className?: str
   )
 }
 
-import { t } from '../i18n'
+function NavNotificationDot({ className = '' }: { className?: string }) {
+  return (
+    <span
+      className={`block h-2 w-2 shrink-0 rounded-full bg-accent-amber ${className}`}
+      aria-hidden
+    />
+  )
+}
 
-function buildAriaLabel(label: string, badge: number, isLocked: boolean): string {
+function buildAriaLabel(
+  label: string,
+  badge: number,
+  isLocked: boolean,
+  showNotificationDot = false,
+): string {
   let aria = badge > 0 ? `${label}, ${t('navTabDueForReview', { count: badge })}` : label
+  if (showNotificationDot) {
+    aria = `${aria}, ${t('bannerBackupReminderAria')}`
+  }
   if (isLocked) {
     aria = `${aria}, ${t('navTabLockoutSuffix')}`
   }
@@ -58,6 +75,7 @@ export const NavTabButton = memo(function NavTabButton({
   isActive,
   isLocked,
   badge = 0,
+  showNotificationDot = false,
   onClick,
   onMouseEnter,
   onMouseLeave,
@@ -66,7 +84,7 @@ export const NavTabButton = memo(function NavTabButton({
 }: NavTabButtonProps) {
   const { t } = useTranslation()
   const lockedClass = isLocked ? 'opacity-50 cursor-not-allowed' : ''
-  const ariaLabel = buildAriaLabel(label, badge, isLocked)
+  const ariaLabel = buildAriaLabel(label, badge, isLocked, showNotificationDot)
   const lockedA11y = isLocked ? { 'aria-disabled': true as const } : {}
 
   const lockIcon = isLocked ? (
@@ -101,6 +119,9 @@ export const NavTabButton = memo(function NavTabButton({
         {badge > 0 && (
           <NavTabBadge count={badge} className="absolute -top-1 -right-1 min-w-[18px] text-center px-1" />
         )}
+        {showNotificationDot && (
+          <NavNotificationDot className="absolute top-1 right-1" />
+        )}
       </button>
     )
   }
@@ -121,6 +142,9 @@ export const NavTabButton = memo(function NavTabButton({
       >
         {badge > 0 && (
           <NavTabBadge count={badge} className="absolute top-0 right-1 z-20" />
+        )}
+        {showNotificationDot && (
+          <NavNotificationDot className="absolute top-1.5 right-2 z-20" />
         )}
         <span className="relative z-10 flex items-center gap-0.5">
           {isLocked && lockIcon}
@@ -148,7 +172,12 @@ export const NavTabButton = memo(function NavTabButton({
       <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? iconColor : 'text-secondary'}`} />
       <span className="whitespace-nowrap">{label}</span>
       {isLocked && lockIcon}
-      <NavTabBadge count={badge} className="ml-auto" />
+      {(badge > 0 || showNotificationDot) && (
+        <span className="ml-auto flex items-center gap-1.5">
+          <NavTabBadge count={badge} />
+          {showNotificationDot && <NavNotificationDot />}
+        </span>
+      )}
     </button>
   )
 })

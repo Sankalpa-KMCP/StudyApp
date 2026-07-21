@@ -11,6 +11,7 @@ interface MobileTabBarProps {
   timerMode: 'study' | 'break'
   enforceLockout: boolean
   reviewDueCount?: number
+  showBackupReminder?: boolean
 }
 
 export const MobileTabBar = memo(function MobileTabBar({
@@ -20,6 +21,7 @@ export const MobileTabBar = memo(function MobileTabBar({
   timerMode,
   enforceLockout,
   reviewDueCount = 0,
+  showBackupReminder = false,
 }: MobileTabBarProps) {
   const navTabs = getNavTabs()
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
@@ -47,7 +49,7 @@ export const MobileTabBar = memo(function MobileTabBar({
 
   return (
     <nav
-      className="fixed bottom-4 left-4 right-4 z-40 flex md:hidden items-center justify-around glass-panel shadow-2xl px-2 py-2 safe-area-pb rounded-[var(--radius-chrome-xl)] border border-card"
+      className="fixed inset-x-0 bottom-0 z-40 flex md:hidden items-center justify-around glass-panel shadow-2xl border-t border-card px-2 pt-2 safe-area-pb rounded-t-[var(--radius-chrome-xl)]"
       aria-label="Main navigation"
     >
       {navTabs.map(tab => {
@@ -65,6 +67,7 @@ export const MobileTabBar = memo(function MobileTabBar({
             isActive={isActive}
             isLocked={isLocked}
             badge={tab.id === 'focus' ? reviewDueCount : undefined}
+            showNotificationDot={tab.id === 'settings' && showBackupReminder}
             onClick={handleTabClick}
             onMouseEnter={() => handlePrefetch(tab.id)}
             onTouchStart={() => handlePrefetch(tab.id)}
