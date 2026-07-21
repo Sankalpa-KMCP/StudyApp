@@ -81,6 +81,15 @@ export function getActiveFocusElapsedMs(session: ActiveFocusSession, nowMs = Dat
   return Math.max(0, frozenEndMs - startedAtMs - session.accumulatedPausedMs)
 }
 
+/**
+ * True when a durable unfinished session is eligible for timed auto-completion.
+ * Uses active elapsed time only (via {@link getActiveFocusElapsedMs}); does not read IndexedDB.
+ */
+export function shouldAutoCompleteFocusSession(session: ActiveFocusSession, nowMs = Date.now()): boolean {
+  if (session.status !== 'running' || session.plannedMinutes <= 0) return false
+  return getActiveFocusElapsedMs(session, nowMs) >= session.plannedMinutes * 60_000
+}
+
 /** True when `nowMs` is at or beyond 12 hours after session start. */
 export function isActiveFocusSessionStale(session: ActiveFocusSession, nowMs = Date.now()): boolean {
   const startedAtMs = Date.parse(session.startedAt)

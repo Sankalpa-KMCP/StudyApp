@@ -12,6 +12,7 @@ import {
   isActiveFocusSessionStale,
   pauseActiveFocusSession,
   resumeActiveFocusSession,
+  shouldAutoCompleteFocusSession,
   updateActiveFocusSession,
 } from './activeFocusSession'
 import { clearAllStudyData, exportStudyData, importStudyData, studyDb } from './studyDb'
@@ -98,6 +99,62 @@ describe('activeFocusSession domain', () => {
       expect(isActiveFocusSessionStale(session, STARTED_AT_MS + ACTIVE_FOCUS_SESSION_STALE_AFTER_MS - 1)).toBe(false)
       expect(isActiveFocusSessionStale(session, STARTED_AT_MS + ACTIVE_FOCUS_SESSION_STALE_AFTER_MS)).toBe(true)
       expect(isActiveFocusSessionStale(session, STARTED_AT_MS + ACTIVE_FOCUS_SESSION_STALE_AFTER_MS + 1)).toBe(true)
+    })
+  })
+
+  describe('shouldAutoCompleteFocusSession', () => {
+    const plannedMs = 25 * 60_000
+
+    it('returns true for a running timed session exactly at the active-time boundary', () => {
+      expect(shouldAutoCompleteFocusSession(makeSession(), STARTED_AT_MS + plannedMs)).toBe(true)
+    })
+
+    it('returns true for a running timed session beyond the active-time boundary', () => {
+      expect(shouldAutoCompleteFocusSession(makeSession(), STARTED_AT_MS + plannedMs + 1)).toBe(true)
+    })
+
+    it('returns false for a running timed session with active time remaining', () => {
+      expect(shouldAutoCompleteFocusSession(makeSession(), STARTED_AT_MS + plannedMs - 1)).toBe(false)
+    })
+
+    it('returns false for a paused session even when wall time exceeds the plan', () => {
+      const pausedAt = '2026-07-20T10:10:00.000Z'
+      const session = makeSession({
+        status: 'paused',
+        pausedAt,
+      })
+      const wallBeyondPlan = STARTED_AT_MS + plannedMs + 60_000
+      expect(shouldAutoCompleteFocusSession(session, wallBeyondPlan)).toBe(false)
+    })
+
+    it('returns false for an open-ended session', () => {
+      expect(shouldAutoCompleteFocusSession(makeSession({ plannedMinutes: 0 }), STARTED_AT_MS + 60 * 60_000)).toBe(false)
+    })
+
+    it('excludes accumulated paused time from eligibility', () => {
+      const session = makeSession({ accumulatedPausedMs: 5 * 60_000 })
+      // Wall span equals plan, but active elapsed is 20 minutes.
+      expect(shouldAutoCompleteFocusSession(session, STARTED_AT_MS + plannedMs)).toBe(false)
+      // Active elapsed reaches the plan only after five more wall minutes.
+      expect(shouldAutoCompleteFocusSession(session, STARTED_AT_MS + plannedMs + 5 * 60_000)).toBe(true)
+    })
+
+    it('freezes eligibility while a current pause interval is open', () => {
+      const pausedAt = '2026-07-20T10:20:00.000Z'
+      const session = makeSession({
+        status: 'paused',
+        pausedAt,
+        accumulatedPausedMs: 0,
+      })
+      // Active elapsed frozen at 20 minutes; wall time far past the 25-minute plan.
+      expect(shouldAutoCompleteFocusSession(session, Date.parse(pausedAt) + 30 * 60_000)).toBe(false)
+    })
+
+    it('does not mutate the supplied session object', () => {
+      const session = makeSession({ accumulatedPausedMs: 60_000 })
+      const snapshot = structuredClone(session)
+      shouldAutoCompleteFocusSession(session, STARTED_AT_MS + plannedMs)
+      expect(session).toEqual(snapshot)
     })
   })
 })
