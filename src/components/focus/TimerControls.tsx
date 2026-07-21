@@ -1,12 +1,15 @@
 import { Play, Pause, Check } from 'lucide-react'
 import { Button } from '../shared/Button'
 import { useTranslation } from '../../i18n/useTranslation'
+import { SessionProgress } from './SessionProgress'
 
 interface TimerControlsProps {
   timerMode: 'study' | 'break'
   isTimerActive: boolean
   secondsElapsed: number
   activeColor: string
+  completedSessionsInCycle: number
+  targetSessionsPerCycle: number
   onToggleActive: () => void
   onExtend: () => void
   onComplete: () => void
@@ -19,6 +22,8 @@ export function TimerControls({
   isTimerActive,
   secondsElapsed,
   activeColor,
+  completedSessionsInCycle,
+  targetSessionsPerCycle,
   onToggleActive,
   onExtend,
   onComplete,
@@ -30,7 +35,7 @@ export function TimerControls({
   const focusCtaLabel = isTimerActive ? t('pauseFocus') : t('startFocus')
 
   return (
-    <div className="flex flex-col items-center gap-3 mt-7 select-none w-full max-w-xs">
+    <div className="flex flex-col items-center gap-3 mt-5 select-none w-full max-w-xs">
       <div className="flex items-center gap-3 flex-wrap justify-center w-full">
         {timerMode === 'break' && (
           <Button
@@ -45,17 +50,37 @@ export function TimerControls({
           </Button>
         )}
 
-        <Button
-          type="button"
-          variant="primary"
-          size="md"
-          onClick={onToggleActive}
-          aria-label={playPauseLabel}
-          className={`focus-ring hidden md:flex h-14 w-14 !p-0 items-center justify-center rounded-full !border-0 ${!isTimerActive ? 'timer-cta-idle' : ''}`}
-          style={{ backgroundColor: activeColor, ['--timer-cta-color' as string]: activeColor }}
-        >
-          {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
-        </Button>
+        <div className="flex flex-col items-center gap-2">
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            onClick={onToggleActive}
+            aria-label={playPauseLabel}
+            className={`focus-ring hidden md:flex h-14 w-14 !p-0 items-center justify-center rounded-full !border-0 ${!isTimerActive ? 'timer-cta-idle' : ''}`}
+            style={{ backgroundColor: activeColor, ['--timer-cta-color' as string]: activeColor }}
+          >
+            {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+          </Button>
+
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            onClick={onToggleActive}
+            aria-label={playPauseLabel}
+            data-testid="mobile-timer-play-pause"
+            className={`focus-ring md:hidden h-12 w-12 !p-0 items-center justify-center rounded-full !border-0 ${!isTimerActive ? 'timer-cta-idle' : ''}`}
+            style={{ backgroundColor: activeColor, ['--timer-cta-color' as string]: activeColor }}
+          >
+            {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+          </Button>
+
+          <SessionProgress
+            completedSessionsInCycle={completedSessionsInCycle}
+            targetSessionsPerCycle={targetSessionsPerCycle}
+          />
+        </div>
 
         {(isTimerActive || secondsElapsed > 0) && (
           <>
@@ -79,19 +104,6 @@ export function TimerControls({
           </>
         )}
       </div>
-
-      <Button
-        type="button"
-        variant="primary"
-        size="md"
-        onClick={onToggleActive}
-        aria-label={playPauseLabel}
-        data-testid="mobile-timer-play-pause"
-        className={`focus-ring md:hidden h-12 w-12 !p-0 items-center justify-center rounded-full !border-0 ${!isTimerActive ? 'timer-cta-idle' : ''}`}
-        style={{ backgroundColor: activeColor, ['--timer-cta-color' as string]: activeColor }}
-      >
-        {isTimerActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
-      </Button>
 
       <button
         type="button"
