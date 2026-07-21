@@ -57,7 +57,7 @@ const DEFAULT_SETTINGS: SettingsRow[] = [
   { key: 'longBreakDurationMinutes', value: 15 },
   { key: 'shortBreakDurationMinutes', value: 5 },
   { key: 'studyBlockDurationMinutes', value: 25 },
-  { key: 'theme', value: 'midnight-slate' },
+  { key: 'theme', value: 'paper-day' },
   { key: 'cardOpacity', value: 0.70 },
   { key: 'backdropBlur', value: 8 },
   { key: 'initialEasinessFactor', value: 2.5 },

@@ -5,7 +5,7 @@ describe('settingsFromRows', () => {
   it('returns defaults when rows are undefined', () => {
     const s = settingsFromRows(undefined)
     expect(s.dailyGoalMinutes).toBe(120)
-    expect(s.theme).toBe('midnight-slate')
+    expect(s.theme).toBe('paper-day')
     expect(s.studyBlockDurationMinutes).toBe(25)
   })
 
