@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Split the former monolithic `src/index.css` into ordered modules under `src/styles/`; `src/index.css` remains the single import barrel for the app and Storybook. Themes, responsive layout, accessibility preference media, production `/StudyApp/` paths, and rendered behavior were preserved — no visual redesign or selector migration.
 - Standardized local CRUD mutation feedback across workspaces: pending controls, loading labels, accessible success/error announcements, and friendly messages instead of raw Dexie errors.
 - Failed saves keep forms open with every field and editing identity preserved; editors reset or close only after a confirmed successful write.
 - Duplicate create/save and repeated row actions (status toggle, flashcard review, delete) are blocked while a mutation is pending.
