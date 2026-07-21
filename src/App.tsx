@@ -21,9 +21,11 @@ import {
 } from './db/studyDb'
 import {
   createActiveFocusSession,
+  discardActiveFocusSession,
   finalizeActiveFocusSession,
   getActiveFocusElapsedMs,
   getActiveFocusSession,
+  isActiveFocusSessionStale,
   pauseActiveFocusSession,
   resumeActiveFocusSession,
   updateActiveFocusSession,
@@ -100,6 +102,7 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('study-dashboard-sidebar') === 'collapsed')
   const [revealedCards, setRevealedCards] = useState<Set<string>>(() => new Set())
   const [activeSession, setActiveSession] = useState<ActiveFocusSession | null>(null)
+  const [staleFocusSession, setStaleFocusSession] = useState<ActiveFocusSession | null>(null)
   const [focusRestoreReady, setFocusRestoreReady] = useState(false)
   const [focusTransitionPending, setFocusTransitionPending] = useState(false)
   const finalizingSessionIdRef = useRef<string | null>(null)
@@ -119,9 +122,13 @@ function App() {
       const restored = await getActiveFocusSession()
       if (cancelled) return
       if (restored) {
-        setActiveSession(restored)
-        setFocusSubjectId(restored.subjectId)
-        setFocusDurationMinutes(restored.plannedMinutes)
+        if (isActiveFocusSessionStale(restored)) {
+          setStaleFocusSession(restored)
+        } else {
+          setActiveSession(restored)
+          setFocusSubjectId(restored.subjectId)
+          setFocusDurationMinutes(restored.plannedMinutes)
+        }
       }
       setFocusRestoreReady(true)
     })()
@@ -147,7 +154,10 @@ function App() {
   const dueCards = useMemo(() => data.flashcards.filter((card) => isFlashcardDue(card)), [data.flashcards])
   const homeSearchResults = useMemo(() => buildSearchResults(data, subjectMap, deferredSearch), [data, deferredSearch, subjectMap])
   const sessionLimitSeconds = activeSession && activeSession.plannedMinutes > 0 ? activeSession.plannedMinutes * 60 : 0
-  const canStartFocus = focusRestoreReady && !activeSession
+  const canStartFocus = focusRestoreReady && !activeSession && !staleFocusSession
+  const staleFocusSubjectName = staleFocusSession
+    ? (subjectMap.get(staleFocusSession.subjectId)?.name ?? (staleFocusSession.subjectId ? 'Unknown subject' : 'General'))
+    : ''
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -215,6 +225,7 @@ function App() {
   const handleClearData = async () => {
     await clearAllStudyData()
     setActiveSession(null)
+    setStaleFocusSession(null)
     finalizingSessionIdRef.current = null
     setProfileNotice('All study data has been permanently deleted.')
     navigateToView('Home')
@@ -239,7 +250,7 @@ function App() {
   }, [])
 
   const startSession = useCallback(async () => {
-    if (!focusRestoreReady || activeSession || focusTransitionPending) return
+    if (!focusRestoreReady || activeSession || staleFocusSession || focusTransitionPending) return
 
     const session: ActiveFocusSession = {
       id: createId('focus'),
@@ -259,9 +270,78 @@ function App() {
     }
 
     if (result.reason === 'conflict') {
+      if (isActiveFocusSessionStale(result.existing)) {
+        setStaleFocusSession(result.existing)
+        setSessionNotice('An unfinished focus session needs a decision before you start another.')
+        return
+      }
       hydrateActiveSession(result.existing, 'An unfinished focus session was restored.')
     }
-  }, [activeSession, focusDurationMinutes, focusRestoreReady, focusSubjectId, focusTransitionPending, hydrateActiveSession])
+  }, [activeSession, focusDurationMinutes, focusRestoreReady, focusSubjectId, focusTransitionPending, hydrateActiveSession, staleFocusSession])
+
+  const acceptStaleFocusSession = useCallback(async () => {
+    if (!staleFocusSession || focusTransitionPending) return
+
+    setFocusTransitionPending(true)
+    try {
+      const current = await getActiveFocusSession()
+      if (!current) {
+        setStaleFocusSession(null)
+        setSessionNotice('That unfinished focus session is no longer available.')
+        return
+      }
+
+      if (current.id !== staleFocusSession.id) {
+        if (isActiveFocusSessionStale(current)) {
+          setStaleFocusSession(current)
+          setSessionNotice('Focus session was updated elsewhere.')
+          return
+        }
+        setStaleFocusSession(null)
+        hydrateActiveSession(current, 'Focus session was updated elsewhere.')
+        return
+      }
+
+      setStaleFocusSession(null)
+      hydrateActiveSession(current)
+    } catch {
+      setSessionNotice('Could not resume the unfinished focus session. Try again.')
+    } finally {
+      setFocusTransitionPending(false)
+    }
+  }, [focusTransitionPending, hydrateActiveSession, staleFocusSession])
+
+  const discardStaleFocusSession = useCallback(async () => {
+    if (!staleFocusSession || focusTransitionPending) return
+
+    setFocusTransitionPending(true)
+    try {
+      const result = await discardActiveFocusSession(staleFocusSession.id)
+      if (result.ok) {
+        setStaleFocusSession(null)
+        setSessionNotice('Unfinished focus session discarded.')
+        return
+      }
+
+      if (result.reason === 'conflict') {
+        if (isActiveFocusSessionStale(result.existing)) {
+          setStaleFocusSession(result.existing)
+          setSessionNotice('Focus session was updated elsewhere.')
+          return
+        }
+        setStaleFocusSession(null)
+        hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+        return
+      }
+
+      setStaleFocusSession(null)
+      setSessionNotice('That unfinished focus session is no longer available.')
+    } catch {
+      setSessionNotice('Could not discard the unfinished focus session. Try again.')
+    } finally {
+      setFocusTransitionPending(false)
+    }
+  }, [focusTransitionPending, hydrateActiveSession, staleFocusSession])
 
   const pauseSession = useCallback(async () => {
     if (!activeSession || activeSession.status !== 'running' || focusTransitionPending) return
@@ -431,6 +511,8 @@ function App() {
                     dailyGoalMinutes={dailyGoalMinutes}
                     todayFocusMinutes={todayFocusMinutes}
                     activeSession={activeSession}
+                    staleFocusSession={staleFocusSession}
+                    staleFocusSubjectName={staleFocusSubjectName}
                     sessionLimitSeconds={sessionLimitSeconds}
                     sessionNotice={sessionNotice}
                     canStartFocus={canStartFocus}
@@ -447,6 +529,8 @@ function App() {
                     onPauseSession={() => void pauseSession()}
                     onResumeSession={() => void resumeSession()}
                     onStopSession={() => stopSession(false)}
+                    onAcceptStaleFocusSession={() => void acceptStaleFocusSession()}
+                    onDiscardStaleFocusSession={() => void discardStaleFocusSession()}
                     onNavigate={navigateToView}
                     onCreateSubject={openNewSubject}
                     onCreatePlan={openNewTask}

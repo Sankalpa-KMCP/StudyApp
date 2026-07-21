@@ -4,6 +4,7 @@ import {
   ACTIVE_FOCUS_SESSION_STALE_AFTER_MS,
   clearActiveFocusSession,
   createActiveFocusSession,
+  discardActiveFocusSession,
   finalizeActiveFocusSession,
   getActiveFocusElapsedMs,
   getActiveFocusSession,
@@ -308,5 +309,22 @@ describe('activeFocusSession persistence', () => {
       reason: 'conflict',
       existing: paused,
     })
+  })
+
+  it('discards only a matching unfinished session without writing history', async () => {
+    const session = makeSession({ id: 'focus-discard' })
+    await createActiveFocusSession(session)
+
+    expect(await discardActiveFocusSession('focus-other')).toEqual({
+      ok: false,
+      reason: 'conflict',
+      existing: session,
+    })
+    expect(await getActiveFocusSession()).toEqual(session)
+
+    expect(await discardActiveFocusSession(session.id)).toEqual({ ok: true })
+    expect(await getActiveFocusSession()).toBeNull()
+    expect(await studyDb.studySessions.count()).toBe(0)
+    expect(await discardActiveFocusSession(session.id)).toEqual({ ok: false, reason: 'missing' })
   })
 })

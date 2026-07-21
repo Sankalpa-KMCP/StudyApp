@@ -1,6 +1,7 @@
 import { BookOpen, Check, FileText, Flame, NotebookText, Pause, Play, Square, StopCircle, Target, Search } from 'lucide-react'
 import {
   formatDate,
+  formatDateTime,
   formatElapsed,
   formatHours,
   formatMinutes,
@@ -26,6 +27,8 @@ export function HomeView(props: {
   dailyGoalMinutes: number
   todayFocusMinutes: number
   activeSession: ActiveFocusSession | null
+  staleFocusSession: ActiveFocusSession | null
+  staleFocusSubjectName: string
   sessionLimitSeconds: number
   sessionNotice: string
   canStartFocus: boolean
@@ -42,6 +45,8 @@ export function HomeView(props: {
   onPauseSession: () => void
   onResumeSession: () => void
   onStopSession: () => Promise<void>
+  onAcceptStaleFocusSession: () => void
+  onDiscardStaleFocusSession: () => void
   onNavigate: (view: View) => void
   onCreateSubject: () => void
   onCreatePlan: () => void
@@ -77,10 +82,12 @@ export function HomeView(props: {
       <div className="summary-grid">
         <TaskCard tasks={openTasks} subjectMap={props.subjectMap} onOpen={() => props.onNavigate('Tasks')} />
         <FocusCard
-          key={props.activeSession?.id ?? 'idle'}
+          key={props.activeSession?.id ?? props.staleFocusSession?.id ?? 'idle'}
           focusMinutes={props.todayFocusMinutes}
           goalMinutes={props.dailyGoalMinutes}
           activeSession={props.activeSession}
+          staleFocusSession={props.staleFocusSession}
+          staleFocusSubjectName={props.staleFocusSubjectName}
           sessionLimitSeconds={props.sessionLimitSeconds}
           sessionNotice={props.sessionNotice}
           canStart={props.canStartFocus}
@@ -94,6 +101,8 @@ export function HomeView(props: {
           onPause={props.onPauseSession}
           onResume={props.onResumeSession}
           onStop={props.onStopSession}
+          onAcceptStale={props.onAcceptStaleFocusSession}
+          onDiscardStale={props.onDiscardStaleFocusSession}
         />
         <QuickNoteCard key={props.quickNotes.join('\n')} notes={props.quickNotes} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
       </div>
@@ -190,6 +199,8 @@ function FocusCard(props: {
   focusMinutes: number
   goalMinutes: number
   activeSession: ActiveFocusSession | null
+  staleFocusSession: ActiveFocusSession | null
+  staleFocusSubjectName: string
   sessionLimitSeconds: number
   sessionNotice: string
   canStart: boolean
@@ -203,6 +214,8 @@ function FocusCard(props: {
   onPause: () => void
   onResume: () => void
   onStop: () => Promise<void>
+  onAcceptStale: () => void
+  onDiscardStale: () => void
 }) {
   const [nowMs, setNowMs] = useState(() => Date.now())
   useEffect(() => {
@@ -223,6 +236,31 @@ function FocusCard(props: {
   const timerPercent = props.sessionLimitSeconds > 0 ? percent(elapsedSeconds, props.sessionLimitSeconds) : focusPercent
   const remainingSeconds = props.sessionLimitSeconds > 0 ? Math.max(0, props.sessionLimitSeconds - elapsedSeconds) : 0
   const isPaused = props.activeSession?.status === 'paused'
+
+  if (props.staleFocusSession && !props.activeSession) {
+    const stale = props.staleFocusSession
+    return (
+      <section className="card focus-card" aria-labelledby="focus-stale-title">
+        <h2 id="focus-stale-title">Unfinished focus session</h2>
+        <p className="session-stale-copy">
+          A focus session from {formatDateTime(stale.startedAt)} is still saved locally. It was{' '}
+          {stale.status === 'paused' ? 'paused' : 'running'} for {props.staleFocusSubjectName}.
+          Choose Resume to continue it, or Discard to remove it without logging study time.
+        </p>
+        {props.sessionNotice ? <p className="session-complete" role="status">{props.sessionNotice}</p> : null}
+        <div className="session-actions">
+          <button className="primary-command session-button" type="button" onClick={props.onAcceptStale} disabled={props.transitionPending}>
+            <Play size={18} aria-hidden="true" />
+            Resume session
+          </button>
+          <button className="session-button" type="button" onClick={props.onDiscardStale} disabled={props.transitionPending}>
+            Discard session
+          </button>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="card focus-card" aria-labelledby="focus-title">
       <h2 id="focus-title">Focus session</h2>

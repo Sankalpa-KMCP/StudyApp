@@ -5,7 +5,9 @@ import App from './App'
 import { formatShortTime, toInputDate, toInputTime } from './appUtils'
 import {
   ACTIVE_FOCUS_SESSION_KEY,
+  ACTIVE_FOCUS_SESSION_STALE_AFTER_MS,
   createActiveFocusSession,
+  discardActiveFocusSession,
   finalizeActiveFocusSession,
   getActiveFocusSession,
   pauseActiveFocusSession,
@@ -1282,6 +1284,171 @@ describe('App', () => {
     const second = await pauseActiveFocusSession(session.id)
     expect(second).toEqual({ ok: false, reason: 'invalid_state', existing: first.session })
     expect(await getActiveFocusSession()).toEqual(first.session)
+  })
+
+  it('restores a non-stale unfinished session without a resume/discard decision', async () => {
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-fresh',
+      subjectId: '',
+      startedAt: new Date(Date.now() - (ACTIVE_FOCUS_SESSION_STALE_AFTER_MS - 60_000)).toISOString(),
+      plannedMinutes: 0,
+    }))
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Pause' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Unfinished focus session' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Resume session' })).not.toBeInTheDocument()
+  })
+
+  it('holds an exactly 12-hour-old session for Resume or Discard before hydration', async () => {
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-stale-boundary',
+      subjectId: '',
+      startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString(),
+      plannedMinutes: 25,
+      status: 'running',
+    }))
+
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: 'Unfinished focus session' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Resume session' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Discard session' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Pause' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Start focus' })).not.toBeInTheDocument()
+
+    await new Promise((resolve) => window.setTimeout(resolve, 80))
+    expect(await studyDb.studySessions.count()).toBe(0)
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-stale-boundary', status: 'running' })
+  })
+
+  it('keeps a stale paused session pending without auto-completing', async () => {
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-stale-paused',
+      subjectId: '',
+      startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS - 60_000).toISOString(),
+      plannedMinutes: 25,
+      status: 'paused',
+      pausedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString(),
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(/It was paused for General/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Resume' })).not.toBeInTheDocument()
+    await new Promise((resolve) => window.setTimeout(resolve, 80))
+    expect(await studyDb.studySessions.count()).toBe(0)
+  })
+
+  it('resumes a stale session without rewriting durable pause totals', async () => {
+    const user = userEvent.setup()
+    const startedAt = new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS - 120_000).toISOString()
+    const pausedAt = new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString()
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-stale-resume',
+      subjectId: '',
+      startedAt,
+      plannedMinutes: 0,
+      status: 'paused',
+      pausedAt,
+      accumulatedPausedMs: 90_000,
+    }))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Resume session' }))
+
+    expect(await screen.findByRole('button', { name: 'Resume' })).toBeInTheDocument()
+    expect(screen.getByText('paused')).toBeInTheDocument()
+    expect(await getActiveFocusSession()).toMatchObject({
+      id: 'focus-stale-resume',
+      startedAt,
+      pausedAt,
+      accumulatedPausedMs: 90_000,
+      status: 'paused',
+    })
+  })
+
+  it('completes an expired timed session once after stale Resume', async () => {
+    const user = userEvent.setup()
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-stale-expired',
+      subjectId: '',
+      startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS - 60_000).toISOString(),
+      plannedMinutes: 25,
+      status: 'running',
+    }))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Resume session' }))
+
+    await waitFor(async () => {
+      expect(await studyDb.studySessions.count()).toBe(1)
+      expect(await getActiveFocusSession()).toBeNull()
+    })
+    expect(screen.getByText(/Session complete: \d+m logged/)).toBeInTheDocument()
+    expect((await studyDb.studySessions.toArray())[0].id).toBe('focus-stale-expired')
+  })
+
+  it('discards a stale session without creating study history and re-enables Start', async () => {
+    const user = userEvent.setup()
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-stale-discard',
+      subjectId: '',
+      startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString(),
+      plannedMinutes: 25,
+    }))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Discard session' }))
+
+    expect(await screen.findByText('Unfinished focus session discarded.')).toBeInTheDocument()
+    await waitForFocusStartEnabled()
+    expect(await getActiveFocusSession()).toBeNull()
+    expect(await studyDb.studySessions.count()).toBe(0)
+  })
+
+  it('keeps the stale decision recoverable when discard persistence fails', async () => {
+    const user = userEvent.setup()
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-stale-fail',
+      subjectId: '',
+      startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString(),
+      plannedMinutes: 0,
+    }))
+    const activeFocusApi = await import('./db/activeFocusSession')
+    vi.spyOn(activeFocusApi, 'discardActiveFocusSession').mockRejectedValueOnce(new Error('write failed'))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Discard session' }))
+
+    expect(await screen.findByText('Could not discard the unfinished focus session. Try again.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Resume session' })).toBeInTheDocument()
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-stale-fail' })
+  })
+
+  it('ignores a second discard click while a stale discard is already pending', async () => {
+    let releaseDiscard: (value: Awaited<ReturnType<typeof discardActiveFocusSession>>) => void = () => {}
+    const discardGate = new Promise<Awaited<ReturnType<typeof discardActiveFocusSession>>>((resolve) => {
+      releaseDiscard = resolve
+    })
+    const activeFocusApi = await import('./db/activeFocusSession')
+    vi.spyOn(activeFocusApi, 'discardActiveFocusSession').mockImplementation(() => discardGate)
+
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-stale-double',
+      subjectId: '',
+      startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString(),
+      plannedMinutes: 0,
+    }))
+
+    const user = userEvent.setup()
+    render(<App />)
+    const discardButton = await screen.findByRole('button', { name: 'Discard session' })
+    await user.click(discardButton)
+    await waitFor(() => expect(discardButton).toBeDisabled())
+    await user.click(discardButton)
+
+    expect(activeFocusApi.discardActiveFocusSession).toHaveBeenCalledTimes(1)
+    releaseDiscard({ ok: true })
+    expect(await screen.findByText('Unfinished focus session discarded.')).toBeInTheDocument()
   })
 
   it('synchronizes elapsed and remaining display immediately on resume after a long pause', async () => {
