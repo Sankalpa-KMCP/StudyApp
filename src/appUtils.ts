@@ -20,6 +20,15 @@ export type SearchResult = {
   view: 'Tasks' | 'Notes' | 'Subjects' | 'Calendar' | 'Flashcards'
 }
 
+export type GoalProgressUnit = 'min' | 'hours' | 'points'
+
+export type GoalProgressResult = {
+  current: number
+  target: number
+  percentage: number
+  unit: GoalProgressUnit
+}
+
 export function getTodayFocusMinutes(sessions: StudySession[]) {
   const today = localDateKey(new Date())
   return sessions.filter((session) => localDateKey(session.endedAt) === today).reduce((sum, session) => sum + session.minutes, 0)
@@ -35,16 +44,86 @@ export function getSubjectProgress(subject: StudySubject, sessions: StudySession
   return loggedMinutes > 0 ? percent(loggedMinutes, targetMinutes) : subject.progress
 }
 
-export function getGoalProgress(goal: StudyGoal, todayFocusMinutes: number, weeklyStudyHours: number) {
-  const title = goal.title.toLowerCase()
-  if (goal.period === 'daily' && title.includes('focus')) return clamp(todayFocusMinutes, 0, goal.target)
-  if (goal.period === 'weekly' && (title.includes('study') || title.includes('focus'))) return clamp(Math.round(weeklyStudyHours), 0, goal.target)
-  return goal.progress
+/** True when progress is computed from finalized study sessions rather than stored manual progress. */
+export function isDerivedGoal(goal: StudyGoal) {
+  return goal.metric === 'study_time'
 }
 
-export function isDerivedGoal(goal: StudyGoal) {
-  const title = goal.title.toLowerCase()
-  return (goal.period === 'daily' && title.includes('focus')) || (goal.period === 'weekly' && (title.includes('study') || title.includes('focus')))
+export function isStudyTimeGoal(goal: StudyGoal) {
+  return goal.metric === 'study_time'
+}
+
+export function getGoalUnit(goal: StudyGoal): GoalProgressUnit {
+  if (goal.metric === 'manual') return 'points'
+  if (goal.period === 'daily') return 'min'
+  return 'hours'
+}
+
+function isCreditedStudySession(session: StudySession, now: Date) {
+  const endedAtMs = new Date(session.endedAt).getTime()
+  return !Number.isNaN(endedAtMs) && endedAtMs <= now.getTime()
+}
+
+/** Daily study-time total in minutes for the local calendar day containing `now`. */
+export function getDailyStudyMinutes(sessions: StudySession[], now = new Date()) {
+  const today = localDateKey(now)
+  return sessions
+    .filter((session) => isCreditedStudySession(session, now))
+    .filter((session) => localDateKey(session.endedAt) === today)
+    .reduce((sum, session) => sum + session.minutes, 0)
+}
+
+/** Rolling seven-local-day study total in hours ending on `now`'s calendar day. */
+export function getRollingWeeklyStudyHours(sessions: StudySession[], now = new Date()) {
+  const credited = sessions.filter((session) => isCreditedStudySession(session, now))
+  return getWeeklyStudyDays(credited, now).reduce((sum, day) => sum + day.hours, 0)
+}
+
+/** Current local-calendar-month study total in hours. */
+export function getMonthlyStudyHours(sessions: StudySession[], now = new Date()) {
+  const month = now.getMonth()
+  const year = now.getFullYear()
+  const totalMinutes = sessions
+    .filter((session) => isCreditedStudySession(session, now))
+    .filter((session) => {
+      const ended = new Date(session.endedAt)
+      return ended.getMonth() === month && ended.getFullYear() === year
+    })
+    .reduce((sum, session) => sum + session.minutes, 0)
+  return totalMinutes / 60
+}
+
+function getStudyTimeCurrent(goal: StudyGoal, sessions: StudySession[], now: Date) {
+  if (goal.period === 'daily') return getDailyStudyMinutes(sessions, now)
+  if (goal.period === 'weekly') return Math.round(getRollingWeeklyStudyHours(sessions, now))
+  return Math.round(getMonthlyStudyHours(sessions, now))
+}
+
+export function calculateGoalProgress(goal: StudyGoal, sessions: StudySession[], now = new Date()): GoalProgressResult {
+  const target = Number.isFinite(goal.target) && goal.target > 0 ? goal.target : 0
+
+  if (goal.metric === 'manual') {
+    const current = Number.isFinite(goal.progress) ? goal.progress : 0
+    return {
+      current,
+      target,
+      percentage: percent(current, target),
+      unit: 'points',
+    }
+  }
+
+  const rawCurrent = getStudyTimeCurrent(goal, sessions, now)
+  const current = target > 0 ? clamp(rawCurrent, 0, target) : 0
+  return {
+    current,
+    target,
+    percentage: percent(current, target),
+    unit: getGoalUnit(goal),
+  }
+}
+
+export function getGoalProgress(goal: StudyGoal, sessions: StudySession[], now = new Date()) {
+  return calculateGoalProgress(goal, sessions, now).current
 }
 
 export function isFlashcardDue(card: Flashcard, now = new Date()) {
@@ -70,8 +149,8 @@ export function formatFlashcardDue(card: Flashcard, now = new Date()) {
   return `Next review ${formatDate(card.dueAt)}`
 }
 
-export function getWeeklyStudyDays(sessions: StudySession[]): WeeklyStudyDay[] {
-  const today = new Date()
+export function getWeeklyStudyDays(sessions: StudySession[], now = new Date()): WeeklyStudyDay[] {
+  const today = now
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(today)
     date.setDate(today.getDate() - (6 - index))

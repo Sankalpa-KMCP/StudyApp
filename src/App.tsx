@@ -163,7 +163,6 @@ function App() {
   const normalizedSearch = deferredSearch.trim().toLowerCase()
   const todayFocusMinutes = useMemo(() => getTodayFocusMinutes(data.studySessions), [data.studySessions])
   const weeklyStudyDays = useMemo(() => getWeeklyStudyDays(data.studySessions), [data.studySessions])
-  const weeklyStudyHours = useMemo(() => weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0), [weeklyStudyDays])
   const completedTasks = useMemo(() => data.tasks.filter((task) => task.status === 'done'), [data.tasks])
   const upcomingEvents = useMemo(() => data.events.filter((event) => new Date(event.startAt).getTime() >= startOfToday()).slice(0, 4), [data.events])
   const dueCards = useMemo(() => data.flashcards.filter((card) => isFlashcardDue(card)), [data.flashcards])
@@ -613,8 +612,7 @@ function App() {
                   <GoalsView
                     goals={data.goals}
                     dailyGoalMinutes={dailyGoalMinutes}
-                    todayFocusMinutes={todayFocusMinutes}
-                    weeklyStudyHours={weeklyStudyHours}
+                    studySessions={data.studySessions}
                   />
                 ) : null}
                 {activeView === 'Settings' ? (
