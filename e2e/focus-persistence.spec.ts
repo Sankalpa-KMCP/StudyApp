@@ -1,13 +1,19 @@
 import { expect, test } from '@playwright/test'
 import {
+  ACTIVE_FOCUS_SESSION_KEY,
+  createSubjectViaUi,
   elapsedLabel,
   focusCard,
+  importStudyBackupViaSettings,
   listStudySessions,
+  makeStudyExport,
+  makeSubjectRow,
   parseElapsedToSeconds,
   readActiveFocusSession,
   seedActiveFocusSession,
   startOpenEndedFocus,
   waitForMeasurableElapsed,
+  waitForStartFocusReady,
   waitMs,
   type FocusSessionSeed,
 } from './focusHelpers'
@@ -205,5 +211,80 @@ test.describe('focus session persistence', () => {
     // No second concurrent session — Start remains unavailable while this one is active.
     await expect(page.getByRole('button', { name: 'Start focus' })).toHaveCount(0)
     expect(await listStudySessions(page)).toHaveLength(0)
+  })
+
+  test('importing a backup replaces the visible focus session without a reload', async ({ page }) => {
+    const importedSessionId = 'focus-e2e-imported-running'
+    const importedSubjectId = 'subject-e2e-imported'
+    const importedSubjectName = 'Imported Chemistry'
+    const originalSubjectName = 'Original Biology'
+
+    await waitForStartFocusReady(page)
+    const originalSubjectId = await createSubjectViaUi(page, originalSubjectName)
+
+    await page.getByRole('button', { name: 'Home' }).click()
+    await expect(page.getByRole('button', { name: 'Start focus' })).toBeEnabled({ timeout: 15_000 })
+    await page.getByLabel('Focus subject').selectOption(originalSubjectId)
+    await page.getByLabel('Session length').selectOption('0')
+    await page.getByRole('button', { name: 'Start focus' }).click()
+    await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
+    await expect(page.getByLabel('Focus subject')).toHaveValue(originalSubjectId)
+
+    const original = await readActiveFocusSession(page)
+    expect(original).not.toBeNull()
+    expect(original?.id).not.toBe(importedSessionId)
+    expect(original?.subjectId).toBe(originalSubjectId)
+    const originalSessionId = original!.id
+
+    const importedSession: FocusSessionSeed = {
+      id: importedSessionId,
+      subjectId: importedSubjectId,
+      startedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+      plannedMinutes: 50,
+      status: 'running',
+      pausedAt: null,
+      accumulatedPausedMs: 0,
+    }
+
+    await importStudyBackupViaSettings(
+      page,
+      makeStudyExport({
+        subjects: [makeSubjectRow({ id: importedSubjectId, name: importedSubjectName })],
+        settings: [{ key: ACTIVE_FOCUS_SESSION_KEY, value: importedSession }],
+      }),
+    )
+
+    // No page.reload — React focus state must sync from IndexedDB after import.
+    await page.getByRole('button', { name: 'Home' }).click()
+    await expect(page.getByRole('button', { name: 'Stop session' })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
+    await expect(page.getByLabel('Focus subject')).toHaveValue(importedSubjectId)
+    await expect(page.getByLabel('Session length')).toHaveValue('50')
+    await expect(page.getByLabel('Focus subject')).toContainText(importedSubjectName)
+    await expect(page.getByLabel('Focus subject')).not.toContainText(originalSubjectName)
+
+    const afterImport = await readActiveFocusSession(page)
+    expect(afterImport).toMatchObject({
+      id: importedSessionId,
+      subjectId: importedSubjectId,
+      plannedMinutes: 50,
+      status: 'running',
+    })
+    expect(afterImport?.id).not.toBe(originalSessionId)
+
+    await page.getByRole('button', { name: 'Stop session' }).click()
+    await expect(page.getByRole('button', { name: 'Start focus' })).toBeEnabled({ timeout: 15_000 })
+    await expect(page.getByRole('button', { name: 'Stop session' })).toHaveCount(0)
+    await expect(page.getByRole('status')).toContainText(/Session stopped:/i)
+    expect(await readActiveFocusSession(page)).toBeNull()
+
+    const history = await listStudySessions(page)
+    expect(history).toHaveLength(1)
+    expect(history[0]?.id).toBe(importedSessionId)
+    expect(history.some((row) => row.id === originalSessionId)).toBe(false)
+
+    await waitMs(1_500)
+    expect(await listStudySessions(page)).toHaveLength(1)
+    expect((await listStudySessions(page))[0]?.id).toBe(importedSessionId)
   })
 })
