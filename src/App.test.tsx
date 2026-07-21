@@ -817,6 +817,151 @@ describe('App', () => {
     const newNote = (await screen.findByText('Exam checklist')).closest('.detail-card')
     expect(newNote).not.toBeNull()
     expect(within(newNote as HTMLElement).getByText('Past papers, formulas, and weak areas.')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Note created.')
+  })
+
+  it('prevents duplicate note create while save is pending', async () => {
+    const user = userEvent.setup()
+    let releaseAdd!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseAdd = resolve
+    })
+    const originalAdd = studyDb.notes.add.bind(studyDb.notes)
+    const addSpy = vi.spyOn(studyDb.notes, 'add').mockImplementation(async (note) => {
+      await gate
+      return originalAdd(note)
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Notes' }))
+    await user.click(screen.getByRole('button', { name: 'New note' }))
+    await user.type(screen.getByLabelText('Note title'), 'Pending note')
+    await user.type(screen.getByLabelText('Body'), 'Body while pending')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const savingButton = await screen.findByRole('button', { name: 'Creating note...' })
+    expect(savingButton).toBeDisabled()
+    await user.click(savingButton)
+    expect(addSpy).toHaveBeenCalledTimes(1)
+
+    releaseAdd()
+    expect(await screen.findByText('Pending note')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Note created.')
+    expect(await studyDb.notes.count()).toBe(1)
+  })
+
+  it('preserves note draft after a failed create and allows retry', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const originalAdd = studyDb.notes.add.bind(studyDb.notes)
+    const addSpy = vi.spyOn(studyDb.notes, 'add')
+      .mockRejectedValueOnce(new Error('IndexedDB note write failed'))
+      .mockImplementation(async (note) => originalAdd(note))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Notes' }))
+    await user.click(screen.getByRole('button', { name: 'New note' }))
+    await user.type(screen.getByLabelText('Note title'), 'Retry note')
+    await user.type(screen.getByLabelText('Tags'), 'exam, formulas')
+    await user.type(
+      screen.getByLabelText('Body'),
+      'A long note body that must survive persistence failure without truncation or reset.',
+    )
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Note could not be saved. Your text is still available.')
+    expect(screen.queryByText('IndexedDB')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Note title')).toHaveValue('Retry note')
+    expect(screen.getByLabelText('Tags')).toHaveValue('exam, formulas')
+    expect(screen.getByLabelText('Body')).toHaveValue(
+      'A long note body that must survive persistence failure without truncation or reset.',
+    )
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Retry note')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Note created.')
+    expect(await studyDb.notes.count()).toBe(1)
+    expect(addSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it('treats a missing-row note edit as failure and keeps the editor open', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.notes.add({
+      id: 'note-missing-edit',
+      title: 'Existing note',
+      body: 'Original body',
+      subjectId: '',
+      tags: ['review'],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(studyDb.notes, 'update').mockResolvedValueOnce(0)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Notes' }))
+    await user.click(await screen.findByLabelText('Edit Existing note'))
+    await user.clear(screen.getByLabelText('Note title'))
+    await user.type(screen.getByLabelText('Note title'), 'Edited missing note')
+    await user.clear(screen.getByLabelText('Tags'))
+    await user.type(screen.getByLabelText('Tags'), 'edited, tags')
+    await user.clear(screen.getByLabelText('Body'))
+    await user.type(screen.getByLabelText('Body'), 'Edited body text')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Note could not be saved. Your text is still available.')
+    expect(screen.getByLabelText('Note title')).toHaveValue('Edited missing note')
+    expect(screen.getByLabelText('Tags')).toHaveValue('edited, tags')
+    expect(screen.getByLabelText('Body')).toHaveValue('Edited body text')
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+  })
+
+  it('keeps a note visible when deletion fails and blocks duplicate deletes', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.notes.add({
+      id: 'note-delete-fail',
+      title: 'Sticky note',
+      body: 'Keep me',
+      subjectId: '',
+      tags: [],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    let releaseDelete!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseDelete = resolve
+    })
+    const originalDelete = studyDb.notes.delete.bind(studyDb.notes)
+    const deleteSpy = vi.spyOn(studyDb.notes, 'delete').mockImplementation(async () => {
+      await gate
+      throw new Error('delete failed')
+    })
+    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Notes' }))
+    await user.click(await screen.findByLabelText('Delete Sticky note'))
+
+    expect(await screen.findByLabelText('Deleting Sticky note')).toBeDisabled()
+    expect(screen.getByLabelText('Edit Sticky note')).toBeDisabled()
+    await user.click(screen.getByLabelText('Deleting Sticky note'))
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+
+    releaseDelete()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Note could not be deleted.')
+    expect(screen.getByText('Sticky note')).toBeInTheDocument()
+    expect(await studyDb.notes.get('note-delete-fail')).toBeDefined()
+
+    deleteSpy.mockImplementation(async (id) => originalDelete(id))
+    await user.click(screen.getByLabelText('Delete Sticky note'))
+    await waitFor(() => expect(screen.queryByText('Sticky note')).not.toBeInTheDocument())
+    expect(await screen.findByRole('status')).toHaveTextContent('Note deleted.')
+    confirmDelete.mockRestore()
   })
 
   it('creates a flashcard and marks it remembered', async () => {
@@ -929,6 +1074,144 @@ describe('App', () => {
     expect(events[0].location).toBe('Library room 3')
 
     await waitFor(() => expect(screen.getAllByText('Study group meeting').length).toBeGreaterThanOrEqual(1))
+    expect(await screen.findByRole('status')).toHaveTextContent('Event created.')
+  })
+
+  it('validates calendar date and time before calling Dexie', async () => {
+    const user = userEvent.setup()
+    const addSpy = vi.spyOn(studyDb.events, 'add')
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Calendar' }))
+    await user.click(screen.getByRole('button', { name: 'New event' }))
+    await user.type(screen.getByLabelText('Event title'), 'Broken schedule')
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('Time'), { target: { value: '' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a valid date and start time.')
+    expect(addSpy).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Event title')).toHaveValue('Broken schedule')
+    expect(screen.getByLabelText('Date')).toHaveValue('')
+    expect(screen.getByLabelText('Time')).toHaveValue('')
+  })
+
+  it('preserves calendar draft after a failed create and allows retry', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const originalAdd = studyDb.events.add.bind(studyDb.events)
+    const addSpy = vi.spyOn(studyDb.events, 'add')
+      .mockRejectedValueOnce(new Error('IndexedDB event write failed'))
+      .mockImplementation(async (event) => originalAdd(event))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Calendar' }))
+    await user.click(screen.getByRole('button', { name: 'New event' }))
+    await user.type(screen.getByLabelText('Event title'), 'Retry event')
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-08-01' } })
+    fireEvent.change(screen.getByLabelText('Time'), { target: { value: '14:30' } })
+    fireEvent.change(screen.getByLabelText('Duration'), { target: { value: '90' } })
+    await user.type(screen.getByLabelText('Location'), 'Room 12')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Event could not be saved. Check the details and try again.')
+    expect(screen.queryByText('IndexedDB')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Event title')).toHaveValue('Retry event')
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-08-01')
+    expect(screen.getByLabelText('Time')).toHaveValue('14:30')
+    expect(screen.getByLabelText('Duration')).toHaveValue(90)
+    expect(screen.getByLabelText('Location')).toHaveValue('Room 12')
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Event created.')
+    expect(screen.queryByLabelText('Event title')).not.toBeInTheDocument()
+    expect(await studyDb.events.count()).toBe(1)
+    expect(addSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it('treats a missing-row calendar edit as failure and keeps values', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.events.add({
+      id: 'event-missing-edit',
+      title: 'Existing event',
+      subjectId: '',
+      startAt: '2026-08-02T10:00:00.000Z',
+      endAt: '2026-08-02T11:00:00.000Z',
+      location: 'Hall A',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(studyDb.events, 'update').mockResolvedValueOnce(0)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Calendar' }))
+    await user.click(await screen.findByLabelText('Edit Existing event'))
+    await user.clear(screen.getByLabelText('Event title'))
+    await user.type(screen.getByLabelText('Event title'), 'Edited missing event')
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-08-03' } })
+    fireEvent.change(screen.getByLabelText('Time'), { target: { value: '16:15' } })
+    fireEvent.change(screen.getByLabelText('Duration'), { target: { value: '45' } })
+    await user.clear(screen.getByLabelText('Location'))
+    await user.type(screen.getByLabelText('Location'), 'Hall B')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Event could not be saved. Check the details and try again.')
+    expect(screen.getByLabelText('Event title')).toHaveValue('Edited missing event')
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-08-03')
+    expect(screen.getByLabelText('Time')).toHaveValue('16:15')
+    expect(screen.getByLabelText('Duration')).toHaveValue(45)
+    expect(screen.getByLabelText('Location')).toHaveValue('Hall B')
+  })
+
+  it('keeps a calendar event visible when deletion fails and blocks duplicate deletes', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.events.add({
+      id: 'event-delete-fail',
+      title: 'Sticky event',
+      subjectId: '',
+      startAt: '2026-08-04T09:00:00.000Z',
+      endAt: '2026-08-04T10:00:00.000Z',
+      location: 'Lab',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    let releaseDelete!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseDelete = resolve
+    })
+    const originalDelete = studyDb.events.delete.bind(studyDb.events)
+    const deleteSpy = vi.spyOn(studyDb.events, 'delete').mockImplementation(async () => {
+      await gate
+      throw new Error('delete failed')
+    })
+    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Calendar' }))
+    await user.click(await screen.findByLabelText('Delete Sticky event'))
+
+    expect(await screen.findByLabelText('Deleting Sticky event')).toBeDisabled()
+    expect(screen.getByLabelText('Edit Sticky event')).toBeDisabled()
+    await user.click(screen.getByLabelText('Deleting Sticky event'))
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+
+    releaseDelete()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Event could not be deleted. Please try again.')
+    expect(screen.getByText('Sticky event')).toBeInTheDocument()
+    expect(screen.getByLabelText('Seven day calendar')).toBeInTheDocument()
+    expect(await studyDb.events.get('event-delete-fail')).toBeDefined()
+
+    deleteSpy.mockImplementation(async (id) => originalDelete(id))
+    await user.click(screen.getByLabelText('Delete Sticky event'))
+    await waitFor(() => expect(screen.queryByText('Sticky event')).not.toBeInTheDocument())
+    expect(await screen.findByRole('status')).toHaveTextContent('Event deleted.')
+    confirmDelete.mockRestore()
   })
 
   it('creates and manages goals', async () => {
