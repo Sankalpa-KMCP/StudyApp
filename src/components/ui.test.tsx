@@ -1,7 +1,16 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { Check } from 'lucide-react'
-import { ProgressBar, EmptyState, PanelHeader, MetricCard, SegmentedControl, RowActionButtons } from './ui'
+import {
+  ProgressBar,
+  EmptyState,
+  PanelHeader,
+  MetricCard,
+  SegmentedControl,
+  RowActionButtons,
+  EditorActions,
+  MutationNotice,
+} from './ui'
 
 describe('UI Components', () => {
   describe('ProgressBar', () => {
@@ -97,6 +106,75 @@ describe('UI Components', () => {
       render(<MetricCard label="Total Hours" value="120" />)
       expect(screen.getByText('Total Hours')).toBeInTheDocument()
       expect(screen.getByText('120')).toBeInTheDocument()
+    })
+  })
+
+  describe('MutationNotice', () => {
+    it('renders success feedback with status semantics', () => {
+      render(<MutationNotice phase="success" message="Study data imported." />)
+
+      expect(screen.getByRole('status')).toHaveTextContent('Study data imported.')
+      expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite')
+    })
+
+    it('renders error feedback with alert semantics', () => {
+      render(<MutationNotice phase="error" message="Could not save this session. Try again." />)
+
+      expect(screen.getByRole('alert')).toHaveTextContent('Could not save this session. Try again.')
+    })
+
+    it('renders nothing when the message is null', () => {
+      const { container } = render(<MutationNotice phase="success" message={null} />)
+
+      expect(container).toBeEmptyDOMElement()
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('renders nothing while pending even if a stale message is provided', () => {
+      const { container } = render(<MutationNotice phase="pending" message="Saved." />)
+
+      expect(container).toBeEmptyDOMElement()
+    })
+
+    it('invokes dismiss with an accessible control name', () => {
+      const onDismiss = vi.fn()
+      render(<MutationNotice phase="success" message="Session logged." onDismiss={onDismiss} />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }))
+      expect(onDismiss).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('EditorActions', () => {
+    it('keeps ordinary non-loading behavior compatible', () => {
+      const onSave = vi.fn()
+      const onCancel = vi.fn()
+      render(<EditorActions onSave={onSave} onCancel={onCancel} />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+      expect(onSave).toHaveBeenCalledTimes(1)
+      expect(onCancel).toHaveBeenCalledTimes(1)
+      expect(screen.getByRole('button', { name: 'Save' })).not.toBeDisabled()
+    })
+
+    it('disables actions and shows the loading label while saving', () => {
+      render(
+        <EditorActions
+          onSave={() => {}}
+          onCancel={() => {}}
+          isLoading
+          loadingLabel="Saving task..."
+        />,
+      )
+
+      const saveButton = screen.getByRole('button', { name: 'Saving task...' })
+      expect(saveButton).toBeDisabled()
+      expect(saveButton).toHaveAttribute('aria-busy', 'true')
+      expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+      expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
     })
   })
 })

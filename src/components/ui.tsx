@@ -1,5 +1,6 @@
 import { clamp } from '../appUtils'
 import type { StudySubject } from '../db/types'
+import type { MutationPhase } from '../hooks/useMutationState'
 import { BookOpen, Check, Edit3, Plus, Save, Trash2, X } from 'lucide-react'
 import type { Ref } from 'react'
 
@@ -90,14 +91,64 @@ export function SegmentedControl<T extends string>({ value, options, onChange }:
   )
 }
 
-export function EditorActions({ onSave, onCancel }: { onSave: () => void; onCancel: () => void }) {
+export function EditorActions({
+  onSave,
+  onCancel,
+  isLoading = false,
+  loadingLabel = 'Saving...',
+}: {
+  onSave: () => void
+  onCancel: () => void
+  isLoading?: boolean
+  loadingLabel?: string
+}) {
   return (
     <div className="editor-actions">
-      <button className="primary-command" type="button" onClick={onSave}>
+      <button
+        className="primary-command"
+        type="button"
+        onClick={onSave}
+        disabled={isLoading}
+        aria-busy={isLoading || undefined}
+      >
         <Save size={16} aria-hidden="true" />
-        Save
+        {isLoading ? loadingLabel : 'Save'}
       </button>
-      <button className="secondary-command" type="button" onClick={onCancel}>Cancel</button>
+      <button className="secondary-command" type="button" onClick={onCancel} disabled={isLoading}>
+        Cancel
+      </button>
+    </div>
+  )
+}
+
+export function MutationNotice({
+  phase,
+  message,
+  onDismiss,
+  id,
+}: {
+  phase: MutationPhase
+  message: string | null
+  onDismiss?: () => void
+  id?: string
+}) {
+  if (!message || (phase !== 'success' && phase !== 'error')) return null
+
+  const isError = phase === 'error'
+
+  return (
+    <div
+      className={isError ? 'mutation-notice settings-feedback error' : 'mutation-notice settings-feedback'}
+      role={isError ? 'alert' : 'status'}
+      aria-live={isError ? undefined : 'polite'}
+      id={id}
+    >
+      <p>{message}</p>
+      {onDismiss ? (
+        <button type="button" className="mutation-notice-dismiss" aria-label="Dismiss notification" onClick={onDismiss}>
+          <X size={16} aria-hidden="true" />
+        </button>
+      ) : null}
     </div>
   )
 }
