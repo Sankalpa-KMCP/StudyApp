@@ -207,8 +207,13 @@ function FocusCard(props: {
   const [nowMs, setNowMs] = useState(() => Date.now())
   useEffect(() => {
     if (!props.activeSession || props.activeSession.status === 'paused') return undefined
+    // Sync on the next macrotask when entering `running` so resume does not paint against a stale clock.
+    const syncTimer = window.setTimeout(() => setNowMs(Date.now()), 0)
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000)
-    return () => window.clearInterval(timer)
+    return () => {
+      window.clearTimeout(syncTimer)
+      window.clearInterval(timer)
+    }
   }, [props.activeSession])
 
   const elapsedSeconds = props.activeSession
