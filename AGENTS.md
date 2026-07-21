@@ -31,6 +31,39 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 - **IndexedDB:** Dexie **version 2** (upgrade from v1 assigns metrics to legacy rows once via title rules in `src/db/goalMetricInference.ts` — migration/import only, not runtime).
 - **Backups:** new exports use JSON **version 2** with required goal metrics; valid **version 1** backups remain importable and are normalized before any table replacement.
 
+## Local mutation convention
+
+Use the shared helper for ordinary async IndexedDB mutations:
+
+- Prefer `useMutationState` (`src/hooks/useMutationState.ts`) for create/edit/delete and similar row actions.
+- Run **validation before** calling `run(...)`; invalid input must not enter pending state or touch Dexie.
+- Never reset form fields inside the hook; close or reset editors only in `onSuccess` after persistence succeeds.
+- On failure, preserve every field and the editing identity so the user can retry immediately.
+- Block duplicate invocation with the hook’s synchronous pending guard; use row-level or accurately represented serialized pending UI so enabled controls match executable actions.
+- Treat expected Dexie `update(...) === 0` (missing row) as failure.
+- Surface friendly fixed messages via `MutationNotice` — errors use alert semantics, successes use status semantics; never show raw Dexie/exception text.
+- Communicate pending work with visible loading labels, disabled controls, and `aria-busy` where appropriate.
+
+**Keep these specialized flows — do not force them through the generic hook:**
+
+| Flow | Why |
+|------|-----|
+| Focus start/pause/resume/stop/stale/subject | Domain result contracts + singleton/idempotency protections in `activeFocusSession` / `App.tsx` |
+| Settings import | Dedicated `focusImportPending` must stay synchronized with focus action gating and post-import `reloadFocusFromIndexedDb()` |
+| Quick-note autosave | Sequential latest-value write queue so a stale write cannot overwrite newer draft text |
+| Theme / sidebar preferences | `localStorage`-backed; report friendly failures without migrating to IndexedDB |
+
+After broad mutation changes, run:
+
+```bash
+npm test
+npm run lint
+npm run build
+npm run check:bundle
+# PowerShell clean Playwright server:
+$env:CI="true"; npm run test:e2e
+```
+
 ## Hard rules
 
 1. **Local-first only** — Do not add backend servers, cloud DB, auth, or telemetry without explicit user request.
@@ -49,6 +82,8 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 ```bash
 npm ci                   # first time
 npm run dev              # http://localhost:5173
+npm run preview          # http://localhost:4173/StudyApp/ after build
+npm run storybook        # http://localhost:6006
 npm test
 npm run lint
 npm run build
