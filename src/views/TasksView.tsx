@@ -3,7 +3,34 @@ import { Check, Square } from 'lucide-react'
 import { clamp } from '../appUtils'
 import { createId, nowIso, studyDb } from '../db/studyDb'
 import type { StudyTask, StudySubject, TaskPriority } from '../db/types'
-import { EmptyState, PanelHeader, TextInput, NumberInput, SubjectSelect, SegmentedControl, EditorActions, RowActionButtons } from '../components/ui'
+import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
+import {
+  EmptyState,
+  PanelHeader,
+  TextInput,
+  NumberInput,
+  SubjectSelect,
+  SegmentedControl,
+  EditorActions,
+  RowActionButtons,
+  MutationNotice,
+} from '../components/ui'
+
+type TaskDraft = {
+  title: string
+  subjectId: string
+  dueDate: string
+  priority: TaskPriority
+  minutes: number
+}
+
+const emptyDraft = (subjectId = ''): TaskDraft => ({
+  title: '',
+  subjectId,
+  dueDate: '',
+  priority: 'normal',
+  minutes: 30,
+})
 
 export function TasksView({
   tasks,
@@ -23,11 +50,31 @@ export function TasksView({
   onFilterChange: (filter: 'all' | 'open' | 'done') => void
 }) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
-  const [draft, setDraft] = useState({ title: '', subjectId: '', dueDate: '', priority: 'normal' as TaskPriority, minutes: 30 })
+  const [draft, setDraft] = useState<TaskDraft>(() => emptyDraft())
+  const [validationError, setValidationError] = useState<string | null>(null)
+  const [pendingRowId, setPendingRowId] = useState<string | null>(null)
+  const [pendingRowKind, setPendingRowKind] = useState<'status' | 'delete' | null>(null)
   const handledEditorRequest = useRef(0)
   const titleFieldRef = useRef<HTMLInputElement | null>(null)
+  const saveMutation = useMutationState()
+  const rowMutation = useMutationState()
+  const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
+  const { clearFeedback: clearRowFeedback, phase: rowPhase, message: rowMessage, run: runRow } = rowMutation
+
+  const noticePhase: MutationPhase = validationError
+    ? 'error'
+    : savePhase === 'success' || savePhase === 'error'
+      ? savePhase
+      : rowPhase === 'success' || rowPhase === 'error'
+        ? rowPhase
+        : 'idle'
+  const noticeMessage = validationError
+    ?? (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
+    ?? (rowPhase === 'success' || rowPhase === 'error' ? rowMessage : null)
 
   const openEditor = useCallback((task?: StudyTask) => {
+    setValidationError(null)
+    clearSaveFeedback()
     setEditingTaskId(task?.id ?? 'new')
     setDraft({
       title: task?.title ?? '',
@@ -36,7 +83,7 @@ export function TasksView({
       priority: task?.priority ?? 'normal',
       minutes: task?.minutes ?? 30,
     })
-  }, [subjects])
+  }, [clearSaveFeedback, subjects])
 
   useEffect(() => {
     if (openEditorRequest > handledEditorRequest.current) {
@@ -49,13 +96,48 @@ export function TasksView({
     if (editingTaskId) titleFieldRef.current?.focus()
   }, [editingTaskId])
 
+  const closeEditor = useCallback(() => {
+    if (isSaving) return
+    setEditingTaskId(null)
+    setDraft(emptyDraft(subjects[0]?.id ?? ''))
+    setValidationError(null)
+  }, [isSaving, subjects])
+
+  const dismissNotice = () => {
+    setValidationError(null)
+    clearSaveFeedback()
+    clearRowFeedback()
+  }
+
   const saveTask = async () => {
+    setValidationError(null)
+    clearSaveFeedback()
+    clearRowFeedback()
+
     const title = draft.title.trim()
-    if (!title) return
+    if (!title) {
+      setValidationError('Enter a task title.')
+      return
+    }
+
+    const isEdit = Boolean(editingTaskId && editingTaskId !== 'new')
     const timestamp = nowIso()
-    if (editingTaskId && editingTaskId !== 'new') {
-      await studyDb.tasks.update(editingTaskId, { ...draft, title, minutes: clamp(draft.minutes, 5, 720), updatedAt: timestamp })
-    } else {
+    const minutes = clamp(draft.minutes, 5, 720)
+
+    await runSave(async () => {
+      if (isEdit && editingTaskId) {
+        const updated = await studyDb.tasks.update(editingTaskId, {
+          title,
+          subjectId: draft.subjectId,
+          dueDate: draft.dueDate,
+          priority: draft.priority,
+          minutes,
+          updatedAt: timestamp,
+        })
+        if (updated === 0) throw new Error('Task no longer exists.')
+        return
+      }
+
       await studyDb.tasks.add({
         id: createId('task'),
         title,
@@ -63,26 +145,95 @@ export function TasksView({
         dueDate: draft.dueDate,
         priority: draft.priority,
         status: 'open',
-        minutes: clamp(draft.minutes, 5, 720),
+        minutes,
         createdAt: timestamp,
         updatedAt: timestamp,
       })
-    }
-    setEditingTaskId(null)
-    setDraft({ title: '', subjectId: subjects[0]?.id ?? '', dueDate: '', priority: 'normal', minutes: 30 })
+    }, {
+      successMessage: isEdit ? 'Task updated.' : 'Task created.',
+      errorMessage: 'Task could not be saved. Your details are still in the form.',
+      onSuccess: () => {
+        setEditingTaskId(null)
+        setDraft(emptyDraft(subjects[0]?.id ?? ''))
+        setValidationError(null)
+      },
+    })
   }
+
+  const toggleTaskStatus = async (task: StudyTask) => {
+    if (pendingRowId || isSaving) return
+
+    setValidationError(null)
+    clearSaveFeedback()
+    clearRowFeedback()
+    setPendingRowId(task.id)
+    setPendingRowKind('status')
+
+    const nextStatus = task.status === 'done' ? 'open' : 'done'
+    const successMessage = nextStatus === 'done' ? 'Task marked complete.' : 'Task reopened.'
+    const errorMessage = nextStatus === 'done'
+      ? 'Task could not be marked complete.'
+      : 'Task could not be reopened.'
+
+    try {
+      await runRow(async () => {
+        const updated = await studyDb.tasks.update(task.id, { status: nextStatus, updatedAt: nowIso() })
+        if (updated === 0) throw new Error('Task no longer exists.')
+      }, {
+        successMessage,
+        errorMessage,
+      })
+    } finally {
+      setPendingRowId(null)
+      setPendingRowKind(null)
+    }
+  }
+
+  const deleteTask = async (task: StudyTask) => {
+    if (pendingRowId || isSaving) return
+
+    setValidationError(null)
+    clearSaveFeedback()
+    clearRowFeedback()
+    setPendingRowId(task.id)
+    setPendingRowKind('delete')
+
+    try {
+      await runRow(async () => {
+        await studyDb.tasks.delete(task.id)
+      }, {
+        successMessage: 'Task deleted.',
+        errorMessage: 'Task could not be deleted. Please try again.',
+      })
+    } finally {
+      setPendingRowId(null)
+      setPendingRowKind(null)
+    }
+  }
+
+  const loadingLabel = editingTaskId && editingTaskId !== 'new' ? 'Saving task...' : 'Creating task...'
 
   return (
     <section className="workspace-panel" aria-labelledby="tasks-workspace-title">
-      <PanelHeader title="Tasks" description="Plan the work that deserves your attention." actionLabel="New task" onAction={() => openEditor()} />
+      <PanelHeader
+        title="Tasks"
+        description="Plan the work that deserves your attention."
+        actionLabel="New task"
+        onAction={() => openEditor()}
+      />
+      <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
       <SegmentedControl<'all' | 'open' | 'done'> value={filter} options={['all', 'open', 'done']} onChange={onFilterChange} />
       {editingTaskId ? (
-        <div className="editor-card">
+        <div className="editor-card" aria-busy={isSaving || undefined}>
           <TextInput label="Task title" value={draft.title} inputRef={titleFieldRef} onChange={(title) => setDraft({ ...draft, title })} />
           <SubjectSelect subjects={subjects} value={draft.subjectId} onChange={(subjectId) => setDraft({ ...draft, subjectId })} />
           <label className="field">
             <span>Priority</span>
-            <select value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}>
+            <select
+              value={draft.priority}
+              disabled={isSaving}
+              onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}
+            >
               <option value="low">Low</option>
               <option value="normal">Normal</option>
               <option value="high">High</option>
@@ -90,28 +241,47 @@ export function TasksView({
           </label>
           <TextInput label="Due date" type="date" value={draft.dueDate} onChange={(dueDate) => setDraft({ ...draft, dueDate })} />
           <NumberInput label="Minutes" value={draft.minutes} min={5} max={720} onChange={(minutes) => setDraft({ ...draft, minutes })} />
-          <EditorActions onSave={() => void saveTask()} onCancel={() => setEditingTaskId(null)} />
+          <EditorActions
+            onSave={() => void saveTask()}
+            onCancel={closeEditor}
+            isLoading={isSaving}
+            loadingLabel={loadingLabel}
+          />
         </div>
       ) : null}
       {tasks.length > 0 ? (
         <div className="table-list">
-          {tasks.map((task) => (
-            <article className={task.status === 'done' ? 'list-row is-done' : 'list-row'} key={task.id}>
-              <button
-                type="button"
-                className="task-check"
-                onClick={() => void studyDb.tasks.update(task.id, { status: task.status === 'done' ? 'open' : 'done', updatedAt: nowIso() })}
-                aria-label={`Toggle ${task.title}`}
-              >
-                {task.status === 'done' ? <Check size={14} /> : <Square size={16} />}
-              </button>
-              <div>
-                <h3>{task.title}</h3>
-                <p>{task.priority} priority - {task.minutes} min{task.dueDate ? ` - due ${task.dueDate}` : ''}</p>
-              </div>
-              <RowActionButtons label={task.title} onEdit={() => openEditor(task)} onDelete={() => void studyDb.tasks.delete(task.id)} />
-            </article>
-          ))}
+          {tasks.map((task) => {
+            const rowBusy = pendingRowId === task.id
+            const isDeleting = rowBusy && pendingRowKind === 'delete'
+            const isStatusPending = rowBusy && pendingRowKind === 'status'
+
+            return (
+              <article className={task.status === 'done' ? 'list-row is-done' : 'list-row'} key={task.id}>
+                <button
+                  type="button"
+                  className="task-check"
+                  onClick={() => void toggleTaskStatus(task)}
+                  aria-label={isStatusPending ? `Updating ${task.title}` : `Toggle ${task.title}`}
+                  aria-busy={isStatusPending || undefined}
+                  disabled={rowBusy || isSaving}
+                >
+                  {task.status === 'done' ? <Check size={14} /> : <Square size={16} />}
+                </button>
+                <div>
+                  <h3>{task.title}</h3>
+                  <p>{task.priority} priority - {task.minutes} min{task.dueDate ? ` - due ${task.dueDate}` : ''}</p>
+                </div>
+                <RowActionButtons
+                  label={task.title}
+                  onEdit={() => openEditor(task)}
+                  onDelete={() => void deleteTask(task)}
+                  isDisabled={rowBusy || isSaving}
+                  isDeleting={isDeleting}
+                />
+              </article>
+            )
+          })}
         </div>
       ) : filter !== 'all' ? (
         <EmptyState

@@ -153,15 +153,43 @@ export function MutationNotice({
   )
 }
 
-export function RowActionButtons({ label, onEdit, onDelete, confirmDelete = true }: { label: string; onEdit: () => void; onDelete: () => void; confirmDelete?: boolean }) {
+export function RowActionButtons({
+  label,
+  onEdit,
+  onDelete,
+  confirmDelete = true,
+  isDisabled = false,
+  isDeleting = false,
+}: {
+  label: string
+  onEdit: () => void
+  onDelete: () => void
+  confirmDelete?: boolean
+  isDisabled?: boolean
+  isDeleting?: boolean
+}) {
+  const busy = isDisabled || isDeleting
+
   const handleDelete = () => {
+    if (busy) return
     if (!confirmDelete || window.confirm(`Delete ${label}? This cannot be undone.`)) onDelete()
   }
 
   return (
     <div className="row-actions">
-      <button type="button" aria-label={`Edit ${label}`} onClick={onEdit}><Edit3 size={16} aria-hidden="true" /></button>
-      <button className="danger-action" type="button" aria-label={`Delete ${label}`} onClick={handleDelete}><Trash2 size={16} aria-hidden="true" /></button>
+      <button type="button" aria-label={`Edit ${label}`} onClick={onEdit} disabled={busy}>
+        <Edit3 size={16} aria-hidden="true" />
+      </button>
+      <button
+        className="danger-action"
+        type="button"
+        aria-label={isDeleting ? `Deleting ${label}` : `Delete ${label}`}
+        aria-busy={isDeleting || undefined}
+        onClick={handleDelete}
+        disabled={busy}
+      >
+        <Trash2 size={16} aria-hidden="true" />
+      </button>
     </div>
   )
 }

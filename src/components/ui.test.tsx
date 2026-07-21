@@ -99,6 +99,29 @@ describe('UI Components', () => {
 
       confirm.mockRestore()
     })
+
+    it('disables edit and delete while deleting', () => {
+      const handleDelete = vi.fn()
+      const handleEdit = vi.fn()
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+      render(
+        <RowActionButtons
+          label="Practice set"
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          isDeleting
+        />,
+      )
+
+      const deleteButton = screen.getByRole('button', { name: 'Deleting Practice set' })
+      expect(deleteButton).toBeDisabled()
+      expect(deleteButton).toHaveAttribute('aria-busy', 'true')
+      expect(screen.getByRole('button', { name: 'Edit Practice set' })).toBeDisabled()
+
+      fireEvent.click(deleteButton)
+      expect(handleDelete).not.toHaveBeenCalled()
+      confirm.mockRestore()
+    })
   })
 
   describe('MetricCard', () => {
