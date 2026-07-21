@@ -13,8 +13,9 @@ import {
   type WeeklyStudyDay,
 } from '../appUtils'
 import { createId, studyDb } from '../db/studyDb'
-import { EmptyState, MetricCard, PanelHeader, RowActionButtons } from '../components/ui'
+import { EmptyState, MetricCard, MutationNotice, PanelHeader, RowActionButtons } from '../components/ui'
 import { StudyTime, SubjectDistribution } from '../components/RightColumn'
+import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 
 type SessionDraft = {
   subjectId: string
@@ -23,8 +24,6 @@ type SessionDraft = {
   duration: string
   note: string
 }
-
-type SessionFeedback = { tone: 'success' | 'error'; message: string }
 
 export function ProgressView(props: {
   data: StudyData
@@ -38,16 +37,43 @@ export function ProgressView(props: {
     props.openEditorOnMount ? 'new' : null,
   )
   const [draft, setDraft] = useState<SessionDraft>(() => defaultSessionDraft())
-  const [feedback, setFeedback] = useState<SessionFeedback | null>(null)
+  const [validationError, setValidationError] = useState<string | null>(null)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const editorTriggerRef = useRef<HTMLElement | null>(null)
   const logSessionButtonRef = useRef<HTMLButtonElement | null>(null)
   const restoreEditorFocusRef = useRef(false)
   const subjectFieldRef = useRef<HTMLSelectElement | null>(null)
   const dateFieldRef = useRef<HTMLInputElement | null>(null)
   const durationFieldRef = useRef<HTMLInputElement | null>(null)
+  const saveMutation = useMutationState()
+  const rowMutation = useMutationState()
+  const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
+  const { clearFeedback: clearRowFeedback, isPending: isRowPending, phase: rowPhase, message: rowMessage, run: runRow } = rowMutation
+
+  const formErrorMessage = validationError
+    ?? (savePhase === 'error' ? saveMessage : null)
+  const formErrorId = formErrorMessage ? 'session-form-error' : undefined
+  // Keep validation/save errors inline (aria-describedby); surface success and delete feedback via MutationNotice.
+  const noticePhase: MutationPhase = savePhase === 'success'
+    ? 'success'
+    : rowPhase === 'success' || rowPhase === 'error'
+      ? rowPhase
+      : !editingSessionId && savePhase === 'error'
+        ? 'error'
+        : 'idle'
+  const noticeMessage = savePhase === 'success'
+    ? saveMessage
+    : rowPhase === 'success' || rowPhase === 'error'
+      ? rowMessage
+      : !editingSessionId && savePhase === 'error'
+        ? saveMessage
+        : null
+
   const completed = props.data.tasks.filter((task) => task.status === 'done').length
   const weeklyHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
   const sessionGroups = groupStudySessionsByLocalDate(props.data.studySessions)
+  const loadingLabel = editingSessionId && editingSessionId !== 'new' ? 'Saving session...' : 'Recording session...'
+  const rowActionsLocked = isSaving || Boolean(pendingDeleteId)
 
   useEffect(() => {
     if (editingSessionId) {
@@ -64,6 +90,8 @@ export function ProgressView(props: {
   const openEditor = (session?: StudySession) => {
     editorTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     restoreEditorFocusRef.current = false
+    setValidationError(null)
+    clearSaveFeedback()
     if (session) {
       const startedAt = new Date(session.startedAt)
       const fallbackDraft = defaultSessionDraft()
@@ -80,44 +108,55 @@ export function ProgressView(props: {
       setEditingSessionId('new')
       setDraft(defaultSessionDraft())
     }
-    setFeedback(null)
   }
 
   const closeEditor = () => {
+    if (isSaving) return
     restoreEditorFocusRef.current = true
     setEditingSessionId(null)
     setDraft(defaultSessionDraft())
-    setFeedback(null)
+    setValidationError(null)
+  }
+
+  const dismissNotice = () => {
+    setValidationError(null)
+    clearSaveFeedback()
+    clearRowFeedback()
   }
 
   const saveSession = async () => {
+    setValidationError(null)
+    clearSaveFeedback()
+    clearRowFeedback()
+
     if (draft.subjectId && !props.subjectMap.has(draft.subjectId)) {
-      setFeedback({ tone: 'error', message: 'Choose an available subject or General.' })
+      setValidationError('Choose an available subject or General.')
       subjectFieldRef.current?.focus()
       return
     }
 
     const startedAt = parseLocalDateTime(draft.date, draft.time)
     if (!startedAt) {
-      setFeedback({ tone: 'error', message: 'Enter a valid date and start time.' })
+      setValidationError('Enter a valid date and start time.')
       dateFieldRef.current?.focus()
       return
     }
 
     const minutes = Number(draft.duration)
     if (!Number.isInteger(minutes) || minutes < 1) {
-      setFeedback({ tone: 'error', message: 'Duration must be at least 1 minute.' })
+      setValidationError('Duration must be at least 1 minute.')
       durationFieldRef.current?.focus()
       return
     }
 
     const endedAt = new Date(startedAt.getTime() + minutes * 60_000)
     if (endedAt.getTime() > Date.now()) {
-      setFeedback({ tone: 'error', message: 'Session end time cannot be in the future.' })
+      setValidationError('Session end time cannot be in the future.')
       durationFieldRef.current?.focus()
       return
     }
 
+    const isEdit = Boolean(editingSessionId && editingSessionId !== 'new')
     const payload = {
       subjectId: draft.subjectId,
       startedAt: startedAt.toISOString(),
@@ -126,49 +165,85 @@ export function ProgressView(props: {
       note: draft.note.trim(),
     }
 
-    try {
-      if (editingSessionId && editingSessionId !== 'new') {
+    await runSave(async () => {
+      if (isEdit && editingSessionId) {
         const updated = await studyDb.studySessions.update(editingSessionId, payload)
         if (updated === 0) throw new Error('Session no longer exists.')
-        setFeedback({ tone: 'success', message: 'Session updated.' })
-      } else {
-        await studyDb.studySessions.add({ id: createId('session'), ...payload })
-        setFeedback({ tone: 'success', message: 'Session logged.' })
+        return
       }
-      restoreEditorFocusRef.current = true
-      setEditingSessionId(null)
-      setDraft(defaultSessionDraft())
-    } catch {
-      setFeedback({ tone: 'error', message: 'Could not save this session. Try again.' })
-    }
+
+      await studyDb.studySessions.add({ id: createId('session'), ...payload })
+    }, {
+      successMessage: isEdit ? 'Study session updated.' : 'Study session recorded.',
+      errorMessage: 'Study session could not be saved. Your details are still in the form.',
+      onSuccess: () => {
+        restoreEditorFocusRef.current = true
+        setEditingSessionId(null)
+        setDraft(defaultSessionDraft())
+        setValidationError(null)
+      },
+    })
   }
 
   const deleteSession = async (session: StudySession) => {
+    if (pendingDeleteId || isSaving || isRowPending) return
+
     const startTime = sessionStartLabel(session)
     if (!window.confirm(`Delete session from ${startTime}? This cannot be undone.`)) return
 
+    setValidationError(null)
+    clearSaveFeedback()
+    clearRowFeedback()
+    setPendingDeleteId(session.id)
+
     try {
-      await studyDb.studySessions.delete(session.id)
-      if (editingSessionId === session.id) setEditingSessionId(null)
-      setFeedback({ tone: 'success', message: 'Session deleted.' })
-    } catch {
-      setFeedback({ tone: 'error', message: 'Could not delete this session. Try again.' })
+      await runRow(async () => {
+        await studyDb.studySessions.delete(session.id)
+      }, {
+        successMessage: 'Study session deleted.',
+        errorMessage: 'Study session could not be deleted. Please try again.',
+        onSuccess: () => {
+          if (editingSessionId === session.id) {
+            restoreEditorFocusRef.current = true
+            setEditingSessionId(null)
+            setDraft(defaultSessionDraft())
+            setValidationError(null)
+          }
+        },
+      })
+    } finally {
+      setPendingDeleteId(null)
     }
   }
 
   return (
     <section className="workspace-panel" aria-labelledby="progress-workspace-title">
       <PanelHeader title="Progress" description="Review the work you logged and where your study time went." actionLabel="Log session" actionRef={logSessionButtonRef} onAction={() => openEditor()} />
-      {feedback && (!editingSessionId || feedback.tone === 'success') ? <p className={`settings-feedback ${feedback.tone}`} role={feedback.tone === 'error' ? 'alert' : 'status'} aria-live="polite">{feedback.message}</p> : null}
+      <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
       {editingSessionId ? (
-        <form className="editor-card session-editor" aria-labelledby="session-editor-title" noValidate onSubmit={(event) => { event.preventDefault(); void saveSession() }}>
+        <form
+          className="editor-card session-editor"
+          aria-labelledby="session-editor-title"
+          aria-busy={isSaving || undefined}
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault()
+            void saveSession()
+          }}
+        >
           <div className="session-editor-heading">
             <h2 id="session-editor-title">{editingSessionId === 'new' ? 'Log study session' : 'Edit study session'}</h2>
             <p>Record completed study time. Starting a focus timer remains a separate Home action.</p>
           </div>
           <label className="field">
             <span>Subject</span>
-            <select ref={subjectFieldRef} value={draft.subjectId} onChange={(event) => setDraft({ ...draft, subjectId: event.target.value })} aria-describedby={feedback?.tone === 'error' ? 'session-form-error' : undefined}>
+            <select
+              ref={subjectFieldRef}
+              value={draft.subjectId}
+              disabled={isSaving}
+              onChange={(event) => setDraft({ ...draft, subjectId: event.target.value })}
+              aria-describedby={formErrorId}
+            >
               <option value="">General</option>
               {draft.subjectId && !props.subjectMap.has(draft.subjectId) ? <option value={draft.subjectId} disabled>Missing subject — choose another</option> : null}
               {props.data.subjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.name}</option>)}
@@ -176,27 +251,62 @@ export function ProgressView(props: {
           </label>
           <label className="field">
             <span>Date</span>
-            <input ref={dateFieldRef} type="date" required value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} aria-describedby={feedback?.tone === 'error' ? 'session-form-error' : undefined} />
+            <input
+              ref={dateFieldRef}
+              type="date"
+              required
+              disabled={isSaving}
+              value={draft.date}
+              onChange={(event) => setDraft({ ...draft, date: event.target.value })}
+              aria-describedby={formErrorId}
+            />
           </label>
           <label className="field">
             <span>Start time</span>
-            <input type="time" required value={draft.time} onChange={(event) => setDraft({ ...draft, time: event.target.value })} aria-describedby={feedback?.tone === 'error' ? 'session-form-error' : undefined} />
+            <input
+              type="time"
+              required
+              disabled={isSaving}
+              value={draft.time}
+              onChange={(event) => setDraft({ ...draft, time: event.target.value })}
+              aria-describedby={formErrorId}
+            />
           </label>
           <label className="field">
             <span>Duration (minutes)</span>
-            <input ref={durationFieldRef} type="number" min="1" step="1" required value={draft.duration} onChange={(event) => setDraft({ ...draft, duration: event.target.value })} aria-describedby={feedback?.tone === 'error' ? 'session-form-error' : undefined} />
+            <input
+              ref={durationFieldRef}
+              type="number"
+              min="1"
+              step="1"
+              required
+              disabled={isSaving}
+              value={draft.duration}
+              onChange={(event) => setDraft({ ...draft, duration: event.target.value })}
+              aria-describedby={formErrorId}
+            />
           </label>
           <label className="field session-note-field">
             <span>Note <small>Optional</small></span>
-            <textarea rows={3} value={draft.note} onChange={(event) => setDraft({ ...draft, note: event.target.value })} placeholder="What did you work on?" />
+            <textarea
+              rows={3}
+              disabled={isSaving}
+              value={draft.note}
+              onChange={(event) => setDraft({ ...draft, note: event.target.value })}
+              placeholder="What did you work on?"
+            />
           </label>
-          {feedback?.tone === 'error' ? <p className="settings-feedback error session-form-error" id="session-form-error" role="alert">{feedback.message}</p> : null}
+          {formErrorMessage ? (
+            <p className="settings-feedback error session-form-error" id="session-form-error" role="alert">
+              {formErrorMessage}
+            </p>
+          ) : null}
           <div className="editor-actions session-editor-actions">
-            <button className="primary-command" type="submit">
+            <button className="primary-command" type="submit" disabled={isSaving} aria-busy={isSaving || undefined}>
               <Save size={16} aria-hidden="true" />
-              {editingSessionId === 'new' ? 'Save session' : 'Update session'}
+              {isSaving ? loadingLabel : editingSessionId === 'new' ? 'Save session' : 'Update session'}
             </button>
-            <button className="secondary-command" type="button" onClick={closeEditor}>Cancel</button>
+            <button className="secondary-command" type="button" onClick={closeEditor} disabled={isSaving}>Cancel</button>
           </div>
         </form>
       ) : null}
@@ -238,6 +348,8 @@ export function ProgressView(props: {
                         onEdit={() => openEditor(session)}
                         onDelete={() => void deleteSession(session)}
                         confirmDelete={false}
+                        isDisabled={rowActionsLocked}
+                        isDeleting={pendingDeleteId === session.id}
                       />
                     </article>
                   )

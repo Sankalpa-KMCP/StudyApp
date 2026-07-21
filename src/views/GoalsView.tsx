@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Target } from 'lucide-react'
 import { isGoalMetric, type StudyGoal, type StudySession, type GoalPeriod, type GoalMetric } from '../db/types'
 import { createId, nowIso, studyDb } from '../db/studyDb'
@@ -9,7 +9,16 @@ import {
   formatGoalPeriodLabel,
   getGoalTargetUnit,
 } from '../appUtils'
-import { PanelHeader, TextInput, EditorActions, ProgressBar, RowActionButtons, EmptyState } from '../components/ui'
+import {
+  PanelHeader,
+  TextInput,
+  EditorActions,
+  ProgressBar,
+  RowActionButtons,
+  EmptyState,
+  MutationNotice,
+} from '../components/ui'
+import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 
 type GoalDraft = {
   title: string
@@ -18,8 +27,6 @@ type GoalDraft = {
   period: GoalPeriod
   metric: GoalMetric
 }
-
-type GoalFeedback = { tone: 'error'; message: string }
 
 function createGoalDraft(dailyGoalMinutes: number, goal?: StudyGoal): GoalDraft {
   return {
@@ -46,29 +53,64 @@ export function GoalsView({
 }) {
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null)
   const [draft, setDraft] = useState<GoalDraft>(() => createGoalDraft(dailyGoalMinutes))
-  const [feedback, setFeedback] = useState<GoalFeedback | null>(null)
+  const [validationError, setValidationError] = useState<string | null>(null)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const saveMutation = useMutationState()
+  const rowMutation = useMutationState()
+  const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
+  const { clearFeedback: clearRowFeedback, isPending: isRowPending, phase: rowPhase, message: rowMessage, run: runRow } = rowMutation
 
-  const openEditor = (goal?: StudyGoal) => {
+  const noticePhase: MutationPhase = validationError
+    ? 'error'
+    : savePhase === 'success' || savePhase === 'error'
+      ? savePhase
+      : rowPhase === 'success' || rowPhase === 'error'
+        ? rowPhase
+        : 'idle'
+  const noticeMessage = validationError
+    ?? (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
+    ?? (rowPhase === 'success' || rowPhase === 'error' ? rowMessage : null)
+
+  const openEditor = useCallback((goal?: StudyGoal) => {
+    setValidationError(null)
+    clearSaveFeedback()
     setEditingGoalId(goal?.id ?? 'new')
     setDraft(createGoalDraft(dailyGoalMinutes, goal))
-    setFeedback(null)
+  }, [clearSaveFeedback, dailyGoalMinutes])
+
+  const closeEditor = useCallback(() => {
+    if (isSaving) return
+    setEditingGoalId(null)
+    setDraft(createGoalDraft(dailyGoalMinutes))
+    setValidationError(null)
+  }, [dailyGoalMinutes, isSaving])
+
+  const dismissNotice = () => {
+    setValidationError(null)
+    clearSaveFeedback()
+    clearRowFeedback()
   }
 
   const saveGoal = async () => {
+    setValidationError(null)
+    clearSaveFeedback()
+    clearRowFeedback()
+
     const title = draft.title.trim()
     if (!title) {
-      setFeedback({ tone: 'error', message: 'Enter a goal title.' })
+      setValidationError('Enter a goal title.')
       return
     }
     if (!isGoalMetric(draft.metric)) {
-      setFeedback({ tone: 'error', message: 'Choose a valid metric.' })
+      setValidationError('Choose a valid metric.')
       return
     }
     if (!isValidGoalTarget(draft.target)) {
-      setFeedback({ tone: 'error', message: 'Target must be a number greater than zero.' })
+      setValidationError('Target must be a number greater than zero.')
       return
     }
 
+    const isEdit = Boolean(editingGoalId && editingGoalId !== 'new')
     const timestamp = nowIso()
     const target = clamp(Math.round(draft.target), 1, 10_000)
     const payload = {
@@ -81,31 +123,77 @@ export function GoalsView({
       metric: draft.metric,
       updatedAt: timestamp,
     }
+    const shouldUpdateDailyGoal = draft.metric === 'study_time' && draft.period === 'daily'
+
+    await runSave(async () => {
+      const writeGoal = async () => {
+        if (isEdit && editingGoalId) {
+          const updated = await studyDb.goals.update(editingGoalId, payload)
+          if (updated === 0) throw new Error('Goal no longer exists.')
+          return
+        }
+
+        await studyDb.goals.add({ id: createId('goal'), ...payload, createdAt: timestamp })
+      }
+
+      if (shouldUpdateDailyGoal) {
+        await studyDb.transaction('rw', studyDb.goals, studyDb.settings, async () => {
+          await writeGoal()
+          await studyDb.settings.put({ key: 'dailyGoalMinutes', value: target })
+        })
+        return
+      }
+
+      await writeGoal()
+    }, {
+      successMessage: isEdit ? 'Goal updated.' : 'Goal created.',
+      errorMessage: 'Goal could not be saved. Your details are still in the form.',
+      onSuccess: () => {
+        setEditingGoalId(null)
+        setDraft(createGoalDraft(shouldUpdateDailyGoal ? target : dailyGoalMinutes))
+        setValidationError(null)
+      },
+    })
+  }
+
+  const deleteGoal = async (goal: StudyGoal) => {
+    if (pendingDeleteId || isSaving || isRowPending) return
+
+    setValidationError(null)
+    clearSaveFeedback()
+    clearRowFeedback()
+    setPendingDeleteId(goal.id)
 
     try {
-      if (editingGoalId && editingGoalId !== 'new') await studyDb.goals.update(editingGoalId, payload)
-      else await studyDb.goals.add({ id: createId('goal'), ...payload, createdAt: timestamp })
-      if (draft.metric === 'study_time' && draft.period === 'daily') {
-        await studyDb.settings.put({ key: 'dailyGoalMinutes', value: target })
-      }
-      setEditingGoalId(null)
-      setFeedback(null)
-    } catch {
-      setFeedback({ tone: 'error', message: 'Could not save this goal. Try again.' })
+      await runRow(async () => {
+        await studyDb.goals.delete(goal.id)
+      }, {
+        successMessage: 'Goal deleted.',
+        errorMessage: 'Goal could not be deleted. Please try again.',
+        onSuccess: () => {
+          if (editingGoalId === goal.id) {
+            setEditingGoalId(null)
+            setDraft(createGoalDraft(dailyGoalMinutes))
+            setValidationError(null)
+          }
+        },
+      })
+    } finally {
+      setPendingDeleteId(null)
     }
   }
 
   const targetUnit = getGoalTargetUnit(draft.metric, draft.period)
   const metricHelpId = 'goal-metric-help'
+  const loadingLabel = editingGoalId && editingGoalId !== 'new' ? 'Saving goal...' : 'Creating goal...'
+  const rowActionsLocked = isSaving || Boolean(pendingDeleteId)
 
   return (
     <section className="workspace-panel" aria-labelledby="goals-workspace-title">
       <PanelHeader title="Goals" description="Turn study intentions into measurable targets." actionLabel="New goal" onAction={() => openEditor()} />
-      {feedback && !editingGoalId ? (
-        <p className="settings-feedback error" role="alert">{feedback.message}</p>
-      ) : null}
+      <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
       {editingGoalId ? (
-        <div className="editor-card">
+        <div className="editor-card" aria-busy={isSaving || undefined}>
           <TextInput label="Goal title" value={draft.title} onChange={(title) => setDraft({ ...draft, title })} />
           <label className="field" htmlFor="goal-metric">
             <span>Metric</span>
@@ -115,6 +203,7 @@ export function GoalsView({
               required
               aria-required="true"
               aria-describedby={metricHelpId}
+              disabled={isSaving}
               onChange={(event) => setDraft({ ...draft, metric: event.target.value as GoalMetric })}
             >
               <option value="manual">Manual progress</option>
@@ -126,7 +215,11 @@ export function GoalsView({
           </p>
           <label className="field">
             <span>Period</span>
-            <select value={draft.period} onChange={(event) => setDraft({ ...draft, period: event.target.value as GoalPeriod })}>
+            <select
+              value={draft.period}
+              disabled={isSaving}
+              onChange={(event) => setDraft({ ...draft, period: event.target.value as GoalPeriod })}
+            >
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
@@ -139,6 +232,7 @@ export function GoalsView({
               min={1}
               max={10_000}
               required
+              disabled={isSaving}
               value={Number.isFinite(draft.target) ? draft.target : ''}
               onChange={(event) => setDraft({ ...draft, target: Number(event.target.value) })}
             />
@@ -150,13 +244,18 @@ export function GoalsView({
                 type="number"
                 min={0}
                 max={10_000}
+                disabled={isSaving}
                 value={Number.isFinite(draft.progress) ? draft.progress : ''}
                 onChange={(event) => setDraft({ ...draft, progress: Number(event.target.value) })}
               />
             </label>
           ) : null}
-          {feedback ? <p className="settings-feedback error" role="alert">{feedback.message}</p> : null}
-          <EditorActions onSave={() => void saveGoal()} onCancel={() => { setEditingGoalId(null); setFeedback(null) }} />
+          <EditorActions
+            onSave={() => void saveGoal()}
+            onCancel={closeEditor}
+            isLoading={isSaving}
+            loadingLabel={loadingLabel}
+          />
         </div>
       ) : null}
       {goals.length > 0 ? (
@@ -174,7 +273,13 @@ export function GoalsView({
                 <h3>{goal.title}</h3>
                 <p>{progressLabel}</p>
                 <ProgressBar value={progress.percentage} label={`${Math.round(progress.percentage)}%`} />
-                <RowActionButtons label={goal.title} onEdit={() => openEditor(goal)} onDelete={() => void studyDb.goals.delete(goal.id)} />
+                <RowActionButtons
+                  label={goal.title}
+                  onEdit={() => openEditor(goal)}
+                  onDelete={() => void deleteGoal(goal)}
+                  isDisabled={rowActionsLocked}
+                  isDeleting={pendingDeleteId === goal.id}
+                />
               </article>
             )
           })}

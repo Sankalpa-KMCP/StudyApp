@@ -584,7 +584,7 @@ describe('App', () => {
     await user.type(screen.getByLabelText('Note Optional'), 'Worked through momentum problems')
     await user.click(screen.getByRole('button', { name: 'Save session' }))
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Session logged.')
+    expect(await screen.findByRole('status')).toHaveTextContent('Study session recorded.')
     const journal = screen.getByRole('region', { name: 'Study journal' })
     expect(within(journal).getByLabelText(/Physics, .*30m/)).toBeInTheDocument()
     expect(within(journal).getByText('Worked through momentum problems')).toBeInTheDocument()
@@ -624,7 +624,7 @@ describe('App', () => {
     expect(await studyDb.studySessions.count()).toBe(1)
     await user.click(screen.getByLabelText(/Delete Physics session at/))
     await waitFor(() => expect(screen.queryByLabelText(/Physics, .*45m/)).not.toBeInTheDocument())
-    expect(screen.getByRole('status')).toHaveTextContent('Session deleted.')
+    expect(screen.getByRole('status')).toHaveTextContent('Study session deleted.')
     expect(confirmDelete).toHaveBeenCalledWith(`Delete session from ${formatShortTime(start.toISOString())}? This cannot be undone.`)
 
     await user.click(screen.getByRole('button', { name: 'Home' }))
@@ -648,7 +648,7 @@ describe('App', () => {
     await user.type(screen.getByLabelText('Duration (minutes)'), '25')
     await user.click(screen.getByRole('button', { name: 'Save session' }))
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Session logged.')
+    expect(await screen.findByRole('status')).toHaveTextContent('Study session recorded.')
     const journal = screen.getByRole('region', { name: 'Study journal' })
     expect(within(journal).getByRole('region', { name: 'Yesterday' })).toBeInTheDocument()
     expect(within(journal).getByLabelText(/General, .*25m/)).toBeInTheDocument()
@@ -680,7 +680,7 @@ describe('App', () => {
 
     await user.selectOptions(screen.getByLabelText('Subject'), '')
     await user.click(screen.getByRole('button', { name: 'Update session' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Session updated.')
+    expect(await screen.findByRole('status')).toHaveTextContent('Study session updated.')
     expect((await studyDb.studySessions.toArray())[0].subjectId).toBe('')
 
     await user.click(screen.getByRole('button', { name: 'Log session' }))
@@ -707,6 +707,189 @@ describe('App', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Session end time cannot be in the future.')
     expect(screen.getByLabelText('Duration (minutes)')).toHaveFocus()
     expect((await studyDb.studySessions.toArray()).map((session) => session.id)).toEqual(['session-needs-subject'])
+  })
+
+  it('does not invoke Dexie when manual session validation fails', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 13, 15, 0))
+    const user = userEvent.setup()
+    const addSpy = vi.spyOn(studyDb.studySessions, 'add')
+    const updateSpy = vi.spyOn(studyDb.studySessions, 'update')
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Progress' }))
+    await user.click(screen.getByRole('button', { name: 'Log session' }))
+    await user.clear(screen.getByLabelText('Duration (minutes)'))
+    await user.type(screen.getByLabelText('Duration (minutes)'), '0')
+    await user.click(screen.getByRole('button', { name: 'Save session' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Duration must be at least 1 minute.')
+    expect(addSpy).not.toHaveBeenCalled()
+    expect(updateSpy).not.toHaveBeenCalled()
+  })
+
+  it('prevents duplicate session create while save is pending', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 13, 15, 0))
+    const user = userEvent.setup()
+    let releaseAdd!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseAdd = resolve
+    })
+    const originalAdd = studyDb.studySessions.add.bind(studyDb.studySessions)
+    const addSpy = vi.spyOn(studyDb.studySessions, 'add').mockImplementation(async (session) => {
+      await gate
+      return originalAdd(session)
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Progress' }))
+    await user.click(screen.getByRole('button', { name: 'Log session' }))
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-07-13' } })
+    fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '14:00' } })
+    await user.clear(screen.getByLabelText('Duration (minutes)'))
+    await user.type(screen.getByLabelText('Duration (minutes)'), '25')
+    await user.click(screen.getByRole('button', { name: 'Save session' }))
+
+    const savingButton = await screen.findByRole('button', { name: 'Recording session...' })
+    expect(savingButton).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+    expect(screen.getByLabelText('Subject')).toBeDisabled()
+    await user.click(savingButton)
+    expect(addSpy).toHaveBeenCalledTimes(1)
+
+    releaseAdd()
+    expect(await screen.findByRole('status')).toHaveTextContent('Study session recorded.')
+    expect(await studyDb.studySessions.count()).toBe(1)
+  })
+
+  it('preserves session draft after a failed create and allows retry', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 13, 15, 0))
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const originalAdd = studyDb.studySessions.add.bind(studyDb.studySessions)
+    const addSpy = vi.spyOn(studyDb.studySessions, 'add')
+      .mockRejectedValueOnce(new Error('IndexedDB session write failed'))
+      .mockImplementation(async (session) => originalAdd(session))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Progress' }))
+    await user.click(screen.getByRole('button', { name: 'Log session' }))
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-07-13' } })
+    fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '13:15' } })
+    await user.clear(screen.getByLabelText('Duration (minutes)'))
+    await user.type(screen.getByLabelText('Duration (minutes)'), '40')
+    await user.type(screen.getByLabelText('Note Optional'), 'Retry note')
+    await user.click(screen.getByRole('button', { name: 'Save session' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Study session could not be saved. Your details are still in the form.')
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-07-13')
+    expect(screen.getByLabelText('Start time')).toHaveValue('13:15')
+    expect(screen.getByLabelText('Duration (minutes)')).toHaveValue(40)
+    expect(screen.getByLabelText('Note Optional')).toHaveValue('Retry note')
+    expect(screen.getByRole('button', { name: 'Save session' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Save session' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Study session recorded.')
+    expect(addSpy).toHaveBeenCalledTimes(2)
+    expect((await studyDb.studySessions.toArray())[0]).toMatchObject({
+      minutes: 40,
+      note: 'Retry note',
+    })
+  })
+
+  it('treats a missing-row session edit as failure and keeps the editor open', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 13, 15, 0))
+    const user = userEvent.setup()
+    await studyDb.studySessions.add({
+      id: 'session-missing-edit',
+      subjectId: '',
+      startedAt: new Date(2026, 6, 13, 12, 0).toISOString(),
+      endedAt: new Date(2026, 6, 13, 12, 30).toISOString(),
+      minutes: 30,
+      note: 'Original note',
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(studyDb.studySessions, 'update').mockResolvedValueOnce(0)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Progress' }))
+    await user.click(screen.getByLabelText(/Edit General session at/))
+    await user.clear(screen.getByLabelText('Duration (minutes)'))
+    await user.type(screen.getByLabelText('Duration (minutes)'), '55')
+    await user.clear(screen.getByLabelText('Note Optional'))
+    await user.type(screen.getByLabelText('Note Optional'), 'Edited note')
+    await user.click(screen.getByRole('button', { name: 'Update session' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Study session could not be saved. Your details are still in the form.')
+    expect(screen.getByLabelText('Duration (minutes)')).toHaveValue(55)
+    expect(screen.getByLabelText('Note Optional')).toHaveValue('Edited note')
+    expect(screen.getByRole('heading', { name: 'Edit study session' })).toBeInTheDocument()
+  })
+
+  it('keeps a session visible when confirmed deletion fails and blocks duplicate deletes', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 13, 15, 0))
+    const user = userEvent.setup()
+    const timestamp = new Date().toISOString()
+    await studyDb.goals.add({
+      id: 'goal-session-delete',
+      title: 'Daily focus',
+      target: 60,
+      progress: 0,
+      period: 'daily',
+      metric: 'study_time',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await studyDb.studySessions.add({
+      id: 'session-delete-fail',
+      subjectId: '',
+      startedAt: new Date(2026, 6, 13, 13, 0).toISOString(),
+      endedAt: new Date(2026, 6, 13, 13, 30).toISOString(),
+      minutes: 30,
+      note: 'Sticky session',
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    let releaseDelete!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseDelete = resolve
+    })
+    const originalDelete = studyDb.studySessions.delete.bind(studyDb.studySessions)
+    const deleteSpy = vi.spyOn(studyDb.studySessions, 'delete').mockImplementation(async () => {
+      await gate
+      throw new Error('delete failed')
+    })
+    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Progress' }))
+    expect(within(screen.getByText('Weekly study').closest('article')! as HTMLElement).getByText('0h 30m')).toBeInTheDocument()
+    await user.click(screen.getByLabelText(/Delete General session at/))
+
+    expect(await screen.findByLabelText(/Deleting General session at/)).toBeDisabled()
+    expect(screen.getByLabelText(/Edit General session at/)).toBeDisabled()
+    await user.click(screen.getByLabelText(/Deleting General session at/))
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+
+    releaseDelete()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Study session could not be deleted. Please try again.')
+    expect(screen.getByText('Sticky session')).toBeInTheDocument()
+    expect(within(screen.getByText('Weekly study').closest('article')! as HTMLElement).getByText('0h 30m')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Goals' }))
+    expect(screen.getByText('30/60 minutes')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Progress' }))
+    deleteSpy.mockImplementation(async (id) => originalDelete(id))
+    await user.click(screen.getByLabelText(/Delete General session at/))
+    await waitFor(() => expect(screen.queryByText('Sticky session')).not.toBeInTheDocument())
+    expect(await screen.findByRole('status')).toHaveTextContent('Study session deleted.')
+    expect(within(screen.getByText('Weekly study').closest('article')! as HTMLElement).getByText('0h')).toBeInTheDocument()
+    confirmDelete.mockRestore()
   })
 
   it('labels sessions whose subject no longer exists', async () => {
@@ -1526,6 +1709,209 @@ describe('App', () => {
     expect(screen.getByLabelText('Metric')).toHaveValue('study_time')
     expect(screen.queryByLabelText('Progress (points)')).not.toBeInTheDocument()
   }, 20_000)
+
+  it('prevents duplicate goal create while save is pending', async () => {
+    const user = userEvent.setup()
+    let releaseAdd!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseAdd = resolve
+    })
+    const originalAdd = studyDb.goals.add.bind(studyDb.goals)
+    const addSpy = vi.spyOn(studyDb.goals, 'add').mockImplementation(async (goal) => {
+      await gate
+      return originalAdd(goal)
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Goals' }))
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.type(screen.getByLabelText('Goal title'), 'Pending goal')
+    fireEvent.change(screen.getByLabelText(/Target \(points\)/), { target: { value: '40' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const savingButton = await screen.findByRole('button', { name: 'Creating goal...' })
+    expect(savingButton).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+    expect(screen.getByLabelText('Metric')).toBeDisabled()
+    await user.click(savingButton)
+    expect(addSpy).toHaveBeenCalledTimes(1)
+
+    releaseAdd()
+    expect(await screen.findByText('Pending goal')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Goal created.')
+    expect(await studyDb.goals.count()).toBe(1)
+  })
+
+  it('preserves goal draft after a failed create and allows retry', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const originalAdd = studyDb.goals.add.bind(studyDb.goals)
+    const addSpy = vi.spyOn(studyDb.goals, 'add')
+      .mockRejectedValueOnce(new Error('IndexedDB goal write failed'))
+      .mockImplementation(async (goal) => originalAdd(goal))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Goals' }))
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.type(screen.getByLabelText('Goal title'), 'Retry goal')
+    await user.selectOptions(screen.getByLabelText('Metric'), 'manual')
+    await user.selectOptions(screen.getByLabelText('Period'), 'weekly')
+    fireEvent.change(screen.getByLabelText(/Target \(points\)/), { target: { value: '55' } })
+    fireEvent.change(screen.getByLabelText('Progress (points)'), { target: { value: '11' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Goal could not be saved. Your details are still in the form.')
+    expect(screen.getByLabelText('Goal title')).toHaveValue('Retry goal')
+    expect(screen.getByLabelText('Metric')).toHaveValue('manual')
+    expect(screen.getByLabelText('Period')).toHaveValue('weekly')
+    expect(screen.getByLabelText(/Target \(points\)/)).toHaveValue(55)
+    expect(screen.getByLabelText('Progress (points)')).toHaveValue(11)
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Retry goal')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Goal created.')
+    expect(addSpy).toHaveBeenCalledTimes(2)
+    expect((await studyDb.goals.toArray())[0]).toMatchObject({
+      title: 'Retry goal',
+      metric: 'manual',
+      period: 'weekly',
+      target: 55,
+      progress: 11,
+    })
+  })
+
+  it('treats a missing-row goal edit as failure and keeps the editor open', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.goals.add({
+      id: 'goal-missing-edit',
+      title: 'Existing goal',
+      target: 30,
+      progress: 5,
+      period: 'daily',
+      metric: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(studyDb.goals, 'update').mockResolvedValueOnce(0)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Goals' }))
+    await user.click(await screen.findByLabelText('Edit Existing goal'))
+    await user.clear(screen.getByLabelText('Goal title'))
+    await user.type(screen.getByLabelText('Goal title'), 'Edited goal')
+    fireEvent.change(screen.getByLabelText(/Target \(points\)/), { target: { value: '45' } })
+    fireEvent.change(screen.getByLabelText('Progress (points)'), { target: { value: '9' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Goal could not be saved. Your details are still in the form.')
+    expect(screen.getByLabelText('Goal title')).toHaveValue('Edited goal')
+    expect(screen.getByLabelText('Metric')).toHaveValue('manual')
+    expect(screen.getByLabelText(/Target \(points\)/)).toHaveValue(45)
+    expect(screen.getByLabelText('Progress (points)')).toHaveValue(9)
+  })
+
+  it('rolls back daily study-time goal writes when dailyGoalMinutes update fails', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
+    const originalPut = studyDb.settings.put.bind(studyDb.settings)
+    vi.spyOn(studyDb.settings, 'put').mockImplementation(async (entry) => {
+      if (entry.key === 'dailyGoalMinutes' && entry.value === 90) {
+        throw new Error('settings write failed')
+      }
+      return originalPut(entry)
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Goals' }))
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.type(screen.getByLabelText('Goal title'), 'Atomic daily target')
+    await user.selectOptions(screen.getByLabelText('Metric'), 'study_time')
+    await user.selectOptions(screen.getByLabelText('Period'), 'daily')
+    fireEvent.change(screen.getByLabelText(/Target \(minutes\)/), { target: { value: '90' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Goal could not be saved. Your details are still in the form.')
+    expect(screen.getByLabelText('Goal title')).toHaveValue('Atomic daily target')
+    expect(await studyDb.goals.count()).toBe(0)
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(120)
+  })
+
+  it('updates dailyGoalMinutes only for successful daily study-time goal saves', async () => {
+    const user = userEvent.setup()
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 100 })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Goals' }))
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.type(screen.getByLabelText('Goal title'), 'Daily study minutes')
+    await user.selectOptions(screen.getByLabelText('Metric'), 'study_time')
+    await user.selectOptions(screen.getByLabelText('Period'), 'daily')
+    fireEvent.change(screen.getByLabelText(/Target \(minutes\)/), { target: { value: '80' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Goal created.')
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(80)
+
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.type(screen.getByLabelText('Goal title'), 'Daily focus manual')
+    await user.selectOptions(screen.getByLabelText('Metric'), 'manual')
+    await user.selectOptions(screen.getByLabelText('Period'), 'daily')
+    fireEvent.change(screen.getByLabelText(/Target \(points\)/), { target: { value: '70' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Daily focus manual')).toBeInTheDocument()
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(80)
+  })
+
+  it('keeps a goal visible when confirmed deletion fails and blocks duplicate deletes', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.goals.add({
+      id: 'goal-delete-fail',
+      title: 'Sticky goal',
+      target: 20,
+      progress: 2,
+      period: 'daily',
+      metric: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    let releaseDelete!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseDelete = resolve
+    })
+    const originalDelete = studyDb.goals.delete.bind(studyDb.goals)
+    const deleteSpy = vi.spyOn(studyDb.goals, 'delete').mockImplementation(async () => {
+      await gate
+      throw new Error('delete failed')
+    })
+    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Goals' }))
+    await user.click(await screen.findByLabelText('Delete Sticky goal'))
+
+    expect(await screen.findByLabelText('Deleting Sticky goal')).toBeDisabled()
+    expect(screen.getByLabelText('Edit Sticky goal')).toBeDisabled()
+    await user.click(screen.getByLabelText('Deleting Sticky goal'))
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+
+    releaseDelete()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Goal could not be deleted. Please try again.')
+    expect(screen.getByText('Sticky goal')).toBeInTheDocument()
+
+    deleteSpy.mockImplementation(async (id) => originalDelete(id))
+    await user.click(screen.getByLabelText('Delete Sticky goal'))
+    await waitFor(() => expect(screen.queryByText('Sticky goal')).not.toBeInTheDocument())
+    expect(await screen.findByRole('status')).toHaveTextContent('Goal deleted.')
+    confirmDelete.mockRestore()
+  })
 
   it('creates a new subject from the subjects view', async () => {
     const user = userEvent.setup()
