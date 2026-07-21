@@ -493,6 +493,7 @@ describe('App', () => {
   it('blocks deleting subjects that still have linked records', async () => {
     const user = userEvent.setup()
     const confirm = vi.spyOn(window, 'confirm')
+    const deleteSpy = vi.spyOn(studyDb.subjects, 'delete')
     await studyDb.subjects.add({
       id: 'subject-linked',
       name: 'Chemistry',
@@ -517,9 +518,12 @@ describe('App', () => {
     await user.click(await screen.findByRole('button', { name: 'Subjects' }))
     await user.click(screen.getByLabelText('Delete Chemistry'))
 
-    expect(await screen.findByText(/Cannot delete Chemistry/)).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Cannot delete Chemistry/)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/1 notes/)
     expect(confirm).not.toHaveBeenCalled()
+    expect(deleteSpy).not.toHaveBeenCalled()
     expect(await studyDb.subjects.get('subject-linked')).toBeDefined()
+    expect(screen.getByLabelText('Delete Chemistry')).toBeEnabled()
   })
 
   it('implements profile and progress log-session controls', async () => {
@@ -975,12 +979,172 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Derivative rule')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Flashcard created.')
     expect(screen.getByText('Answer hidden')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reveal' }))
     expect(screen.getByText('Power rule')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Remembered' }))
     expect(await screen.findByText('remembered')).toBeInTheDocument()
     expect(await screen.findByText(/Next review/)).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Flashcard marked remembered.')
+  })
+
+  it('preserves flashcard draft after a failed create', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const originalAdd = studyDb.flashcards.add.bind(studyDb.flashcards)
+    vi.spyOn(studyDb.flashcards, 'add')
+      .mockRejectedValueOnce(new Error('IndexedDB card write failed'))
+      .mockImplementation(async (card) => originalAdd(card))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Flashcards' }))
+    await user.click(screen.getByRole('button', { name: 'New card' }))
+    await user.type(screen.getByLabelText('Front'), 'Retry front')
+    await user.type(screen.getByLabelText('Back'), 'Retry back')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Flashcard could not be saved. Your details are still in the form.')
+    expect(screen.getByLabelText('Front')).toHaveValue('Retry front')
+    expect(screen.getByLabelText('Back')).toHaveValue('Retry back')
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Retry front')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Flashcard created.')
+    expect(await studyDb.flashcards.count()).toBe(1)
+  })
+
+  it('treats a missing-row flashcard edit as failure and keeps values', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.flashcards.add({
+      id: 'card-missing-edit',
+      front: 'Existing front',
+      back: 'Existing back',
+      subjectId: '',
+      status: 'new',
+      lastReviewedAt: '',
+      dueAt: timestamp,
+      intervalDays: 0,
+      reviewCount: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(studyDb.flashcards, 'update').mockResolvedValueOnce(0)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Flashcards' }))
+    await user.click(await screen.findByLabelText('Edit Existing front'))
+    await user.clear(screen.getByLabelText('Front'))
+    await user.type(screen.getByLabelText('Front'), 'Edited front')
+    await user.clear(screen.getByLabelText('Back'))
+    await user.type(screen.getByLabelText('Back'), 'Edited back')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Flashcard could not be saved. Your details are still in the form.')
+    expect(screen.getByLabelText('Front')).toHaveValue('Edited front')
+    expect(screen.getByLabelText('Back')).toHaveValue('Edited back')
+  })
+
+  it('blocks duplicate flashcard review and preserves the card when review fails', async () => {
+    const user = userEvent.setup()
+    const timestamp = new Date().toISOString()
+    await studyDb.flashcards.add({
+      id: 'card-review-pending',
+      front: 'Review race card',
+      back: 'Answer',
+      subjectId: '',
+      status: 'new',
+      lastReviewedAt: '',
+      dueAt: timestamp,
+      intervalDays: 0,
+      reviewCount: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+
+    let releaseUpdate!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseUpdate = resolve
+    })
+    const originalUpdate = studyDb.flashcards.update.bind(studyDb.flashcards)
+    const updateSpy = vi.spyOn(studyDb.flashcards, 'update').mockImplementation(async (id, changes) => {
+      await gate
+      return originalUpdate(id, changes)
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Flashcards' }))
+    await user.click(await screen.findByRole('button', { name: 'Remembered' }))
+
+    const savingButtons = await screen.findAllByRole('button', { name: 'Saving review...' })
+    expect(savingButtons).toHaveLength(2)
+    savingButtons.forEach((button) => expect(button).toBeDisabled())
+    expect(screen.getByLabelText('Edit Review race card')).toBeDisabled()
+    await user.click(savingButtons[0])
+    expect(updateSpy).toHaveBeenCalledTimes(1)
+
+    releaseUpdate()
+    expect(await screen.findByRole('status')).toHaveTextContent('Flashcard marked remembered.')
+    expect(await screen.findByText('remembered')).toBeInTheDocument()
+
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    updateSpy.mockRejectedValueOnce(new Error('review write failed'))
+    await user.click(screen.getByRole('button', { name: 'Later' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Review could not be saved. The card has not been advanced.')
+    expect(screen.getByText('Review race card')).toBeInTheDocument()
+    expect(screen.getByText('remembered')).toBeInTheDocument()
+  })
+
+  it('keeps a flashcard visible when deletion fails and blocks duplicate deletes', async () => {
+    const user = userEvent.setup()
+    const timestamp = new Date().toISOString()
+    await studyDb.flashcards.add({
+      id: 'card-delete-fail',
+      front: 'Sticky card',
+      back: 'Keep me',
+      subjectId: '',
+      status: 'new',
+      lastReviewedAt: '',
+      dueAt: timestamp,
+      intervalDays: 0,
+      reviewCount: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    let releaseDelete!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseDelete = resolve
+    })
+    const originalDelete = studyDb.flashcards.delete.bind(studyDb.flashcards)
+    const deleteSpy = vi.spyOn(studyDb.flashcards, 'delete').mockImplementation(async () => {
+      await gate
+      throw new Error('delete failed')
+    })
+    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Flashcards' }))
+    await user.click(await screen.findByLabelText('Delete Sticky card'))
+
+    expect(await screen.findByLabelText('Deleting Sticky card')).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Remembered' })).toBeDisabled()
+    await user.click(screen.getByLabelText('Deleting Sticky card'))
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+
+    releaseDelete()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Flashcard could not be deleted.')
+    expect(screen.getByText('Sticky card')).toBeInTheDocument()
+
+    deleteSpy.mockImplementation(async (id) => originalDelete(id))
+    await user.click(screen.getByLabelText('Delete Sticky card'))
+    await waitFor(() => expect(screen.queryByText('Sticky card')).not.toBeInTheDocument())
+    expect(await screen.findByRole('status')).toHaveTextContent('Flashcard deleted.')
+    confirmDelete.mockRestore()
   })
 
   it('confirms before clearing all study data and reports success', async () => {
@@ -1373,10 +1537,148 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Physics')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Subject created.')
 
     const subjects = await studyDb.subjects.toArray()
     expect(subjects).toHaveLength(1)
     expect(subjects[0].name).toBe('Physics')
+  })
+
+  it('prevents duplicate subject create while save is pending', async () => {
+    const user = userEvent.setup()
+    let releaseAdd!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseAdd = resolve
+    })
+    const originalAdd = studyDb.subjects.add.bind(studyDb.subjects)
+    const addSpy = vi.spyOn(studyDb.subjects, 'add').mockImplementation(async (subject) => {
+      await gate
+      return originalAdd(subject)
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Subjects' }))
+    await user.click(screen.getByRole('button', { name: 'New subject' }))
+    await user.type(screen.getByLabelText('Subject name'), 'Pending subject')
+    fireEvent.change(screen.getByLabelText('Target hours'), { target: { value: '8' } })
+    fireEvent.change(screen.getByLabelText('Progress %'), { target: { value: '20' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const savingButton = await screen.findByRole('button', { name: 'Creating subject...' })
+    expect(savingButton).toBeDisabled()
+    await user.click(savingButton)
+    expect(addSpy).toHaveBeenCalledTimes(1)
+
+    releaseAdd()
+    expect(await screen.findByText('Pending subject')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Subject created.')
+    expect(await studyDb.subjects.count()).toBe(1)
+  })
+
+  it('preserves subject draft after a failed create and allows retry', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const originalAdd = studyDb.subjects.add.bind(studyDb.subjects)
+    const addSpy = vi.spyOn(studyDb.subjects, 'add')
+      .mockRejectedValueOnce(new Error('IndexedDB subject write failed'))
+      .mockImplementation(async (subject) => originalAdd(subject))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Subjects' }))
+    await user.click(screen.getByRole('button', { name: 'New subject' }))
+    await user.type(screen.getByLabelText('Subject name'), 'Retry subject')
+    await user.click(screen.getByLabelText('Use #0f766e'))
+    fireEvent.change(screen.getByLabelText('Target hours'), { target: { value: '7' } })
+    fireEvent.change(screen.getByLabelText('Progress %'), { target: { value: '35' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Subject could not be saved. Your details are still in the form.')
+    expect(screen.getByLabelText('Subject name')).toHaveValue('Retry subject')
+    expect(screen.getByLabelText('Target hours')).toHaveValue(7)
+    expect(screen.getByLabelText('Progress %')).toHaveValue(35)
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Retry subject')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Subject created.')
+    expect(await studyDb.subjects.count()).toBe(1)
+    expect(addSpy).toHaveBeenCalledTimes(2)
+    expect((await studyDb.subjects.toArray())[0].color).toBe('#0f766e')
+  })
+
+  it('treats a missing-row subject edit as failure and keeps the editor open', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.subjects.add({
+      id: 'subject-missing-edit',
+      name: 'Existing subject',
+      color: '#2563eb',
+      targetHours: 5,
+      progress: 10,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(studyDb.subjects, 'update').mockResolvedValueOnce(0)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Subjects' }))
+    await user.click(await screen.findByLabelText('Edit Existing subject'))
+    await user.clear(screen.getByLabelText('Subject name'))
+    await user.type(screen.getByLabelText('Subject name'), 'Edited subject')
+    fireEvent.change(screen.getByLabelText('Target hours'), { target: { value: '9' } })
+    fireEvent.change(screen.getByLabelText('Progress %'), { target: { value: '40' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Subject could not be saved. Your details are still in the form.')
+    expect(screen.getByLabelText('Subject name')).toHaveValue('Edited subject')
+    expect(screen.getByLabelText('Target hours')).toHaveValue(9)
+    expect(screen.getByLabelText('Progress %')).toHaveValue(40)
+  })
+
+  it('keeps a subject visible when confirmed deletion fails and blocks duplicate deletes', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.subjects.add({
+      id: 'subject-delete-fail',
+      name: 'Sticky subject',
+      color: '#111827',
+      targetHours: 3,
+      progress: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    let releaseDelete!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseDelete = resolve
+    })
+    const originalDelete = studyDb.subjects.delete.bind(studyDb.subjects)
+    const deleteSpy = vi.spyOn(studyDb.subjects, 'delete').mockImplementation(async () => {
+      await gate
+      throw new Error('delete failed')
+    })
+    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Subjects' }))
+    await user.click(await screen.findByLabelText('Delete Sticky subject'))
+
+    expect(await screen.findByLabelText('Deleting Sticky subject')).toBeDisabled()
+    expect(screen.getByLabelText('Edit Sticky subject')).toBeDisabled()
+    await user.click(screen.getByLabelText('Deleting Sticky subject'))
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+
+    releaseDelete()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Subject could not be deleted. Please try again.')
+    expect(screen.getByText('Sticky subject')).toBeInTheDocument()
+
+    deleteSpy.mockImplementation(async (id) => originalDelete(id))
+    await user.click(screen.getByLabelText('Delete Sticky subject'))
+    await waitFor(() => expect(screen.queryByText('Sticky subject')).not.toBeInTheDocument())
+    expect(await screen.findByRole('status')).toHaveTextContent('Subject deleted.')
+    confirmDelete.mockRestore()
   })
 
   it('saves quick notes from the home page', async () => {
