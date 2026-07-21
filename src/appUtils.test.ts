@@ -164,7 +164,7 @@ describe('appUtils', () => {
         progress: 999,
         target: 60,
       }), sessions, now)
-      expect(result).toMatchObject({ current: 30, target: 60, percentage: 50, unit: 'min' })
+      expect(result).toMatchObject({ current: 30, target: 60, percentage: 50, unit: 'minutes' })
     })
 
     it('counts only credited current-local-day minutes for daily study_time goals', () => {
@@ -176,7 +176,7 @@ describe('appUtils', () => {
       expect(getDailyStudyMinutes(sessions, now)).toBe(30)
       expect(calculateGoalProgress(goalFixture({ metric: 'study_time', period: 'daily', target: 60 }), sessions, now)).toMatchObject({
         current: 30,
-        unit: 'min',
+        unit: 'minutes',
       })
     })
 
@@ -218,7 +218,7 @@ describe('appUtils', () => {
 
     it('exposes goal units by metric and period', () => {
       expect(getGoalUnit(goalFixture({ metric: 'manual' }))).toBe('points')
-      expect(getGoalUnit(goalFixture({ metric: 'study_time', period: 'daily' }))).toBe('min')
+      expect(getGoalUnit(goalFixture({ metric: 'study_time', period: 'daily' }))).toBe('minutes')
       expect(getGoalUnit(goalFixture({ metric: 'study_time', period: 'weekly' }))).toBe('hours')
       expect(getGoalUnit(goalFixture({ metric: 'study_time', period: 'monthly' }))).toBe('hours')
     })
