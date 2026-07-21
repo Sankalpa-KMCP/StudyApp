@@ -1,4 +1,4 @@
-import { BookOpen, Check, FileText, Flame, NotebookText, Play, Square, StopCircle, Target, Search } from 'lucide-react'
+import { BookOpen, Check, FileText, Flame, NotebookText, Pause, Play, Square, StopCircle, Target, Search } from 'lucide-react'
 import {
   formatDate,
   formatElapsed,
@@ -29,6 +29,7 @@ export function HomeView(props: {
   sessionLimitSeconds: number
   sessionNotice: string
   canStartFocus: boolean
+  focusTransitionPending: boolean
   subjects: StudySubject[]
   focusSubjectId: string
   focusDurationMinutes: number
@@ -38,6 +39,8 @@ export function HomeView(props: {
   onFocusDurationChange: (minutes: number) => void
   onQuickNotesChange: (value: string) => Promise<void>
   onStartSession: () => void
+  onPauseSession: () => void
+  onResumeSession: () => void
   onStopSession: () => Promise<void>
   onNavigate: (view: View) => void
   onCreateSubject: () => void
@@ -81,12 +84,15 @@ export function HomeView(props: {
           sessionLimitSeconds={props.sessionLimitSeconds}
           sessionNotice={props.sessionNotice}
           canStart={props.canStartFocus}
+          transitionPending={props.focusTransitionPending}
           subjects={props.subjects}
           selectedSubjectId={props.focusSubjectId}
           durationMinutes={props.focusDurationMinutes}
           onSubjectChange={props.onFocusSubjectChange}
           onDurationChange={props.onFocusDurationChange}
           onStart={props.onStartSession}
+          onPause={props.onPauseSession}
+          onResume={props.onResumeSession}
           onStop={props.onStopSession}
         />
         <QuickNoteCard key={props.quickNotes.join('\n')} notes={props.quickNotes} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
@@ -187,12 +193,15 @@ function FocusCard(props: {
   sessionLimitSeconds: number
   sessionNotice: string
   canStart: boolean
+  transitionPending: boolean
   subjects: StudySubject[]
   selectedSubjectId: string
   durationMinutes: number
   onSubjectChange: (subjectId: string) => void
   onDurationChange: (minutes: number) => void
   onStart: () => void
+  onPause: () => void
+  onResume: () => void
   onStop: () => Promise<void>
 }) {
   const [nowMs, setNowMs] = useState(() => Date.now())
@@ -208,13 +217,18 @@ function FocusCard(props: {
   const focusPercent = percent(props.focusMinutes, props.goalMinutes)
   const timerPercent = props.sessionLimitSeconds > 0 ? percent(elapsedSeconds, props.sessionLimitSeconds) : focusPercent
   const remainingSeconds = props.sessionLimitSeconds > 0 ? Math.max(0, props.sessionLimitSeconds - elapsedSeconds) : 0
+  const isPaused = props.activeSession?.status === 'paused'
   return (
     <section className="card focus-card" aria-labelledby="focus-title">
       <h2 id="focus-title">Focus session</h2>
       <div className="focus-ring" style={{ '--focus-percent': `${timerPercent}%` } as React.CSSProperties}>
         <div>
           <strong>{props.activeSession ? formatElapsed(props.sessionLimitSeconds > 0 ? remainingSeconds : elapsedSeconds) : formatMinutes(props.focusMinutes)}</strong>
-          <span>{props.activeSession ? (props.sessionLimitSeconds > 0 ? 'remaining' : 'elapsed') : `of ${formatMinutes(props.goalMinutes)}`}</span>
+          <span>
+            {props.activeSession
+              ? (isPaused ? 'paused' : props.sessionLimitSeconds > 0 ? 'remaining' : 'elapsed')
+              : `of ${formatMinutes(props.goalMinutes)}`}
+          </span>
         </div>
       </div>
       <div className="focus-stat-row" aria-label="Daily focus progress">
@@ -231,7 +245,7 @@ function FocusCard(props: {
       </label>
       <label className="field focus-subject-field">
         <span>Focus subject</span>
-        <select value={props.selectedSubjectId} onChange={(event) => props.onSubjectChange(event.target.value)}>
+        <select value={props.selectedSubjectId} onChange={(event) => props.onSubjectChange(event.target.value)} disabled={props.transitionPending}>
           <option value="">General</option>
           {props.subjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.name}</option>)}
         </select>
@@ -244,12 +258,25 @@ function FocusCard(props: {
       ) : null}
       {props.sessionNotice ? <p className="session-complete" role="status">{props.sessionNotice}</p> : null}
       {props.activeSession ? (
-        <button className="primary-command session-button" type="button" onClick={() => void props.onStop()}>
-          <StopCircle size={18} aria-hidden="true" />
-          Stop session
-        </button>
+        <div className="session-actions">
+          {isPaused ? (
+            <button className="primary-command session-button" type="button" onClick={props.onResume} disabled={props.transitionPending}>
+              <Play size={18} aria-hidden="true" />
+              Resume
+            </button>
+          ) : (
+            <button className="primary-command session-button" type="button" onClick={props.onPause} disabled={props.transitionPending}>
+              <Pause size={18} aria-hidden="true" />
+              Pause
+            </button>
+          )}
+          <button className="session-button" type="button" onClick={() => void props.onStop()} disabled={props.transitionPending}>
+            <StopCircle size={18} aria-hidden="true" />
+            Stop session
+          </button>
+        </div>
       ) : (
-        <button className="primary-command session-button" type="button" onClick={props.onStart} disabled={!props.canStart}>
+        <button className="primary-command session-button" type="button" onClick={props.onStart} disabled={!props.canStart || props.transitionPending}>
           <Play size={18} aria-hidden="true" />
           Start focus
         </button>
