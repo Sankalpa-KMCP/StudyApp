@@ -1,0 +1,98 @@
+/* Intentionally cross-owned selector groups kept intact to preserve cascade;
+   do not split these lists by feature ownership. */
+
+.hero-row h1,
+.workspace-heading h1 {
+  margin: 0;
+  font-family: Outfit, Inter, sans-serif;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+
+.hero-actions,
+.button-row,
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+
+.insight-grid,
+.summary-grid,
+.subject-grid,
+.bottom-grid,
+.card-grid,
+.metric-grid {
+  display: grid;
+  gap: 16px;
+}
+
+
+.subject-grid {
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+}
+
+
+.focus-subject-field,
+.session-button,
+.session-complete,
+.due-copy {
+  width: 100%;
+}
+
+
+.save-status,
+.field > span {
+  color: var(--quiet);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+
+.field {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.field input,
+.field select,
+.field textarea,
+.reset-confirm-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-sm);
+  outline: 0;
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field input:hover,
+.field select:hover,
+.field textarea:hover {
+  border-color: var(--accent);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.reset-confirm-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.field-full,
+.note-editor .field-full {
+  grid-column: 1 / -1;
+}
