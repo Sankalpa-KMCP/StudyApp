@@ -1397,10 +1397,10 @@ describe('App', () => {
     await user.type(screen.getByPlaceholderText('DELETE'), 'DELETE')
     await user.click(screen.getByRole('button', { name: 'Delete all data' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not clear study data. Try again.')
-
-    // Ensure the dialog is closed and reset
-    expect(screen.getByRole('button', { name: /Reset all study data/ })).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Study data could not be cleared. Please try again.')
+    expect(screen.getByPlaceholderText('DELETE')).toHaveValue('DELETE')
+    expect(screen.getByRole('button', { name: 'Delete all data' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled()
 
     spy.mockRestore()
   })
@@ -2072,7 +2072,7 @@ describe('App', () => {
 
     const textarea = await screen.findByPlaceholderText(/Capture fast ideas/i)
     fireEvent.change(textarea, { target: { value: 'Review chapter 5 for exam' } })
-    expect(screen.getByText('Saving…')).toBeInTheDocument()
+    expect(screen.getByText('Saving...')).toBeInTheDocument()
 
     await waitFor(async () => {
       const setting = await studyDb.settings.get('quickNotes')
@@ -2440,7 +2440,7 @@ describe('App', () => {
     const originalCreateElement = document.createElement.bind(document)
     const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
       if (tagName === 'a') {
-        return { click: clickMock, setAttribute: vi.fn() } as unknown as HTMLElement
+        return { click: clickMock, href: '', download: '', setAttribute: vi.fn() } as unknown as HTMLElement
       }
       return originalCreateElement(tagName)
     })
@@ -2454,8 +2454,185 @@ describe('App', () => {
     })
     expect(clickMock).toHaveBeenCalled()
     expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:test-url')
+    const blob = createObjectURLMock.mock.calls[0][0] as Blob
+    const exported = JSON.parse(await blob.text()) as { version: number }
+    expect(exported.version).toBe(2)
+    expect(await screen.findByRole('status')).toHaveTextContent('Backup exported.')
 
     createElementSpy.mockRestore()
+  })
+
+  it('prevents duplicate export while one export is pending', async () => {
+    const user = userEvent.setup()
+    let releaseExport!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseExport = resolve
+    })
+    const studyDbModule = await import('./db/studyDb')
+    const originalExport = studyDbModule.exportStudyData
+    const exportSpy = vi.spyOn(studyDbModule, 'exportStudyData').mockImplementation(async () => {
+      await gate
+      return originalExport()
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+
+    const createObjectURLMock = vi.fn().mockReturnValue('blob:pending-export')
+    const revokeObjectURLMock = vi.fn()
+    global.URL.createObjectURL = createObjectURLMock
+    global.URL.revokeObjectURL = revokeObjectURLMock
+    const originalCreateElement = document.createElement.bind(document)
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      if (tagName === 'a') {
+        return { click: vi.fn(), href: '', download: '', setAttribute: vi.fn() } as unknown as HTMLElement
+      }
+      return originalCreateElement(tagName)
+    })
+
+    await user.click(screen.getByRole('button', { name: /Export data/ }))
+
+    const exportingButton = await screen.findByRole('button', { name: /Exporting backup/ })
+    expect(exportingButton).toBeDisabled()
+    await user.click(exportingButton)
+    expect(exportSpy).toHaveBeenCalledTimes(1)
+
+    releaseExport()
+    expect(await screen.findByRole('status')).toHaveTextContent('Backup exported.')
+    createElementSpy.mockRestore()
+  })
+
+  it('shows a friendly error when backup export fails', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(await import('./db/studyDb'), 'exportStudyData').mockRejectedValueOnce(new Error('serialize failed'))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: /Export data/ }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Backup could not be exported.')
+    expect(screen.queryByText(/serialize failed/i)).not.toBeInTheDocument()
+  })
+
+  it('keeps clear-all confirmation state when clearing fails and blocks duplicate clears', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    await studyDb.tasks.add({
+      id: 'task-clear-fail',
+      title: 'Keep me',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 20,
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    })
+
+    let releaseClear!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseClear = resolve
+    })
+    const originalClear = studyDb.tasks.clear.bind(studyDb.tasks)
+    const clearSpy = vi.spyOn(studyDb.tasks, 'clear').mockImplementation(async () => {
+      await gate
+      throw new Error('clear failed')
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: /Reset all study data/ }))
+    await user.type(screen.getByPlaceholderText('DELETE'), 'DELETE')
+    await user.click(screen.getByRole('button', { name: 'Delete all data' }))
+
+    expect(await screen.findByRole('button', { name: 'Clearing...' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Clearing...' }))
+    expect(clearSpy).toHaveBeenCalledTimes(1)
+
+    releaseClear()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Study data could not be cleared. Please try again.')
+    expect(screen.getByPlaceholderText('DELETE')).toHaveValue('DELETE')
+    expect(await studyDb.tasks.count()).toBe(1)
+
+    clearSpy.mockImplementation(async () => originalClear())
+    await user.click(screen.getByRole('button', { name: 'Delete all data' }))
+    expect(await screen.findByRole('heading', { name: 'Good morning' })).toBeInTheDocument()
+    expect(await studyDb.tasks.count()).toBe(0)
+  })
+
+  it('preserves quick-note drafts on failure and keeps newest write last', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    render(<App />)
+    const textarea = await screen.findByPlaceholderText(/Capture fast ideas/i)
+
+    const originalPut = studyDb.settings.put.bind(studyDb.settings)
+    let releaseFirst!: () => void
+    const firstGate = new Promise<void>((resolve) => {
+      releaseFirst = resolve
+    })
+    const putSpy = vi.spyOn(studyDb.settings, 'put').mockImplementation(async (entry) => {
+      if (entry.key !== 'quickNotes') return originalPut(entry)
+      await firstGate
+      throw new Error('quick notes write failed')
+    })
+
+    fireEvent.change(textarea, { target: { value: 'First draft line' } })
+    expect(await screen.findByText('Saving...')).toBeInTheDocument()
+    await waitFor(() => expect(putSpy).toHaveBeenCalled())
+    releaseFirst()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Quick notes could not be saved. Your text is still available.')
+    expect(textarea).toHaveValue('First draft line')
+
+    putSpy.mockImplementation(async (entry) => originalPut(entry))
+    let olderRelease!: () => void
+    let newerRelease!: () => void
+    const olderGate = new Promise<void>((resolve) => {
+      olderRelease = resolve
+    })
+    const newerGate = new Promise<void>((resolve) => {
+      newerRelease = resolve
+    })
+    const writes: string[] = []
+    putSpy.mockImplementation(async (entry) => {
+      if (entry.key !== 'quickNotes') return originalPut(entry)
+      const value = Array.isArray(entry.value) ? entry.value.join('\n') : String(entry.value)
+      if (value.includes('Older')) {
+        await olderGate
+      } else {
+        await newerGate
+      }
+      writes.push(value)
+      return originalPut(entry)
+    })
+
+    fireEvent.change(textarea, { target: { value: 'Older value' } })
+    await waitFor(() => expect(putSpy).toHaveBeenCalled())
+    fireEvent.change(textarea, { target: { value: 'Newer value' } })
+    newerRelease()
+    olderRelease()
+
+    await waitFor(() => expect(screen.getByText('Saved locally')).toBeInTheDocument())
+    expect(writes.at(-1)).toContain('Newer value')
+    expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Newer value'])
+  })
+
+  it('shows friendly feedback when theme preference persistence fails', async () => {
+    const user = userEvent.setup()
+    const originalSetItem = Storage.prototype.setItem
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, value: string) {
+      if (key === 'study-dashboard-theme') throw new Error('quota exceeded')
+      return originalSetItem.call(this, key, value)
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('radio', { name: /Midnight/ }))
+
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Theme preference could not be saved.')
+    expect(screen.queryByText(/quota exceeded/i)).not.toBeInTheDocument()
   })
 
   it('logs focus session automatically when time limit is reached', async () => {
@@ -2643,6 +2820,7 @@ describe('App', () => {
       plannedMinutes: 0,
     })
     await createActiveFocusSession(session)
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(await import('./db/activeFocusSession'), 'finalizeActiveFocusSession').mockRejectedValueOnce(new Error('write failed'))
 
     render(<App />)
@@ -2650,8 +2828,59 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Stop session' }))
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Stop session' })).toBeInTheDocument())
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not stop the focus session. Try again.')
     expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-fail-finalize' })
     expect(await studyDb.studySessions.count()).toBe(0)
+  })
+
+  it('shows a notice when focus start persistence rejects', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(await import('./db/activeFocusSession'), 'createActiveFocusSession').mockRejectedValueOnce(new Error('start failed'))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Start focus' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not start the focus session. Try again.')
+    expect(screen.getByRole('button', { name: 'Start focus' })).toBeInTheDocument()
+    expect(await getActiveFocusSession()).toBeNull()
+  })
+
+  it('restores durable focus subject when subject persistence fails', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    await studyDb.subjects.add({
+      id: 'subject-focus-a',
+      name: 'Algebra',
+      color: '#2563eb',
+      targetHours: 4,
+      progress: 0,
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    })
+    await studyDb.subjects.add({
+      id: 'subject-focus-b',
+      name: 'Biology',
+      color: '#0f766e',
+      targetHours: 4,
+      progress: 0,
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    })
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-subject-fail',
+      subjectId: 'subject-focus-a',
+      plannedMinutes: 0,
+    }))
+    vi.spyOn(await import('./db/activeFocusSession'), 'updateActiveFocusSession').mockRejectedValueOnce(new Error('subject write failed'))
+
+    render(<App />)
+    expect(await screen.findByLabelText('Focus subject')).toHaveValue('subject-focus-a')
+    await user.selectOptions(screen.getByLabelText('Focus subject'), 'subject-focus-b')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not update the focus subject. Try again.')
+    expect(screen.getByLabelText('Focus subject')).toHaveValue('subject-focus-a')
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-subject-fail', subjectId: 'subject-focus-a' })
   })
 
   it('clears obsolete focus UI when Stop finds no matching persisted session', async () => {

@@ -15,7 +15,7 @@ import type { ActiveFocusSession, StudyData, StudyNote, StudySession, StudySubje
 import { EmptyState, SubjectCard } from '../components/ui'
 import { StudyTime } from '../components/RightColumn'
 import type { View } from '../App'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { FirstStudyChecklist } from './FirstStudyChecklist'
 import { getActiveFocusElapsedMs } from '../db/activeFocusSession'
 
@@ -104,7 +104,7 @@ export function HomeView(props: {
           onAcceptStale={props.onAcceptStaleFocusSession}
           onDiscardStale={props.onDiscardStaleFocusSession}
         />
-        <QuickNoteCard key={props.quickNotes.join('\n')} notes={props.quickNotes} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
+        <QuickNoteCard notes={props.quickNotes} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
       </div>
       <SubjectsSection subjects={subjectStats} sessions={props.data.studySessions} onViewAll={() => props.onNavigate('Subjects')} />
       <div className="bottom-grid">
@@ -247,7 +247,7 @@ function FocusCard(props: {
           {stale.status === 'paused' ? 'paused' : 'running'} for {props.staleFocusSubjectName}.
           Choose Resume to continue it, or Discard to remove it without logging study time.
         </p>
-        {props.sessionNotice ? <p className="session-complete" role="status">{props.sessionNotice}</p> : null}
+        {props.sessionNotice ? <p className="session-complete" role={sessionNoticeRole(props.sessionNotice)}>{props.sessionNotice}</p> : null}
         <div className="session-actions">
           <button className="primary-command session-button" type="button" onClick={props.onAcceptStale} disabled={props.transitionPending}>
             <Play size={18} aria-hidden="true" />
@@ -299,7 +299,7 @@ function FocusCard(props: {
           <strong>{formatElapsed(elapsedSeconds)}</strong>
         </p>
       ) : null}
-      {props.sessionNotice ? <p className="session-complete" role="status">{props.sessionNotice}</p> : null}
+      {props.sessionNotice ? <p className="session-complete" role={sessionNoticeRole(props.sessionNotice)}>{props.sessionNotice}</p> : null}
       {props.activeSession ? (
         <div className="session-actions">
           {isPaused ? (
@@ -328,22 +328,91 @@ function FocusCard(props: {
   )
 }
 
+function sessionNoticeRole(message: string): 'alert' | 'status' {
+  return /^could not\b/i.test(message) ? 'alert' : 'status'
+}
+
 function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onChange: (value: string) => Promise<void>; onOpenNotes: () => void }) {
   const savedValue = notes.join('\n')
   const [draft, setDraft] = useState(savedValue)
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved')
+  const [lastPersisted, setLastPersisted] = useState(savedValue)
+  const pendingRef = useRef<string | null>(null)
+  const inFlightRef = useRef(false)
+  const onChangeRef = useRef(onChange)
 
   useEffect(() => {
-    if (draft === savedValue) return undefined
-    const timer = window.setTimeout(() => void onChange(draft), 250)
+    onChangeRef.current = onChange
+  }, [onChange])
+
+  const flushPending = useCallback(async () => {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
+    setSaveStatus('saving')
+    let failed = false
+
+    try {
+      for (;;) {
+        const next = pendingRef.current
+        if (next === null) break
+        pendingRef.current = null
+        await onChangeRef.current(next)
+        setLastPersisted(next)
+      }
+      setSaveStatus('saved')
+    } catch {
+      failed = true
+      setSaveStatus('error')
+    } finally {
+      inFlightRef.current = false
+    }
+
+    if (!failed && pendingRef.current !== null) {
+      window.setTimeout(() => {
+        void flushPending()
+      }, 0)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (draft === lastPersisted && saveStatus !== 'error') return undefined
+    const timer = window.setTimeout(() => {
+      pendingRef.current = draft
+      void flushPending()
+    }, 250)
     return () => window.clearTimeout(timer)
-  }, [draft, onChange, savedValue])
+  }, [draft, flushPending, lastPersisted, saveStatus])
+
+  const statusLabel = saveStatus === 'error'
+    ? 'Quick notes could not be saved. Your text is still available.'
+    : saveStatus === 'saving' || draft !== lastPersisted
+      ? 'Saving...'
+      : 'Saved locally'
 
   return (
     <section className="card quick-card" aria-labelledby="quick-notes-title">
       <div className="card-heading">
         <h2 id="quick-notes-title">Quick Notes</h2>
         <div className="quick-note-actions">
-          <span className="save-status" aria-live="polite">{draft === savedValue ? 'Saved locally' : 'Saving…'}</span>
+          <span
+            className="save-status"
+            role={saveStatus === 'error' ? 'alert' : undefined}
+            aria-live={saveStatus === 'error' ? undefined : 'polite'}
+          >
+            {statusLabel}
+          </span>
+          {saveStatus === 'error' ? (
+            <button
+              className="text-command"
+              type="button"
+              onClick={() => {
+                pendingRef.current = draft
+                void flushPending()
+              }}
+            >
+              Retry save
+            </button>
+          ) : null}
           <button className="text-command" type="button" onClick={onOpenNotes}>Open Notes</button>
         </div>
       </div>
@@ -352,7 +421,10 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
         <textarea
           value={draft}
           placeholder="Capture fast ideas, formulas, or reminders..."
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => {
+            setDraft(event.target.value)
+            if (saveStatus === 'error') setSaveStatus('saving')
+          }}
         />
       </label>
     </section>
