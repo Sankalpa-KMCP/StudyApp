@@ -115,7 +115,6 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
               chartData={chartData}
               hasChartData={hasChartData}
               activeThemeVars={activeThemeVars}
-              tooltipStyle={tooltipStyle}
               suppressEmptyState={isFullyEmpty}
             />
           </Suspense>
