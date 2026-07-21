@@ -105,12 +105,35 @@ function App() {
   const [staleFocusSession, setStaleFocusSession] = useState<ActiveFocusSession | null>(null)
   const [focusRestoreReady, setFocusRestoreReady] = useState(false)
   const [focusTransitionPending, setFocusTransitionPending] = useState(false)
+  const [focusImportPending, setFocusImportPending] = useState(false)
   const finalizingSessionIdRef = useRef<string | null>(null)
 
   const navigateToView = useCallback((view: View) => {
     setProgressEditorRequested(false)
     setActiveView(view)
   }, [])
+
+  /** Clears both React focus slots, then applies at most one persisted session (never both). */
+  const applyPersistedFocusSession = useCallback((restored: ActiveFocusSession | null) => {
+    setActiveSession(null)
+    setStaleFocusSession(null)
+    if (!restored) return
+    if (isActiveFocusSessionStale(restored)) {
+      setStaleFocusSession(restored)
+      return
+    }
+    setActiveSession(restored)
+    setFocusSubjectId(restored.subjectId)
+    setFocusDurationMinutes(restored.plannedMinutes)
+  }, [])
+
+  const reloadFocusFromIndexedDb = useCallback(async () => {
+    const restored = await getActiveFocusSession()
+    applyPersistedFocusSession(restored)
+    finalizingSessionIdRef.current = null
+    setFocusRestoreReady(true)
+    return restored
+  }, [applyPersistedFocusSession])
 
   useEffect(() => {
     void migrateLegacyLocalStorage()
@@ -121,21 +144,13 @@ function App() {
     void (async () => {
       const restored = await getActiveFocusSession()
       if (cancelled) return
-      if (restored) {
-        if (isActiveFocusSessionStale(restored)) {
-          setStaleFocusSession(restored)
-        } else {
-          setActiveSession(restored)
-          setFocusSubjectId(restored.subjectId)
-          setFocusDurationMinutes(restored.plannedMinutes)
-        }
-      }
+      applyPersistedFocusSession(restored)
       setFocusRestoreReady(true)
     })()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [applyPersistedFocusSession])
 
   const liveData = useLiveQuery(() => getStudyData(), [])
   const data = liveData ?? EMPTY_DATA
@@ -154,7 +169,8 @@ function App() {
   const dueCards = useMemo(() => data.flashcards.filter((card) => isFlashcardDue(card)), [data.flashcards])
   const homeSearchResults = useMemo(() => buildSearchResults(data, subjectMap, deferredSearch), [data, deferredSearch, subjectMap])
   const sessionLimitSeconds = activeSession && activeSession.plannedMinutes > 0 ? activeSession.plannedMinutes * 60 : 0
-  const canStartFocus = focusRestoreReady && !activeSession && !staleFocusSession
+  const focusActionsPending = focusTransitionPending || focusImportPending
+  const canStartFocus = focusRestoreReady && !focusImportPending && !activeSession && !staleFocusSession
   const staleFocusSubjectName = staleFocusSession
     ? (subjectMap.get(staleFocusSession.subjectId)?.name ?? (staleFocusSession.subjectId ? 'Unknown subject' : 'General'))
     : ''
@@ -214,7 +230,13 @@ function App() {
   }
 
   const importData = async (file: File) => {
-    await importStudyData(JSON.parse(await file.text()) as unknown)
+    setFocusImportPending(true)
+    try {
+      await importStudyData(JSON.parse(await file.text()) as unknown)
+      await reloadFocusFromIndexedDb()
+    } finally {
+      setFocusImportPending(false)
+    }
   }
 
   const openNewTask = () => {
@@ -250,7 +272,7 @@ function App() {
   }, [])
 
   const startSession = useCallback(async () => {
-    if (!focusRestoreReady || activeSession || staleFocusSession || focusTransitionPending) return
+    if (!focusRestoreReady || activeSession || staleFocusSession || focusActionsPending) return
 
     const session: ActiveFocusSession = {
       id: createId('focus'),
@@ -277,10 +299,10 @@ function App() {
       }
       hydrateActiveSession(result.existing, 'An unfinished focus session was restored.')
     }
-  }, [activeSession, focusDurationMinutes, focusRestoreReady, focusSubjectId, focusTransitionPending, hydrateActiveSession, staleFocusSession])
+  }, [activeSession, focusActionsPending, focusDurationMinutes, focusRestoreReady, focusSubjectId, hydrateActiveSession, staleFocusSession])
 
   const acceptStaleFocusSession = useCallback(async () => {
-    if (!staleFocusSession || focusTransitionPending) return
+    if (!staleFocusSession || focusActionsPending) return
 
     setFocusTransitionPending(true)
     try {
@@ -309,10 +331,10 @@ function App() {
     } finally {
       setFocusTransitionPending(false)
     }
-  }, [focusTransitionPending, hydrateActiveSession, staleFocusSession])
+  }, [focusActionsPending, hydrateActiveSession, staleFocusSession])
 
   const discardStaleFocusSession = useCallback(async () => {
-    if (!staleFocusSession || focusTransitionPending) return
+    if (!staleFocusSession || focusActionsPending) return
 
     setFocusTransitionPending(true)
     try {
@@ -341,10 +363,10 @@ function App() {
     } finally {
       setFocusTransitionPending(false)
     }
-  }, [focusTransitionPending, hydrateActiveSession, staleFocusSession])
+  }, [focusActionsPending, hydrateActiveSession, staleFocusSession])
 
   const pauseSession = useCallback(async () => {
-    if (!activeSession || activeSession.status !== 'running' || focusTransitionPending) return
+    if (!activeSession || activeSession.status !== 'running' || focusActionsPending) return
     if (finalizingSessionIdRef.current === activeSession.id) return
 
     setFocusTransitionPending(true)
@@ -365,10 +387,10 @@ function App() {
     } finally {
       setFocusTransitionPending(false)
     }
-  }, [activeSession, focusTransitionPending, hydrateActiveSession])
+  }, [activeSession, focusActionsPending, hydrateActiveSession])
 
   const resumeSession = useCallback(async () => {
-    if (!activeSession || activeSession.status !== 'paused' || focusTransitionPending) return
+    if (!activeSession || activeSession.status !== 'paused' || focusActionsPending) return
     if (finalizingSessionIdRef.current === activeSession.id) return
 
     setFocusTransitionPending(true)
@@ -389,11 +411,11 @@ function App() {
     } finally {
       setFocusTransitionPending(false)
     }
-  }, [activeSession, focusTransitionPending, hydrateActiveSession])
+  }, [activeSession, focusActionsPending, hydrateActiveSession])
 
   const stopSession = useCallback(async (completed = false) => {
     if (!activeSession) return
-    if (finalizingSessionIdRef.current === activeSession.id || focusTransitionPending) return
+    if (finalizingSessionIdRef.current === activeSession.id || focusActionsPending) return
 
     finalizingSessionIdRef.current = activeSession.id
     const sessionToFinalize = activeSession
@@ -426,7 +448,7 @@ function App() {
         finalizingSessionIdRef.current = null
       }
     }
-  }, [activeSession, focusTransitionPending, hydrateActiveSession])
+  }, [activeSession, focusActionsPending, hydrateActiveSession])
 
   useEffect(() => {
     if (!activeSession || activeSession.status !== 'running' || activeSession.plannedMinutes <= 0) return undefined
@@ -442,7 +464,7 @@ function App() {
 
   const updateFocusSubject = useCallback((subjectId: string) => {
     setFocusSubjectId(subjectId)
-    if (!activeSession || focusTransitionPending) return
+    if (!activeSession || focusActionsPending) return
 
     const nextSession: ActiveFocusSession = { ...activeSession, subjectId }
     setActiveSession(nextSession)
@@ -455,7 +477,7 @@ function App() {
         hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
       }
     })
-  }, [activeSession, focusTransitionPending, hydrateActiveSession])
+  }, [activeSession, focusActionsPending, hydrateActiveSession])
 
   const clearSearch = useCallback(() => setSearch(''), [])
 
@@ -516,7 +538,7 @@ function App() {
                     sessionLimitSeconds={sessionLimitSeconds}
                     sessionNotice={sessionNotice}
                     canStartFocus={canStartFocus}
-                    focusTransitionPending={focusTransitionPending}
+                    focusTransitionPending={focusActionsPending}
                     subjects={data.subjects}
                     focusSubjectId={focusSubjectId}
                     focusDurationMinutes={focusDurationMinutes}
@@ -594,6 +616,7 @@ function App() {
                     onExport={() => void exportData()}
                     onImport={importData}
                     onClear={handleClearData}
+                    importPending={focusImportPending}
                     profileNotice={profileNotice}
                     theme={theme}
                     onThemeChange={setTheme}

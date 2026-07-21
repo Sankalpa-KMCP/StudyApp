@@ -19,6 +19,7 @@ export function SettingsView({
   onExport,
   onImport,
   onClear,
+  importPending = false,
   profileNotice,
   theme,
   onThemeChange,
@@ -26,6 +27,7 @@ export function SettingsView({
   onExport: () => void
   onImport: (file: File) => Promise<void>
   onClear: () => Promise<void>
+  importPending?: boolean
   profileNotice: string
   theme: ThemeMode
   onThemeChange: (theme: ThemeMode) => void
@@ -51,7 +53,10 @@ export function SettingsView({
 
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (!file) return
+    if (!file || importPending) {
+      event.target.value = ''
+      return
+    }
 
     try {
       await onImport(file)
@@ -91,11 +96,18 @@ export function SettingsView({
           <strong>Export data</strong>
           <span>Download a complete JSON backup.</span>
         </button>
-        <label className="action-card import-card">
+        <label className={importPending ? 'action-card import-card is-pending' : 'action-card import-card'} aria-busy={importPending}>
           <Upload size={24} aria-hidden="true" />
           <strong>Import data</strong>
-          <span>Replace local data from a Study Dashboard backup.</span>
-          <input className="sr-only" type="file" accept="application/json" onChange={(event) => void handleImport(event)} />
+          <span>{importPending ? 'Importing and syncing focus state…' : 'Replace local data from a Study Dashboard backup.'}</span>
+          <input
+            className="sr-only"
+            type="file"
+            accept="application/json"
+            disabled={importPending}
+            aria-label="Import data"
+            onChange={(event) => void handleImport(event)}
+          />
         </label>
         <div className="action-card theme-card">
           <Layers3 size={24} aria-hidden="true" />

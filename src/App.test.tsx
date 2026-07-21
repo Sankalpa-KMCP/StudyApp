@@ -34,6 +34,28 @@ function makeDurableFocusSession(overrides: Partial<ActiveFocusSession> = {}): A
   }
 }
 
+function makeEmptyExport(overrides: Record<string, unknown> = {}) {
+  return {
+    version: 1,
+    exportedAt: '2026-06-29T00:00:00.000Z',
+    tasks: [],
+    subjects: [],
+    notes: [],
+    events: [],
+    flashcards: [],
+    studySessions: [],
+    goals: [],
+    settings: [],
+    ...overrides,
+  }
+}
+
+async function importStudyExport(user: ReturnType<typeof userEvent.setup>, payload: unknown, filename = 'backup.json') {
+  await user.click(await screen.findByRole('button', { name: 'Settings' }))
+  const importInput = screen.getByLabelText(/Import data/)
+  await user.upload(importInput, new File([JSON.stringify(payload)], filename, { type: 'application/json' }))
+}
+
 const THEME_CASES = [
   ['monochrome', '#111111'],
   ['light', '#f4f0e8'],
@@ -813,18 +835,7 @@ describe('App', () => {
 
   it('reports import success and failure', async () => {
     const user = userEvent.setup()
-    const validExport = {
-      version: 1,
-      exportedAt: '2026-06-29T00:00:00.000Z',
-      tasks: [],
-      subjects: [],
-      notes: [],
-      events: [],
-      flashcards: [],
-      studySessions: [],
-      goals: [],
-      settings: [],
-    }
+    const validExport = makeEmptyExport()
 
     render(<App />)
 
@@ -854,25 +865,228 @@ describe('App', () => {
 
     render(<App />)
 
-    await user.click(await screen.findByRole('button', { name: 'Settings' }))
-    const importInput = screen.getByLabelText(/Import data/)
-    const emptyExport = {
-      version: 1,
-      exportedAt: '2026-06-29T00:00:00.000Z',
-      tasks: [],
-      subjects: [],
-      notes: [],
-      events: [],
-      flashcards: [],
-      studySessions: [],
-      goals: [],
-      settings: [],
-    }
-    await user.upload(importInput, new File([JSON.stringify(emptyExport)], 'empty.json', { type: 'application/json' }))
+    await importStudyExport(user, makeEmptyExport(), 'empty.json')
     expect(await screen.findByRole('status')).toHaveTextContent('Study data imported.')
 
     const tasks = await studyDb.tasks.toArray()
     expect(tasks).toHaveLength(0)
+  })
+
+  it('import without activeFocusSession clears a visible focus session and restores Start', async () => {
+    const user = userEvent.setup()
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-pre-import',
+      subjectId: '',
+      plannedMinutes: 0,
+    }))
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+
+    await importStudyExport(user, makeEmptyExport())
+    expect(await screen.findByRole('status')).toHaveTextContent('Study data imported.')
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    await waitForFocusStartEnabled()
+    expect(screen.queryByRole('button', { name: 'Stop session' })).not.toBeInTheDocument()
+    expect(await getActiveFocusSession()).toBeNull()
+  })
+
+  it('import of a running session restores subject, duration, and timestamp-derived remaining time', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.setSystemTime(new Date('2026-07-21T12:10:00.000Z'))
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-local-before-import',
+      subjectId: '',
+      plannedMinutes: 0,
+    }))
+
+    const importedSession = makeDurableFocusSession({
+      id: 'focus-imported-running',
+      subjectId: 'subject-import',
+      startedAt: '2026-07-21T12:05:00.000Z',
+      plannedMinutes: 25,
+      status: 'running',
+      pausedAt: null,
+      accumulatedPausedMs: 0,
+    })
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+
+    await importStudyExport(user, makeEmptyExport({
+      subjects: [{
+        id: 'subject-import',
+        name: 'Chemistry',
+        color: '#2563eb',
+        targetHours: 4,
+        progress: 0,
+        createdAt: '2026-06-29T00:00:00.000Z',
+        updatedAt: '2026-06-29T00:00:00.000Z',
+      }],
+      settings: [{ key: ACTIVE_FOCUS_SESSION_KEY, value: importedSession }],
+    }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Study data imported.')
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Focus subject')).toHaveValue('subject-import')
+    expect(screen.getByLabelText('Session length')).toHaveValue('25')
+    expect(screen.getByText('remaining').parentElement?.querySelector('strong')?.textContent).toBe('20:00')
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-imported-running', status: 'running' })
+  })
+
+  it('import of a paused session stays paused with frozen elapsed under advancing timers', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.setSystemTime(new Date('2026-07-21T12:10:00.000Z'))
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const importedSession = makeDurableFocusSession({
+      id: 'focus-imported-paused',
+      subjectId: '',
+      startedAt: '2026-07-21T12:00:00.000Z',
+      plannedMinutes: 0,
+      status: 'paused',
+      pausedAt: '2026-07-21T12:06:00.000Z',
+      accumulatedPausedMs: 0,
+    })
+
+    render(<App />)
+    await waitForFocusStartEnabled()
+
+    await importStudyExport(user, makeEmptyExport({
+      settings: [{ key: ACTIVE_FOCUS_SESSION_KEY, value: importedSession }],
+    }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Study data imported.')
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(await screen.findByRole('button', { name: 'Resume' })).toBeInTheDocument()
+    expect(screen.getByText('paused').parentElement?.querySelector('strong')?.textContent).toBe('06:00')
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000)
+    })
+    expect(screen.getByText('paused').parentElement?.querySelector('strong')?.textContent).toBe('06:00')
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-imported-paused', status: 'paused' })
+  })
+
+  it('import of a stale session shows Resume/Discard instead of the normal timer', async () => {
+    const user = userEvent.setup()
+    const importedSession = makeDurableFocusSession({
+      id: 'focus-imported-stale',
+      subjectId: '',
+      startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS - 60_000).toISOString(),
+      plannedMinutes: 0,
+      status: 'running',
+      pausedAt: null,
+      accumulatedPausedMs: 0,
+    })
+
+    render(<App />)
+    await waitForFocusStartEnabled()
+
+    await importStudyExport(user, makeEmptyExport({
+      settings: [{ key: ACTIVE_FOCUS_SESSION_KEY, value: importedSession }],
+    }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Study data imported.')
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(await screen.findByRole('heading', { name: 'Unfinished focus session' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Resume session' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Discard session' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Stop session' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Start focus' })).not.toBeInTheDocument()
+  })
+
+  it('import with a corrupt activeFocusSession clears focus UI and deletes the corrupt setting', async () => {
+    const user = userEvent.setup()
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-before-corrupt-import',
+      subjectId: '',
+      plannedMinutes: 0,
+    }))
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+
+    await importStudyExport(user, makeEmptyExport({
+      settings: [{ key: ACTIVE_FOCUS_SESSION_KEY, value: { id: '', status: 'running' } }],
+    }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Study data imported.')
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    await waitForFocusStartEnabled()
+    expect(screen.queryByRole('button', { name: 'Stop session' })).not.toBeInTheDocument()
+    expect(await getActiveFocusSession()).toBeNull()
+    expect(await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)).toBeUndefined()
+  })
+
+  it('invalid JSON or invalid export structure preserves the original visible focus session', async () => {
+    const user = userEvent.setup()
+    const existing = makeDurableFocusSession({
+      id: 'focus-keep-on-failed-import',
+      subjectId: '',
+      plannedMinutes: 0,
+    })
+    await createActiveFocusSession(existing)
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    const importInput = screen.getByLabelText(/Import data/)
+
+    await user.upload(importInput, new File(['not valid json'], 'broken.json', { type: 'application/json' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Import failed. Choose a valid Study Dashboard export.')
+
+    await user.upload(importInput, new File([JSON.stringify(makeEmptyExport({
+      subjects: [{ id: 'subject-invalid', name: 123 }],
+    }))], 'invalid-shape.json', { type: 'application/json' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Import failed. Choose a valid Study Dashboard export.')
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-keep-on-failed-import' })
+  })
+
+  it('disables import and focus controls while import synchronization is pending', async () => {
+    let releaseImport: () => void = () => {}
+    const importGate = new Promise<void>((resolve) => {
+      releaseImport = resolve
+    })
+    const studyDbApi = await import('./db/studyDb')
+    const realImport = studyDbApi.importStudyData.bind(studyDbApi)
+    vi.spyOn(studyDbApi, 'importStudyData').mockImplementation(async (payload) => {
+      await importGate
+      return realImport(payload)
+    })
+
+    const user = userEvent.setup()
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-import-gate',
+      subjectId: '',
+      plannedMinutes: 0,
+    }))
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    const importInput = screen.getByLabelText(/Import data/)
+    const file = new File([JSON.stringify(makeEmptyExport())], 'empty.json', { type: 'application/json' })
+    await act(async () => {
+      fireEvent.change(importInput, { target: { files: [file] } })
+    })
+
+    await waitFor(() => expect(importInput).toBeDisabled())
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeDisabled()
+
+    releaseImport()
+    await waitForFocusStartEnabled()
+    expect(screen.queryByRole('button', { name: 'Stop session' })).not.toBeInTheDocument()
   })
 
   it('persists existing theme choices to localStorage', async () => {
