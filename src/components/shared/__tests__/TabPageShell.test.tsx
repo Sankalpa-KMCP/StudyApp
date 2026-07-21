@@ -11,7 +11,7 @@ describe('TabPageShell', () => {
     )
     const shell = container.firstChild as HTMLElement
     expect(shell.className).toContain('tab-page-shell')
-    expect(shell.className).toContain('lg:grid-cols-12')
+    expect(shell.className).toContain('xl:grid-cols-12')
     expect(screen.getByText('Column')).toBeInTheDocument()
   })
 })
@@ -27,7 +27,7 @@ describe('TabSection', () => {
     )
     expect(screen.getByText('Overview')).toBeInTheDocument()
     expect(screen.getByText('Metrics')).toBeInTheDocument()
-    const section = container.querySelector('.lg\\:col-span-12')
+    const section = container.querySelector('.xl\\:col-span-12')
     expect(section).toBeInTheDocument()
   })
 })

@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from 'react'
 
-const SHELL_CLASS = 'grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-1 items-start min-h-0'
+const SHELL_CLASS = 'grid grid-cols-1 xl:grid-cols-12 gap-6 w-full flex-1 items-start min-h-0 h-full'
 
 interface TabPageShellProps {
   children: ReactNode
@@ -35,7 +35,7 @@ export function TabSection({ label, children, className = '' }: TabSectionProps)
   return (
     <section
       aria-labelledby={labelId}
-      className={`lg:col-span-12 flex flex-col gap-4 ${className}`.trim()}
+      className={`xl:col-span-12 flex flex-col gap-4 ${className}`.trim()}
     >
       <TabSectionLabel id={labelId}>{label}</TabSectionLabel>
       {children}
