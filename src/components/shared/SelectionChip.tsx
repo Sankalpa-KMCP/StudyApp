@@ -2,13 +2,15 @@ import { memo, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } f
 
 export type ChipAccent = 'blue' | 'amber' | 'green' | 'purple' | 'neutral' | 'red'
 
+const INSET_SHADOW = 'shadow-[inset_0_1px_0_color-mix(in_srgb,var(--color-text-primary)_8%,transparent)]'
+
 const ACCENT_SELECTED: Record<ChipAccent, string> = {
   blue: 'bg-accent-blue/15 border-accent-blue/35 text-accent-blue',
   amber: 'bg-accent-amber/15 border-accent-amber/35 text-accent-amber',
   green: 'bg-accent-green/15 border-accent-green/35 text-accent-green',
   purple: 'bg-accent-purple/15 border-accent-purple/35 text-accent-purple',
   neutral: 'surface-subtle border-card text-primary',
-  red: 'bg-red-500/15 border-red-500/35 text-red-400',
+  red: 'bg-danger-muted border-danger text-danger',
 }
 
 interface SelectionChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -43,14 +45,14 @@ export const SelectionChip = memo(function SelectionChip({
 
   const stateClass = selected
     ? accentColor
-      ? 'font-semibold border shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
-      : `${ACCENT_SELECTED[accent]} font-semibold border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]`
+      ? `font-semibold border ${INSET_SHADOW} hover:brightness-110`
+      : `${ACCENT_SELECTED[accent]} font-semibold border ${INSET_SHADOW} hover:brightness-110`
     : 'surface-subtle border-card text-muted hover:border-accent-blue/30 font-semibold border'
 
   return (
     <button
       type={type}
-      className={`rounded-full transition-all ios-active-scale cursor-pointer ${sizeClass} ${stateClass} ${className}`.trim()}
+      className={`rounded-full transition-all ios-active-scale cursor-pointer focus-ring ${sizeClass} ${stateClass} ${className}`.trim()}
       style={{ ...selectedStyle, ...style }}
       aria-pressed={selected}
       {...props}

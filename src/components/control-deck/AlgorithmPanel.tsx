@@ -4,6 +4,7 @@ import { useTranslation } from '../../i18n/useTranslation'
 import { useSettingsPanel } from '../../context/settingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
+import { SelectionChip } from '../shared/SelectionChip'
 
 export function AlgorithmPanel() {
   const { t } = useTranslation()
@@ -30,20 +31,17 @@ export function AlgorithmPanel() {
     >
       <div className="mb-4">
         <span className="settings-label block mb-2">{t('algorithmSchedulingAlgorithm')}</span>
-        <div className="flex gap-2">
+        <div className="flex gap-2" role="group" aria-label={t('algorithmSchedulingAlgorithm')}>
           {(['sm2', 'fsrs'] as const).map(algo => (
-            <button
+            <SelectionChip
               key={algo}
-              type="button"
+              selected={schedulingAlgorithm === algo}
+              accent="purple"
+              size="sm"
               onClick={() => updateSetting('schedulingAlgorithm', algo)}
-              className={`rounded-full px-3 py-1.5 text-micro font-semibold border transition-all ${
-                schedulingAlgorithm === algo
-                  ? 'border-accent-purple/40 text-accent-purple bg-accent-purple/10'
-                  : 'border-card settings-muted hover:border-card'
-              }`}
             >
               {algo.toUpperCase()}
-            </button>
+            </SelectionChip>
           ))}
         </div>
       </div>

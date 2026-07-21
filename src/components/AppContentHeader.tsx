@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useId } from 'react'
 import { Brain, FileText, Flame, Lock, Search } from 'lucide-react'
 import type { ActiveTab } from '../types/app'
 import { getTabChrome } from '../navigation/appNav'
@@ -42,35 +42,70 @@ export const AppContentHeader = memo(function AppContentHeader({
   onOpenCommandPalette,
 }: AppContentHeaderProps) {
   const { t } = useTranslation()
+  const goalTooltipId = useId()
   const tabChrome = getTabChrome()
   const focusStatus = getDailyFocusStatus(todayStudyMinutes, dailyGoalMinutes)
   const goalScopeLabel = focusCategoryName ? `${focusCategoryName} goal` : 'Daily goal'
   const goalDetailTooltip = `${focusStatus.studiedLabel} / ${formatGoalLabel(dailyGoalMinutes)} (${goalScopeLabel}). Change daily goal in Settings → Timer & Focus.`
   const statsTooltip = `${currentStreak}-day streak · Level ${level} · ${Math.round(xpProgressPercent)}% XP to next level`
+  const goalProgressPercent = Math.round(focusStatus.percent * 100)
 
   const goalLabel = focusStatus.goalMet ? 'Goal met' : focusStatus.remainingLabel
   const showLockoutStrip = enforceLockout && isTimerActive && timerMode === 'study'
+  const showTimerPill = isTimerActive && !showLockoutStrip
 
   const focusChip = (
     <div
-      title={goalDetailTooltip}
+      aria-describedby={goalTooltipId}
       className={`header-goal-chip border ${
         focusStatus.goalMet
           ? 'bg-accent-green/10 border-accent-green/20'
           : 'bg-accent-blue/10 border-accent-blue/20'
       }`}
     >
+      <span id={goalTooltipId} className="sr-only">{goalDetailTooltip}</span>
       <span className={`text-label font-mono font-bold leading-tight ${focusStatus.goalMet ? 'text-accent-green' : 'text-accent-blue'}`}>
         {goalLabel}
       </span>
-      <div className="h-1.5 w-full rounded-full surface-track overflow-hidden">
+      <div
+        role="progressbar"
+        aria-valuenow={goalProgressPercent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={goalScopeLabel}
+        className="h-1.5 w-full rounded-full surface-track overflow-hidden"
+      >
         <div
           className={`h-full rounded-full transition-all duration-500 ${focusStatus.goalMet ? 'bg-accent-green' : 'bg-accent-blue'}`}
-          style={{ width: `${Math.round(focusStatus.percent * 100)}%` }}
+          style={{ width: `${goalProgressPercent}%` }}
         />
       </div>
     </div>
   )
+
+  const timerPill = showTimerPill ? (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex items-center gap-1.5 rounded-full bg-accent-blue/10 border border-accent-blue/20 px-3 py-1.5"
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-accent-blue animate-pulse" aria-hidden />
+      <span className="text-micro md:text-label font-semibold text-accent-blue">
+        {timerMode === 'study' ? 'Study timer running' : 'Break timer running'}
+      </span>
+    </div>
+  ) : null
+
+  const lockoutStrip = showLockoutStrip ? (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex items-center gap-1.5 rounded-lg border border-accent-amber/20 bg-accent-amber/8 px-3 py-1.5 w-full md:w-auto"
+    >
+      <Lock className="h-3 w-3 text-accent-amber shrink-0" aria-hidden />
+      <span className="text-micro font-semibold text-accent-amber">{t('pauseTimerToLeave')}</span>
+    </div>
+  ) : null
 
   const mobileStatsChip = onNavigateToAnalytics ? (
     <button
@@ -89,89 +124,61 @@ export const AppContentHeader = memo(function AppContentHeader({
   ) : null
 
   return (
-    <>
-      <header className="flex md:hidden flex-col px-4 py-2.5 border-b border-card surface-subtle backdrop-blur-md gap-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Brain className="h-4 w-4 text-accent-blue shrink-0" />
-            <div className="min-w-0">
-              <span className="text-title font-display text-gradient-accent truncate block">{tabChrome[activeTab].title}</span>
-              <p className="text-caption text-muted font-medium truncate">{tabChrome[activeTab].subtitle}</p>
-            </div>
+    <header className="flex flex-col px-4 md:px-6 lg:px-8 py-2.5 md:py-4 border-b border-card surface-subtle backdrop-blur-md gap-2">
+      <div className="flex items-center justify-between gap-2 md:gap-4">
+        <div className="flex items-center gap-2 min-w-0 md:select-none">
+          <Brain className="h-4 w-4 text-accent-blue shrink-0 md:hidden" aria-hidden />
+          <div className="min-w-0">
+            <h2 className="text-title font-display text-gradient-accent truncate">{tabChrome[activeTab].title}</h2>
+            <p className="text-caption text-muted font-medium truncate md:mt-1">{tabChrome[activeTab].subtitle}</p>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {onOpenNotes && (
-              <button
-                type="button"
-                onClick={onOpenNotes}
-                aria-label="Quick Notes"
-                className="flex h-8 w-8 items-center justify-center rounded-full surface-subtle border border-card text-muted hover:text-primary hover:surface-track transition-all ios-active-scale"
-              >
-                <FileText className="h-4 w-4" />
-              </button>
-            )}
-            {onOpenHotkeys && onOpenCommandPalette && (
+        </div>
+
+        <div className="flex items-center gap-1 md:gap-2.5 shrink-0">
+          {onOpenNotes && (
+            <button
+              type="button"
+              onClick={onOpenNotes}
+              aria-label="Quick Notes"
+              className="chrome-icon-btn chrome-icon-btn--sm md:hidden"
+            >
+              <FileText className="h-4 w-4" />
+            </button>
+          )}
+          {onOpenHotkeys && onOpenCommandPalette && (
+            <div className="md:hidden">
               <MobileHeaderMenu
                 onShowOnboarding={onShowOnboarding}
                 onOpenHotkeys={onOpenHotkeys}
                 onOpenCommandPalette={onOpenCommandPalette}
               />
-            )}
-          </div>
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          {mobileStatsChip}
-          {focusChip}
-        </div>
-        {showLockoutStrip && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="flex items-center gap-1.5 rounded-lg border border-accent-amber/20 bg-accent-amber/8 px-3 py-1.5"
-          >
-            <Lock className="h-3 w-3 text-accent-amber shrink-0" aria-hidden />
-            <span className="text-micro font-semibold text-accent-amber">{t('pauseTimerToLeave')}</span>
-          </div>
-        )}
-        {isTimerActive && !showLockoutStrip && (
-          <div role="status" aria-live="polite" className="flex items-center gap-1.5 pl-6">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent-blue animate-pulse" aria-hidden />
-            <span className="text-micro font-semibold text-accent-blue">
-              {timerMode === 'study' ? 'Study timer running' : 'Break timer running'}
-            </span>
-          </div>
-        )}
-      </header>
-
-      <header className="hidden md:flex items-center justify-between px-6 lg:px-8 py-4 border-b border-card surface-subtle backdrop-blur-md">
-        <div className="select-none">
-          <h2 className="text-title font-display text-gradient-accent">{tabChrome[activeTab].title}</h2>
-          <p className="text-caption text-muted font-medium mt-1">{tabChrome[activeTab].subtitle}</p>
-        </div>
-        <div className="flex items-center gap-2.5">
+            </div>
+          )}
           {onOpenCommandPalette && (
             <button
               type="button"
               onClick={onOpenCommandPalette}
               aria-label="Search app (Ctrl+K)"
               title="Search app (Ctrl+K)"
-              className="flex h-9 w-9 items-center justify-center rounded-full surface-subtle border border-card text-muted hover:text-primary hover:surface-track transition-all ios-active-scale"
+              className="chrome-icon-btn chrome-icon-btn--md hidden md:inline-flex"
             >
               <Search className="h-4 w-4" />
             </button>
           )}
-          {focusChip}
-          {isTimerActive && (
-            <div className="flex items-center gap-1.5 rounded-full bg-accent-blue/10 border border-accent-blue/20 px-3 py-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent-blue animate-pulse" />
-              <span className="text-label font-semibold text-accent-blue">
-                {timerMode === 'study' ? 'Study timer running' : 'Break timer running'}
-              </span>
-            </div>
-          )}
         </div>
-      </header>
-    </>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 md:hidden">
+          {mobileStatsChip}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 md:ml-auto">
+          {focusChip}
+          {timerPill}
+          {lockoutStrip}
+        </div>
+      </div>
+    </header>
   )
 })
 

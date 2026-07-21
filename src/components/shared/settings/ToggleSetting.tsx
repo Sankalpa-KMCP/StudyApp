@@ -1,3 +1,5 @@
+import { useId } from 'react'
+
 interface ToggleSettingProps {
   label: string
   description?: string
@@ -6,24 +8,28 @@ interface ToggleSettingProps {
 }
 
 export function ToggleSetting({ label, description, checked, onChange }: ToggleSettingProps) {
+  const labelId = useId()
+  const descriptionId = useId()
+
   return (
-    <label className="flex items-center justify-between gap-3 cursor-pointer select-none">
+    <div className="flex items-center justify-between gap-3 select-none">
       <div>
-        <div className="settings-label">{label}</div>
-        {description && <div className="settings-muted mt-0.5">{description}</div>}
+        <div id={labelId} className="settings-label">{label}</div>
+        {description && (
+          <div id={descriptionId} className="settings-muted mt-0.5">{description}</div>
+        )}
       </div>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
-        aria-label={label}
+        aria-labelledby={labelId}
+        aria-describedby={description ? descriptionId : undefined}
         onClick={() => onChange(!checked)}
-        className={`relative h-6 w-11 rounded-full transition-colors ${checked ? 'bg-accent-blue' : 'bg-[color-mix(in_srgb,var(--color-text-primary)_15%,transparent)]'}`}
+        className={`ios-switch ios-switch--blue focus-ring shrink-0 ${checked ? 'active' : ''}`}
       >
-        <span
-          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-[var(--color-text-primary)] transition-transform ${checked ? 'translate-x-5 !bg-white' : ''}`}
-        />
+        <span className="ios-switch-thumb" />
       </button>
-    </label>
+    </div>
   )
 }

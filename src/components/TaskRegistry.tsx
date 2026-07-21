@@ -102,7 +102,7 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={t('taskSearchTargetsPlaceholder')}
               aria-label={t('taskSearchTargetsAria')}
-              className="w-full rounded-full border border-card surface-subtle pl-9 pr-4 py-2 text-xs text-text-primary placeholder:text-muted outline-none focus:border-accent-blue/40"
+              className="w-full rounded-chrome-lg border border-card surface-subtle pl-9 pr-4 py-2 text-xs text-primary placeholder:text-muted outline-none focus-ring"
             />
           </div>
         )}
@@ -131,13 +131,13 @@ export const TaskRegistry: React.FC<TaskRegistryProps> = ({
           onKeyDown={e => { if (e.key === 'Enter') submitNewTask() }}
           placeholder={t('taskAddFocusTarget')}
           aria-label={t('taskAddFocusTargetAria')}
-          className="flex-1 min-w-0 rounded-xl border border-card surface-subtle px-3 py-2.5 text-xs text-primary placeholder:text-muted outline-none focus:border-accent-blue/40"
+          className="flex-1 min-w-0 rounded-chrome-lg border border-card surface-subtle px-3 py-2.5 text-xs text-primary placeholder:text-muted outline-none focus-ring"
         />
         <button
           type="button"
           onClick={submitNewTask}
           disabled={!taskText.trim()}
-          className="shrink-0 rounded-xl bg-accent-blue px-4 py-2.5 text-xs font-bold text-on-accent disabled:opacity-40 transition-all ios-active-scale"
+          className="shrink-0 rounded-chrome-lg bg-accent-blue px-4 py-2.5 text-xs font-bold text-on-accent disabled:opacity-40 transition-all ios-active-scale focus-ring"
         >
           {t('taskAddButton')}
         </button>

@@ -5,6 +5,8 @@ type CardVariant = 'default' | 'elevated' | 'inset'
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: CardVariant
   padding?: 'none' | 'sm' | 'md' | 'lg'
+  /** Enables hover spotlight and lift. When used as a clickable surface, callers must also pass
+   *  role="button", tabIndex={0}, and onKeyDown (Enter/Space) for keyboard activation. */
   interactive?: boolean
   children: ReactNode
 }
@@ -44,11 +46,13 @@ export const Card = memo(function Card({
     onMouseMove?.(e)
   }, [interactive, onMouseMove])
 
+  const interactiveClass = interactive ? 'focus-ring' : ''
+
   return (
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      className={`dynamic-card ${cardShellClass(variant, interactive)} ${paddingClass[padding]} ${className}`.trim()}
+      className={`dynamic-card ${cardShellClass(variant, interactive)} ${paddingClass[padding]} ${interactiveClass} ${className}`.trim()}
       {...props}
     >
       {children}

@@ -12,13 +12,22 @@ export function FirstSessionBanner({ onDismiss }: FirstSessionBannerProps) {
     <div
       role="status"
       data-testid="first-session-banner"
-      className="mb-4 rounded-2xl border border-accent-blue/25 bg-accent-blue/10 p-4"
+      className="banner-accent mb-4 border border-card p-4"
+      style={
+        {
+          '--banner-accent': 'var(--color-accent-blue)',
+          backgroundColor: 'color-mix(in srgb, var(--color-accent-blue) 10%, transparent)',
+          borderColor: 'color-mix(in srgb, var(--color-accent-blue) 25%, transparent)',
+        } as React.CSSProperties
+      }
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <Sparkles className="h-5 w-5 shrink-0 text-accent-blue mt-0.5" aria-hidden />
+          <div className="banner-icon-well" style={{ '--banner-accent': 'var(--color-accent-blue)' } as React.CSSProperties}>
+            <Sparkles className="h-4 w-4 text-accent-blue" aria-hidden />
+          </div>
           <div>
-            <p className="text-sm font-bold text-[var(--color-text-primary)]">{t('firstSessionTitle')}</p>
+            <p className="text-sm font-bold text-primary">{t('firstSessionTitle')}</p>
             <p className="text-caption settings-muted mt-1">{t('firstSessionStep1')}</p>
             <p className="text-caption settings-muted mt-0.5">{t('firstSessionStep2')}</p>
           </div>
@@ -26,7 +35,7 @@ export function FirstSessionBanner({ onDismiss }: FirstSessionBannerProps) {
         <button
           type="button"
           onClick={onDismiss}
-          className="shrink-0 rounded-full p-1.5 text-muted hover:text-primary hover:surface-subtle transition-colors ios-active-scale"
+          className="focus-ring shrink-0 rounded-full p-1.5 text-muted hover:text-primary hover:surface-subtle transition-colors ios-active-scale"
           aria-label={t('firstSessionDismiss')}
         >
           <X className="h-4 w-4" />

@@ -13,17 +13,26 @@ export function InstallPromptBanner({ onInstall, onDismiss }: InstallPromptBanne
     <div
       role="region"
       aria-label={t('bannerInstallAria')}
-      className="flex items-center justify-between gap-3 border-b border-accent-blue/20 bg-accent-blue/10 px-4 py-2.5"
+      className="banner-accent flex items-center justify-between gap-3 border-b border-card px-4 py-2.5"
+      style={
+        {
+          '--banner-accent': 'var(--color-accent-blue)',
+          backgroundColor: 'color-mix(in srgb, var(--color-accent-blue) 10%, transparent)',
+          borderColor: 'color-mix(in srgb, var(--color-accent-blue) 25%, transparent)',
+        } as React.CSSProperties
+      }
     >
       <div className="flex items-center gap-2 min-w-0">
-        <Sparkles className="h-4 w-4 shrink-0 text-accent-blue" aria-hidden />
+        <div className="banner-icon-well" style={{ '--banner-accent': 'var(--color-accent-blue)' } as React.CSSProperties}>
+          <Sparkles className="h-4 w-4 text-accent-blue" aria-hidden />
+        </div>
         <p className="text-label font-semibold text-primary truncate">{t('bannerInstallMessage')}</p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
           onClick={onInstall}
-          className="rounded-full bg-accent-blue px-3 py-1 text-label font-bold text-on-accent ios-active-scale"
+          className="focus-ring rounded-full bg-accent-blue px-3 py-1 text-label font-bold text-on-accent ios-active-scale"
         >
           {t('commonInstall')}
         </button>
@@ -31,9 +40,9 @@ export function InstallPromptBanner({ onInstall, onDismiss }: InstallPromptBanne
           type="button"
           onClick={onDismiss}
           aria-label={t('bannerInstallDismiss')}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-muted hover:text-primary hover:surface-track ios-active-scale"
+          className="focus-ring chrome-icon-btn chrome-icon-btn--sm rounded-full text-muted hover:text-primary ios-active-scale"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4" aria-hidden />
         </button>
       </div>
     </div>

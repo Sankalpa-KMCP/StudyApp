@@ -3,6 +3,8 @@ import type { CategoryItem, TaskItem } from '../../db/types'
 import { useTranslation } from '../../i18n/useTranslation'
 import { TaskRow, type TaskRowProps } from './TaskRow'
 
+const COMPLETED_LIST_ID = 'completed-tasks-list'
+
 export interface CompletedTasksSectionProps {
   filteredCompleted: TaskItem[]
   visibleCompleted: TaskItem[]
@@ -52,29 +54,31 @@ export function CompletedTasksSection({
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between text-micro font-bold uppercase tracking-wider text-muted hover:text-primary transition-colors mb-2"
+        className="focus-ring flex w-full items-center justify-between text-micro font-bold uppercase tracking-wider text-muted hover:text-primary transition-colors mb-2 rounded-lg px-1"
         aria-expanded={completedOpen}
+        aria-controls={COMPLETED_LIST_ID}
       >
         <span>{t('taskRecentlyCompleted', { count: filteredCompleted.length })}</span>
-        {completedOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        {completedOpen ? <ChevronUp className="h-4 w-4" aria-hidden /> : <ChevronDown className="h-4 w-4" aria-hidden />}
       </button>
       {completedOpen && (
-        <div className="flex flex-col">
+        <div id={COMPLETED_LIST_ID} role="list" aria-label={t('taskCompletedTargetsListAria')} className="flex flex-col">
           {visibleCompleted.map(task => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              completed
-              isActive={false}
-              category={task.categoryId !== undefined ? categoriesMap.get(task.categoryId) : undefined}
-              {...rowProps}
-            />
+            <div key={task.id} role="listitem">
+              <TaskRow
+                task={task}
+                completed
+                isActive={false}
+                category={task.categoryId !== undefined ? categoriesMap.get(task.categoryId) : undefined}
+                {...rowProps}
+              />
+            </div>
           ))}
           {completedVisibleCount < filteredCompleted.length && (
             <button
               type="button"
               onClick={onShowMore}
-              className="mt-2 rounded-full border border-card surface-subtle px-4 py-2 text-label font-semibold text-secondary hover:surface-track"
+              className="focus-ring mt-2 rounded-full border border-card surface-subtle px-4 py-2 text-label font-semibold text-secondary hover:surface-track ios-active-scale"
             >
               {t('taskShowMoreRemaining', { count: filteredCompleted.length - completedVisibleCount })}
             </button>

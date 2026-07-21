@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { CategoryItem, TaskItem } from '../../db/types'
+import { useTranslation } from '../../i18n/useTranslation'
 import { TaskRow, type TaskRowProps } from './TaskRow'
 
 const VIRTUALIZE_THRESHOLD = 100
@@ -29,6 +30,7 @@ export function ActiveTasksList({
   onToggleSubtask,
   onDeleteSubtask,
 }: ActiveTasksListProps) {
+  const { t } = useTranslation()
   const listRef = useRef<HTMLDivElement>(null)
   const shouldVirtualize = tasks.length > VIRTUALIZE_THRESHOLD
 
@@ -60,7 +62,12 @@ export function ActiveTasksList({
   )
 
   return (
-    <div ref={listRef} className={`flex flex-col ${shouldVirtualize ? 'max-h-[60vh] overflow-y-auto custom-scrollbar' : ''}`}>
+    <div
+      ref={listRef}
+      role="list"
+      aria-label={t('taskActiveTargetsListAria')}
+      className={`flex flex-col ${shouldVirtualize ? 'max-h-[60vh] overflow-y-auto custom-scrollbar' : ''}`}
+    >
       {shouldVirtualize ? (
         <div
           style={{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}
@@ -70,6 +77,7 @@ export function ActiveTasksList({
             return (
               <div
                 key={task.id ?? virtualRow.key}
+                role="listitem"
                 ref={virtualizer.measureElement}
                 data-index={virtualRow.index}
                 style={{
@@ -86,7 +94,11 @@ export function ActiveTasksList({
           })}
         </div>
       ) : (
-        tasks.map(task => renderRow(task))
+        tasks.map(task => (
+          <div key={task.id} role="listitem">
+            {renderRow(task)}
+          </div>
+        ))
       )}
     </div>
   )

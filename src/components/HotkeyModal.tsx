@@ -1,4 +1,4 @@
-import React from 'react'
+import { memo } from 'react'
 import { X } from 'lucide-react'
 import { ModalShell } from './shared/ModalShell'
 import { useTranslation } from '../i18n/useTranslation'
@@ -8,10 +8,10 @@ interface HotkeyModalProps {
   onClose: () => void
 }
 
-export const HotkeyModal: React.FC<HotkeyModalProps> = ({
+export const HotkeyModal = memo(function HotkeyModal({
   isOpen,
   onClose,
-}) => {
+}: HotkeyModalProps) {
   const { t } = useTranslation()
 
   const shortcuts = [
@@ -32,25 +32,28 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({
       onClose={onClose}
       ariaLabelledby="hotkey-modal-title"
       ariaDescribedby="hotkey-modal-desc"
-      panelClassName="max-w-sm surface-subtle p-5 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)]"
+      panelClassName="max-w-sm p-5"
     >
       <p id="hotkey-modal-desc" className="sr-only">{t('hotkeyModalDesc')}</p>
       <div className="mb-5 flex items-center justify-between border-b border-card pb-3">
-        <h3 id="hotkey-modal-title" className="text-lg font-semibold">{t('hotkeyModalTitle')}</h3>
+        <h3 id="hotkey-modal-title" className="text-title font-semibold">{t('hotkeyModalTitle')}</h3>
         <button
           type="button"
           onClick={onClose}
           aria-label={t('hotkeyCloseAria')}
-          className="flex h-7 w-7 items-center justify-center rounded-xl text-muted transition-colors hover:surface-track hover:text-primary cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
+          className="chrome-icon-btn chrome-icon-btn--sm"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
       <div className="space-y-3">
         {shortcuts.map(item => (
-          <div key={item.keys} className="flex items-center justify-between rounded-xl border border-card surface-subtle px-4 py-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
-            <span className="text-sm text-secondary">{item.action}</span>
-            <kbd className="rounded border border-card surface-track px-2 py-0.5 font-mono text-label font-bold uppercase text-primary">{item.keys}</kbd>
+          <div
+            key={item.keys}
+            className="flex items-center justify-between rounded-xl border border-card surface-track px-4 py-3"
+          >
+            <span className="text-caption text-secondary">{item.action}</span>
+            <kbd className="rounded border border-card surface-subtle px-2 py-0.5 font-mono text-label font-bold uppercase text-primary">{item.keys}</kbd>
           </div>
         ))}
       </div>
@@ -58,4 +61,4 @@ export const HotkeyModal: React.FC<HotkeyModalProps> = ({
       <p className="mt-2 text-center text-label text-muted">{t('hotkeySettingsNote')}</p>
     </ModalShell>
   )
-}
+})

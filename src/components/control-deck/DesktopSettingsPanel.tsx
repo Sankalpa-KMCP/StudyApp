@@ -2,6 +2,7 @@ import { useSettingsPanel } from '../../context/settingsPanelContext'
 import { useTranslation } from '../../i18n/useTranslation'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { ToggleSetting } from '../shared/settings/ToggleSetting'
+import { Button } from '../shared/Button'
 import { scrollToSettingsSection } from '../../lib/settings/settingsSections'
 import { isTauri, enableDesktopAutostart, requestDesktopNotificationPermission, setDesktopGlobalShortcuts } from '../../lib/desktop/tauri'
 
@@ -46,8 +47,9 @@ export function DesktopSettingsPanel() {
           }}
         />
         <div>
-          <span className="settings-label block mb-1">{t('desktopShortcutKey')}</span>
+          <label htmlFor="desktop-shortcut-key" className="settings-label block mb-1">{t('desktopShortcutKey')}</label>
           <input
+            id="desktop-shortcut-key"
             type="text"
             value={desktopGlobalTimerShortcut}
             onChange={e => updateSetting('desktopGlobalTimerShortcut', e.target.value)}
@@ -56,7 +58,7 @@ export function DesktopSettingsPanel() {
                 void setDesktopGlobalShortcuts(true, desktopGlobalTimerShortcut)
               }
             }}
-            className="rounded-lg border border-card surface-subtle px-3 py-2 text-xs text-primary w-full max-w-[200px]"
+            className="settings-input !rounded-lg text-micro max-w-[200px] focus-ring"
             placeholder={t('desktopShortcutKeyPlaceholder')}
           />
         </div>
@@ -90,13 +92,15 @@ export function DesktopSettingsPanel() {
               ? t('desktopSyncFolderConnectedDesc')
               : t('desktopSyncFolderDisconnectedDesc')}
           </p>
-          <button
+          <Button
             type="button"
-            className="text-xs font-semibold text-accent-blue hover:text-accent-blue/80"
+            variant="ghost"
+            size="sm"
+            className="!px-0"
             onClick={() => scrollToSettingsSection('settings-backup-vault')}
           >
             {t('desktopFolderSyncSettingsLink')}
-          </button>
+          </Button>
           {syncFolderPath && (
             <p className="text-micro settings-muted mt-2 font-mono break-all">{syncFolderPath}</p>
           )}

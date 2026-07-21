@@ -131,31 +131,31 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       closeOnBackdrop={false}
       ariaLabelledby="onboarding-modal-title"
       ariaDescribedby="onboarding-modal-desc"
-      panelClassName="max-w-md surface-subtle p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4),_inset_0_1px_1px_rgba(255,255,255,0.08)] overflow-hidden"
+      panelClassName="max-w-md surface-subtle p-6 overflow-hidden"
     >
       <div className="flex items-center justify-between border-b border-card pb-3.5 mb-5 select-none">
         <div className="flex items-center gap-1.5">
-          <Sparkles className="h-4 w-4 text-accent-blue" />
-          <span className="text-micro font-bold uppercase tracking-wider text-muted">Getting Started</span>
+          <Sparkles className="h-4 w-4 text-accent-blue" aria-hidden />
+          <span className="text-micro font-bold uppercase tracking-wider text-muted">{t('onboardingGettingStarted')}</span>
         </div>
         <button
           type="button"
           onClick={handleFinish}
-          aria-label="Skip onboarding tour"
-          className="text-xs text-muted hover:text-secondary transition-colors font-semibold cursor-pointer"
+          aria-label={t('onboardingSkip')}
+          className="focus-ring text-xs text-muted hover:text-secondary transition-colors font-semibold cursor-pointer ios-active-scale"
         >
-          Skip Tour
+          {t('onboardingSkip')}
         </button>
       </div>
 
       <div className="flex flex-col items-center text-center space-y-4 mb-6">
         <div className={`h-12 w-12 rounded-2xl flex items-center justify-center border ${slide.color} animate-fade-in`}>
-          <Icon className="h-6 w-6" />
+          <Icon className="h-6 w-6" aria-hidden />
         </div>
 
-        <h3 id="onboarding-modal-title" className="text-base font-bold text-primary tracking-wide animate-fade-in">
+        <h2 id="onboarding-modal-title" className="text-base font-bold text-primary tracking-wide animate-fade-in">
           {slide.title}
-        </h3>
+        </h2>
 
         <p id="onboarding-modal-desc" className="text-xs text-secondary leading-relaxed max-w-sm animate-fade-in">
           {slide.description}
@@ -180,7 +180,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
         {slide.showGoalPicker && (
           <div className="w-full pt-3 border-t border-card text-left">
-            <p className="text-micro font-bold uppercase tracking-wider text-muted mb-2">Set your daily goal (optional)</p>
+            <p className="text-micro font-bold uppercase tracking-wider text-muted mb-2">{t('onboardingDailyGoalLabel')}</p>
             <div className="flex flex-wrap gap-2">
               {GOAL_OPTIONS.map(mins => (
                 <SelectionChip
@@ -195,15 +195,15 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               ))}
             </div>
             <p className="text-micro text-muted mt-2 leading-relaxed">
-              Fine-tune anytime in Settings → Timer &amp; Focus.
+              {t('onboardingDailyGoalHint')}
             </p>
             {onReplayTour && (
               <button
                 type="button"
                 onClick={onReplayTour}
-                className="mt-3 text-micro font-semibold text-accent-blue hover:underline cursor-pointer"
+                className="focus-ring mt-3 text-micro font-semibold text-accent-blue hover:underline cursor-pointer ios-active-scale"
               >
-                Learn more — replay anytime from Settings → Getting started, or the ⋯ menu on mobile
+                {t('onboardingReplayTourHint')}
               </button>
             )}
           </div>
@@ -218,7 +218,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               handleFinish()
               onOpenBackup()
             }}
-            className="text-micro font-semibold text-muted hover:text-accent-blue transition-colors cursor-pointer"
+            className="focus-ring text-micro font-semibold text-muted hover:text-accent-blue transition-colors cursor-pointer ios-active-scale"
           >
             {t('onboardingImportData')}
           </button>
@@ -233,7 +233,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               type="button"
               onClick={() => setCurrentSlide(idx)}
               aria-label={`Go to slide ${idx + 1}`}
-              className={`h-1.5 rounded-full transition-all cursor-pointer ${
+              className={`focus-ring h-1.5 rounded-full transition-all cursor-pointer ios-active-scale ${
                 idx === currentSlide ? 'w-5 bg-accent-blue' : 'w-1.5 surface-track hover:opacity-80'
               }`}
             />
@@ -245,7 +245,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             <button
               type="button"
               onClick={handlePrev}
-              className="px-3 py-1.5 rounded-lg text-micro font-bold surface-subtle border border-card hover:surface-track text-on-accent transition-all cursor-pointer"
+              className="focus-ring px-3 py-1.5 rounded-lg text-micro font-bold surface-subtle border border-card hover:surface-track text-on-accent transition-all cursor-pointer ios-active-scale"
             >
               {t('onboardingBack')}
             </button>
@@ -253,7 +253,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           <button
             type="button"
             onClick={handleNext}
-            className="flex items-center gap-1 px-4 py-1.5 rounded-lg text-micro font-bold bg-accent-blue hover:bg-accent-blue/90 border border-card text-on-accent transition-all cursor-pointer shadow-md shadow-accent-blue/15"
+            className="focus-ring flex items-center gap-1 px-4 py-1.5 rounded-lg text-micro font-bold bg-accent-blue hover:bg-accent-blue/90 border border-card text-on-accent transition-all cursor-pointer shadow-md shadow-accent-blue/15 ios-active-scale"
           >
             <span>{currentSlide === slides.length - 1 ? t('onboardingFinish') : t('onboardingNext')}</span>
             {currentSlide === slides.length - 1 ? <Check className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}

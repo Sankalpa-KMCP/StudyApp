@@ -30,6 +30,7 @@ export function ModalShell({
 }: ModalShellProps) {
   const internalTrapRef = useFocusTrap(open, onClose)
   const trapRef = externalTrapRef ?? internalTrapRef
+  const backdropClosable = closeOnBackdrop && Boolean(onClose)
 
   if (!open) return null
 
@@ -38,8 +39,9 @@ export function ModalShell({
       <button
         type="button"
         className="absolute inset-0 modal-backdrop backdrop-blur-md border-0 p-0 cursor-default"
-        onClick={closeOnBackdrop ? onClose : undefined}
-        aria-label="Close dialog"
+        onClick={backdropClosable ? onClose : undefined}
+        aria-label={backdropClosable ? 'Close dialog' : undefined}
+        aria-hidden={!backdropClosable}
         tabIndex={-1}
       />
       <div
@@ -49,7 +51,8 @@ export function ModalShell({
         aria-labelledby={ariaLabelledby}
         aria-describedby={ariaDescribedby}
         aria-label={ariaLabel}
-        className={`relative w-full max-w-md rounded-2xl border border-card surface-overlay shadow-2xl ${panelClassName}`.trim()}
+        tabIndex={-1}
+        className={`relative w-full max-w-md rounded-2xl border border-card surface-overlay shadow-2xl animate-fade-in ${panelClassName}`.trim()}
       >
         {children}
       </div>

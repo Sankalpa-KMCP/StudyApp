@@ -1,3 +1,5 @@
+import { useTranslation } from '../../i18n/useTranslation'
+
 interface TimerDisplayProps {
   remainingSeconds: number
   progress: number
@@ -15,8 +17,22 @@ export function TimerDisplay({
   isTimerActive,
   activeColor,
 }: TimerDisplayProps) {
+  const { t } = useTranslation()
+
+  const minutes = String(Math.floor(remainingSeconds / 60)).padStart(2, '0')
+  const seconds = String(remainingSeconds % 60).padStart(2, '0')
+  const timeDisplay = `${minutes}:${seconds}`
+
+  const modeLabel =
+    timerMode === 'study'
+      ? t('timerModeStudyBlock')
+      : isLongBreak
+      ? t('timerModeLongBreak')
+      : t('timerModeShortBreak')
+
   return (
     <div
+      aria-label={t('timerRingAria', { mode: modeLabel, time: timeDisplay })}
       className={`relative flex h-52 w-52 md:h-72 md:w-72 focus-timer-ring glass-hero items-center justify-center rounded-full overflow-hidden ${
         timerMode === 'study' && isTimerActive ? 'focus-timer-ring--active' : ''
       }`}
@@ -28,8 +44,8 @@ export function TimerDisplay({
           background: `radial-gradient(circle, ${activeColor} 0%, transparent 70%)`,
         }}
       />
-      <svg className="absolute h-[94%] w-[94%] -rotate-90 overflow-visible" viewBox="0 0 120 120">
-        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="2" />
+      <svg className="absolute h-[94%] w-[94%] -rotate-90 overflow-visible" viewBox="0 0 120 120" aria-hidden>
+        <circle cx="60" cy="60" r="50" fill="none" stroke="var(--color-border-card)" strokeWidth="2" />
         <circle
           cx="60" cy="60" r="50"
           fill="none"
@@ -51,11 +67,11 @@ export function TimerDisplay({
           style={{ '--timer-glow-color': activeColor } as React.CSSProperties}
           role="timer"
         >
-          {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
+          {timeDisplay}
         </p>
         <span className="timer-mode-badge mt-3">
           <span className="timer-mode-badge__dot" aria-hidden />
-          {timerMode === 'study' ? 'Study block' : isLongBreak ? 'Long break' : 'Short break'}
+          {modeLabel}
         </span>
       </div>
     </div>

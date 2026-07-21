@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Sparkles } from 'lucide-react'
 import { ModalShell } from './shared/ModalShell'
 import { Button } from './shared/Button'
+import { useTranslation } from '../i18n/useTranslation'
 
 interface LevelUpModalProps {
   level: number
@@ -10,6 +11,8 @@ interface LevelUpModalProps {
 }
 
 export function LevelUpModal({ level, xpProgressPercent, onDismiss }: LevelUpModalProps) {
+  const { t } = useTranslation()
+
   useEffect(() => {
     const delayBurst = (delayMs: number, count: number) => {
       setTimeout(() => {
@@ -28,36 +31,41 @@ export function LevelUpModal({ level, xpProgressPercent, onDismiss }: LevelUpMod
     delayBurst(400, 50)
     delayBurst(700, 50)
   }, [])
+
   return (
     <ModalShell
       open
       onClose={onDismiss}
       ariaLabelledby="level-up-title"
-      panelClassName="max-w-sm surface-subtle p-6 text-center shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+      panelClassName="max-w-sm surface-subtle p-6 text-center"
     >
       <div className="flex flex-col items-center gap-4">
         <div className="h-14 w-14 rounded-full bg-accent-amber/15 border border-accent-amber/30 flex items-center justify-center">
-          <Sparkles className="h-7 w-7 text-accent-amber" />
+          <Sparkles className="h-7 w-7 text-accent-amber" aria-hidden />
         </div>
         <div>
-          <p className="text-label font-bold uppercase tracking-widest text-muted mb-1">Level up</p>
-          <h2 id="level-up-title" className="text-3xl font-extrabold text-primary">Level {level}</h2>
-          <p className="text-caption text-muted mt-2">Your focus is paying off — keep the momentum going.</p>
+          <p className="text-label font-bold uppercase tracking-widest text-muted mb-1">{t('levelUpTitle')}</p>
+          <h2 id="level-up-title" className="text-3xl font-extrabold text-primary">{t('levelUpHeading', { level })}</h2>
+          <p className="text-caption text-muted mt-2">{t('levelUpBody')}</p>
         </div>
         <div className="w-full">
           <div className="flex justify-between text-micro font-mono text-muted mb-1.5">
-            <span>XP progress</span>
+            <span>{t('levelUpXpProgress')}</span>
             <span>{Math.round(xpProgressPercent)}%</span>
           </div>
           <div className="h-2 w-full rounded-full surface-track border border-card overflow-hidden">
             <div
               className="h-full bg-accent-amber transition-all duration-500"
               style={{ width: `${xpProgressPercent}%` }}
+              role="progressbar"
+              aria-valuenow={Math.round(xpProgressPercent)}
+              aria-valuemin={0}
+              aria-valuemax={100}
             />
           </div>
         </div>
-        <Button variant="primary" onClick={onDismiss} className="w-full">
-          Keep focusing
+        <Button variant="primary" onClick={onDismiss} className="focus-ring w-full">
+          {t('levelUpKeepFocusing')}
         </Button>
       </div>
     </ModalShell>
