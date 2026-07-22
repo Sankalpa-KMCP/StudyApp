@@ -294,7 +294,7 @@ function FocusCard(props: {
         </select>
       </label>
       {props.activeSession ? (
-        <p className="session-elapsed" aria-live="polite">
+        <p className="session-elapsed">
           <span>Elapsed</span>
           <strong>{formatElapsed(elapsedSeconds)}</strong>
         </p>

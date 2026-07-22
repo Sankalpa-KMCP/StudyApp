@@ -3950,6 +3950,91 @@ describe('App', () => {
     expect(await screen.findByText('Unfinished focus session discarded.')).toBeInTheDocument()
   })
 
+  it('keeps the focus timer accessible without live-region second ticks', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    const startedAt = new Date('2026-07-21T12:00:00.000Z')
+    vi.setSystemTime(startedAt)
+
+    await createActiveFocusSession({
+      id: 'focus-a11y-timer',
+      subjectId: '',
+      startedAt: startedAt.toISOString(),
+      plannedMinutes: 25,
+      status: 'running',
+      pausedAt: null,
+      accumulatedPausedMs: 0,
+    })
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App />)
+
+    const focusCard = await screen.findByRole('region', { name: 'Focus session' })
+    expect(within(focusCard).getByRole('button', { name: 'Pause' })).toBeInTheDocument()
+    expect(within(focusCard).getByText('remaining')).toBeInTheDocument()
+
+    const elapsed = within(focusCard).getByText('Elapsed').closest('.session-elapsed')
+    expect(elapsed).not.toBeNull()
+    expect(elapsed).not.toHaveAttribute('aria-live')
+    expect(elapsed).not.toHaveAttribute('aria-atomic')
+    expect(elapsed).not.toHaveAttribute('aria-hidden')
+    expect(elapsed).not.toHaveAttribute('role')
+    expect(within(elapsed as HTMLElement).getByText('00:00')).toBeInTheDocument()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000)
+    })
+    expect(within(elapsed as HTMLElement).getByText('00:02')).toBeInTheDocument()
+    expect(elapsed).not.toHaveAttribute('aria-live')
+
+    await user.click(within(focusCard).getByRole('button', { name: 'Pause' }))
+    expect(await within(focusCard).findByRole('button', { name: 'Resume' })).toBeInTheDocument()
+    expect(within(focusCard).getByText('paused')).toBeInTheDocument()
+    expect(within(elapsed as HTMLElement).getByText('00:02')).toBeInTheDocument()
+    expect(elapsed).not.toHaveAttribute('aria-live')
+
+    await user.click(within(focusCard).getByRole('button', { name: 'Resume' }))
+    expect(await within(focusCard).findByRole('button', { name: 'Pause' })).toBeInTheDocument()
+    expect(within(focusCard).getByText('remaining')).toBeInTheDocument()
+    expect(document.querySelector('.session-elapsed')).toBeInTheDocument()
+    expect(document.querySelector('.session-elapsed')).not.toHaveAttribute('aria-live')
+
+    await user.click(within(focusCard).getByRole('button', { name: 'Stop session' }))
+    const stopNotice = await screen.findByText(/Session stopped:/i)
+    expect(stopNotice).toHaveAttribute('role', 'status')
+    expect(screen.queryByText('Elapsed')).not.toBeInTheDocument()
+  })
+
+  it('keeps open-ended focus elapsed text visible without live announcements', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    const startedAt = new Date('2026-07-21T12:00:00.000Z')
+    vi.setSystemTime(startedAt)
+
+    await createActiveFocusSession({
+      id: 'focus-a11y-open-ended',
+      subjectId: '',
+      startedAt: startedAt.toISOString(),
+      plannedMinutes: 0,
+      status: 'running',
+      pausedAt: null,
+      accumulatedPausedMs: 0,
+    })
+
+    render(<App />)
+
+    const focusCard = await screen.findByRole('region', { name: 'Focus session' })
+    expect(within(focusCard).getByText('elapsed')).toBeInTheDocument()
+    const elapsed = within(focusCard).getByText('Elapsed').closest('.session-elapsed')
+    expect(elapsed).not.toHaveAttribute('aria-live')
+    expect(within(elapsed as HTMLElement).getByText('00:00')).toBeInTheDocument()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000)
+    })
+    expect(within(elapsed as HTMLElement).getByText('00:03')).toBeInTheDocument()
+    expect(elapsed).not.toHaveAttribute('aria-live')
+    expect(elapsed).not.toHaveAttribute('aria-hidden')
+  })
+
   it('synchronizes elapsed and remaining display immediately on resume after a long pause', async () => {
     vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
     const startedAt = new Date('2026-07-21T12:00:00.000Z')
