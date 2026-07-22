@@ -29,6 +29,12 @@ Workspace create, edit, delete, and status/review actions use a shared local mut
 - Status and review failures preserve the original visible state
 - Success and error feedback use accessible status and alert announcements (no raw database errors)
 
+## Accessibility
+
+Study Dashboard includes keyboard-accessible navigation and core study workflows, a skip link, and visible focus indicators. The notification popover is non-modal: Escape closes it and returns focus to the Notifications control. Tasks and Goals associate field-level validation errors with the responsible inputs. All seven themes include improved text and control-boundary contrast. The app respects `prefers-reduced-motion` and `prefers-reduced-transparency`, and keeps focused controls clear of the fixed mobile bottom navigation at common zoom/reflow widths. Focus timer values remain readable on screen without second-by-second live announcements. Automated accessibility smoke checks (axe) cover representative Home, Settings, and Progress states in Playwright.
+
+These are accessibility improvements and checks—not a claim of universal WCAG certification across every browser or assistive technology.
+
 ## Quick start
 
 ```bash

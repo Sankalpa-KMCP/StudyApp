@@ -5,6 +5,17 @@
 ### Fixed
 
 - Deferred timed focus auto-completion while Pause or Resume is being saved, then re-checked the durable session after the transition finished. Successful Pause at the completion boundary wins (no history row); Resume uses active elapsed time excluding paused duration; duplicate study-session history remains prevented.
+- Improved heading outline and accessible names (decorative task icons, human-readable subject swatches, Topbar context outside the `h1` outline).
+- Notification popover: Escape closes the non-modal panel and restores focus to the Notifications control.
+- Tasks and Goals field validation now associates errors with the responsible controls (`aria-invalid` / `aria-describedby`).
+- Theme text and control-boundary contrast across all seven palettes (Monochrome remains the base `:root`).
+- Zoom/reflow: mobile scroll padding keeps focused actions clear of the fixed bottom navigation.
+- Weekly and Progress charts expose valid named graphic semantics without prohibited naming on generic wrappers.
+- Focus timer elapsed text is no longer live-announced on every second tick; Pause/Resume/Stop and completion notices retain status or alert semantics.
+
+### Added
+
+- Playwright axe accessibility smoke checks for representative Home, Notifications-open, Settings, clear-confirm, Progress baseline, and seeded Progress chart states (`@axe-core/playwright`), with an unsuppressed WCAG A/AA tag policy.
 
 ### Changed
 
