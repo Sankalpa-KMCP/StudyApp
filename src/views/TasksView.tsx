@@ -266,7 +266,7 @@ export function TasksView({
                   aria-busy={isStatusPending || undefined}
                   disabled={rowBusy || isSaving}
                 >
-                  {task.status === 'done' ? <Check size={14} /> : <Square size={16} />}
+                  {task.status === 'done' ? <Check size={14} aria-hidden="true" /> : <Square size={16} aria-hidden="true" />}
                 </button>
                 <div>
                   <h3>{task.title}</h3>

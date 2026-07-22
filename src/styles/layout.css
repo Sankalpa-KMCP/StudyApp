@@ -181,7 +181,7 @@
   backdrop-filter: blur(14px);
 }
 
-.topbar h2 {
+.topbar .topbar-title {
   margin: 0;
   font-family: Outfit, Inter, sans-serif;
   font-size: 1rem;

@@ -33,7 +33,7 @@ export function Topbar(props: {
 
   return (
     <header className="topbar">
-      <h2>{props.activeView === 'Home' ? 'Dashboard' : props.activeView}</h2>
+      <p className="topbar-title">{props.activeView === 'Home' ? 'Dashboard' : props.activeView}</p>
       <div className="topbar-actions">
         <label className="search-field">
           <Search size={17} aria-hidden="true" />

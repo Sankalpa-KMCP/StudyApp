@@ -110,7 +110,7 @@
     padding: 8px 12px;
   }
 
-  .topbar h2 {
+  .topbar .topbar-title {
     display: none;
   }
 
