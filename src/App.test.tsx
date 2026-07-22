@@ -2490,14 +2490,93 @@ describe('App', () => {
     await screen.findByRole('heading', { name: 'Good morning' })
 
     const noticesBtn = screen.getByRole('button', { name: 'Notifications' })
-    await user.click(noticesBtn)
-
-    const popover = screen.getByRole('status')
-    expect(popover).toBeInTheDocument()
-    expect(within(popover).getByText(/completed tasks/)).toBeInTheDocument()
+    expect(noticesBtn).toHaveAttribute('aria-expanded', 'false')
+    expect(noticesBtn).toHaveAttribute('aria-controls', 'notice-popover')
+    expect(document.getElementById('notice-popover')).toBeNull()
 
     await user.click(noticesBtn)
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+
+    expect(noticesBtn).toHaveAttribute('aria-expanded', 'true')
+    const popover = document.getElementById('notice-popover')
+    expect(popover).not.toBeNull()
+    expect(popover).toHaveAttribute('role', 'status')
+    expect(within(popover as HTMLElement).getByText(/completed tasks/)).toBeInTheDocument()
+
+    await user.click(noticesBtn)
+    expect(noticesBtn).toHaveAttribute('aria-expanded', 'false')
+    expect(document.getElementById('notice-popover')).toBeNull()
+  })
+
+  it('closes the notice popover with Escape and restores focus to the trigger', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Good morning' })
+    const noticesBtn = screen.getByRole('button', { name: 'Notifications' })
+
+    await user.click(noticesBtn)
+    expect(document.getElementById('notice-popover')).not.toBeNull()
+    expect(noticesBtn).toHaveAttribute('aria-expanded', 'true')
+
+    const searchInput = screen.getByPlaceholderText('Search')
+    await user.click(searchInput)
+    expect(searchInput).toHaveFocus()
+
+    await user.keyboard('{Escape}')
+
+    expect(document.getElementById('notice-popover')).toBeNull()
+    expect(noticesBtn).toHaveAttribute('aria-expanded', 'false')
+    expect(noticesBtn).toHaveFocus()
+  })
+
+  it('Escape closes an open notice popover without clearing search text', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Good morning' })
+    const noticesBtn = screen.getByRole('button', { name: 'Notifications' })
+    const searchInput = screen.getByPlaceholderText('Search')
+
+    await user.click(searchInput)
+    await user.type(searchInput, 'keep-me')
+    await user.click(noticesBtn)
+    expect(document.getElementById('notice-popover')).not.toBeNull()
+
+    await user.click(searchInput)
+    expect(searchInput).toHaveFocus()
+    await user.keyboard('{Escape}')
+
+    expect(document.getElementById('notice-popover')).toBeNull()
+    expect(searchInput).toHaveValue('keep-me')
+    expect(noticesBtn).toHaveFocus()
+  })
+
+  it('reopens the notice popover after Escape and keeps search Escape when closed', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Good morning' })
+    const noticesBtn = screen.getByRole('button', { name: 'Notifications' })
+    const searchInput = screen.getByPlaceholderText('Search')
+
+    await user.click(noticesBtn)
+    await user.keyboard('{Escape}')
+    expect(document.getElementById('notice-popover')).toBeNull()
+    expect(noticesBtn).toHaveFocus()
+
+    await user.click(noticesBtn)
+    expect(document.getElementById('notice-popover')).not.toBeNull()
+    expect(noticesBtn).toHaveAttribute('aria-expanded', 'true')
+
+    await user.click(noticesBtn)
+    expect(document.getElementById('notice-popover')).toBeNull()
+
+    await user.click(searchInput)
+    await user.type(searchInput, 'calculus')
+    await user.keyboard('{Escape}')
+    expect(searchInput).toHaveValue('')
+    expect(searchInput).not.toHaveFocus()
+    expect(document.getElementById('notice-popover')).toBeNull()
   })
 
   it('exports study data as a JSON file', async () => {

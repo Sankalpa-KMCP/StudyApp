@@ -640,6 +640,8 @@ function App() {
   }, [activeSession, focusActionsPending, hydrateActiveSession])
 
   const clearSearch = useCallback(() => setSearch(''), [])
+  const closeNotices = useCallback(() => setNoticeOpen(false), [])
+  const toggleNotices = useCallback(() => setNoticeOpen((open) => !open), [])
 
   return (
     <div className={sidebarCollapsed ? 'app-shell is-sidebar-collapsed' : 'app-shell'}>
@@ -655,16 +657,18 @@ function App() {
           activeView={activeView}
           search={search}
           noticeOpen={noticeOpen}
+          noticePopoverId="notice-popover"
           onSearch={setSearch}
           onClearSearch={clearSearch}
-          onToggleNotices={() => setNoticeOpen((open) => !open)}
+          onToggleNotices={toggleNotices}
+          onCloseNotices={closeNotices}
           onOpenProfile={() => {
             navigateToView('Settings')
             setProfileNotice('Profile settings live in this local Settings workspace for now.')
           }}
         />
         {noticeOpen ? (
-          <div className="notice-popover" role="status">
+          <div id="notice-popover" className="notice-popover" role="status">
             <strong>{completedTasks.length} completed tasks</strong>
             <span>{Math.round(percent(todayFocusMinutes, dailyGoalMinutes))}% of today&apos;s focus target is done.</span>
           </div>

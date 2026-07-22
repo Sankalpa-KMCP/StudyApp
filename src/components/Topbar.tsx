@@ -6,13 +6,16 @@ export function Topbar(props: {
   activeView: View
   search: string
   noticeOpen: boolean
+  noticePopoverId: string
   onSearch: (value: string) => void
   onClearSearch: () => void
   onToggleNotices: () => void
+  onCloseNotices: () => void
   onOpenProfile: () => void
 }) {
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const { onClearSearch } = props
+  const noticeTriggerRef = useRef<HTMLButtonElement>(null)
+  const { onClearSearch, onCloseNotices, noticeOpen } = props
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -22,14 +25,29 @@ export function Topbar(props: {
         event.preventDefault()
         searchInputRef.current?.focus()
       }
-      if (event.key === 'Escape' && document.activeElement === searchInputRef.current) {
+      if (event.key === 'Escape' && !noticeOpen && document.activeElement === searchInputRef.current) {
         onClearSearch()
         searchInputRef.current?.blur()
       }
     }
     window.addEventListener('keydown', handleShortcut)
     return () => window.removeEventListener('keydown', handleShortcut)
-  }, [onClearSearch])
+  }, [onClearSearch, noticeOpen])
+
+  useEffect(() => {
+    if (!noticeOpen) return
+
+    const handleNoticeEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopPropagation()
+      onCloseNotices()
+      noticeTriggerRef.current?.focus()
+    }
+
+    window.addEventListener('keydown', handleNoticeEscape, true)
+    return () => window.removeEventListener('keydown', handleNoticeEscape, true)
+  }, [noticeOpen, onCloseNotices])
 
   return (
     <header className="topbar">
@@ -45,7 +63,15 @@ export function Topbar(props: {
             </button>
           ) : <kbd className="search-shortcut" aria-hidden="true">/</kbd>}
         </label>
-        <button className={props.noticeOpen ? 'icon-button is-active' : 'icon-button'} type="button" aria-label="Notifications" aria-expanded={props.noticeOpen} onClick={props.onToggleNotices}>
+        <button
+          ref={noticeTriggerRef}
+          className={props.noticeOpen ? 'icon-button is-active' : 'icon-button'}
+          type="button"
+          aria-label="Notifications"
+          aria-expanded={props.noticeOpen}
+          aria-controls={props.noticePopoverId}
+          onClick={props.onToggleNotices}
+        >
           <Bell size={20} aria-hidden="true" />
         </button>
         <button className="avatar-button" type="button" aria-label="Profile" onClick={props.onOpenProfile}>
