@@ -3048,7 +3048,7 @@ describe('App', () => {
 
   it('defers timed auto-complete while Pause is pending and successful Pause wins', async () => {
     const user = userEvent.setup()
-    const remainingMs = 700
+    const remainingMs = 2000
     const sessionId = 'focus-race-pause-win'
     await createActiveFocusSession(makeDurableFocusSession({
       id: sessionId,
@@ -3108,7 +3108,7 @@ describe('App', () => {
 
   it('finalizes once after failed Pause when durable session remains running and complete', async () => {
     const user = userEvent.setup()
-    const remainingMs = 700
+    const remainingMs = 2000
     const sessionId = 'focus-race-pause-fail'
     await createActiveFocusSession(makeDurableFocusSession({
       id: sessionId,
@@ -3220,7 +3220,7 @@ describe('App', () => {
 
   it('waits remaining active time after Resume before timed completion', async () => {
     const user = userEvent.setup()
-    const remainingMs = 700
+    const remainingMs = 2000
     const sessionId = 'focus-race-resume-remaining'
     await createActiveFocusSession(makeDurableFocusSession({
       id: sessionId,
@@ -3318,7 +3318,7 @@ describe('App', () => {
 
   it('does not finalize session A when Pause settles with a replacement session B', async () => {
     const user = userEvent.setup()
-    const remainingMs = 700
+    const remainingMs = 2000
     const sessionA = 'focus-race-conflict-a'
     const sessionB = makeDurableFocusSession({
       id: 'focus-race-conflict-b',
@@ -3377,7 +3377,7 @@ describe('App', () => {
 
   it('writes no history when Pause settles missing after deferred completion was queued', async () => {
     const user = userEvent.setup()
-    const remainingMs = 700
+    const remainingMs = 2000
     const sessionId = 'focus-race-missing'
     await createActiveFocusSession(makeDurableFocusSession({
       id: sessionId,
@@ -3437,7 +3437,7 @@ describe('App', () => {
 
   it('keeps failed-Pause deferred completion idempotent across settlement and timer paths', async () => {
     const user = userEvent.setup()
-    const remainingMs = 700
+    const remainingMs = 2000
     const sessionId = 'focus-race-idempotent'
     await createActiveFocusSession(makeDurableFocusSession({
       id: sessionId,
