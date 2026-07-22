@@ -16,7 +16,7 @@
 
 **Human-oriented docs:** [README.md](../README.md), [CONTRIBUTING.md](../CONTRIBUTING.md), [CHANGELOG.md](../CHANGELOG.md)
 
-**Note:** Parent workspace [README.md](../../README.md) links to `web/ARCHITECTURE.md`, which does **not** exist. [README.md](../README.md) §Architecture still links to the intentionally omitted `ARCHITECTURE_DECISIONS.md` — use this document (§6) and [AI_RULES.md](AI_RULES.md) for architecture guidance.
+**Note:** Architecture guidance lives in this document (§6) and [AI_RULES.md](AI_RULES.md). Parent workspace [README.md](../../README.md) and [README.md](../README.md) §Architecture link here.
 
 ---
 
@@ -154,19 +154,20 @@ web/                              # Git repository root
 │   ├── index.css                 # Global styles + Tailwind
 │   ├── vite-env.d.ts             # Vite env type declarations
 │   ├── components/               # UI components
-│   │   ├── tabs/                 # FocusTab, AnalyticsTab, JournalTab, SettingsTab
+│   │   ├── ActivityLedger.tsx    # Journal tab main component (lazy-loaded by JournalTab)
+│   │   ├── tabs/                 # Tab wrappers + FocusTabContent (FocusTab lazy-loads FocusTabContent)
 │   │   ├── control-deck/         # Settings panels (timer, backup, sync, etc.)
 │   │   │   ├── backup-vault/     # BackupVaultPanel + export/import/ICS/reset sections
 │   │   │   ├── StorageUsagePanel.tsx
 │   │   │   ├── SettingsOnboardingBanners.tsx
 │   │   │   └── BackupVaultPanel.tsx  # Re-export barrel → backup-vault/
 │   │   ├── sidebar/              # Desktop sidebar navigation (+ SidebarFlyoutProvider)
-│   │   ├── focus/                # Timer display, controls, review/first-session banners
+│   │   ├── focus/                # Timer display, controls; FocusTaskSection.tsx exports FocusStudyTipSection + FocusActiveTaskLabel
 │   │   ├── analytics/            # Charts, heatmap, retention panels
-│   │   ├── activity-ledger/      # Journal calendar and day detail
+│   │   ├── activity-ledger/      # Journal sub-panels (MoodPicker, DayDetailPanel) — main ledger is ActivityLedger.tsx at components root
 │   │   ├── task-registry/        # Task list, create form, filters
 │   │   ├── quick-notes/          # Notes drawer components
-│   │   ├── app-shell/            # Loading screen, banners, toasts
+│   │   ├── app-shell/            # Loading screen, banners, AppToastOverlay, layout
 │   │   └── shared/               # Button, Card, ModalShell, PanelCard, MetricCard, TabPageShell, VirtualList, CelebrationConfettiHost, settings/*
 │   ├── context/                  # React context providers + facade hooks
 │   │   ├── StudyAppProvider.tsx, StudyDataProvider.tsx, StudyTimerProvider.tsx, StudyUIProvider.tsx
@@ -205,7 +206,7 @@ web/                              # Git repository root
 │   │   ├── audio/                # Ambient sound engine
 │   │   ├── routing/              # Hash routing, activeTab store, command palette search, prefetch
 │   │   └── shared/               # Constants, dev logger, copyDebugInfo, UX terms
-│   ├── navigation/               # Tab definitions (appNav.ts)
+│   ├── navigation/               # Tab definitions (appNav.ts), shared NavTabButton.tsx
 │   ├── i18n/                     # i18n: index.ts, locales/en.json, useTranslation.ts
 │   ├── types/                    # App-level types (ActiveTab, etc.)
 │   ├── styles/                   # tokens.css, animations.css, nav-accents.css, surfaces.css, controls.css, mood-picker.css (imported by index.css)
@@ -324,8 +325,9 @@ index.html
 3. History filtered to current calendar month by `useHistoryForMonth`.
 
 **Important files:**
-- `src/components/tabs/JournalTab.tsx`
-- `src/components/activity-ledger/`
+- `src/components/tabs/JournalTab.tsx` (lazy-loads `ActivityLedger.tsx`)
+- `src/components/ActivityLedger.tsx`
+- `src/components/activity-ledger/` (`MoodPicker`, `DayDetailPanel`)
 - `src/hooks/useJournalCalendar.ts`
 - `src/db/hooks/useAllDailyLogs.ts`, `src/db/hooks/useTodayLog.ts`
 
@@ -368,14 +370,14 @@ index.html
 5. Web Share API export on supported mobile browsers (`lib/backup/backupShare.ts`).
 6. `StorageUsagePanel` shows IndexedDB quota estimate and per-table row counts (`useStorageEstimate`, `storageStats` repository).
 7. Emergency snapshots (last 3) stored in `snapshots` table before risky operations.
-8. Backup reminder timing tracked in localStorage via `lib/backup/backupMetadata.ts` (`last_backup_export_at`, `last_backup_dismissed_at`); surfaced by `useBackupReminder` → `BackupReminderBanner` in `AppShell`.
+8. Backup reminder timing tracked in localStorage via `lib/backup/backupMetadata.ts` (`last_backup_export_at`, `last_backup_dismissed`); `AppShell` runs `useBackupReminder()` and passes `showBackupReminder={backupReminder.shouldRemind}` to `AppShellLayout`, which forwards to `Sidebar` and `MobileTabBar`. When true, the Settings tab shows an amber notification dot and appends `bannerBackupReminderAria` to the nav button aria-label via `NavTabButton` — no global banner region is rendered.
 9. CSV/ICS reports section (`backup-vault/CsvIcsReportsSection.tsx`) exports study logs CSV, history ICS, task-completion CSV; imports history from ICS (`lib/export/icsImport.ts`, `hooks/backup/useBackupIcs.ts`); can archive history older than `historyRetentionDays`.
 
 **Important files:**
 - `src/components/control-deck/BackupVaultPanel.tsx` (re-export) → `src/components/control-deck/backup-vault/BackupVaultPanel.tsx`
 - `src/components/control-deck/backup-vault/CsvIcsReportsSection.tsx`
 - `src/components/control-deck/StorageUsagePanel.tsx`, `SettingsOnboardingBanners.tsx`
-- `src/components/BackupReminderBanner.tsx`
+- `src/navigation/NavTabButton.tsx`, `src/components/sidebar/SidebarNavButton.tsx`, `src/components/MobileTabBar.tsx`, `src/components/app-shell/AppShellLayout.tsx`
 - `src/hooks/backup/useBackupVaultExport.ts`, `useBackupVaultImport.ts`, `useBackupVaultPanelState.ts`, `useBackupIcs.ts`
 - `src/hooks/useSessionBackup.ts`, `useStorageEstimate.ts`, `useBackupReminder.ts`
 - `src/lib/backup/backupExport.ts`, `backupMerge.ts`, `backupCrypto.ts`, `backupChecksum.ts`, `backupShare.ts`, `mergePreview.ts`, `backupMetadata.ts`, `csvExport.ts`
@@ -612,7 +614,7 @@ When `isDataReady`, `useAppShellEffects` wires non-UI background services:
 | `useFolderSync` | Starts/stops `syncOrchestrator` when folder sync enabled |
 | Desktop init | Applies saved autostart/shortcut settings on Tauri startup (`lib/desktop/tauri.ts`) |
 
-Separately, `AppShell` runs `useBackupReminder()` for the export nudge banner (`BackupReminderBanner`).
+Separately, `AppShell` runs `useBackupReminder()` and passes `showBackupReminder` to `AppShellLayout` → Settings nav notification dot (`NavTabButton.showNotificationDot`). Status banners (offline, PWA install, quota recovery) are passed as a `banners` prop to `AppShellLayout` and rendered via `AppShellStatusBanners` (offline + PWA prominent; quota recovery collapsible). Toasts render at AppShell root via `AppShellToast` → `AppToastOverlay`, outside the layout.
 
 ### Error handling flow
 
@@ -792,7 +794,7 @@ No server database. No ORM beyond Dexie.
 
 **Key settings groups:** timer durations, theme, lockout, sync, desktop, ambient audio, auto-export, history retention.
 
-**Defaults:** `src/lib/settings/settingsDefaults.ts` (`SETTINGS_DEFAULTS`); consumed by `db/selectors/settingsFromRows.ts` and settings UI helpers
+**Defaults:** `src/lib/settings/settingsDefaults.ts` (`SETTINGS_DEFAULTS`); consumed by `db/selectors/settingsFromRows.ts` and settings UI helpers. Default `theme` and `lightThemePreset` are **`paper-day`** (also seeded in `db/repositories/database.ts` `DEFAULT_SETTINGS` for new installs and DB reset).
 
 **Used by:** `src/db/repositories/settings.ts`, all settings panels, timer engine
 
@@ -1138,24 +1140,49 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 ---
 
+### src/navigation/NavTabButton.tsx
+
+**Purpose:** Unified navigation button for sidebar (expanded + rail) and mobile tab bar.
+
+**Responsibilities:**
+- Variants: `sidebar-expanded`, `sidebar-rail`, `mobile`
+- Renders review-due badge, backup-reminder notification dot (`showNotificationDot`), and lockout state
+- Builds composite aria-labels (review count, backup reminder, lockout suffix)
+
+**Used by:** `SidebarNavButton.tsx`, `MobileTabBar.tsx`
+
+---
+
 ### src/components/AppShell.tsx
 
 **Purpose:** Main application layout orchestrator (thin shell — layout and effects delegated to submodules).
 
 **Responsibilities:**
 - Consumes `useStudyData()` and `useStudyUI()` facades; delegates timer/backup to `useStudyTimerContext()`
-- Runs `useBackupReminder()` for export nudge banner state
-- Composes `AppShellLayout` (sidebar, tabs, mobile nav) and `AppShellBanners` (status + toast)
+- Runs `useBackupReminder()`; passes `showBackupReminder` and a `banners` props object to `AppShellLayout`
+- Composes `AppShellLayout` (sidebar, tabs, mobile nav, status banners) and renders `AppShellToast` at shell root
 - Lazy-loads command palette and quick notes drawer (`Suspense`)
 - Hosts modals: `OnboardingModal`, `HotkeyModal`, `LevelUpModal`, `ZenOverlayContainer`, `ReflectionModalContainer`
 - Runs background effects (sync, auto-export, reminders) via `useAppShellEffects`
 - Renders `E2eCrashProbe` (dev-only forced error for E2E error-boundary tests)
 
-**Subcomponents:** `app-shell/AppShellLayout.tsx`, `app-shell/AppShellBanners.tsx`, `app-shell/AppShellStatusBanners.tsx`, `app-shell/AppShellLoadingScreen.tsx`, `app-shell/DesktopTrayTimerBridge.tsx`
+**Subcomponents:** `app-shell/AppShellLayout.tsx`, `app-shell/AppShellBanners.tsx`, `app-shell/AppShellStatusBanners.tsx`, `app-shell/AppToastOverlay.tsx`, `app-shell/AppShellLoadingScreen.tsx`, `app-shell/DesktopTrayTimerBridge.tsx`
 
 **Used by:** `src/App.tsx`
 
 **Depends on:** Context facade hooks, tab components, app-shell subcomponents — **no repository imports**
+
+---
+
+### src/components/app-shell/AppToastOverlay.tsx
+
+**Purpose:** Toast overlay UI rendered by `AppShellToast` export from `AppShellBanners.tsx`.
+
+**Responsibilities:**
+- Displays transient toast messages from `useStudyUI()` `activeToast` state
+- Rendered at AppShell root (outside `AppShellLayout`), not inside the main content column
+
+**Used by:** `AppShell.tsx` via `AppShellToast`
 
 ---
 
@@ -1212,11 +1239,23 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 **Purpose:** Focus tab sanctuary layout — timer and study-tip columns.
 
-**Subcomponents:** `focus/FocusTimerSection.tsx`, `focus/FocusTaskSection.tsx` (timer display, controls, review banner live under `focus/`)
+**Subcomponents:** `focus/FocusTimerSection.tsx`, `focus/FocusTaskSection.tsx` (exports `FocusStudyTipSection` and `FocusActiveTaskLabel`; timer display and controls live under `focus/`)
 
 **Used by:** `FocusTabContent.tsx`
 
 **Data access:** Timer via `useStudyTimerContext()`; settings in `FocusTimerSection` via `useStudyData()` facade.
+
+---
+
+### src/components/shared/TabPageShell.tsx
+
+**Purpose:** Responsive 12-column grid shell for tab page layouts.
+
+**Responsibilities:**
+- `TabPageShell` — outer grid wrapper (`grid-cols-1 xl:grid-cols-12`)
+- `TabSection` / `TabSectionLabel` — accessible section headings within tab pages
+
+**Used by:** `FocusTabContent.tsx` (and other tabs adopting the shared shell pattern)
 
 ---
 
@@ -1504,7 +1543,7 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 | `daily_goal_configured` | localStorage | Setup checklist: daily goal set | `lib/study/setupChecklist.ts` |
 | `focus_first_run_pending` | localStorage | First-session banner on Focus tab | `lib/study/firstSession.ts` |
 | `last_backup_export_at` | localStorage | Last vault export timestamp | `lib/backup/backupMetadata.ts` |
-| `last_backup_dismissed_at` | localStorage | Backup reminder snooze | `lib/backup/backupMetadata.ts` |
+| `last_backup_dismissed` | localStorage | Backup reminder snooze | `lib/backup/backupMetadata.ts` |
 | `analytics_range` | localStorage | Analytics productivity window | `useAnalyticsHistoryRange.ts` |
 | `pwa_install_dismissed_until` | localStorage | PWA install banner snooze timestamp | `usePwaInstall.ts` |
 | `active_session_shadow` | sessionStorage | Timer interruption recovery | `useTimerSessionShadow.ts` |
@@ -1778,12 +1817,12 @@ Error handlers use `console.error` for diagnostics — not debug logging:
 - **IndexedDB quota** — recovery path exists but user may lose unsynced data if quota exceeded before export
 - **Safari PWA** — works offline but no folder sync
 - **Backup import passphrase in sessionStorage** — `useBackupVaultPanelState` briefly stores `backup_import_passphrase` for import retry; avoid logging or persisting longer than needed
+- **`dismissReminder()` unwired** — `useBackupReminder.dismissReminder` (7-day snooze via `setLastBackupDismissedAt`) has no UI callers in the current nav-dot UX; `dismissReminder()` and `last_backup_dismissed` snooze metadata are intentionally retained (deferred cleanup).
 
 ### Documentation gaps
 
 - Optional `ai/` companion docs not maintained: `TASK_TEMPLATE.md`, `PROMPT_PATTERNS.md`
 - `CURRENT_STATE.md` and `ARCHITECTURE_DECISIONS.md` intentionally omitted — confirmed; do not create
-- Parent [README.md](../../README.md) links to missing `web/ARCHITECTURE.md`; [README.md](../README.md) §Architecture links to omitted `ARCHITECTURE_DECISIONS.md` — use this document §6 instead
 
 ---
 
@@ -1883,6 +1922,7 @@ For documentation maintenance rules and the AI-maintained doc registry, see [`AI
 - `src/lib/sync/syncPull.ts` — merge logic can cause data loss if wrong
 - `src/lib/routing/appHashRouting.ts` — hash changes break bookmarks and E2E tests
 - `src/hooks/backup/useBackupVaultPanelState.ts` — import passphrase briefly stored in sessionStorage
+- **Backup reminder flow** — inspect together before changing: `useBackupReminder.ts`, `AppShell.tsx`, `AppShellLayout.tsx`, `NavTabButton.tsx`, `SidebarNavButton.tsx`, `SidebarExpanded.tsx`, `SidebarRail.tsx`, `MobileTabBar.tsx`, `e2e/backup-reminder.spec.ts`. Do not reintroduce a global banner without updating E2E and aria patterns.
 
 ### Conventions to preserve
 
@@ -1947,6 +1987,7 @@ npm run build                         # If build config or imports changed
 - Importing repositories from `lib/study/` or other non-sync/backup lib modules (violates ADR-014 boundary)
 - Assuming task templates (`task_templates` localStorage) are included in vault backup — they are not
 - Using `pnpm` or `yarn` — project uses `npm` (`package-lock.json`)
+- Adding a global backup reminder banner region without updating `e2e/backup-reminder.spec.ts` and `NavTabButton` aria-label patterns
 
 ---
 
@@ -1956,7 +1997,6 @@ npm run build                         # If build config or imports changed
 
 | Improvement | Why | First step | Related files |
 |-------------|-----|------------|---------------|
-| Create `web/ARCHITECTURE.md` or fix README architecture links | Parent `README.md` 404 + `web/README.md` links to omitted `ARCHITECTURE_DECISIONS.md` | Point both to `ai/PROJECT_CONTEXT.md` §6 | Parent `README.md`, `web/README.md` |
 | Sync conflict integration test | Complex merge logic relies mainly on E2E | Add Vitest test for conflict detection path | `src/lib/sync/syncPull.ts` |
 
 ### Medium Priority
@@ -2071,6 +2111,7 @@ npm run tauri:dev            # Desktop dev
 | **Setup checklist** | Settings onboarding banners tracking daily goal and backup export milestones |
 | **Task templates** | Saved repeat-task presets in localStorage (`task_templates`) — not IndexedDB |
 | **Active tab store** | `useActiveTabStore()` in `lib/routing/activeTabSync.ts` (data layer) vs `useActiveTabSync` in `hooks/routing/` (hash sync) — do not merge |
+| **Backup reminder dot** | Settings-tab amber notification dot when vault export is overdue; driven by `useBackupReminder` → `NavTabButton.showNotificationDot` (not a global banner) |
 
 ---
 
@@ -2115,4 +2156,4 @@ npm run tauri:dev            # Desktop dev
 
 ---
 
-*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 24, 2026 (pass 3). Canonical location: `ai/PROJECT_CONTEXT.md`.*
+*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 27, 2026 (pass 4). Canonical location: `ai/PROJECT_CONTEXT.md`.*
