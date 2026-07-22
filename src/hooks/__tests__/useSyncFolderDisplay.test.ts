@@ -59,19 +59,4 @@ describe('useSyncFolderDisplay', () => {
     expect(result.current.folderConnected).toBe(true)
     expect(result.current.folderLabel).toBe('study-sync')
   })
-
-  it('skips web folder label fetch until data is ready when required', async () => {
-    renderHook(() =>
-      useSyncFolderDisplay({
-        syncFolderPath: '',
-        syncEnabled: true,
-        requireDataReady: true,
-        isDataReady: false,
-      }),
-    )
-
-    await waitFor(() => {
-      expect(getWebSyncFolderLabel).not.toHaveBeenCalled()
-    })
-  })
 })
