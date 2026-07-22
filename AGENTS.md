@@ -53,6 +53,17 @@ Use the shared helper for ordinary async IndexedDB mutations:
 | Quick-note autosave | Sequential latest-value write queue so a stale write cannot overwrite newer draft text |
 | Theme / sidebar preferences | `localStorage`-backed; report friendly failures without migrating to IndexedDB |
 
+### Focus timed completion
+
+- Never finalize timed auto-completion while Pause or Resume IndexedDB persistence is pending (use a **synchronous pending ref** for the timeout path, not only React state).
+- When deferring, store the **exact expected session ID** (not a boolean-only flag).
+- After settlement, re-read the durable singleton from IndexedDB; auto-complete only when the durable ID matches, `status === 'running'`, `plannedMinutes > 0`, and eligibility passes via `shouldAutoCompleteFocusSession` / `getActiveFocusElapsedMs`.
+- Paused and open-ended (`plannedMinutes === 0`) sessions must not auto-complete. Successful Pause at the completion boundary takes precedence over a previously scheduled UI timeout.
+- Resume must honor updated `accumulatedPausedMs` (paused wall time excluded).
+- `finalizingSessionIdRef` is a UI-level duplicate guard; identity-checked, idempotent `finalizeActiveFocusSession` (history id = focus session id) remains the domain guard.
+- Clear deferred completion markers at session identity/ownership boundaries (restore, import success, clear-all, start, discard, conflict/missing, finalize, unmount). Preserve established conflict, missing, stale, import, and clear-all contracts.
+- Cover precise pending-write races with deterministic Promise-gated `App.test.tsx` cases — do not add flaky real-time E2E for the Dexie-pending window.
+
 After broad mutation changes, run:
 
 ```bash

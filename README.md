@@ -108,6 +108,7 @@ First launch starts empty with create-first actions. Existing customized data fr
 ### Focus sessions
 
 - Running and paused unfinished sessions are restored after reload or browser reopen.
+- Timed focus sessions safely handle Pause and Resume at the completion boundary by re-checking the saved session before completing.
 - Sessions at least 12 hours old show Resume / Discard instead of the normal timer.
 - A successful backup import replaces local data and immediately resynchronizes the visible focus state from IndexedDB.
 

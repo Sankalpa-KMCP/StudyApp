@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Deferred timed focus auto-completion while Pause or Resume is being saved, then re-checked the durable session after the transition finished. Successful Pause at the completion boundary wins (no history row); Resume uses active elapsed time excluding paused duration; duplicate study-session history remains prevented.
+
 ### Changed
 
 - Split the former monolithic `src/index.css` into ordered modules under `src/styles/`; `src/index.css` remains the single import barrel for the app and Storybook. Themes, responsive layout, accessibility preference media, production `/StudyApp/` paths, and rendered behavior were preserved — no visual redesign or selector migration.
