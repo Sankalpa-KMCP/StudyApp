@@ -34,6 +34,10 @@
 }
 
 @media (max-width: 760px) {
+  html {
+    scroll-padding-bottom: 80px;
+  }
+
   .app-shell,
   .app-shell.is-sidebar-collapsed {
     display: block;

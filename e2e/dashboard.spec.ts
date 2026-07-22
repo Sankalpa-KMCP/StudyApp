@@ -362,3 +362,39 @@ test('explicit goal metrics use persisted metric rather than title text', async 
   expect(exported.goals.find((goal) => goal.title === manualTitle)?.metric).toBe('manual')
   expect(exported.goals.find((goal) => goal.title === studyTitle)?.metric).toBe('study_time')
 })
+
+test('keeps Settings danger actions above the mobile bottom nav after focus scroll', async ({ page }) => {
+  // Equivalent CSS viewport for 200% zoom of a 1280×900 window.
+  await page.setViewportSize({ width: 640, height: 450 })
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+
+  const layout = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+    scrollPaddingBottom: getComputedStyle(document.documentElement).scrollPaddingBottom,
+  }))
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1)
+  expect(Number.parseFloat(layout.scrollPaddingBottom)).toBeGreaterThanOrEqual(72)
+
+  const reset = page.getByRole('button', { name: /Reset all study data/i })
+  await reset.focus()
+  await reset.evaluate((el) => el.scrollIntoView({ block: 'end', inline: 'nearest' }))
+
+  const clearance = await page.evaluate(() => {
+    const btn = [...document.querySelectorAll('button')].find((candidate) =>
+      /Reset all study data/i.test(candidate.textContent || ''),
+    )
+    const nav = document.querySelector('.sidebar')
+    if (!btn || !nav) return null
+    const buttonBox = btn.getBoundingClientRect()
+    const navBox = nav.getBoundingClientRect()
+    return {
+      fullyAboveNav: buttonBox.bottom <= navBox.top + 1,
+      navPosition: getComputedStyle(nav).position,
+    }
+  })
+
+  expect(clearance).not.toBeNull()
+  expect(clearance?.navPosition).toBe('fixed')
+  expect(clearance?.fullyAboveNav).toBe(true)
+})
