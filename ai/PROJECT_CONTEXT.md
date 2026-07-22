@@ -34,7 +34,7 @@
 
 **Problem it solves:** Students and knowledge workers need a private, offline-capable tool to track focused study sessions, manage tasks with spaced-repetition scheduling, review progress over time, and back up or sync data without relying on cloud services.
 
-**Target audience:** Individual learners who value privacy, offline use, and local data ownership. Secondary audience: users who want the same data in both a browser PWA and a native desktop app via folder sync.
+**Target audience:** Individual learners who value privacy, offline use, and local data ownership. Secondary audience: users who want the same data in both a browser PWA and a native desktop app via folder sync or vault files. Web and desktop share one frontend build but separate IndexedDB stores — see §4 Web vs desktop data boundary.
 
 **Core purpose:** Provide a polished, distraction-minimizing focus environment with meaningful analytics and safe data export/import.
 
@@ -477,9 +477,29 @@ index.html
 - Install prompt via `usePwaInstall` → `InstallPromptBanner` (dismiss snooze: localStorage `pwa_install_dismissed_until`).
 
 **How it works (Desktop):**
-- Tauri wraps Vite build; tray menu (Show / Toggle timer / Quit).
+- Tauri wraps the same Vite `dist/` build (`src-tauri/tauri.conf.json` → `frontendDist: ../dist`, `beforeBuildCommand: npm run build`); tray menu (Show / Toggle timer / Quit).
 - Plugins: autostart, global shortcut, native notifications, folder picker, FS writes.
 - Minimize-on-close option; wake lock during active study blocks.
+- Production base path is `/` (Tauri); web GitHub Pages build uses `/StudyApp/` (`vite.config.ts` when `TAURI_ENV_PLATFORM` is set).
+
+**Web vs desktop data boundary:** Same React codebase and build output, two isolated local data stores. There is no backend linking web and desktop automatically.
+
+- **Web (PWA):** Served from GitHub Pages; IndexedDB lives in the browser profile for that origin (`StudyDashboardDB`).
+- **Desktop (Tauri):** Bundled `dist/` runs in a Tauri webview with its **own** IndexedDB — data from the browser install does not appear in the desktop app unless transferred.
+- **Linking instances:** Manual `.studybackup` export/import, or **folder sync** (shared `study-vault.sync.studybackup` on the same machine via File System Access API + Tauri FS). Not cloud sync or automatic cross-device pairing.
+
+```mermaid
+flowchart LR
+  webBuild["Web PWA dist"]
+  desktopBuild["Tauri dist bundle"]
+  webIdb["Browser IndexedDB"]
+  desktopIdb["Webview IndexedDB"]
+  syncFile["study-vault.sync.studybackup"]
+  webBuild --> webIdb
+  desktopBuild --> desktopIdb
+  webIdb <-->|"Folder sync or vault file only"| syncFile
+  desktopIdb <-->|"Folder sync or vault file only"| syncFile
+```
 
 **Important files:**
 - `src/main.tsx`, `vite.config.ts`
@@ -1323,6 +1343,20 @@ Defined in `vite.config.ts` (`vite-plugin-pwa`).
 
 ---
 
+### src/hooks/useBackupReminder.ts
+
+**Purpose:** Determines whether the Settings nav should show a backup-export reminder dot.
+
+**Responsibilities:**
+- Reads `shouldShowBackupReminder()` from `lib/backup/backupMetadata.ts` (30-day interval, 7-day snooze via `last_backup_dismissed`)
+- Exposes `refresh()` after export so `AppShell` can clear the dot
+
+**Returns:** `{ shouldRemind, dismissReminder, refresh }` — `dismissReminder()` sets snooze metadata but has no UI callers after banner removal (`c83aebe`).
+
+**Used by:** `AppShell.tsx` → `showBackupReminder` on `AppShellLayout`
+
+---
+
 ### src/lib/backup/mergePreview.ts
 
 **Purpose:** Pure merge preview counts before non-destructive backup import.
@@ -2015,6 +2049,7 @@ npm run build                         # If build config or imports changed
 | Consolidate docs | README, ai docs overlap | Cross-link; avoid duplicating tables | All docs |
 | Firefox folder sync polyfill | Not possible without API support — document only | Update README limits section | `README.md` |
 | Backup password strength hint | User-chosen passwords may be weak | Add UI hint in EncryptedExportSection | `EncryptedExportSection.tsx` |
+| Wire or remove `dismissReminder()` | Snooze API retained after `BackupReminderBanner` removal; no UI calls it | Add dismiss in Backup Vault or remove dead API | `src/hooks/useBackupReminder.ts` |
 
 ---
 
@@ -2097,6 +2132,8 @@ npm run tauri:dev            # Desktop dev
 | **Zen lockout** | Feature that blocks navigation away from Focus tab during active study (`enforce_lockout`) |
 | **Vault** | Backup file with `.studybackup` extension containing all app data |
 | **Folder sync** | Bidirectional sync via shared `study-vault.sync.studybackup` file in a user-chosen folder |
+| **Web build** | GitHub Pages PWA from `npm run build` with base `/StudyApp/`; IndexedDB in the browser profile |
+| **Desktop build** | Tauri app bundling the same `dist/` with base `/`; separate webview IndexedDB from the browser install |
 | **SM-2** | SuperMemo 2 spaced-repetition algorithm for task review scheduling |
 | **FSRS** | Free Spaced Repetition Scheduler — alternative algorithm selectable in settings |
 | **Dexie schema version** | IndexedDB migration version (`db.verno`, currently 12) — separate from backup format |
@@ -2130,6 +2167,8 @@ npm run tauri:dev            # Desktop dev
 - Target locales for future i18n expansion
 - Whether Chromatic visual testing is actively used (CI job is conditional on secret)
 - Open-source licensing intentions (currently marked private)
+- Whether `dismissReminder()` should get UI again or be removed in a future cleanup
+- Intent of uncommitted `src-tauri/Cargo.toml` modification (not attributed to released state in this document)
 
 ### Documentation policy (confirmed)
 
@@ -2142,6 +2181,7 @@ npm run tauri:dev            # Desktop dev
 - Update this document when Dexie schema version bumps
 - Update glossary if new domain terms are introduced
 - Keep `CHANGELOG.md` in sync with migrations
+- Re-run PROJECT_CONTEXT maintenance after uncommitted Activity Ledger, Focus timer, and folder-sync refactors are committed (do not document WIP from the working tree until then)
 
 ### Related documentation
 
@@ -2156,4 +2196,4 @@ npm run tauri:dev            # Desktop dev
 
 ---
 
-*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 27, 2026 (pass 4). Canonical location: `ai/PROJECT_CONTEXT.md`.*
+*Document maintained for Study Dashboard v1.2.0. Last incremental review: June 27, 2026 (pass 5). Canonical location: `ai/PROJECT_CONTEXT.md`.*
