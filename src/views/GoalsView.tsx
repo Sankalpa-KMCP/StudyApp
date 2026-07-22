@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Target } from 'lucide-react'
 import { isGoalMetric, type StudyGoal, type StudySession, type GoalPeriod, type GoalMetric } from '../db/types'
 import { createId, nowIso, studyDb } from '../db/studyDb'
@@ -28,6 +28,12 @@ type GoalDraft = {
   metric: GoalMetric
 }
 
+type GoalValidationField = 'title' | 'metric' | 'target'
+
+const GOAL_TITLE_ERROR_ID = 'goal-title-error'
+const GOAL_METRIC_ERROR_ID = 'goal-metric-error'
+const GOAL_TARGET_ERROR_ID = 'goal-target-error'
+
 function createGoalDraft(dailyGoalMinutes: number, goal?: StudyGoal): GoalDraft {
   return {
     title: goal?.title ?? '',
@@ -42,6 +48,11 @@ function isValidGoalTarget(target: number) {
   return Number.isFinite(target) && target > 0
 }
 
+function composeDescribedBy(...ids: Array<string | undefined>) {
+  const value = ids.filter(Boolean).join(' ')
+  return value || undefined
+}
+
 export function GoalsView({
   goals,
   dailyGoalMinutes,
@@ -54,59 +65,71 @@ export function GoalsView({
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null)
   const [draft, setDraft] = useState<GoalDraft>(() => createGoalDraft(dailyGoalMinutes))
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [validationField, setValidationField] = useState<GoalValidationField | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const titleFieldRef = useRef<HTMLInputElement | null>(null)
+  const metricFieldRef = useRef<HTMLSelectElement | null>(null)
+  const targetFieldRef = useRef<HTMLInputElement | null>(null)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
   const { clearFeedback: clearRowFeedback, isPending: isRowPending, phase: rowPhase, message: rowMessage, run: runRow } = rowMutation
 
-  const noticePhase: MutationPhase = validationError
-    ? 'error'
-    : savePhase === 'success' || savePhase === 'error'
-      ? savePhase
-      : rowPhase === 'success' || rowPhase === 'error'
-        ? rowPhase
-        : 'idle'
-  const noticeMessage = validationError
-    ?? (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
+  const noticePhase: MutationPhase = savePhase === 'success' || savePhase === 'error'
+    ? savePhase
+    : rowPhase === 'success' || rowPhase === 'error'
+      ? rowPhase
+      : 'idle'
+  const noticeMessage = (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
     ?? (rowPhase === 'success' || rowPhase === 'error' ? rowMessage : null)
 
-  const openEditor = useCallback((goal?: StudyGoal) => {
+  const clearValidation = useCallback(() => {
     setValidationError(null)
+    setValidationField(null)
+  }, [])
+
+  const openEditor = useCallback((goal?: StudyGoal) => {
+    clearValidation()
     clearSaveFeedback()
     setEditingGoalId(goal?.id ?? 'new')
     setDraft(createGoalDraft(dailyGoalMinutes, goal))
-  }, [clearSaveFeedback, dailyGoalMinutes])
+  }, [clearSaveFeedback, clearValidation, dailyGoalMinutes])
 
   const closeEditor = useCallback(() => {
     if (isSaving) return
     setEditingGoalId(null)
     setDraft(createGoalDraft(dailyGoalMinutes))
-    setValidationError(null)
-  }, [dailyGoalMinutes, isSaving])
+    clearValidation()
+  }, [clearValidation, dailyGoalMinutes, isSaving])
 
   const dismissNotice = () => {
-    setValidationError(null)
+    clearValidation()
     clearSaveFeedback()
     clearRowFeedback()
   }
 
   const saveGoal = async () => {
-    setValidationError(null)
+    clearValidation()
     clearSaveFeedback()
     clearRowFeedback()
 
     const title = draft.title.trim()
     if (!title) {
+      setValidationField('title')
       setValidationError('Enter a goal title.')
+      titleFieldRef.current?.focus()
       return
     }
     if (!isGoalMetric(draft.metric)) {
+      setValidationField('metric')
       setValidationError('Choose a valid metric.')
+      metricFieldRef.current?.focus()
       return
     }
     if (!isValidGoalTarget(draft.target)) {
+      setValidationField('target')
       setValidationError('Target must be a number greater than zero.')
+      targetFieldRef.current?.focus()
       return
     }
 
@@ -151,7 +174,7 @@ export function GoalsView({
       onSuccess: () => {
         setEditingGoalId(null)
         setDraft(createGoalDraft(shouldUpdateDailyGoal ? target : dailyGoalMinutes))
-        setValidationError(null)
+        clearValidation()
       },
     })
   }
@@ -159,7 +182,7 @@ export function GoalsView({
   const deleteGoal = async (goal: StudyGoal) => {
     if (pendingDeleteId || isSaving || isRowPending) return
 
-    setValidationError(null)
+    clearValidation()
     clearSaveFeedback()
     clearRowFeedback()
     setPendingDeleteId(goal.id)
@@ -174,7 +197,7 @@ export function GoalsView({
           if (editingGoalId === goal.id) {
             setEditingGoalId(null)
             setDraft(createGoalDraft(dailyGoalMinutes))
-            setValidationError(null)
+            clearValidation()
           }
         },
       })
@@ -187,6 +210,9 @@ export function GoalsView({
   const metricHelpId = 'goal-metric-help'
   const loadingLabel = editingGoalId && editingGoalId !== 'new' ? 'Saving goal...' : 'Creating goal...'
   const rowActionsLocked = isSaving || Boolean(pendingDeleteId)
+  const titleInvalid = validationField === 'title'
+  const metricInvalid = validationField === 'metric'
+  const targetInvalid = validationField === 'target'
 
   return (
     <section className="workspace-panel" aria-labelledby="goals-workspace-title">
@@ -194,17 +220,35 @@ export function GoalsView({
       <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
       {editingGoalId ? (
         <div className="editor-card" aria-busy={isSaving || undefined}>
-          <TextInput label="Goal title" value={draft.title} onChange={(title) => setDraft({ ...draft, title })} />
+          <TextInput
+            id="goal-title"
+            label="Goal title"
+            value={draft.title}
+            inputRef={titleFieldRef}
+            invalid={titleInvalid}
+            describedBy={titleInvalid ? GOAL_TITLE_ERROR_ID : undefined}
+            onChange={(title) => setDraft({ ...draft, title })}
+          />
+          {titleInvalid ? (
+            <p id={GOAL_TITLE_ERROR_ID} className="settings-feedback error" role="alert">
+              {validationError}
+            </p>
+          ) : null}
           <label className="field" htmlFor="goal-metric">
             <span>Metric</span>
             <select
               id="goal-metric"
+              ref={metricFieldRef}
               value={draft.metric}
               required
               aria-required="true"
-              aria-describedby={metricHelpId}
+              aria-invalid={metricInvalid || undefined}
+              aria-describedby={composeDescribedBy(metricHelpId, metricInvalid ? GOAL_METRIC_ERROR_ID : undefined)}
               disabled={isSaving}
-              onChange={(event) => setDraft({ ...draft, metric: event.target.value as GoalMetric })}
+              onChange={(event) => {
+                clearValidation()
+                setDraft({ ...draft, metric: event.target.value as GoalMetric })
+              }}
             >
               <option value="manual">Manual progress</option>
               <option value="study_time">Study time</option>
@@ -213,6 +257,11 @@ export function GoalsView({
           <p className="settings-feedback" id={metricHelpId}>
             {draft.metric === 'manual' ? 'Update this goal yourself.' : 'Calculated automatically from recorded study sessions.'}
           </p>
+          {metricInvalid ? (
+            <p id={GOAL_METRIC_ERROR_ID} className="settings-feedback error" role="alert">
+              {validationError}
+            </p>
+          ) : null}
           <label className="field">
             <span>Period</span>
             <select
@@ -225,18 +274,27 @@ export function GoalsView({
               <option value="monthly">Monthly</option>
             </select>
           </label>
-          <label className="field">
+          <label className="field" htmlFor="goal-target">
             <span>Target ({targetUnit})</span>
             <input
+              id="goal-target"
+              ref={targetFieldRef}
               type="number"
               min={1}
               max={10_000}
               required
               disabled={isSaving}
+              aria-invalid={targetInvalid || undefined}
+              aria-describedby={targetInvalid ? GOAL_TARGET_ERROR_ID : undefined}
               value={Number.isFinite(draft.target) ? draft.target : ''}
               onChange={(event) => setDraft({ ...draft, target: Number(event.target.value) })}
             />
           </label>
+          {targetInvalid ? (
+            <p id={GOAL_TARGET_ERROR_ID} className="settings-feedback error" role="alert">
+              {validationError}
+            </p>
+          ) : null}
           {draft.metric === 'manual' ? (
             <label className="field">
               <span>Progress (points)</span>

@@ -49,11 +49,40 @@ export function PanelHeader({ title, description, actionLabel, onAction, actionR
   )
 }
 
-export function TextInput({ label, value, onChange, type = 'text', inputRef }: { label: string; value: string; onChange: (value: string) => void; type?: string; inputRef?: Ref<HTMLInputElement> }) {
+export function TextInput({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  inputRef,
+  id,
+  describedBy,
+  invalid = false,
+  disabled = false,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  type?: string
+  inputRef?: Ref<HTMLInputElement>
+  id?: string
+  describedBy?: string
+  invalid?: boolean
+  disabled?: boolean
+}) {
   return (
     <label className="field">
       <span>{label}</span>
-      <input ref={inputRef} type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+      <input
+        id={id}
+        ref={inputRef}
+        type={type}
+        value={value}
+        disabled={disabled}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </label>
   )
 }

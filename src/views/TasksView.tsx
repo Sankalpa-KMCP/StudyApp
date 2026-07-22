@@ -61,16 +61,15 @@ export function TasksView({
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
   const { clearFeedback: clearRowFeedback, phase: rowPhase, message: rowMessage, run: runRow } = rowMutation
 
-  const noticePhase: MutationPhase = validationError
-    ? 'error'
-    : savePhase === 'success' || savePhase === 'error'
-      ? savePhase
-      : rowPhase === 'success' || rowPhase === 'error'
-        ? rowPhase
-        : 'idle'
-  const noticeMessage = validationError
-    ?? (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
+  const noticePhase: MutationPhase = savePhase === 'success' || savePhase === 'error'
+    ? savePhase
+    : rowPhase === 'success' || rowPhase === 'error'
+      ? rowPhase
+      : 'idle'
+  const noticeMessage = (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
     ?? (rowPhase === 'success' || rowPhase === 'error' ? rowMessage : null)
+  const titleErrorId = 'task-title-error'
+  const titleInvalid = validationError === 'Enter a task title.'
 
   const openEditor = useCallback((task?: StudyTask) => {
     setValidationError(null)
@@ -117,6 +116,7 @@ export function TasksView({
     const title = draft.title.trim()
     if (!title) {
       setValidationError('Enter a task title.')
+      titleFieldRef.current?.focus()
       return
     }
 
@@ -225,7 +225,20 @@ export function TasksView({
       <SegmentedControl<'all' | 'open' | 'done'> value={filter} options={['all', 'open', 'done']} onChange={onFilterChange} />
       {editingTaskId ? (
         <div className="editor-card" aria-busy={isSaving || undefined}>
-          <TextInput label="Task title" value={draft.title} inputRef={titleFieldRef} onChange={(title) => setDraft({ ...draft, title })} />
+          <TextInput
+            id="task-title"
+            label="Task title"
+            value={draft.title}
+            inputRef={titleFieldRef}
+            invalid={titleInvalid}
+            describedBy={titleInvalid ? titleErrorId : undefined}
+            onChange={(title) => setDraft({ ...draft, title })}
+          />
+          {titleInvalid ? (
+            <p id={titleErrorId} className="settings-feedback error" role="alert">
+              {validationError}
+            </p>
+          ) : null}
           <SubjectSelect subjects={subjects} value={draft.subjectId} onChange={(subjectId) => setDraft({ ...draft, subjectId })} />
           <label className="field">
             <span>Priority</span>
