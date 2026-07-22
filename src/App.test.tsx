@@ -118,6 +118,20 @@ describe('App', () => {
     expect(document.querySelector('.bar-days')).toHaveAttribute('aria-hidden', 'true')
   })
 
+  it('exposes the Study Time line chart as a named non-interactive image', async () => {
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Study Time' })).toBeInTheDocument()
+    const chart = screen.getByRole('img', { name: 'Study time trend' })
+    expect(chart).toHaveClass('line-chart')
+    expect(chart).not.toHaveAttribute('tabindex')
+    expect(chart.tabIndex).toBeLessThan(0)
+    expect(within(chart).queryByRole('button')).not.toBeInTheDocument()
+    expect(within(chart).queryByRole('img')).not.toBeInTheDocument()
+    expect(chart.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+    expect(document.querySelector('.line-days')).toHaveAttribute('aria-hidden', 'true')
+  })
+
   it('keeps a single Home h1 and exposes the topbar label outside the heading outline', async () => {
     render(<App />)
 

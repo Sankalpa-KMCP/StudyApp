@@ -29,8 +29,8 @@ export function StudyTime({ days }: { days: WeeklyStudyDay[] }) {
           <strong>{formatHours(values.reduce((sum, hours) => sum + hours, 0))}</strong>
         </div>
       </div>
-      <div className="line-chart" aria-label="Study time trend">
-        <svg viewBox="0 0 360 160" role="img" aria-label="Study time by day">
+      <div className="line-chart" role="img" aria-label="Study time trend">
+        <svg viewBox="0 0 360 160" aria-hidden="true">
           <polyline points={linePoints(values)} />
           {values.map((value, index) => (
             <circle cx={index * 52 + 24} cy={146 - Math.min(value, 8) * 16} r="4" key={`${value}-${index}`} />
