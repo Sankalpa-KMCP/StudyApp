@@ -11,7 +11,7 @@ When implementing or reviewing changes, keep AI-maintained docs in sync with the
 
 `ai/PROJECT_CONTEXT.md`, `ai/AI_RULES.md`, and `.cursor/rules/`.
 
-(`CURRENT_STATE.md` and `ARCHITECTURE_DECISIONS.md` are intentionally not maintained — see `PROJECT_CONTEXT.md` §20.)
+(`CURRENT_STATE.md`, `ARCHITECTURE_DECISIONS.md`, `TASK_TEMPLATE.md`, and `PROMPT_PATTERNS.md` are intentionally not maintained — see `PROJECT_CONTEXT.md` §20.)
 
 ## Update docs when changes affect
 

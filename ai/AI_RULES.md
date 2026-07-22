@@ -291,6 +291,4 @@ Before finishing implementation work, ask:
 | [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) | Before any substantive edit |
 | [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) §6 | Layer boundaries, design trade-offs, ADR-003/ADR-014 context |
 | [`CHANGELOG.md`](../CHANGELOG.md) | Recent schema, release history, and active-work context |
-| [`TASK_TEMPLATE.md`](TASK_TEMPLATE.md) | Before starting a scoped task |
-| [`PROMPT_PATTERNS.md`](PROMPT_PATTERNS.md) | When structuring a multi-step AI workflow |
 | [`CONTRIBUTING.md`](../CONTRIBUTING.md) | Migrations, E2E patterns, settings conventions |
