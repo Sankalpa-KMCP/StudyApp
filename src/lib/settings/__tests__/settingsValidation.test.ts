@@ -51,5 +51,7 @@ describe('settingsValidation', () => {
     const colors = '["#06b6d4","#3b82f6"]'
     expect(validateSetting('noteTagColors', colors)).toEqual({ ok: true, value: colors })
     expect(validateSetting('noteTagColors', 'not-json').ok).toBe(false)
+    expect(validateSetting('noteTagColors', '[]').ok).toBe(false)
+    expect(validateSetting('noteTagColors', ['#06b6d4'] as unknown as string).ok).toBe(false)
   })
 })
