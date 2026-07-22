@@ -31,7 +31,6 @@ export const Default: Story = {
         dynamicGridCells={Array.from({ length: 35 }, (_, i) => (i < 5 ? null : i - 4))}
         activeMonthData={[]}
         isLiveMonth
-        totalDaysInMonth={30}
         todayDayOfMonth={10}
         todayStudyMinutes={90}
         todayBreakMinutes={15}
