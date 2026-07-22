@@ -31,7 +31,6 @@ export const Default: Story = {
         totalWeeklyBreakHours={2}
         totalDaysInMonth={30}
         currentStreak={3}
-        level={2}
         chartData={[
           { day: 'Mon', hours: 2, focus: 80 },
           { day: 'Tue', hours: 1.5, focus: 70 },

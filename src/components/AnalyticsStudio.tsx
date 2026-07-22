@@ -34,7 +34,6 @@ interface AnalyticsStudioProps {
   totalWeeklyBreakHours: number
   totalDaysInMonth: number
   currentStreak: number
-  level: number
   chartData: Array<{ day: string; hours: number; focus: number }>
   categoryBreakdown: Array<{ name: string; color: string; hours: number; percentage: number }>
   topSubject: string
@@ -115,7 +114,6 @@ export const AnalyticsStudio: React.FC<AnalyticsStudioProps> = ({
               chartData={chartData}
               hasChartData={hasChartData}
               activeThemeVars={activeThemeVars}
-              suppressEmptyState={isFullyEmpty}
             />
           </Suspense>
         )}

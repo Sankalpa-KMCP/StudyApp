@@ -11,7 +11,7 @@ const AnalyticsStudio = lazy(() =>
 
 export function AnalyticsTab() {
   const { tasks, settings, categories, recentHistory } = useStudyData()
-  const { currentStreak, xpData, insights, breakdownData, journal, allLogs, analyticsRange } = useStudyAnalytics()
+  const { currentStreak, insights, breakdownData, journal, allLogs, analyticsRange } = useStudyAnalytics()
   const categoryGoalTrends = useMemo(
     () => calculateCategoryGoalTrend(allLogs.allLogs, categories.categories),
     [allLogs.allLogs, categories.categories],
@@ -29,7 +29,6 @@ export function AnalyticsTab() {
         totalWeeklyBreakHours={calendar.totalWeeklyBreakHours}
         totalDaysInMonth={calendar.totalDaysInMonth}
         currentStreak={currentStreak}
-        level={xpData.level}
         chartData={calendar.chartData}
         categoryBreakdown={breakdownData.breakdown}
         topSubject={insights.topSubject}
