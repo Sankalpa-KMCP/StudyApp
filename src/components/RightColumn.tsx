@@ -126,7 +126,7 @@ export function BarChart({ days }: { days: WeeklyStudyDay[] }) {
   const values = days.map((day) => day.hours)
   return (
     <>
-      <div className="bar-chart" aria-label="Weekly progress by day">
+      <div className="bar-chart" role="img" aria-label="Weekly progress by day">
         {days.map((day) => (
           <span className={day.hours === Math.max(...values) && day.hours > 0 ? 'bar is-peak' : 'bar'} key={`${day.key}-${day.hours}`}>
             <span style={{ height: `${clamp((day.hours / Math.max(1, Math.max(...values))) * 100, 8, 100)}%` }} />
