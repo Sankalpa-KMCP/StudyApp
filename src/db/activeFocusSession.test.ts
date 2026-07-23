@@ -297,6 +297,36 @@ describe('activeFocusSession persistence', () => {
     expect((await studyDb.studySessions.get(session.id))?.minutes).toBe(25)
   })
 
+  it('does not create duplicate history rows for repeated finalization', async () => {
+    const session = makeSession({
+      id: 'focus-idempotent',
+      subjectId: '',
+      plannedMinutes: 0,
+      startedAt: new Date(Date.now() - 3 * 60_000).toISOString(),
+    })
+    await createActiveFocusSession(session)
+
+    const first = await finalizeActiveFocusSession(session.id, {
+      subjectId: '',
+      startedAt: session.startedAt,
+      endedAt: new Date().toISOString(),
+      minutes: 3,
+      note: 'Focus session',
+    })
+    const second = await finalizeActiveFocusSession(session.id, {
+      subjectId: '',
+      startedAt: session.startedAt,
+      endedAt: new Date().toISOString(),
+      minutes: 99,
+      note: 'Duplicate',
+    })
+
+    expect(first.ok).toBe(true)
+    expect(second).toEqual(first)
+    expect(await studyDb.studySessions.count()).toBe(1)
+    expect(await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)).toBeUndefined()
+  })
+
   it('refuses to finalize when a different unfinished session is persisted', async () => {
     const existing = makeSession({ id: 'focus-existing' })
     await createActiveFocusSession(existing)
