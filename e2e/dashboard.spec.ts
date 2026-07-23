@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { HOME_GREETING_HEADING } from './a11yHelpers'
 import {
   createManualGoalViaUi,
   createStudyTimeGoalViaUi,
@@ -12,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('renders a blank database-backed dashboard and persists tasks', async ({ page }) => {
-  await expect(page.getByRole('heading', { name: 'Good morning' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: HOME_GREETING_HEADING })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Weekly Progress' })).toBeVisible()
   await expect(page.getByText('No tasks yet')).toBeVisible()
 
@@ -295,7 +296,7 @@ test('keeps the dashboard usable on mobile', async ({ page }) => {
   await page.evaluate(() => localStorage.setItem('study-dashboard-sidebar', 'collapsed'))
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: 'Good morning' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: HOME_GREETING_HEADING })).toBeVisible()
   await expect(page.getByPlaceholder('Search')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Go to dashboard' })).toBeHidden()
   await page.getByRole('button', { name: 'Tasks' }).click()
