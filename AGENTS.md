@@ -31,6 +31,13 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 - **IndexedDB:** Dexie **version 2** (upgrade from v1 assigns metrics to legacy rows once via title rules in `src/db/goalMetricInference.ts` — migration/import only, not runtime).
 - **Backups:** new exports use JSON **version 2** with required goal metrics; valid **version 1** backups remain importable and are normalized before any table replacement.
 
+## Local calendar dates
+
+- Calendar strip day keys and event matching use **`localDateKey`** (local `YYYY-MM-DD`), not ISO UTC date prefixes (`src/appUtils.ts`, `src/components/calendarStripDays.ts`).
+- **`App.tsx` owns one** `useCurrentDate()` (`src/hooks/useCurrentDate.ts`) local-midnight signal. Do not add a second calendar-day timer.
+- After local midnight, today focus, weekly study days, upcoming events, streak, hero date, and greeting refresh without reload or data mutation. Helpers accept optional `now` with `new Date()` defaults for compatibility.
+- Playwright Home readiness must accept morning, afternoon, or evening greetings (`HOME_GREETING_HEADING` in `e2e/a11yHelpers.ts`), not a hardcoded `Good morning`.
+
 ## Local mutation convention
 
 Use the shared helper for ordinary async IndexedDB mutations:

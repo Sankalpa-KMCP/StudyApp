@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Calendar strip days and event counts now use local calendar dates instead of UTC date prefixes, so near-midnight events stay on the correct local day for users ahead of or behind UTC.
+- Home date-derived surfaces (today focus, weekly study window, upcoming events, streak, hero date, and time-of-day greeting) refresh automatically after local midnight without a reload or data mutation.
+
 ### Changed
 
 - Removed Storybook tooling (CLI, React/Vite integration, a11y addon, configuration, and UI stories). Shared UI components remain covered by Vitest; SubjectCard now has focused unit tests.

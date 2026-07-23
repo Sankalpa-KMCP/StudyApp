@@ -15,6 +15,7 @@ There is **no backend**, authentication, or cloud synchronization. The browser I
 - Flashcards with a simple review schedule (`dueAt`, `intervalDays`, `reviewCount`)
 - Progress includes a local-date study journal with manual session logging, correction, and deletion
 - Progress, Home totals, subject cards, and study-time goals update from finalized logged study sessions
+- Calendar strip days and Home date summaries use the local calendar day and refresh after local midnight without a reload
 - Goals support explicit **Manual progress** (stored points) and **Study time** (automatic from recorded sessions); metric and period are separate choices
 - Settings include JSON import/export, clear-all confirmation, and seven local theme palettes; Monochrome is the default
 
@@ -62,6 +63,7 @@ Normal local development does not require a `.env` file.
 |------|---------|
 | `src/App.tsx` | Dashboard shell, workspace routing state, timer, settings, and global handlers |
 | `src/appUtils.ts` | Shared date, progress, search, timer, and flashcard scheduling helpers |
+| `src/hooks/useCurrentDate.ts` | App-owned local-midnight Date signal for date-derived Home metrics |
 | `src/hooks/useMutationState.ts` | Shared pending/success/error helper for ordinary local mutations |
 | `src/db/` | Dexie schema, import/export, clear-all, and legacy migration helpers |
 | `src/views/` | Workspace views (tasks, notes, subjects, calendar, flashcards, progress, goals, settings) |
