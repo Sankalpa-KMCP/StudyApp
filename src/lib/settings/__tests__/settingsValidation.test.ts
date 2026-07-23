@@ -47,6 +47,13 @@ describe('settingsValidation', () => {
     expect(validateSetting('uiDensity', 'spacious').ok).toBe(false)
   })
 
+  it('validates ui_font against UI_FONT_OPTIONS', () => {
+    expect(validateSetting('ui_font', 'Inter')).toEqual({ ok: true, value: 'Inter' })
+    expect(validateSetting('ui_font', 'Outfit')).toEqual({ ok: true, value: 'Outfit' })
+    expect(validateSetting('ui_font', 'System')).toEqual({ ok: true, value: 'System' })
+    expect(validateSetting('ui_font', 'Roboto').ok).toBe(false)
+  })
+
   it('normalizes noteTagColors JSON', () => {
     const colors = '["#06b6d4","#3b82f6"]'
     expect(validateSetting('noteTagColors', colors)).toEqual({ ok: true, value: colors })

@@ -4,13 +4,12 @@ import { useConfirm } from '../../context/useConfirm'
 import { APPEARANCE_ADVANCED_KEYS } from '../../lib/settings/settingsSections'
 import { useTranslation } from '../../i18n/useTranslation'
 import { SUPPORTED_LOCALES } from '../../i18n/locales'
+import { UI_FONT_OPTIONS } from '../../lib/settings/uiFontOptions'
 import { useSettingsPanel } from '../../context/settingsPanelContext'
 import { SettingsCard } from '../shared/settings/SettingsCard'
 import { RangeSetting } from '../shared/settings/RangeSetting'
 import { ThemeSwatchPicker } from './ThemeSwatchPicker'
 import { Button } from '../shared/Button'
-
-const UI_FONT_OPTIONS = ['Inter', 'Outfit', 'System'] as const
 
 const ACCENT_OVERRIDE_DEFAULTS = {
   accentBlueOverride: '#007aff',
