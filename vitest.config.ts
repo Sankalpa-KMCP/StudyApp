@@ -18,6 +18,7 @@ export default mergeConfig(
           'src/hooks/useThemePreference.ts',
           'src/hooks/useSidebarPreference.ts',
           'src/hooks/useAppSearch.ts',
+          'src/hooks/useFocusSession.ts',
         ],
         exclude: ['src/**/*.test.tsx', 'src/**/*.test.ts', 'src/test/**'],
         thresholds: {
