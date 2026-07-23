@@ -1,5 +1,3 @@
-export { MONTH_NAMES } from '../../shared/dateConstants'
-
 export type {
   StudyBackupPayload,
   StudyLogLike,
