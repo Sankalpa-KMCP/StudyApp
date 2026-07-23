@@ -1,14 +1,8 @@
 import { Check, Target } from 'lucide-react'
 import type { CategoryItem, TaskItem } from '../../db/types'
 import { useTranslation } from '../../i18n/useTranslation'
-import type { TranslationKey } from '../../i18n'
 import { SubtaskEditor } from './SubtaskEditor'
-
-const PRIORITY_LABEL_KEYS: Record<'low' | 'medium' | 'high', TranslationKey> = {
-  low: 'taskPriorityLow',
-  medium: 'taskPriorityMedium',
-  high: 'taskPriorityHigh',
-}
+import { PRIORITY_LABEL_KEYS } from './priorityLabels'
 
 const PRIORITY_BADGE_CLASS: Record<'low' | 'medium' | 'high', string> = {
   low: 'bg-accent-blue/15 text-accent-blue border-accent-blue/35',

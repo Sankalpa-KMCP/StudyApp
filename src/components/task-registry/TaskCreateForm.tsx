@@ -7,7 +7,7 @@ import { ToggleSetting } from '../shared/settings/ToggleSetting'
 import { useConfirm } from '../../context/useConfirm'
 import { addTaskTemplate, loadTaskTemplates, type TaskTemplate } from '../../lib/study/taskTemplates'
 import { useTranslation } from '../../i18n/useTranslation'
-import type { TranslationKey } from '../../i18n'
+import { PRIORITY_LABEL_KEYS } from './priorityLabels'
 
 const OPTIONS_EXPANDED_KEY = 'focus_task_options_expanded'
 const OPTIONS_PANEL_ID = 'task-create-options-panel'
@@ -35,12 +35,6 @@ const PRIORITY_ACCENT = {
   medium: 'amber',
   high: 'red',
 } as const
-
-const PRIORITY_LABEL_KEYS: Record<'low' | 'medium' | 'high', TranslationKey> = {
-  low: 'taskPriorityLow',
-  medium: 'taskPriorityMedium',
-  high: 'taskPriorityHigh',
-}
 
 export function TaskCreateForm({
   taskText,
