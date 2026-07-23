@@ -2,6 +2,7 @@ import { Edit3, Plus, Search, Trash2, X } from 'lucide-react'
 import type { CategoryItem, QuickNoteItem } from '../../db/types'
 import type { useNoteFilters } from '../../hooks/quick-notes/useNoteFilters'
 import { useTranslation } from '../../i18n/useTranslation'
+import { getDefaultNoteColor } from '../../lib/settings/noteTagColors'
 import { EmptyState } from '../shared/EmptyState'
 import { VirtualList } from '../shared/VirtualList'
 
@@ -98,7 +99,7 @@ export function NoteListPanel({
   onCreateNote,
 }: NoteListPanelProps) {
   const { t } = useTranslation()
-  const defaultNoteColor = noteTagColors[0] ?? 'var(--color-accent-blue)'
+  const defaultNoteColor = getDefaultNoteColor(noteTagColors)
   const {
     searchQuery,
     setSearchQuery,

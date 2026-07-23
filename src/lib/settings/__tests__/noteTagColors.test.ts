@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { parseNoteTagColorsArray } from '../noteTagColors'
+import { getDefaultNoteColor, parseNoteTagColorsArray } from '../noteTagColors'
+
+describe('getDefaultNoteColor', () => {
+  it('returns the first configured note-tag color', () => {
+    expect(getDefaultNoteColor(['#06b6d4', '#3b82f6'])).toBe('#06b6d4')
+  })
+
+  it('falls back to accent blue CSS variable when palette is empty', () => {
+    expect(getDefaultNoteColor([])).toBe('var(--color-accent-blue)')
+  })
+})
 
 describe('parseNoteTagColorsArray', () => {
   it('returns normalized hex colors in order', () => {
