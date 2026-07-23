@@ -1,19 +1,25 @@
 /* eslint-disable react-refresh/only-export-components */
-import type { ReactNode } from 'react'
 import { vi } from 'vitest'
+import type { CategoryItem } from '../../../db/types'
 import { SettingsPanelProvider } from '../../../context/settingsPanelContext'
 
+const mockRequestConfirm = vi.hoisted(() => vi.fn().mockResolvedValue(false))
+const mockStudyCategories = vi.hoisted(() => ({
+  categories: [] as CategoryItem[],
+  deleteCategory: vi.fn(),
+}))
+
 vi.mock('../../../context/useConfirm', () => ({
-  useConfirm: () => ({ requestConfirm: vi.fn().mockResolvedValue(false) }),
+  useConfirm: () => ({ requestConfirm: mockRequestConfirm }),
 }))
 
 vi.mock('../../../context/useStudyApp', () => ({
   useStudyData: () => ({
     categories: {
-      categories: [],
+      categories: mockStudyCategories.categories,
       addCategory: vi.fn(),
       updateCategory: vi.fn(),
-      deleteCategory: vi.fn(),
+      deleteCategory: mockStudyCategories.deleteCategory,
     },
   }),
 }))
@@ -97,7 +103,6 @@ vi.mock('../../../hooks/useSettingsUpdater', () => ({
     desktopAutostartEnabled: false,
     desktopGlobalShortcutsEnabled: false,
     desktopNativeNotificationsEnabled: false,
-    desktopBackupFolderPath: '',
     focusNotificationsEnabled: false,
     soundEnabled: true,
     tactile_feedback: false,
@@ -120,9 +125,6 @@ vi.mock('../../../hooks/useSettingsUpdater', () => ({
     desktopGlobalTimerShortcut: 'Space',
     syncFolderPath: '',
     syncEnabled: false,
-    lastSyncAt: '',
-    lastSyncChecksum: '',
-    isLoading: false,
     updateSetting: mockUpdateSetting,
     updateSettingSafe: mockUpdateSetting,
     resetSectionDefaults: vi.fn(),
@@ -130,8 +132,4 @@ vi.mock('../../../hooks/useSettingsUpdater', () => ({
   }),
 }))
 
-export function renderWithSettingsPanel(ui: ReactNode) {
-  return ui
-}
-
-export { SettingsPanelProvider, mockUpdateSetting }
+export { SettingsPanelProvider, mockRequestConfirm, mockStudyCategories, mockUpdateSetting }
