@@ -1,4 +1,4 @@
-import { BookOpen, Plus } from 'lucide-react'
+import { BookOpen, Plus } from './icons'
 import { formatMinutes, percent } from '../appUtils'
 
 const todayLabel = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date())

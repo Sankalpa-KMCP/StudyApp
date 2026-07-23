@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Download, Upload, Layers3, RotateCcw } from 'lucide-react'
+import { Download, Upload, Layers3, RotateCcw } from '../components/icons'
 import { MutationNotice, PanelHeader } from '../components/ui'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 import type { ThemeMode } from '../App'

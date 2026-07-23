@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Clock3, Save } from 'lucide-react'
+import { Clock3, Save } from '../components/icons'
 import type { StudyData, StudySession, StudySubject } from '../db/types'
 import {
   formatHours,

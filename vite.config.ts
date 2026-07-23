@@ -30,7 +30,6 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules/dexie')) return 'vendor-dexie'
-            if (id.includes('node_modules/lucide-react')) return 'vendor-lucide'
           },
         },
       },

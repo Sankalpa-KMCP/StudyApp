@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
-import { Check } from 'lucide-react'
+import { Check } from './icons'
 import {
   ProgressBar,
   EmptyState,

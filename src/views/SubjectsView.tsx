@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { BookOpen } from 'lucide-react'
+import { BookOpen } from '../components/icons'
 import {
   PanelHeader,
   TextInput,
