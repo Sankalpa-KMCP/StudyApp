@@ -54,8 +54,8 @@ export function getGoalTargetUnit(metric: GoalMetric, period: GoalPeriod): GoalP
   return 'hours'
 }
 
-export function getTodayFocusMinutes(sessions: StudySession[]) {
-  const today = localDateKey(new Date())
+export function getTodayFocusMinutes(sessions: StudySession[], now = new Date()) {
+  const today = localDateKey(now)
   return sessions.filter((session) => localDateKey(session.endedAt) === today).reduce((sum, session) => sum + session.minutes, 0)
 }
 
@@ -230,10 +230,10 @@ export function buildSearchResults(data: StudyData, subjectMap: Map<string, Stud
   ].slice(0, 8)
 }
 
-export function calculateStreak(sessions: StudySession[]) {
+export function calculateStreak(sessions: StudySession[], now = new Date()) {
   const daysWithSessions = new Set(sessions.map((session) => localDateKey(session.endedAt)).filter(Boolean))
   let streak = 0
-  const cursor = new Date()
+  const cursor = new Date(now)
   while (daysWithSessions.has(localDateKey(cursor))) {
     streak += 1
     cursor.setDate(cursor.getDate() - 1)
@@ -241,8 +241,8 @@ export function calculateStreak(sessions: StudySession[]) {
   return streak
 }
 
-export function startOfToday() {
-  const date = new Date()
+export function startOfToday(now = new Date()) {
+  const date = new Date(now)
   date.setHours(0, 0, 0, 0)
   return date.getTime()
 }

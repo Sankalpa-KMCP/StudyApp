@@ -70,8 +70,8 @@ export function Upcoming({ events, subjectMap, onViewAll }: { events: CalendarEv
   )
 }
 
-export function StreakCard({ sessions }: { sessions: StudySession[] }) {
-  const streak = calculateStreak(sessions)
+export function StreakCard({ sessions, now }: { sessions: StudySession[]; now?: Date }) {
+  const streak = calculateStreak(sessions, now)
   return (
     <section className="card streak-card" aria-labelledby="streak-title">
       <h2 id="streak-title">Streak</h2>

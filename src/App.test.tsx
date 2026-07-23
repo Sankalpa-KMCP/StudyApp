@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { formatShortTime, toInputDate, toInputTime } from './appUtils'
+import { getMillisecondsUntilNextLocalMidnight } from './hooks/useCurrentDate'
 import {
   ACTIVE_FOCUS_SESSION_KEY,
   ACTIVE_FOCUS_SESSION_STALE_AFTER_MS,
@@ -4162,6 +4163,132 @@ describe('App', () => {
 
     // Confirm Flashcards view is open by looking for its unique action button
     expect(await screen.findByRole('button', { name: 'New card' })).toBeInTheDocument()
+  })
+
+  it('does not recalculate today metrics before local midnight', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const beforeMidnight = new Date(2026, 6, 13, 23, 0, 0, 0)
+    vi.setSystemTime(beforeMidnight)
+
+    const midnightCallbacks: Array<() => void> = []
+    const nativeSetTimeout = globalThis.setTimeout.bind(globalThis)
+    const nativeClearTimeout = globalThis.clearTimeout.bind(globalThis)
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((handler: TimerHandler, delay?: number, ...args: unknown[]) => {
+      if (typeof handler === 'function' && typeof delay === 'number' && delay >= 60_000) {
+        midnightCallbacks.push(() => {
+          handler(...args)
+        })
+        return 90_001 as unknown as ReturnType<typeof setTimeout>
+      }
+      return nativeSetTimeout(handler, delay, ...args)
+    }) as typeof setTimeout)
+    vi.spyOn(globalThis, 'clearTimeout').mockImplementation(((id?: number | NodeJS.Timeout) => {
+      if (id === 90_001) return
+      return nativeClearTimeout(id as Parameters<typeof nativeClearTimeout>[0])
+    }) as typeof clearTimeout)
+
+    await studyDb.studySessions.add({
+      id: 'session-before-midnight',
+      subjectId: '',
+      startedAt: new Date(2026, 6, 13, 10, 0).toISOString(),
+      endedAt: new Date(2026, 6, 13, 10, 45).toISOString(),
+      minutes: 45,
+      note: '',
+    })
+
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Good morning' })
+    expect(midnightCallbacks).toHaveLength(1)
+
+    const hero = screen.getByLabelText('Today overview')
+    expect(within(hero).getByText('45m')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Streak' })).getByText('1')).toBeInTheDocument()
+
+    // Wall clock approaches midnight without firing the rollover callback.
+    vi.setSystemTime(new Date(beforeMidnight.getTime() + getMillisecondsUntilNextLocalMidnight(beforeMidnight) - 1))
+
+    expect(within(hero).getByText('45m')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Streak' })).getByText('1')).toBeInTheDocument()
+  })
+
+  it('recalculates today focus, weekly window, upcoming, and streak after local midnight without mutating data', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const beforeMidnight = new Date(2026, 6, 13, 23, 0, 0, 0)
+    vi.setSystemTime(beforeMidnight)
+
+    const midnightCallbacks: Array<() => void> = []
+    const nativeSetTimeout = globalThis.setTimeout.bind(globalThis)
+    const nativeClearTimeout = globalThis.clearTimeout.bind(globalThis)
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((handler: TimerHandler, delay?: number, ...args: unknown[]) => {
+      if (typeof handler === 'function' && typeof delay === 'number' && delay >= 60_000) {
+        midnightCallbacks.push(() => {
+          handler(...args)
+        })
+        return 90_001 as unknown as ReturnType<typeof setTimeout>
+      }
+      return nativeSetTimeout(handler, delay, ...args)
+    }) as typeof setTimeout)
+    vi.spyOn(globalThis, 'clearTimeout').mockImplementation(((id?: number | NodeJS.Timeout) => {
+      if (id === 90_001) return
+      return nativeClearTimeout(id as Parameters<typeof nativeClearTimeout>[0])
+    }) as typeof clearTimeout)
+
+    await studyDb.studySessions.add({
+      id: 'session-rollover-day',
+      subjectId: '',
+      startedAt: new Date(2026, 6, 13, 10, 0).toISOString(),
+      endedAt: new Date(2026, 6, 13, 10, 45).toISOString(),
+      minutes: 45,
+      note: '',
+    })
+    await studyDb.events.add({
+      id: 'event-rollover-morning',
+      title: 'Morning review',
+      subjectId: '',
+      startAt: new Date(2026, 6, 13, 9, 0).toISOString(),
+      endAt: new Date(2026, 6, 13, 10, 0).toISOString(),
+      location: '',
+      createdAt: new Date(2026, 6, 13, 8, 0).toISOString(),
+      updatedAt: new Date(2026, 6, 13, 8, 0).toISOString(),
+    })
+
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Good morning' })
+    expect(midnightCallbacks).toHaveLength(1)
+
+    const hero = screen.getByLabelText('Today overview')
+    const rightColumn = screen.getByRole('complementary', { name: 'Progress and schedule' })
+    expect(within(hero).getByText('45m')).toBeInTheDocument()
+    expect(within(rightColumn).getByText('Morning review')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Streak' })).getByText('1')).toBeInTheDocument()
+
+    const weeklyBeforeLabels = within(screen.getByRole('region', { name: 'Weekly Progress' }))
+      .getAllByText(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/)
+    expect(weeklyBeforeLabels.at(-1)).toHaveTextContent(
+      new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(beforeMidnight),
+    )
+
+    const sessionCountBefore = await studyDb.studySessions.count()
+    const eventCountBefore = await studyDb.events.count()
+
+    const afterMidnight = new Date(2026, 6, 14, 0, 0, 0, 0)
+    vi.setSystemTime(afterMidnight)
+    await act(async () => {
+      midnightCallbacks[0]!()
+    })
+
+    expect(within(hero).getByText('0m')).toBeInTheDocument()
+    expect(within(rightColumn).queryByText('Morning review')).not.toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Streak' })).getByText('0')).toBeInTheDocument()
+
+    const weeklyAfterLabels = within(screen.getByRole('region', { name: 'Weekly Progress' }))
+      .getAllByText(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/)
+    expect(weeklyAfterLabels.at(-1)).toHaveTextContent(
+      new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(afterMidnight),
+    )
+
+    expect(await studyDb.studySessions.count()).toBe(sessionCountBefore)
+    expect(await studyDb.events.count()).toBe(eventCountBefore)
   })
 })
 

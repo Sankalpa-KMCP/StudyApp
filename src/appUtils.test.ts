@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   calculateGoalProgress,
+  calculateStreak,
   getDailyStudyMinutes,
   getGoalProgress,
   getGoalUnit,
@@ -16,6 +17,7 @@ import {
   groupStudySessionsByLocalDate,
   localDateKey,
   parseLocalDateTime,
+  startOfToday,
 } from './appUtils'
 import type { StudyGoal } from './db/types'
 
@@ -104,6 +106,22 @@ describe('appUtils', () => {
     expect(parsed?.getMonth()).toBe(5)
     expect(parsed?.getDate()).toBe(29)
     expect(parseLocalDateTime('2026-02-30', '09:00')).toBeNull()
+  })
+
+  it('accepts an explicit now for today focus, streak, and start-of-day floor', () => {
+    const dayOne = new Date(2026, 6, 13, 23, 0)
+    const dayTwo = new Date(2026, 6, 14, 0, 30)
+    const sessions = [
+      sessionAt('logged', new Date(2026, 6, 13, 10, 0), 45, new Date(2026, 6, 13, 10, 45)),
+    ]
+
+    expect(getTodayFocusMinutes(sessions, dayOne)).toBe(45)
+    expect(getTodayFocusMinutes(sessions, dayTwo)).toBe(0)
+    expect(calculateStreak(sessions, dayOne)).toBe(1)
+    expect(calculateStreak(sessions, dayTwo)).toBe(0)
+    expect(startOfToday(dayOne)).toBe(new Date(2026, 6, 13, 0, 0, 0, 0).getTime())
+    expect(startOfToday(dayTwo)).toBe(new Date(2026, 6, 14, 0, 0, 0, 0).getTime())
+    expect(getWeeklyStudyDays(sessions, dayTwo).at(-1)?.key).toBe(localDateKey(dayTwo))
   })
 
   it('derives progress from study sessions and focus goals', () => {

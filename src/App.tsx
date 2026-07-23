@@ -9,6 +9,7 @@ import {
   startOfToday,
   formatMinutes,
 } from './appUtils'
+import { useCurrentDate } from './hooks/useCurrentDate'
 import {
   clearAllStudyData,
   createId,
@@ -166,15 +167,25 @@ function App() {
   const data = liveData ?? EMPTY_DATA
   const isLoading = liveData === undefined
 
+  const currentDate = useCurrentDate()
   const deferredSearch = useDeferredValue(search)
   const dailyGoalMinutes = useMemo(() => settingNumber(data, 'dailyGoalMinutes', 240), [data])
   const quickNotes = useMemo(() => settingStringArray(data, 'quickNotes'), [data])
   const subjectMap = useMemo(() => new Map(data.subjects.map((subject) => [subject.id, subject])), [data.subjects])
   const normalizedSearch = deferredSearch.trim().toLowerCase()
-  const todayFocusMinutes = useMemo(() => getTodayFocusMinutes(data.studySessions), [data.studySessions])
-  const weeklyStudyDays = useMemo(() => getWeeklyStudyDays(data.studySessions), [data.studySessions])
+  const todayFocusMinutes = useMemo(
+    () => getTodayFocusMinutes(data.studySessions, currentDate),
+    [currentDate, data.studySessions],
+  )
+  const weeklyStudyDays = useMemo(
+    () => getWeeklyStudyDays(data.studySessions, currentDate),
+    [currentDate, data.studySessions],
+  )
   const completedTasks = useMemo(() => data.tasks.filter((task) => task.status === 'done'), [data.tasks])
-  const upcomingEvents = useMemo(() => data.events.filter((event) => new Date(event.startAt).getTime() >= startOfToday()).slice(0, 4), [data.events])
+  const upcomingEvents = useMemo(
+    () => data.events.filter((event) => new Date(event.startAt).getTime() >= startOfToday(currentDate)).slice(0, 4),
+    [currentDate, data.events],
+  )
   const dueCards = useMemo(() => data.flashcards.filter((card) => isFlashcardDue(card)), [data.flashcards])
   const homeSearchResults = useMemo(() => buildSearchResults(data, subjectMap, deferredSearch), [data, deferredSearch, subjectMap])
   const sessionLimitSeconds = activeSession && activeSession.plannedMinutes > 0 ? activeSession.plannedMinutes * 60 : 0
@@ -795,7 +806,7 @@ function App() {
                 <aside className="right-column" aria-label="Progress and schedule">
                   <WeeklyProgress days={weeklyStudyDays} />
                   <Upcoming events={upcomingEvents} subjectMap={subjectMap} onViewAll={() => navigateToView('Calendar')} />
-                  <StreakCard sessions={data.studySessions} />
+                  <StreakCard sessions={data.studySessions} now={currentDate} />
                   <ReviewQueue count={dueCards.length} onOpen={() => navigateToView('Flashcards')} />
                 </aside>
               ) : null}
