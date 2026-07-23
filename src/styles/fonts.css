@@ -3,7 +3,7 @@
   font-style: normal;
   font-display: swap;
   font-weight: 400;
-  src: url('@fontsource/inter/files/inter-latin-400-normal.woff2') format('woff2');
+  src: url('../assets/fonts/inter-latin-400-normal.woff2') format('woff2');
 }
 
 @font-face {
@@ -11,7 +11,7 @@
   font-style: normal;
   font-display: swap;
   font-weight: 600;
-  src: url('@fontsource/inter/files/inter-latin-600-normal.woff2') format('woff2');
+  src: url('../assets/fonts/inter-latin-600-normal.woff2') format('woff2');
 }
 
 @font-face {
@@ -19,7 +19,7 @@
   font-style: normal;
   font-display: swap;
   font-weight: 600;
-  src: url('@fontsource/outfit/files/outfit-latin-600-normal.woff2') format('woff2');
+  src: url('../assets/fonts/outfit-latin-600-normal.woff2') format('woff2');
 }
 
 @font-face {
@@ -27,5 +27,5 @@
   font-style: normal;
   font-display: swap;
   font-weight: 600;
-  src: url('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-600-normal.woff2') format('woff2');
+  src: url('../assets/fonts/jetbrains-mono-latin-600-normal.woff2') format('woff2');
 }

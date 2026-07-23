@@ -27,9 +27,6 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^9.39.0",
-    "@fontsource/inter": "^5.2.6",
-    "@fontsource/jetbrains-mono": "^5.2.6",
-    "@fontsource/outfit": "^5.2.8",
     "@playwright/test": "^1.60.0",
     "@storybook/addon-a11y": "^10.4.3",
     "@storybook/react": "^10.4.3",
