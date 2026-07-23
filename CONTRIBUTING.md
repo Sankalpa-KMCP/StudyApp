@@ -36,10 +36,6 @@ The app uses plain CSS, Vite, React, Dexie, and lucide icons. Do not add a UI/ch
 2. Start with `page.goto('/')` and wait for the Dashboard or Good morning heading.
 3. Run `npm run test:e2e -- e2e/<feature>.spec.ts` locally before pushing.
 
-## Storybook
+## Shared UI components
 
-```bash
-npm run storybook
-```
-
-Stories live next to components as `*.stories.tsx`.
+Cover shared primitives with Vitest/Testing Library tests beside the components (for example `src/components/ui.test.tsx`). Do not add Storybook or other optional UI harnesses unless explicitly requested.

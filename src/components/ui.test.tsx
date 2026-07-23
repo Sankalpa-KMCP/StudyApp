@@ -6,6 +6,7 @@ import {
   EmptyState,
   PanelHeader,
   MetricCard,
+  SubjectCard,
   SegmentedControl,
   RowActionButtons,
   EditorActions,
@@ -129,6 +130,34 @@ describe('UI Components', () => {
       render(<MetricCard label="Total Hours" value="120" />)
       expect(screen.getByText('Total Hours')).toBeInTheDocument()
       expect(screen.getByText('120')).toBeInTheDocument()
+    })
+  })
+
+  describe('SubjectCard', () => {
+    const subject = {
+      id: 'sub-1',
+      name: 'Mathematics',
+      targetHours: 10,
+      color: '#4f46e5',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      progress: 45,
+    }
+
+    it('renders subject name, target hours, progress, and decorative icon', () => {
+      const { container } = render(<SubjectCard subject={subject} />)
+
+      expect(screen.getByRole('heading', { level: 3, name: 'Mathematics' })).toBeInTheDocument()
+      expect(screen.getByText('10h target')).toBeInTheDocument()
+      expect(screen.getByRole('progressbar', { name: '45%' })).toHaveAttribute('aria-valuenow', '45')
+      expect(container.querySelector('.subject-icon svg')).toHaveAttribute('aria-hidden', 'true')
+      expect(container.querySelector('.subject-icon')).toHaveStyle({ backgroundColor: 'rgb(79, 70, 229)' })
+    })
+
+    it('uses an explicit progressValue override when provided', () => {
+      render(<SubjectCard subject={subject} progressValue={72.4} />)
+
+      expect(screen.getByRole('progressbar', { name: '72%' })).toHaveAttribute('aria-valuenow', '72.4')
     })
   })
 

@@ -100,7 +100,7 @@ Maintenance rules:
 
 - Keep `responsive` and `preferences` last; never duplicate declarations across modules to “claim” ownership.
 - Avoid selector renaming, specificity increases, CSS Modules, CSS-in-JS, or visual redesign during maintenance-only work.
-- App and Storybook both load `src/index.css` — validate both after broad CSS changes.
+- App loads `src/index.css` — validate the app after broad CSS changes.
 
 ```bash
 npm test -- --run
@@ -109,7 +109,6 @@ npm run build
 npm run check:bundle
 # PowerShell clean Playwright server:
 $env:CI="true"; npm run test:e2e
-npm run build-storybook
 ```
 
 ## Accessibility maintenance
@@ -154,7 +153,6 @@ npm test -- --run
 npm run lint
 npm run build
 npm run check:bundle
-npm run build-storybook
 # PowerShell clean Playwright server:
 $env:CI="true"; npm run test:e2e
 ```
@@ -178,7 +176,6 @@ $env:CI="true"; npm run test:e2e
 npm ci                   # first time
 npm run dev              # http://localhost:5173
 npm run preview          # http://localhost:4173/StudyApp/ after build
-npm run storybook        # http://localhost:6006
 npm test
 npm run lint
 npm run build
