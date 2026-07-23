@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Download, Upload, Layers3, RotateCcw } from '../components/icons'
 import { MutationNotice, PanelHeader } from '../components/ui'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
-import type { ThemeMode } from '../App'
+import type { ThemeMode } from '../hooks/useThemePreference'
 
 const themeOptions: Array<{ id: ThemeMode; label: string; description: string; swatches: string[] }> = [
   { id: 'monochrome', label: 'Monochrome', description: 'Crisp black ink on quiet neutral paper.', swatches: ['#f3f3f1', '#111111', '#6a6a67'] },

@@ -10,6 +10,8 @@ import {
   formatMinutes,
 } from './appUtils'
 import { useCurrentDate } from './hooks/useCurrentDate'
+import { useSidebarPreference } from './hooks/useSidebarPreference'
+import { useThemePreference } from './hooks/useThemePreference'
 import {
   clearAllStudyData,
   createId,
@@ -52,7 +54,8 @@ type TaskFilter = 'all' | 'open' | 'done'
 export type SettingsFeedback = { tone: 'success' | 'error'; message: string }
 /** @deprecated Use ActiveFocusSession — kept as alias for existing imports. */
 export type ActiveSession = ActiveFocusSession
-export type ThemeMode = 'monochrome' | 'light' | 'dark' | 'aurora' | 'ember' | 'blueprint' | 'moss'
+/** Re-exported for existing consumers; prefer `./hooks/useThemePreference`. */
+export type { ThemeMode } from './hooks/useThemePreference'
 
 const EMPTY_DATA: StudyData = {
   tasks: [],
@@ -63,26 +66,6 @@ const EMPTY_DATA: StudyData = {
   studySessions: [],
   goals: [],
   settings: [],
-}
-
-const THEME_COLORS: Record<ThemeMode, string> = {
-  monochrome: '#111111',
-  light: '#f4f0e8',
-  dark: '#10141d',
-  aurora: '#111323',
-  ember: '#f3e4d2',
-  blueprint: '#153f73',
-  moss: '#294633',
-}
-
-function isThemeMode(value: string | null): value is ThemeMode {
-  return value === 'monochrome'
-    || value === 'light'
-    || value === 'dark'
-    || value === 'aurora'
-    || value === 'ember'
-    || value === 'blueprint'
-    || value === 'moss'
 }
 
 function App() {
@@ -98,11 +81,16 @@ function App() {
   const [focusSubjectId, setFocusSubjectId] = useState('')
   const [focusDurationMinutes, setFocusDurationMinutes] = useState(25)
   const [sessionNotice, setSessionNotice] = useState('')
-  const [theme, setTheme] = useState<ThemeMode>(() => {
-    const savedTheme = localStorage.getItem('study-dashboard-theme')
-    return isThemeMode(savedTheme) ? savedTheme : 'monochrome'
+  const clearPreferenceNotice = useCallback(() => setPreferenceNotice(null), [])
+  const reportPreferenceError = useCallback((message: string) => setPreferenceNotice(message), [])
+  const { theme, setTheme } = useThemePreference({
+    onPreferenceError: reportPreferenceError,
+    clearPreferenceNotice,
   })
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('study-dashboard-sidebar') === 'collapsed')
+  const { sidebarCollapsed, toggleSidebarCollapsed } = useSidebarPreference({
+    onPreferenceError: reportPreferenceError,
+    clearPreferenceNotice,
+  })
   const [revealedCards, setRevealedCards] = useState<Set<string>>(() => new Set())
   const [activeSession, setActiveSession] = useState<ActiveFocusSession | null>(null)
   const [staleFocusSession, setStaleFocusSession] = useState<ActiveFocusSession | null>(null)
@@ -114,8 +102,6 @@ function App() {
   const focusTransitionPendingRef = useRef(false)
   const focusImportPendingRef = useRef(false)
   const focusSubjectWriteSeqRef = useRef(0)
-  const themeUserChangeRef = useRef(false)
-  const sidebarUserChangeRef = useRef(false)
 
   const navigateToView = useCallback((view: View) => {
     setProgressEditorRequested(false)
@@ -194,44 +180,6 @@ function App() {
   const staleFocusSubjectName = staleFocusSession
     ? (subjectMap.get(staleFocusSession.subjectId)?.name ?? (staleFocusSession.subjectId ? 'Unknown subject' : 'General'))
     : ''
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[theme])
-    try {
-      localStorage.setItem('study-dashboard-theme', theme)
-    } catch {
-      if (themeUserChangeRef.current) {
-        setPreferenceNotice('Theme preference could not be saved.')
-      }
-    } finally {
-      themeUserChangeRef.current = false
-    }
-  }, [theme])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('study-dashboard-sidebar', sidebarCollapsed ? 'collapsed' : 'expanded')
-    } catch {
-      if (sidebarUserChangeRef.current) {
-        setPreferenceNotice('Sidebar preference could not be saved.')
-      }
-    } finally {
-      sidebarUserChangeRef.current = false
-    }
-  }, [sidebarCollapsed])
-
-  const handleThemeChange = useCallback((nextTheme: ThemeMode) => {
-    themeUserChangeRef.current = true
-    setPreferenceNotice(null)
-    setTheme(nextTheme)
-  }, [])
-
-  const handleSidebarToggle = useCallback(() => {
-    sidebarUserChangeRef.current = true
-    setPreferenceNotice(null)
-    setSidebarCollapsed((collapsed) => !collapsed)
-  }, [])
 
   useEffect(() => {
     const behavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
@@ -661,7 +609,7 @@ function App() {
         activeView={activeView}
         collapsed={sidebarCollapsed}
         onNavigate={navigateToView}
-        onToggleCollapsed={handleSidebarToggle}
+        onToggleCollapsed={toggleSidebarCollapsed}
       />
       <div className="workspace">
         <Topbar
@@ -799,7 +747,7 @@ function App() {
                     preferenceNotice={preferenceNotice}
                     onDismissPreferenceNotice={() => setPreferenceNotice(null)}
                     theme={theme}
-                    onThemeChange={handleThemeChange}
+                    onThemeChange={setTheme}
                   />
                 ) : null}
               </section>
