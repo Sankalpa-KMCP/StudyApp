@@ -1,19 +1,22 @@
 import { BookOpen, Plus } from './icons'
 import { formatMinutes, percent } from '../appUtils'
-
-const todayLabel = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date())
+import { formatHeroDate, getTimeOfDayGreeting } from './heroDate'
 
 export function HeroRow(props: {
+  currentDate: Date
   todayFocusMinutes: number
   dailyGoalMinutes: number
   onCreateTask: () => void
   onCreateSubject: () => void
 }) {
+  const todayLabel = formatHeroDate(props.currentDate)
+  const greeting = getTimeOfDayGreeting(props.currentDate)
+
   return (
     <section className="hero-row" aria-label="Today overview">
       <div className="hero-copy">
         <span className="eyebrow">{todayLabel}</span>
-        <h1>Good morning</h1>
+        <h1>{greeting}</h1>
         <p>Choose the next useful thing, then give it your full attention.</p>
       </div>
       <div className="hero-metrics" aria-label="Today focus summary">

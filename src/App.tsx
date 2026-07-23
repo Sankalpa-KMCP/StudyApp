@@ -696,6 +696,7 @@ function App() {
                 ) : null}
                 {activeView === 'Home' ? (
                   <HeroRow
+                    currentDate={currentDate}
                     todayFocusMinutes={todayFocusMinutes}
                     dailyGoalMinutes={dailyGoalMinutes}
                     onCreateTask={openNewTask}
