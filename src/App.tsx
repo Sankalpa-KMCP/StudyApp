@@ -11,12 +11,10 @@ import { useAppSearch } from './hooks/useAppSearch'
 import { useCurrentDate } from './hooks/useCurrentDate'
 import { useFocusSession } from './hooks/useFocusSession'
 import { useSidebarPreference } from './hooks/useSidebarPreference'
+import { useStudyBackup } from './hooks/useStudyBackup'
 import { useThemePreference } from './hooks/useThemePreference'
 import {
-  clearAllStudyData,
-  exportStudyData,
   getStudyData,
-  importStudyData,
   migrateLegacyLocalStorage,
   studyDb,
 } from './db/studyDb'
@@ -126,6 +124,17 @@ function App() {
     runWithFocusImportLock,
     clearFocusLocalState,
   } = useFocusSession({ subjectMap })
+  const onBackupClearSuccess = useCallback(() => {
+    setProfileNotice('All study data has been permanently deleted.')
+    navigateToView('Home')
+    setTimeout(() => setProfileNotice(''), 5000)
+  }, [navigateToView])
+  const { exportBackup, importBackup, clearAllBackup } = useStudyBackup({
+    runWithFocusImportLock,
+    reloadFocusFromIndexedDb,
+    clearFocusLocalState,
+    onClearSuccess: onBackupClearSuccess,
+  })
   const todayFocusMinutes = useMemo(
     () => getTodayFocusMinutes(data.studySessions, currentDate),
     [currentDate, data.studySessions],
@@ -153,41 +162,9 @@ function App() {
     })
   }, [])
 
-  const exportData = async () => {
-    let objectUrl: string | null = null
-    try {
-      const payload = await exportStudyData()
-      const serialized = JSON.stringify(payload, null, 2)
-      const filename = `study-dashboard-${new Date().toISOString().slice(0, 10)}.json`
-      const blob = new Blob([serialized], { type: 'application/json' })
-      objectUrl = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = objectUrl
-      anchor.download = filename
-      anchor.click()
-    } finally {
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
-  }
-
-  const importData = async (file: File) => {
-    await runWithFocusImportLock(async () => {
-      await importStudyData(JSON.parse(await file.text()) as unknown)
-      await reloadFocusFromIndexedDb()
-    })
-  }
-
   const openNewTask = () => {
     navigateToView('Tasks')
     setTaskEditorRequest((request) => request + 1)
-  }
-
-  const handleClearData = async () => {
-    await clearAllStudyData()
-    clearFocusLocalState()
-    setProfileNotice('All study data has been permanently deleted.')
-    navigateToView('Home')
-    setTimeout(() => setProfileNotice(''), 5000)
   }
 
   const openNewSubject = () => {
@@ -340,9 +317,9 @@ function App() {
                 ) : null}
                 {activeView === 'Settings' ? (
                   <SettingsView
-                    onExport={exportData}
-                    onImport={importData}
-                    onClear={handleClearData}
+                    onExport={exportBackup}
+                    onImport={importBackup}
+                    onClear={clearAllBackup}
                     importPending={focusImportPending}
                     profileNotice={profileNotice}
                     preferenceNotice={preferenceNotice}
