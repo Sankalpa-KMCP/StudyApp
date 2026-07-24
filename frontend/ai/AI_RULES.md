@@ -75,7 +75,7 @@ Production web build uses `/StudyApp/` (GitHub Pages). Tauri builds use `/`. Do 
 - Prefer browser APIs, existing `lib/` services, and current stack libraries.
 - Do not introduce Redux, Zustand, React Router, or a backend framework.
 - Major version bumps require checking CI, types, and E2E compatibility.
-- Tauri plugin additions require `src-tauri/capabilities/default.json` scope review.
+- Tauri plugin additions require `../backend/capabilities/default.json` scope review.
 
 ---
 
@@ -126,7 +126,7 @@ Handle these with extreme caution. Read fully before editing; prefer asking the 
 | `src/context/StudyAppProvider.tsx` | Provider order affects entire app initialization |
 | `src/lib/settings/settingsValidation.ts` | Missing validation allows invalid settings into IndexedDB |
 | `src/lib/study/studyDashboard/backupSchema.ts` | Import validation — loosening can allow corrupt restores |
-| `src-tauri/capabilities/default.json` | FS scope changes affect desktop security posture |
+| `../backend/capabilities/default.json` | FS scope changes affect desktop security posture |
 
 ---
 
