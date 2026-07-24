@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import { inferSubjectProgressMode } from '../appUtils'
 import { inferLegacyGoalMetric } from './goalMetricInference'
+import { assertUniqueStudyExportIdentifiers } from './studyExportValidation'
 import type {
   CalendarEvent,
   Flashcard,
@@ -217,7 +218,7 @@ function parseAndNormalizeStudyExport(value: unknown): StudyExport {
     if (!isArrayOf(value.subjects, isStudySubject) || !isArrayOf(value.goals, isCurrentStudyGoal)) {
       throw new Error('Import file is not a Study Dashboard export.')
     }
-    return {
+    return finalizeStudyExport({
       version: 3,
       exportedAt: value.exportedAt,
       tasks: value.tasks,
@@ -228,7 +229,7 @@ function parseAndNormalizeStudyExport(value: unknown): StudyExport {
       studySessions,
       goals: value.goals,
       settings: value.settings,
-    }
+    })
   }
 
   if (!isArrayOf(value.subjects, isLegacyStudySubject)) {
@@ -251,25 +252,30 @@ function parseAndNormalizeStudyExport(value: unknown): StudyExport {
     if (!isArrayOf(value.goals, isLegacyStudyGoal)) {
       throw new Error('Import file is not a Study Dashboard export.')
     }
-    return {
+    return finalizeStudyExport({
       version: 3,
       ...tables,
       goals: value.goals.map((goal) => ({
         ...goal,
         metric: inferLegacyGoalMetric(goal.period, goal.title),
       })),
-    }
+    })
   }
 
   if (!isArrayOf(value.goals, isCurrentStudyGoal)) {
     throw new Error('Import file is not a Study Dashboard export.')
   }
 
-  return {
+  return finalizeStudyExport({
     version: 3,
     ...tables,
     goals: value.goals,
-  }
+  })
+}
+
+function finalizeStudyExport(snapshot: StudyExport): StudyExport {
+  assertUniqueStudyExportIdentifiers(snapshot)
+  return snapshot
 }
 
 function normalizeLegacySubjects(subjects: StudySubjectLegacy[], sessions: StudySession[]): StudySubject[] {
