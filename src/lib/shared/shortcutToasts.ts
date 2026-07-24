@@ -1,22 +1,20 @@
-import {
-  focusModeOff,
-  focusModeOn,
-  shortcutsPanelClosed,
-  shortcutsPanelOpened,
-  sidebarToggled,
-  studyBlockSaved,
-  switchedToBreak,
-  switchedToStudy,
-  timerPaused,
-  timerRunning,
-} from './uxTerms'
+import { t } from '../../i18n'
 
 export const SHORTCUT_TOASTS = {
-  space: { running: timerRunning, paused: timerPaused },
-  study: switchedToStudy,
-  break: switchedToBreak,
-  complete: studyBlockSaved,
-  focusMode: { on: focusModeOn, off: focusModeOff },
-  shortcutsPanel: { open: shortcutsPanelOpened, close: shortcutsPanelClosed },
-  sidebar: sidebarToggled,
+  space: {
+    running: () => t('timerRunning'),
+    paused: () => t('timerPaused'),
+  },
+  study: () => t('switchedToStudy'),
+  break: () => t('switchedToBreak'),
+  complete: () => t('studyBlockSaved'),
+  focusMode: {
+    on: () => t('focusModeOn'),
+    off: () => t('focusModeOff'),
+  },
+  shortcutsPanel: {
+    open: () => t('shortcutsPanelOpened'),
+    close: () => t('shortcutsPanelClosed'),
+  },
+  sidebar: () => t('sidebarToggled'),
 } as const
