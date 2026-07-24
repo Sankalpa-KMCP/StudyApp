@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
-import { buildSearchResults, isFlashcardDue, type SearchResult } from '../appUtils'
+import { buildSearchResults, calculateSubjectProgress, isFlashcardDue, type SearchResult } from '../appUtils'
 import type { CalendarEvent, Flashcard, StudyData, StudyNote, StudySubject, StudyTask } from '../db/types'
 
 export type TaskSearchFilter = 'all' | 'open' | 'done'
@@ -54,8 +54,11 @@ export function useAppSearch({
   }), [data.notes, normalizedSearch, subjectMap])
 
   const filteredSubjects = useMemo(
-    () => data.subjects.filter((subject) => `${subject.name} ${subject.progress}`.toLowerCase().includes(normalizedSearch)),
-    [data.subjects, normalizedSearch],
+    () => data.subjects.filter((subject) => {
+      const percentage = Math.round(calculateSubjectProgress(subject, data.studySessions).percentage)
+      return `${subject.name} ${percentage}`.toLowerCase().includes(normalizedSearch)
+    }),
+    [data.subjects, data.studySessions, normalizedSearch],
   )
 
   const filteredEvents = useMemo(() => data.events.filter((event) => {

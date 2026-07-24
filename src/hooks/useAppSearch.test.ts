@@ -172,6 +172,49 @@ describe('useAppSearch', () => {
     expect(result.current.filteredFlashcards.map((card) => card.id)).toEqual(['card-due', 'card-later'])
   })
 
+  it('filters and labels subjects using calculated progress instead of stale stored progress', () => {
+    const data = makeFixtureData()
+    data.subjects[0] = {
+      ...data.subjects[0],
+      progress: 40,
+      progressMode: 'study_time',
+      targetHours: 2,
+    }
+    data.studySessions = [
+      {
+        id: 'session-math',
+        subjectId: 'subject-math',
+        startedAt: '2026-06-29T09:00:00.000Z',
+        endedAt: '2026-06-29T10:00:00.000Z',
+        minutes: 60,
+        note: 'Practice',
+      },
+    ]
+    const subjectMap = new Map(data.subjects.map((subject) => [subject.id, subject]))
+    const { result } = renderHook(() => useAppSearch({ data, subjectMap, taskFilter: 'all' }))
+
+    act(() => {
+      result.current.setSearch('50')
+    })
+    expect(result.current.filteredSubjects.map((subject) => subject.id)).toEqual(['subject-math'])
+
+    act(() => {
+      result.current.setSearch('40')
+    })
+    expect(result.current.filteredSubjects).toEqual([])
+
+    act(() => {
+      result.current.setSearch('Mathematics')
+    })
+    expect(result.current.homeSearchResults).toContainEqual({
+      id: 'subject-math',
+      type: 'Subject',
+      title: 'Mathematics',
+      meta: '50% progress',
+      view: 'Subjects',
+    })
+  })
+
   it('derives Home results through buildSearchResults with the existing cap', () => {
     const data = makeFixtureData()
     for (let index = 0; index < 10; index += 1) {

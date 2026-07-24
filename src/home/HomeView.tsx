@@ -1,11 +1,11 @@
 import { BookOpen, Check, FileText, Flame, NotebookText, Pause, Play, Square, StopCircle, Target, Search, type AppIcon } from '../components/icons'
 import {
+  calculateSubjectProgress,
   formatDate,
   formatDateTime,
   formatElapsed,
   formatHours,
   formatMinutes,
-  getSubjectProgress,
   isFlashcardDue,
   percent,
   type SearchResult,
@@ -440,7 +440,13 @@ function SubjectsSection({ subjects, sessions, onViewAll }: { subjects: StudySub
       </div>
       {subjects.length > 0 ? (
         <div className="subject-grid">
-          {subjects.map((subject) => <SubjectCard subject={subject} progressValue={getSubjectProgress(subject, sessions)} key={subject.id} />)}
+          {subjects.map((subject) => (
+            <SubjectCard
+              subject={subject}
+              progressValue={calculateSubjectProgress(subject, sessions).percentage}
+              key={subject.id}
+            />
+          ))}
         </div>
       ) : (
         <EmptyState icon={BookOpen} title="No subjects yet" body="Subjects organize tasks, notes, flashcards, and study time." actionLabel="Create subject" onAction={onViewAll} />

@@ -847,6 +847,85 @@ describe('App workspaces', () => {
     const subjects = await studyDb.subjects.toArray()
     expect(subjects).toHaveLength(1)
     expect(subjects[0].name).toBe('Physics')
+    expect(subjects[0].progressMode).toBe('manual')
+    expect(subjects[0].progress).toBe(0)
+  })
+
+  it('creates study-time subjects without a manual progress field and shows session-derived card progress', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-07-13T12:00:00.000Z'
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Subjects' }))
+    await user.click(screen.getByRole('button', { name: 'New subject' }))
+    expect(screen.getByLabelText('Progress mode')).toHaveValue('manual')
+    expect(screen.getByLabelText('Progress %')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Subject name'), 'Chemistry')
+    await user.selectOptions(screen.getByLabelText('Progress mode'), 'study_time')
+    expect(screen.queryByLabelText('Progress %')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Target hours'), { target: { value: '1' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Subject created.')
+    const created = (await studyDb.subjects.toArray())[0]
+    expect(created).toMatchObject({ name: 'Chemistry', progressMode: 'study_time', progress: 0, targetHours: 1 })
+    expect(screen.getByRole('progressbar', { name: '0%' })).toBeInTheDocument()
+
+    await studyDb.studySessions.add({
+      id: 'session-chem',
+      subjectId: created.id,
+      startedAt: timestamp,
+      endedAt: timestamp,
+      minutes: 30,
+      note: 'Lab',
+    })
+
+    expect(await screen.findByRole('progressbar', { name: '50%' })).toBeInTheDocument()
+  })
+
+  it('preserves manual progress when switching to study time and back', async () => {
+    const user = userEvent.setup()
+    await studyDb.subjects.add({
+      id: 'subject-mode-switch',
+      name: 'Mode Switch',
+      color: '#2563eb',
+      targetHours: 2,
+      progress: 35,
+      progressMode: 'manual',
+      createdAt: '2026-07-13T12:00:00.000Z',
+      updatedAt: '2026-07-13T12:00:00.000Z',
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Subjects' }))
+    expect(screen.getByRole('progressbar', { name: '35%' })).toBeInTheDocument()
+
+    await user.click(screen.getByLabelText('Edit Mode Switch'))
+    expect(screen.getByLabelText('Progress mode')).toHaveValue('manual')
+    expect(screen.getByLabelText('Progress %')).toHaveValue(35)
+
+    await user.selectOptions(screen.getByLabelText('Progress mode'), 'study_time')
+    expect(screen.queryByLabelText('Progress %')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Subject updated.')
+    expect(await studyDb.subjects.get('subject-mode-switch')).toMatchObject({
+      progressMode: 'study_time',
+      progress: 35,
+    })
+    expect(screen.getByRole('progressbar', { name: '0%' })).toBeInTheDocument()
+
+    await user.click(screen.getByLabelText('Edit Mode Switch'))
+    expect(screen.getByLabelText('Progress mode')).toHaveValue('study_time')
+    await user.selectOptions(screen.getByLabelText('Progress mode'), 'manual')
+    expect(screen.getByLabelText('Progress %')).toHaveValue(35)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Subject updated.')
+    expect(await studyDb.subjects.get('subject-mode-switch')).toMatchObject({
+      progressMode: 'manual',
+      progress: 35,
+    })
+    expect(await screen.findByRole('progressbar', { name: '35%' })).toBeInTheDocument()
   })
 
   it('prevents duplicate subject create while save is pending', async () => {

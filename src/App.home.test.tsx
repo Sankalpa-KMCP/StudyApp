@@ -182,6 +182,40 @@ describe('App home', () => {
     expect(screen.getByRole('button', { name: 'Task: Cell cycle worksheet, Biology - open' })).toBeInTheDocument()
   })
 
+  it('keeps Home subject cards and search metadata on the same calculated progress', async () => {
+    const user = userEvent.setup()
+    await studyDb.subjects.add({
+      id: 'subject-consistent',
+      name: 'Astronomy',
+      color: '#7c3aed',
+      targetHours: 2,
+      progress: 15,
+      progressMode: 'study_time',
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    })
+    await studyDb.studySessions.add({
+      id: 'session-astro',
+      subjectId: 'subject-consistent',
+      startedAt: '2026-06-29T09:00:00.000Z',
+      endedAt: '2026-06-29T10:00:00.000Z',
+      minutes: 60,
+      note: 'Stars',
+    })
+
+    render(<App />)
+
+    const homeSubjects = await screen.findByRole('heading', { name: 'Subjects' })
+    expect(within(homeSubjects.closest('section')! as HTMLElement).getByRole('progressbar', { name: '50%' })).toBeInTheDocument()
+
+    await user.type(screen.getByPlaceholderText('Search'), 'Astronomy')
+    expect(await screen.findByRole('button', { name: 'Subject: Astronomy, 50% progress' })).toBeInTheDocument()
+
+    await user.clear(screen.getByPlaceholderText('Search'))
+    await user.click(screen.getByRole('button', { name: 'Subjects' }))
+    expect(screen.getByRole('progressbar', { name: '50%' })).toBeInTheDocument()
+  })
+
   it('saves quick notes from the home page', async () => {
     render(<App />)
 

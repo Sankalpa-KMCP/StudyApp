@@ -164,6 +164,47 @@ test('logs, edits, and confirms deletion of a study session', async ({ page }) =
   await expect(page.getByText('No sessions logged')).toBeVisible()
 })
 
+test('subject study-time progress matches on cards and Home search', async ({ page }) => {
+  await page.getByRole('button', { name: 'Subjects' }).click()
+  await page.getByRole('button', { name: 'New subject' }).click()
+  await expect(page.getByLabel('Progress mode')).toHaveValue('manual')
+  await expect(page.getByLabel('Progress %')).toBeVisible()
+
+  await page.getByLabel('Subject name').fill('Optics')
+  await page.getByLabel('Progress mode').selectOption('study_time')
+  await expect(page.getByLabel('Progress %')).toHaveCount(0)
+  await page.getByLabel('Target hours').fill('1')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('status')).toContainText('Subject created.', { timeout: 15_000 })
+  await expect(page.getByRole('progressbar', { name: '0%' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Progress' }).click()
+  await page.getByRole('button', { name: 'Log session' }).click()
+  const sessionForm = page.getByRole('form', { name: 'Log study session' })
+  const localStart = await page.evaluate(() => {
+    const date = new Date(Date.now() - 90 * 60_000)
+    return {
+      date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+      time: `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
+    }
+  })
+  await sessionForm.getByLabel('Subject').selectOption({ label: 'Optics' })
+  await sessionForm.getByLabel('Date').fill(localStart.date)
+  await sessionForm.getByLabel('Start time').fill(localStart.time)
+  await sessionForm.getByLabel('Duration (minutes)').fill('30')
+  await sessionForm.getByRole('button', { name: 'Save session' }).click()
+  await expect(page.getByRole('status')).toContainText('Study session recorded.', { timeout: 15_000 })
+
+  await page.getByRole('button', { name: 'Subjects' }).click()
+  await expect(page.getByRole('progressbar', { name: '50%' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Home' }).click()
+  const homeSubjects = page.locator('section.subject-section')
+  await expect(homeSubjects.getByRole('progressbar', { name: '50%' })).toBeVisible()
+  await page.getByPlaceholder('Search').fill('Optics')
+  await expect(page.getByRole('button', { name: 'Subject: Optics, 50% progress' })).toBeVisible()
+})
+
 test('rapid double save creates a single task that survives reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Tasks' }).click()
   await page.getByRole('button', { name: 'New task' }).click()
