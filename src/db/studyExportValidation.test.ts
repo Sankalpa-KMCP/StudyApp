@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ACTIVE_FOCUS_SESSION_KEY } from './activeFocusSession'
 import {
   assertStudyExportSemantics,
+  assertStudyExportSettingsValues,
   assertStudyExportSubjectReferences,
   assertUniqueStudyExportIdentifiers,
   STUDY_EXPORT_IMPORT_VALIDATION_ERROR,
@@ -711,5 +712,102 @@ describe('assertStudyExportSemantics', () => {
         updatedAt: timestamp,
       }],
     })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+  })
+})
+
+describe('assertStudyExportSettingsValues', () => {
+  const validFocus = {
+    id: 'focus-1',
+    subjectId: '',
+    startedAt: timestamp,
+    plannedMinutes: 25,
+    status: 'running' as const,
+    pausedAt: null,
+    accumulatedPausedMs: 0,
+  }
+
+  it('accepts known-setting boundaries and unknown keys unchanged', () => {
+    expect(() => assertStudyExportSettingsValues({
+      settings: [
+        { key: 'dailyGoalMinutes', value: 30 },
+        { key: 'quickNotes', value: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] },
+        { key: 'legacy-localstorage-migrated-v1', value: true },
+        { key: ACTIVE_FOCUS_SESSION_KEY, value: validFocus },
+        { key: 'futurePluginSetting', value: { nested: [1, false] } },
+      ],
+    })).not.toThrow()
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [
+        { key: 'dailyGoalMinutes', value: 720 },
+        { key: 'quickNotes', value: [] },
+      ],
+    })).not.toThrow()
+  })
+
+  it('rejects invalid dailyGoalMinutes values', () => {
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: 'dailyGoalMinutes', value: 29 }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: 'dailyGoalMinutes', value: 721 }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: 'dailyGoalMinutes', value: '240' }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: 'dailyGoalMinutes', value: Number.NaN }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: 'dailyGoalMinutes', value: Number.POSITIVE_INFINITY }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+  })
+
+  it('rejects invalid quickNotes shapes and counts above eight', () => {
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: 'quickNotes', value: 'note' }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: 'quickNotes', value: [1] }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: 'quickNotes', value: ['1', '2', '3', '4', '5', '6', '7', '8', '9'] }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+  })
+
+  it('rejects legacy-localstorage-migrated-v1 unless exactly true', () => {
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: 'legacy-localstorage-migrated-v1', value: false }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: 'legacy-localstorage-migrated-v1', value: 'true' }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: 'legacy-localstorage-migrated-v1', value: 1 }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+  })
+
+  it('rejects activeFocusSession values that fail isActiveFocusSession', () => {
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: ACTIVE_FOCUS_SESSION_KEY, value: { id: '', status: 'running' } }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: ACTIVE_FOCUS_SESSION_KEY, value: 'corrupt' }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+  })
+
+  it('accepts a valid activeFocusSession with General empty subjectId', () => {
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: ACTIVE_FOCUS_SESSION_KEY, value: { ...validFocus, subjectId: '' } }],
+    })).not.toThrow()
   })
 })
