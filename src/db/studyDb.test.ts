@@ -1236,6 +1236,276 @@ describe('studyDb', () => {
     expect((await studyDb.settings.get('unknownForwardKey'))?.value).toBe('kept')
   })
 
+  it('rejects semantically invalid records without clearing existing data', async () => {
+    const timestamp = nowIso()
+    await studyDb.subjects.add({
+      id: 'subject-seeded',
+      name: 'Seeded subject',
+      color: '#2563eb',
+      targetHours: 3,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 180 })
+    await studyDb.settings.put({
+      key: 'activeFocusSession',
+      value: {
+        id: 'focus-seeded',
+        subjectId: '',
+        startedAt: timestamp,
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      },
+    })
+
+    const emptyTables = {
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [] as Array<{ key: string; value: unknown }>,
+    }
+
+    const validSubject = {
+      id: 'subject-ok',
+      name: 'Ok',
+      color: '#111827',
+      targetHours: 2,
+      progress: 10,
+      progressMode: 'manual' as const,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+    const legacySubject = {
+      id: 'subject-ok',
+      name: 'Ok',
+      color: '#111827',
+      targetHours: 2,
+      progress: 10,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+
+    const semanticCases = [
+      {
+        version: 3 as const,
+        ...emptyTables,
+        subjects: [{ ...validSubject, progress: 101 }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        subjects: [{ ...validSubject, targetHours: 0 }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        subjects: [validSubject],
+        tasks: [{
+          id: 'task-neg',
+          title: 'Neg',
+          subjectId: '',
+          dueDate: '',
+          priority: 'normal' as const,
+          status: 'open' as const,
+          minutes: -5,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        subjects: [validSubject],
+        studySessions: [{
+          id: 'session-zero',
+          subjectId: '',
+          startedAt: timestamp,
+          endedAt: timestamp,
+          minutes: 0,
+          note: '',
+        }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        subjects: [validSubject],
+        studySessions: [{
+          id: 'session-order',
+          subjectId: '',
+          startedAt: '2026-07-24T12:00:00.000Z',
+          endedAt: '2026-07-24T11:00:00.000Z',
+          minutes: 5,
+          note: '',
+        }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        subjects: [validSubject],
+        events: [{
+          id: 'event-order',
+          title: 'Bad',
+          subjectId: '',
+          startAt: '2026-07-24T12:00:00.000Z',
+          endAt: '2026-07-24T11:00:00.000Z',
+          location: '',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        subjects: [validSubject],
+        goals: [{
+          id: 'goal-target',
+          title: 'Bad',
+          target: 0,
+          progress: 0,
+          period: 'daily' as const,
+          metric: 'manual' as const,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        subjects: [validSubject],
+        goals: [{
+          id: 'goal-progress',
+          title: 'Bad',
+          target: 10,
+          progress: -1,
+          period: 'daily' as const,
+          metric: 'manual' as const,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        subjects: [validSubject],
+        flashcards: [{
+          id: 'card-interval',
+          front: 'Q',
+          back: 'A',
+          subjectId: '',
+          status: 'new' as const,
+          lastReviewedAt: '',
+          intervalDays: -1,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }],
+      },
+      {
+        version: 1 as const,
+        ...emptyTables,
+        subjects: [{ ...legacySubject, progress: -1 }],
+        goals: [],
+      },
+      {
+        version: 2 as const,
+        ...emptyTables,
+        subjects: [{ ...legacySubject, targetHours: 0 }],
+        goals: [],
+      },
+    ]
+
+    for (const snapshot of semanticCases) {
+      await expect(importStudyData({ ...snapshot, exportedAt: timestamp }))
+        .rejects.toThrow('Import file is not a Study Dashboard export.')
+      expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+      expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(180)
+      expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ id: 'focus-seeded' })
+    }
+  })
+
+  it('imports semantically valid boundary values', async () => {
+    const timestamp = nowIso()
+
+    await importStudyData({
+      version: 3 as const,
+      exportedAt: timestamp,
+      subjects: [{
+        id: 'subject-boundary',
+        name: 'Boundary',
+        color: '#111827',
+        targetHours: 1,
+        progress: 100,
+        progressMode: 'manual' as const,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      tasks: [{
+        id: 'task-zero',
+        title: 'Zero minutes',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal' as const,
+        status: 'open' as const,
+        minutes: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      notes: [],
+      events: [{
+        id: 'event-equal',
+        title: 'Equal ends',
+        subjectId: '',
+        startAt: timestamp,
+        endAt: timestamp,
+        location: '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      flashcards: [{
+        id: 'card-zero',
+        front: 'Q',
+        back: 'A',
+        subjectId: '',
+        status: 'new' as const,
+        lastReviewedAt: '',
+        intervalDays: 0,
+        reviewCount: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      studySessions: [{
+        id: 'session-one',
+        subjectId: '',
+        startedAt: timestamp,
+        endedAt: timestamp,
+        minutes: 1,
+        note: '',
+      }],
+      goals: [{
+        id: 'goal-over',
+        title: 'Over',
+        target: 10,
+        progress: 40,
+        period: 'daily' as const,
+        metric: 'manual' as const,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      settings: [],
+    })
+
+    expect(await studyDb.subjects.get('subject-boundary')).toMatchObject({ progress: 100 })
+    expect(await studyDb.tasks.get('task-zero')).toMatchObject({ minutes: 0 })
+    expect(await studyDb.goals.get('goal-over')).toMatchObject({ progress: 40 })
+  })
+
   it('ignores the old bundled sample data during legacy migration', async () => {
     localStorage.setItem(
       'study-dashboard-v2',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ACTIVE_FOCUS_SESSION_KEY } from './activeFocusSession'
 import {
+  assertStudyExportSemantics,
   assertStudyExportSubjectReferences,
   assertUniqueStudyExportIdentifiers,
   STUDY_EXPORT_IMPORT_VALIDATION_ERROR,
@@ -461,5 +462,254 @@ describe('assertStudyExportSubjectReferences', () => {
         value: { ...validFocus, subjectId: '' },
       }],
     })).not.toThrow()
+  })
+})
+
+describe('assertStudyExportSemantics', () => {
+  const baseSubject = {
+    id: 'subject-1',
+    name: 'Math',
+    color: '#111827',
+    targetHours: 1,
+    progress: 0,
+    progressMode: 'manual' as const,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  }
+
+  it('accepts boundary and otherwise valid semantic values', () => {
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      subjects: [
+        { ...baseSubject, progress: 0, targetHours: 0.5 },
+        { ...baseSubject, id: 'subject-2', progress: 100, targetHours: 1 },
+      ],
+      tasks: [{
+        id: 'task-zero',
+        title: 'Zero minutes',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      studySessions: [{
+        id: 'session-1',
+        subjectId: '',
+        startedAt: '2026-07-24T10:00:00.000Z',
+        endedAt: '2026-07-24T10:00:00.000Z',
+        minutes: 1,
+        note: '',
+      }],
+      events: [{
+        id: 'event-1',
+        title: 'Same start/end',
+        subjectId: '',
+        startAt: '2026-07-24T10:00:00.000Z',
+        endAt: '2026-07-24T10:00:00.000Z',
+        location: '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      goals: [{
+        id: 'goal-1',
+        title: 'Over target ok',
+        target: 10,
+        progress: 25,
+        period: 'daily',
+        metric: 'manual',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }, {
+        id: 'goal-2',
+        title: 'Zero progress',
+        target: 1,
+        progress: 0,
+        period: 'weekly',
+        metric: 'manual',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      flashcards: [{
+        id: 'card-1',
+        front: 'Q',
+        back: 'A',
+        subjectId: '',
+        status: 'new',
+        lastReviewedAt: '',
+        intervalDays: 0,
+        reviewCount: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }, {
+        id: 'card-2',
+        front: 'Q2',
+        back: 'A2',
+        subjectId: '',
+        status: 'new',
+        lastReviewedAt: '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    })).not.toThrow()
+  })
+
+  it('rejects subjects with progress outside 0–100 or non-positive targetHours', () => {
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      subjects: [{ ...baseSubject, progress: -1 }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      subjects: [{ ...baseSubject, progress: 101 }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      subjects: [{ ...baseSubject, targetHours: 0 }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      subjects: [{ ...baseSubject, targetHours: -2 }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+  })
+
+  it('rejects negative task minutes while allowing zero', () => {
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      tasks: [{
+        id: 'task-neg',
+        title: 'Bad',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: -1,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+  })
+
+  it('rejects non-positive session minutes and sessions ending before they start', () => {
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      studySessions: [{
+        id: 'session-zero',
+        subjectId: '',
+        startedAt: timestamp,
+        endedAt: timestamp,
+        minutes: 0,
+        note: '',
+      }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      studySessions: [{
+        id: 'session-order',
+        subjectId: '',
+        startedAt: '2026-07-24T12:00:00.000Z',
+        endedAt: '2026-07-24T11:00:00.000Z',
+        minutes: 5,
+        note: '',
+      }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+  })
+
+  it('rejects events ending before they start', () => {
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      events: [{
+        id: 'event-order',
+        title: 'Bad',
+        subjectId: '',
+        startAt: '2026-07-24T12:00:00.000Z',
+        endAt: '2026-07-24T11:00:00.000Z',
+        location: '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+  })
+
+  it('rejects non-positive goal targets and negative progress, allowing over-target progress', () => {
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      goals: [{
+        id: 'goal-target',
+        title: 'Bad target',
+        target: 0,
+        progress: 0,
+        period: 'daily',
+        metric: 'manual',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      goals: [{
+        id: 'goal-progress',
+        title: 'Bad progress',
+        target: 10,
+        progress: -1,
+        period: 'daily',
+        metric: 'manual',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      goals: [{
+        id: 'goal-over',
+        title: 'Over target',
+        target: 10,
+        progress: 50,
+        period: 'daily',
+        metric: 'manual',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    })).not.toThrow()
+  })
+
+  it('rejects negative flashcard intervalDays or reviewCount when present', () => {
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      flashcards: [{
+        id: 'card-interval',
+        front: 'Q',
+        back: 'A',
+        subjectId: '',
+        status: 'new',
+        lastReviewedAt: '',
+        intervalDays: -1,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      flashcards: [{
+        id: 'card-reviews',
+        front: 'Q',
+        back: 'A',
+        subjectId: '',
+        status: 'new',
+        lastReviewedAt: '',
+        reviewCount: -1,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
   })
 })

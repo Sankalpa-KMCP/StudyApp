@@ -78,3 +78,53 @@ export function assertStudyExportSubjectReferences(
     assertSubjectReference(setting.value.subjectId, subjectIds)
   }
 }
+
+function failValidation(): never {
+  throw new Error(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+}
+
+function assertTimestampOrder(startIso: string, endIso: string): void {
+  if (Date.parse(endIso) < Date.parse(startIso)) {
+    failValidation()
+  }
+}
+
+/**
+ * Rejects integrity-level semantic violations (ranges, non-positive durations, temporal order).
+ * Does not enforce UI maximums or future-ended session policy. Call after uniqueness and
+ * subject-reference checks, before any IDB write.
+ */
+export function assertStudyExportSemantics(
+  snapshot: Pick<
+    StudyExport,
+    'subjects' | 'tasks' | 'notes' | 'events' | 'flashcards' | 'studySessions' | 'goals'
+  >,
+): void {
+  for (const subject of snapshot.subjects) {
+    if (subject.progress < 0 || subject.progress > 100) failValidation()
+    if (subject.targetHours <= 0) failValidation()
+  }
+
+  for (const task of snapshot.tasks) {
+    if (task.minutes < 0) failValidation()
+  }
+
+  for (const session of snapshot.studySessions) {
+    if (session.minutes <= 0) failValidation()
+    assertTimestampOrder(session.startedAt, session.endedAt)
+  }
+
+  for (const event of snapshot.events) {
+    assertTimestampOrder(event.startAt, event.endAt)
+  }
+
+  for (const goal of snapshot.goals) {
+    if (goal.target <= 0) failValidation()
+    if (goal.progress < 0) failValidation()
+  }
+
+  for (const card of snapshot.flashcards) {
+    if (card.intervalDays !== undefined && card.intervalDays < 0) failValidation()
+    if (card.reviewCount !== undefined && card.reviewCount < 0) failValidation()
+  }
+}
