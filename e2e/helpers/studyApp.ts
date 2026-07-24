@@ -6,21 +6,6 @@ export const freshVisitStorage = {
   origins: [] as Array<{ origin: string; localStorage: Array<{ name: string; value: string }> }>,
 }
 
-const DB_NAME = 'StudyDashboardDB'
-
-export async function clearStudyDatabase(page: Page): Promise<void> {
-  await page.goto('/')
-  await page.evaluate(async (dbName: string) => {
-    await new Promise<void>((resolve, reject) => {
-      const req = indexedDB.deleteDatabase(dbName)
-      req.onsuccess = () => resolve()
-      req.onerror = () => reject(req.error ?? new Error('deleteDatabase failed'))
-      req.onblocked = () => resolve()
-    })
-  }, DB_NAME)
-  await page.reload()
-}
-
 export function settingsSectionNav(page: Page) {
   return page.getByRole('navigation', { name: 'Settings sections' })
 }

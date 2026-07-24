@@ -1,12 +1,8 @@
 import { test, expect } from '@playwright/test'
-
-const freshVisit = {
-  cookies: [],
-  origins: [] as Array<{ origin: string; localStorage: Array<{ name: string; value: string }> }>,
-}
+import { freshVisitStorage } from './helpers/studyApp'
 
 test.describe('first visit', () => {
-  test.use({ storageState: freshVisit })
+  test.use({ storageState: freshVisitStorage })
 
   test('shows onboarding then lands on focus with task input', async ({ page }) => {
     await page.goto('/')
@@ -54,7 +50,7 @@ test.describe('first visit', () => {
 
 test.describe('first visit mobile', () => {
   test.use({
-    storageState: freshVisit,
+    storageState: freshVisitStorage,
     viewport: { width: 375, height: 667 },
   })
 
