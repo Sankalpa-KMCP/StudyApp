@@ -61,12 +61,19 @@ Normal local development does not require a `.env` file.
 
 | Path | Purpose |
 |------|---------|
-| `src/App.tsx` | Dashboard shell, workspace routing state, timer, settings, and global handlers |
-| `src/appUtils.ts` | Shared date, progress, search, timer, and flashcard scheduling helpers |
+| `src/App.tsx` | Composition root: live data, navigation, derived metrics, sole `useCurrentDate`, view wiring |
+| `src/appUtils.ts` | Shared date, progress, search builders, and flashcard scheduling helpers |
 | `src/hooks/useCurrentDate.ts` | App-owned local-midnight Date signal for date-derived Home metrics |
 | `src/hooks/useMutationState.ts` | Shared pending/success/error helper for ordinary local mutations |
-| `src/db/` | Dexie schema, import/export, clear-all, and legacy migration helpers |
+| `src/hooks/useThemePreference.ts` | Theme `localStorage` + DOM `data-theme` / theme-color |
+| `src/hooks/useSidebarPreference.ts` | Sidebar collapse preference in `localStorage` |
+| `src/hooks/useAppSearch.ts` | Search state, deferred filters, Home cross-entity results |
+| `src/hooks/useFocusSession.ts` | Focus restore/actions/timed completion + import lock APIs |
+| `src/hooks/useStudyBackup.ts` | Export download, import under focus lock, clear-all coordination |
+| `src/db/` | Dexie schema, import/export validation, clear-all, and legacy migration helpers |
 | `src/views/` | Workspace views (tasks, notes, subjects, calendar, flashcards, progress, goals, settings) |
+| `src/App.test.tsx` | App-shell integration tests (theme/sidebar/notices/search keyboard) |
+| `src/App.*.test.tsx` | Feature App suites (focus, backup, goals, home, navigation, workspaces, progress) |
 | `src/index.css` | Ordered global CSS entry (imports only) |
 | `src/styles/` | Modular plain CSS (tokens, layout, components, Home, workspaces, responsive, preferences) |
 | `e2e/` | Playwright desktop/mobile persistence and focus/import smoke tests |

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Extracted App React orchestration into focused hooks without changing product behavior: theme and sidebar preferences (`useThemePreference`, `useSidebarPreference`), application search (`useAppSearch`), focus-session restore/actions/timed completion and import locking (`useFocusSession`), and backup export/import/clear coordination (`useStudyBackup`). `App.tsx` remains the composition root for live data, the sole local-midnight date signal, derived metrics, navigation, and view wiring. Domain persistence stays in `activeFocusSession` / `studyDb`.
+- Split App integration tests into feature suites (`App.focus`, `App.backup`, `App.goals`, `App.home`, `App.navigation`, `App.workspaces`, `App.progress`) with shared reset helpers under `src/test/`. `App.test.tsx` now covers app-shell behavior only (theme, sidebar, notices, global search keyboard).
+
 ### Fixed
 
 - Calendar strip days and event counts now use local calendar dates instead of UTC date prefixes, so near-midnight events stay on the correct local day for users ahead of or behind UTC.
