@@ -1,4 +1,9 @@
 import { ACTIVE_FOCUS_SESSION_KEY, isActiveFocusSession } from './activeFocusSession'
+import {
+  STUDY_EXPORT_RECORD_LIMITS,
+  type StudyExportRecordCounts,
+  type StudyExportRecordLimits,
+} from './studyExportLimits'
 import type { StudyExport } from './types'
 
 /** Stable internal error; Settings maps import failures to a fixed friendly message. */
@@ -169,4 +174,57 @@ export function assertStudyExportSettingsValues(
         break
     }
   }
+}
+
+/**
+ * Rejects imports that exceed total or per-table record-count ceilings.
+ * `limits` defaults to production constants; tests may inject smaller ceilings.
+ * Call after uniqueness, relationship, semantic, and settings-value checks.
+ */
+export function assertStudyExportRecordCounts(
+  snapshot: Pick<
+    StudyExport,
+    'subjects' | 'tasks' | 'notes' | 'events' | 'flashcards' | 'studySessions' | 'goals' | 'settings'
+  >,
+  limits: StudyExportRecordLimits = STUDY_EXPORT_RECORD_LIMITS,
+): void {
+  assertStudyExportRecordCountTotals({
+    subjects: snapshot.subjects.length,
+    tasks: snapshot.tasks.length,
+    notes: snapshot.notes.length,
+    events: snapshot.events.length,
+    flashcards: snapshot.flashcards.length,
+    studySessions: snapshot.studySessions.length,
+    goals: snapshot.goals.length,
+    settings: snapshot.settings.length,
+  }, limits)
+}
+
+/**
+ * Length-based count gate used by {@link assertStudyExportRecordCounts}.
+ * Exported so large production ceilings can be exercised without allocating huge arrays.
+ */
+export function assertStudyExportRecordCountTotals(
+  counts: StudyExportRecordCounts,
+  limits: StudyExportRecordLimits = STUDY_EXPORT_RECORD_LIMITS,
+): void {
+  if (counts.subjects > limits.subjects) failValidation()
+  if (counts.tasks > limits.tasks) failValidation()
+  if (counts.notes > limits.notes) failValidation()
+  if (counts.events > limits.events) failValidation()
+  if (counts.flashcards > limits.flashcards) failValidation()
+  if (counts.studySessions > limits.studySessions) failValidation()
+  if (counts.goals > limits.goals) failValidation()
+  if (counts.settings > limits.settings) failValidation()
+
+  const total = counts.subjects
+    + counts.tasks
+    + counts.notes
+    + counts.events
+    + counts.flashcards
+    + counts.studySessions
+    + counts.goals
+    + counts.settings
+
+  if (total > limits.total) failValidation()
 }

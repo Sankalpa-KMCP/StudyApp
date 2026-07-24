@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import { inferSubjectProgressMode } from '../appUtils'
 import { inferLegacyGoalMetric } from './goalMetricInference'
-import { assertUniqueStudyExportIdentifiers, assertStudyExportSubjectReferences, assertStudyExportSemantics, assertStudyExportSettingsValues } from './studyExportValidation'
+import { assertUniqueStudyExportIdentifiers, assertStudyExportSubjectReferences, assertStudyExportSemantics, assertStudyExportSettingsValues, assertStudyExportRecordCounts } from './studyExportValidation'
 import type {
   CalendarEvent,
   Flashcard,
@@ -278,6 +278,7 @@ function finalizeStudyExport(snapshot: StudyExport): StudyExport {
   assertStudyExportSubjectReferences(snapshot)
   assertStudyExportSemantics(snapshot)
   assertStudyExportSettingsValues(snapshot)
+  assertStudyExportRecordCounts(snapshot)
   return snapshot
 }
 
