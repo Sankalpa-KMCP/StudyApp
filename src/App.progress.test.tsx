@@ -26,6 +26,7 @@ describe('App progress', () => {
       color: '#2563eb',
       targetHours: 1,
       progress: 0,
+      progressMode: 'study_time',
       createdAt: timestamp,
       updatedAt: timestamp,
     })

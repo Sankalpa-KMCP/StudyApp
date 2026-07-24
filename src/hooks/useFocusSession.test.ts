@@ -30,6 +30,7 @@ describe('useFocusSession', () => {
       color: '#2563eb',
       targetHours: 4,
       progress: 0,
+      progressMode: 'manual',
       createdAt: '2026-06-29T00:00:00.000Z',
       updatedAt: '2026-06-29T00:00:00.000Z',
     }],

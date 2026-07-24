@@ -13,6 +13,13 @@ export function isGoalMetric(value: unknown): value is GoalMetric {
   return value === 'manual' || value === 'study_time'
 }
 
+/** How subject progress is measured. `study_time` uses session totals; `manual` uses stored `progress`. */
+export type SubjectProgressMode = 'manual' | 'study_time'
+
+export function isSubjectProgressMode(value: unknown): value is SubjectProgressMode {
+  return value === 'manual' || value === 'study_time'
+}
+
 export type StudyTask = {
   id: string
   title: string
@@ -30,10 +37,15 @@ export type StudySubject = {
   name: string
   color: string
   targetHours: number
+  /** Manual percentage 0–100; retained in every mode so switching modes never discards it. */
   progress: number
+  progressMode: SubjectProgressMode
   createdAt: string
   updatedAt: string
 }
+
+/** Pre-mode subject shape found in version-1 and version-2 backups (no `progressMode` field). */
+export type StudySubjectLegacy = Omit<StudySubject, 'progressMode'>
 
 export type StudyNote = {
   id: string
@@ -114,6 +126,16 @@ export type ActiveFocusSession = {
 /** Pre-metric goal shape found in version-1 backups (no `metric` field). */
 export type StudyGoalV1 = Omit<StudyGoal, 'metric'>
 
+type StudyExportTablesLegacy = {
+  tasks: StudyTask[]
+  subjects: StudySubjectLegacy[]
+  notes: StudyNote[]
+  events: CalendarEvent[]
+  flashcards: Flashcard[]
+  studySessions: StudySession[]
+  settings: StudySetting[]
+}
+
 type StudyExportTables = {
   tasks: StudyTask[]
   subjects: StudySubject[]
@@ -124,21 +146,28 @@ type StudyExportTables = {
   settings: StudySetting[]
 }
 
-/** Legacy backup format (goals without required metrics). */
-export type StudyExportV1 = StudyExportTables & {
+/** Legacy backup format (goals without required metrics; subjects without progress modes). */
+export type StudyExportV1 = StudyExportTablesLegacy & {
   version: 1
   exportedAt: string
   goals: StudyGoalV1[]
 }
 
-/** Current backup format (goals require explicit metrics). */
-export type StudyExportV2 = StudyExportTables & {
+/** Backup format with goal metrics; subjects still without required progress modes. */
+export type StudyExportV2 = StudyExportTablesLegacy & {
   version: 2
   exportedAt: string
   goals: StudyGoal[]
 }
 
+/** Current backup format (goals require metrics; subjects require progress modes). */
+export type StudyExportV3 = StudyExportTables & {
+  version: 3
+  exportedAt: string
+  goals: StudyGoal[]
+}
+
 /** Current export/import product shape after normalization. */
-export type StudyExport = StudyExportV2
+export type StudyExport = StudyExportV3
 
 export type StudyData = Omit<StudyExport, 'version' | 'exportedAt'>

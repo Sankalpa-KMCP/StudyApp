@@ -10,7 +10,7 @@ describe('useStudyBackup', () => {
 
   it('exports a JSON backup download and revokes the object URL', async () => {
     const payload = {
-      version: 2 as const,
+      version: 3 as const,
       exportedAt: '2026-07-23T00:00:00.000Z',
       tasks: [],
       subjects: [],

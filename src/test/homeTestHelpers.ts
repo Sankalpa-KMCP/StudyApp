@@ -9,6 +9,7 @@ export async function addFirstStudySubject() {
     color: '#2563eb',
     targetHours: 2,
     progress: 0,
+    progressMode: 'manual',
     createdAt: FIRST_STUDY_TIMESTAMP,
     updatedAt: FIRST_STUDY_TIMESTAMP,
   })

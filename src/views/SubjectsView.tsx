@@ -11,8 +11,8 @@ import {
   MutationNotice,
 } from '../components/ui'
 import { createId, nowIso, studyDb } from '../db/studyDb'
-import type { StudySubject, StudyTask, StudyNote, CalendarEvent, Flashcard, StudySession } from '../db/types'
-import { clamp, formatMinutes, getSubjectProgress } from '../appUtils'
+import type { StudySubject, StudyTask, StudyNote, CalendarEvent, Flashcard, StudySession, SubjectProgressMode } from '../db/types'
+import { clamp, formatMinutes, getSubjectProgress, getSubjectStudyMinutes } from '../appUtils'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 
 const colorSwatches = [
@@ -31,6 +31,7 @@ type SubjectDraft = {
   color: string
   targetHours: number
   progress: number
+  progressMode: SubjectProgressMode
 }
 
 const emptyDraft = (): SubjectDraft => ({
@@ -38,6 +39,7 @@ const emptyDraft = (): SubjectDraft => ({
   color: colorSwatches[0].value,
   targetHours: 5,
   progress: 0,
+  progressMode: 'manual',
 })
 
 export function SubjectsView({
@@ -92,6 +94,7 @@ export function SubjectsView({
       color: subject?.color ?? colorSwatches[0].value,
       targetHours: subject?.targetHours ?? 5,
       progress: subject?.progress ?? 0,
+      progressMode: subject?.progressMode ?? 'manual',
     })
   }, [clearSaveFeedback])
 
@@ -145,6 +148,7 @@ export function SubjectsView({
       color: draft.color,
       targetHours: clamp(draft.targetHours, 1, 100),
       progress: clamp(draft.progress, 0, 100),
+      progressMode: draft.progressMode,
       updatedAt: timestamp,
     }
 
@@ -248,7 +252,7 @@ export function SubjectsView({
             const linked = getLinkedCounts(subject.id)
             const linkedTotal = Object.values(linked).reduce((sum, count) => sum + count, 0)
             const progressValue = getSubjectProgress(subject, sessions)
-            const minutes = sessions.filter((session) => session.subjectId === subject.id).reduce((sum, session) => sum + session.minutes, 0)
+            const minutes = getSubjectStudyMinutes(subject.id, sessions)
             return (
               <article className="card subject-card editable-subject" style={{ '--subject-color': subject.color } as React.CSSProperties} key={subject.id}>
                 <div className="subject-icon" style={{ backgroundColor: subject.color }}>

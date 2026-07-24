@@ -1,4 +1,4 @@
-import type { Flashcard, GoalMetric, GoalPeriod, StudyData, StudyGoal, StudySession, StudySubject } from './db/types'
+import type { Flashcard, GoalMetric, GoalPeriod, StudyData, StudyGoal, StudySession, StudySubject, SubjectProgressMode } from './db/types'
 
 export type WeeklyStudyDay = {
   key: string
@@ -63,10 +63,46 @@ export function getSubjectStudyMinutes(subjectId: string, sessions: StudySession
   return sessions.filter((session) => session.subjectId === subjectId).reduce((sum, session) => sum + session.minutes, 0)
 }
 
-export function getSubjectProgress(subject: StudySubject, sessions: StudySession[]) {
+export type SubjectProgressResult = {
+  percentage: number
+  mode: SubjectProgressMode
+  loggedMinutes: number
+  targetMinutes: number
+}
+
+/**
+ * Authoritative subject progress from the stored `progressMode`.
+ * Manual mode uses stored `progress`; study_time uses all matching finalized session minutes vs target hours.
+ */
+export function calculateSubjectProgress(subject: StudySubject, sessions: StudySession[]): SubjectProgressResult {
   const targetMinutes = Math.max(1, subject.targetHours * 60)
   const loggedMinutes = getSubjectStudyMinutes(subject.id, sessions)
-  return loggedMinutes > 0 ? percent(loggedMinutes, targetMinutes) : subject.progress
+
+  if (subject.progressMode === 'study_time') {
+    return {
+      percentage: percent(loggedMinutes, targetMinutes),
+      mode: 'study_time',
+      loggedMinutes,
+      targetMinutes,
+    }
+  }
+
+  return {
+    percentage: subject.progress,
+    mode: 'manual',
+    loggedMinutes,
+    targetMinutes,
+  }
+}
+
+/** Percentage-only wrapper around `calculateSubjectProgress` for existing card call sites. */
+export function getSubjectProgress(subject: StudySubject, sessions: StudySession[]) {
+  return calculateSubjectProgress(subject, sessions).percentage
+}
+
+/** Deterministic mode default for migration/import: positive matching session minutes → study_time. */
+export function inferSubjectProgressMode(subjectId: string, sessions: StudySession[]): SubjectProgressMode {
+  return getSubjectStudyMinutes(subjectId, sessions) > 0 ? 'study_time' : 'manual'
 }
 
 /** True when progress is computed from finalized study sessions rather than stored manual progress. */
