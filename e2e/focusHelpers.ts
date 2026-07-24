@@ -279,6 +279,11 @@ export async function importStudyBackupViaSettings(page: Page, payload: StudyExp
 export type StudyExportDownload = {
   version: number
   goals: StudyGoalRow[]
+  subjects: Array<{
+    id: string
+    name: string
+    progressMode: 'manual' | 'study_time'
+  }>
 }
 
 /** Exports study data through Settings and returns the downloaded JSON payload. */
