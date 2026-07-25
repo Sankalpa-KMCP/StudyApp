@@ -161,4 +161,99 @@ describe('App navigation', () => {
       expect(screen.getByRole('heading', { level: 1, name: 'Tasks' })).toBeInTheDocument()
     })
   })
+
+  it('opens the task editor once from Home and does not replay it after Back/Forward or ordinary return', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const hero = await screen.findByLabelText('Today overview')
+    await user.click(within(hero).getByRole('button', { name: 'Task' }))
+    expect(await screen.findByLabelText('Task title')).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/tasks')
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByLabelText('Task title')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Notes' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Notes' })).toBeInTheDocument()
+
+    act(() => {
+      window.history.back()
+    })
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/tasks')
+      expect(screen.getByRole('heading', { level: 1, name: 'Tasks' })).toBeInTheDocument()
+    })
+    expect(screen.queryByLabelText('Task title')).not.toBeInTheDocument()
+
+    act(() => {
+      window.history.forward()
+    })
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/notes')
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Tasks' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Tasks' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Task title')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    await user.click(within(screen.getByLabelText('Today overview')).getByRole('button', { name: 'Task' }))
+    expect(await screen.findByLabelText('Task title')).toBeInTheDocument()
+  })
+
+  it('opens the subject editor once from Home and does not replay it after Back/Forward or ordinary return', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const hero = await screen.findByLabelText('Today overview')
+    await user.click(within(hero).getByRole('button', { name: 'Subject' }))
+    expect(await screen.findByLabelText('Subject name')).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/subjects')
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByLabelText('Subject name')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Notes' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Notes' })).toBeInTheDocument()
+
+    act(() => {
+      window.history.back()
+    })
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/subjects')
+      expect(screen.getByRole('heading', { level: 1, name: 'Subjects' })).toBeInTheDocument()
+    })
+    expect(screen.queryByLabelText('Subject name')).not.toBeInTheDocument()
+
+    act(() => {
+      window.history.forward()
+    })
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/notes')
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Subjects' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Subjects' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Subject name')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    await user.click(within(screen.getByLabelText('Today overview')).getByRole('button', { name: 'Subject' }))
+    expect(await screen.findByLabelText('Subject name')).toBeInTheDocument()
+  })
+
+  it('keeps Progress log-session intent one-shot across ordinary navigation', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
+    await user.click(screen.getByRole('button', { name: 'Log session' }))
+    expect(await screen.findByRole('heading', { name: 'Log study session' })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/progress')
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    await user.click(screen.getByRole('button', { name: 'Progress' }))
+    expect(screen.queryByRole('heading', { name: 'Log study session' })).not.toBeInTheDocument()
+  })
 })
