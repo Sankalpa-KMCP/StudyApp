@@ -27,7 +27,7 @@ npm run dev
 | `src/App.backup.test.tsx` | Export, ordinary import, clear-all |
 | `src/App.goals.test.tsx` | Goals metrics and CRUD |
 | `src/App.home.test.tsx` | Checklist, Home search, quick notes, midnight, Home chart a11y |
-| `src/App.navigation.test.tsx` | Widget and view navigation |
+| `src/App.navigation.test.tsx` | Widget and view navigation, URL sync, popstate, unknown-path fallback |
 | `src/App.workspaces.test.tsx` | Tasks / Notes / Subjects / Calendar / Flashcards |
 | `src/App.progress.test.tsx` | Progress study journal |
 
@@ -52,7 +52,7 @@ The app uses plain CSS, Vite, React, and Dexie. Icons are local React components
 ## Adding an E2E spec
 
 1. Create `e2e/<feature>.spec.ts` beside existing specs.
-2. Start with `page.goto('/')` and wait for the Home greeting heading (`Good morning`, `Good afternoon`, or `Good evening` — see `HOME_GREETING_HEADING` in `e2e/a11yHelpers.ts`).
+2. Start with `page.goto('/')` (or a workspace path such as `/tasks`) and wait for the matching workspace heading. Home uses the greeting heading (`Good morning`, `Good afternoon`, or `Good evening` — see `HOME_GREETING_HEADING` in `e2e/a11yHelpers.ts`).
 3. Run `npm run test:e2e -- e2e/<feature>.spec.ts` locally before pushing.
 
 ## Shared UI components
