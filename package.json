@@ -5,6 +5,7 @@
     "test": "npm --prefix frontend test --",
     "build": "npm --prefix frontend run build --",
     "lint": "npm --prefix frontend run lint --",
+    "check:bundle": "npm --prefix frontend run check:bundle --",
     "storybook": "npm --prefix frontend run storybook --",
     "preview": "npm --prefix frontend run preview --",
     "test:e2e": "npm --prefix frontend run test:e2e --",
