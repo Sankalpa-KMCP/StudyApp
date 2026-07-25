@@ -178,6 +178,9 @@ export async function migrateLegacyLocalStorage() {
         studyDb.tasks.bulkPut(migrated.tasks),
         studyDb.notes.bulkPut(migrated.notes),
         studyDb.events.bulkPut(migrated.events),
+        studyDb.flashcards.bulkPut(migrated.flashcards),
+        studyDb.studySessions.bulkPut(migrated.studySessions),
+        studyDb.goals.bulkPut(migrated.goals),
         studyDb.settings.bulkPut(migrated.settings),
       ])
     })

@@ -1984,7 +1984,7 @@ describe('studyDb', () => {
     expect(await studyDb.studySessions.count()).toBe(0)
   })
 
-  it('imports a General study_time subject from focus-only legacy payloads without sessions', async () => {
+  it('imports a General study_time subject and session from focus-only legacy payloads', async () => {
     localStorage.setItem(
       'study-dashboard-v2',
       JSON.stringify({
@@ -1998,15 +1998,19 @@ describe('studyDb', () => {
     const subjects = await studyDb.subjects.toArray()
     expect(subjects).toHaveLength(1)
     expect(subjects[0]).toMatchObject({ name: 'General', progressMode: 'study_time' })
-    // migrateLegacyData builds a session, but migrateLegacyLocalStorage never persists it.
-    expect(await studyDb.studySessions.count()).toBe(0)
+
+    const sessions = await studyDb.studySessions.toArray()
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0]).toMatchObject({
+      subjectId: subjects[0]!.id,
+      minutes: 60,
+      note: 'Migrated focus time',
+    })
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(200)
     expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
   })
 
-  // Known defect: migrateLegacyData builds studySessions for focusMinutes, but
-  // migrateLegacyLocalStorage never persists studySessions (or goals/flashcards).
-  it.fails('clamps migrated legacy focus minutes into a persisted study session', async () => {
+  it('clamps migrated legacy focus minutes into a persisted study session', async () => {
     localStorage.setItem(
       'study-dashboard-v2',
       JSON.stringify({
@@ -2017,13 +2021,31 @@ describe('studyDb', () => {
 
     await migrateLegacyLocalStorage()
 
+    const subjects = await studyDb.subjects.toArray()
+    const general = subjects.find((subject) => subject.name === 'General')
+    expect(general).toBeDefined()
+
     const sessions = await studyDb.studySessions.toArray()
     expect(sessions).toHaveLength(1)
     expect(sessions[0]).toMatchObject({
+      subjectId: general!.id,
       minutes: 720,
       note: 'Migrated focus time',
     })
     expect(new Date(sessions[0]!.endedAt).getTime() - new Date(sessions[0]!.startedAt).getTime()).toBe(720 * 60_000)
+
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'focus-task', title: 'Keep migration non-empty', subject: 'Chemistry', done: false, minutes: 30 }],
+        focusMinutes: 900,
+      }),
+    )
+    await migrateLegacyLocalStorage()
+
+    expect(await studyDb.studySessions.count()).toBe(1)
+    expect(await studyDb.tasks.count()).toBe(1)
+    expect(await studyDb.subjects.count()).toBe(subjects.length)
   })
 })
 
