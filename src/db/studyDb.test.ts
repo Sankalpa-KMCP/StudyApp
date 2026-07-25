@@ -1725,7 +1725,17 @@ describe('studyDb', () => {
     })).rejects.toThrow('Import file is not a Study Dashboard export.')
     expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
 
-    const legacySubjectsOverLimit = subjectsOverLimit.map(({ progressMode: _mode, ...rest }) => rest)
+    const legacySubjectsOverLimit = subjectsOverLimit.map(
+      ({ id, name, color, targetHours, progress, createdAt, updatedAt }) => ({
+        id,
+        name,
+        color,
+        targetHours,
+        progress,
+        createdAt,
+        updatedAt,
+      }),
+    )
     await expect(importStudyData({
       version: 1 as const,
       exportedAt: timestamp,
