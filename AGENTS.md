@@ -226,7 +226,7 @@ npm run check:bundle
 npm run test:e2e
 ```
 
-CI (`.github/workflows/ci.yml`): lint → unit tests → build → bundle check → Playwright E2E.
+CI (`.github/workflows/ci.yml`): lint → unit tests with coverage (`npm run test:coverage`) → build → bundle check → Playwright E2E.
 
 ## Human-oriented docs
 
