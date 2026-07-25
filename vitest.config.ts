@@ -13,15 +13,13 @@ export default mergeConfig(
       include: ['src/**/*.{test,spec}.{ts,tsx}'],
       coverage: {
         provider: 'v8',
-        include: [
-          'src/App.tsx',
-          'src/hooks/useThemePreference.ts',
-          'src/hooks/useSidebarPreference.ts',
-          'src/hooks/useAppSearch.ts',
-          'src/hooks/useFocusSession.ts',
-          'src/hooks/useStudyBackup.ts',
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: [
+          'src/**/*.test.ts',
+          'src/**/*.test.tsx',
+          'src/test/**',
+          'src/**/*.d.ts',
         ],
-        exclude: ['src/**/*.test.tsx', 'src/**/*.test.ts', 'src/test/**'],
         thresholds: {
           lines: 80,
           functions: 80,

@@ -12,7 +12,7 @@ npm run dev
 | Command | Purpose |
 |---------|---------|
 | `npm test` | Vitest unit and component tests (full suite) |
-| `npm run test:coverage` | Main coverage gate (`App.tsx` + extracted App orchestration hooks) |
+| `npm run test:coverage` | Main coverage gate (all production `src/**/*.{ts,tsx}`) |
 | `npm run test:e2e` | Playwright user journeys for Chromium desktop and mobile projects |
 | `npm run lint` | ESLint including jsx-a11y rules |
 | `npm run build` | TypeScript and production Vite build |
@@ -33,7 +33,7 @@ npm run dev
 
 Shared App suite reset lives in `src/test/appTestSetup.ts` (plus small focus/backup/home helpers). Prefer the matching feature suite when adding App-level coverage.
 
-Coverage thresholds (`vitest.config.ts`) include `src/App.tsx` and the five extracted orchestration hooks (`useThemePreference`, `useSidebarPreference`, `useAppSearch`, `useFocusSession`, `useStudyBackup`) at 80% lines/functions/statements and 70% branches. Do not lower those thresholds to green a change.
+Coverage (`vitest.config.ts`) instruments all production `src/**/*.{ts,tsx}` files and excludes tests, `src/test/**`, and `*.d.ts`. Thresholds stay at 80% lines/functions/statements and 70% branches. Do not lower those thresholds to green a change.
 
 ## Data Safety
 
