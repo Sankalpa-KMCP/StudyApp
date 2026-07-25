@@ -18,7 +18,7 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 
 ## Project summary
 
-- **Study Dashboard v1.3.0** — local-first study workspace (tasks, notes, subjects, calendar, flashcards, focus sessions, goals).
+- **Study Dashboard v1.4.0** — local-first study workspace (tasks, notes, subjects, calendar, flashcards, focus sessions, goals).
 - **Web app:** React 19 + Vite 8 + Dexie/IndexedDB PWA at the repo root.
 - **`App.tsx` is the composition root** — live Dexie data, sole `useCurrentDate()`, derived Home metrics, navigation/layout, shared preference notices, and view wiring. Pure helpers stay in `src/appUtils.ts`.
 - **Extracted React orchestration (do not re-inline into App):**
