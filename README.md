@@ -154,4 +154,4 @@ First launch starts empty with create-first actions. Existing customized data fr
 
 ## Live demo
 
-[Study Dashboard on GitHub Pages](https://it25100142.github.io/StudyApp/) — local-first; all data stays in your browser's IndexedDB.
+[Study Dashboard on GitHub Pages](https://sankalpa-kmcp.github.io/StudyApp/) — local-first; all data stays in your browser's IndexedDB.
