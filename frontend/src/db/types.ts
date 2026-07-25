@@ -56,6 +56,9 @@ export type Flashcard = {
   subjectId: string
   status: FlashcardStatus
   lastReviewedAt: string
+  dueAt?: string
+  intervalDays?: number
+  reviewCount?: number
   createdAt: string
   updatedAt: string
 }
