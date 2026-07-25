@@ -497,6 +497,129 @@ describe('App workspaces', () => {
     confirmDelete.mockRestore()
   })
 
+  it('closes the note editor only after deleting the note currently being edited', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.notes.add({
+      id: 'note-edit-delete',
+      title: 'Editable note',
+      body: 'Original body',
+      subjectId: '',
+      tags: ['keep'],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+
+    let releaseDelete!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseDelete = resolve
+    })
+    const originalDelete = studyDb.notes.delete.bind(studyDb.notes)
+    const deleteSpy = vi.spyOn(studyDb.notes, 'delete').mockImplementation(async (id) => {
+      await gate
+      return originalDelete(id)
+    })
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Notes' }))
+    await user.click(await screen.findByLabelText('Edit Editable note'))
+    await user.clear(screen.getByLabelText('Note title'))
+    await user.type(screen.getByLabelText('Note title'), 'Edited before delete')
+    await user.clear(screen.getByLabelText('Body'))
+    await user.type(screen.getByLabelText('Body'), 'Draft body still open')
+
+    await user.click(screen.getByLabelText('Delete Editable note'))
+    expect(await screen.findByLabelText('Deleting Editable note')).toBeDisabled()
+    expect(screen.getByLabelText('Note title')).toHaveValue('Edited before delete')
+    expect(screen.getByLabelText('Body')).toHaveValue('Draft body still open')
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByLabelText('Deleting Editable note'))
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+
+    releaseDelete()
+    expect(await screen.findByRole('status')).toHaveTextContent('Note deleted.')
+    expect(screen.queryByLabelText('Note title')).not.toBeInTheDocument()
+    expect(screen.queryByText('Editable note')).not.toBeInTheDocument()
+    expect(await studyDb.notes.get('note-edit-delete')).toBeUndefined()
+  })
+
+  it('keeps the open note editor when deleting that note fails', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.notes.add({
+      id: 'note-edit-delete-fail',
+      title: 'Persist editor note',
+      body: 'Keep body',
+      subjectId: '',
+      tags: ['draft'],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(studyDb.notes, 'delete').mockRejectedValueOnce(new Error('delete failed'))
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Notes' }))
+    await user.click(await screen.findByLabelText('Edit Persist editor note'))
+    await user.clear(screen.getByLabelText('Note title'))
+    await user.type(screen.getByLabelText('Note title'), 'Still editing')
+    await user.clear(screen.getByLabelText('Tags'))
+    await user.type(screen.getByLabelText('Tags'), 'kept-tag')
+    await user.clear(screen.getByLabelText('Body'))
+    await user.type(screen.getByLabelText('Body'), 'Unsaved body text')
+
+    await user.click(screen.getByLabelText('Delete Persist editor note'))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Note could not be deleted.')
+    expect(screen.getByLabelText('Note title')).toHaveValue('Still editing')
+    expect(screen.getByLabelText('Tags')).toHaveValue('kept-tag')
+    expect(screen.getByLabelText('Body')).toHaveValue('Unsaved body text')
+    expect(await studyDb.notes.get('note-edit-delete-fail')).toBeDefined()
+  })
+
+  it('does not clear the open note editor when a different note is deleted', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.notes.bulkAdd([
+      {
+        id: 'note-keep-editor',
+        title: 'Keep editing',
+        body: 'Open draft',
+        subjectId: '',
+        tags: ['open'],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: 'note-other-delete',
+        title: 'Other note',
+        body: 'Remove me',
+        subjectId: '',
+        tags: [],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ])
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Notes' }))
+    await user.click(await screen.findByLabelText('Edit Keep editing'))
+    await user.clear(screen.getByLabelText('Note title'))
+    await user.type(screen.getByLabelText('Note title'), 'Keep editing draft')
+    await user.clear(screen.getByLabelText('Body'))
+    await user.type(screen.getByLabelText('Body'), 'Still in the editor')
+
+    await user.click(screen.getByLabelText('Delete Other note'))
+    expect(await screen.findByRole('status')).toHaveTextContent('Note deleted.')
+    expect(screen.queryByText('Other note')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Note title')).toHaveValue('Keep editing draft')
+    expect(screen.getByLabelText('Body')).toHaveValue('Still in the editor')
+    expect(await studyDb.notes.get('note-keep-editor')).toBeDefined()
+  })
+
   it('creates a flashcard and marks it remembered', async () => {
     const user = userEvent.setup()
     render(<App />)
@@ -830,6 +953,134 @@ describe('App workspaces', () => {
     await waitFor(() => expect(screen.queryByText('Sticky event')).not.toBeInTheDocument())
     expect(await screen.findByRole('status')).toHaveTextContent('Event deleted.')
     confirmDelete.mockRestore()
+  })
+
+  it('closes the calendar editor only after deleting the event currently being edited', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.events.add({
+      id: 'event-edit-delete',
+      title: 'Editable event',
+      subjectId: '',
+      startAt: '2026-08-05T09:00:00.000Z',
+      endAt: '2026-08-05T10:00:00.000Z',
+      location: 'Room 1',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+
+    let releaseDelete!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseDelete = resolve
+    })
+    const originalDelete = studyDb.events.delete.bind(studyDb.events)
+    const deleteSpy = vi.spyOn(studyDb.events, 'delete').mockImplementation(async (id) => {
+      await gate
+      return originalDelete(id)
+    })
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Calendar' }))
+    await user.click(await screen.findByLabelText('Edit Editable event'))
+    await user.clear(screen.getByLabelText('Event title'))
+    await user.type(screen.getByLabelText('Event title'), 'Edited before delete')
+    await user.clear(screen.getByLabelText('Location'))
+    await user.type(screen.getByLabelText('Location'), 'Room 9')
+
+    await user.click(screen.getByLabelText('Delete Editable event'))
+    expect(await screen.findByLabelText('Deleting Editable event')).toBeDisabled()
+    expect(screen.getByLabelText('Event title')).toHaveValue('Edited before delete')
+    expect(screen.getByLabelText('Location')).toHaveValue('Room 9')
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+
+    await user.click(screen.getByLabelText('Deleting Editable event'))
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+
+    releaseDelete()
+    expect(await screen.findByRole('status')).toHaveTextContent('Event deleted.')
+    expect(screen.queryByLabelText('Event title')).not.toBeInTheDocument()
+    expect(screen.queryByText('Editable event')).not.toBeInTheDocument()
+    expect(await studyDb.events.get('event-edit-delete')).toBeUndefined()
+  })
+
+  it('keeps the open calendar editor when deleting that event fails', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.events.add({
+      id: 'event-edit-delete-fail',
+      title: 'Persist editor event',
+      subjectId: '',
+      startAt: '2026-08-06T11:00:00.000Z',
+      endAt: '2026-08-06T12:00:00.000Z',
+      location: 'Hall C',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(studyDb.events, 'delete').mockRejectedValueOnce(new Error('delete failed'))
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Calendar' }))
+    await user.click(await screen.findByLabelText('Edit Persist editor event'))
+    await user.clear(screen.getByLabelText('Event title'))
+    await user.type(screen.getByLabelText('Event title'), 'Still editing event')
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-08-07' } })
+    fireEvent.change(screen.getByLabelText('Time'), { target: { value: '15:45' } })
+    await user.clear(screen.getByLabelText('Location'))
+    await user.type(screen.getByLabelText('Location'), 'Hall D')
+
+    await user.click(screen.getByLabelText('Delete Persist editor event'))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Event could not be deleted. Please try again.')
+    expect(screen.getByLabelText('Event title')).toHaveValue('Still editing event')
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-08-07')
+    expect(screen.getByLabelText('Time')).toHaveValue('15:45')
+    expect(screen.getByLabelText('Location')).toHaveValue('Hall D')
+    expect(await studyDb.events.get('event-edit-delete-fail')).toBeDefined()
+  })
+
+  it('does not clear the open calendar editor when a different event is deleted', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.events.bulkAdd([
+      {
+        id: 'event-keep-editor',
+        title: 'Keep editing event',
+        subjectId: '',
+        startAt: '2026-08-08T09:00:00.000Z',
+        endAt: '2026-08-08T10:00:00.000Z',
+        location: 'Studio',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: 'event-other-delete',
+        title: 'Other event',
+        subjectId: '',
+        startAt: '2026-08-09T09:00:00.000Z',
+        endAt: '2026-08-09T10:00:00.000Z',
+        location: 'Annex',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ])
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Calendar' }))
+    await user.click(await screen.findByLabelText('Edit Keep editing event'))
+    await user.clear(screen.getByLabelText('Event title'))
+    await user.type(screen.getByLabelText('Event title'), 'Keep editing draft event')
+    await user.clear(screen.getByLabelText('Location'))
+    await user.type(screen.getByLabelText('Location'), 'Still open')
+
+    await user.click(screen.getByLabelText('Delete Other event'))
+    expect(await screen.findByRole('status')).toHaveTextContent('Event deleted.')
+    expect(screen.queryByText('Other event')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Event title')).toHaveValue('Keep editing draft event')
+    expect(screen.getByLabelText('Location')).toHaveValue('Still open')
+    expect(await studyDb.events.get('event-keep-editor')).toBeDefined()
   })
 
   it('creates a new subject from the subjects view', async () => {
