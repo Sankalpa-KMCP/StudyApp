@@ -2,6 +2,9 @@
 .idea/
 .cursor/*.log
 
+# Local AI documentation (not published to GitHub)
+ai/
+
 # OS
 Thumbs.db
 .DS_Store

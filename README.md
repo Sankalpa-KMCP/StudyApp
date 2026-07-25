@@ -40,7 +40,7 @@ npm run dev
 | `npm run build` | Production build |
 | `npm test` | Vitest unit and component tests |
 | `npm run lint` | ESLint |
-| `npm run storybook` | Storybook on port 6006 |
+| `npm run check:bundle` | Built JS gzip budget check |
 | `npm run test:e2e` | Playwright end-to-end tests |
 | `npm run tauri:dev` | Tauri desktop dev using `backend/tauri.conf.json` |
 | `npm run tauri:build` | Tauri desktop release build using `backend/tauri.conf.json` |
@@ -49,15 +49,16 @@ Full test matrices and deployment details are in [frontend/README.md](frontend/R
 
 ## Data storage
 
-The study app is local-first. Tasks, subjects, notes, calendar events, flashcards, study sessions, goals, quick notes, and settings are saved in the browser/Tauri WebView with Dexie + IndexedDB. There is no bundled sample workspace and no HTTP API server. The Tauri backend remains the native desktop shell, not the study-data database.
+The study app is local-first. Tasks, subjects, notes, calendar events, scheduled flashcards, focus sessions, goals, quick notes, and settings are saved in the browser/Tauri WebView with Dexie + IndexedDB. There is no bundled sample workspace and no HTTP API server. The Tauri backend remains the native desktop shell, not the study-data database.
 
-First launch starts empty with create-first actions. Existing customized data from the older `study-dashboard-v2` browser storage key is migrated once when it is safe to do so; the old bundled sample rows are ignored.
+First launch starts empty with create-first actions. Existing customized data from the older `study-dashboard-v2` browser storage key is migrated once when it is safe to do so; the old bundled sample rows are ignored. The desktop shell adds native import/export support and a tray timer toggle while keeping the same IndexedDB data store.
 
 ## Documentation
 
 - [frontend/README.md](frontend/README.md) - features, data model, deployment, PWA
 - [frontend/CONTRIBUTING.md](frontend/CONTRIBUTING.md) - migrations, E2E, coverage gates
 - [frontend/CHANGELOG.md](frontend/CHANGELOG.md) - release notes
+- [AGENTS.md](AGENTS.md) - AI agent entry point (full docs live in local gitignored `ai/`)
 
 ## Live demo
 
