@@ -9,7 +9,7 @@ import {
   EmptyState,
   MutationNotice,
 } from '../components/ui'
-import { createId, nowIso, studyDb } from '../db/studyDb'
+import { createNote, deleteNote as deleteNoteRecord, updateNote } from '../db/notesService'
 import type { StudyNote, StudySubject } from '../db/types'
 import { formatDate, parseTags } from '../appUtils'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
@@ -98,23 +98,20 @@ export function NotesView({
     }
 
     const isEdit = Boolean(editingNoteId && editingNoteId !== 'new')
-    const timestamp = nowIso()
-    const payload = {
+    const fields = {
       title,
       body: draft.body.trim(),
       subjectId: draft.subjectId,
       tags: parseTags(draft.tags),
-      updatedAt: timestamp,
     }
 
     await runSave(async () => {
       if (isEdit && editingNoteId) {
-        const updated = await studyDb.notes.update(editingNoteId, payload)
-        if (updated === 0) throw new Error('Note no longer exists.')
+        await updateNote(editingNoteId, fields)
         return
       }
 
-      await studyDb.notes.add({ id: createId('note'), ...payload, createdAt: timestamp })
+      await createNote(fields)
     }, {
       successMessage: isEdit ? 'Note updated.' : 'Note created.',
       errorMessage: 'Note could not be saved. Your text is still available.',
@@ -136,7 +133,7 @@ export function NotesView({
 
     try {
       await runRow(async () => {
-        await studyDb.notes.delete(note.id)
+        await deleteNoteRecord(note.id)
       }, {
         successMessage: 'Note deleted.',
         errorMessage: 'Note could not be deleted.',
