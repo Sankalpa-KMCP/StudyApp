@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { studyDb } from './db/studyDb'
 import * as notesService from './db/notesService'
+import * as taskService from './db/taskService'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 describe('App workspaces', () => {
@@ -100,10 +101,10 @@ describe('App workspaces', () => {
     const gate = new Promise<void>((resolve) => {
       releaseAdd = resolve
     })
-    const originalAdd = studyDb.tasks.add.bind(studyDb.tasks)
-    const addSpy = vi.spyOn(studyDb.tasks, 'add').mockImplementation(async (task) => {
+    const originalCreate = taskService.createTask
+    const addSpy = vi.spyOn(taskService, 'createTask').mockImplementation(async (fields) => {
       await gate
-      return originalAdd(task)
+      return originalCreate(fields)
     })
 
     render(<App />)
@@ -132,10 +133,10 @@ describe('App workspaces', () => {
   it('preserves task draft after a failed create and allows retry', async () => {
     const user = userEvent.setup()
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const originalAdd = studyDb.tasks.add.bind(studyDb.tasks)
-    const addSpy = vi.spyOn(studyDb.tasks, 'add')
+    const originalCreate = taskService.createTask
+    const addSpy = vi.spyOn(taskService, 'createTask')
       .mockRejectedValueOnce(new Error('IndexedDB write failed: constraint detail'))
-      .mockImplementation(async (task) => originalAdd(task))
+      .mockImplementation(async (fields) => originalCreate(fields))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Tasks' }))
@@ -203,7 +204,7 @@ describe('App workspaces', () => {
       updatedAt: timestamp,
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    vi.spyOn(studyDb.tasks, 'update').mockResolvedValueOnce(0)
+    vi.spyOn(taskService, 'updateTask').mockRejectedValueOnce(new Error('Task no longer exists.'))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Tasks' }))
@@ -241,10 +242,10 @@ describe('App workspaces', () => {
     const gate = new Promise<void>((resolve) => {
       releaseUpdate = resolve
     })
-    const originalUpdate = studyDb.tasks.update.bind(studyDb.tasks)
-    const updateSpy = vi.spyOn(studyDb.tasks, 'update').mockImplementation(async (id, changes) => {
+    const originalSetStatus = taskService.setTaskStatus
+    const updateSpy = vi.spyOn(taskService, 'setTaskStatus').mockImplementation(async (id, status) => {
       await gate
-      return originalUpdate(id, changes)
+      return originalSetStatus(id, status)
     })
 
     render(<App />)
@@ -283,7 +284,7 @@ describe('App workspaces', () => {
       updatedAt: timestamp,
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const deleteSpy = vi.spyOn(studyDb.tasks, 'delete').mockRejectedValueOnce(new Error('delete failed'))
+    const deleteSpy = vi.spyOn(taskService, 'deleteTask').mockRejectedValueOnce(new Error('delete failed'))
     const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
