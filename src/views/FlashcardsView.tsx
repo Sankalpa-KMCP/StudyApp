@@ -18,6 +18,7 @@ import {
   MutationNotice,
 } from '../components/ui'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
+import { validateFlashcardEditorDraft } from '../validation/editorDraftValidation'
 
 type CardDraft = {
   front: string
@@ -90,19 +91,14 @@ export function FlashcardsView(props: {
     clearSaveFeedback()
     clearRowFeedback()
 
-    const front = draft.front.trim()
-    const back = draft.back.trim()
-    if (!front || !back) {
+    const validated = validateFlashcardEditorDraft(draft)
+    if (!validated.ok) {
       setValidationError('Enter both the front and back of the flashcard.')
       return
     }
 
     const isEdit = Boolean(editingCardId && editingCardId !== 'new')
-    const fields = {
-      front,
-      back,
-      subjectId: draft.subjectId,
-    }
+    const fields = validated.fields
 
     await runSave(async () => {
       if (isEdit && editingCardId) {

@@ -11,8 +11,9 @@ import {
 } from '../components/ui'
 import { createNote, deleteNote as deleteNoteRecord, updateNote } from '../db/notesService'
 import type { StudyNote, StudySubject } from '../db/types'
-import { formatDate, parseTags } from '../appUtils'
+import { formatDate } from '../appUtils'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
+import { validateNoteEditorDraft } from '../validation/editorDraftValidation'
 
 type NoteDraft = {
   title: string
@@ -91,19 +92,14 @@ export function NotesView({
     clearSaveFeedback()
     clearRowFeedback()
 
-    const title = draft.title.trim()
-    if (!title) {
+    const validated = validateNoteEditorDraft(draft)
+    if (!validated.ok) {
       setValidationError('Enter a note title.')
       return
     }
 
     const isEdit = Boolean(editingNoteId && editingNoteId !== 'new')
-    const fields = {
-      title,
-      body: draft.body.trim(),
-      subjectId: draft.subjectId,
-      tags: parseTags(draft.tags),
-    }
+    const fields = validated.fields
 
     await runSave(async () => {
       if (isEdit && editingNoteId) {

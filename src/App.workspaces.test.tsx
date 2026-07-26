@@ -439,6 +439,70 @@ describe('App workspaces', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Note created.')
   })
 
+  it('rejects whitespace-only note titles and persists trimmed title, body, and tags', async () => {
+    const user = userEvent.setup()
+    const createSpy = vi.spyOn(notesService, 'createNote')
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Notes' }))
+    await user.click(screen.getByRole('button', { name: 'New note' }))
+    await user.type(screen.getByLabelText('Note title'), '   ')
+    await user.type(screen.getByLabelText('Body'), 'Body while invalid')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a note title.')
+    expect(createSpy).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Note title')).toHaveValue('   ')
+    expect(screen.getByLabelText('Body')).toHaveValue('Body while invalid')
+
+    await user.clear(screen.getByLabelText('Note title'))
+    await user.type(screen.getByLabelText('Note title'), '  Trimmed note  ')
+    await user.clear(screen.getByLabelText('Body'))
+    await user.type(screen.getByLabelText('Tags'), ' exam, formulas ')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Trimmed note')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Note created.')
+    expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Trimmed note',
+      body: '',
+      tags: ['exam', 'formulas'],
+    }))
+    expect((await studyDb.notes.toArray())[0]).toMatchObject({
+      title: 'Trimmed note',
+      body: '',
+      tags: ['exam', 'formulas'],
+    })
+  })
+
+  it('applies the same note title validation on edit without calling the service', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.notes.add({
+      id: 'note-edit-validation',
+      title: 'Editable note',
+      body: 'Original',
+      subjectId: '',
+      tags: ['keep'],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    const updateSpy = vi.spyOn(notesService, 'updateNote')
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Notes' }))
+    await user.click(await screen.findByLabelText('Edit Editable note'))
+    await user.clear(screen.getByLabelText('Note title'))
+    await user.type(screen.getByLabelText('Note title'), '   ')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a note title.')
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Note title')).toHaveValue('   ')
+    expect(screen.getByLabelText('Body')).toHaveValue('Original')
+    expect(await studyDb.notes.get('note-edit-validation')).toMatchObject({ title: 'Editable note' })
+  })
+
   it('prevents duplicate note create while save is pending', async () => {
     const user = userEvent.setup()
     let releaseAdd!: () => void
@@ -725,6 +789,74 @@ describe('App workspaces', () => {
     expect(await screen.findByText('remembered')).toBeInTheDocument()
     expect(await screen.findByText(/Next review/)).toBeInTheDocument()
     expect(await screen.findByRole('status')).toHaveTextContent('Flashcard marked remembered.')
+  })
+
+  it('rejects empty flashcard sides with one message and persists trimmed values', async () => {
+    const user = userEvent.setup()
+    const createSpy = vi.spyOn(flashcardService, 'createFlashcard')
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Flashcards' }))
+    await user.click(screen.getByRole('button', { name: 'New card' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter both the front and back of the flashcard.')
+    expect(createSpy).not.toHaveBeenCalled()
+
+    await user.type(screen.getByLabelText('Front'), '  Only front  ')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter both the front and back of the flashcard.')
+    expect(createSpy).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Front')).toHaveValue('  Only front  ')
+
+    await user.clear(screen.getByLabelText('Front'))
+    await user.type(screen.getByLabelText('Back'), '  Only back  ')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter both the front and back of the flashcard.')
+    expect(createSpy).not.toHaveBeenCalled()
+
+    await user.type(screen.getByLabelText('Front'), '  Trimmed front  ')
+    await user.clear(screen.getByLabelText('Back'))
+    await user.type(screen.getByLabelText('Back'), '  Trimmed back  ')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Trimmed front')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Flashcard created.')
+    expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({
+      front: 'Trimmed front',
+      back: 'Trimmed back',
+    }))
+  })
+
+  it('applies the same flashcard side validation on edit without calling the service', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.flashcards.add({
+      id: 'card-edit-validation',
+      front: 'Existing front',
+      back: 'Existing back',
+      subjectId: '',
+      status: 'new',
+      lastReviewedAt: '',
+      dueAt: timestamp,
+      intervalDays: 0,
+      reviewCount: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    const updateSpy = vi.spyOn(flashcardService, 'updateFlashcard')
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Flashcards' }))
+    await user.click(await screen.findByLabelText('Edit Existing front'))
+    await user.clear(screen.getByLabelText('Front'))
+    await user.type(screen.getByLabelText('Front'), '   ')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter both the front and back of the flashcard.')
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Front')).toHaveValue('   ')
+    expect(screen.getByLabelText('Back')).toHaveValue('Existing back')
+    expect(await studyDb.flashcards.get('card-edit-validation')).toMatchObject({ front: 'Existing front' })
   })
 
   it('preserves flashcard draft after a failed create', async () => {
@@ -1186,6 +1318,81 @@ describe('App workspaces', () => {
     expect(subjects[0].name).toBe('Physics')
     expect(subjects[0].progressMode).toBe('manual')
     expect(subjects[0].progress).toBe(0)
+  })
+
+  it('rejects whitespace-only subject names and clamps target hours and progress on input and create', async () => {
+    const user = userEvent.setup()
+    const createSpy = vi.spyOn(subjectService, 'createSubject')
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Subjects' }))
+    await user.click(screen.getByRole('button', { name: 'New subject' }))
+
+    const targetHours = screen.getByLabelText('Target hours')
+    const progress = screen.getByLabelText('Progress %')
+    expect(targetHours).toHaveAttribute('min', '1')
+    expect(targetHours).toHaveAttribute('max', '100')
+    expect(progress).toHaveAttribute('min', '0')
+    expect(progress).toHaveAttribute('max', '100')
+
+    fireEvent.change(targetHours, { target: { value: '0' } })
+    expect(targetHours).toHaveValue(1)
+    fireEvent.change(targetHours, { target: { value: '101' } })
+    expect(targetHours).toHaveValue(100)
+    fireEvent.change(progress, { target: { value: '-1' } })
+    expect(progress).toHaveValue(0)
+    fireEvent.change(progress, { target: { value: '101' } })
+    expect(progress).toHaveValue(100)
+
+    await user.type(screen.getByLabelText('Subject name'), '   ')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a subject name.')
+    expect(createSpy).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Subject name')).toHaveValue('   ')
+
+    await user.clear(screen.getByLabelText('Subject name'))
+    await user.type(screen.getByLabelText('Subject name'), '  Trimmed Subject  ')
+    fireEvent.change(targetHours, { target: { value: '100' } })
+    fireEvent.change(progress, { target: { value: '0' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Trimmed Subject')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Subject created.')
+    expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Trimmed Subject',
+      targetHours: 100,
+      progress: 0,
+      progressMode: 'manual',
+    }))
+  })
+
+  it('applies the same subject name validation on edit without calling the service', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.subjects.add({
+      id: 'subject-edit-validation',
+      name: 'Editable subject',
+      color: '#2563eb',
+      targetHours: 5,
+      progress: 10,
+      progressMode: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    const updateSpy = vi.spyOn(subjectService, 'updateSubject')
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Subjects' }))
+    await user.click(await screen.findByLabelText('Edit Editable subject'))
+    await user.clear(screen.getByLabelText('Subject name'))
+    await user.type(screen.getByLabelText('Subject name'), '   ')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a subject name.')
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Subject name')).toHaveValue('   ')
+    expect(screen.getByLabelText('Target hours')).toHaveValue(5)
+    expect(await studyDb.subjects.get('subject-edit-validation')).toMatchObject({ name: 'Editable subject' })
   })
 
   it('creates study-time subjects without a manual progress field and shows session-derived card progress', async () => {

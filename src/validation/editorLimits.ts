@@ -16,3 +16,25 @@ export const TASK_EDITOR_MINUTES_MAX = 720
 export function clampTaskEditorMinutes(value: number): number {
   return clamp(value, TASK_EDITOR_MINUTES_MIN, TASK_EDITOR_MINUTES_MAX)
 }
+
+/** Subject editor target-hours floor (inclusive). */
+export const SUBJECT_EDITOR_TARGET_HOURS_MIN = 1
+
+/** Subject editor target-hours ceiling (inclusive). */
+export const SUBJECT_EDITOR_TARGET_HOURS_MAX = 100
+
+/** Subject editor progress % floor (inclusive). */
+export const SUBJECT_EDITOR_PROGRESS_MIN = 0
+
+/** Subject editor progress % ceiling (inclusive). */
+export const SUBJECT_EDITOR_PROGRESS_MAX = 100
+
+/** Clamp a Subject draft target-hours value to the editor usability range. */
+export function clampSubjectEditorTargetHours(value: number): number {
+  return clamp(value, SUBJECT_EDITOR_TARGET_HOURS_MIN, SUBJECT_EDITOR_TARGET_HOURS_MAX)
+}
+
+/** Clamp a Subject draft progress % value to the editor usability range. */
+export function clampSubjectEditorProgress(value: number): number {
+  return clamp(value, SUBJECT_EDITOR_PROGRESS_MIN, SUBJECT_EDITOR_PROGRESS_MAX)
+}
