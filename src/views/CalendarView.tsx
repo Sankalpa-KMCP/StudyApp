@@ -16,9 +16,14 @@ import {
   updateCalendarEvent,
 } from '../db/calendarEventService'
 import type { CalendarEvent, StudySubject } from '../db/types'
-import { formatDateTime, parseLocalDateTime, todayInputValue, toInputDate, toInputTime } from '../appUtils'
+import { formatDateTime, todayInputValue, toInputDate, toInputTime } from '../appUtils'
 import { CalendarStrip } from '../components/CalendarStrip'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
+import { validateCalendarEventEditorDraft } from '../validation/editorDraftValidation'
+import {
+  CALENDAR_EDITOR_DURATION_MAX,
+  CALENDAR_EDITOR_DURATION_MIN,
+} from '../validation/editorLimits'
 
 type EventDraft = {
   title: string
@@ -86,7 +91,7 @@ export function CalendarView({
         date: hasValidStart ? toInputDate(start) : todayInputValue(),
         time: hasValidStart ? toInputTime(start) : '09:00',
         duration: hasValidStart && hasValidEnd
-          ? Math.max(15, Math.round((end.getTime() - start.getTime()) / 60_000))
+          ? Math.max(CALENDAR_EDITOR_DURATION_MIN, Math.round((end.getTime() - start.getTime()) / 60_000))
           : 60,
         location: event.location ?? '',
       })
@@ -115,31 +120,22 @@ export function CalendarView({
     clearSaveFeedback()
     clearRowFeedback()
 
-    const title = draft.title.trim()
-    if (!title) {
-      setValidationError('Enter an event title.')
-      return
-    }
-
-    const startedAt = parseLocalDateTime(draft.date, draft.time)
-    if (!startedAt) {
-      setValidationError('Enter a valid date and start time.')
-      return
-    }
-
-    if (!Number.isFinite(draft.duration) || draft.duration < 15) {
+    const validated = validateCalendarEventEditorDraft(draft)
+    if (!validated.ok) {
+      if (validated.reason === 'empty_title') {
+        setValidationError('Enter an event title.')
+        return
+      }
+      if (validated.reason === 'invalid_start') {
+        setValidationError('Enter a valid date and start time.')
+        return
+      }
       setValidationError('Duration must be at least 15 minutes.')
       return
     }
 
     const isEdit = Boolean(editingEventId && editingEventId !== 'new')
-    const fields = {
-      title,
-      subjectId: draft.subjectId,
-      startAt: startedAt.toISOString(),
-      endAt: new Date(startedAt.getTime() + draft.duration * 60_000).toISOString(),
-      location: draft.location.trim(),
-    }
+    const fields = validated.fields
 
     await runSave(async () => {
       if (isEdit && editingEventId) {
@@ -200,7 +196,13 @@ export function CalendarView({
           <SubjectSelect subjects={subjects} value={draft.subjectId} onChange={(subjectId) => setDraft({ ...draft, subjectId })} />
           <TextInput label="Date" type="date" value={draft.date} onChange={(date) => setDraft({ ...draft, date })} />
           <TextInput label="Time" type="time" value={draft.time} onChange={(time) => setDraft({ ...draft, time })} />
-          <NumberInput label="Duration" value={draft.duration} min={15} max={480} onChange={(duration) => setDraft({ ...draft, duration })} />
+          <NumberInput
+            label="Duration"
+            value={draft.duration}
+            min={CALENDAR_EDITOR_DURATION_MIN}
+            max={CALENDAR_EDITOR_DURATION_MAX}
+            onChange={(duration) => setDraft({ ...draft, duration })}
+          />
           <TextInput label="Location" value={draft.location} onChange={(location) => setDraft({ ...draft, location })} />
           <EditorActions
             onSave={() => void saveEvent()}

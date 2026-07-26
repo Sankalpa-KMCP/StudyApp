@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CALENDAR_EDITOR_DURATION_MAX,
+  CALENDAR_EDITOR_DURATION_MIN,
+  clampCalendarEditorDuration,
   clampSubjectEditorProgress,
   clampSubjectEditorTargetHours,
   clampTaskEditorMinutes,
@@ -7,6 +10,7 @@ import {
   SUBJECT_EDITOR_PROGRESS_MIN,
   SUBJECT_EDITOR_TARGET_HOURS_MAX,
   SUBJECT_EDITOR_TARGET_HOURS_MIN,
+  STUDY_SESSION_EDITOR_DURATION_MIN,
   TASK_EDITOR_MINUTES_MAX,
   TASK_EDITOR_MINUTES_MIN,
 } from './editorLimits'
@@ -47,5 +51,21 @@ describe('editorLimits Subject target hours and progress', () => {
     expect(clampSubjectEditorProgress(-1)).toBe(0)
     expect(clampSubjectEditorProgress(101)).toBe(100)
     expect(clampSubjectEditorProgress(Number.NaN)).toBe(0)
+  })
+})
+
+describe('editorLimits Calendar duration and Progress session minutes', () => {
+  it('exposes Calendar NumberInput range 15–480 and Progress editor floor of 1', () => {
+    expect(CALENDAR_EDITOR_DURATION_MIN).toBe(15)
+    expect(CALENDAR_EDITOR_DURATION_MAX).toBe(480)
+    expect(STUDY_SESSION_EDITOR_DURATION_MIN).toBe(1)
+  })
+
+  it('clamps Calendar duration for NumberInput change handling', () => {
+    expect(clampCalendarEditorDuration(15)).toBe(15)
+    expect(clampCalendarEditorDuration(480)).toBe(480)
+    expect(clampCalendarEditorDuration(14)).toBe(15)
+    expect(clampCalendarEditorDuration(481)).toBe(480)
+    expect(clampCalendarEditorDuration(Number.NaN)).toBe(15)
   })
 })

@@ -6,7 +6,6 @@ import {
   formatMinutes,
   formatShortTime,
   groupStudySessionsByLocalDate,
-  parseLocalDateTime,
   percent,
   toInputDate,
   toInputTime,
@@ -20,6 +19,7 @@ import {
 import { EmptyState, MetricCard, MutationNotice, PanelHeader, RowActionButtons } from '../components/ui'
 import { StudyTime, SubjectDistribution } from '../components/RightColumn'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
+import { validateStudySessionEditorDraft } from '../validation/editorDraftValidation'
 
 type SessionDraft = {
   subjectId: string
@@ -136,41 +136,33 @@ export function ProgressView(props: {
     clearSaveFeedback()
     clearRowFeedback()
 
-    if (draft.subjectId && !props.subjectMap.has(draft.subjectId)) {
-      setValidationError('Choose an available subject or General.')
-      subjectFieldRef.current?.focus()
-      return
-    }
-
-    const startedAt = parseLocalDateTime(draft.date, draft.time)
-    if (!startedAt) {
-      setValidationError('Enter a valid date and start time.')
-      dateFieldRef.current?.focus()
-      return
-    }
-
-    const minutes = Number(draft.duration)
-    if (!Number.isInteger(minutes) || minutes < 1) {
-      setValidationError('Duration must be at least 1 minute.')
-      durationFieldRef.current?.focus()
-      return
-    }
-
-    const endedAt = new Date(startedAt.getTime() + minutes * 60_000)
-    if (endedAt.getTime() > Date.now()) {
+    const validated = validateStudySessionEditorDraft({
+      ...draft,
+      subjectMissing: Boolean(draft.subjectId && !props.subjectMap.has(draft.subjectId)),
+    })
+    if (!validated.ok) {
+      if (validated.reason === 'missing_subject') {
+        setValidationError('Choose an available subject or General.')
+        subjectFieldRef.current?.focus()
+        return
+      }
+      if (validated.reason === 'invalid_start') {
+        setValidationError('Enter a valid date and start time.')
+        dateFieldRef.current?.focus()
+        return
+      }
+      if (validated.reason === 'invalid_duration') {
+        setValidationError('Duration must be at least 1 minute.')
+        durationFieldRef.current?.focus()
+        return
+      }
       setValidationError('Session end time cannot be in the future.')
       durationFieldRef.current?.focus()
       return
     }
 
     const isEdit = Boolean(editingSessionId && editingSessionId !== 'new')
-    const fields = {
-      subjectId: draft.subjectId,
-      startedAt: startedAt.toISOString(),
-      endedAt: endedAt.toISOString(),
-      minutes,
-      note: draft.note.trim(),
-    }
+    const fields = validated.fields
 
     await runSave(async () => {
       if (isEdit && editingSessionId) {

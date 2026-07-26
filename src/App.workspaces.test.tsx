@@ -1055,6 +1055,75 @@ describe('App workspaces', () => {
     expect(screen.getByLabelText('Time')).toHaveValue('')
   })
 
+  it('rejects whitespace-only calendar titles and clamps duration on input while persisting trimmed fields', async () => {
+    const user = userEvent.setup()
+    const createSpy = vi.spyOn(calendarEventService, 'createCalendarEvent')
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Calendar' }))
+    await user.click(screen.getByRole('button', { name: 'New event' }))
+
+    const duration = screen.getByLabelText('Duration')
+    expect(duration).toHaveAttribute('min', '15')
+    expect(duration).toHaveAttribute('max', '480')
+    fireEvent.change(duration, { target: { value: '14' } })
+    expect(duration).toHaveValue(15)
+    fireEvent.change(duration, { target: { value: '481' } })
+    expect(duration).toHaveValue(480)
+
+    await user.type(screen.getByLabelText('Event title'), '   ')
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-08-01' } })
+    fireEvent.change(screen.getByLabelText('Time'), { target: { value: '09:00' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter an event title.')
+    expect(createSpy).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Event title')).toHaveValue('   ')
+
+    await user.clear(screen.getByLabelText('Event title'))
+    await user.type(screen.getByLabelText('Event title'), '  Trimmed event  ')
+    fireEvent.change(duration, { target: { value: '15' } })
+    await user.type(screen.getByLabelText('Location'), '  Room A  ')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Event created.')
+    const startedAt = new Date(2026, 7, 1, 9, 0)
+    expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Trimmed event',
+      location: 'Room A',
+      startAt: startedAt.toISOString(),
+      endAt: new Date(startedAt.getTime() + 15 * 60_000).toISOString(),
+    }))
+  })
+
+  it('applies the same calendar title validation on edit without calling the service', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.events.add({
+      id: 'event-edit-validation',
+      title: 'Editable event',
+      subjectId: '',
+      startAt: '2026-08-02T10:00:00.000Z',
+      endAt: '2026-08-02T11:00:00.000Z',
+      location: 'Hall',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    const updateSpy = vi.spyOn(calendarEventService, 'updateCalendarEvent')
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Calendar' }))
+    await user.click(await screen.findByLabelText('Edit Editable event'))
+    await user.clear(screen.getByLabelText('Event title'))
+    await user.type(screen.getByLabelText('Event title'), '   ')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter an event title.')
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Event title')).toHaveValue('   ')
+    expect(screen.getByLabelText('Location')).toHaveValue('Hall')
+    expect(await studyDb.events.get('event-edit-validation')).toMatchObject({ title: 'Editable event' })
+  })
+
   it('preserves calendar draft after a failed create and allows retry', async () => {
     const user = userEvent.setup()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)

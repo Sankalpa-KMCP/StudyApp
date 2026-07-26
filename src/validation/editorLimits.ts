@@ -38,3 +38,23 @@ export function clampSubjectEditorTargetHours(value: number): number {
 export function clampSubjectEditorProgress(value: number): number {
   return clamp(value, SUBJECT_EDITOR_PROGRESS_MIN, SUBJECT_EDITOR_PROGRESS_MAX)
 }
+
+/** Calendar event editor duration floor (inclusive). Save also rejects below this. */
+export const CALENDAR_EDITOR_DURATION_MIN = 15
+
+/**
+ * Calendar event editor duration ceiling (inclusive) for NumberInput clamping.
+ * Save does not re-check this ceiling — import may accept longer events.
+ */
+export const CALENDAR_EDITOR_DURATION_MAX = 480
+
+/** Clamp a Calendar draft duration value to the editor NumberInput range. */
+export function clampCalendarEditorDuration(value: number): number {
+  return clamp(value, CALENDAR_EDITOR_DURATION_MIN, CALENDAR_EDITOR_DURATION_MAX)
+}
+
+/**
+ * Progress manual-session editor minimum duration in minutes (inclusive).
+ * Import only requires minutes > 0; future-ended sessions remain importable.
+ */
+export const STUDY_SESSION_EDITOR_DURATION_MIN = 1
