@@ -276,6 +276,22 @@
   background: var(--surface);
 }
 
+.live-read-error-panel {
+  color: var(--text);
+}
+
+.live-read-error-copy {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  max-width: 28rem;
+  text-align: center;
+}
+
+.live-read-error-copy p {
+  margin: 0;
+}
+
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(270px, 310px);

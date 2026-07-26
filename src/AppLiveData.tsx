@@ -86,8 +86,8 @@ export type AppLiveDataProps = {
 
 /**
  * App-owned live IndexedDB reads and the data-dependent workspace UI.
- * Kept as a remountable subtree so a future read Retry can reset queries
- * without remounting shell navigation, preferences, or focus ownership.
+ * Remounted by App's live-read ErrorBoundary Retry without remounting shell
+ * navigation, preferences, focus ownership, or backup orchestration.
  */
 export function AppLiveData({
   activeView,

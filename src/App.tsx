@@ -6,6 +6,8 @@ import { useThemePreference } from './hooks/useThemePreference'
 import { migrateLegacyLocalStorage } from './db/studyDb'
 import type { ActiveFocusSession, StudySubject } from './db/types'
 import { Sidebar } from './components/Sidebar'
+import { AppLiveReadFallback } from './components/AppLiveReadFallback'
+import { LiveReadErrorBoundary } from './components/LiveReadErrorBoundary'
 import { AppLiveData } from './AppLiveData'
 import {
   pathForView,
@@ -31,6 +33,7 @@ function App() {
   const [profileNotice, setProfileNotice] = useState('')
   const [preferenceNotice, setPreferenceNotice] = useState<string | null>(null)
   const [subjectMap, setSubjectMap] = useState(() => new Map<string, StudySubject>())
+  const [liveReadEpoch, setLiveReadEpoch] = useState(0)
   const clearPreferenceNotice = useCallback(() => setPreferenceNotice(null), [])
   const reportPreferenceError = useCallback((message: string) => setPreferenceNotice(message), [])
   const { theme, setTheme } = useThemePreference({
@@ -156,6 +159,9 @@ function App() {
   const onSubjectMapChange = useCallback((next: Map<string, StudySubject>) => {
     setSubjectMap(next)
   }, [])
+  const retryLiveReads = useCallback(() => {
+    setLiveReadEpoch((epoch) => epoch + 1)
+  }, [])
 
   return (
     <div className={sidebarCollapsed ? 'app-shell is-sidebar-collapsed' : 'app-shell'}>
@@ -167,53 +173,80 @@ function App() {
         onToggleCollapsed={toggleSidebarCollapsed}
       />
       <div className="workspace">
-        <AppLiveData
-          activeView={activeView}
-          taskFilter={taskFilter}
-          onTaskFilterChange={setTaskFilter}
-          taskEditorRequest={taskEditorRequest}
-          subjectEditorRequest={subjectEditorRequest}
-          progressEditorRequested={progressEditorRequested}
-          noticeOpen={noticeOpen}
-          noticePopoverId="notice-popover"
-          onToggleNotices={toggleNotices}
-          onCloseNotices={closeNotices}
-          profileNotice={profileNotice}
-          preferenceNotice={preferenceNotice}
-          onDismissPreferenceNotice={clearPreferenceNotice}
-          theme={theme}
-          onThemeChange={setTheme}
-          onNavigate={navigateToView}
-          onOpenProfile={() => {
-            navigateToView('Settings')
-            setProfileNotice('Profile settings live in this local Settings workspace for now.')
-          }}
-          onCreateTask={openNewTask}
-          onCreateSubject={openNewSubject}
-          onLogSession={openManualSession}
-          onSubjectMapChange={onSubjectMapChange}
-          activeSession={activeSession}
-          staleFocusSession={staleFocusSession}
-          staleFocusSubjectName={staleFocusSubjectName}
-          sessionLimitSeconds={sessionLimitSeconds}
-          sessionNotice={sessionNotice}
-          canStartFocus={canStartFocus}
-          focusActionsPending={focusActionsPending}
-          focusImportPending={focusImportPending}
-          focusSubjectId={focusSubjectId}
-          focusDurationMinutes={focusDurationMinutes}
-          onFocusSubjectChange={updateFocusSubject}
-          onFocusDurationChange={setFocusDurationMinutes}
-          onStartSession={() => void startSession()}
-          onPauseSession={() => void pauseSession()}
-          onResumeSession={() => void resumeSession()}
-          onStopSession={() => stopSession(false)}
-          onAcceptStaleFocusSession={() => void acceptStaleFocusSession()}
-          onDiscardStaleFocusSession={() => void discardStaleFocusSession()}
-          onExport={exportBackup}
-          onImport={importBackup}
-          onClear={clearAllBackup}
-        />
+        <LiveReadErrorBoundary
+          key={liveReadEpoch}
+          fallback={(
+            <AppLiveReadFallback
+              activeView={activeView}
+              noticeOpen={noticeOpen}
+              noticePopoverId="notice-popover"
+              onToggleNotices={toggleNotices}
+              onCloseNotices={closeNotices}
+              onOpenProfile={() => {
+                navigateToView('Settings')
+                setProfileNotice('Profile settings live in this local Settings workspace for now.')
+              }}
+              onRetry={retryLiveReads}
+              profileNotice={profileNotice}
+              preferenceNotice={preferenceNotice}
+              onDismissPreferenceNotice={clearPreferenceNotice}
+              theme={theme}
+              onThemeChange={setTheme}
+              onExport={exportBackup}
+              onImport={importBackup}
+              onClear={clearAllBackup}
+              importPending={focusImportPending}
+            />
+          )}
+        >
+          <AppLiveData
+            activeView={activeView}
+            taskFilter={taskFilter}
+            onTaskFilterChange={setTaskFilter}
+            taskEditorRequest={taskEditorRequest}
+            subjectEditorRequest={subjectEditorRequest}
+            progressEditorRequested={progressEditorRequested}
+            noticeOpen={noticeOpen}
+            noticePopoverId="notice-popover"
+            onToggleNotices={toggleNotices}
+            onCloseNotices={closeNotices}
+            profileNotice={profileNotice}
+            preferenceNotice={preferenceNotice}
+            onDismissPreferenceNotice={clearPreferenceNotice}
+            theme={theme}
+            onThemeChange={setTheme}
+            onNavigate={navigateToView}
+            onOpenProfile={() => {
+              navigateToView('Settings')
+              setProfileNotice('Profile settings live in this local Settings workspace for now.')
+            }}
+            onCreateTask={openNewTask}
+            onCreateSubject={openNewSubject}
+            onLogSession={openManualSession}
+            onSubjectMapChange={onSubjectMapChange}
+            activeSession={activeSession}
+            staleFocusSession={staleFocusSession}
+            staleFocusSubjectName={staleFocusSubjectName}
+            sessionLimitSeconds={sessionLimitSeconds}
+            sessionNotice={sessionNotice}
+            canStartFocus={canStartFocus}
+            focusActionsPending={focusActionsPending}
+            focusImportPending={focusImportPending}
+            focusSubjectId={focusSubjectId}
+            focusDurationMinutes={focusDurationMinutes}
+            onFocusSubjectChange={updateFocusSubject}
+            onFocusDurationChange={setFocusDurationMinutes}
+            onStartSession={() => void startSession()}
+            onPauseSession={() => void pauseSession()}
+            onResumeSession={() => void resumeSession()}
+            onStopSession={() => stopSession(false)}
+            onAcceptStaleFocusSession={() => void acceptStaleFocusSession()}
+            onDiscardStaleFocusSession={() => void discardStaleFocusSession()}
+            onExport={exportBackup}
+            onImport={importBackup}
+            onClear={clearAllBackup}
+          />
+        </LiveReadErrorBoundary>
       </div>
     </div>
   )
