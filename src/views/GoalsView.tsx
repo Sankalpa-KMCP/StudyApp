@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Target } from '../components/icons'
 import { LiveReadErrorBoundary } from '../components/LiveReadErrorBoundary'
 import { LiveReadErrorPanel } from '../components/LiveReadErrorPanel'
-import { isGoalMetric, type StudyGoal, type StudySession, type GoalPeriod, type GoalMetric } from '../db/types'
+import type { StudyGoal, StudySession, GoalPeriod, GoalMetric } from '../db/types'
 import { listGoals } from '../db/goalRead'
 import {
   createGoal,
@@ -12,7 +12,6 @@ import {
 } from '../db/goalService'
 import {
   calculateGoalProgress,
-  clamp,
   formatGoalMetricLabel,
   formatGoalPeriodLabel,
   getGoalTargetUnit,
@@ -27,6 +26,11 @@ import {
   MutationNotice,
 } from '../components/ui'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
+import { validateGoalEditorDraft } from '../validation/editorDraftValidation'
+import {
+  GOAL_EDITOR_TARGET_MAX,
+  GOAL_EDITOR_TARGET_MIN,
+} from '../validation/editorLimits'
 
 type GoalDraft = {
   title: string
@@ -53,10 +57,6 @@ function createGoalDraft(dailyGoalMinutes: number, goal?: StudyGoal): GoalDraft 
     period: goal?.period ?? 'daily',
     metric: goal?.metric ?? 'manual',
   }
-}
-
-function isValidGoalTarget(target: number) {
-  return Number.isFinite(target) && target > 0
 }
 
 function composeDescribedBy(...ids: Array<string | undefined>) {
@@ -134,20 +134,20 @@ function GoalsLiveQuery({
     clearSaveFeedback()
     clearRowFeedback()
 
-    const title = draft.title.trim()
-    if (!title) {
-      setValidationField('title')
-      setValidationError('Enter a goal title.')
-      titleFieldRef.current?.focus()
-      return
-    }
-    if (!isGoalMetric(draft.metric)) {
-      setValidationField('metric')
-      setValidationError('Choose a valid metric.')
-      metricFieldRef.current?.focus()
-      return
-    }
-    if (!isValidGoalTarget(draft.target)) {
+    const validated = validateGoalEditorDraft(draft)
+    if (!validated.ok) {
+      if (validated.reason === 'empty_title') {
+        setValidationField('title')
+        setValidationError('Enter a goal title.')
+        titleFieldRef.current?.focus()
+        return
+      }
+      if (validated.reason === 'invalid_metric') {
+        setValidationField('metric')
+        setValidationError('Choose a valid metric.')
+        metricFieldRef.current?.focus()
+        return
+      }
       setValidationField('target')
       setValidationError('Target must be a number greater than zero.')
       targetFieldRef.current?.focus()
@@ -155,17 +155,8 @@ function GoalsLiveQuery({
     }
 
     const isEdit = Boolean(editingGoalId && editingGoalId !== 'new')
-    const target = clamp(Math.round(draft.target), 1, 10_000)
-    const fields = {
-      title,
-      target,
-      progress: draft.metric === 'manual'
-        ? clamp(Math.round(Number.isFinite(draft.progress) ? draft.progress : 0), 0, target)
-        : draft.progress,
-      period: draft.period,
-      metric: draft.metric,
-    }
-    const shouldUpdateDailyGoal = draft.metric === 'study_time' && draft.period === 'daily'
+    const fields = validated.fields
+    const shouldUpdateDailyGoal = fields.metric === 'study_time' && fields.period === 'daily'
 
     await runSave(async () => {
       if (isEdit && editingGoalId) {
@@ -179,7 +170,7 @@ function GoalsLiveQuery({
       errorMessage: 'Goal could not be saved. Your details are still in the form.',
       onSuccess: () => {
         setEditingGoalId(null)
-        setDraft(createGoalDraft(shouldUpdateDailyGoal ? target : dailyGoalMinutes))
+        setDraft(createGoalDraft(shouldUpdateDailyGoal ? fields.target : dailyGoalMinutes))
         clearValidation()
       },
     })
@@ -286,8 +277,8 @@ function GoalsLiveQuery({
               id="goal-target"
               ref={targetFieldRef}
               type="number"
-              min={1}
-              max={10_000}
+              min={GOAL_EDITOR_TARGET_MIN}
+              max={GOAL_EDITOR_TARGET_MAX}
               required
               disabled={isSaving}
               aria-invalid={targetInvalid || undefined}
@@ -307,7 +298,7 @@ function GoalsLiveQuery({
               <input
                 type="number"
                 min={0}
-                max={10_000}
+                max={GOAL_EDITOR_TARGET_MAX}
                 disabled={isSaving}
                 value={Number.isFinite(draft.progress) ? draft.progress : ''}
                 onChange={(event) => setDraft({ ...draft, progress: Number(event.target.value) })}

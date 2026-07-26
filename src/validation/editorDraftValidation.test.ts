@@ -3,6 +3,7 @@ import { parseLocalDateTime } from '../appUtils'
 import {
   validateCalendarEventEditorDraft,
   validateFlashcardEditorDraft,
+  validateGoalEditorDraft,
   validateNoteEditorDraft,
   validateStudySessionEditorDraft,
   validateSubjectEditorDraft,
@@ -308,6 +309,107 @@ describe('validateStudySessionEditorDraft', () => {
         endedAt: new Date(startedAt!.getTime() + 30 * 60_000).toISOString(),
         minutes: 30,
         note: 'Momentum',
+      },
+    })
+  })
+})
+
+describe('validateGoalEditorDraft', () => {
+  const validDraft = {
+    title: '  Daily focus  ',
+    target: 60,
+    progress: 10,
+    period: 'daily' as const,
+    metric: 'manual' as const,
+  }
+
+  it('rejects whitespace-only titles before metric or target checks', () => {
+    expect(validateGoalEditorDraft({ ...validDraft, title: '   ', metric: 'derived' })).toEqual({
+      ok: false,
+      reason: 'empty_title',
+    })
+  })
+
+  it('rejects invalid metrics before target normalization', () => {
+    expect(validateGoalEditorDraft({ ...validDraft, metric: 'derived' })).toEqual({
+      ok: false,
+      reason: 'invalid_metric',
+    })
+  })
+
+  it('rejects non-finite, zero, and negative targets without clamping them', () => {
+    expect(validateGoalEditorDraft({ ...validDraft, target: Number.NaN })).toEqual({
+      ok: false,
+      reason: 'invalid_target',
+    })
+    expect(validateGoalEditorDraft({ ...validDraft, target: 0 })).toEqual({
+      ok: false,
+      reason: 'invalid_target',
+    })
+    expect(validateGoalEditorDraft({ ...validDraft, target: -3 })).toEqual({
+      ok: false,
+      reason: 'invalid_target',
+    })
+  })
+
+  it('rounds and clamps valid targets to 1–10000 and clamps manual progress to [0, target]', () => {
+    expect(validateGoalEditorDraft({ ...validDraft, target: 1.4, progress: -5 })).toEqual({
+      ok: true,
+      fields: {
+        title: 'Daily focus',
+        target: 1,
+        progress: 0,
+        period: 'daily',
+        metric: 'manual',
+      },
+    })
+
+    expect(validateGoalEditorDraft({
+      ...validDraft,
+      target: 10_001,
+      progress: 50_000,
+    })).toEqual({
+      ok: true,
+      fields: {
+        title: 'Daily focus',
+        target: 10_000,
+        progress: 10_000,
+        period: 'daily',
+        metric: 'manual',
+      },
+    })
+
+    expect(validateGoalEditorDraft({
+      ...validDraft,
+      target: 25.6,
+      progress: 25.4,
+    })).toEqual({
+      ok: true,
+      fields: {
+        title: 'Daily focus',
+        target: 26,
+        progress: 25,
+        period: 'daily',
+        metric: 'manual',
+      },
+    })
+  })
+
+  it('leaves study_time progress unclamped while still normalizing target', () => {
+    expect(validateGoalEditorDraft({
+      ...validDraft,
+      metric: 'study_time',
+      period: 'weekly',
+      target: 4.2,
+      progress: 99,
+    })).toEqual({
+      ok: true,
+      fields: {
+        title: 'Daily focus',
+        target: 4,
+        progress: 99,
+        period: 'weekly',
+        metric: 'study_time',
       },
     })
   })

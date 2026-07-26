@@ -1,7 +1,15 @@
 import { parseLocalDateTime, parseTags } from '../appUtils'
-import { isSubjectProgressMode, type SubjectProgressMode } from '../db/types'
+import {
+  isGoalMetric,
+  isSubjectProgressMode,
+  type GoalMetric,
+  type GoalPeriod,
+  type SubjectProgressMode,
+} from '../db/types'
 import {
   CALENDAR_EDITOR_DURATION_MIN,
+  clampGoalEditorManualProgress,
+  clampGoalEditorTarget,
   clampSubjectEditorProgress,
   clampSubjectEditorTargetHours,
   STUDY_SESSION_EDITOR_DURATION_MIN,
@@ -9,7 +17,7 @@ import {
 
 /**
  * Message-neutral create/edit draft checks for Subjects, Notes, Flashcards,
- * Calendar events, and manual Progress study sessions.
+ * Calendar events, manual Progress study sessions, and Goals.
  * Views own user-facing copy, accessibility, mutation state, and persistence.
  */
 
@@ -235,6 +243,55 @@ export function validateStudySessionEditorDraft(
       endedAt: endedAt.toISOString(),
       minutes,
       note: draft.note.trim(),
+    },
+  }
+}
+
+export type GoalEditorDraftInput = {
+  title: string
+  target: number
+  progress: number
+  period: GoalPeriod
+  metric: unknown
+}
+
+export type GoalEditorFields = {
+  title: string
+  target: number
+  progress: number
+  period: GoalPeriod
+  metric: GoalMetric
+}
+
+export type GoalEditorDraftValidation =
+  | { ok: true; fields: GoalEditorFields }
+  | { ok: false; reason: 'empty_title' | 'invalid_metric' | 'invalid_target' }
+
+export function validateGoalEditorDraft(draft: GoalEditorDraftInput): GoalEditorDraftValidation {
+  const title = draft.title.trim()
+  if (!title) {
+    return { ok: false, reason: 'empty_title' }
+  }
+
+  if (!isGoalMetric(draft.metric)) {
+    return { ok: false, reason: 'invalid_metric' }
+  }
+
+  if (!Number.isFinite(draft.target) || draft.target <= 0) {
+    return { ok: false, reason: 'invalid_target' }
+  }
+
+  const target = clampGoalEditorTarget(draft.target)
+  return {
+    ok: true,
+    fields: {
+      title,
+      target,
+      progress: draft.metric === 'manual'
+        ? clampGoalEditorManualProgress(draft.progress, target)
+        : draft.progress,
+      period: draft.period,
+      metric: draft.metric,
     },
   }
 }

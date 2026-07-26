@@ -58,3 +58,25 @@ export function clampCalendarEditorDuration(value: number): number {
  * Import only requires minutes > 0; future-ended sessions remain importable.
  */
 export const STUDY_SESSION_EDITOR_DURATION_MIN = 1
+
+/** Goal editor target floor (inclusive). Save rejects non-finite or ≤ 0 before clamping. */
+export const GOAL_EDITOR_TARGET_MIN = 1
+
+/**
+ * Goal editor target ceiling (inclusive).
+ * Import continues to accept targets above this (e.g. 10001); `dailyGoalMinutes` stays 30–720.
+ */
+export const GOAL_EDITOR_TARGET_MAX = 10_000
+
+/** Clamp a Goal draft target to the editor usability range after rounding. */
+export function clampGoalEditorTarget(value: number): number {
+  return clamp(Math.round(value), GOAL_EDITOR_TARGET_MIN, GOAL_EDITOR_TARGET_MAX)
+}
+
+/**
+ * Clamp manual Goal progress to `[0, target]` after rounding.
+ * Non-finite draft progress maps to 0 before clamping.
+ */
+export function clampGoalEditorManualProgress(value: number, target: number): number {
+  return clamp(Math.round(Number.isFinite(value) ? value : 0), 0, target)
+}
