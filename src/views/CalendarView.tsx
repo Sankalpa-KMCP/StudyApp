@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { CalendarDays } from '../components/icons'
 import {
   PanelHeader,
@@ -47,12 +47,14 @@ export function CalendarView({
   events,
   subjects,
   subjectMap,
+  openEditorRequest = 0,
   search = '',
   onClearSearch = () => {},
 }: {
   events: CalendarEvent[]
   subjects: StudySubject[]
   subjectMap: Map<string, StudySubject>
+  openEditorRequest?: number
   search?: string
   onClearSearch?: () => void
 }) {
@@ -60,6 +62,7 @@ export function CalendarView({
   const [draft, setDraft] = useState<EventDraft>(() => emptyDraft())
   const [validationError, setValidationError] = useState<string | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const handledEditorRequest = useRef(0)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
@@ -101,6 +104,13 @@ export function CalendarView({
     setEditingEventId('new')
     setDraft(emptyDraft(subjects[0]?.id ?? ''))
   }, [clearSaveFeedback, subjects])
+
+  useEffect(() => {
+    if (openEditorRequest > handledEditorRequest.current) {
+      handledEditorRequest.current = openEditorRequest
+      openEditor()
+    }
+  }, [openEditor, openEditorRequest])
 
   const closeEditor = useCallback(() => {
     if (isSaving) return

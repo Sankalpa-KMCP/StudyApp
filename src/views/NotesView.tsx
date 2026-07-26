@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { FileText } from '../components/icons'
 import {
   PanelHeader,
@@ -33,12 +33,14 @@ export function NotesView({
   notes,
   subjects,
   subjectMap,
+  openEditorRequest = 0,
   search = '',
   onClearSearch = () => {},
 }: {
   notes: StudyNote[]
   subjects: StudySubject[]
   subjectMap: Map<string, StudySubject>
+  openEditorRequest?: number
   search?: string
   onClearSearch?: () => void
 }) {
@@ -46,6 +48,7 @@ export function NotesView({
   const [draft, setDraft] = useState<NoteDraft>(() => emptyDraft())
   const [validationError, setValidationError] = useState<string | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const handledEditorRequest = useRef(0)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
@@ -73,6 +76,13 @@ export function NotesView({
       tags: note?.tags.join(', ') ?? '',
     })
   }, [clearSaveFeedback, subjects])
+
+  useEffect(() => {
+    if (openEditorRequest > handledEditorRequest.current) {
+      handledEditorRequest.current = openEditorRequest
+      openEditor()
+    }
+  }, [openEditor, openEditorRequest])
 
   const closeEditor = useCallback(() => {
     if (isSaving) return

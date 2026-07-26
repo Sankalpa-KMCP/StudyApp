@@ -29,6 +29,9 @@ function App() {
   const [taskFilter, setTaskFilter] = useState<'all' | 'open' | 'done'>('all')
   const [taskEditorRequest, setTaskEditorRequest] = useState(0)
   const [subjectEditorRequest, setSubjectEditorRequest] = useState(0)
+  const [noteEditorRequest, setNoteEditorRequest] = useState(0)
+  const [eventEditorRequest, setEventEditorRequest] = useState(0)
+  const [flashcardEditorRequest, setFlashcardEditorRequest] = useState(0)
   const [progressEditorRequested, setProgressEditorRequested] = useState(false)
   const [profileNotice, setProfileNotice] = useState('')
   const [preferenceNotice, setPreferenceNotice] = useState<string | null>(null)
@@ -55,13 +58,20 @@ function App() {
     window.history.pushState(null, '', nextPath)
   }, [])
 
-  const navigateToView = useCallback((view: View) => {
+  const clearEditorRequests = useCallback(() => {
     setProgressEditorRequested(false)
     setTaskEditorRequest(0)
     setSubjectEditorRequest(0)
+    setNoteEditorRequest(0)
+    setEventEditorRequest(0)
+    setFlashcardEditorRequest(0)
+  }, [])
+
+  const navigateToView = useCallback((view: View) => {
+    clearEditorRequests()
     setActiveView(view)
     syncUrlToView(view, 'push')
-  }, [syncUrlToView])
+  }, [clearEditorRequests, syncUrlToView])
 
   useEffect(() => {
     void migrateLegacyLocalStorage()
@@ -80,14 +90,12 @@ function App() {
       if (resolved.needsReplace) {
         syncUrlToView(resolved.view, 'replace')
       }
-      setProgressEditorRequested(false)
-      setTaskEditorRequest(0)
-      setSubjectEditorRequest(0)
+      clearEditorRequests()
       setActiveView(resolved.view)
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
-  }, [syncUrlToView])
+  }, [clearEditorRequests, syncUrlToView])
 
   const {
     activeSession,
@@ -133,6 +141,9 @@ function App() {
   const openNewTask = () => {
     setProgressEditorRequested(false)
     setSubjectEditorRequest(0)
+    setNoteEditorRequest(0)
+    setEventEditorRequest(0)
+    setFlashcardEditorRequest(0)
     setActiveView('Tasks')
     syncUrlToView('Tasks', 'push')
     setTaskEditorRequest((request) => request + 1)
@@ -141,17 +152,63 @@ function App() {
   const openNewSubject = () => {
     setProgressEditorRequested(false)
     setTaskEditorRequest(0)
+    setNoteEditorRequest(0)
+    setEventEditorRequest(0)
+    setFlashcardEditorRequest(0)
     setActiveView('Subjects')
     syncUrlToView('Subjects', 'push')
     setSubjectEditorRequest((request) => request + 1)
   }
 
+  const openNewNote = () => {
+    setProgressEditorRequested(false)
+    setTaskEditorRequest(0)
+    setSubjectEditorRequest(0)
+    setEventEditorRequest(0)
+    setFlashcardEditorRequest(0)
+    setActiveView('Notes')
+    syncUrlToView('Notes', 'push')
+    setNoteEditorRequest((request) => request + 1)
+  }
+
+  const openNewEvent = () => {
+    setProgressEditorRequested(false)
+    setTaskEditorRequest(0)
+    setSubjectEditorRequest(0)
+    setNoteEditorRequest(0)
+    setFlashcardEditorRequest(0)
+    setActiveView('Calendar')
+    syncUrlToView('Calendar', 'push')
+    setEventEditorRequest((request) => request + 1)
+  }
+
+  const openNewFlashcard = () => {
+    setProgressEditorRequested(false)
+    setTaskEditorRequest(0)
+    setSubjectEditorRequest(0)
+    setNoteEditorRequest(0)
+    setEventEditorRequest(0)
+    setActiveView('Flashcards')
+    syncUrlToView('Flashcards', 'push')
+    setFlashcardEditorRequest((request) => request + 1)
+  }
+
   const openManualSession = () => {
     setTaskEditorRequest(0)
     setSubjectEditorRequest(0)
+    setNoteEditorRequest(0)
+    setEventEditorRequest(0)
+    setFlashcardEditorRequest(0)
     setProgressEditorRequested(true)
     setActiveView('Progress')
     syncUrlToView('Progress', 'push')
+  }
+
+  const onQuickAdd = (item: 'task' | 'note' | 'event' | 'flashcard') => {
+    if (item === 'task') openNewTask()
+    else if (item === 'note') openNewNote()
+    else if (item === 'event') openNewEvent()
+    else openNewFlashcard()
   }
 
   const closeNotices = useCallback(() => setNoticeOpen(false), [])
@@ -182,6 +239,7 @@ function App() {
               noticePopoverId="notice-popover"
               onToggleNotices={toggleNotices}
               onCloseNotices={closeNotices}
+              onQuickAdd={onQuickAdd}
               onOpenProfile={() => {
                 navigateToView('Settings')
                 setProfileNotice('Profile settings live in this local Settings workspace for now.')
@@ -205,6 +263,9 @@ function App() {
             onTaskFilterChange={setTaskFilter}
             taskEditorRequest={taskEditorRequest}
             subjectEditorRequest={subjectEditorRequest}
+            noteEditorRequest={noteEditorRequest}
+            eventEditorRequest={eventEditorRequest}
+            flashcardEditorRequest={flashcardEditorRequest}
             progressEditorRequested={progressEditorRequested}
             noticeOpen={noticeOpen}
             noticePopoverId="notice-popover"
@@ -220,6 +281,7 @@ function App() {
               navigateToView('Settings')
               setProfileNotice('Profile settings live in this local Settings workspace for now.')
             }}
+            onQuickAdd={onQuickAdd}
             onCreateTask={openNewTask}
             onCreateSubject={openNewSubject}
             onLogSession={openManualSession}

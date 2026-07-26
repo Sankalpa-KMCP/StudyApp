@@ -283,6 +283,19 @@
     top: 68px;
     right: 12px;
   }
+
+  .quick-add-trigger {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 10px;
+  }
+
+  .quick-add-menu {
+    position: fixed;
+    top: 68px;
+    right: 12px;
+    width: min(220px, calc(100vw - 24px));
+  }
 }
 
 @media (max-width: 420px) {
@@ -290,6 +303,19 @@
   .avatar-button {
     width: 38px;
     height: 38px;
+  }
+
+  .quick-add-trigger {
+    width: 44px;
+    padding: 0;
+  }
+
+  .quick-add-trigger-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
   }
 
   .hero-metrics {
