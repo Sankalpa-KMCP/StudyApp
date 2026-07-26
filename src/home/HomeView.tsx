@@ -26,6 +26,7 @@ export function HomeView(props: {
   events: CalendarEvent[]
   flashcards: Flashcard[]
   tasks: StudyTask[]
+  studySessions: StudySession[]
   subjectMap: Map<string, StudySubject>
   weeklyStudyDays: WeeklyStudyDay[]
   quickNotes: string[]
@@ -73,7 +74,7 @@ export function HomeView(props: {
         <FirstStudyChecklist
           hasSubject={props.data.subjects.length > 0}
           hasPlan={props.tasks.length > 0 || props.events.length > 0}
-          hasSession={props.data.studySessions.length > 0}
+          hasSession={props.studySessions.length > 0}
           onCreateSubject={props.onCreateSubject}
           onCreatePlan={props.onCreatePlan}
           onLogSession={props.onLogSession}
@@ -111,7 +112,7 @@ export function HomeView(props: {
         />
         <QuickNoteCard notes={props.quickNotes} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
       </div>
-      <SubjectsSection subjects={subjectStats} sessions={props.data.studySessions} onViewAll={() => props.onNavigate('Subjects')} />
+      <SubjectsSection subjects={subjectStats} sessions={props.studySessions} onViewAll={() => props.onNavigate('Subjects')} />
       <div className="bottom-grid">
         <RecentNotes notes={recentNotes} subjectMap={props.subjectMap} onViewAll={() => props.onNavigate('Notes')} />
         <StudyTime days={props.weeklyStudyDays} />

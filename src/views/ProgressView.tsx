@@ -33,6 +33,7 @@ type SessionDraft = {
 export function ProgressView(props: {
   data: AppShellData
   tasks: StudyTask[]
+  studySessions: StudySession[]
   flashcards: Flashcard[]
   weeklyStudyDays: WeeklyStudyDay[]
   dailyGoalMinutes: number
@@ -78,7 +79,7 @@ export function ProgressView(props: {
 
   const completed = props.tasks.filter((task) => task.status === 'done').length
   const weeklyHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
-  const sessionGroups = groupStudySessionsByLocalDate(props.data.studySessions)
+  const sessionGroups = groupStudySessionsByLocalDate(props.studySessions)
   const loadingLabel = editingSessionId && editingSessionId !== 'new' ? 'Saving session...' : 'Recording session...'
   const rowActionsLocked = isSaving || Boolean(pendingDeleteId)
 
@@ -326,7 +327,7 @@ export function ProgressView(props: {
         <div className="section-heading session-journal-heading">
           <div>
             <h2 id="study-journal-title">Study journal</h2>
-            <p>{props.data.studySessions.length} {props.data.studySessions.length === 1 ? 'session' : 'sessions'} logged</p>
+            <p>{props.studySessions.length} {props.studySessions.length === 1 ? 'session' : 'sessions'} logged</p>
           </div>
         </div>
         {sessionGroups.length > 0 ? (
@@ -368,7 +369,7 @@ export function ProgressView(props: {
         )}
       </section>
       <StudyTime days={props.weeklyStudyDays} />
-      <SubjectDistribution subjects={props.data.subjects} sessions={props.data.studySessions} subjectMap={props.subjectMap} />
+      <SubjectDistribution subjects={props.data.subjects} sessions={props.studySessions} subjectMap={props.subjectMap} />
     </section>
   )
 }

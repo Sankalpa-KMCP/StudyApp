@@ -13,7 +13,7 @@ describe('appShellRead', () => {
     await studyDb.delete()
   })
 
-  it('reads shell tables without including goals, notes, events, flashcards, or tasks', async () => {
+  it('reads only subjects and settings without goals, notes, events, flashcards, tasks, or sessions', async () => {
     await studyDb.tasks.add({
       id: 'task-1',
       title: 'Hidden task',
@@ -34,6 +34,14 @@ describe('appShellRead', () => {
       progressMode: 'manual',
       createdAt: '2026-07-01T00:00:00.000Z',
       updatedAt: '2026-07-01T00:00:00.000Z',
+    })
+    await studyDb.studySessions.add({
+      id: 'session-1',
+      subjectId: '',
+      startedAt: '2026-07-01T10:00:00.000Z',
+      endedAt: '2026-07-01T10:30:00.000Z',
+      minutes: 30,
+      note: 'Hidden session',
     })
     await studyDb.goals.add({
       id: 'goal-1',
@@ -84,10 +92,12 @@ describe('appShellRead', () => {
     expect(shell).not.toHaveProperty('events')
     expect(shell).not.toHaveProperty('flashcards')
     expect(shell).not.toHaveProperty('tasks')
+    expect(shell).not.toHaveProperty('studySessions')
     expect(await studyDb.goals.count()).toBe(1)
     expect(await studyDb.notes.count()).toBe(1)
     expect(await studyDb.events.count()).toBe(1)
     expect(await studyDb.flashcards.count()).toBe(1)
     expect(await studyDb.tasks.count()).toBe(1)
+    expect(await studyDb.studySessions.count()).toBe(1)
   })
 })

@@ -1,7 +1,7 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { buildSearchResults, calculateSubjectProgress, isFlashcardDue, type SearchResult } from '../appUtils'
 import type { AppShellData } from '../db/appShellRead'
-import type { CalendarEvent, Flashcard, StudyNote, StudySubject, StudyTask } from '../db/types'
+import type { CalendarEvent, Flashcard, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
 
 export type TaskSearchFilter = 'all' | 'open' | 'done'
 
@@ -11,6 +11,7 @@ export type UseAppSearchOptions = {
   events: CalendarEvent[]
   flashcards: Flashcard[]
   tasks: StudyTask[]
+  studySessions: StudySession[]
   subjectMap: Map<string, StudySubject>
   taskFilter: TaskSearchFilter
 }
@@ -38,6 +39,7 @@ export function useAppSearch({
   events,
   flashcards,
   tasks,
+  studySessions,
   subjectMap,
   taskFilter,
 }: UseAppSearchOptions): UseAppSearchResult {
@@ -46,8 +48,8 @@ export function useAppSearch({
   const normalizedSearch = deferredSearch.trim().toLowerCase()
 
   const homeSearchResults = useMemo(
-    () => buildSearchResults(data, notes, events, flashcards, tasks, subjectMap, deferredSearch),
-    [data, deferredSearch, events, flashcards, notes, subjectMap, tasks],
+    () => buildSearchResults(data, notes, events, flashcards, tasks, studySessions, subjectMap, deferredSearch),
+    [data, deferredSearch, events, flashcards, notes, subjectMap, studySessions, tasks],
   )
 
   const filteredTasks = useMemo(() => tasks.filter((task) => {
@@ -64,10 +66,10 @@ export function useAppSearch({
 
   const filteredSubjects = useMemo(
     () => data.subjects.filter((subject) => {
-      const percentage = Math.round(calculateSubjectProgress(subject, data.studySessions).percentage)
+      const percentage = Math.round(calculateSubjectProgress(subject, studySessions).percentage)
       return `${subject.name} ${percentage}`.toLowerCase().includes(normalizedSearch)
     }),
-    [data.subjects, data.studySessions, normalizedSearch],
+    [data.subjects, normalizedSearch, studySessions],
   )
 
   const filteredEvents = useMemo(() => events.filter((event) => {
