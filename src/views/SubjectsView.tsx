@@ -10,7 +10,12 @@ import {
   ProgressBar,
   MutationNotice,
 } from '../components/ui'
-import { createId, nowIso, studyDb } from '../db/studyDb'
+import {
+  createSubject,
+  deleteSubject as deleteSubjectRecord,
+  getSubjectLinkedUsage,
+  updateSubject,
+} from '../db/subjectService'
 import type { StudySubject, StudyTask, StudyNote, CalendarEvent, Flashcard, StudySession, SubjectProgressMode } from '../db/types'
 import { isSubjectProgressMode } from '../db/types'
 import {
@@ -157,24 +162,21 @@ export function SubjectsView({
     }
 
     const isEdit = Boolean(editingSubjectId && editingSubjectId !== 'new')
-    const timestamp = nowIso()
-    const payload = {
+    const fields = {
       name,
       color: draft.color,
       targetHours: clamp(draft.targetHours, 1, 100),
       progress: clamp(draft.progress, 0, 100),
       progressMode: draft.progressMode,
-      updatedAt: timestamp,
     }
 
     await runSave(async () => {
       if (isEdit && editingSubjectId) {
-        const updated = await studyDb.subjects.update(editingSubjectId, payload)
-        if (updated === 0) throw new Error('Subject no longer exists.')
+        await updateSubject(editingSubjectId, fields)
         return
       }
 
-      await studyDb.subjects.add({ id: createId('subject'), ...payload, createdAt: timestamp })
+      await createSubject(fields)
     }, {
       successMessage: isEdit ? 'Subject updated.' : 'Subject created.',
       errorMessage: 'Subject could not be saved. Your details are still in the form.',
@@ -193,7 +195,7 @@ export function SubjectsView({
     clearSaveFeedback()
     clearRowFeedback()
 
-    const linked = getLinkedCounts(subject.id)
+    const linked = await getSubjectLinkedUsage(subject.id)
     const linkedTotal = Object.values(linked).reduce((sum, count) => sum + count, 0)
     if (linkedTotal > 0) {
       setValidationError(
@@ -207,7 +209,7 @@ export function SubjectsView({
     setPendingDeleteId(subject.id)
     try {
       await runRow(async () => {
-        await studyDb.subjects.delete(subject.id)
+        await deleteSubjectRecord(subject.id)
       }, {
         successMessage: 'Subject deleted.',
         errorMessage: 'Subject could not be deleted. Please try again.',

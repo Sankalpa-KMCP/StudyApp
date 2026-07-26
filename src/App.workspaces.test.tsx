@@ -7,6 +7,7 @@ import * as notesService from './db/notesService'
 import * as taskService from './db/taskService'
 import * as calendarEventService from './db/calendarEventService'
 import * as flashcardService from './db/flashcardService'
+import * as subjectService from './db/subjectService'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 describe('App workspaces', () => {
@@ -307,7 +308,7 @@ describe('App workspaces', () => {
   it('blocks deleting subjects that still have linked records', async () => {
     const user = userEvent.setup()
     const confirm = vi.spyOn(window, 'confirm')
-    const deleteSpy = vi.spyOn(studyDb.subjects, 'delete')
+    const deleteSpy = vi.spyOn(subjectService, 'deleteSubject')
     await studyDb.subjects.add({
       id: 'subject-linked',
       name: 'Chemistry',
@@ -1189,10 +1190,10 @@ describe('App workspaces', () => {
     const gate = new Promise<void>((resolve) => {
       releaseAdd = resolve
     })
-    const originalAdd = studyDb.subjects.add.bind(studyDb.subjects)
-    const addSpy = vi.spyOn(studyDb.subjects, 'add').mockImplementation(async (subject) => {
+    const originalCreate = subjectService.createSubject
+    const addSpy = vi.spyOn(subjectService, 'createSubject').mockImplementation(async (fields) => {
       await gate
-      return originalAdd(subject)
+      return originalCreate(fields)
     })
 
     render(<App />)
@@ -1217,10 +1218,10 @@ describe('App workspaces', () => {
   it('preserves subject draft after a failed create and allows retry', async () => {
     const user = userEvent.setup()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const originalAdd = studyDb.subjects.add.bind(studyDb.subjects)
-    const addSpy = vi.spyOn(studyDb.subjects, 'add')
+    const originalCreate = subjectService.createSubject
+    const addSpy = vi.spyOn(subjectService, 'createSubject')
       .mockRejectedValueOnce(new Error('IndexedDB subject write failed'))
-      .mockImplementation(async (subject) => originalAdd(subject))
+      .mockImplementation(async (fields) => originalCreate(fields))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Subjects' }))
@@ -1259,7 +1260,7 @@ describe('App workspaces', () => {
       updatedAt: timestamp,
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    vi.spyOn(studyDb.subjects, 'update').mockResolvedValueOnce(0)
+    vi.spyOn(subjectService, 'updateSubject').mockRejectedValueOnce(new Error('Subject no longer exists.'))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Subjects' }))
@@ -1295,8 +1296,8 @@ describe('App workspaces', () => {
     const gate = new Promise<void>((resolve) => {
       releaseDelete = resolve
     })
-    const originalDelete = studyDb.subjects.delete.bind(studyDb.subjects)
-    const deleteSpy = vi.spyOn(studyDb.subjects, 'delete').mockImplementation(async () => {
+    const originalDelete = subjectService.deleteSubject
+    const deleteSpy = vi.spyOn(subjectService, 'deleteSubject').mockImplementation(async () => {
       await gate
       throw new Error('delete failed')
     })
