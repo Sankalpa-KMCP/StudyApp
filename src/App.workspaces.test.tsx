@@ -8,7 +8,7 @@ import * as taskService from './db/taskService'
 import * as calendarEventService from './db/calendarEventService'
 import * as flashcardService from './db/flashcardService'
 import * as subjectService from './db/subjectService'
-import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
+import { confirmOpenDeletion, flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 describe('App workspaces', () => {
   beforeEach(async () => {
@@ -90,12 +90,10 @@ describe('App workspaces', () => {
     await user.type(screen.getByPlaceholderText('Search'), 'matrix')
     expect(screen.getByText('Matrix practice')).toBeInTheDocument()
     expect(screen.queryByText('Chemistry lab report')).not.toBeInTheDocument()
-
-    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
     await user.click(screen.getByLabelText('Delete Matrix practice'))
+    await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Matrix practice')).not.toBeInTheDocument())
     expect(await screen.findByRole('status')).toHaveTextContent('Task deleted.')
-    confirmDelete.mockRestore()
   }, 15_000)
 
   it('prevents duplicate task create while save is pending', async () => {
@@ -369,11 +367,11 @@ describe('App workspaces', () => {
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const deleteSpy = vi.spyOn(taskService, 'deleteTask').mockRejectedValueOnce(new Error('delete failed'))
-    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Tasks' }))
     await user.click(await screen.findByLabelText('Delete Sticky task'))
+    await confirmOpenDeletion(user)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Task could not be deleted. Please try again.')
     expect(screen.getByText('Sticky task')).toBeInTheDocument()
@@ -381,14 +379,13 @@ describe('App workspaces', () => {
 
     deleteSpy.mockRestore()
     await user.click(screen.getByLabelText('Delete Sticky task'))
+    await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky task')).not.toBeInTheDocument())
     expect(await screen.findByRole('status')).toHaveTextContent('Task deleted.')
-    confirmDelete.mockRestore()
   })
 
   it('blocks deleting subjects that still have linked records', async () => {
     const user = userEvent.setup()
-    const confirm = vi.spyOn(window, 'confirm')
     const deleteSpy = vi.spyOn(subjectService, 'deleteSubject')
     await studyDb.subjects.add({
       id: 'subject-linked',
@@ -417,7 +414,7 @@ describe('App workspaces', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/Cannot delete Chemistry/)
     expect(await screen.findByRole('alert')).toHaveTextContent(/1 notes/)
-    expect(confirm).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(deleteSpy).not.toHaveBeenCalled()
     expect(await studyDb.subjects.get('subject-linked')).toBeDefined()
     expect(screen.getByLabelText('Delete Chemistry')).toBeEnabled()
@@ -624,11 +621,11 @@ describe('App workspaces', () => {
       await gate
       throw new Error('delete failed')
     })
-    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Notes' }))
     await user.click(await screen.findByLabelText('Delete Sticky note'))
+    await confirmOpenDeletion(user)
 
     expect(await screen.findByLabelText('Deleting Sticky note')).toBeDisabled()
     expect(screen.getByLabelText('Edit Sticky note')).toBeDisabled()
@@ -642,9 +639,9 @@ describe('App workspaces', () => {
 
     deleteSpy.mockImplementation(async (id) => originalDelete(id))
     await user.click(screen.getByLabelText('Delete Sticky note'))
+    await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky note')).not.toBeInTheDocument())
     expect(await screen.findByRole('status')).toHaveTextContent('Note deleted.')
-    confirmDelete.mockRestore()
   })
 
   it('closes the note editor only after deleting the note currently being edited', async () => {
@@ -669,7 +666,6 @@ describe('App workspaces', () => {
       await gate
       return originalDelete(id)
     })
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Notes' }))
@@ -680,6 +676,7 @@ describe('App workspaces', () => {
     await user.type(screen.getByLabelText('Body'), 'Draft body still open')
 
     await user.click(screen.getByLabelText('Delete Editable note'))
+    await confirmOpenDeletion(user)
     expect(await screen.findByLabelText('Deleting Editable note')).toBeDisabled()
     expect(screen.getByLabelText('Note title')).toHaveValue('Edited before delete')
     expect(screen.getByLabelText('Body')).toHaveValue('Draft body still open')
@@ -709,7 +706,6 @@ describe('App workspaces', () => {
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(notesService, 'deleteNote').mockRejectedValueOnce(new Error('delete failed'))
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Notes' }))
@@ -722,6 +718,7 @@ describe('App workspaces', () => {
     await user.type(screen.getByLabelText('Body'), 'Unsaved body text')
 
     await user.click(screen.getByLabelText('Delete Persist editor note'))
+    await confirmOpenDeletion(user)
     expect(await screen.findByRole('alert')).toHaveTextContent('Note could not be deleted.')
     expect(screen.getByLabelText('Note title')).toHaveValue('Still editing')
     expect(screen.getByLabelText('Tags')).toHaveValue('kept-tag')
@@ -752,7 +749,6 @@ describe('App workspaces', () => {
         updatedAt: timestamp,
       },
     ])
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Notes' }))
@@ -763,6 +759,7 @@ describe('App workspaces', () => {
     await user.type(screen.getByLabelText('Body'), 'Still in the editor')
 
     await user.click(screen.getByLabelText('Delete Other note'))
+    await confirmOpenDeletion(user)
     expect(await screen.findByRole('status')).toHaveTextContent('Note deleted.')
     expect(screen.queryByText('Other note')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Note title')).toHaveValue('Keep editing draft')
@@ -995,11 +992,11 @@ describe('App workspaces', () => {
       await gate
       throw new Error('delete failed')
     })
-    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Flashcards' }))
     await user.click(await screen.findByLabelText('Delete Sticky card'))
+    await confirmOpenDeletion(user)
 
     expect(await screen.findByLabelText('Deleting Sticky card')).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Remembered' })).toBeDisabled()
@@ -1012,9 +1009,9 @@ describe('App workspaces', () => {
 
     deleteSpy.mockImplementation(async (id) => originalDelete(id))
     await user.click(screen.getByLabelText('Delete Sticky card'))
+    await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky card')).not.toBeInTheDocument())
     expect(await screen.findByRole('status')).toHaveTextContent('Flashcard deleted.')
-    confirmDelete.mockRestore()
   })
 
   it('creates and displays calendar events', async () => {
@@ -1218,11 +1215,11 @@ describe('App workspaces', () => {
       await gate
       throw new Error('delete failed')
     })
-    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Calendar' }))
     await user.click(await screen.findByLabelText('Delete Sticky event'))
+    await confirmOpenDeletion(user)
 
     expect(await screen.findByLabelText('Deleting Sticky event')).toBeDisabled()
     expect(screen.getByLabelText('Edit Sticky event')).toBeDisabled()
@@ -1237,9 +1234,9 @@ describe('App workspaces', () => {
 
     deleteSpy.mockImplementation(async (id) => originalDelete(id))
     await user.click(screen.getByLabelText('Delete Sticky event'))
+    await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky event')).not.toBeInTheDocument())
     expect(await screen.findByRole('status')).toHaveTextContent('Event deleted.')
-    confirmDelete.mockRestore()
   })
 
   it('closes the calendar editor only after deleting the event currently being edited', async () => {
@@ -1265,7 +1262,6 @@ describe('App workspaces', () => {
       await gate
       return originalDelete(id)
     })
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Calendar' }))
@@ -1276,6 +1272,7 @@ describe('App workspaces', () => {
     await user.type(screen.getByLabelText('Location'), 'Room 9')
 
     await user.click(screen.getByLabelText('Delete Editable event'))
+    await confirmOpenDeletion(user)
     expect(await screen.findByLabelText('Deleting Editable event')).toBeDisabled()
     expect(screen.getByLabelText('Event title')).toHaveValue('Edited before delete')
     expect(screen.getByLabelText('Location')).toHaveValue('Room 9')
@@ -1306,7 +1303,6 @@ describe('App workspaces', () => {
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(calendarEventService, 'deleteCalendarEvent').mockRejectedValueOnce(new Error('delete failed'))
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Calendar' }))
@@ -1319,6 +1315,7 @@ describe('App workspaces', () => {
     await user.type(screen.getByLabelText('Location'), 'Hall D')
 
     await user.click(screen.getByLabelText('Delete Persist editor event'))
+    await confirmOpenDeletion(user)
     expect(await screen.findByRole('alert')).toHaveTextContent('Event could not be deleted. Please try again.')
     expect(screen.getByLabelText('Event title')).toHaveValue('Still editing event')
     expect(screen.getByLabelText('Date')).toHaveValue('2026-08-07')
@@ -1352,7 +1349,6 @@ describe('App workspaces', () => {
         updatedAt: timestamp,
       },
     ])
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Calendar' }))
@@ -1363,6 +1359,7 @@ describe('App workspaces', () => {
     await user.type(screen.getByLabelText('Location'), 'Still open')
 
     await user.click(screen.getByLabelText('Delete Other event'))
+    await confirmOpenDeletion(user)
     expect(await screen.findByRole('status')).toHaveTextContent('Event deleted.')
     expect(screen.queryByText('Other event')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Event title')).toHaveValue('Keep editing draft event')
@@ -1658,11 +1655,11 @@ describe('App workspaces', () => {
       await gate
       throw new Error('delete failed')
     })
-    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Subjects' }))
     await user.click(await screen.findByLabelText('Delete Sticky subject'))
+    await confirmOpenDeletion(user)
 
     expect(await screen.findByLabelText('Deleting Sticky subject')).toBeDisabled()
     expect(screen.getByLabelText('Edit Sticky subject')).toBeDisabled()
@@ -1675,9 +1672,9 @@ describe('App workspaces', () => {
 
     deleteSpy.mockImplementation(async (id) => originalDelete(id))
     await user.click(screen.getByLabelText('Delete Sticky subject'))
+    await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky subject')).not.toBeInTheDocument())
     expect(await screen.findByRole('status')).toHaveTextContent('Subject deleted.')
-    confirmDelete.mockRestore()
   })
 
   it('filters tasks by all, open, and done status', async () => {

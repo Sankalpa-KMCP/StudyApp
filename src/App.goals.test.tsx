@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { studyDb } from './db/studyDb'
 import * as goalService from './db/goalService'
-import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
+import { confirmOpenDeletion, flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 describe('App goals', () => {
   beforeEach(async () => {
@@ -475,11 +475,11 @@ describe('App goals', () => {
       await gate
       throw new Error('delete failed')
     })
-    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Goals' }))
     await user.click(await screen.findByLabelText('Delete Sticky goal'))
+    await confirmOpenDeletion(user)
 
     expect(await screen.findByLabelText('Deleting Sticky goal')).toBeDisabled()
     expect(screen.getByLabelText('Edit Sticky goal')).toBeDisabled()
@@ -492,8 +492,8 @@ describe('App goals', () => {
 
     deleteSpy.mockImplementation(async (id) => originalDelete(id))
     await user.click(screen.getByLabelText('Delete Sticky goal'))
+    await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky goal')).not.toBeInTheDocument())
     expect(await screen.findByRole('status')).toHaveTextContent('Goal deleted.')
-    confirmDelete.mockRestore()
   })
 })

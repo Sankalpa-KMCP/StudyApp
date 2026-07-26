@@ -227,7 +227,6 @@ describe('App subjects live query isolation', () => {
 
   it('blocks linked Subject deletion without cascading linked records', async () => {
     const user = userEvent.setup()
-    const confirm = vi.spyOn(window, 'confirm')
     await studyDb.subjects.add({
       id: 'subject-linked',
       name: 'Protected',
@@ -253,7 +252,7 @@ describe('App subjects live query isolation', () => {
 
     await user.click(screen.getByLabelText('Delete Protected'))
     expect(await screen.findByRole('alert')).toHaveTextContent(/Cannot delete Protected/)
-    expect(confirm).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(subjectsSpy.mock.calls.length).toBe(subjectsBefore)
     expect(await studyDb.subjects.get('subject-linked')).toBeDefined()
     expect(await studyDb.notes.where('subjectId').equals('subject-linked').count()).toBe(1)

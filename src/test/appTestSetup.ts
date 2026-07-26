@@ -1,4 +1,5 @@
-import { act } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
+import type { UserEvent } from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { studyDb } from '../db/studyDb'
 
@@ -26,4 +27,16 @@ export async function flushDeferredAppWork(): Promise<void> {
   await act(async () => {
     await new Promise((resolve) => window.setTimeout(resolve, 0))
   })
+}
+
+/** Confirm the open ConfirmDialog destructive action. */
+export async function confirmOpenDeletion(user: UserEvent) {
+  const dialog = await screen.findByRole('dialog', { name: 'Confirm deletion' })
+  await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
+}
+
+/** Cancel the open ConfirmDialog. */
+export async function cancelOpenDeletion(user: UserEvent) {
+  const dialog = await screen.findByRole('dialog', { name: 'Confirm deletion' })
+  await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
 }

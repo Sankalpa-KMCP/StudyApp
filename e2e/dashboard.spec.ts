@@ -154,12 +154,13 @@ test('logs, edits, and confirms deletion of a study session', async ({ page }) =
   await editForm.getByRole('button', { name: 'Update session' }).click()
   await expect(journal.getByText('Momentum review complete')).toBeVisible()
 
-  page.once('dialog', async (dialog) => dialog.dismiss())
   await journal.getByRole('button', { name: /Delete Physics session at/ }).click()
+  await expect(page.getByRole('dialog', { name: 'Confirm deletion' })).toBeVisible()
+  await page.getByRole('dialog', { name: 'Confirm deletion' }).getByRole('button', { name: 'Cancel' }).click()
   await expect(journal.getByText('Physics')).toBeVisible()
 
-  page.once('dialog', async (dialog) => dialog.accept())
   await journal.getByRole('button', { name: /Delete Physics session at/ }).click()
+  await page.getByRole('dialog', { name: 'Confirm deletion' }).getByRole('button', { name: 'Delete' }).click()
   await expect(page.getByText('Study session deleted.')).toBeVisible()
   await expect(page.getByText('No sessions logged')).toBeVisible()
 })
@@ -252,8 +253,8 @@ test('shows subject and task mutation feedback through create, edit, complete, a
   await expect(page.getByRole('status')).toContainText('Task marked complete.', { timeout: 15_000 })
   await expect(page.locator('article.list-row.is-done').filter({ hasText: 'Lab write-up revised' })).toBeVisible()
 
-  page.once('dialog', async (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Delete Lab write-up revised' }).click()
+  await page.getByRole('dialog', { name: 'Confirm deletion' }).getByRole('button', { name: 'Delete' }).click()
   await expect(page.getByRole('status')).toContainText('Task deleted.', { timeout: 15_000 })
   await expect(page.getByText('Lab write-up revised')).toHaveCount(0)
 
