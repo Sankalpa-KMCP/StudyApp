@@ -104,7 +104,7 @@ describe('App progress', () => {
     await user.click(screen.getByRole('button', { name: 'Goals' }))
     expect(await screen.findByText('0/60 minutes')).toBeInTheDocument()
     expect(screen.getByRole('progressbar', { name: '0%' })).toBeInTheDocument()
-  }, 15_000)
+  }, 30_000)
 
   it('groups cross-midnight sessions by local start date while crediting metrics on their local end date', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })

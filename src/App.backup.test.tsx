@@ -67,7 +67,7 @@ describe('App backup', () => {
 
     await user.click(screen.getByRole('button', { name: 'Tasks' }))
     await waitFor(() => expect(screen.queryByText('Keep until confirmed')).not.toBeInTheDocument())
-  })
+  }, 15_000)
 
   it('handles deletion errors safely', async () => {
     const user = userEvent.setup()

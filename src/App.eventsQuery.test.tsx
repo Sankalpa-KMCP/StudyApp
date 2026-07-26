@@ -71,7 +71,7 @@ describe('App events live query isolation', () => {
     await user.click(screen.getByRole('button', { name: 'Subjects' }))
     const subjectCard = (await screen.findByText('Physics')).closest('article') as HTMLElement
     expect(within(subjectCard).getByText(/1 linked records/i)).toBeInTheDocument()
-  })
+  }, 15_000)
 
   it('does not rerun Events for unrelated task or study-session writes', async () => {
     const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')

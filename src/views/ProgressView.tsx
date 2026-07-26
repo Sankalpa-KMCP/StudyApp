@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Clock3, Save } from '../components/icons'
 import type { AppShellData } from '../db/appShellRead'
-import type { StudySession, StudySubject } from '../db/types'
+import type { Flashcard, StudySession, StudySubject } from '../db/types'
 import {
   formatHours,
   formatMinutes,
@@ -32,6 +32,7 @@ type SessionDraft = {
 
 export function ProgressView(props: {
   data: AppShellData
+  flashcards: Flashcard[]
   weeklyStudyDays: WeeklyStudyDay[]
   dailyGoalMinutes: number
   todayFocusMinutes: number
@@ -318,7 +319,7 @@ export function ProgressView(props: {
         <MetricCard label="Weekly study" value={formatHours(weeklyHours)} />
         <MetricCard label="Tasks complete" value={`${completed}/${props.data.tasks.length}`} />
         <MetricCard label="Focus target" value={`${Math.round(percent(props.todayFocusMinutes, props.dailyGoalMinutes))}%`} />
-        <MetricCard label="Cards remembered" value={`${props.data.flashcards.filter((card) => card.status === 'remembered').length}`} />
+        <MetricCard label="Cards remembered" value={`${props.flashcards.filter((card) => card.status === 'remembered').length}`} />
       </div>
       <section className="session-journal" aria-labelledby="study-journal-title">
         <div className="section-heading session-journal-heading">
