@@ -5,6 +5,7 @@ import App from './App'
 import { studyDb } from './db/studyDb'
 import * as notesService from './db/notesService'
 import * as taskService from './db/taskService'
+import * as calendarEventService from './db/calendarEventService'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 describe('App workspaces', () => {
@@ -822,7 +823,7 @@ describe('App workspaces', () => {
 
   it('validates calendar date and time before calling Dexie', async () => {
     const user = userEvent.setup()
-    const addSpy = vi.spyOn(studyDb.events, 'add')
+    const addSpy = vi.spyOn(calendarEventService, 'createCalendarEvent')
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Calendar' }))
@@ -842,10 +843,10 @@ describe('App workspaces', () => {
   it('preserves calendar draft after a failed create and allows retry', async () => {
     const user = userEvent.setup()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const originalAdd = studyDb.events.add.bind(studyDb.events)
-    const addSpy = vi.spyOn(studyDb.events, 'add')
+    const originalCreate = calendarEventService.createCalendarEvent
+    const addSpy = vi.spyOn(calendarEventService, 'createCalendarEvent')
       .mockRejectedValueOnce(new Error('IndexedDB event write failed'))
-      .mockImplementation(async (event) => originalAdd(event))
+      .mockImplementation(async (fields) => originalCreate(fields))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Calendar' }))
@@ -887,7 +888,7 @@ describe('App workspaces', () => {
       updatedAt: timestamp,
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    vi.spyOn(studyDb.events, 'update').mockResolvedValueOnce(0)
+    vi.spyOn(calendarEventService, 'updateCalendarEvent').mockRejectedValueOnce(new Error('Event no longer exists.'))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Calendar' }))
@@ -928,8 +929,8 @@ describe('App workspaces', () => {
     const gate = new Promise<void>((resolve) => {
       releaseDelete = resolve
     })
-    const originalDelete = studyDb.events.delete.bind(studyDb.events)
-    const deleteSpy = vi.spyOn(studyDb.events, 'delete').mockImplementation(async () => {
+    const originalDelete = calendarEventService.deleteCalendarEvent
+    const deleteSpy = vi.spyOn(calendarEventService, 'deleteCalendarEvent').mockImplementation(async () => {
       await gate
       throw new Error('delete failed')
     })
@@ -975,8 +976,8 @@ describe('App workspaces', () => {
     const gate = new Promise<void>((resolve) => {
       releaseDelete = resolve
     })
-    const originalDelete = studyDb.events.delete.bind(studyDb.events)
-    const deleteSpy = vi.spyOn(studyDb.events, 'delete').mockImplementation(async (id) => {
+    const originalDelete = calendarEventService.deleteCalendarEvent
+    const deleteSpy = vi.spyOn(calendarEventService, 'deleteCalendarEvent').mockImplementation(async (id) => {
       await gate
       return originalDelete(id)
     })
@@ -1020,7 +1021,7 @@ describe('App workspaces', () => {
       updatedAt: timestamp,
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    vi.spyOn(studyDb.events, 'delete').mockRejectedValueOnce(new Error('delete failed'))
+    vi.spyOn(calendarEventService, 'deleteCalendarEvent').mockRejectedValueOnce(new Error('delete failed'))
     vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)

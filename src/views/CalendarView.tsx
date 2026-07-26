@@ -10,7 +10,11 @@ import {
   EmptyState,
   MutationNotice,
 } from '../components/ui'
-import { createId, nowIso, studyDb } from '../db/studyDb'
+import {
+  createCalendarEvent,
+  deleteCalendarEvent,
+  updateCalendarEvent,
+} from '../db/calendarEventService'
 import type { CalendarEvent, StudySubject } from '../db/types'
 import { formatDateTime, parseLocalDateTime, todayInputValue, toInputDate, toInputTime } from '../appUtils'
 import { CalendarStrip } from '../components/CalendarStrip'
@@ -129,25 +133,21 @@ export function CalendarView({
     }
 
     const isEdit = Boolean(editingEventId && editingEventId !== 'new')
-    const timestamp = nowIso()
-    const startAt = startedAt.toISOString()
-    const payload = {
+    const fields = {
       title,
       subjectId: draft.subjectId,
-      startAt,
+      startAt: startedAt.toISOString(),
       endAt: new Date(startedAt.getTime() + draft.duration * 60_000).toISOString(),
       location: draft.location.trim(),
-      updatedAt: timestamp,
     }
 
     await runSave(async () => {
       if (isEdit && editingEventId) {
-        const updated = await studyDb.events.update(editingEventId, payload)
-        if (updated === 0) throw new Error('Event no longer exists.')
+        await updateCalendarEvent(editingEventId, fields)
         return
       }
 
-      await studyDb.events.add({ id: createId('event'), ...payload, createdAt: timestamp })
+      await createCalendarEvent(fields)
     }, {
       successMessage: isEdit ? 'Event updated.' : 'Event created.',
       errorMessage: 'Event could not be saved. Check the details and try again.',
@@ -169,7 +169,7 @@ export function CalendarView({
 
     try {
       await runRow(async () => {
-        await studyDb.events.delete(event.id)
+        await deleteCalendarEvent(event.id)
       }, {
         successMessage: 'Event deleted.',
         errorMessage: 'Event could not be deleted. Please try again.',
