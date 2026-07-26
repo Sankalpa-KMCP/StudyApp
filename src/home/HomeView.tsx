@@ -11,7 +11,6 @@ import {
   type SearchResult,
   type WeeklyStudyDay,
 } from '../appUtils'
-import type { AppShellData } from '../db/appShellRead'
 import type { ActiveFocusSession, CalendarEvent, Flashcard, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
 import { EmptyState, SubjectCard } from '../components/ui'
 import { StudyTime } from '../components/RightColumn'
@@ -21,7 +20,6 @@ import { FirstStudyChecklist } from './FirstStudyChecklist'
 import { getActiveFocusElapsedMs } from '../db/activeFocusSession'
 
 export function HomeView(props: {
-  data: AppShellData
   notes: StudyNote[]
   events: CalendarEvent[]
   flashcards: Flashcard[]
@@ -61,7 +59,7 @@ export function HomeView(props: {
 }) {
   const openTasks = props.tasks.filter((task) => task.status === 'open').slice(0, 5)
   const recentNotes = props.notes.slice(0, 3)
-  const subjectStats = props.data.subjects.slice(0, 5)
+  const subjectStats = props.subjects.slice(0, 5)
   const dueCards = props.flashcards.filter((card) => isFlashcardDue(card)).length
   const weekHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
 
@@ -72,7 +70,7 @@ export function HomeView(props: {
       ) : null}
       {!props.search.trim() ? (
         <FirstStudyChecklist
-          hasSubject={props.data.subjects.length > 0}
+          hasSubject={props.subjects.length > 0}
           hasPlan={props.tasks.length > 0 || props.events.length > 0}
           hasSession={props.studySessions.length > 0}
           onCreateSubject={props.onCreateSubject}

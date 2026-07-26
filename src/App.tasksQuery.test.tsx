@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import * as appShellRead from './db/appShellRead'
+import * as subjectRead from './db/subjectRead'
 import * as calendarEventRead from './db/calendarEventRead'
 import { createCalendarEvent } from './db/calendarEventService'
 import * as flashcardRead from './db/flashcardRead'
@@ -33,7 +33,7 @@ describe('App tasks live query isolation', () => {
     await flushDeferredAppWork()
   })
 
-  it('reruns Tasks without rerunning the App shell for task writes and updates consumers', async () => {
+  it('reruns Tasks without rerunning the Subjects query for task writes and updates consumers', async () => {
     const user = userEvent.setup()
     await studyDb.subjects.add({
       id: 'subject-tasks',
@@ -46,7 +46,7 @@ describe('App tasks live query isolation', () => {
       updatedAt: '2026-07-01T00:00:00.000Z',
     })
 
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
 
     render(<App />)
@@ -122,7 +122,7 @@ describe('App tasks live query isolation', () => {
   })
 
   it('does not rerun Tasks for study-session writes', async () => {
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 
@@ -240,7 +240,7 @@ describe('App tasks live query isolation', () => {
   })
 
   it('does not rerun Tasks for Quick Notes settings writes', async () => {
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
 
     render(<App />)
@@ -310,7 +310,7 @@ describe('App tasks live query isolation', () => {
     })
 
     const user = userEvent.setup()
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
 
     render(<App />)

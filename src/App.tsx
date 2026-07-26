@@ -14,15 +14,15 @@ import { useSidebarPreference } from './hooks/useSidebarPreference'
 import { useStudyBackup } from './hooks/useStudyBackup'
 import { useThemePreference } from './hooks/useThemePreference'
 import { migrateLegacyLocalStorage } from './db/studyDb'
-import { EMPTY_APP_SHELL_DATA, getAppShellData } from './db/appShellRead'
 import { listCalendarEvents } from './db/calendarEventRead'
 import { listFlashcards } from './db/flashcardRead'
 import { listNotes } from './db/noteRead'
 import { listTasks } from './db/taskRead'
 import { listStudySessions } from './db/studySessionRead'
 import { EMPTY_UI_SETTINGS, getUiSettings } from './db/uiSettingsRead'
+import { listSubjects } from './db/subjectRead'
 import { saveQuickNotes } from './db/quickNotesService'
-import type { ActiveFocusSession, CalendarEvent, Flashcard, StudySession, StudyTask } from './db/types'
+import type { ActiveFocusSession, CalendarEvent, Flashcard, StudySession, StudySubject, StudyTask } from './db/types'
 import { ReviewQueue, StreakCard, Upcoming, WeeklyProgress } from './components/RightColumn'
 import { HomeView } from './home/HomeView'
 import { TasksView } from './views/TasksView'
@@ -54,6 +54,7 @@ const EMPTY_EVENTS: CalendarEvent[] = []
 const EMPTY_FLASHCARDS: Flashcard[] = []
 const EMPTY_TASKS: StudyTask[] = []
 const EMPTY_STUDY_SESSIONS: StudySession[] = []
+const EMPTY_SUBJECTS: StudySubject[] = []
 
 function App() {
   const [activeView, setActiveView] = useState<View>(() => resolveViewFromPathname(window.location.pathname).view)
@@ -120,27 +121,27 @@ function App() {
     return () => window.removeEventListener('popstate', onPopState)
   }, [syncUrlToView])
 
-  const liveData = useLiveQuery(() => getAppShellData(), [])
+  const liveSubjects = useLiveQuery(() => listSubjects(), [])
   const liveNotes = useLiveQuery(() => listNotes(), [])
   const liveEvents = useLiveQuery(() => listCalendarEvents(), [])
   const liveFlashcards = useLiveQuery(() => listFlashcards(), [])
   const liveTasks = useLiveQuery(() => listTasks(), [])
   const liveStudySessions = useLiveQuery(() => listStudySessions(), [])
   const liveUiSettings = useLiveQuery(() => getUiSettings(), [])
-  const data = liveData ?? EMPTY_APP_SHELL_DATA
+  const subjects = liveSubjects ?? EMPTY_SUBJECTS
   const notes = liveNotes ?? []
   const events = liveEvents ?? EMPTY_EVENTS
   const flashcards = liveFlashcards ?? EMPTY_FLASHCARDS
   const tasks = liveTasks ?? EMPTY_TASKS
   const studySessions = liveStudySessions ?? EMPTY_STUDY_SESSIONS
   const uiSettings = liveUiSettings ?? EMPTY_UI_SETTINGS
-  // Wait for shell + extracted App reads so consumers never paint an empty flash after partial readiness.
-  const isLoading = liveData === undefined || liveNotes === undefined || liveEvents === undefined || liveFlashcards === undefined || liveTasks === undefined || liveStudySessions === undefined || liveUiSettings === undefined
+  // Wait for all App-owned live reads so consumers never paint an empty flash after partial readiness.
+  const isLoading = liveSubjects === undefined || liveNotes === undefined || liveEvents === undefined || liveFlashcards === undefined || liveTasks === undefined || liveStudySessions === undefined || liveUiSettings === undefined
 
   const currentDate = useCurrentDate()
   const dailyGoalMinutes = uiSettings.dailyGoalMinutes
   const quickNotes = uiSettings.quickNotes
-  const subjectMap = useMemo(() => new Map(data.subjects.map((subject) => [subject.id, subject])), [data.subjects])
+  const subjectMap = useMemo(() => new Map(subjects.map((subject) => [subject.id, subject])), [subjects])
   const {
     search,
     setSearch,
@@ -152,7 +153,7 @@ function App() {
     filteredSubjects,
     filteredEvents,
     filteredFlashcards,
-  } = useAppSearch({ data, notes, events, flashcards, tasks, studySessions, subjectMap, taskFilter })
+  } = useAppSearch({ subjects, notes, events, flashcards, tasks, studySessions, subjectMap, taskFilter })
   const {
     activeSession,
     staleFocusSession,
@@ -289,7 +290,6 @@ function App() {
                 ) : null}
                 {activeView === 'Home' ? (
                   <HomeView
-                    data={data}
                     notes={notes}
                     events={events}
                     flashcards={flashcards}
@@ -307,7 +307,7 @@ function App() {
                     sessionNotice={sessionNotice}
                     canStartFocus={canStartFocus}
                     focusTransitionPending={focusActionsPending}
-                    subjects={data.subjects}
+                    subjects={subjects}
                     focusSubjectId={focusSubjectId}
                     focusDurationMinutes={focusDurationMinutes}
                     search={deferredSearch}
@@ -328,9 +328,9 @@ function App() {
                   />
                 ) : null}
                 {activeView === 'Tasks' ? (
-                  <TasksView tasks={filteredTasks} subjects={data.subjects} filter={taskFilter} openEditorRequest={taskEditorRequest} onFilterChange={setTaskFilter} search={deferredSearch} onClearSearch={clearSearch} />
+                  <TasksView tasks={filteredTasks} subjects={subjects} filter={taskFilter} openEditorRequest={taskEditorRequest} onFilterChange={setTaskFilter} search={deferredSearch} onClearSearch={clearSearch} />
                 ) : null}
-                {activeView === 'Notes' ? <NotesView notes={filteredNotes} subjects={data.subjects} subjectMap={subjectMap} search={deferredSearch} onClearSearch={clearSearch} /> : null}
+                {activeView === 'Notes' ? <NotesView notes={filteredNotes} subjects={subjects} subjectMap={subjectMap} search={deferredSearch} onClearSearch={clearSearch} /> : null}
                 {activeView === 'Subjects' ? (
                   <SubjectsView
                     subjects={filteredSubjects}
@@ -343,12 +343,12 @@ function App() {
                   />
                 ) : null}
                 {activeView === 'Calendar' ? (
-                  <CalendarView events={filteredEvents} subjects={data.subjects} subjectMap={subjectMap} search={deferredSearch} onClearSearch={clearSearch} />
+                  <CalendarView events={filteredEvents} subjects={subjects} subjectMap={subjectMap} search={deferredSearch} onClearSearch={clearSearch} />
                 ) : null}
                 {activeView === 'Flashcards' ? (
                   <FlashcardsView
                     cards={filteredFlashcards}
-                    subjects={data.subjects}
+                    subjects={subjects}
                     subjectMap={subjectMap}
                     revealedCards={revealedCards}
                     onToggleReveal={(id) =>
@@ -363,7 +363,7 @@ function App() {
                 ) : null}
                 {activeView === 'Progress' ? (
                   <ProgressView
-                    data={data}
+                    subjects={subjects}
                     tasks={tasks}
                     studySessions={studySessions}
                     flashcards={flashcards}

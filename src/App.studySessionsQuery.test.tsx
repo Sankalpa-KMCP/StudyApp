@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import * as appShellRead from './db/appShellRead'
+import * as subjectRead from './db/subjectRead'
 import * as calendarEventRead from './db/calendarEventRead'
 import { createCalendarEvent } from './db/calendarEventService'
 import * as flashcardRead from './db/flashcardRead'
@@ -41,7 +41,7 @@ describe('App study sessions live query isolation', () => {
     vi.useRealTimers()
   })
 
-  it('reruns Sessions without rerunning the App shell for manual journal writes and updates consumers', async () => {
+  it('reruns Sessions without rerunning the Subjects query for manual journal writes and updates consumers', async () => {
     const user = userEvent.setup()
     await studyDb.subjects.add({
       id: 'subject-sessions',
@@ -54,7 +54,7 @@ describe('App study sessions live query isolation', () => {
       updatedAt: '2026-07-01T00:00:00.000Z',
     })
 
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 
     render(<App />)
@@ -92,7 +92,7 @@ describe('App study sessions live query isolation', () => {
     expect(within(subjectCard).getByText(/1 linked records/i)).toBeInTheDocument()
   })
 
-  it('reruns Sessions on focus finalization without rerunning the Subjects-only App shell', async () => {
+  it('reruns Sessions on focus finalization without rerunning the Subjects-only Subjects query', async () => {
     const user = userEvent.setup()
     await studyDb.subjects.add({
       id: 'subject-focus-hist',
@@ -105,7 +105,7 @@ describe('App study sessions live query isolation', () => {
       updatedAt: '2026-07-01T00:00:00.000Z',
     })
 
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 
     render(<App />)
@@ -134,8 +134,8 @@ describe('App study sessions live query isolation', () => {
     expect(within(screen.getByLabelText('Today overview')).getByText(/focused today/i)).toBeInTheDocument()
   })
 
-  it('does not rerun Sessions or the Subjects shell for settings-only Quick Notes writes', async () => {
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+  it('does not rerun Sessions or Subjects for settings-only Quick Notes writes', async () => {
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 
     render(<App />)
@@ -154,8 +154,8 @@ describe('App study sessions live query isolation', () => {
     expect(sessionsSpy.mock.calls.length).toBe(sessionsBefore)
   })
 
-  it('does not rerun Sessions for Subject writes that do rerun the App shell', async () => {
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+  it('does not rerun Sessions for Subject writes that do rerun the Subjects query', async () => {
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 
     render(<App />)
@@ -301,7 +301,7 @@ describe('App study sessions live query isolation', () => {
     })
 
     const user = userEvent.setup()
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 
     render(<App />)

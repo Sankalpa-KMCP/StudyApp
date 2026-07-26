@@ -1,12 +1,11 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { buildSearchResults, calculateSubjectProgress, isFlashcardDue, type SearchResult } from '../appUtils'
-import type { AppShellData } from '../db/appShellRead'
 import type { CalendarEvent, Flashcard, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
 
 export type TaskSearchFilter = 'all' | 'open' | 'done'
 
 export type UseAppSearchOptions = {
-  data: AppShellData
+  subjects: StudySubject[]
   notes: StudyNote[]
   events: CalendarEvent[]
   flashcards: Flashcard[]
@@ -34,7 +33,7 @@ export type UseAppSearchResult = {
  * and Home cross-entity results via `buildSearchResults`.
  */
 export function useAppSearch({
-  data,
+  subjects,
   notes,
   events,
   flashcards,
@@ -48,8 +47,8 @@ export function useAppSearch({
   const normalizedSearch = deferredSearch.trim().toLowerCase()
 
   const homeSearchResults = useMemo(
-    () => buildSearchResults(data, notes, events, flashcards, tasks, studySessions, subjectMap, deferredSearch),
-    [data, deferredSearch, events, flashcards, notes, subjectMap, studySessions, tasks],
+    () => buildSearchResults(subjects, notes, events, flashcards, tasks, studySessions, subjectMap, deferredSearch),
+    [deferredSearch, events, flashcards, notes, subjectMap, studySessions, subjects, tasks],
   )
 
   const filteredTasks = useMemo(() => tasks.filter((task) => {
@@ -65,11 +64,11 @@ export function useAppSearch({
   }), [notes, normalizedSearch, subjectMap])
 
   const filteredSubjects = useMemo(
-    () => data.subjects.filter((subject) => {
+    () => subjects.filter((subject) => {
       const percentage = Math.round(calculateSubjectProgress(subject, studySessions).percentage)
       return `${subject.name} ${percentage}`.toLowerCase().includes(normalizedSearch)
     }),
-    [data.subjects, normalizedSearch, studySessions],
+    [normalizedSearch, studySessions, subjects],
   )
 
   const filteredEvents = useMemo(() => events.filter((event) => {
