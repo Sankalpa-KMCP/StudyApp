@@ -5,6 +5,7 @@ import App from './App'
 import { formatHeroDate } from './components/heroDate'
 import { getMillisecondsUntilNextLocalMidnight } from './hooks/useCurrentDate'
 import { studyDb } from './db/studyDb'
+import * as quickNotesService from './db/quickNotesService'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 import {
   addFirstStudyEvent,
@@ -235,26 +236,24 @@ describe('App home', () => {
     render(<App />)
     const textarea = await screen.findByPlaceholderText(/Capture fast ideas/i)
 
-    const originalPut = studyDb.settings.put.bind(studyDb.settings)
+    const originalSave = quickNotesService.saveQuickNotes
     let releaseFirst!: () => void
     const firstGate = new Promise<void>((resolve) => {
       releaseFirst = resolve
     })
-    const putSpy = vi.spyOn(studyDb.settings, 'put').mockImplementation(async (entry) => {
-      if (entry.key !== 'quickNotes') return originalPut(entry)
+    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes').mockImplementation(async () => {
       await firstGate
       throw new Error('quick notes write failed')
     })
 
     fireEvent.change(textarea, { target: { value: 'First draft line' } })
     expect(await screen.findByText('Saving...')).toBeInTheDocument()
-    await waitFor(() => expect(putSpy).toHaveBeenCalled())
+    await waitFor(() => expect(saveSpy).toHaveBeenCalled())
     releaseFirst()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Quick notes could not be saved. Your text is still available.')
     expect(textarea).toHaveValue('First draft line')
 
-    putSpy.mockImplementation(async (entry) => originalPut(entry))
     let olderRelease!: () => void
     let newerRelease!: () => void
     const olderGate = new Promise<void>((resolve) => {
@@ -264,20 +263,18 @@ describe('App home', () => {
       newerRelease = resolve
     })
     const writes: string[] = []
-    putSpy.mockImplementation(async (entry) => {
-      if (entry.key !== 'quickNotes') return originalPut(entry)
-      const value = Array.isArray(entry.value) ? entry.value.join('\n') : String(entry.value)
+    saveSpy.mockImplementation(async (value) => {
       if (value.includes('Older')) {
         await olderGate
       } else {
         await newerGate
       }
       writes.push(value)
-      return originalPut(entry)
+      return originalSave(value)
     })
 
     fireEvent.change(textarea, { target: { value: 'Older value' } })
-    await waitFor(() => expect(putSpy).toHaveBeenCalled())
+    await waitFor(() => expect(saveSpy).toHaveBeenCalled())
     fireEvent.change(textarea, { target: { value: 'Newer value' } })
     newerRelease()
     olderRelease()
@@ -285,6 +282,35 @@ describe('App home', () => {
     await waitFor(() => expect(screen.getByText('Saved locally')).toBeInTheDocument())
     expect(writes.at(-1)).toContain('Newer value')
     expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Newer value'])
+  })
+
+  it('retries the current quick-note draft when Retry save is clicked after a failure', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    render(<App />)
+    const textarea = await screen.findByPlaceholderText(/Capture fast ideas/i)
+
+    const originalSave = quickNotesService.saveQuickNotes
+    let shouldFail = true
+    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes').mockImplementation(async (value) => {
+      if (shouldFail) throw new Error('quick notes write failed')
+      return originalSave(value)
+    })
+
+    fireEvent.change(textarea, { target: { value: 'Initial failed draft' } })
+    expect(await screen.findByRole('alert')).toHaveTextContent('Quick notes could not be saved. Your text is still available.')
+    expect(screen.getByRole('button', { name: 'Retry save' })).toBeInTheDocument()
+
+    fireEvent.change(textarea, { target: { value: 'Updated draft after failure' } })
+    expect(textarea).toHaveValue('Updated draft after failure')
+    expect(await screen.findByRole('button', { name: 'Retry save' })).toBeInTheDocument()
+
+    shouldFail = false
+    await user.click(screen.getByRole('button', { name: 'Retry save' }))
+
+    await waitFor(() => expect(screen.getByText('Saved locally')).toBeInTheDocument())
+    expect(saveSpy).toHaveBeenCalledWith('Updated draft after failure')
+    expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Updated draft after failure'])
   })
 
   it('clears search when no results are found', async () => {
