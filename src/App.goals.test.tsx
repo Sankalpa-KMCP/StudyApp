@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { studyDb } from './db/studyDb'
+import * as goalService from './db/goalService'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 describe('App goals', () => {
@@ -169,10 +170,10 @@ describe('App goals', () => {
     const gate = new Promise<void>((resolve) => {
       releaseAdd = resolve
     })
-    const originalAdd = studyDb.goals.add.bind(studyDb.goals)
-    const addSpy = vi.spyOn(studyDb.goals, 'add').mockImplementation(async (goal) => {
+    const originalCreate = goalService.createGoal
+    const addSpy = vi.spyOn(goalService, 'createGoal').mockImplementation(async (fields) => {
       await gate
-      return originalAdd(goal)
+      return originalCreate(fields)
     })
 
     render(<App />)
@@ -198,10 +199,10 @@ describe('App goals', () => {
   it('preserves goal draft after a failed create and allows retry', async () => {
     const user = userEvent.setup()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const originalAdd = studyDb.goals.add.bind(studyDb.goals)
-    const addSpy = vi.spyOn(studyDb.goals, 'add')
+    const originalCreate = goalService.createGoal
+    const addSpy = vi.spyOn(goalService, 'createGoal')
       .mockRejectedValueOnce(new Error('IndexedDB goal write failed'))
-      .mockImplementation(async (goal) => originalAdd(goal))
+      .mockImplementation(async (fields) => originalCreate(fields))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Goals' }))
@@ -308,7 +309,7 @@ describe('App goals', () => {
       updatedAt: timestamp,
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    vi.spyOn(studyDb.goals, 'update').mockResolvedValueOnce(0)
+    vi.spyOn(goalService, 'updateGoal').mockRejectedValueOnce(new Error('Goal no longer exists.'))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Goals' }))
@@ -399,8 +400,8 @@ describe('App goals', () => {
     const gate = new Promise<void>((resolve) => {
       releaseDelete = resolve
     })
-    const originalDelete = studyDb.goals.delete.bind(studyDb.goals)
-    const deleteSpy = vi.spyOn(studyDb.goals, 'delete').mockImplementation(async () => {
+    const originalDelete = goalService.deleteGoal
+    const deleteSpy = vi.spyOn(goalService, 'deleteGoal').mockImplementation(async () => {
       await gate
       throw new Error('delete failed')
     })

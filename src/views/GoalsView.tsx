@@ -1,7 +1,11 @@
 import { useCallback, useRef, useState } from 'react'
 import { Target } from '../components/icons'
 import { isGoalMetric, type StudyGoal, type StudySession, type GoalPeriod, type GoalMetric } from '../db/types'
-import { createId, nowIso, studyDb } from '../db/studyDb'
+import {
+  createGoal,
+  deleteGoal as deleteGoalRecord,
+  updateGoal,
+} from '../db/goalService'
 import {
   calculateGoalProgress,
   clamp,
@@ -134,9 +138,8 @@ export function GoalsView({
     }
 
     const isEdit = Boolean(editingGoalId && editingGoalId !== 'new')
-    const timestamp = nowIso()
     const target = clamp(Math.round(draft.target), 1, 10_000)
-    const payload = {
+    const fields = {
       title,
       target,
       progress: draft.metric === 'manual'
@@ -144,30 +147,16 @@ export function GoalsView({
         : draft.progress,
       period: draft.period,
       metric: draft.metric,
-      updatedAt: timestamp,
     }
     const shouldUpdateDailyGoal = draft.metric === 'study_time' && draft.period === 'daily'
 
     await runSave(async () => {
-      const writeGoal = async () => {
-        if (isEdit && editingGoalId) {
-          const updated = await studyDb.goals.update(editingGoalId, payload)
-          if (updated === 0) throw new Error('Goal no longer exists.')
-          return
-        }
-
-        await studyDb.goals.add({ id: createId('goal'), ...payload, createdAt: timestamp })
-      }
-
-      if (shouldUpdateDailyGoal) {
-        await studyDb.transaction('rw', studyDb.goals, studyDb.settings, async () => {
-          await writeGoal()
-          await studyDb.settings.put({ key: 'dailyGoalMinutes', value: target })
-        })
+      if (isEdit && editingGoalId) {
+        await updateGoal(editingGoalId, fields)
         return
       }
 
-      await writeGoal()
+      await createGoal(fields)
     }, {
       successMessage: isEdit ? 'Goal updated.' : 'Goal created.',
       errorMessage: 'Goal could not be saved. Your details are still in the form.',
@@ -189,7 +178,7 @@ export function GoalsView({
 
     try {
       await runRow(async () => {
-        await studyDb.goals.delete(goal.id)
+        await deleteGoalRecord(goal.id)
       }, {
         successMessage: 'Goal deleted.',
         errorMessage: 'Goal could not be deleted. Please try again.',
