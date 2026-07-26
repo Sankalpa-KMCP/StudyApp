@@ -292,6 +292,18 @@
   margin: 0;
 }
 
+.root-error-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(22px, 3vw, 42px);
+  background: var(--bg);
+}
+
+.root-error-panel {
+  width: min(100%, 28rem);
+}
+
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(270px, 310px);
