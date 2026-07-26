@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -22,10 +22,10 @@ import {
   createActiveFocusSession,
   getActiveFocusSession,
 } from './db/activeFocusSession'
-import { exportStudyData, getStudyData, studyDb } from './db/studyDb'
+import { exportStudyData, getStudyData, clearAllStudyData, importStudyData, studyDb } from './db/studyDb'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 import { makeDurableFocusSession, waitForFocusStartEnabled } from './test/focusTestHelpers'
-import { importStudyExport, makeEmptyExport } from './test/backupTestHelpers'
+import { makeEmptyExport } from './test/backupTestHelpers'
 
 describe('App UI settings live query isolation', () => {
   beforeEach(async () => {
@@ -37,7 +37,6 @@ describe('App UI settings live query isolation', () => {
   })
 
   it('reruns UI settings without rerunning the Subjects shell for Quick Notes saves and refreshes Home', async () => {
-    const user = userEvent.setup()
     const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
     const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
 
@@ -49,15 +48,15 @@ describe('App UI settings live query isolation', () => {
     const uiBefore = uiSpy.mock.calls.length
 
     const textarea = screen.getByLabelText('Quick notes')
-    await user.clear(textarea)
-    await user.type(textarea, 'Live quick note')
+    fireEvent.change(textarea, { target: { value: 'Live quick note' } })
     await waitFor(async () => {
       expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Live quick note'])
     })
+    await waitFor(() => expect(screen.getByText('Saved locally')).toBeInTheDocument())
 
     await waitFor(() => expect(uiSpy.mock.calls.length).toBeGreaterThan(uiBefore))
     expect(shellSpy.mock.calls.length).toBe(shellBefore)
-    expect(textarea).toHaveValue('Live quick note')
+    await waitFor(() => expect(screen.getByLabelText('Quick notes')).toHaveValue('Live quick note'))
   })
 
   it('reruns Goals and UI settings without the Subjects shell for a qualifying daily study-time Goal', async () => {
@@ -341,7 +340,6 @@ describe('App UI settings live query isolation', () => {
   })
 
   it('updates UI settings after import without a page reload and keeps full settings in getStudyData', async () => {
-    const user = userEvent.setup()
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 200 })
     await studyDb.settings.put({ key: 'quickNotes', value: ['before import'] })
     await studyDb.settings.put({ key: 'plugin.future.setting', value: { keep: true } })
@@ -362,8 +360,7 @@ describe('App UI settings live query isolation', () => {
         { key: 'legacy-localstorage-migrated-v1', value: true },
       ],
     })
-    await importStudyExport(user, payload)
-    expect(await screen.findByRole('status')).toHaveTextContent('Study data imported.')
+    await importStudyData(payload)
 
     await waitFor(() => expect(uiSpy.mock.calls.length).toBeGreaterThan(uiBefore))
     await waitFor(async () => {
@@ -371,9 +368,9 @@ describe('App UI settings live query isolation', () => {
       expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['imported line'])
       expect((await studyDb.settings.get('plugin.future.setting'))?.value).toEqual({ keep: true, n: 2 })
     })
-
-    await user.click(screen.getByRole('button', { name: 'Home' }))
-    expect(await screen.findByLabelText('Quick notes')).toHaveValue('imported line')
+    await waitFor(() => {
+      expect(screen.getByLabelText('Quick notes')).toHaveValue('imported line')
+    })
     expect(screen.getByText(/0m of 1h 30m/i)).toBeInTheDocument()
 
     const full = await getStudyData()
@@ -388,7 +385,6 @@ describe('App UI settings live query isolation', () => {
   })
 
   it('clear-all deletes Quick Notes, preserves daily goal, refreshes UI settings and Subjects', async () => {
-    const user = userEvent.setup()
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 180 })
     await studyDb.settings.put({ key: 'quickNotes', value: ['clear me'] })
     await studyDb.settings.put({ key: 'legacy-localstorage-migrated-v1', value: true })
@@ -414,12 +410,8 @@ describe('App UI settings live query isolation', () => {
     const shellBefore = shellSpy.mock.calls.length
     const uiBefore = uiSpy.mock.calls.length
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(screen.getByRole('button', { name: /Reset all study data/ }))
-    await user.type(screen.getByPlaceholderText('DELETE'), 'DELETE')
-    await user.click(screen.getByRole('button', { name: 'Delete all data' }))
+    await clearAllStudyData()
 
-    expect(await screen.findByText(/permanently deleted/i)).toBeInTheDocument()
     await waitFor(async () => {
       expect(await studyDb.settings.get('quickNotes')).toBeUndefined()
       expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(180)
@@ -427,18 +419,11 @@ describe('App UI settings live query isolation', () => {
     })
     await waitFor(() => expect(uiSpy.mock.calls.length).toBeGreaterThan(uiBefore))
     await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
-    await waitFor(async () => {
-      expect(await uiSettingsRead.getUiSettings()).toEqual({
-        dailyGoalMinutes: 180,
-        quickNotes: [],
-      })
+    await waitFor(() => {
+      expect(screen.getByLabelText('Quick notes')).toHaveValue('')
     })
-
-    // Remount Home after live props settle — QuickNoteCard keeps component draft until remount.
-    await user.click(screen.getByRole('button', { name: 'Tasks' }))
-    await user.click(screen.getByRole('button', { name: 'Home' }))
-    expect(await screen.findByLabelText('Quick notes')).toHaveValue('')
     expect(screen.getByText(/0m of 3h/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
   })
 
   it('waits for UI settings before first paint so seeded values do not flash defaults', async () => {

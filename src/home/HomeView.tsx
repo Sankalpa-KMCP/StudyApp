@@ -343,13 +343,38 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
   const [draft, setDraft] = useState(savedValue)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved')
   const [lastPersisted, setLastPersisted] = useState(savedValue)
+  const [prevSavedValue, setPrevSavedValue] = useState(savedValue)
   const pendingRef = useRef<string | null>(null)
   const inFlightRef = useRef(false)
+  const awaitingEchoRef = useRef(false)
   const onChangeRef = useRef(onChange)
 
   useEffect(() => {
     onChangeRef.current = onChange
   }, [onChange])
+
+  // Apply external live-query updates while rendering when this card has no local dirty work.
+  // After a local save, ignore unchanged stale props until the live query echoes the write or delivers a newer value.
+  if (savedValue !== prevSavedValue) {
+    setPrevSavedValue(savedValue)
+    const canApplyExternal = draft === lastPersisted
+      && pendingRef.current === null
+      && !inFlightRef.current
+      && saveStatus === 'saved'
+
+    if (awaitingEchoRef.current) {
+      if (savedValue === lastPersisted) {
+        awaitingEchoRef.current = false
+      } else if (canApplyExternal) {
+        awaitingEchoRef.current = false
+        setDraft(savedValue)
+        setLastPersisted(savedValue)
+      }
+    } else if (canApplyExternal && savedValue !== lastPersisted) {
+      setDraft(savedValue)
+      setLastPersisted(savedValue)
+    }
+  }
 
   const flushPending = useCallback(async () => {
     if (inFlightRef.current) return
@@ -363,11 +388,13 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
         if (next === null) break
         pendingRef.current = null
         await onChangeRef.current(next)
+        awaitingEchoRef.current = true
         setLastPersisted(next)
       }
       setSaveStatus('saved')
     } catch {
       failed = true
+      awaitingEchoRef.current = false
       setSaveStatus('error')
     } finally {
       inFlightRef.current = false
