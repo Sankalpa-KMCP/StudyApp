@@ -252,7 +252,10 @@ describe('App tasks live query isolation', () => {
 
     await saveQuickNotes('Quick line one')
 
-    await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+    expect(shellSpy.mock.calls.length).toBe(shellBefore)
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
   })
 

@@ -48,7 +48,7 @@ describe('App goals live query isolation', () => {
     expect(shellSpy.mock.calls.length).toBe(shellBefore)
   })
 
-  it('refreshes both queries when a qualifying daily study-time Goal updates settings', async () => {
+  it('refreshes Goals without rerunning the Subjects shell when a qualifying daily study-time Goal updates settings', async () => {
     const user = userEvent.setup()
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 100 })
     const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
@@ -72,7 +72,7 @@ describe('App goals live query isolation', () => {
     })
 
     await waitFor(() => expect(goalsSpy.mock.calls.length).toBeGreaterThan(goalsBefore))
-    await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
+    expect(shellSpy.mock.calls.length).toBe(shellBefore)
   })
 
   it('does not rerun the Goals query for unrelated task or note writes', async () => {

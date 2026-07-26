@@ -209,7 +209,10 @@ describe('App flashcards live query isolation', () => {
 
     await saveQuickNotes('Quick line one')
 
-    await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+    expect(shellSpy.mock.calls.length).toBe(shellBefore)
     expect(flashcardsSpy.mock.calls.length).toBe(flashcardsBefore)
   })
 

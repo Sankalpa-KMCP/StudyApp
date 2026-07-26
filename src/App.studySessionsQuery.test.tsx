@@ -92,7 +92,7 @@ describe('App study sessions live query isolation', () => {
     expect(within(subjectCard).getByText(/1 linked records/i)).toBeInTheDocument()
   })
 
-  it('reruns Sessions and shell on focus finalization with one history row and UI refresh', async () => {
+  it('reruns Sessions on focus finalization without rerunning the Subjects-only App shell', async () => {
     const user = userEvent.setup()
     await studyDb.subjects.add({
       id: 'subject-focus-hist',
@@ -120,23 +120,21 @@ describe('App study sessions live query isolation', () => {
 
     await user.click(screen.getByRole('button', { name: 'Start focus' }))
     expect(await screen.findByText('Elapsed')).toBeInTheDocument()
-    await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
-    const shellAfterStart = shellSpy.mock.calls.length
-    const sessionsAfterStart = sessionsSpy.mock.calls.length
-    expect(sessionsAfterStart).toBe(sessionsBefore)
+    expect(shellSpy.mock.calls.length).toBe(shellBefore)
+    expect(sessionsSpy.mock.calls.length).toBe(sessionsBefore)
 
     await user.click(screen.getByRole('button', { name: 'Stop session' }))
     await waitFor(async () => {
       expect(await studyDb.studySessions.count()).toBe(1)
       expect(await getActiveFocusSession()).toBeNull()
     })
-    await waitFor(() => expect(sessionsSpy.mock.calls.length).toBeGreaterThan(sessionsAfterStart))
-    await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellAfterStart))
+    await waitFor(() => expect(sessionsSpy.mock.calls.length).toBeGreaterThan(sessionsBefore))
+    expect(shellSpy.mock.calls.length).toBe(shellBefore)
     expect(await screen.findByRole('button', { name: 'Start focus' })).toBeInTheDocument()
     expect(within(screen.getByLabelText('Today overview')).getByText(/focused today/i)).toBeInTheDocument()
   })
 
-  it('does not rerun Sessions for settings-only Quick Notes writes', async () => {
+  it('does not rerun Sessions or the Subjects shell for settings-only Quick Notes writes', async () => {
     const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 
@@ -149,7 +147,10 @@ describe('App study sessions live query isolation', () => {
 
     await saveQuickNotes('Quick line one')
 
-    await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+    expect(shellSpy.mock.calls.length).toBe(shellBefore)
     expect(sessionsSpy.mock.calls.length).toBe(sessionsBefore)
   })
 
