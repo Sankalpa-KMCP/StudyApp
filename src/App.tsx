@@ -15,9 +15,10 @@ import { useStudyBackup } from './hooks/useStudyBackup'
 import { useThemePreference } from './hooks/useThemePreference'
 import { migrateLegacyLocalStorage } from './db/studyDb'
 import { EMPTY_APP_SHELL_DATA, getAppShellData, type AppShellData } from './db/appShellRead'
+import { listCalendarEvents } from './db/calendarEventRead'
 import { listNotes } from './db/noteRead'
 import { saveQuickNotes } from './db/quickNotesService'
-import type { ActiveFocusSession } from './db/types'
+import type { ActiveFocusSession, CalendarEvent } from './db/types'
 import { ReviewQueue, StreakCard, Upcoming, WeeklyProgress } from './components/RightColumn'
 import { HomeView } from './home/HomeView'
 import { TasksView } from './views/TasksView'
@@ -44,6 +45,8 @@ export type SettingsFeedback = { tone: 'success' | 'error'; message: string }
 export type ActiveSession = ActiveFocusSession
 /** Re-exported for existing consumers; prefer `./hooks/useThemePreference`. */
 export type { ThemeMode } from './hooks/useThemePreference'
+
+const EMPTY_EVENTS: CalendarEvent[] = []
 
 function App() {
   const [activeView, setActiveView] = useState<View>(() => resolveViewFromPathname(window.location.pathname).view)
@@ -112,10 +115,12 @@ function App() {
 
   const liveData = useLiveQuery(() => getAppShellData(), [])
   const liveNotes = useLiveQuery(() => listNotes(), [])
+  const liveEvents = useLiveQuery(() => listCalendarEvents(), [])
   const data = liveData ?? EMPTY_APP_SHELL_DATA
   const notes = liveNotes ?? []
-  // Wait for both queries so Notes consumers never paint an empty flash after shell is ready.
-  const isLoading = liveData === undefined || liveNotes === undefined
+  const events = liveEvents ?? EMPTY_EVENTS
+  // Wait for shell, Notes, and Events so consumers never paint an empty flash after partial readiness.
+  const isLoading = liveData === undefined || liveNotes === undefined || liveEvents === undefined
 
   const currentDate = useCurrentDate()
   const dailyGoalMinutes = useMemo(() => settingNumber(data, 'dailyGoalMinutes', 240), [data])
@@ -132,7 +137,7 @@ function App() {
     filteredSubjects,
     filteredEvents,
     filteredFlashcards,
-  } = useAppSearch({ data, notes, subjectMap, taskFilter })
+  } = useAppSearch({ data, notes, events, subjectMap, taskFilter })
   const {
     activeSession,
     staleFocusSession,
@@ -177,8 +182,8 @@ function App() {
   )
   const completedTasks = useMemo(() => data.tasks.filter((task) => task.status === 'done'), [data.tasks])
   const upcomingEvents = useMemo(
-    () => data.events.filter((event) => new Date(event.startAt).getTime() >= startOfToday(currentDate)).slice(0, 4),
-    [currentDate, data.events],
+    () => events.filter((event) => new Date(event.startAt).getTime() >= startOfToday(currentDate)).slice(0, 4),
+    [currentDate, events],
   )
   const dueCards = useMemo(() => data.flashcards.filter((card) => isFlashcardDue(card)), [data.flashcards])
 
@@ -271,6 +276,7 @@ function App() {
                   <HomeView
                     data={data}
                     notes={notes}
+                    events={events}
                     subjectMap={subjectMap}
                     weeklyStudyDays={weeklyStudyDays}
                     quickNotes={quickNotes}
@@ -312,7 +318,7 @@ function App() {
                     subjects={filteredSubjects}
                     tasks={data.tasks}
                     notes={notes}
-                    events={data.events}
+                    events={events}
                     flashcards={data.flashcards}
                     sessions={data.studySessions}
                     openEditorRequest={subjectEditorRequest}

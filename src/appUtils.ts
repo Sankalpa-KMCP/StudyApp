@@ -1,4 +1,4 @@
-import type { Flashcard, GoalMetric, GoalPeriod, StudyGoal, StudyNote, StudySession, StudySubject, SubjectProgressMode } from './db/types'
+import type { CalendarEvent, Flashcard, GoalMetric, GoalPeriod, StudyGoal, StudyNote, StudySession, StudySubject, SubjectProgressMode } from './db/types'
 import type { AppShellData } from './db/appShellRead'
 
 export type WeeklyStudyDay = {
@@ -253,6 +253,7 @@ export function groupStudySessionsByLocalDate(sessions: StudySession[], now = ne
 export function buildSearchResults(
   data: AppShellData,
   notes: StudyNote[],
+  events: CalendarEvent[],
   subjectMap: Map<string, StudySubject>,
   query: string,
 ): SearchResult[] {
@@ -278,7 +279,7 @@ export function buildSearchResults(
         const percentage = Math.round(calculateSubjectProgress(subject, data.studySessions).percentage)
         return { id: subject.id, type: 'Subject', title: subject.name, meta: `${percentage}% progress`, view: 'Subjects' }
       }),
-    ...data.events
+    ...events
       .filter((event) => matches(event.title, event.location, subjectName(event.subjectId)))
       .map((event): SearchResult => ({ id: event.id, type: 'Event', title: event.title, meta: `${formatDateTime(event.startAt)} - ${subjectName(event.subjectId)}`, view: 'Calendar' })),
     ...data.flashcards
