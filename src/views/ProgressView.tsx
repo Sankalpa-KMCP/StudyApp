@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Clock3, Save } from '../components/icons'
 import type { AppShellData } from '../db/appShellRead'
-import type { Flashcard, StudySession, StudySubject } from '../db/types'
+import type { Flashcard, StudySession, StudySubject, StudyTask } from '../db/types'
 import {
   formatHours,
   formatMinutes,
@@ -32,6 +32,7 @@ type SessionDraft = {
 
 export function ProgressView(props: {
   data: AppShellData
+  tasks: StudyTask[]
   flashcards: Flashcard[]
   weeklyStudyDays: WeeklyStudyDay[]
   dailyGoalMinutes: number
@@ -75,7 +76,7 @@ export function ProgressView(props: {
         ? saveMessage
         : null
 
-  const completed = props.data.tasks.filter((task) => task.status === 'done').length
+  const completed = props.tasks.filter((task) => task.status === 'done').length
   const weeklyHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
   const sessionGroups = groupStudySessionsByLocalDate(props.data.studySessions)
   const loadingLabel = editingSessionId && editingSessionId !== 'new' ? 'Saving session...' : 'Recording session...'
@@ -317,7 +318,7 @@ export function ProgressView(props: {
       ) : null}
       <div className="metric-grid">
         <MetricCard label="Weekly study" value={formatHours(weeklyHours)} />
-        <MetricCard label="Tasks complete" value={`${completed}/${props.data.tasks.length}`} />
+        <MetricCard label="Tasks complete" value={`${completed}/${props.tasks.length}`} />
         <MetricCard label="Focus target" value={`${Math.round(percent(props.todayFocusMinutes, props.dailyGoalMinutes))}%`} />
         <MetricCard label="Cards remembered" value={`${props.flashcards.filter((card) => card.status === 'remembered').length}`} />
       </div>

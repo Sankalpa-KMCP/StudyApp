@@ -13,15 +13,25 @@ describe('appShellRead', () => {
     await studyDb.delete()
   })
 
-  it('reads shell tables without including goals, notes, events, or flashcards', async () => {
+  it('reads shell tables without including goals, notes, events, flashcards, or tasks', async () => {
     await studyDb.tasks.add({
       id: 'task-1',
-      title: 'Task',
+      title: 'Hidden task',
       subjectId: '',
       dueDate: '',
       priority: 'normal',
       status: 'open',
       minutes: 30,
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    })
+    await studyDb.subjects.add({
+      id: 'subject-1',
+      name: 'Visible subject',
+      color: '#2563eb',
+      targetHours: 2,
+      progress: 0,
+      progressMode: 'manual',
       createdAt: '2026-07-01T00:00:00.000Z',
       updatedAt: '2026-07-01T00:00:00.000Z',
     })
@@ -67,15 +77,17 @@ describe('appShellRead', () => {
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
 
     const shell = await getAppShellData()
-    expect(shell.tasks).toHaveLength(1)
+    expect(shell.subjects).toHaveLength(1)
     expect(shell.settings).toEqual([{ key: 'dailyGoalMinutes', value: 120 }])
     expect(shell).not.toHaveProperty('goals')
     expect(shell).not.toHaveProperty('notes')
     expect(shell).not.toHaveProperty('events')
     expect(shell).not.toHaveProperty('flashcards')
+    expect(shell).not.toHaveProperty('tasks')
     expect(await studyDb.goals.count()).toBe(1)
     expect(await studyDb.notes.count()).toBe(1)
     expect(await studyDb.events.count()).toBe(1)
     expect(await studyDb.flashcards.count()).toBe(1)
+    expect(await studyDb.tasks.count()).toBe(1)
   })
 })

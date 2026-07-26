@@ -25,6 +25,7 @@ export function HomeView(props: {
   notes: StudyNote[]
   events: CalendarEvent[]
   flashcards: Flashcard[]
+  tasks: StudyTask[]
   subjectMap: Map<string, StudySubject>
   weeklyStudyDays: WeeklyStudyDay[]
   quickNotes: string[]
@@ -57,7 +58,7 @@ export function HomeView(props: {
   onLogSession: () => void
   onClearSearch?: () => void
 }) {
-  const openTasks = props.data.tasks.filter((task) => task.status === 'open').slice(0, 5)
+  const openTasks = props.tasks.filter((task) => task.status === 'open').slice(0, 5)
   const recentNotes = props.notes.slice(0, 3)
   const subjectStats = props.data.subjects.slice(0, 5)
   const dueCards = props.flashcards.filter((card) => isFlashcardDue(card)).length
@@ -71,7 +72,7 @@ export function HomeView(props: {
       {!props.search.trim() ? (
         <FirstStudyChecklist
           hasSubject={props.data.subjects.length > 0}
-          hasPlan={props.data.tasks.length > 0 || props.events.length > 0}
+          hasPlan={props.tasks.length > 0 || props.events.length > 0}
           hasSession={props.data.studySessions.length > 0}
           onCreateSubject={props.onCreateSubject}
           onCreatePlan={props.onCreatePlan}
