@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Target } from '../components/icons'
+import { LiveReadErrorBoundary } from '../components/LiveReadErrorBoundary'
+import { LiveReadErrorPanel } from '../components/LiveReadErrorPanel'
 import { isGoalMetric, type StudyGoal, type StudySession, type GoalPeriod, type GoalMetric } from '../db/types'
 import { listGoals } from '../db/goalRead'
 import {
@@ -40,6 +42,9 @@ const GOAL_TITLE_ERROR_ID = 'goal-title-error'
 const GOAL_METRIC_ERROR_ID = 'goal-metric-error'
 const GOAL_TARGET_ERROR_ID = 'goal-target-error'
 
+export const GOALS_LIVE_READ_ERROR_MESSAGE =
+  'Goals could not be loaded. Your local data is still on this device.'
+
 function createGoalDraft(dailyGoalMinutes: number, goal?: StudyGoal): GoalDraft {
   return {
     title: goal?.title ?? '',
@@ -59,7 +64,16 @@ function composeDescribedBy(...ids: Array<string | undefined>) {
   return value || undefined
 }
 
-export function GoalsView({
+function GoalsLiveReadFallback({ onRetry }: { onRetry: () => void }) {
+  return (
+    <section className="workspace-panel" aria-labelledby="goals-workspace-title">
+      <PanelHeader title="Goals" description="Turn study intentions into measurable targets." />
+      <LiveReadErrorPanel message={GOALS_LIVE_READ_ERROR_MESSAGE} onRetry={onRetry} />
+    </section>
+  )
+}
+
+function GoalsLiveQuery({
   dailyGoalMinutes,
   studySessions,
 }: {
@@ -308,7 +322,9 @@ export function GoalsView({
           />
         </div>
       ) : null}
-      {goalsReady && goals.length > 0 ? (
+      {!goalsReady ? (
+        <section className="loading-panel" aria-live="polite">Loading goals...</section>
+      ) : goals.length > 0 ? (
         <div className="card-grid">
           {goals.map((goal) => {
             const progress = calculateGoalProgress(goal, studySessions)
@@ -334,9 +350,31 @@ export function GoalsView({
             )
           })}
         </div>
-      ) : goalsReady ? (
+      ) : (
         <EmptyState icon={Target} title="No goals yet" body="Set focus, review, or weekly study goals and track progress here." actionLabel="Create first goal" onAction={() => openEditor()} />
-      ) : null}
+      )}
     </section>
+  )
+}
+
+/**
+ * Goals workspace shell: local live-read boundary remounts only the Goals query owner on Retry.
+ */
+export function GoalsView({
+  dailyGoalMinutes,
+  studySessions,
+}: {
+  dailyGoalMinutes: number
+  studySessions: StudySession[]
+}) {
+  const [liveReadEpoch, setLiveReadEpoch] = useState(0)
+
+  return (
+    <LiveReadErrorBoundary
+      key={liveReadEpoch}
+      fallback={<GoalsLiveReadFallback onRetry={() => setLiveReadEpoch((epoch) => epoch + 1)} />}
+    >
+      <GoalsLiveQuery dailyGoalMinutes={dailyGoalMinutes} studySessions={studySessions} />
+    </LiveReadErrorBoundary>
   )
 }

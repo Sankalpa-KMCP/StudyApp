@@ -10,8 +10,8 @@ type LiveReadErrorBoundaryState = {
 }
 
 /**
- * Catches render-time failures from Dexie `useLiveQuery` (and other render errors)
- * inside the App live-data subtree. Parent remounts this boundary via `key` to Retry.
+ * Catches render-time failures from Dexie `useLiveQuery` (and other render errors).
+ * Parent remounts this boundary via `key` to Retry with a fresh subscription.
  */
 export class LiveReadErrorBoundary extends Component<LiveReadErrorBoundaryProps, LiveReadErrorBoundaryState> {
   state: LiveReadErrorBoundaryState = { hasError: false }

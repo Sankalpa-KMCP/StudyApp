@@ -1,4 +1,5 @@
 import { Topbar } from './Topbar'
+import { LiveReadErrorPanel } from './LiveReadErrorPanel'
 import { SettingsView } from '../views/SettingsView'
 import type { ThemeMode } from '../hooks/useThemePreference'
 import type { View } from '../navigation/viewRoutes'
@@ -46,6 +47,8 @@ export function AppLiveReadFallback({
   onClear,
   importPending,
 }: AppLiveReadFallbackProps) {
+  const errorPanel = <LiveReadErrorPanel message={LIVE_READ_ERROR_MESSAGE} onRetry={onRetry} />
+
   return (
     <>
       <Topbar
@@ -63,14 +66,7 @@ export function AppLiveReadFallback({
         {activeView === 'Settings' ? (
           <div className="content-grid is-workspace-view">
             <section className="primary-column" aria-label="Primary study summary">
-              <section className="loading-panel live-read-error-panel" role="alert">
-                <div className="live-read-error-copy">
-                  <p>{LIVE_READ_ERROR_MESSAGE}</p>
-                  <button className="primary-command" type="button" onClick={onRetry}>
-                    Retry
-                  </button>
-                </div>
-              </section>
+              {errorPanel}
               <SettingsView
                 onExport={onExport}
                 onImport={onImport}
@@ -85,14 +81,7 @@ export function AppLiveReadFallback({
             </section>
           </div>
         ) : (
-          <section className="loading-panel live-read-error-panel" role="alert">
-            <div className="live-read-error-copy">
-              <p>{LIVE_READ_ERROR_MESSAGE}</p>
-              <button className="primary-command" type="button" onClick={onRetry}>
-                Retry
-              </button>
-            </div>
-          </section>
+          errorPanel
         )}
       </main>
     </>
