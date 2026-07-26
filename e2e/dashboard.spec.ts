@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { HOME_GREETING_HEADING } from './a11yHelpers'
 import {
   createManualGoalViaUi,
@@ -7,6 +7,10 @@ import {
   goalCard,
   listGoals,
 } from './focusHelpers'
+
+function navButton(page: Page, name: string) {
+  return page.getByLabel('Main navigation').getByRole('button', { name, exact: true })
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
@@ -17,7 +21,7 @@ test('renders a blank database-backed dashboard and persists tasks', async ({ pa
   await expect(page.getByRole('heading', { name: 'Weekly Progress' })).toBeVisible()
   await expect(page.getByText('No tasks yet')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Tasks' }).click()
+  await navButton(page, 'Tasks').click()
   await page.getByRole('button', { name: 'New task' }).click()
   await page.getByLabel('Task title').fill('Geometry revision')
   await page.getByLabel('Minutes').fill('35')
@@ -25,7 +29,7 @@ test('renders a blank database-backed dashboard and persists tasks', async ({ pa
 
   await expect(page.getByText('Geometry revision')).toBeVisible()
   await page.reload()
-  await page.getByRole('button', { name: 'Tasks' }).click()
+  await navButton(page, 'Tasks').click()
   await expect(page.getByText('Geometry revision')).toBeVisible()
 
   await page.getByPlaceholder('Search').fill('geometry')
@@ -52,7 +56,7 @@ test('opens new task and subject editors from the home hero', async ({ page }) =
   await expect(page.getByRole('heading', { name: 'Tasks' }).first()).toBeVisible()
   await expect(page.getByLabel('Task title')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Home' }).click()
+  await navButton(page, 'Home').click()
   await hero.getByRole('button', { name: 'Subject' }).click()
   await expect(page.getByRole('heading', { name: 'Subjects' }).first()).toBeVisible()
   await expect(page.getByLabel('Subject name')).toBeVisible()
@@ -72,14 +76,14 @@ test('guides the first study loop without overflowing compact layouts', async ({
   await page.getByLabel('Subject name').fill('Physics')
   await page.getByRole('button', { name: 'Save' }).click()
 
-  await page.getByRole('button', { name: 'Home' }).click()
+  await navButton(page, 'Home').click()
   await expect(checklistProgress).toHaveAttribute('aria-valuetext', '1 of 3 steps complete')
   await checklist.getByRole('button', { name: 'Plan task' }).click()
   await expect(page.getByLabel('Task title')).toBeFocused()
   await page.getByLabel('Task title').fill('Momentum practice')
   await page.getByRole('button', { name: 'Save' }).click()
 
-  await page.getByRole('button', { name: 'Home' }).click()
+  await navButton(page, 'Home').click()
   await expect(checklistProgress).toHaveAttribute('aria-valuetext', '2 of 3 steps complete')
   await checklist.getByRole('button', { name: 'Log session' }).click()
   const sessionForm = page.getByRole('form', { name: 'Log study session' })
@@ -97,14 +101,14 @@ test('guides the first study loop without overflowing compact layouts', async ({
   await sessionForm.getByLabel('Duration (minutes)').fill('30')
   await sessionForm.getByRole('button', { name: 'Save session' }).click()
 
-  await page.getByRole('button', { name: 'Home' }).click()
+  await navButton(page, 'Home').click()
   await expect(checklist).toBeHidden()
   const layout = await page.evaluate(() => ({ viewport: window.innerWidth, page: document.documentElement.scrollWidth }))
   expect(layout.page).toBeLessThanOrEqual(layout.viewport)
 })
 
 test('creates and reviews a flashcard', async ({ page }) => {
-  await page.getByRole('button', { name: 'Flashcards' }).click()
+  await navButton(page, 'Flashcards').click()
   await page.getByRole('button', { name: 'New card' }).click()
   await page.getByLabel('Front').fill('Photosynthesis')
   await page.getByLabel('Back').fill('Plants convert light into chemical energy.')
@@ -120,12 +124,12 @@ test('creates and reviews a flashcard', async ({ page }) => {
 })
 
 test('logs, edits, and confirms deletion of a study session', async ({ page }) => {
-  await page.getByRole('button', { name: 'Subjects' }).click()
+  await navButton(page, 'Subjects').click()
   await page.getByRole('button', { name: 'New subject' }).click()
   await page.getByLabel('Subject name').fill('Physics')
   await page.getByRole('button', { name: 'Save' }).click()
 
-  await page.getByRole('button', { name: 'Progress' }).click()
+  await navButton(page, 'Progress').click()
   await page.getByRole('button', { name: 'Log session' }).click()
   const sessionForm = page.getByRole('form', { name: 'Log study session' })
   const localStart = await page.evaluate(() => {
@@ -166,7 +170,7 @@ test('logs, edits, and confirms deletion of a study session', async ({ page }) =
 })
 
 test('subject study-time progress matches on cards and Home search', async ({ page }) => {
-  await page.getByRole('button', { name: 'Subjects' }).click()
+  await navButton(page, 'Subjects').click()
   await page.getByRole('button', { name: 'New subject' }).click()
   await expect(page.getByLabel('Progress mode')).toHaveValue('manual')
   await expect(page.getByLabel('Progress %')).toBeVisible()
@@ -179,7 +183,7 @@ test('subject study-time progress matches on cards and Home search', async ({ pa
   await expect(page.getByRole('status')).toContainText('Subject created.', { timeout: 15_000 })
   await expect(page.getByRole('progressbar', { name: '0%' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Progress' }).click()
+  await navButton(page, 'Progress').click()
   await page.getByRole('button', { name: 'Log session' }).click()
   const sessionForm = page.getByRole('form', { name: 'Log study session' })
   const localStart = await page.evaluate(() => {
@@ -196,10 +200,10 @@ test('subject study-time progress matches on cards and Home search', async ({ pa
   await sessionForm.getByRole('button', { name: 'Save session' }).click()
   await expect(page.getByRole('status')).toContainText('Study session recorded.', { timeout: 15_000 })
 
-  await page.getByRole('button', { name: 'Subjects' }).click()
+  await navButton(page, 'Subjects').click()
   await expect(page.getByRole('progressbar', { name: '50%' })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Home' }).click()
+  await navButton(page, 'Home').click()
   const homeSubjects = page.locator('section.subject-section')
   await expect(homeSubjects.getByRole('progressbar', { name: '50%' })).toBeVisible()
   await page.getByPlaceholder('Search').fill('Optics')
@@ -207,7 +211,7 @@ test('subject study-time progress matches on cards and Home search', async ({ pa
 })
 
 test('rapid double save creates a single task that survives reload', async ({ page }) => {
-  await page.getByRole('button', { name: 'Tasks' }).click()
+  await navButton(page, 'Tasks').click()
   await page.getByRole('button', { name: 'New task' }).click()
   await page.getByLabel('Task title').fill('Single persistence task')
   await page.getByLabel('Minutes').fill('25')
@@ -222,19 +226,19 @@ test('rapid double save creates a single task that survives reload', async ({ pa
   await expect(page.getByRole('heading', { name: 'Single persistence task' })).toHaveCount(1)
 
   await page.reload()
-  await page.getByRole('button', { name: 'Tasks' }).click()
+  await navButton(page, 'Tasks').click()
   await expect(page.getByRole('heading', { name: 'Single persistence task' })).toHaveCount(1)
 })
 
 test('shows subject and task mutation feedback through create, edit, complete, and delete', async ({ page }) => {
-  await page.getByRole('button', { name: 'Subjects' }).click()
+  await navButton(page, 'Subjects').click()
   await page.getByRole('button', { name: 'New subject' }).click()
   await page.getByLabel('Subject name').fill('Mutation Chemistry')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('status')).toContainText('Subject created.', { timeout: 15_000 })
   await expect(page.getByText('Mutation Chemistry')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Tasks' }).click()
+  await navButton(page, 'Tasks').click()
   await page.getByRole('button', { name: 'New task' }).click()
   await page.getByLabel('Task title').fill('Lab write-up')
   await page.getByLabel('Subject').selectOption({ label: 'Mutation Chemistry' })
@@ -259,9 +263,9 @@ test('shows subject and task mutation feedback through create, edit, complete, a
   await expect(page.getByText('Lab write-up revised')).toHaveCount(0)
 
   await page.reload()
-  await page.getByRole('button', { name: 'Tasks' }).click()
+  await navButton(page, 'Tasks').click()
   await expect(page.getByText('Lab write-up revised')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Subjects' }).click()
+  await navButton(page, 'Subjects').click()
   await expect(page.getByText('Mutation Chemistry')).toBeVisible()
 })
 
@@ -295,7 +299,7 @@ test('switches and persists all seven themes without layout overflow', async ({ 
 
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('monochrome')
   await expect.poll(() => page.evaluate(() => document.querySelector('meta[name="theme-color"]')?.getAttribute('content'))).toBe('#111111')
-  await page.getByRole('button', { name: 'Settings' }).click()
+  await navButton(page, 'Settings').click()
 
   const themeGroup = page.getByRole('radiogroup', { name: 'Theme' })
   await expect(themeGroup.getByRole('radio')).toHaveCount(7)
@@ -326,7 +330,7 @@ test('switches and persists all seven themes without layout overflow', async ({ 
 
   if (!compact) {
     await page.setViewportSize({ width: 830, height: 900 })
-    await page.getByRole('button', { name: 'Progress' }).click()
+    await navButton(page, 'Progress').click()
     await page.getByRole('button', { name: 'Log session', exact: true }).click()
     const layout = await page.evaluate(() => ({ viewport: window.innerWidth, page: document.documentElement.scrollWidth }))
     expect(layout.page).toBeLessThanOrEqual(layout.viewport)
@@ -339,12 +343,99 @@ test('keeps the dashboard usable on mobile', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: HOME_GREETING_HEADING })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible()
   await expect(page.getByPlaceholder('Search')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Go to dashboard' })).toBeHidden()
-  await page.getByRole('button', { name: 'Tasks' }).click()
+  await navButton(page, 'Tasks').click()
   await expect(page.getByRole('heading', { name: 'Tasks', level: 1 })).toBeVisible()
-  await page.getByRole('button', { name: 'Settings' }).click()
+  await navButton(page, 'Settings').click()
   await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible()
+})
+
+test('shows an actionable Today dashboard and keyboard-activates the recommendation', async ({ page }) => {
+  await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible()
+  const today = page.locator('section.home-today-card')
+  await expect(today.getByRole('listitem', { name: '0 tasks due today' })).toBeVisible()
+  await expect(today.getByRole('listitem', { name: '0 overdue tasks' })).toBeVisible()
+  await expect(today.getByText('Recommended next')).toBeVisible()
+  await expect(today.getByRole('heading', { name: 'Create a subject' })).toBeVisible()
+
+  await today.getByRole('button', { name: 'Create subject' }).focus()
+  await expect(today.getByRole('button', { name: 'Create subject' })).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { name: 'Subjects', level: 1 })).toBeVisible()
+  await expect(page.getByLabel('Subject name')).toBeVisible()
+})
+
+test('keeps the actionable Home dashboard within 320px without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 })
+  await page.goto('/')
+
+  await expect(page.getByRole('heading', { name: 'Today' })).toBeVisible()
+  const today = page.locator('section.home-today-card')
+  await expect(today.getByRole('button', { name: 'Create subject' })).toBeVisible()
+
+  const layout = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    page: document.documentElement.scrollWidth,
+  }))
+  expect(layout.page).toBeLessThanOrEqual(layout.viewport)
+
+  const actionAboveNav = await page.evaluate(() => {
+    const button = [...document.querySelectorAll('button')].find((candidate) =>
+      candidate.textContent?.trim() === 'Create subject' && candidate.classList.contains('home-recommended-action'),
+    )
+    const nav = document.querySelector('.sidebar')
+    if (!button || !nav) return null
+    button.scrollIntoView({ block: 'end', inline: 'nearest' })
+    const buttonBox = button.getBoundingClientRect()
+    const navBox = nav.getBoundingClientRect()
+    return {
+      fullyAboveNav: buttonBox.bottom <= navBox.top + 1,
+      navPosition: getComputedStyle(nav).position,
+    }
+  })
+  expect(actionAboveNav).not.toBeNull()
+  expect(actionAboveNav?.navPosition).toBe('fixed')
+  expect(actionAboveNav?.fullyAboveNav).toBe(true)
+})
+
+test('populated desktop Home shows due counts and recommends the overdue task', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+
+  await navButton(page, 'Subjects').click()
+  await page.getByRole('button', { name: 'New subject' }).click()
+  await page.getByLabel('Subject name').fill('Chemistry')
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  const yesterday = await page.evaluate(() => {
+    const date = new Date()
+    date.setDate(date.getDate() - 1)
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  })
+
+  await navButton(page, 'Tasks').click()
+  await page.getByRole('button', { name: 'New task' }).click()
+  await page.getByLabel('Task title').fill('Overdue stoichiometry')
+  await page.getByLabel('Due date').fill(yesterday)
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText('Overdue stoichiometry')).toBeVisible()
+
+  await navButton(page, 'Home').click()
+  const today = page.locator('section.home-today-card')
+  await expect(today.getByRole('listitem', { name: '1 overdue tasks' })).toBeVisible()
+  await expect(today.getByRole('heading', { name: 'Overdue task' })).toBeVisible()
+  await expect(today.getByText(/Catch up on "Overdue stoichiometry"/)).toBeVisible()
+
+  const layout = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    page: document.documentElement.scrollWidth,
+  }))
+  expect(layout.page).toBeLessThanOrEqual(layout.viewport)
+
+  await today.getByRole('button', { name: 'Open Tasks', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Tasks', level: 1 })).toBeVisible()
+  await expect(page.getByText('Overdue stoichiometry')).toBeVisible()
 })
 
 test('explicit goal metrics use persisted metric rather than title text', async ({ page }) => {
@@ -363,7 +454,7 @@ test('explicit goal metrics use persisted metric rather than title text', async 
   await expect(studyGoal.getByText('Weekly', { exact: true })).toBeVisible()
   await expect(studyGoal.getByText('0/5 hours')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Progress' }).click()
+  await navButton(page, 'Progress').click()
   await page.getByRole('button', { name: 'Log session' }).click()
   const sessionForm = page.getByRole('form', { name: 'Log study session' })
   const localStart = await page.evaluate(() => {
@@ -379,7 +470,7 @@ test('explicit goal metrics use persisted metric rather than title text', async 
   await sessionForm.getByRole('button', { name: 'Save session' }).click()
   await expect(page.getByRole('status')).toContainText('Study session recorded.', { timeout: 15_000 })
 
-  await page.getByRole('button', { name: 'Goals' }).click()
+  await navButton(page, 'Goals').click()
   await expect(studyGoal.getByText('1/5 hours')).toBeVisible()
   await expect(studyGoal.getByRole('progressbar', { name: '20%' })).toBeVisible()
   await expect(manualGoal.getByText('Manual progress')).toBeVisible()
@@ -390,7 +481,7 @@ test('explicit goal metrics use persisted metric rather than title text', async 
   expect(goalsBeforeReload.find((goal) => goal.title === studyTitle)?.metric).toBe('study_time')
 
   await page.reload()
-  await page.getByRole('button', { name: 'Goals' }).click()
+  await navButton(page, 'Goals').click()
   await expect(manualGoal.getByText('Manual progress')).toBeVisible()
   await expect(manualGoal.getByText('5/10 points')).toBeVisible()
   await expect(studyGoal.getByText('Study time')).toBeVisible()

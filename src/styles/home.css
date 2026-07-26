@@ -240,6 +240,143 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.home-today-card {
+  display: grid;
+  gap: 16px;
+}
+
+.home-today-metrics {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.home-today-metric {
+  min-width: 0;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.home-today-metric.is-overdue {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+
+.home-today-metric > svg {
+  color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.home-today-metric div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.home-today-metric-label,
+.home-today-metric-hint {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.home-today-metric strong {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 1.2rem;
+  line-height: 1.1;
+}
+
+.home-today-metric-action {
+  min-height: 44px;
+  padding-inline: 8px;
+}
+
+.home-today-previews {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 12px;
+}
+
+.home-today-preview-title {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.home-today-preview-list {
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+}
+
+.home-today-preview-list li {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.92rem;
+}
+
+.home-recommended {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--accent-soft);
+}
+
+.home-recommended-copy {
+  min-width: 0;
+  flex: 1 1 220px;
+  display: grid;
+  gap: 4px;
+}
+
+.home-recommended-eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.home-recommended-title {
+  margin: 0;
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.home-recommended-detail {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.home-recommended-action {
+  min-height: 44px;
+  flex: 0 0 auto;
+}
+
 .insight-tile {
   min-width: 0;
   min-height: 94px;

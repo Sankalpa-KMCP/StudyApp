@@ -72,7 +72,9 @@ describe('App flashcards live query isolation', () => {
     expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     const reviewSection = screen.getByText('Review Queue').closest('section') as HTMLElement
     expect(within(reviewSection).getByText('1')).toBeInTheDocument()
-    expect(within(screen.getByLabelText('Study pulse')).getByText('1')).toBeInTheDocument()
+    const today = screen.getByRole('heading', { name: 'Today' }).closest('section') as HTMLElement
+    expect(within(today).getByText('Flashcards due')).toBeInTheDocument()
+    expect(within(today).getByRole('listitem', { name: /flashcards due/i })).toHaveTextContent('1')
 
     await user.click(screen.getByRole('button', { name: 'Subjects' }))
     const subjectCard = (await screen.findByText('Chemistry')).closest('article') as HTMLElement
