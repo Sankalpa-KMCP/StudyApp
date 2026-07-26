@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { formatShortTime, toInputDate, toInputTime } from './appUtils'
 import { studyDb } from './db/studyDb'
+import * as studySessionService from './db/studySessionService'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 describe('App progress', () => {
@@ -184,8 +185,8 @@ describe('App progress', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 6, 13, 15, 0))
     const user = userEvent.setup()
-    const addSpy = vi.spyOn(studyDb.studySessions, 'add')
-    const updateSpy = vi.spyOn(studyDb.studySessions, 'update')
+    const addSpy = vi.spyOn(studySessionService, 'createStudySession')
+    const updateSpy = vi.spyOn(studySessionService, 'updateStudySession')
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Progress' }))
@@ -207,10 +208,10 @@ describe('App progress', () => {
     const gate = new Promise<void>((resolve) => {
       releaseAdd = resolve
     })
-    const originalAdd = studyDb.studySessions.add.bind(studyDb.studySessions)
-    const addSpy = vi.spyOn(studyDb.studySessions, 'add').mockImplementation(async (session) => {
+    const originalCreate = studySessionService.createStudySession
+    const addSpy = vi.spyOn(studySessionService, 'createStudySession').mockImplementation(async (fields) => {
       await gate
-      return originalAdd(session)
+      return originalCreate(fields)
     })
 
     render(<App />)
@@ -239,10 +240,10 @@ describe('App progress', () => {
     vi.setSystemTime(new Date(2026, 6, 13, 15, 0))
     const user = userEvent.setup()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const originalAdd = studyDb.studySessions.add.bind(studyDb.studySessions)
-    const addSpy = vi.spyOn(studyDb.studySessions, 'add')
+    const originalCreate = studySessionService.createStudySession
+    const addSpy = vi.spyOn(studySessionService, 'createStudySession')
       .mockRejectedValueOnce(new Error('IndexedDB session write failed'))
-      .mockImplementation(async (session) => originalAdd(session))
+      .mockImplementation(async (fields) => originalCreate(fields))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Progress' }))
@@ -283,7 +284,7 @@ describe('App progress', () => {
       note: 'Original note',
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    vi.spyOn(studyDb.studySessions, 'update').mockResolvedValueOnce(0)
+    vi.spyOn(studySessionService, 'updateStudySession').mockRejectedValueOnce(new Error('Session no longer exists.'))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Progress' }))
@@ -329,8 +330,8 @@ describe('App progress', () => {
     const gate = new Promise<void>((resolve) => {
       releaseDelete = resolve
     })
-    const originalDelete = studyDb.studySessions.delete.bind(studyDb.studySessions)
-    const deleteSpy = vi.spyOn(studyDb.studySessions, 'delete').mockImplementation(async () => {
+    const originalDelete = studySessionService.deleteStudySession
+    const deleteSpy = vi.spyOn(studySessionService, 'deleteStudySession').mockImplementation(async () => {
       await gate
       throw new Error('delete failed')
     })
