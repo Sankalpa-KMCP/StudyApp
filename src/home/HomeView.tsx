@@ -22,6 +22,7 @@ import { getActiveFocusElapsedMs } from '../db/activeFocusSession'
 
 export function HomeView(props: {
   data: AppShellData
+  notes: StudyNote[]
   subjectMap: Map<string, StudySubject>
   weeklyStudyDays: WeeklyStudyDay[]
   quickNotes: string[]
@@ -55,7 +56,7 @@ export function HomeView(props: {
   onClearSearch?: () => void
 }) {
   const openTasks = props.data.tasks.filter((task) => task.status === 'open').slice(0, 5)
-  const recentNotes = props.data.notes.slice(0, 3)
+  const recentNotes = props.notes.slice(0, 3)
   const subjectStats = props.data.subjects.slice(0, 5)
   const dueCards = props.data.flashcards.filter((card) => isFlashcardDue(card)).length
   const weekHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
