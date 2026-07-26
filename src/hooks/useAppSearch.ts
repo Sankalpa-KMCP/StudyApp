@@ -1,11 +1,12 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import { buildSearchResults, calculateSubjectProgress, isFlashcardDue, type SearchResult } from '../appUtils'
-import type { CalendarEvent, Flashcard, StudyData, StudyNote, StudySubject, StudyTask } from '../db/types'
+import type { AppShellData } from '../db/appShellRead'
+import type { CalendarEvent, Flashcard, StudyNote, StudySubject, StudyTask } from '../db/types'
 
 export type TaskSearchFilter = 'all' | 'open' | 'done'
 
 export type UseAppSearchOptions = {
-  data: StudyData
+  data: AppShellData
   subjectMap: Map<string, StudySubject>
   taskFilter: TaskSearchFilter
 }

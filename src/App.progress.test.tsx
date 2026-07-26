@@ -67,7 +67,7 @@ describe('App progress', () => {
     await user.click(screen.getByRole('button', { name: 'Subjects' }))
     expect(screen.getByRole('progressbar', { name: '50%' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Goals' }))
-    expect(screen.getByText('30/60 minutes')).toBeInTheDocument()
+    expect(await screen.findByText('30/60 minutes')).toBeInTheDocument()
     expect(screen.getByRole('progressbar', { name: '50%' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Progress' }))
@@ -102,7 +102,7 @@ describe('App progress', () => {
     await user.click(screen.getByRole('button', { name: 'Home' }))
     expect(within(screen.getByLabelText('Today overview')).getByText('0m')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Goals' }))
-    expect(screen.getByText('0/60 minutes')).toBeInTheDocument()
+    expect(await screen.findByText('0/60 minutes')).toBeInTheDocument()
     expect(screen.getByRole('progressbar', { name: '0%' })).toBeInTheDocument()
   }, 15_000)
 
@@ -353,7 +353,7 @@ describe('App progress', () => {
     expect(within(screen.getByText('Weekly study').closest('article')! as HTMLElement).getByText('0h 30m')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Goals' }))
-    expect(screen.getByText('30/60 minutes')).toBeInTheDocument()
+    expect(await screen.findByText('30/60 minutes')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Progress' }))
     deleteSpy.mockImplementation(async (id) => originalDelete(id))

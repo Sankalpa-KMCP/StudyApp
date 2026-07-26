@@ -13,12 +13,10 @@ import { useFocusSession } from './hooks/useFocusSession'
 import { useSidebarPreference } from './hooks/useSidebarPreference'
 import { useStudyBackup } from './hooks/useStudyBackup'
 import { useThemePreference } from './hooks/useThemePreference'
-import {
-  getStudyData,
-  migrateLegacyLocalStorage,
-} from './db/studyDb'
+import { migrateLegacyLocalStorage } from './db/studyDb'
+import { EMPTY_APP_SHELL_DATA, getAppShellData, type AppShellData } from './db/appShellRead'
 import { saveQuickNotes } from './db/quickNotesService'
-import type { ActiveFocusSession, StudyData } from './db/types'
+import type { ActiveFocusSession } from './db/types'
 import { ReviewQueue, StreakCard, Upcoming, WeeklyProgress } from './components/RightColumn'
 import { HomeView } from './home/HomeView'
 import { TasksView } from './views/TasksView'
@@ -45,17 +43,6 @@ export type SettingsFeedback = { tone: 'success' | 'error'; message: string }
 export type ActiveSession = ActiveFocusSession
 /** Re-exported for existing consumers; prefer `./hooks/useThemePreference`. */
 export type { ThemeMode } from './hooks/useThemePreference'
-
-const EMPTY_DATA: StudyData = {
-  tasks: [],
-  subjects: [],
-  notes: [],
-  events: [],
-  flashcards: [],
-  studySessions: [],
-  goals: [],
-  settings: [],
-}
 
 function App() {
   const [activeView, setActiveView] = useState<View>(() => resolveViewFromPathname(window.location.pathname).view)
@@ -122,8 +109,8 @@ function App() {
     return () => window.removeEventListener('popstate', onPopState)
   }, [syncUrlToView])
 
-  const liveData = useLiveQuery(() => getStudyData(), [])
-  const data = liveData ?? EMPTY_DATA
+  const liveData = useLiveQuery(() => getAppShellData(), [])
+  const data = liveData ?? EMPTY_APP_SHELL_DATA
   const isLoading = liveData === undefined
 
   const currentDate = useCurrentDate()
@@ -357,7 +344,6 @@ function App() {
                 ) : null}
                 {activeView === 'Goals' ? (
                   <GoalsView
-                    goals={data.goals}
                     dailyGoalMinutes={dailyGoalMinutes}
                     studySessions={data.studySessions}
                   />
@@ -393,12 +379,12 @@ function App() {
 }
 
 
-function settingNumber(data: StudyData, key: string, fallback: number) {
+function settingNumber(data: AppShellData, key: string, fallback: number) {
   const value = data.settings.find((setting) => setting.key === key)?.value
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
 
-function settingStringArray(data: StudyData, key: string) {
+function settingStringArray(data: AppShellData, key: string) {
   const value = data.settings.find((setting) => setting.key === key)?.value
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
 }

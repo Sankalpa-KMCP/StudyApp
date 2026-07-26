@@ -1,4 +1,5 @@
-import type { Flashcard, GoalMetric, GoalPeriod, StudyData, StudyGoal, StudySession, StudySubject, SubjectProgressMode } from './db/types'
+import type { Flashcard, GoalMetric, GoalPeriod, StudyGoal, StudySession, StudySubject, SubjectProgressMode } from './db/types'
+import type { AppShellData } from './db/appShellRead'
 
 export type WeeklyStudyDay = {
   key: string
@@ -249,7 +250,7 @@ export function groupStudySessionsByLocalDate(sessions: StudySession[], now = ne
   }))
 }
 
-export function buildSearchResults(data: StudyData, subjectMap: Map<string, StudySubject>, query: string): SearchResult[] {
+export function buildSearchResults(data: AppShellData, subjectMap: Map<string, StudySubject>, query: string): SearchResult[] {
   const normalized = query.trim().toLowerCase()
   if (!normalized) return []
 
