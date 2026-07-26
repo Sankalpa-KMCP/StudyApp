@@ -192,6 +192,87 @@ describe('App workspaces', () => {
     expect(await studyDb.tasks.count()).toBe(1)
   })
 
+  it('clamps Task minutes to the editor range on input and stores boundary values on create', async () => {
+    const user = userEvent.setup()
+    const createSpy = vi.spyOn(taskService, 'createTask')
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+    await user.click(screen.getByRole('button', { name: 'New task' }))
+
+    const minutesInput = screen.getByLabelText('Minutes')
+    expect(minutesInput).toHaveAttribute('min', '5')
+    expect(minutesInput).toHaveAttribute('max', '720')
+    expect(minutesInput).toHaveAttribute('type', 'number')
+
+    fireEvent.change(minutesInput, { target: { value: '4' } })
+    expect(minutesInput).toHaveValue(5)
+    fireEvent.change(minutesInput, { target: { value: '721' } })
+    expect(minutesInput).toHaveValue(720)
+    fireEvent.change(minutesInput, { target: { value: '' } })
+    expect(minutesInput).toHaveValue(5)
+
+    await user.clear(screen.getByLabelText('Task title'))
+    await user.type(screen.getByLabelText('Task title'), 'Boundary minutes task')
+    fireEvent.change(minutesInput, { target: { value: '5' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Boundary minutes task')).toBeInTheDocument()
+    expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({ minutes: 5 }))
+    expect(await studyDb.tasks.toArray()).toEqual([
+      expect.objectContaining({ title: 'Boundary minutes task', minutes: 5 }),
+    ])
+
+    await user.click(screen.getByRole('button', { name: 'New task' }))
+    await user.type(screen.getByLabelText('Task title'), 'Upper minutes task')
+    fireEvent.change(screen.getByLabelText('Minutes'), { target: { value: '720' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Upper minutes task')).toBeInTheDocument()
+    expect(createSpy).toHaveBeenLastCalledWith(expect.objectContaining({ minutes: 720 }))
+    expect((await studyDb.tasks.toArray()).find((task) => task.title === 'Upper minutes task')?.minutes).toBe(720)
+  })
+
+  it('clamps Task minutes on edit and keeps mutation failure distinct from validation', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.tasks.add({
+      id: 'task-minutes-edit',
+      title: 'Editable minutes task',
+      subjectId: '',
+      dueDate: '2026-07-01',
+      priority: 'normal',
+      status: 'open',
+      minutes: 30,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    const updateSpy = vi.spyOn(taskService, 'updateTask')
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+    await user.click(await screen.findByLabelText('Edit Editable minutes task'))
+
+    fireEvent.change(screen.getByLabelText('Minutes'), { target: { value: '721' } })
+    expect(screen.getByLabelText('Minutes')).toHaveValue(720)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Task updated.')
+    expect(updateSpy).toHaveBeenCalledWith('task-minutes-edit', expect.objectContaining({ minutes: 720 }))
+    expect((await studyDb.tasks.get('task-minutes-edit'))?.minutes).toBe(720)
+
+    await user.click(await screen.findByLabelText('Edit Editable minutes task'))
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    updateSpy.mockRejectedValueOnce(new Error('IndexedDB write failed'))
+    fireEvent.change(screen.getByLabelText('Minutes'), { target: { value: '55' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Task could not be saved. Your details are still in the form.')
+    expect(screen.getByLabelText('Minutes')).toHaveValue(55)
+    expect(screen.queryByText('Enter a task title.')).not.toBeInTheDocument()
+    expect((await studyDb.tasks.get('task-minutes-edit'))?.minutes).toBe(720)
+  })
+
   it('treats a missing-row edit as failure and keeps the editor open', async () => {
     const user = userEvent.setup()
     const timestamp = '2026-06-29T00:00:00.000Z'
