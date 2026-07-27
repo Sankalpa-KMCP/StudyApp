@@ -12,52 +12,30 @@ npm run dev
 | Command | Purpose |
 |---------|---------|
 | `npm test` | Vitest unit and component tests |
-| `npm run test:coverage` | Main coverage gate (80% lines, 74% branches) |
-| `npm run test:coverage:components` | Shared/analytics component gate (65% lines, 50% branches) |
-| `npm run test:coverage:settings` | Control-deck / settings widget gate (60% lines, 45% branches) |
-| `npm run test:e2e` | Playwright user journeys (Chromium desktop and mobile projects) |
-| `npm run lint` | ESLint including jsx-a11y rules (errors on CI) |
-| `npm run check:bundle` | Gzip budget on main JS chunk (~512 KB) |
+| `npm run test:coverage` | Main coverage gate |
+| `npm run test:coverage:components` | Component coverage gate |
+| `npm run test:coverage:settings` | Settings coverage gate |
+| `npm run test:e2e` | Playwright user journeys for Chromium desktop and mobile projects |
+| `npm run lint` | ESLint including jsx-a11y rules |
+| `npm run build` | TypeScript and production Vite build |
+| `npm run check:bundle` | Gzip budget on built JS chunks |
+| `npm run tauri:build` | Desktop shell build from the workspace root |
 
-## List virtualization
+## Data Safety
 
-`TaskList` virtualizes when count exceeds 100. `NoteListPanel` virtualizes above 50 notes. Completed tasks cap at 20 with a **Show more** control (+20 per click).
+Study data is local-first and stored in IndexedDB through Dexie. Keep destructive flows confirmed by the user and covered by tests.
 
-## CSV export safety
+Optional fields on stored records should stay backward-compatible with older IndexedDB rows and JSON exports. For example, flashcard scheduling fields are optional so older cards remain due immediately.
 
-`useSessionBackup` prefixes formula-like note fields (`=`, `+`, `-`, `@`) with `'` before CSV quoting to prevent spreadsheet injection.
+## Dependency Hygiene
 
-## Dexie migrations
-
-1. Bump `this.version(N)` in [`src/db/db.ts`](src/db/db.ts).
-2. Add `.stores({ ... })` and optional `.upgrade()` handler.
-3. Add or extend tests in [`src/db/__tests__/db.migration.test.ts`](src/db/__tests__/db.migration.test.ts).
-
-**v12 note:** Drops the `flashcards` table, removes `flashcardsEnabled`, and filters `cards` from `lockoutAllowedTabs`. `#cards` URLs redirect to Focus.
-
-**v9–v11:** v9 adds optional `taskId` on history entries; v10 adds `recurrenceParentId` on tasks; v11 adds folder sync. See [`src/db/db.ts`](src/db/db.ts) for full migration chain.
-
-## E2E helpers
-
-Shared utilities live in [`e2e/helpers/studyApp.ts`](e2e/helpers/studyApp.ts):
-
-- `freshVisitStorage` — empty storage state for first-install E2E scenarios (`e2e/first-visit.spec.ts`)
-
-## Adding a setting key
-
-1. Add default in settings repository / seed logic.
-2. Wire through `StudyDataProvider` settings hook if UI-bound.
-3. Add a `ToggleSetting`, `RangeSetting`, or Control Deck panel control.
-4. Document default in README timer/settings tables.
+The frontend uses plain CSS, Vite, React, Dexie, lucide icons, and Tauri plugins that are imported by the current app. Do not add a UI/charting/state dependency unless the product code imports it and the bundle budget still passes.
 
 ## Adding an E2E spec
 
 1. Create `e2e/<feature>.spec.ts` beside existing specs.
-2. Start with `page.goto('/')` and wait for `Study Dashboard`.
-3. For lazy tabs, assert loading fallback then content (`/loading analytics/i`).
-4. Run `npm run test:e2e -- e2e/<feature>.spec.ts` locally before pushing.
-
-Folder sync specs: `e2e/folder-sync.spec.ts`, `e2e/folder-sync-conflict.spec.ts` (mock adapter via `VITE_E2E_SYNC=1` on the dev server). Run locally with `npm run test:e2e:sync`. CI runs these in a dedicated `e2e-sync` job via the `e2e-sync` Playwright project.
+2. Start with `page.goto('/')` and wait for the Dashboard or Good morning heading.
+3. Run `npm run test:e2e -- e2e/<feature>.spec.ts` locally before pushing.
 
 ## Storybook
 
@@ -65,4 +43,4 @@ Folder sync specs: `e2e/folder-sync.spec.ts`, `e2e/folder-sync-conflict.spec.ts`
 npm run storybook
 ```
 
-Stories live next to components as `*.stories.tsx`. The a11y addon runs in Storybook dev and build.
+Stories live next to components as `*.stories.tsx`.
