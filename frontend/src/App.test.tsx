@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -266,6 +266,113 @@ describe('App', () => {
     await waitFor(() => expect(screen.queryByText('Keep until confirmed')).not.toBeInTheDocument())
   })
 
+  it('creates and displays calendar events', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Calendar' }))
+    await user.click(screen.getByRole('button', { name: 'New event' }))
+    await user.type(screen.getByLabelText('Event title'), 'Study group meeting')
+    await user.type(screen.getByLabelText('Location'), 'Library room 3')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const events = await studyDb.events.toArray()
+    expect(events).toHaveLength(1)
+    expect(events[0].title).toBe('Study group meeting')
+    expect(events[0].location).toBe('Library room 3')
+
+    await waitFor(() => expect(screen.getAllByText('Study group meeting').length).toBeGreaterThanOrEqual(1))
+  })
+
+  it('creates and manages goals', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Goals' }))
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.type(screen.getByLabelText('Goal title'), 'Study 2 hours daily')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Study 2 hours daily')).toBeInTheDocument()
+
+    const goals = await studyDb.goals.toArray()
+    expect(goals).toHaveLength(1)
+    expect(goals[0].title).toBe('Study 2 hours daily')
+  })
+
+  it('creates a new subject from the subjects view', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Subjects' }))
+    await user.click(screen.getByRole('button', { name: 'New subject' }))
+    await user.type(screen.getByLabelText('Subject name'), 'Physics')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Physics')).toBeInTheDocument()
+
+    const subjects = await studyDb.subjects.toArray()
+    expect(subjects).toHaveLength(1)
+    expect(subjects[0].name).toBe('Physics')
+  })
+
+  it('saves quick notes from the home page', async () => {
+    render(<App />)
+
+    const textarea = await screen.findByPlaceholderText(/Capture fast ideas/)
+    fireEvent.change(textarea, { target: { value: 'Review chapter 5 for exam' } })
+
+    await waitFor(async () => {
+      const setting = await studyDb.settings.get('quickNotes')
+      expect(Array.isArray(setting?.value) ? setting!.value[0] : setting?.value).toContain('Review chapter 5')
+    })
+  })
+
+  it('filters tasks by all, open, and done status', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.tasks.add({
+      id: 'task-filter-open',
+      title: 'Open filter task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 30,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await studyDb.tasks.add({
+      id: 'task-filter-done',
+      title: 'Done filter task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'done',
+      minutes: 30,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+
+    // Default 'all' filter shows both
+    expect(screen.getByText('Open filter task')).toBeInTheDocument()
+    expect(screen.getByText('Done filter task')).toBeInTheDocument()
+
+    // Filter to open
+    await user.click(screen.getByRole('button', { name: 'open' }))
+    expect(screen.getByText('Open filter task')).toBeInTheDocument()
+    expect(screen.queryByText('Done filter task')).not.toBeInTheDocument()
+
+    // Filter to done
+    await user.click(screen.getByRole('button', { name: 'done' }))
+    expect(screen.queryByText('Open filter task')).not.toBeInTheDocument()
+    expect(screen.getByText('Done filter task')).toBeInTheDocument()
+  })
+
   it('reports import success and failure', async () => {
     const user = userEvent.setup()
     const validExport = {
@@ -291,5 +398,71 @@ describe('App', () => {
 
     await user.upload(importInput, new File(['not valid json'], 'broken.json', { type: 'application/json' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Import failed. Choose a valid Study Dashboard export.')
+  })
+
+  it('import replaces all existing study data', async () => {
+    const user = userEvent.setup()
+    await studyDb.tasks.add({
+      id: 'task-to-replace',
+      title: 'Will be replaced',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 30,
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    })
+
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    const importInput = screen.getByLabelText(/Import data/)
+    const emptyExport = {
+      version: 1,
+      exportedAt: '2026-06-29T00:00:00.000Z',
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+    await user.upload(importInput, new File([JSON.stringify(emptyExport)], 'empty.json', { type: 'application/json' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Study data imported.')
+
+    const tasks = await studyDb.tasks.toArray()
+    expect(tasks).toHaveLength(0)
+  })
+
+  it('persists theme choice to localStorage', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: /Dark mode/ }))
+    expect(localStorage.getItem('study-dashboard-theme')).toBe('dark')
+
+    await user.click(screen.getByRole('radio', { name: /Aurora/ }))
+    expect(localStorage.getItem('study-dashboard-theme')).toBe('aurora')
+
+    await user.click(screen.getByRole('radio', { name: /Ember/ }))
+    expect(localStorage.getItem('study-dashboard-theme')).toBe('ember')
+  })
+
+  it('clears active search from the settings panel', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.type(await screen.findByPlaceholderText('Search'), 'biology')
+    expect(screen.getByPlaceholderText('Search')).toHaveValue('biology')
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    const clearButtons = screen.getAllByRole('button', { name: 'Clear search' })
+    await user.click(clearButtons[clearButtons.length - 1])
+
+    expect(screen.getByPlaceholderText('Search')).toHaveValue('')
   })
 })
