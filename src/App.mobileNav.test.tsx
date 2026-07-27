@@ -113,6 +113,7 @@ describe('App mobile navigation', () => {
     expect(window.location.pathname).toBe(pathForView('Settings'))
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Export data/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show onboarding checklist' })).toBeInTheDocument()
   })
 
   it('preserves desktop sidebar collapse preference when not on mobile', async () => {

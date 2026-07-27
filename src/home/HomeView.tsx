@@ -12,12 +12,13 @@ import {
   type WeeklyStudyDay,
 } from '../appUtils'
 import type { ActiveFocusSession, CalendarEvent, Flashcard, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
-import { EmptyState, SubjectCard } from '../components/ui'
+import { EmptyState, MutationNotice, SubjectCard } from '../components/ui'
 import { StudyTime } from '../components/RightColumn'
 import type { View } from '../navigation/viewRoutes'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FirstStudyChecklist } from './FirstStudyChecklist'
 import { getActiveFocusElapsedMs } from '../db/activeFocusSession'
+import { useMutationState } from '../hooks/useMutationState'
 import {
   getOpenOverdueTasks,
   getOpenTasksDueToday,
@@ -41,6 +42,7 @@ export function HomeView(props: {
   weeklyStudyDays: WeeklyStudyDay[]
   quickNotes: string[]
   dailyGoalMinutes: number
+  onboardingChecklistDismissed: boolean
   todayFocusMinutes: number
   currentDate: Date
   activeSession: ActiveFocusSession | null
@@ -67,9 +69,13 @@ export function HomeView(props: {
   onCreateSubject: () => void
   onCreatePlan: () => void
   onLogSession: () => void
+  onDismissOnboardingChecklist: () => Promise<void>
 }) {
   const focusAttentionRequest = props.focusAttentionRequest ?? 0
   const handledFocusAttention = useRef(0)
+  const homeTodayTitleRef = useRef<HTMLHeadingElement | null>(null)
+  const [restoreFocusAfterChecklistDismiss, setRestoreFocusAfterChecklistDismiss] = useState(false)
+  const dismissChecklistMutation = useMutationState()
 
   useLayoutEffect(() => {
     if (focusAttentionRequest <= handledFocusAttention.current) return
@@ -111,6 +117,16 @@ export function HomeView(props: {
   const openTasks = props.tasks.filter((task) => task.status === 'open').slice(0, 5)
   const recentNotes = props.notes.slice(0, 3)
   const subjectStats = props.subjects.slice(0, 5)
+  const hasSubject = props.subjects.length > 0
+  const hasPlan = props.tasks.length > 0 || props.events.length > 0
+  const hasSession = props.studySessions.length > 0
+  const showChecklist = !props.onboardingChecklistDismissed && !(hasSubject && hasPlan && hasSession)
+
+  useEffect(() => {
+    if (showChecklist || !restoreFocusAfterChecklistDismiss) return
+    homeTodayTitleRef.current?.focus()
+    setRestoreFocusAfterChecklistDismiss(false)
+  }, [restoreFocusAfterChecklistDismiss, showChecklist])
 
   const activateRecommended = () => {
     activateRecommendedNextAction(recommended, {
@@ -119,17 +135,41 @@ export function HomeView(props: {
     })
   }
 
+  const dismissChecklist = () => {
+    dismissChecklistMutation.clearFeedback()
+    void dismissChecklistMutation.run(async () => {
+      await props.onDismissOnboardingChecklist()
+    }, {
+      errorMessage: 'Onboarding checklist could not be dismissed. Please try again.',
+      onSuccess: () => {
+        setRestoreFocusAfterChecklistDismiss(true)
+      },
+    })
+  }
+
   return (
     <>
-      <FirstStudyChecklist
-        hasSubject={props.subjects.length > 0}
-        hasPlan={props.tasks.length > 0 || props.events.length > 0}
-        hasSession={props.studySessions.length > 0}
-        onCreateSubject={props.onCreateSubject}
-        onCreatePlan={props.onCreatePlan}
-        onLogSession={props.onLogSession}
-      />
+      {showChecklist ? (
+        <>
+          <FirstStudyChecklist
+            hasSubject={hasSubject}
+            hasPlan={hasPlan}
+            hasSession={hasSession}
+            onCreateSubject={props.onCreateSubject}
+            onCreatePlan={props.onCreatePlan}
+            onLogSession={props.onLogSession}
+            onDismiss={dismissChecklist}
+            dismissPending={dismissChecklistMutation.isPending}
+          />
+          <MutationNotice
+            phase={dismissChecklistMutation.phase}
+            message={dismissChecklistMutation.message}
+            onDismiss={dismissChecklistMutation.clearFeedback}
+          />
+        </>
+      ) : null}
       <HomeTodayDashboard
+        headingRef={homeTodayTitleRef}
         dueTodayCount={dueTodayTasks.length}
         overdueCount={overdueTasks.length}
         dueFlashcardCount={dueFlashcards.length}
@@ -271,6 +311,7 @@ function recommendedActionCopy(action: RecommendedNextAction): { title: string; 
 }
 
 function HomeTodayDashboard(props: {
+  headingRef: React.RefObject<HTMLHeadingElement | null>
   dueTodayCount: number
   overdueCount: number
   dueFlashcardCount: number
@@ -294,7 +335,7 @@ function HomeTodayDashboard(props: {
     <section className="card home-today-card" aria-labelledby="home-today-title">
       <div className="card-heading">
         <div>
-          <h2 id="home-today-title">Today</h2>
+          <h2 id="home-today-title" ref={props.headingRef} tabIndex={-1}>Today</h2>
           <span>{targetPercent}% of today's focus target · {formatMinutes(props.todayFocusMinutes)} of {formatMinutes(props.dailyGoalMinutes)}</span>
         </div>
       </div>

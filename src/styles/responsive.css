@@ -116,6 +116,14 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .first-study-heading-actions {
+    justify-items: stretch;
+  }
+
+  .first-study-dismiss {
+    width: 100%;
+  }
+
   .first-study-step + .first-study-step {
     border-top: 1px solid var(--line);
     border-left: 0;
@@ -393,8 +401,18 @@
   }
 
   .first-study-heading {
+    flex-direction: column;
     gap: 12px;
     padding-inline: 16px;
+  }
+
+  .first-study-heading-actions {
+    width: 100%;
+    justify-items: start;
+  }
+
+  .first-study-progress-copy {
+    justify-items: start;
   }
 
   .first-study-heading p {

@@ -88,6 +88,8 @@ export type AppLiveDataProps = {
   onExport: () => Promise<void>
   onImport: (file: File) => Promise<void>
   onClear: () => Promise<void>
+  onDismissOnboardingChecklist: () => Promise<void>
+  onShowOnboardingChecklist: () => Promise<void>
 }
 
 /**
@@ -143,6 +145,8 @@ export function AppLiveData({
   onExport,
   onImport,
   onClear,
+  onDismissOnboardingChecklist,
+  onShowOnboardingChecklist,
 }: AppLiveDataProps) {
   const [revealedCards, setRevealedCards] = useState<Set<string>>(() => new Set())
 
@@ -166,6 +170,7 @@ export function AppLiveData({
   const currentDate = useCurrentDate()
   const dailyGoalMinutes = uiSettings.dailyGoalMinutes
   const quickNotes = uiSettings.quickNotes
+  const onboardingChecklistDismissed = uiSettings.onboardingChecklistDismissed
   const subjectMap = useMemo(() => new Map(subjects.map((subject) => [subject.id, subject])), [subjects])
 
   useEffect(() => {
@@ -259,6 +264,7 @@ export function AppLiveData({
                   weeklyStudyDays={weeklyStudyDays}
                   quickNotes={quickNotes}
                   dailyGoalMinutes={dailyGoalMinutes}
+                  onboardingChecklistDismissed={onboardingChecklistDismissed}
                   todayFocusMinutes={todayFocusMinutes}
                   currentDate={currentDate}
                   activeSession={activeSession}
@@ -285,6 +291,7 @@ export function AppLiveData({
                   onCreateSubject={onCreateSubject}
                   onCreatePlan={onCreateTask}
                   onLogSession={onLogSession}
+                  onDismissOnboardingChecklist={onDismissOnboardingChecklist}
                 />
               ) : null}
               {activeView === 'Tasks' ? (
@@ -376,6 +383,7 @@ export function AppLiveData({
                   onDismissPreferenceNotice={onDismissPreferenceNotice}
                   theme={theme}
                   onThemeChange={onThemeChange}
+                  onShowOnboardingChecklist={onShowOnboardingChecklist}
                 />
               ) : null}
             </section>

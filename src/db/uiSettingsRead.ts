@@ -1,4 +1,8 @@
 import { studyDb } from './studyDb'
+import {
+  normalizeOnboardingChecklistDismissed,
+  ONBOARDING_CHECKLIST_DISMISSED_KEY,
+} from './onboardingChecklistPreference'
 
 const DAILY_GOAL_MINUTES_KEY = 'dailyGoalMinutes'
 const QUICK_NOTES_KEY = 'quickNotes'
@@ -12,11 +16,13 @@ const DEFAULT_DAILY_GOAL_MINUTES = 240
 export type UiSettings = {
   dailyGoalMinutes: number
   quickNotes: string[]
+  onboardingChecklistDismissed: boolean
 }
 
 export const EMPTY_UI_SETTINGS: UiSettings = {
   dailyGoalMinutes: DEFAULT_DAILY_GOAL_MINUTES,
   quickNotes: [],
+  onboardingChecklistDismissed: false,
 }
 
 function normalizeDailyGoalMinutes(value: unknown): number {
@@ -29,13 +35,15 @@ function normalizeQuickNotes(value: unknown): string[] {
 
 /** App UI settings reader — two keyed gets with the same fallbacks formerly applied in App. */
 export async function getUiSettings(): Promise<UiSettings> {
-  const [dailyGoalRecord, quickNotesRecord] = await Promise.all([
+  const [dailyGoalRecord, quickNotesRecord, onboardingDismissedRecord] = await Promise.all([
     studyDb.settings.get(DAILY_GOAL_MINUTES_KEY),
     studyDb.settings.get(QUICK_NOTES_KEY),
+    studyDb.settings.get(ONBOARDING_CHECKLIST_DISMISSED_KEY),
   ])
 
   return {
     dailyGoalMinutes: normalizeDailyGoalMinutes(dailyGoalRecord?.value),
     quickNotes: normalizeQuickNotes(quickNotesRecord?.value),
+    onboardingChecklistDismissed: normalizeOnboardingChecklistDismissed(onboardingDismissedRecord?.value),
   }
 }

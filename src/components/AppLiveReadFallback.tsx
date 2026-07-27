@@ -24,6 +24,7 @@ export type AppLiveReadFallbackProps = {
   onExport: () => Promise<void>
   onImport: (file: File) => Promise<void>
   onClear: () => Promise<void>
+  onShowOnboardingChecklist: () => Promise<void>
   importPending: boolean
 }
 
@@ -48,6 +49,7 @@ export function AppLiveReadFallback({
   onExport,
   onImport,
   onClear,
+  onShowOnboardingChecklist,
   importPending,
 }: AppLiveReadFallbackProps) {
   const errorPanel = <LiveReadErrorPanel message={LIVE_READ_ERROR_MESSAGE} onRetry={onRetry} />
@@ -84,6 +86,7 @@ export function AppLiveReadFallback({
                 onDismissPreferenceNotice={onDismissPreferenceNotice}
                 theme={theme}
                 onThemeChange={onThemeChange}
+                onShowOnboardingChecklist={onShowOnboardingChecklist}
               />
             </section>
           </div>

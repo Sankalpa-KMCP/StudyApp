@@ -59,6 +59,35 @@ describe('App UI settings live query isolation', () => {
     await waitFor(() => expect(screen.getByLabelText('Quick notes')).toHaveValue('Live quick note'))
   })
 
+  it('reruns UI settings without rerunning Subjects for onboarding dismissal and restart', async () => {
+    const user = userEvent.setup()
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
+    const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
+
+    render(<App />)
+    await screen.findByRole('region', { name: 'Your first study loop' })
+    await waitFor(() => expect(shellSpy).toHaveBeenCalled())
+    await waitFor(() => expect(uiSpy).toHaveBeenCalled())
+
+    const shellBeforeDismiss = shellSpy.mock.calls.length
+    const uiBeforeDismiss = uiSpy.mock.calls.length
+    await user.click(screen.getByRole('button', { name: 'Hide checklist' }))
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Your first study loop' })).not.toBeInTheDocument())
+    await waitFor(() => expect(uiSpy.mock.calls.length).toBeGreaterThan(uiBeforeDismiss))
+    expect(shellSpy.mock.calls.length).toBe(shellBeforeDismiss)
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    const shellBeforeShow = shellSpy.mock.calls.length
+    const uiBeforeShow = uiSpy.mock.calls.length
+    await user.click(screen.getByRole('button', { name: 'Show onboarding checklist' }))
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Onboarding checklist will appear on Home.'))
+    await waitFor(() => expect(uiSpy.mock.calls.length).toBeGreaterThan(uiBeforeShow))
+    expect(shellSpy.mock.calls.length).toBe(shellBeforeShow)
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(await screen.findByRole('region', { name: 'Your first study loop' })).toBeInTheDocument()
+  })
+
   it('reruns Goals and UI settings without Subjects for a qualifying daily study-time Goal', async () => {
     const user = userEvent.setup()
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 100 })
@@ -356,6 +385,7 @@ describe('App UI settings live query isolation', () => {
       settings: [
         { key: 'dailyGoalMinutes', value: 90 },
         { key: 'quickNotes', value: ['imported line'] },
+        { key: 'onboardingChecklistDismissed', value: true },
         { key: 'plugin.future.setting', value: { keep: true, n: 2 } },
         { key: 'legacy-localstorage-migrated-v1', value: true },
       ],
@@ -366,6 +396,7 @@ describe('App UI settings live query isolation', () => {
     await waitFor(async () => {
       expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(90)
       expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['imported line'])
+      expect((await studyDb.settings.get('onboardingChecklistDismissed'))?.value).toBe(true)
       expect((await studyDb.settings.get('plugin.future.setting'))?.value).toEqual({ keep: true, n: 2 })
     })
     await waitFor(() => {
@@ -377,6 +408,7 @@ describe('App UI settings live query isolation', () => {
     expect(full.settings.map((row) => row.key).sort()).toEqual([
       'dailyGoalMinutes',
       'legacy-localstorage-migrated-v1',
+      'onboardingChecklistDismissed',
       'plugin.future.setting',
       'quickNotes',
     ].sort())
@@ -387,6 +419,7 @@ describe('App UI settings live query isolation', () => {
   it('clear-all deletes Quick Notes, preserves daily goal, refreshes UI settings and Subjects', async () => {
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 180 })
     await studyDb.settings.put({ key: 'quickNotes', value: ['clear me'] })
+    await studyDb.settings.put({ key: 'onboardingChecklistDismissed', value: true })
     await studyDb.settings.put({ key: 'legacy-localstorage-migrated-v1', value: true })
     await studyDb.subjects.add({
       id: 'subject-clear',
@@ -414,6 +447,7 @@ describe('App UI settings live query isolation', () => {
 
     await waitFor(async () => {
       expect(await studyDb.settings.get('quickNotes')).toBeUndefined()
+      expect(await studyDb.settings.get('onboardingChecklistDismissed')).toBeUndefined()
       expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(180)
       expect(await studyDb.subjects.count()).toBe(0)
     })
@@ -422,6 +456,7 @@ describe('App UI settings live query isolation', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Quick notes')).toHaveValue('')
     })
+    expect(screen.getByRole('region', { name: 'Your first study loop' })).toBeInTheDocument()
     expect(screen.getByText(/0m of 3h/i)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
   })
