@@ -183,6 +183,76 @@ describe('appUtils', () => {
     expect(subject.progress).toBe(42)
   })
 
+  it('builds deterministic capped search results across entity fields', () => {
+    const subject = subjectFixture({ id: 'sub-1', name: 'Chemistry', progress: 10, progressMode: 'manual', targetHours: 4 })
+    const subjects = [subject]
+    const subjectMap = new Map([[subject.id, subject]])
+    const notes = [{
+      id: 'note-1',
+      title: 'Titration lab',
+      body: 'Acid base balance',
+      subjectId: subject.id,
+      tags: ['lab'],
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    }]
+    const events = [{
+      id: 'event-1',
+      title: 'Office hours',
+      subjectId: subject.id,
+      startAt: '2026-06-29T15:00:00.000Z',
+      endAt: '2026-06-29T16:00:00.000Z',
+      location: 'Hall A',
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    }]
+    const flashcards = [{
+      id: 'card-1',
+      front: 'Molar mass',
+      back: 'Grams per mole',
+      subjectId: subject.id,
+      status: 'learning' as const,
+      easeFactor: 2.5,
+      intervalDays: 1,
+      repetitions: 0,
+      lapses: 0,
+      dueAt: '2026-06-29T00:00:00.000Z',
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    }]
+    const tasks = Array.from({ length: 10 }, (_, index) => ({
+      id: `task-${index}`,
+      title: `Chem task ${index}`,
+      subjectId: subject.id,
+      dueDate: '',
+      priority: 'normal' as const,
+      status: 'open' as const,
+      minutes: 20,
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    }))
+    const originalTasks = tasks.map((task) => ({ ...task }))
+
+    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, '   ')).toEqual([])
+    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, 'TITRATION')[0]).toMatchObject({
+      type: 'Note',
+      title: 'Titration lab',
+      view: 'Notes',
+    })
+    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, 'Hall A')[0]).toMatchObject({
+      type: 'Event',
+      view: 'Calendar',
+    })
+    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, 'learning')[0]).toMatchObject({
+      type: 'Flashcard',
+      title: 'Molar mass',
+    })
+    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, 'high')).toEqual([])
+    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, 'open').every((item) => item.type === 'Task')).toBe(true)
+    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, 'Chem task')).toHaveLength(8)
+    expect(tasks).toEqual(originalTasks)
+  })
+
   it('builds subject search metadata from calculated progress', () => {
     const subject = subjectFixture({
       id: 'subject-search',

@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, Check, Clock3, FileText, Flame, NotebookText, Pause, Play, Square, StopCircle, Target, Search } from '../components/icons'
+import { BookOpen, CalendarDays, Check, Clock3, FileText, Flame, NotebookText, Pause, Play, Square, StopCircle, Target } from '../components/icons'
 import {
   calculateStreak,
   calculateSubjectProgress,
@@ -9,7 +9,6 @@ import {
   formatMinutes,
   isFlashcardDue,
   percent,
-  type SearchResult,
   type WeeklyStudyDay,
 } from '../appUtils'
 import type { ActiveFocusSession, CalendarEvent, Flashcard, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
@@ -54,8 +53,6 @@ export function HomeView(props: {
   subjects: StudySubject[]
   focusSubjectId: string
   focusDurationMinutes: number
-  search: string
-  searchResults: SearchResult[]
   focusAttentionRequest?: number
   onFocusSubjectChange: (subjectId: string) => void
   onFocusDurationChange: (minutes: number) => void
@@ -70,7 +67,6 @@ export function HomeView(props: {
   onCreateSubject: () => void
   onCreatePlan: () => void
   onLogSession: () => void
-  onClearSearch?: () => void
 }) {
   const focusAttentionRequest = props.focusAttentionRequest ?? 0
   const handledFocusAttention = useRef(0)
@@ -125,38 +121,31 @@ export function HomeView(props: {
 
   return (
     <>
-      {props.search.trim() ? (
-        <HomeSearchResults query={props.search} results={props.searchResults} onNavigate={props.onNavigate} onClearSearch={props.onClearSearch || (() => {})} />
-      ) : null}
-      {!props.search.trim() ? (
-        <FirstStudyChecklist
-          hasSubject={props.subjects.length > 0}
-          hasPlan={props.tasks.length > 0 || props.events.length > 0}
-          hasSession={props.studySessions.length > 0}
-          onCreateSubject={props.onCreateSubject}
-          onCreatePlan={props.onCreatePlan}
-          onLogSession={props.onLogSession}
-        />
-      ) : null}
-      {!props.search.trim() ? (
-        <HomeTodayDashboard
-          dueTodayCount={dueTodayTasks.length}
-          overdueCount={overdueTasks.length}
-          dueFlashcardCount={dueFlashcards.length}
-          todayEventCount={todaysEvents.length}
-          streakDays={streakDays}
-          weekHours={weekHours}
-          todayFocusMinutes={props.todayFocusMinutes}
-          dailyGoalMinutes={props.dailyGoalMinutes}
-          overduePreview={overdueTasks.slice(0, 2)}
-          todayEventPreview={todaysEvents.slice(0, 2)}
-          recommended={recommended}
-          onActivateRecommended={activateRecommended}
-          onOpenTasks={() => props.onNavigate('Tasks')}
-          onOpenFlashcards={() => props.onNavigate('Flashcards')}
-          onOpenCalendar={() => props.onNavigate('Calendar')}
-        />
-      ) : null}
+      <FirstStudyChecklist
+        hasSubject={props.subjects.length > 0}
+        hasPlan={props.tasks.length > 0 || props.events.length > 0}
+        hasSession={props.studySessions.length > 0}
+        onCreateSubject={props.onCreateSubject}
+        onCreatePlan={props.onCreatePlan}
+        onLogSession={props.onLogSession}
+      />
+      <HomeTodayDashboard
+        dueTodayCount={dueTodayTasks.length}
+        overdueCount={overdueTasks.length}
+        dueFlashcardCount={dueFlashcards.length}
+        todayEventCount={todaysEvents.length}
+        streakDays={streakDays}
+        weekHours={weekHours}
+        todayFocusMinutes={props.todayFocusMinutes}
+        dailyGoalMinutes={props.dailyGoalMinutes}
+        overduePreview={overdueTasks.slice(0, 2)}
+        todayEventPreview={todaysEvents.slice(0, 2)}
+        recommended={recommended}
+        onActivateRecommended={activateRecommended}
+        onOpenTasks={() => props.onNavigate('Tasks')}
+        onOpenFlashcards={() => props.onNavigate('Flashcards')}
+        onOpenCalendar={() => props.onNavigate('Calendar')}
+      />
       <div className="summary-grid">
         <TaskCard
           tasks={openTasks}
@@ -400,44 +389,6 @@ function HomeTodayDashboard(props: {
           {copy.buttonLabel}
         </button>
       </div>
-    </section>
-  )
-}
-
-function HomeSearchResults({ query, results, onNavigate, onClearSearch }: { query: string; results: SearchResult[]; onNavigate: (view: View) => void; onClearSearch: () => void }) {
-  return (
-    <section className="card search-results-card" aria-labelledby="home-search-title">
-      <div className="card-heading">
-        <div>
-          <h2 id="home-search-title">Search Results</h2>
-          <span>{results.length} matches for "{query.trim()}"</span>
-        </div>
-      </div>
-      {results.length > 0 ? (
-        <div className="search-result-list">
-          {results.map((result) => (
-            <button
-              className="search-result-row"
-              type="button"
-              key={`${result.type}-${result.id}`}
-              aria-label={`${result.type}: ${result.title}, ${result.meta}`}
-              onClick={() => onNavigate(result.view)}
-            >
-              <span className="pill">{result.type}</span>
-              <strong>{result.title}</strong>
-              <small>{result.meta}</small>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          icon={Search}
-          title="No matches found"
-          body="No tasks, notes, subjects, events, or flashcards match that search."
-          actionLabel="Clear search"
-          onAction={onClearSearch}
-        />
-      )}
     </section>
   )
 }

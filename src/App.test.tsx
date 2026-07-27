@@ -34,6 +34,9 @@ describe('App', () => {
 
     await user.type(searchInput, 'calculus')
     await user.keyboard('{Escape}')
+    expect(searchInput).toHaveValue('calculus')
+    expect(searchInput).toHaveFocus()
+    await user.keyboard('{Escape}')
     expect(searchInput).toHaveValue('')
     expect(searchInput).not.toHaveFocus()
   })
@@ -238,6 +241,8 @@ describe('App', () => {
 
     await user.click(searchInput)
     await user.type(searchInput, 'calculus')
+    await user.keyboard('{Escape}')
+    expect(searchInput).toHaveValue('calculus')
     await user.keyboard('{Escape}')
     expect(searchInput).toHaveValue('')
     expect(searchInput).not.toHaveFocus()

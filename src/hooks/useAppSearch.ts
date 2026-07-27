@@ -30,7 +30,7 @@ export type UseAppSearchResult = {
 
 /**
  * Application search: input state, deferred query, workspace entity filters,
- * and Home cross-entity results via `buildSearchResults`.
+ * and cross-entity results via `buildSearchResults`.
  */
 export function useAppSearch({
   subjects,

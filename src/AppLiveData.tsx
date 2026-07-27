@@ -209,10 +209,15 @@ export function AppLiveData({
       <Topbar
         activeView={activeView}
         search={search}
+        searchResults={homeSearchResults}
         noticeOpen={noticeOpen}
         noticePopoverId={noticePopoverId}
         onSearch={setSearch}
         onClearSearch={clearSearch}
+        onSelectSearchResult={(result) => {
+          clearSearch()
+          onNavigate(result.view)
+        }}
         onToggleNotices={onToggleNotices}
         onCloseNotices={onCloseNotices}
         onOpenProfile={onOpenProfile}
@@ -266,8 +271,6 @@ export function AppLiveData({
                   subjects={subjects}
                   focusSubjectId={focusSubjectId}
                   focusDurationMinutes={focusDurationMinutes}
-                  search={deferredSearch}
-                  searchResults={homeSearchResults}
                   focusAttentionRequest={focusAttentionRequest}
                   onFocusSubjectChange={onFocusSubjectChange}
                   onFocusDurationChange={onFocusDurationChange}

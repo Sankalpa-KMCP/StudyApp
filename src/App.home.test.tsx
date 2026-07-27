@@ -181,8 +181,7 @@ describe('App home', () => {
 
     await user.type(await screen.findByPlaceholderText('Search'), 'cell')
 
-    expect(await screen.findByRole('heading', { name: 'Search Results' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Task: Cell cycle worksheet, Biology - open' })).toBeInTheDocument()
+    expect(await screen.findByRole('option', { name: /Task.*Cell cycle worksheet/i })).toBeInTheDocument()
   })
 
   it('keeps Home subject cards and search metadata on the same calculated progress', async () => {
@@ -212,7 +211,7 @@ describe('App home', () => {
     expect(within(homeSubjects.closest('section')! as HTMLElement).getByRole('progressbar', { name: '50%' })).toBeInTheDocument()
 
     await user.type(screen.getByPlaceholderText('Search'), 'Astronomy')
-    expect(await screen.findByRole('button', { name: 'Subject: Astronomy, 50% progress' })).toBeInTheDocument()
+    expect(await screen.findByRole('option', { name: /Subject.*Astronomy.*50% progress/i })).toBeInTheDocument()
 
     await user.clear(screen.getByPlaceholderText('Search'))
     await user.click(screen.getByRole('button', { name: 'Subjects' }))

@@ -32,8 +32,9 @@ test('renders a blank database-backed dashboard and persists tasks', async ({ pa
   await navButton(page, 'Tasks').click()
   await expect(page.getByText('Geometry revision')).toBeVisible()
 
-  await page.getByPlaceholder('Search').fill('geometry')
-  await expect(page.getByText('Geometry revision')).toBeVisible()
+  await page.getByRole('combobox', { name: 'Search' }).fill('geometry')
+  await expect(page.getByRole('main').getByRole('heading', { name: 'Geometry revision' })).toBeVisible()
+  await expect(page.getByRole('option', { name: /Task.*Geometry revision/i })).toBeVisible()
   await expect(page.getByText('Chemistry lab report')).toBeHidden()
 })
 
@@ -169,7 +170,7 @@ test('logs, edits, and confirms deletion of a study session', async ({ page }) =
   await expect(page.getByText('No sessions logged')).toBeVisible()
 })
 
-test('subject study-time progress matches on cards and Home search', async ({ page }) => {
+test('subject study-time progress matches on cards and global search', async ({ page }) => {
   await navButton(page, 'Subjects').click()
   await page.getByRole('button', { name: 'New subject' }).click()
   await expect(page.getByLabel('Progress mode')).toHaveValue('manual')
@@ -206,8 +207,8 @@ test('subject study-time progress matches on cards and Home search', async ({ pa
   await navButton(page, 'Home').click()
   const homeSubjects = page.locator('section.subject-section')
   await expect(homeSubjects.getByRole('progressbar', { name: '50%' })).toBeVisible()
-  await page.getByPlaceholder('Search').fill('Optics')
-  await expect(page.getByRole('button', { name: 'Subject: Optics, 50% progress' })).toBeVisible()
+  await page.getByRole('combobox', { name: 'Search' }).fill('Optics')
+  await expect(page.getByRole('option', { name: /Subject.*Optics.*50% progress/i })).toBeVisible()
 })
 
 test('rapid double save creates a single task that survives reload', async ({ page }) => {
