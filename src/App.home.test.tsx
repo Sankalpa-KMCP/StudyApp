@@ -9,9 +9,10 @@ import * as quickNotesService from './db/quickNotesService'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 import {
   addFirstStudyEvent,
+  addFirstStudyFocusHistory,
   addFirstStudySession,
   addFirstStudySubject,
-  FIRST_STUDY_TIMESTAMP,
+  addFirstStudyTask,
 } from './test/homeTestHelpers'
 import { makeEmptyExport } from './test/backupTestHelpers'
 import { ACTIVE_FOCUS_SESSION_KEY, getActiveFocusSession } from './db/activeFocusSession'
@@ -43,8 +44,8 @@ describe('App home', () => {
     expect(progress).toHaveAttribute('aria-valuenow', '0')
     expect(progress).toHaveAttribute('aria-valuetext', '0 of 3 steps complete')
     expect(within(checklist).getByRole('button', { name: 'Create subject' })).toBeInTheDocument()
-    expect(within(checklist).getByRole('button', { name: 'Plan task' })).toBeInTheDocument()
-    expect(within(checklist).getByRole('button', { name: 'Log session' })).toBeInTheDocument()
+    expect(within(checklist).getByRole('button', { name: 'Add task' })).toBeInTheDocument()
+    expect(within(checklist).getByRole('button', { name: 'Go to focus' })).toBeInTheDocument()
   })
 
   it('keeps a single Home h1 and exposes the topbar label outside the heading outline', async () => {
@@ -61,7 +62,7 @@ describe('App home', () => {
     expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
   })
 
-  it('derives checklist progress from subjects, tasks or events, and sessions with live updates', async () => {
+  it('derives checklist progress from subjects, tasks, and truthful focus evidence with live updates', async () => {
     await addFirstStudySubject()
     render(<App />)
 
@@ -69,37 +70,34 @@ describe('App home', () => {
     expect(within(checklist).getByRole('progressbar', { name: 'First study loop progress' })).toHaveAttribute('aria-valuenow', '1')
     expect(within(screen.getByRole('heading', { name: 'Create a subject' }).closest('li')! as HTMLElement).getByText('Complete')).toBeInTheDocument()
 
-    await studyDb.tasks.add({
-      id: 'first-study-task',
-      title: 'Review chapter one',
-      subjectId: 'first-study-subject',
-      dueDate: '',
-      priority: 'normal',
-      status: 'open',
-      minutes: 30,
-      createdAt: FIRST_STUDY_TIMESTAMP,
-      updatedAt: FIRST_STUDY_TIMESTAMP,
-    })
+    await addFirstStudyEvent()
+    expect(screen.getByRole('button', { name: 'Add task' })).toBeInTheDocument()
+
+    await addFirstStudyTask()
     await waitFor(() => expect(within(screen.getByRole('region', { name: 'Your first study loop' })).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2'))
 
     await studyDb.tasks.delete('first-study-task')
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Plan task' })).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add task' })).toBeInTheDocument())
 
-    await addFirstStudyEvent()
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Plan task' })).not.toBeInTheDocument())
+    await addFirstStudyTask()
+    await waitFor(() => expect(within(screen.getByRole('region', { name: 'Your first study loop' })).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2'))
 
     await addFirstStudySession()
+    expect(within(screen.getByRole('region', { name: 'Your first study loop' })).getByRole('button', { name: 'Go to focus' })).toBeInTheDocument()
+
+    await addFirstStudyFocusHistory()
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Your first study loop' })).not.toBeInTheDocument())
 
     await studyDb.studySessions.delete('first-study-session')
+    await studyDb.studySessions.delete('focus-first-study')
     expect(await screen.findByRole('region', { name: 'Your first study loop' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Log session' })).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Your first study loop' })).getByRole('button', { name: 'Go to focus' })).toBeInTheDocument()
   })
 
   it('keeps the checklist hidden for existing users who completed the study loop', async () => {
     await addFirstStudySubject()
-    await addFirstStudyEvent()
-    await addFirstStudySession()
+    await addFirstStudyTask()
+    await addFirstStudyFocusHistory()
 
     render(<App />)
 
@@ -146,8 +144,8 @@ describe('App home', () => {
   it('keeps completed onboarding hidden after restart from Settings', async () => {
     const user = userEvent.setup()
     await addFirstStudySubject()
-    await addFirstStudyEvent()
-    await addFirstStudySession()
+    await addFirstStudyTask()
+    await addFirstStudyFocusHistory()
     await studyDb.settings.put({ key: 'onboardingChecklistDismissed', value: true })
 
     render(<App />)
@@ -188,23 +186,19 @@ describe('App home', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
     await user.click(screen.getByRole('button', { name: 'Home' }))
 
-    const planTask = screen.getByRole('button', { name: 'Plan task' })
+    const planTask = screen.getByRole('button', { name: 'Add task' })
     planTask.focus()
     await user.keyboard('{Enter}')
     expect(await screen.findByLabelText('Task title')).toHaveFocus()
 
     await user.click(screen.getByRole('button', { name: 'Home' }))
-    const logSession = screen.getByRole('button', { name: 'Log session' })
-    logSession.focus()
+    const checklist = screen.getByRole('region', { name: 'Your first study loop' })
+    const startFocus = within(checklist).getByRole('button', { name: 'Go to focus' })
+    startFocus.focus()
     await user.keyboard('{Enter}')
 
-    expect(await screen.findByRole('form', { name: 'Log study session' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Subject')).toHaveFocus()
-
-    await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.getByRole('button', { name: 'Log session' })).toHaveFocus()
-    await user.click(screen.getByRole('button', { name: 'Home' }))
-    await user.click(screen.getByRole('button', { name: 'Progress' }))
+    expect(await screen.findByRole('button', { name: 'Start focus' })).toHaveFocus()
+    expect(await getActiveFocusSession()).toBeNull()
     expect(screen.queryByRole('form', { name: 'Log study session' })).not.toBeInTheDocument()
   })
 

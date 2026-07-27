@@ -221,18 +221,6 @@ function App() {
     setFocusAttentionRequest((request) => request + 1)
   }
 
-  const openManualSession = () => {
-    setTaskEditorRequest(0)
-    setSubjectEditorRequest(0)
-    setNoteEditorRequest(0)
-    setEventEditorRequest(0)
-    setFlashcardEditorRequest(0)
-    setFocusAttentionRequest(0)
-    setProgressEditorRequested(true)
-    setActiveView('Progress')
-    syncUrlToView('Progress', 'push')
-  }
-
   const onQuickAdd = (item: 'task' | 'note' | 'event' | 'flashcard' | 'focus') => {
     if (item === 'task') openNewTask()
     else if (item === 'note') openNewNote()
@@ -324,7 +312,7 @@ function App() {
             onQuickAdd={onQuickAdd}
             onCreateTask={openNewTask}
             onCreateSubject={openNewSubject}
-            onLogSession={openManualSession}
+            onRevealFocusSession={openFocusAttention}
             onSubjectMapChange={onSubjectMapChange}
             activeSession={activeSession}
             staleFocusSession={staleFocusSession}

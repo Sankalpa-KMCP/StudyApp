@@ -242,18 +242,17 @@ describe('App navigation', () => {
     expect(await screen.findByLabelText('Subject name')).toBeInTheDocument()
   })
 
-  it('keeps Progress log-session intent one-shot across ordinary navigation', async () => {
+  it('keeps Home focus attention one-shot across ordinary navigation', async () => {
     const user = userEvent.setup()
     render(<App />)
 
     await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
-    await user.click(screen.getByRole('button', { name: 'Log session' }))
-    expect(await screen.findByRole('heading', { name: 'Log study session' })).toBeInTheDocument()
-    expect(window.location.pathname).toBe('/progress')
+    await user.click(within(screen.getByRole('region', { name: 'Your first study loop' })).getByRole('button', { name: 'Go to focus' }))
+    expect(await screen.findByRole('button', { name: 'Start focus' })).toHaveFocus()
+    expect(window.location.pathname).toBe('/')
 
-    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(screen.getByRole('button', { name: 'Notes' }))
     await user.click(screen.getByRole('button', { name: 'Home' }))
-    await user.click(screen.getByRole('button', { name: 'Progress' }))
-    expect(screen.queryByRole('heading', { name: 'Log study session' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start focus' })).not.toHaveFocus()
   })
 })

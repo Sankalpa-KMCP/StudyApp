@@ -169,7 +169,7 @@ test.describe('focus session persistence', () => {
     await page.getByRole('button', { name: 'Discard session' }).click()
 
     await expect(page.getByRole('button', { name: 'Start focus' })).toBeEnabled({ timeout: 15_000 })
-    await expect(page.getByRole('heading', { name: 'Focus session' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Focus session', exact: true })).toBeVisible()
     await expect(page.getByRole('status')).toContainText(/discarded/i)
 
     expect(await readActiveFocusSession(page)).toBeNull()
