@@ -764,3 +764,9 @@ export const X = createIcon('x', [
     }
   ]
 ] as IconNode)
+
+export const Ellipsis = createIcon('ellipsis', [
+  ['circle', { cx: '12', cy: '12', r: '1', key: '41ugl8' }],
+  ['circle', { cx: '19', cy: '12', r: '1', key: '1wjl8i' }],
+  ['circle', { cx: '5', cy: '12', r: '1', key: '1pcz8c' }],
+] as IconNode)

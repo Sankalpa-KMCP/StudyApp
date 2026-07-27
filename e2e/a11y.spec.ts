@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { expectNoAxeViolations, waitForSettledHome } from './a11yHelpers'
 import { importStudyBackupViaSettings, makeStudyExport, makeSubjectRow } from './focusHelpers'
+import { navigateWorkspace } from './navHelpers'
 
 test.use({
   reducedMotion: 'reduce',
@@ -32,7 +33,7 @@ test.describe('Playwright axe accessibility smoke', () => {
 
   test('Settings and inline clear confirmation pass WCAG A/AA axe scans without deleting data', async ({ page }, testInfo) => {
     await waitForSettledHome(page)
-    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await navigateWorkspace(page, 'Settings')
 
     await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
     await expect(page.getByRole('radiogroup', { name: 'Theme' })).toBeVisible()
