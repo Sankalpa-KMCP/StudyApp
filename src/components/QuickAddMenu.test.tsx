@@ -33,7 +33,34 @@ describe('QuickAddMenu', () => {
       'Note',
       'Event',
       'Flashcard',
+      'Focus session',
     ])
+  })
+
+  it('activates Focus session with keyboard End and Enter', async () => {
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+    const onSelect = vi.fn()
+    render(<QuickAddMenu open onOpenChange={onOpenChange} onSelect={onSelect} />)
+
+    expect(screen.getByRole('menuitem', { name: 'Task' })).toHaveFocus()
+    await user.keyboard('{End}')
+    expect(screen.getByRole('menuitem', { name: 'Focus session' })).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(onSelect).toHaveBeenCalledWith('focus')
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('activates Focus session with Space and closes the menu', async () => {
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+    const onSelect = vi.fn()
+    render(<QuickAddMenu open onOpenChange={onOpenChange} onSelect={onSelect} />)
+
+    screen.getByRole('menuitem', { name: 'Focus session' }).focus()
+    await user.keyboard(' ')
+    expect(onSelect).toHaveBeenCalledWith('focus')
+    expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
   it('opens by keyboard and supports arrow navigation plus Enter activation', async () => {
@@ -120,5 +147,11 @@ describe('QuickAddMenu', () => {
     rerender(<QuickAddMenu open onOpenChange={onOpenChange} onSelect={onSelect} />)
     await user.click(screen.getByRole('menuitem', { name: 'Flashcard' }))
     expect(onSelect).toHaveBeenNthCalledWith(2, 'flashcard')
+
+    rerender(<QuickAddMenu open={false} onOpenChange={onOpenChange} onSelect={onSelect} />)
+    await user.click(screen.getByRole('button', { name: 'Quick add' }))
+    rerender(<QuickAddMenu open onOpenChange={onOpenChange} onSelect={onSelect} />)
+    await user.click(screen.getByRole('menuitem', { name: 'Focus session' }))
+    expect(onSelect).toHaveBeenNthCalledWith(3, 'focus')
   })
 })

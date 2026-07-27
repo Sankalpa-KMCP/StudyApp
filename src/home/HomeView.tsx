@@ -16,7 +16,7 @@ import type { ActiveFocusSession, CalendarEvent, Flashcard, StudyNote, StudySess
 import { EmptyState, SubjectCard } from '../components/ui'
 import { StudyTime } from '../components/RightColumn'
 import type { View } from '../navigation/viewRoutes'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { FirstStudyChecklist } from './FirstStudyChecklist'
 import { getActiveFocusElapsedMs } from '../db/activeFocusSession'
 import {
@@ -28,8 +28,9 @@ import {
   getRecommendedNextAction,
   type RecommendedNextAction,
 } from './recommendedNextAction'
+import { HOME_FOCUS_SESSION_ID, revealHomeFocusSession } from './revealHomeFocusSession'
 
-export const HOME_FOCUS_SESSION_ID = 'home-focus-session'
+export { HOME_FOCUS_SESSION_ID } from './revealHomeFocusSession'
 
 export function HomeView(props: {
   notes: StudyNote[]
@@ -55,6 +56,7 @@ export function HomeView(props: {
   focusDurationMinutes: number
   search: string
   searchResults: SearchResult[]
+  focusAttentionRequest?: number
   onFocusSubjectChange: (subjectId: string) => void
   onFocusDurationChange: (minutes: number) => void
   onQuickNotesChange: (value: string) => Promise<void>
@@ -70,6 +72,28 @@ export function HomeView(props: {
   onLogSession: () => void
   onClearSearch?: () => void
 }) {
+  const focusAttentionRequest = props.focusAttentionRequest ?? 0
+  const handledFocusAttention = useRef(0)
+
+  useLayoutEffect(() => {
+    if (focusAttentionRequest <= handledFocusAttention.current) return
+    // Idle Start is disabled until focus restore finishes — wait so we do not park focus on the card.
+    const waitingForIdleStart =
+      !props.activeSession
+      && !props.staleFocusSession
+      && (props.focusTransitionPending || !props.canStartFocus)
+    if (waitingForIdleStart) return
+
+    handledFocusAttention.current = focusAttentionRequest
+    revealHomeFocusSession()
+  }, [
+    focusAttentionRequest,
+    props.activeSession,
+    props.staleFocusSession,
+    props.focusTransitionPending,
+    props.canStartFocus,
+  ])
+
   const now = props.currentDate
   const dueTodayTasks = getOpenTasksDueToday(props.tasks, now)
   const overdueTasks = getOpenOverdueTasks(props.tasks, now)
@@ -190,12 +214,7 @@ function activateRecommendedNextAction(
       handlers.onCreateSubject()
       return
     case 'focus_card': {
-      const focusCard = document.getElementById(HOME_FOCUS_SESSION_ID)
-      if (focusCard && typeof focusCard.scrollIntoView === 'function') {
-        focusCard.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-      }
-      const focusTarget = focusCard?.querySelector<HTMLElement>('button.primary-command, button.session-button')
-      focusTarget?.focus()
+      revealHomeFocusSession()
       return
     }
     default: {

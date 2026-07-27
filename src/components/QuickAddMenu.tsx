@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from 'react'
-import { CalendarDays, Check, FileText, NotebookText, Plus } from './icons'
+import { CalendarDays, Check, Clock3, FileText, NotebookText, Plus } from './icons'
 
-export type QuickAddItem = 'task' | 'note' | 'event' | 'flashcard'
+export type QuickAddItem = 'task' | 'note' | 'event' | 'flashcard' | 'focus'
 
 const QUICK_ADD_ITEMS: ReadonlyArray<{
   id: QuickAddItem
@@ -12,6 +12,7 @@ const QUICK_ADD_ITEMS: ReadonlyArray<{
   { id: 'note', label: 'Note', Icon: FileText },
   { id: 'event', label: 'Event', Icon: CalendarDays },
   { id: 'flashcard', label: 'Flashcard', Icon: NotebookText },
+  { id: 'focus', label: 'Focus session', Icon: Clock3 },
 ]
 
 export function QuickAddMenu({
