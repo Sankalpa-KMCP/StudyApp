@@ -156,6 +156,7 @@ First launch starts empty with create-first actions. Existing customized data fr
 ## Documentation
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — migrations, E2E, coverage gates
+- [docs/phase-0-baseline.md](docs/phase-0-baseline.md) — Phase 0 install/validation/performance baseline
 - [CHANGELOG.md](CHANGELOG.md) — release notes
 - [AGENTS.md](AGENTS.md) — AI agent entry point (full docs live in local gitignored `ai/`)
 
