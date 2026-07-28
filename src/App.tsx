@@ -130,7 +130,7 @@ function App() {
     reloadFocusFromIndexedDb,
     runWithFocusImportLock,
     clearFocusLocalState,
-  } = useFocusSession({ subjectMap })
+  } = useFocusSession({ subjectMap, coordinator })
 
   const onBackupClearSuccess = useCallback(() => {
     setProfileNotice('All study data has been permanently deleted.')
