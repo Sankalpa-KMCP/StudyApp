@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearAllStudyData, createStudyExportPayload, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, readStudyDataSnapshot, studyDb } from './studyDb'
-import type { StudyGoal } from './types'
+import type { ActiveFocusSession, StudyGoal } from './types'
 
 const STUDY_DB_NAME = 'study-dashboard-db'
 
@@ -2399,5 +2399,403 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
     expect(subject?.progressMode).toBe('manual')
     expect(subject?.progress).toBe(30)
     expect(subject?.targetHours).toBe(2)
+  })
+
+  describe('P2-S3: Backup Export/Import Round-Trip Suite', () => {
+    beforeEach(async () => {
+      localStorage.clear()
+      if (!studyDb.isOpen()) {
+        await studyDb.open()
+      }
+      await studyDb.delete()
+      await studyDb.open()
+    })
+
+    it('P2-S3: preserves all 8 tables, subject references, and supported settings across full v3 round trip', async () => {
+      const timestamp = '2026-07-28T10:00:00.000Z'
+
+      await studyDb.subjects.bulkAdd([
+        {
+          id: 'subj-math',
+          name: 'Mathematics',
+          color: '#2563eb',
+          targetHours: 10,
+          progress: 45,
+          progressMode: 'manual',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'subj-physics',
+          name: 'Physics',
+          color: '#16a34a',
+          targetHours: 8,
+          progress: 0,
+          progressMode: 'study_time',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ])
+
+      await studyDb.tasks.bulkAdd([
+        {
+          id: 'task-1',
+          title: 'Math exercises',
+          subjectId: 'subj-math',
+          dueDate: '2026-07-30',
+          priority: 'high',
+          status: 'open',
+          minutes: 60,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'task-2',
+          title: 'Physics reading',
+          subjectId: 'subj-physics',
+          dueDate: '',
+          priority: 'normal',
+          status: 'done',
+          minutes: 45,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ])
+
+      await studyDb.notes.bulkAdd([
+        {
+          id: 'note-1',
+          title: 'Calculus formulas',
+          body: 'Integral rules and derivatives.',
+          subjectId: 'subj-math',
+          tags: ['math', 'calculus'],
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'note-2',
+          title: 'General study tips',
+          body: 'Spaced repetition schedule.',
+          subjectId: '',
+          tags: ['tips'],
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ])
+
+      await studyDb.events.bulkAdd([
+        {
+          id: 'event-1',
+          title: 'Math exam',
+          subjectId: 'subj-math',
+          startAt: '2026-08-01T09:00:00.000Z',
+          endAt: '2026-08-01T11:00:00.000Z',
+          location: 'Hall A',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ])
+
+      await studyDb.flashcards.bulkAdd([
+        {
+          id: 'card-1',
+          front: 'Newton Second Law',
+          back: 'F = ma',
+          subjectId: 'subj-physics',
+          status: 'remembered',
+          lastReviewedAt: timestamp,
+          dueAt: '2026-07-29T10:00:00.000Z',
+          intervalDays: 1,
+          reviewCount: 3,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ])
+
+      await studyDb.studySessions.bulkAdd([
+        {
+          id: 'session-1',
+          subjectId: 'subj-physics',
+          startedAt: '2026-07-28T08:00:00.000Z',
+          endedAt: '2026-07-28T09:00:00.000Z',
+          minutes: 60,
+          note: 'Kinematics practice',
+        },
+      ])
+
+      await studyDb.goals.bulkAdd([
+        {
+          id: 'goal-1',
+          title: 'Weekly Math Practice',
+          target: 300,
+          progress: 120,
+          period: 'weekly',
+          metric: 'manual',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'goal-2',
+          title: 'Daily Physics Study',
+          target: 60,
+          progress: 60,
+          period: 'daily',
+          metric: 'study_time',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ])
+
+      await studyDb.settings.bulkAdd([
+        { key: 'legacy-localstorage-migrated-v1', value: true },
+        { key: 'dailyGoalMinutes', value: 180 },
+        { key: 'quickNotes', value: ['QN1', 'QN2', 'QN3', 'QN4', 'QN5', 'QN6', 'QN7', 'QN8'] },
+        { key: 'onboardingChecklistDismissed', value: true },
+        {
+          key: 'activeFocusSession',
+          value: {
+            id: 'focus-running-1',
+            subjectId: 'subj-math',
+            startedAt: timestamp,
+            plannedMinutes: 25,
+            status: 'running',
+            pausedAt: null,
+            accumulatedPausedMs: 0,
+          },
+        },
+      ])
+
+      const exportPayload = await exportStudyData()
+
+      expect(exportPayload.version).toBe(3)
+      expect(typeof exportPayload.exportedAt).toBe('string')
+      expect(exportPayload.exportedAt.length).toBeGreaterThan(0)
+
+      await clearAllStudyData()
+      await importStudyData(exportPayload)
+
+      const restored = await getStudyData()
+
+      expect(restored.subjects).toEqual([
+        {
+          id: 'subj-math',
+          name: 'Mathematics',
+          color: '#2563eb',
+          targetHours: 10,
+          progress: 45,
+          progressMode: 'manual',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'subj-physics',
+          name: 'Physics',
+          color: '#16a34a',
+          targetHours: 8,
+          progress: 0,
+          progressMode: 'study_time',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ])
+
+      expect(restored.tasks).toHaveLength(2)
+      expect(restored.tasks[0]).toEqual({
+        id: 'task-1',
+        title: 'Math exercises',
+        subjectId: 'subj-math',
+        dueDate: '2026-07-30',
+        priority: 'high',
+        status: 'open',
+        minutes: 60,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+
+      expect(restored.notes).toHaveLength(2)
+      expect(restored.events).toHaveLength(1)
+      expect(restored.flashcards).toHaveLength(1)
+      expect(restored.studySessions).toHaveLength(1)
+      expect(restored.goals).toHaveLength(2)
+
+      const settingsMap = new Map(restored.settings.map((s) => [s.key, s.value]))
+      expect(settingsMap.get('legacy-localstorage-migrated-v1')).toBe(true)
+      expect(settingsMap.get('dailyGoalMinutes')).toBe(180)
+      expect(settingsMap.get('quickNotes')).toEqual(['QN1', 'QN2', 'QN3', 'QN4', 'QN5', 'QN6', 'QN7', 'QN8'])
+      expect(settingsMap.get('onboardingChecklistDismissed')).toBe(true)
+      expect(settingsMap.get('activeFocusSession')).toEqual({
+        id: 'focus-running-1',
+        subjectId: 'subj-math',
+        startedAt: timestamp,
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      })
+    })
+
+    it('P2-S3: exports and imports an empty database cleanly', async () => {
+      await clearAllStudyData()
+      await studyDb.settings.clear()
+
+      const emptyExport = await exportStudyData()
+
+      expect(emptyExport.version).toBe(3)
+      expect(typeof emptyExport.exportedAt).toBe('string')
+      expect(emptyExport.tasks).toEqual([])
+      expect(emptyExport.subjects).toEqual([])
+      expect(emptyExport.notes).toEqual([])
+      expect(emptyExport.events).toEqual([])
+      expect(emptyExport.flashcards).toEqual([])
+      expect(emptyExport.studySessions).toEqual([])
+      expect(emptyExport.goals).toEqual([])
+      expect(emptyExport.settings).toEqual([])
+
+      const timestamp = nowIso()
+      await studyDb.tasks.add({
+        id: 'temp-task',
+        title: 'Temporary Task',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 15,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+
+      await importStudyData(emptyExport)
+
+      const restored = await getStudyData()
+      expect(restored.tasks).toEqual([])
+      expect(restored.subjects).toEqual([])
+      expect(restored.notes).toEqual([])
+      expect(restored.events).toEqual([])
+      expect(restored.flashcards).toEqual([])
+      expect(restored.studySessions).toEqual([])
+      expect(restored.goals).toEqual([])
+    })
+
+    it('P2-S3: exports and imports large valid multiline and Unicode text fixtures below 5 MiB ceiling', async () => {
+      const timestamp = nowIso()
+      const multilineUnicodeSegment = '## Section Header 🎓\nStudy notes with code snippets: `const x = 42;` and emojis: ⚡ 📚 🔬\n'
+      const largeNoteBody = multilineUnicodeSegment.repeat(600)
+
+      await studyDb.notes.add({
+        id: 'note-large',
+        title: 'Large Unicode Note 🚀',
+        body: largeNoteBody,
+        subjectId: '',
+        tags: ['large', 'unicode'],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+
+      const exportPayload = await exportStudyData()
+      const serializedJson = JSON.stringify(exportPayload, null, 2)
+
+      expect(serializedJson.length).toBeLessThan(5 * 1024 * 1024)
+      expect(serializedJson.length).toBeGreaterThan(50_000)
+
+      await clearAllStudyData()
+      await importStudyData(exportPayload)
+
+      const restored = await getStudyData()
+      expect(restored.notes).toHaveLength(1)
+      expect(restored.notes[0]?.title).toBe('Large Unicode Note 🚀')
+      expect(restored.notes[0]?.body).toBe(largeNoteBody)
+    })
+
+    it('P2-S3: preserves deep structure of all coexisting supported settings including activeFocusSession', async () => {
+      const timestamp = nowIso()
+      const activeFocus: ActiveFocusSession = {
+        id: 'focus-paused-123',
+        subjectId: 'subj-focus',
+        startedAt: timestamp,
+        plannedMinutes: 60,
+        status: 'paused',
+        pausedAt: timestamp,
+        accumulatedPausedMs: 120_000,
+      }
+
+      await studyDb.subjects.add({
+        id: 'subj-focus',
+        name: 'Focus Subject',
+        color: '#3b82f6',
+        targetHours: 5,
+        progress: 10,
+        progressMode: 'manual',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+
+      await studyDb.settings.bulkAdd([
+        { key: 'dailyGoalMinutes', value: 240 },
+        { key: 'quickNotes', value: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8'] },
+        { key: 'onboardingChecklistDismissed', value: true },
+        { key: 'legacy-localstorage-migrated-v1', value: true },
+        { key: 'activeFocusSession', value: activeFocus },
+      ])
+
+      const exportPayload = await exportStudyData()
+      await clearAllStudyData()
+      await importStudyData(exportPayload)
+
+      const restored = await getStudyData()
+      const settingsMap = new Map(restored.settings.map((s) => [s.key, s.value]))
+
+      expect(settingsMap.get('dailyGoalMinutes')).toBe(240)
+      expect(settingsMap.get('quickNotes')).toEqual(['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8'])
+      expect(settingsMap.get('onboardingChecklistDismissed')).toBe(true)
+      expect(settingsMap.get('legacy-localstorage-migrated-v1')).toBe(true)
+      expect(settingsMap.get('activeFocusSession')).toEqual(activeFocus)
+    })
+
+    it('P2-S3: retains subject references across exported entities and verifies link integrity', async () => {
+      const timestamp = nowIso()
+      await studyDb.subjects.add({
+        id: 'subj-linked',
+        name: 'Linked Subject',
+        color: '#ef4444',
+        targetHours: 4,
+        progress: 0,
+        progressMode: 'manual',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+
+      await studyDb.tasks.add({
+        id: 'task-linked',
+        title: 'Linked Task',
+        subjectId: 'subj-linked',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 30,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+
+      await studyDb.notes.add({
+        id: 'note-linked',
+        title: 'Linked Note',
+        body: 'Content',
+        subjectId: 'subj-linked',
+        tags: [],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+
+      const exportPayload = await exportStudyData()
+      await clearAllStudyData()
+      await importStudyData(exportPayload)
+
+      const restored = await getStudyData()
+      const restoredSubjectIds = new Set(restored.subjects.map((s) => s.id))
+
+      expect(restoredSubjectIds.has('subj-linked')).toBe(true)
+      expect(restored.tasks[0]?.subjectId).toBe('subj-linked')
+      expect(restored.notes[0]?.subjectId).toBe('subj-linked')
+    })
   })
 })
