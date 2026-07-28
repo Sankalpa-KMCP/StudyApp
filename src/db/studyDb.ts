@@ -108,14 +108,26 @@ export async function getStudyData(): Promise<StudyData> {
   return { tasks, subjects, notes, events, flashcards, studySessions, goals, settings }
 }
 
-export async function exportStudyData(): Promise<StudyExport> {
+export async function readStudyDataSnapshot(): Promise<StudyData> {
   return studyDb.transaction('r', studyTables, async () => {
-    return {
-      version: 3,
-      exportedAt: nowIso(),
-      ...(await getStudyData()),
-    }
+    return getStudyData()
   })
+}
+
+export function createStudyExportPayload(
+  snapshot: StudyData,
+  exportedAt = nowIso()
+): StudyExport {
+  return {
+    version: 3,
+    exportedAt,
+    ...snapshot,
+  }
+}
+
+export async function exportStudyData(): Promise<StudyExport> {
+  const snapshot = await readStudyDataSnapshot()
+  return createStudyExportPayload(snapshot)
 }
 
 export async function importStudyData(payload: unknown) {

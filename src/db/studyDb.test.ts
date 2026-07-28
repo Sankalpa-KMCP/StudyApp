@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { clearAllStudyData, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, studyDb } from './studyDb'
+import { clearAllStudyData, createStudyExportPayload, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, readStudyDataSnapshot, studyDb } from './studyDb'
 import type { StudyGoal } from './types'
 
 const STUDY_DB_NAME = 'study-dashboard-db'
@@ -206,6 +206,59 @@ describe('studyDb', () => {
     ])
     expect(snapshot.version).toBe(3)
     transactionSpy.mockRestore()
+  })
+
+  it('reads study data snapshot inside one Dexie readonly transaction without metadata', async () => {
+    let capturedMode: string | null = null
+    let capturedTables: string[] = []
+
+    const originalTransaction = studyDb.transaction.bind(studyDb)
+    const transactionSpy = vi.spyOn(studyDb, 'transaction').mockImplementation((mode: unknown, ...args: unknown[]) => {
+      capturedMode = mode as string
+      const tables = args.slice(0, -1).flat() as Array<{ name: string }>
+      capturedTables = tables.map((t) => t.name)
+      return (originalTransaction as (...a: unknown[]) => unknown)(mode, ...args) as Promise<unknown>
+    })
+
+    const rawSnapshot = await readStudyDataSnapshot()
+
+    expect(transactionSpy).toHaveBeenCalledTimes(1)
+    expect(capturedMode).toBe('r')
+    expect(capturedTables).toEqual([
+      'tasks',
+      'subjects',
+      'notes',
+      'events',
+      'flashcards',
+      'studySessions',
+      'goals',
+      'settings',
+    ])
+    expect((rawSnapshot as Record<string, unknown>).version).toBeUndefined()
+    expect((rawSnapshot as Record<string, unknown>).exportedAt).toBeUndefined()
+    expect(Array.isArray(rawSnapshot.tasks)).toBe(true)
+
+    transactionSpy.mockRestore()
+  })
+
+  it('assembles version-3 export payload with supplied timestamp post-transaction', () => {
+    const fakeSnapshot = {
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+    const customTimestamp = '2026-07-28T12:00:00.000Z'
+    const payload = createStudyExportPayload(fakeSnapshot, customTimestamp)
+
+    expect(payload.version).toBe(3)
+    expect(payload.exportedAt).toBe(customTimestamp)
+    expect(payload.tasks).toEqual([])
+    expect(payload.subjects).toEqual([])
   })
 
   it('exports version 3 with explicit subject progress modes and round-trips them', async () => {
