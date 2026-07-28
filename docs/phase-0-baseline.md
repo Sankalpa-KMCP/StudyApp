@@ -9,7 +9,7 @@ This document records a reproducible Phase 0 baseline for installation, validati
 
 **Repository baseline vs hosted deployment:** Evidence below is for the local repository at the baseline commit. GitHub Pages may lag until that commit (or a later tip) is pushed and the CI `deploy` job publishes a verified `dist`. Do not treat the live demo URL as proof that this exact commit is hosted.
 
-Related tracked docs: [README.md](../README.md), [CONTRIBUTING.md](../CONTRIBUTING.md), [AGENTS.md](../AGENTS.md), [CHANGELOG.md](../CHANGELOG.md).
+Related tracked docs: [README.md](../README.md), [CONTRIBUTING.md](../CONTRIBUTING.md), [docs/technical-debt.md](technical-debt.md), [AGENTS.md](../AGENTS.md), [CHANGELOG.md](../CHANGELOG.md).
 
 ---
 
