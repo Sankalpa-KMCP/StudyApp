@@ -32,7 +32,7 @@ export type { ThemeMode } from './hooks/useThemePreference'
 
 function App() {
   const [activeView, setActiveView] = useState<View>(() => resolveViewFromPathname(window.location.pathname).view)
-  const { coordinator } = useDataCoordinator()
+  const { coordinator, snapshot: coordinatorState } = useDataCoordinator()
   const [noticeOpen, setNoticeOpen] = useState(false)
   const [taskFilter, setTaskFilter] = useState<'all' | 'open' | 'done'>('all')
   const [taskEditorRequest, setTaskEditorRequest] = useState(0)
@@ -263,6 +263,7 @@ function App() {
           key={liveReadEpoch}
           fallback={(
             <AppLiveReadFallback
+              coordinatorState={coordinatorState}
               activeView={activeView}
               noticeOpen={noticeOpen}
               noticePopoverId="notice-popover"
@@ -288,6 +289,7 @@ function App() {
           )}
         >
           <AppLiveData
+            coordinatorState={coordinatorState}
             activeView={activeView}
             taskFilter={taskFilter}
             onTaskFilterChange={setTaskFilter}

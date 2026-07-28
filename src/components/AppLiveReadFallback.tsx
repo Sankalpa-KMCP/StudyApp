@@ -1,6 +1,7 @@
 import { Topbar } from './Topbar'
 import { LiveReadErrorPanel } from './LiveReadErrorPanel'
 import { SettingsView } from '../views/SettingsView'
+import type { DataCoordinatorSnapshot } from '../db/dataCoordinator'
 import type { ThemeMode } from '../hooks/useThemePreference'
 import type { View } from '../navigation/viewRoutes'
 import type { QuickAddItem } from './QuickAddMenu'
@@ -8,6 +9,7 @@ import type { QuickAddItem } from './QuickAddMenu'
 export const LIVE_READ_ERROR_MESSAGE = 'Study data could not be loaded. Your local data is still on this device.'
 
 export type AppLiveReadFallbackProps = {
+  coordinatorState?: DataCoordinatorSnapshot
   activeView: View
   noticeOpen: boolean
   noticePopoverId: string
@@ -33,6 +35,7 @@ export type AppLiveReadFallbackProps = {
  * Keeps Topbar chrome and allows Settings backup recovery without the failed queries.
  */
 export function AppLiveReadFallback({
+  coordinatorState,
   activeView,
   noticeOpen,
   noticePopoverId,
@@ -77,6 +80,7 @@ export function AppLiveReadFallback({
             <section className="primary-column" aria-label="Primary study summary">
               {errorPanel}
               <SettingsView
+                coordinatorState={coordinatorState}
                 onExport={onExport}
                 onImport={onImport}
                 onClear={onClear}

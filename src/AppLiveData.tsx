@@ -40,7 +40,10 @@ const EMPTY_TASKS: StudyTask[] = []
 const EMPTY_STUDY_SESSIONS: StudySession[] = []
 const EMPTY_SUBJECTS: StudySubject[] = []
 
+import type { DataCoordinatorSnapshot } from './db/dataCoordinator'
+
 export type AppLiveDataProps = {
+  coordinatorState?: DataCoordinatorSnapshot
   activeView: View
   taskFilter: 'all' | 'open' | 'done'
   onTaskFilterChange: (filter: 'all' | 'open' | 'done') => void
@@ -98,6 +101,7 @@ export type AppLiveDataProps = {
  * navigation, preferences, focus ownership, or backup orchestration.
  */
 export function AppLiveData({
+  coordinatorState,
   activeView,
   taskFilter,
   onTaskFilterChange,
@@ -374,6 +378,7 @@ export function AppLiveData({
               ) : null}
               {activeView === 'Settings' ? (
                 <SettingsView
+                  coordinatorState={coordinatorState}
                   onExport={onExport}
                   onImport={onImport}
                   onClear={onClear}
