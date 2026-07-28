@@ -1,5 +1,6 @@
 import { renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { DataOperationCoordinator } from '../db/dataCoordinator'
 import * as studyDb from '../db/studyDb'
 import {
   MAX_STUDY_EXPORT_IMPORT_BYTES,
@@ -9,25 +10,24 @@ import {
 import { useStudyBackup } from './useStudyBackup'
 
 function renderBackupHook(overrides: {
-  runWithFocusImportLock?: <T>(action: () => Promise<T>) => Promise<T>
+  coordinator?: DataOperationCoordinator
   reloadFocusFromIndexedDb?: () => Promise<null>
   clearFocusLocalState?: () => void
   onClearSuccess?: () => void
 } = {}) {
+  const coordinator = overrides.coordinator ?? new DataOperationCoordinator()
   const reloadFocusFromIndexedDb = overrides.reloadFocusFromIndexedDb ?? vi.fn(async () => null)
   const clearFocusLocalState = overrides.clearFocusLocalState ?? vi.fn()
   const onClearSuccess = overrides.onClearSuccess ?? vi.fn()
-  const runWithFocusImportLock = overrides.runWithFocusImportLock
-    ?? (async <T,>(action: () => Promise<T>) => action())
 
   const { result } = renderHook(() => useStudyBackup({
-    runWithFocusImportLock,
+    coordinator,
     reloadFocusFromIndexedDb,
     clearFocusLocalState,
     onClearSuccess,
   }))
 
-  return { result, reloadFocusFromIndexedDb, clearFocusLocalState, onClearSuccess, runWithFocusImportLock }
+  return { result, coordinator, reloadFocusFromIndexedDb, clearFocusLocalState, onClearSuccess }
 }
 
 describe('useStudyBackup', () => {
@@ -64,8 +64,8 @@ describe('useStudyBackup', () => {
 
     const { result } = renderBackupHook()
 
-    await result.current.exportBackup()
-
+    const res = await result.current.exportBackup()
+    expect(res).toEqual({ ok: true })
     expect(studyDb.exportStudyData).toHaveBeenCalledTimes(1)
     expect(urlApi.createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
     const blob = (urlApi.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0] as Blob
@@ -76,7 +76,7 @@ describe('useStudyBackup', () => {
     createElement.mockRestore()
   })
 
-  it('imports inside the focus lock and reloads focus only after successful replacement', async () => {
+  it('imports inside the coordinator lock and reloads focus only after successful replacement', async () => {
     const order: string[] = []
     vi.spyOn(studyDb, 'importStudyData').mockImplementation(async () => {
       order.push('import')
@@ -85,70 +85,77 @@ describe('useStudyBackup', () => {
       order.push('reload')
       return null
     })
-    const runWithFocusImportLock = vi.fn(async <T,>(action: () => Promise<T>) => {
-      order.push('lock-start')
-      try {
-        return await action()
-      } finally {
-        order.push('lock-end')
-      }
-    })
 
-    const { result } = renderBackupHook({ runWithFocusImportLock, reloadFocusFromIndexedDb })
+    const { result, coordinator } = renderBackupHook({ reloadFocusFromIndexedDb })
 
     const file = new File([JSON.stringify({ version: 2 })], 'backup.json', { type: 'application/json' })
-    await result.current.importBackup(file)
+    const res = await result.current.importBackup(file)
 
-    expect(order).toEqual(['lock-start', 'import', 'reload', 'lock-end'])
-    expect(runWithFocusImportLock).toHaveBeenCalledTimes(1)
+    expect(res).toEqual({ ok: true })
+    expect(order).toEqual(['import', 'reload'])
     expect(reloadFocusFromIndexedDb).toHaveBeenCalledTimes(1)
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
   })
 
-  it('does not reload focus when import validation fails and still releases the lock', async () => {
-    const order: string[] = []
-    vi.spyOn(studyDb, 'importStudyData').mockRejectedValue(new Error('invalid export'))
-    const reloadFocusFromIndexedDb = vi.fn(async () => {
-      order.push('reload')
-      return null
+  it('AC-2, AC-3: returns busy without reading file or running callbacks when coordinator is busy', async () => {
+    const coordinator = new DataOperationCoordinator()
+    const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue(undefined)
+    const exportStudyData = vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue({
+      version: 3,
+      exportedAt: '2026-07-28T00:00:00.000Z',
+      tasks: [], subjects: [], notes: [], events: [], flashcards: [], studySessions: [], goals: [], settings: [],
     })
-    const runWithFocusImportLock = vi.fn(async <T,>(action: () => Promise<T>) => {
-      order.push('lock-start')
-      try {
-        return await action()
-      } finally {
-        order.push('lock-end')
-      }
-    })
+    const clearAllStudyData = vi.spyOn(studyDb, 'clearAllStudyData').mockResolvedValue(undefined)
 
-    const { result } = renderBackupHook({ runWithFocusImportLock, reloadFocusFromIndexedDb })
+    const { result, reloadFocusFromIndexedDb, clearFocusLocalState, onClearSuccess } = renderBackupHook({ coordinator })
 
-    const file = new File(['{'], 'bad.json', { type: 'application/json' })
-    await expect(result.current.importBackup(file)).rejects.toThrow()
-    expect(order).toEqual(['lock-start', 'lock-end'])
+    // Simulate an in-flight operation locking the coordinator
+    let releaseHold!: () => void
+    const holdPromise = new Promise<void>((res) => { releaseHold = res })
+    void coordinator.runImport(async () => holdPromise)
+
+    const file = new File(['{}'], 'test.json', { type: 'application/json' })
+    const textSpy = vi.spyOn(file, 'text')
+
+    const importRes = await result.current.importBackup(file)
+    const exportRes = await result.current.exportBackup()
+    const clearRes = await result.current.clearAllBackup()
+
+    expect(importRes).toEqual({ ok: false, reason: 'busy' })
+    expect(exportRes).toEqual({ ok: false, reason: 'busy' })
+    expect(clearRes).toEqual({ ok: false, reason: 'busy' })
+
+    expect(textSpy).not.toHaveBeenCalled()
+    expect(importStudyData).not.toHaveBeenCalled()
+    expect(exportStudyData).not.toHaveBeenCalled()
+    expect(clearAllStudyData).not.toHaveBeenCalled()
     expect(reloadFocusFromIndexedDb).not.toHaveBeenCalled()
+    expect(clearFocusLocalState).not.toHaveBeenCalled()
+    expect(onClearSuccess).not.toHaveBeenCalled()
+
+    releaseHold()
   })
 
-  it('rejects an oversized file before reading text and releases the import lock', async () => {
-    const order: string[] = []
+  it('AC-4: releases coordinator lease after thrown import failure', async () => {
+    vi.spyOn(studyDb, 'importStudyData').mockRejectedValue(new Error('invalid export'))
+    const reloadFocusFromIndexedDb = vi.fn(async () => null)
+
+    const { result, coordinator } = renderBackupHook({ reloadFocusFromIndexedDb })
+
+    const file = new File(['{"version": 3}'], 'bad.json', { type: 'application/json' })
+    await expect(result.current.importBackup(file)).rejects.toThrow('invalid export')
+    expect(reloadFocusFromIndexedDb).not.toHaveBeenCalled()
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
+  })
+
+  it('rejects an oversized file before reading text and releases the coordinator lock', async () => {
     const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue(undefined)
     const textSpy = vi.spyOn(File.prototype, 'text')
     const parseSpy = vi.spyOn(JSON, 'parse')
-    const reloadFocusFromIndexedDb = vi.fn(async () => {
-      order.push('reload')
-      return null
-    })
+    const reloadFocusFromIndexedDb = vi.fn(async () => null)
     const clearFocusLocalState = vi.fn()
-    const runWithFocusImportLock = vi.fn(async <T,>(action: () => Promise<T>) => {
-      order.push('lock-start')
-      try {
-        return await action()
-      } finally {
-        order.push('lock-end')
-      }
-    })
 
-    const { result } = renderBackupHook({
-      runWithFocusImportLock,
+    const { result, coordinator } = renderBackupHook({
       reloadFocusFromIndexedDb,
       clearFocusLocalState,
     })
@@ -157,34 +164,21 @@ describe('useStudyBackup', () => {
     Object.defineProperty(file, 'size', { value: MAX_STUDY_EXPORT_IMPORT_BYTES + 1 })
 
     await expect(result.current.importBackup(file)).rejects.toThrow(STUDY_EXPORT_IMPORT_SIZE_ERROR)
-    expect(order).toEqual(['lock-start', 'lock-end'])
     expect(textSpy).not.toHaveBeenCalled()
     expect(parseSpy).not.toHaveBeenCalled()
     expect(importStudyData).not.toHaveBeenCalled()
     expect(reloadFocusFromIndexedDb).not.toHaveBeenCalled()
     expect(clearFocusLocalState).not.toHaveBeenCalled()
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
   })
 
   it('rejects oversized text before JSON parse and database import', async () => {
-    const order: string[] = []
     const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue(undefined)
     const parseSpy = vi.spyOn(JSON, 'parse')
-    const reloadFocusFromIndexedDb = vi.fn(async () => {
-      order.push('reload')
-      return null
-    })
+    const reloadFocusFromIndexedDb = vi.fn(async () => null)
     const clearFocusLocalState = vi.fn()
-    const runWithFocusImportLock = vi.fn(async <T,>(action: () => Promise<T>) => {
-      order.push('lock-start')
-      try {
-        return await action()
-      } finally {
-        order.push('lock-end')
-      }
-    })
 
-    const { result } = renderBackupHook({
-      runWithFocusImportLock,
+    const { result, coordinator } = renderBackupHook({
       reloadFocusFromIndexedDb,
       clearFocusLocalState,
     })
@@ -196,12 +190,12 @@ describe('useStudyBackup', () => {
     } as unknown as File
 
     await expect(result.current.importBackup(file)).rejects.toThrow(STUDY_EXPORT_IMPORT_SIZE_ERROR)
-    expect(order).toEqual(['lock-start', 'lock-end'])
     expect(file.text).toHaveBeenCalledTimes(1)
     expect(parseSpy).not.toHaveBeenCalled()
     expect(importStudyData).not.toHaveBeenCalled()
     expect(reloadFocusFromIndexedDb).not.toHaveBeenCalled()
     expect(clearFocusLocalState).not.toHaveBeenCalled()
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
   })
 
   it('allows a file at the byte-size boundary to reach the import path', async () => {
@@ -213,8 +207,8 @@ describe('useStudyBackup', () => {
     const file = new File([payload], 'boundary.json', { type: 'application/json' })
     Object.defineProperty(file, 'size', { value: MAX_STUDY_EXPORT_IMPORT_BYTES })
 
-    await result.current.importBackup(file)
-
+    const res = await result.current.importBackup(file)
+    expect(res).toEqual({ ok: true })
     expect(importStudyData).toHaveBeenCalledTimes(1)
     expect(importStudyData).toHaveBeenCalledWith({ version: 3 })
     expect(reloadFocusFromIndexedDb).toHaveBeenCalledTimes(1)
@@ -226,8 +220,9 @@ describe('useStudyBackup', () => {
     const { result } = renderBackupHook({ reloadFocusFromIndexedDb })
 
     const file = new File([JSON.stringify({ version: 1 })], 'ok.json', { type: 'application/json' })
-    await result.current.importBackup(file)
+    const res = await result.current.importBackup(file)
 
+    expect(res).toEqual({ ok: true })
     expect(file.size).toBeLessThanOrEqual(MAX_STUDY_EXPORT_IMPORT_BYTES)
     expect(importStudyData).toHaveBeenCalledWith({ version: 1 })
     expect(reloadFocusFromIndexedDb).toHaveBeenCalledTimes(1)
@@ -238,25 +233,28 @@ describe('useStudyBackup', () => {
     const onClearSuccess = vi.fn()
     vi.spyOn(studyDb, 'clearAllStudyData').mockResolvedValue(undefined)
 
-    const { result } = renderBackupHook({ clearFocusLocalState, onClearSuccess })
+    const { result, coordinator } = renderBackupHook({ clearFocusLocalState, onClearSuccess })
 
-    await result.current.clearAllBackup()
+    const res = await result.current.clearAllBackup()
 
+    expect(res).toEqual({ ok: true })
     expect(studyDb.clearAllStudyData).toHaveBeenCalledTimes(1)
     expect(clearFocusLocalState).toHaveBeenCalledTimes(1)
     expect(onClearSuccess).toHaveBeenCalledTimes(1)
     expect(clearFocusLocalState.mock.invocationCallOrder[0]).toBeLessThan(onClearSuccess.mock.invocationCallOrder[0])
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
   })
 
-  it('preserves local focus state when persistent clear fails', async () => {
+  it('preserves local focus state when persistent clear fails and releases coordinator lease', async () => {
     const clearFocusLocalState = vi.fn()
     const onClearSuccess = vi.fn()
     vi.spyOn(studyDb, 'clearAllStudyData').mockRejectedValue(new Error('clear failed'))
 
-    const { result } = renderBackupHook({ clearFocusLocalState, onClearSuccess })
+    const { result, coordinator } = renderBackupHook({ clearFocusLocalState, onClearSuccess })
 
     await expect(result.current.clearAllBackup()).rejects.toThrow('clear failed')
     expect(clearFocusLocalState).not.toHaveBeenCalled()
     expect(onClearSuccess).not.toHaveBeenCalled()
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
   })
 })
