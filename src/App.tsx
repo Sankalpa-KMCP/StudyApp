@@ -128,6 +128,7 @@ function App() {
     acceptStaleFocusSession,
     discardStaleFocusSession,
     reloadFocusFromIndexedDb,
+    runWithFocusImportLock,
     clearFocusLocalState,
   } = useFocusSession({ subjectMap })
 
@@ -138,6 +139,7 @@ function App() {
   }, [navigateToView])
   const { exportBackup, importBackup, clearAllBackup } = useStudyBackup({
     coordinator,
+    runWithFocusImportLock,
     reloadFocusFromIndexedDb,
     clearFocusLocalState,
     onClearSuccess: onBackupClearSuccess,

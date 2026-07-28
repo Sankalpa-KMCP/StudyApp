@@ -7,10 +7,15 @@ import {
   MAX_STUDY_EXPORT_IMPORT_CHARS,
   STUDY_EXPORT_IMPORT_SIZE_ERROR,
 } from '../db/studyExportLimits'
-import { useStudyBackup } from './useStudyBackup'
+import {
+  DataOperationBusyError,
+  isDataOperationBusyError,
+  useStudyBackup,
+} from './useStudyBackup'
 
 function renderBackupHook(overrides: {
   coordinator?: DataOperationCoordinator
+  runWithFocusImportLock?: <T>(action: () => Promise<T>) => Promise<T>
   reloadFocusFromIndexedDb?: () => Promise<null>
   clearFocusLocalState?: () => void
   onClearSuccess?: () => void
@@ -19,15 +24,18 @@ function renderBackupHook(overrides: {
   const reloadFocusFromIndexedDb = overrides.reloadFocusFromIndexedDb ?? vi.fn(async () => null)
   const clearFocusLocalState = overrides.clearFocusLocalState ?? vi.fn()
   const onClearSuccess = overrides.onClearSuccess ?? vi.fn()
+  const runWithFocusImportLock = overrides.runWithFocusImportLock
+    ?? vi.fn(async <T,>(action: () => Promise<T>) => action())
 
   const { result } = renderHook(() => useStudyBackup({
     coordinator,
+    runWithFocusImportLock,
     reloadFocusFromIndexedDb,
     clearFocusLocalState,
     onClearSuccess,
   }))
 
-  return { result, coordinator, reloadFocusFromIndexedDb, clearFocusLocalState, onClearSuccess }
+  return { result, coordinator, reloadFocusFromIndexedDb, clearFocusLocalState, onClearSuccess, runWithFocusImportLock }
 }
 
 describe('useStudyBackup', () => {
@@ -64,8 +72,8 @@ describe('useStudyBackup', () => {
 
     const { result } = renderBackupHook()
 
-    const res = await result.current.exportBackup()
-    expect(res).toEqual({ ok: true })
+    await result.current.exportBackup()
+
     expect(studyDb.exportStudyData).toHaveBeenCalledTimes(1)
     expect(urlApi.createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
     const blob = (urlApi.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0] as Blob
@@ -76,7 +84,7 @@ describe('useStudyBackup', () => {
     createElement.mockRestore()
   })
 
-  it('imports inside the coordinator lock and reloads focus only after successful replacement', async () => {
+  it('AC-1, AC-3: imports inside both coordinator and focus-import locks and reloads focus before release', async () => {
     const order: string[] = []
     vi.spyOn(studyDb, 'importStudyData').mockImplementation(async () => {
       order.push('import')
@@ -85,19 +93,27 @@ describe('useStudyBackup', () => {
       order.push('reload')
       return null
     })
+    const runWithFocusImportLock = vi.fn(async <T,>(action: () => Promise<T>) => {
+      order.push('focus-lock-start')
+      try {
+        return await action()
+      } finally {
+        order.push('focus-lock-end')
+      }
+    })
 
-    const { result, coordinator } = renderBackupHook({ reloadFocusFromIndexedDb })
+    const { result, coordinator } = renderBackupHook({ runWithFocusImportLock, reloadFocusFromIndexedDb })
 
     const file = new File([JSON.stringify({ version: 2 })], 'backup.json', { type: 'application/json' })
-    const res = await result.current.importBackup(file)
+    await result.current.importBackup(file)
 
-    expect(res).toEqual({ ok: true })
-    expect(order).toEqual(['import', 'reload'])
+    expect(order).toEqual(['focus-lock-start', 'import', 'reload', 'focus-lock-end'])
+    expect(runWithFocusImportLock).toHaveBeenCalledTimes(1)
     expect(reloadFocusFromIndexedDb).toHaveBeenCalledTimes(1)
     expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
   })
 
-  it('AC-2, AC-3: returns busy without reading file or running callbacks when coordinator is busy', async () => {
+  it('AC-5, AC-6: rejects with DataOperationBusyError when coordinator is busy', async () => {
     const coordinator = new DataOperationCoordinator()
     const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue(undefined)
     const exportStudyData = vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue({
@@ -107,7 +123,7 @@ describe('useStudyBackup', () => {
     })
     const clearAllStudyData = vi.spyOn(studyDb, 'clearAllStudyData').mockResolvedValue(undefined)
 
-    const { result, reloadFocusFromIndexedDb, clearFocusLocalState, onClearSuccess } = renderBackupHook({ coordinator })
+    const { result, reloadFocusFromIndexedDb, clearFocusLocalState, onClearSuccess, runWithFocusImportLock } = renderBackupHook({ coordinator })
 
     // Simulate an in-flight operation locking the coordinator
     let releaseHold!: () => void
@@ -117,18 +133,23 @@ describe('useStudyBackup', () => {
     const file = new File(['{}'], 'test.json', { type: 'application/json' })
     const textSpy = vi.spyOn(file, 'text')
 
-    const importRes = await result.current.importBackup(file)
-    const exportRes = await result.current.exportBackup()
-    const clearRes = await result.current.clearAllBackup()
+    const importErr = await result.current.importBackup(file).catch((e: unknown) => e)
+    const exportErr = await result.current.exportBackup().catch((e: unknown) => e)
+    const clearErr = await result.current.clearAllBackup().catch((e: unknown) => e)
 
-    expect(importRes).toEqual({ ok: false, reason: 'busy' })
-    expect(exportRes).toEqual({ ok: false, reason: 'busy' })
-    expect(clearRes).toEqual({ ok: false, reason: 'busy' })
+    expect(isDataOperationBusyError(importErr)).toBe(true)
+    expect(isDataOperationBusyError(exportErr)).toBe(true)
+    expect(isDataOperationBusyError(clearErr)).toBe(true)
+
+    expect(importErr).toBeInstanceOf(DataOperationBusyError)
+    expect(exportErr).toBeInstanceOf(DataOperationBusyError)
+    expect(clearErr).toBeInstanceOf(DataOperationBusyError)
 
     expect(textSpy).not.toHaveBeenCalled()
     expect(importStudyData).not.toHaveBeenCalled()
     expect(exportStudyData).not.toHaveBeenCalled()
     expect(clearAllStudyData).not.toHaveBeenCalled()
+    expect(runWithFocusImportLock).not.toHaveBeenCalled()
     expect(reloadFocusFromIndexedDb).not.toHaveBeenCalled()
     expect(clearFocusLocalState).not.toHaveBeenCalled()
     expect(onClearSuccess).not.toHaveBeenCalled()
@@ -136,26 +157,46 @@ describe('useStudyBackup', () => {
     releaseHold()
   })
 
-  it('AC-4: releases coordinator lease after thrown import failure', async () => {
+  it('AC-4: releases both coordinator and focus-import locks after thrown import failure', async () => {
+    const order: string[] = []
     vi.spyOn(studyDb, 'importStudyData').mockRejectedValue(new Error('invalid export'))
     const reloadFocusFromIndexedDb = vi.fn(async () => null)
+    const runWithFocusImportLock = vi.fn(async <T,>(action: () => Promise<T>) => {
+      order.push('focus-lock-start')
+      try {
+        return await action()
+      } finally {
+        order.push('focus-lock-end')
+      }
+    })
 
-    const { result, coordinator } = renderBackupHook({ reloadFocusFromIndexedDb })
+    const { result, coordinator } = renderBackupHook({ runWithFocusImportLock, reloadFocusFromIndexedDb })
 
     const file = new File(['{"version": 3}'], 'bad.json', { type: 'application/json' })
     await expect(result.current.importBackup(file)).rejects.toThrow('invalid export')
+    expect(order).toEqual(['focus-lock-start', 'focus-lock-end'])
     expect(reloadFocusFromIndexedDb).not.toHaveBeenCalled()
     expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
   })
 
-  it('rejects an oversized file before reading text and releases the coordinator lock', async () => {
+  it('rejects an oversized file before reading text and releases both locks', async () => {
+    const order: string[] = []
     const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue(undefined)
     const textSpy = vi.spyOn(File.prototype, 'text')
     const parseSpy = vi.spyOn(JSON, 'parse')
     const reloadFocusFromIndexedDb = vi.fn(async () => null)
     const clearFocusLocalState = vi.fn()
+    const runWithFocusImportLock = vi.fn(async <T,>(action: () => Promise<T>) => {
+      order.push('focus-lock-start')
+      try {
+        return await action()
+      } finally {
+        order.push('focus-lock-end')
+      }
+    })
 
     const { result, coordinator } = renderBackupHook({
+      runWithFocusImportLock,
       reloadFocusFromIndexedDb,
       clearFocusLocalState,
     })
@@ -164,6 +205,7 @@ describe('useStudyBackup', () => {
     Object.defineProperty(file, 'size', { value: MAX_STUDY_EXPORT_IMPORT_BYTES + 1 })
 
     await expect(result.current.importBackup(file)).rejects.toThrow(STUDY_EXPORT_IMPORT_SIZE_ERROR)
+    expect(order).toEqual(['focus-lock-start', 'focus-lock-end'])
     expect(textSpy).not.toHaveBeenCalled()
     expect(parseSpy).not.toHaveBeenCalled()
     expect(importStudyData).not.toHaveBeenCalled()
@@ -207,8 +249,8 @@ describe('useStudyBackup', () => {
     const file = new File([payload], 'boundary.json', { type: 'application/json' })
     Object.defineProperty(file, 'size', { value: MAX_STUDY_EXPORT_IMPORT_BYTES })
 
-    const res = await result.current.importBackup(file)
-    expect(res).toEqual({ ok: true })
+    await result.current.importBackup(file)
+
     expect(importStudyData).toHaveBeenCalledTimes(1)
     expect(importStudyData).toHaveBeenCalledWith({ version: 3 })
     expect(reloadFocusFromIndexedDb).toHaveBeenCalledTimes(1)
@@ -220,9 +262,8 @@ describe('useStudyBackup', () => {
     const { result } = renderBackupHook({ reloadFocusFromIndexedDb })
 
     const file = new File([JSON.stringify({ version: 1 })], 'ok.json', { type: 'application/json' })
-    const res = await result.current.importBackup(file)
+    await result.current.importBackup(file)
 
-    expect(res).toEqual({ ok: true })
     expect(file.size).toBeLessThanOrEqual(MAX_STUDY_EXPORT_IMPORT_BYTES)
     expect(importStudyData).toHaveBeenCalledWith({ version: 1 })
     expect(reloadFocusFromIndexedDb).toHaveBeenCalledTimes(1)
@@ -235,9 +276,8 @@ describe('useStudyBackup', () => {
 
     const { result, coordinator } = renderBackupHook({ clearFocusLocalState, onClearSuccess })
 
-    const res = await result.current.clearAllBackup()
+    await result.current.clearAllBackup()
 
-    expect(res).toEqual({ ok: true })
     expect(studyDb.clearAllStudyData).toHaveBeenCalledTimes(1)
     expect(clearFocusLocalState).toHaveBeenCalledTimes(1)
     expect(onClearSuccess).toHaveBeenCalledTimes(1)

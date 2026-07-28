@@ -11,22 +11,34 @@ import {
 } from '../db/studyExportLimits'
 import type { ActiveFocusSession } from '../db/types'
 
+export class DataOperationBusyError extends Error {
+  readonly code = 'DATA_OPERATION_BUSY'
+  constructor(message = 'Another data operation is currently in progress. Please wait for it to complete.') {
+    super(message)
+    this.name = 'DataOperationBusyError'
+  }
+}
+
+export function isDataOperationBusyError(error: unknown): error is DataOperationBusyError {
+  return (
+    error instanceof DataOperationBusyError
+    || (error instanceof Error && (error as Error & { code?: string }).code === 'DATA_OPERATION_BUSY')
+  )
+}
+
 export type UseStudyBackupOptions = {
   coordinator: IDataOperationCoordinator
+  runWithFocusImportLock: <T>(action: () => Promise<T>) => Promise<T>
   reloadFocusFromIndexedDb: () => Promise<ActiveFocusSession | null>
   clearFocusLocalState: () => void
   /** Invoked only after successful persistent clear + local focus reset. */
   onClearSuccess: () => void
 }
 
-export type BackupOperationResult =
-  | { ok: true }
-  | { ok: false; reason: 'busy' }
-
 export type UseStudyBackupResult = {
-  exportBackup: () => Promise<BackupOperationResult>
-  importBackup: (file: File) => Promise<BackupOperationResult>
-  clearAllBackup: () => Promise<BackupOperationResult>
+  exportBackup: () => Promise<void>
+  importBackup: (file: File) => Promise<void>
+  clearAllBackup: () => Promise<void>
 }
 
 /**
@@ -35,11 +47,12 @@ export type UseStudyBackupResult = {
  */
 export function useStudyBackup({
   coordinator,
+  runWithFocusImportLock,
   reloadFocusFromIndexedDb,
   clearFocusLocalState,
   onClearSuccess,
 }: UseStudyBackupOptions): UseStudyBackupResult {
-  const exportBackup = useCallback(async (): Promise<BackupOperationResult> => {
+  const exportBackup = useCallback(async (): Promise<void> => {
     let objectUrl: string | null = null
     const result = await coordinator.runExport(async () => {
       try {
@@ -57,35 +70,34 @@ export function useStudyBackup({
       }
     })
     if (!result.ok) {
-      return { ok: false, reason: 'busy' }
+      throw new DataOperationBusyError('Another operation is in progress. Please wait for it to complete.')
     }
-    return { ok: true }
   }, [coordinator])
 
-  const importBackup = useCallback(async (file: File): Promise<BackupOperationResult> => {
+  const importBackup = useCallback(async (file: File): Promise<void> => {
     const result = await coordinator.runImport(async () => {
-      assertStudyExportImportFileSize(file)
-      const text = await file.text()
-      assertStudyExportImportTextLength(text)
-      await importStudyData(JSON.parse(text) as unknown)
-      await reloadFocusFromIndexedDb()
+      await runWithFocusImportLock(async () => {
+        assertStudyExportImportFileSize(file)
+        const text = await file.text()
+        assertStudyExportImportTextLength(text)
+        await importStudyData(JSON.parse(text) as unknown)
+        await reloadFocusFromIndexedDb()
+      })
     })
     if (!result.ok) {
-      return { ok: false, reason: 'busy' }
+      throw new DataOperationBusyError('Another operation is in progress. Please wait for it to complete.')
     }
-    return { ok: true }
-  }, [coordinator, reloadFocusFromIndexedDb])
+  }, [coordinator, reloadFocusFromIndexedDb, runWithFocusImportLock])
 
-  const clearAllBackup = useCallback(async (): Promise<BackupOperationResult> => {
+  const clearAllBackup = useCallback(async (): Promise<void> => {
     const result = await coordinator.runDeleteAll(async () => {
       await clearAllStudyData()
       clearFocusLocalState()
       onClearSuccess()
     })
     if (!result.ok) {
-      return { ok: false, reason: 'busy' }
+      throw new DataOperationBusyError('Another operation is in progress. Please wait for it to complete.')
     }
-    return { ok: true }
   }, [clearFocusLocalState, coordinator, onClearSuccess])
 
   return {
