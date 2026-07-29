@@ -10,7 +10,7 @@ import {
   formatMinutes,
 } from './appUtils'
 import {
-  clearStudyData,
+  clearAllStudyData,
   createId,
   exportStudyData,
   getStudyData,
@@ -162,6 +162,13 @@ function App() {
     setTaskEditorRequest((request) => request + 1)
   }
 
+  const handleClearData = async () => {
+    await clearAllStudyData()
+    setProfileNotice('All study data has been permanently deleted.')
+    setActiveView('Home')
+    setTimeout(() => setProfileNotice(''), 5000)
+  }
+
   const openNewSubject = () => {
     setActiveView('Subjects')
     setSubjectEditorRequest((request) => request + 1)
@@ -246,6 +253,7 @@ function App() {
           ) : (
             <div className="content-grid">
               <section className="primary-column" aria-label="Primary study summary">
+                {profileNotice ? <div className="settings-feedback success" role="status" style={{ margin: '0 0 16px 0', padding: '16px', background: 'var(--surface-sunken)', borderLeft: '4px solid var(--accent)', color: 'var(--text-strong)' }}>{profileNotice}</div> : null}
                 <HeroRow
                   activeView={activeView}
                   todayFocusMinutes={todayFocusMinutes}
@@ -337,7 +345,7 @@ function App() {
                   <SettingsView
                     onExport={() => void exportData()}
                     onImport={importData}
-                    onClear={clearStudyData}
+                    onClear={handleClearData}
                     onClearSearch={clearSearch}
                     profileNotice={profileNotice}
                     theme={theme}

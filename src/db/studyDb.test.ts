@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { clearStudyData, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, studyDb } from './studyDb'
+import { clearAllStudyData, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, studyDb } from './studyDb'
 
 describe('studyDb', () => {
   beforeEach(async () => {
@@ -31,7 +31,7 @@ describe('studyDb', () => {
       createdAt: timestamp,
       updatedAt: timestamp,
     })
-    await clearStudyData()
+    await clearAllStudyData()
 
     expect((await getStudyData()).tasks).toHaveLength(0)
   })
@@ -59,7 +59,7 @@ describe('studyDb', () => {
     })
 
     const snapshot = await exportStudyData()
-    await clearStudyData()
+    await clearAllStudyData()
     await importStudyData(snapshot)
 
     const restored = await getStudyData()

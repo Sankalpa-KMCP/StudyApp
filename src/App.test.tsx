@@ -162,7 +162,8 @@ describe('App', () => {
     render(<App />)
 
     await user.click(await screen.findByRole('button', { name: 'Profile' }))
-    expect(await screen.findByText('Profile settings live in this local Settings workspace for now.')).toBeInTheDocument()
+    const notices = await screen.findAllByText(/Profile settings live in this local/i)
+    expect(notices.length).toBeGreaterThan(0)
 
     await user.click(screen.getByRole('button', { name: 'Progress' }))
     await user.click(screen.getByRole('button', { name: 'Log session' }))
@@ -234,7 +235,6 @@ describe('App', () => {
 
   it('confirms before clearing all study data and reports success', async () => {
     const user = userEvent.setup()
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
 
     await studyDb.tasks.add({
       id: 'task-clear-test',
@@ -247,23 +247,65 @@ describe('App', () => {
       createdAt: '2026-06-29T00:00:00.000Z',
       updatedAt: '2026-06-29T00:00:00.000Z',
     })
+    await studyDb.settings.put({ key: 'quickNotes', value: ['Important quick note'] })
 
     render(<App />)
 
     await user.click(await screen.findByRole('button', { name: 'Settings' }))
-    await user.click(screen.getByRole('button', { name: /Clear all data/ }))
-    expect(confirm).toHaveBeenCalledWith('Clear all study data? This cannot be undone.')
+    const resetBtn = screen.getByRole('button', { name: /Reset all study data/ })
+    await user.click(resetBtn)
+
+    // Check Cancel flow
+    const cancelBtn = screen.getByRole('button', { name: 'Cancel' })
+    await user.click(cancelBtn)
 
     await user.click(screen.getByRole('button', { name: 'Tasks' }))
     expect(await screen.findByText('Keep until confirmed')).toBeInTheDocument()
 
-    confirm.mockReturnValue(true)
+    // Now confirm deletion
     await user.click(screen.getByRole('button', { name: 'Settings' }))
-    await user.click(screen.getByRole('button', { name: /Clear all data/ }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Study data cleared.')
+    await user.click(screen.getByRole('button', { name: /Reset all study data/ }))
+
+    const confirmInput = screen.getByPlaceholderText('DELETE')
+    const deleteBtn = screen.getByRole('button', { name: 'Delete all data' })
+
+    expect(deleteBtn).toBeDisabled()
+    await user.type(confirmInput, 'DELETE')
+    expect(deleteBtn).not.toBeDisabled()
+
+    await user.click(deleteBtn)
+
+    // Verify success message and redirection to Home (empty state)
+    expect(await screen.findByRole('status', { name: '' })).toHaveTextContent('All study data has been permanently deleted.')
+    expect(await screen.findByRole('heading', { name: 'Good morning' })).toBeInTheDocument()
+
+    // Quick notes should be gone
+    const quickNotesData = await studyDb.settings.get('quickNotes')
+    expect(quickNotesData).toBeUndefined()
 
     await user.click(screen.getByRole('button', { name: 'Tasks' }))
     await waitFor(() => expect(screen.queryByText('Keep until confirmed')).not.toBeInTheDocument())
+  })
+
+  it('handles deletion errors safely', async () => {
+    const user = userEvent.setup()
+
+    // Mock the error
+    const spy = vi.spyOn(studyDb.tasks, 'clear').mockRejectedValue(new Error('Simulated error'))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: /Reset all study data/ }))
+
+    await user.type(screen.getByPlaceholderText('DELETE'), 'DELETE')
+    await user.click(screen.getByRole('button', { name: 'Delete all data' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not clear study data. Try again.')
+
+    // Ensure the dialog is closed and reset
+    expect(screen.getByRole('button', { name: /Reset all study data/ })).toBeInTheDocument()
+
+    spy.mockRestore()
   })
 
   it('creates and displays calendar events', async () => {

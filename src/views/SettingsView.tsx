@@ -30,6 +30,8 @@ export function SettingsView({
   onThemeChange: (theme: ThemeMode) => void
 }) {
   const [feedback, setFeedback] = useState<SettingsFeedback | null>(null)
+  const [resetState, setResetState] = useState<'idle' | 'confirm' | 'deleting'>('idle')
+  const [deleteInput, setDeleteInput] = useState('')
 
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -46,13 +48,15 @@ export function SettingsView({
   }
 
   const handleClear = async () => {
-    if (!window.confirm('Clear all study data? This cannot be undone.')) return
-
+    if (deleteInput !== 'DELETE') return
+    setResetState('deleting')
     try {
       await onClear()
-      setFeedback({ tone: 'success', message: 'Study data cleared.' })
+      // Success is handled by App.tsx navigating away
     } catch {
       setFeedback({ tone: 'error', message: 'Could not clear study data. Try again.' })
+      setResetState('idle')
+      setDeleteInput('')
     }
   }
 
@@ -107,11 +111,36 @@ export function SettingsView({
             ))}
           </div>
         </div>
-        <button className="action-card danger-card" type="button" onClick={() => void handleClear()}>
-          <RotateCcw size={24} aria-hidden="true" />
-          <strong>Clear all data</strong>
-          <span>Remove tasks, notes, subjects, events, cards, sessions, and goals.</span>
-        </button>
+      </div>
+      <div className="section-heading" style={{ marginTop: '24px' }}>
+        <h2>Danger zone</h2>
+      </div>
+      <div className="card-grid danger-zone">
+        {resetState === 'idle' ? (
+          <button className="action-card danger-card" type="button" onClick={() => setResetState('confirm')}>
+            <RotateCcw size={24} aria-hidden="true" />
+            <strong>Reset all study data</strong>
+            <span>Permanently deletes local study data on this device.</span>
+          </button>
+        ) : (
+          <div className="action-card danger-card is-confirming">
+            <strong>Confirm data deletion</strong>
+            <p>Type DELETE to permanently remove all study data.</p>
+            <input
+              className="field"
+              type="text"
+              value={deleteInput}
+              onChange={(e) => setDeleteInput(e.target.value)}
+              placeholder="DELETE"
+              disabled={resetState === 'deleting'}
+              style={{ padding: '8px', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--surface-sunken)', color: 'var(--text-strong)', width: '100%', marginBottom: '16px' }}
+            />
+            <div className="button-row" style={{ display: 'flex', gap: '8px' }}>
+              <button className="secondary-command" type="button" onClick={() => { setResetState('idle'); setDeleteInput('') }} disabled={resetState === 'deleting'}>Cancel</button>
+              <button className="primary-command" type="button" disabled={deleteInput !== 'DELETE' || resetState === 'deleting'} onClick={() => void handleClear()}>Delete all data</button>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )
