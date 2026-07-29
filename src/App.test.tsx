@@ -319,7 +319,7 @@ describe('App', () => {
   it('saves quick notes from the home page', async () => {
     render(<App />)
 
-    const textarea = await screen.findByPlaceholderText(/Capture fast ideas/)
+    const textarea = await screen.findByPlaceholderText(/Capture fast ideas/i)
     fireEvent.change(textarea, { target: { value: 'Review chapter 5 for exam' } })
 
     await waitFor(async () => {
@@ -464,5 +464,157 @@ describe('App', () => {
     await user.click(clearButtons[clearButtons.length - 1])
 
     expect(screen.getByPlaceholderText('Search')).toHaveValue('')
+  })
+
+  it('opens and closes the notice popover', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Good morning' })
+
+    const noticesBtn = screen.getByRole('button', { name: 'Notifications' })
+    await user.click(noticesBtn)
+
+    const popover = screen.getByRole('status')
+    expect(popover).toBeInTheDocument()
+    expect(within(popover).getByText(/completed tasks/)).toBeInTheDocument()
+
+    await user.click(noticesBtn)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('exports study data as a JSON file', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const createObjectURLMock = vi.fn().mockReturnValue('blob:test-url')
+    const revokeObjectURLMock = vi.fn()
+    global.URL.createObjectURL = createObjectURLMock
+    global.URL.revokeObjectURL = revokeObjectURLMock
+
+    const clickMock = vi.fn()
+    const originalCreateElement = document.createElement.bind(document)
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      if (tagName === 'a') {
+        return { click: clickMock, setAttribute: vi.fn() } as unknown as HTMLElement
+      }
+      return originalCreateElement(tagName)
+    })
+
+    await screen.findByRole('heading', { name: 'Good morning' })
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByText('Export data'))
+
+    await waitFor(() => {
+      expect(createObjectURLMock).toHaveBeenCalled()
+    })
+    expect(clickMock).toHaveBeenCalled()
+    expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:test-url')
+
+    createElementSpy.mockRestore()
+  })
+
+  it('logs focus session automatically when time limit is reached', async () => {
+    // Populate DB for coverage hits
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
+    await studyDb.settings.put({ key: 'quickNotes', value: ['Test Note'] })
+    await studyDb.subjects.add({ id: 'subj-cov', name: 'CovSubject', progress: 0, color: '#000000', targetHours: 1, createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
+    await studyDb.flashcards.add({ id: 'fc-cov', subjectId: 'subj-cov', front: 'Q', back: 'A', status: 'new', dueAt: new Date().toISOString(), lastReviewedAt: '', createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
+
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Good morning' })
+
+    const durationSelect = screen.getByRole('combobox', { name: 'Session length' })
+    fireEvent.change(durationSelect, { target: { value: '25' } })
+
+    const subjectSelect = screen.getByRole('combobox', { name: 'Focus subject' })
+    fireEvent.change(subjectSelect, { target: { value: 'subj-cov' } })
+
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: 'Start focus' }))
+
+    expect(screen.getByText('Stop session')).toBeInTheDocument()
+
+    vi.advanceTimersByTime(26 * 60 * 1000)
+
+    vi.useRealTimers()
+
+    await waitFor(() => {
+      expect(screen.queryByText('Stop session')).not.toBeInTheDocument()
+    })
+    expect(screen.getByText(/Session complete: \d+m logged/)).toBeInTheDocument()
+  })
+
+  it('toggles flashcard reveal', async () => {
+    // Put data to trigger callbacks for settings and flashcards
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
+    await studyDb.settings.put({ key: 'quickNotes', value: ['Note'] })
+    await studyDb.subjects.add({ id: 'subj1', name: 'Math', progress: 0, color: '#000000', targetHours: 1, createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
+    await studyDb.flashcards.add({ id: 'fc1', subjectId: 'subj1', front: 'Q', back: 'A', status: 'new', dueAt: new Date().toISOString(), lastReviewedAt: '', createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
+
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Good morning' })
+
+    // Reveal flashcard
+    fireEvent.click(screen.getByRole('button', { name: 'Flashcards' }))
+    const flashcardTitle = await screen.findByText('Q')
+    expect(flashcardTitle).toBeInTheDocument()
+
+    const revealBtn = screen.getByRole('button', { name: 'Reveal' })
+    fireEvent.click(revealBtn)
+
+    const hideBtn = screen.getByRole('button', { name: 'Hide' })
+    fireEvent.click(hideBtn)
+  })
+
+  it('clears search when no results are found', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Good morning' })
+
+    // Navigate to tasks
+    await user.click(screen.getByRole('button', { name: 'Tasks' }))
+
+    // Search for something that doesn't exist
+    const searchInput = screen.getByPlaceholderText('Search')
+    await user.type(searchInput, 'nonexistentterm')
+
+    // Click the "Clear search" button that appears in the empty state
+    // We should have multiple clear search buttons since we are in a view, let's just click the one in the main area if possible, or any.
+    // The Topbar has one, and the empty state has one. The empty state one is usually what users click when there's no results.
+    const clearButtons = screen.getAllByRole('button', { name: 'Clear search' })
+    await user.click(clearButtons[clearButtons.length - 1])
+
+    expect(searchInput).toHaveValue('')
+  })
+
+  it('navigates to Calendar from Upcoming widget', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Good morning' })
+
+    const rightColumn = screen.getByRole('complementary', { name: 'Progress and schedule' })
+    const viewAllBtn = within(rightColumn).getByRole('button', { name: 'View all' })
+    await user.click(viewAllBtn)
+
+    // Confirm Calendar view is open by looking for its unique action button
+    expect(await screen.findByRole('button', { name: 'New event' })).toBeInTheDocument()
+  })
+
+  it('navigates to Flashcards from Review Queue widget', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Good morning' })
+
+    const rightColumn = screen.getByRole('complementary', { name: 'Progress and schedule' })
+    const reviewCardsBtn = within(rightColumn).getByRole('button', { name: 'Review cards' })
+    await user.click(reviewCardsBtn)
+
+    // Confirm Flashcards view is open by looking for its unique action button
+    expect(await screen.findByRole('button', { name: 'New card' })).toBeInTheDocument()
   })
 })

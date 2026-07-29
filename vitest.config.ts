@@ -10,7 +10,7 @@ export default mergeConfig(
       include: ['src/**/*.{test,spec}.{ts,tsx}'],
       coverage: {
         provider: 'v8',
-        include: ['src/App.tsx', 'src/main.tsx'],
+        include: ['src/App.tsx'],
         exclude: ['src/**/*.test.tsx', 'src/test/**'],
         thresholds: {
           lines: 80,

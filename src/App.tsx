@@ -210,6 +210,8 @@ function App() {
     setActiveSession((session) => session ? { ...session, subjectId } : session)
   }
 
+  const clearSearch = () => setSearch('')
+
   return (
     <div className={sidebarCollapsed ? 'app-shell is-sidebar-collapsed' : 'app-shell'}>
       <a className="skip-link" href="#dashboard-main">Skip to dashboard</a>
@@ -225,7 +227,7 @@ function App() {
           search={search}
           noticeOpen={noticeOpen}
           onSearch={setSearch}
-          onClearSearch={() => setSearch('')}
+          onClearSearch={clearSearch}
           onToggleNotices={() => setNoticeOpen((open) => !open)}
           onOpenProfile={() => {
             setActiveView('Settings')
@@ -277,9 +279,9 @@ function App() {
                   />
                 ) : null}
                 {activeView === 'Tasks' ? (
-                  <TasksView tasks={filteredTasks} subjects={data.subjects} filter={taskFilter} openEditorRequest={taskEditorRequest} onFilterChange={setTaskFilter} search={search} onClearSearch={() => setSearch('')} />
+                  <TasksView tasks={filteredTasks} subjects={data.subjects} filter={taskFilter} openEditorRequest={taskEditorRequest} onFilterChange={setTaskFilter} search={search} onClearSearch={clearSearch} />
                 ) : null}
-                {activeView === 'Notes' ? <NotesView notes={filteredNotes} subjects={data.subjects} subjectMap={subjectMap} search={search} onClearSearch={() => setSearch('')} /> : null}
+                {activeView === 'Notes' ? <NotesView notes={filteredNotes} subjects={data.subjects} subjectMap={subjectMap} search={search} onClearSearch={clearSearch} /> : null}
                 {activeView === 'Subjects' ? (
                   <SubjectsView
                     subjects={filteredSubjects}
@@ -292,7 +294,7 @@ function App() {
                   />
                 ) : null}
                 {activeView === 'Calendar' ? (
-                  <CalendarView events={filteredEvents} subjects={data.subjects} subjectMap={subjectMap} search={search} onClearSearch={() => setSearch('')} />
+                  <CalendarView events={filteredEvents} subjects={data.subjects} subjectMap={subjectMap} search={search} onClearSearch={clearSearch} />
                 ) : null}
                 {activeView === 'Flashcards' ? (
                   <FlashcardsView
@@ -336,7 +338,7 @@ function App() {
                     onExport={() => void exportData()}
                     onImport={importData}
                     onClear={clearStudyData}
-                    onClearSearch={() => setSearch('')}
+                    onClearSearch={clearSearch}
                     profileNotice={profileNotice}
                     theme={theme}
                     onThemeChange={setTheme}
