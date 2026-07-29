@@ -68,6 +68,8 @@ export function FlashcardsView(props: {
             </article>
           ))}
         </div>
+      ) : (document.querySelector('.search-field input') as HTMLInputElement)?.value.trim().length > 0 ? (
+        <EmptyState icon={NotebookText} title="No matches found" body="No flashcards match that search." actionLabel="Clear search" onAction={() => document.querySelector<HTMLButtonElement>('.clear-button')?.click()} />
       ) : (
         <EmptyState icon={NotebookText} title="No flashcards yet" body="Create prompt-and-answer cards, then review them from this queue." actionLabel="Create first card" onAction={() => openEditor()} />
       )}

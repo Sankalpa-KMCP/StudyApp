@@ -65,6 +65,8 @@ export function NotesView({ notes, subjects, subjectMap }: { notes: StudyNote[];
             </article>
           ))}
         </div>
+      ) : (document.querySelector('.search-field input') as HTMLInputElement)?.value.trim().length > 0 ? (
+        <EmptyState icon={FileText} title="No matches found" body="No notes match that search." actionLabel="Clear search" onAction={() => document.querySelector<HTMLButtonElement>('.clear-button')?.click()} />
       ) : (
         <EmptyState icon={FileText} title="No notes yet" body="Capture summaries, formulas, and review prompts in your local database." actionLabel="Create first note" onAction={() => openEditor()} />
       )}

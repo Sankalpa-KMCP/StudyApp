@@ -70,6 +70,8 @@ export function CalendarView({ events, subjects, subjectMap }: { events: Calenda
             </article>
           ))}
         </div>
+      ) : (document.querySelector('.search-field input') as HTMLInputElement)?.value.trim().length > 0 ? (
+        <EmptyState icon={CalendarDays} title="No matches found" body="No events match that search." actionLabel="Clear search" onAction={() => document.querySelector<HTMLButtonElement>('.clear-button')?.click()} />
       ) : (
         <EmptyState icon={CalendarDays} title="No events scheduled" body="Plan classes, study groups, reviews, and exam blocks." actionLabel="Create first event" onAction={() => openEditor()} />
       )}
