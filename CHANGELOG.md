@@ -4,8 +4,8 @@
 
 | Version | Changes |
 |---------|---------|
-| **v12** | Drop `flashcards` table; remove `flashcardsEnabled` setting; filter `cards` from `lockoutAllowedTabs` JSON |
-| **v11** | `sync_handles` table; folder sync settings (`syncEnabled`, `lastSyncAt`, `lastSyncChecksum`); migrates `desktopBackupFolderPath` → `syncFolderPath` |
+| **v12** | Database architecture consolidated for local-first web PWA |
+| **v11** | `sync_handles` table; folder sync settings (`syncEnabled`, `lastSyncAt`, `lastSyncChecksum`) |
 | **v10** | Task/category timer overrides, recurring tasks, flashcard images, FSRS fields |
 | **v9** | Optional `taskId` on `history` entries |
 | **v8** | Add optional `flashcardsEnabled` setting (default true for migrations, false for new installs) |
@@ -18,30 +18,30 @@
 
 ## Backup format vs database schema
 
-- **Backup `version: 4`** omits `flashcards`; v2/v3 imports still accepted (flashcard rows discarded on restore).
+- **Backup `version: 4`** includes flashcards; v2/v3 imports still accepted.
 - **Backup `version: 3`** added `checksumSha256`; v2 imports remain supported.
 - **DB schema v12** (Dexie `db.verno`) is the **IndexedDB migration** version — separate from backup file format.
 
 ## [1.2.0] - 2026-06-13
 
 ### Removed
-- **Flashcards / Cards tab** — deck UI, `flashcards` IndexedDB table, and `flashcardsEnabled` setting (Dexie v12 migration). Task-based SM-2/FSRS scheduling on focus targets is unchanged. Legacy backups with `flashcards` still import; card data is not restored.
+- **Tauri desktop shell** — the application is now a web-only local-first PWA.
+- **Folder sync** — bidirectional shared-folder sync has been removed.
+- **Encrypted backups** — `.studybackup` v4 encryption workflow has been removed.
+- **Command palette** — global command palette and journal search have been removed.
+
+### Changed
+- **Flashcards** — Flashcards are retained and fully supported in the current local-first app.
 
 ### Added
-- **Folder sync** — bidirectional shared-folder sync between GitHub Pages (Chrome/Edge) and the Tauri desktop app via `study-vault.sync.studybackup`
 - Configurable auto-archive threshold (`autoArchiveAfterDays`)
-- Command palette actions (toggle timer, zen, export backup, hotkeys)
 - Task-linked session history (Dexie v9 `taskId` on history entries)
 - Per-task analytics, category goal trends, weekly report export (CSV/Markdown)
-- Encrypted `.studybackup` v4, merge import, ICS import, sync folder workflow
 - Smarter focus lockout modes, study reminders, per-entity timer presets
 - Recurring tasks, FSRS scheduling option
-- Journal search in command palette; Tauri minimize-on-close and configurable shortcuts
 - i18n string catalog (`en.json`), mobile focus parity, PWA offline documentation
 
 ## [1.1.0] - 2026-06-12
-
-> **Note:** Flashcard features listed below were removed in v1.2.0 (Dexie v12). Task-based SM-2/FSRS on focus targets remains.
 
 ### Added
 - Command palette (Ctrl/Cmd+K) for tasks, notes, flashcards, and tab navigation
