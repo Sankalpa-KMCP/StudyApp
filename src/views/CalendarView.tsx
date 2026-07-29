@@ -6,7 +6,7 @@ import type { CalendarEvent, StudySubject } from '../db/types'
 import { formatDateTime, todayInputValue, toInputDate, toInputTime } from '../appUtils'
 import { CalendarStrip } from '../components/CalendarStrip'
 
-export function CalendarView({ events, subjects, subjectMap }: { events: CalendarEvent[]; subjects: StudySubject[]; subjectMap: Map<string, StudySubject> }) {
+export function CalendarView({ events, subjects, subjectMap, search = '', onClearSearch = () => {} }: { events: CalendarEvent[]; subjects: StudySubject[]; subjectMap: Map<string, StudySubject>; search?: string; onClearSearch?: () => void }) {
   const [editingEventId, setEditingEventId] = useState<string | null>(null)
   const [draft, setDraft] = useState({ title: '', subjectId: '', date: todayInputValue(), time: '09:00', duration: 60, location: '' })
 
@@ -70,8 +70,8 @@ export function CalendarView({ events, subjects, subjectMap }: { events: Calenda
             </article>
           ))}
         </div>
-      ) : (document.querySelector('.search-field input') as HTMLInputElement)?.value.trim().length > 0 ? (
-        <EmptyState icon={CalendarDays} title="No matches found" body="No events match that search." actionLabel="Clear search" onAction={() => document.querySelector<HTMLButtonElement>('.clear-button')?.click()} />
+      ) : search.trim().length > 0 ? (
+        <EmptyState icon={CalendarDays} title="No matches found" body="No events match that search." actionLabel="Clear search" onAction={onClearSearch} />
       ) : (
         <EmptyState icon={CalendarDays} title="No events scheduled" body="Plan classes, study groups, reviews, and exam blocks." actionLabel="Create first event" onAction={() => openEditor()} />
       )}

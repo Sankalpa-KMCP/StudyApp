@@ -277,9 +277,9 @@ function App() {
                   />
                 ) : null}
                 {activeView === 'Tasks' ? (
-                  <TasksView tasks={filteredTasks} subjects={data.subjects} filter={taskFilter} openEditorRequest={taskEditorRequest} onFilterChange={setTaskFilter} />
+                  <TasksView tasks={filteredTasks} subjects={data.subjects} filter={taskFilter} openEditorRequest={taskEditorRequest} onFilterChange={setTaskFilter} search={search} onClearSearch={() => setSearch('')} />
                 ) : null}
-                {activeView === 'Notes' ? <NotesView notes={filteredNotes} subjects={data.subjects} subjectMap={subjectMap} /> : null}
+                {activeView === 'Notes' ? <NotesView notes={filteredNotes} subjects={data.subjects} subjectMap={subjectMap} search={search} onClearSearch={() => setSearch('')} /> : null}
                 {activeView === 'Subjects' ? (
                   <SubjectsView
                     subjects={filteredSubjects}
@@ -292,7 +292,7 @@ function App() {
                   />
                 ) : null}
                 {activeView === 'Calendar' ? (
-                  <CalendarView events={filteredEvents} subjects={data.subjects} subjectMap={subjectMap} />
+                  <CalendarView events={filteredEvents} subjects={data.subjects} subjectMap={subjectMap} search={search} onClearSearch={() => setSearch('')} />
                 ) : null}
                 {activeView === 'Flashcards' ? (
                   <FlashcardsView
@@ -357,7 +357,8 @@ function App() {
   )
 }
 
-function settingNumber(data: StudyData, key: string, fallback: number) {
+
+function settingNumber(data: StudyData, key: string, fallback: number) {
   const value = data.settings.find((setting) => setting.key === key)?.value
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }

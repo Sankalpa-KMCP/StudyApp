@@ -16,6 +16,8 @@ export function FlashcardsView(props: {
   subjectMap: Map<string, StudySubject>
   revealedCards: Set<string>
   onToggleReveal: (id: string) => void
+  search?: string
+  onClearSearch?: () => void
 }) {
   const [editingCardId, setEditingCardId] = useState<string | null>(null)
   const [draft, setDraft] = useState({ front: '', back: '', subjectId: '' })
@@ -68,8 +70,8 @@ export function FlashcardsView(props: {
             </article>
           ))}
         </div>
-      ) : (document.querySelector('.search-field input') as HTMLInputElement)?.value.trim().length > 0 ? (
-        <EmptyState icon={NotebookText} title="No matches found" body="No flashcards match that search." actionLabel="Clear search" onAction={() => document.querySelector<HTMLButtonElement>('.clear-button')?.click()} />
+      ) : (props.search || '').trim().length > 0 ? (
+        <EmptyState icon={NotebookText} title="No matches found" body="No flashcards match that search." actionLabel="Clear search" onAction={props.onClearSearch || (() => {})} />
       ) : (
         <EmptyState icon={NotebookText} title="No flashcards yet" body="Create prompt-and-answer cards, then review them from this queue." actionLabel="Create first card" onAction={() => openEditor()} />
       )}
