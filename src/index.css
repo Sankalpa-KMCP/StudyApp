@@ -540,20 +540,15 @@ button.brand-dot {
 
 .session-complete {
   padding: 9px 12px;
-  border: 1px solid rgba(15, 118, 110, 0.2);
+  border: 1px solid var(--success-border);
   border-radius: var(--radius-sm);
-  color: #0f766e;
-  background: #ecfdf5;
+  color: var(--success-text);
+  background: var(--success-bg);
 }
 
 .due-copy.is-due {
-  color: #92400e;
+  color: var(--danger-text);
   font-weight: 600;
-}
-
-:root[data-theme='dark'] .session-complete {
-  color: #9df3d5;
-  background: rgba(15, 118, 110, 0.16);
 }
 
 .quick-card {
@@ -627,7 +622,8 @@ button.brand-dot {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: linear-gradient(145deg, #f4f4f3, #e7e7e5);
+  background: var(--subject-color, var(--accent));
+  color: var(--surface-raised);
 }
 
 .subject-card h3 {
@@ -649,7 +645,7 @@ button.brand-dot {
   flex: 1;
   height: 6px;
   border-radius: 999px;
-  background: #ebebe9;
+  background: var(--line);
   overflow: hidden;
 }
 
@@ -657,14 +653,14 @@ button.brand-dot {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #111, #4b4b4b);
+  background: var(--accent);
 }
 
 .progress-row strong {
   min-width: 38px;
   font-size: 0.9rem;
   font-weight: 400;
-  color: #333;
+  color: var(--ink);
 }
 
 .bottom-grid {
@@ -744,13 +740,13 @@ button.brand-dot {
 
 .line-chart polyline {
   fill: none;
-  stroke: #171717;
+  stroke: var(--accent);
   stroke-width: 2.4;
 }
 
 .line-chart circle {
-  fill: #eeeeed;
-  stroke: #171717;
+  fill: var(--surface-raised);
+  stroke: var(--accent-strong);
   stroke-width: 2;
 }
 
@@ -805,11 +801,11 @@ button.brand-dot {
 .bar span {
   width: 18px;
   border-radius: 3px 3px 0 0;
-  background: linear-gradient(90deg, #d8d8d6, #a7a7a5, #d8d8d6);
+  background: var(--accent-soft);
 }
 
 .bar.is-peak span {
-  background: linear-gradient(90deg, #313131, #111, #555);
+  background: var(--accent);
 }
 
 .upcoming-card {
@@ -853,11 +849,11 @@ button.brand-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #979797;
+  background: var(--muted);
 }
 
 .event.is-strong::before {
-  background: #111;
+  background: var(--accent);
 }
 
 .event h3 {
@@ -932,16 +928,16 @@ button.brand-dot {
 .settings-feedback {
   margin: 0 16px;
   padding: 12px 14px;
-  border: 1px solid rgba(15, 118, 110, 0.2);
+  border: 1px solid var(--success-border);
   border-radius: var(--radius-sm);
-  color: #0f766e;
-  background: #ecfdf5;
+  color: var(--success-text);
+  background: var(--success-bg);
 }
 
 .settings-feedback.error {
-  border-color: rgba(120, 40, 40, 0.22);
-  color: #7b2929;
-  background: #fef2f2;
+  border-color: var(--danger-border);
+  color: var(--danger-text);
+  background: var(--danger-bg);
 }
 
 .primary-command,
@@ -1007,7 +1003,7 @@ button.brand-dot {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   outline: 0;
-  background: rgba(255, 255, 255, 0.84);
+  background: var(--surface-glass);
   transition: border-color 180ms var(--ease), box-shadow 180ms var(--ease), background 180ms var(--ease);
 }
 
@@ -1018,7 +1014,7 @@ button.brand-dot {
 .field input:hover,
 .field select:hover,
 .field textarea:hover {
-  background: #ffffff;
+  background: var(--surface-raised);
   border-color: color-mix(in srgb, var(--line-strong) 85%, var(--ink));
 }
 
@@ -1155,7 +1151,7 @@ button.brand-dot {
 }
 
 .danger-card {
-  border-color: rgba(120, 40, 40, 0.22);
+  border-color: var(--danger-border);
 }
 
 .editable-subject {
@@ -1491,6 +1487,13 @@ button.brand-dot {
   --surface-raised: rgba(255, 255, 255, 0.94);
   --shadow: 0 24px 80px rgba(20, 35, 40, 0.11);
   --shadow-tight: 0 16px 38px rgba(18, 33, 37, 0.12);
+  --shadow-accent: color-mix(in srgb, var(--accent) 20%, transparent);
+  --danger-bg: #fef2f2;
+  --danger-border: rgba(120, 40, 40, 0.22);
+  --danger-text: #7b2929;
+  --success-bg: #ecfdf5;
+  --success-border: rgba(15, 118, 110, 0.2);
+  --success-text: #0f766e;
 }
 
 :root[data-theme='dark'] {
@@ -1502,6 +1505,13 @@ button.brand-dot {
   --surface-glass: rgba(25, 30, 31, 0.78);
   --surface-raised: rgba(31, 38, 39, 0.94);
   --shadow-tight: 0 18px 46px rgba(0, 0, 0, 0.36);
+  --shadow-accent: color-mix(in srgb, var(--accent) 36%, transparent);
+  --danger-bg: rgba(120, 40, 40, 0.16);
+  --danger-border: rgba(239, 68, 68, 0.22);
+  --danger-text: #fca5a5;
+  --success-bg: rgba(6, 95, 70, 0.16);
+  --success-border: rgba(16, 185, 129, 0.22);
+  --success-text: #6ee7b7;
 }
 
 body {
@@ -1576,7 +1586,7 @@ textarea:focus-visible {
   background:
     radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.34), transparent 34%),
     linear-gradient(145deg, var(--accent-strong), var(--accent), var(--accent-warm));
-  box-shadow: 0 16px 32px rgba(18, 106, 90, 0.25);
+  box-shadow: 0 16px 32px var(--shadow-accent);
 }
 
 .nav-item {
@@ -1607,7 +1617,7 @@ textarea:focus-visible {
     linear-gradient(90deg, var(--accent-soft), transparent),
     var(--surface-raised);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 1px 0 color-mix(in srgb, var(--ink) 12%, transparent),
     var(--shadow-tight);
 }
 
@@ -1631,7 +1641,7 @@ textarea:focus-visible {
 .swatch-row {
   border-color: color-mix(in srgb, var(--line-strong) 72%, transparent);
   background: color-mix(in srgb, var(--surface-raised) 82%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 5%, transparent);
 }
 
 .search-field:focus-within,
@@ -1641,7 +1651,7 @@ textarea:focus-visible {
   border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
   box-shadow:
     0 0 0 4px var(--accent-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.54);
+    inset 0 1px 0 color-mix(in srgb, var(--ink) 5%, transparent);
 }
 
 .icon-button,
@@ -1827,7 +1837,7 @@ textarea:focus-visible {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.64);
+  border-top: 1px solid color-mix(in srgb, var(--ink) 5%, transparent);
 }
 
 .task-card,
@@ -1936,18 +1946,13 @@ textarea:focus-visible {
 .note-paper {
   border: 1px solid color-mix(in srgb, var(--gold) 32%, var(--line));
   background:
-    linear-gradient(rgba(18, 106, 90, 0.055) 1px, transparent 1px) 0 38px / 100% 32px,
-    radial-gradient(circle at 76% 18%, rgba(212, 154, 33, 0.2), transparent 34%),
-    linear-gradient(145deg, #fffdf7, #eef6f3);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    linear-gradient(color-mix(in srgb, var(--accent) 8%, transparent) 1px, transparent 1px) 0 38px / 100% 32px,
+    radial-gradient(circle at 76% 18%, color-mix(in srgb, var(--gold) 15%, transparent), transparent 34%),
+    linear-gradient(145deg, var(--surface-raised), var(--surface-glass));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
-:root[data-theme='dark'] .note-paper {
-  background:
-    linear-gradient(rgba(94, 224, 194, 0.08) 1px, transparent 1px) 0 38px / 100% 32px,
-    radial-gradient(circle at 76% 18%, rgba(245, 196, 93, 0.12), transparent 34%),
-    linear-gradient(145deg, #1b211f, #131717);
-}
+
 
 .subject-card {
   overflow: hidden;
@@ -2087,8 +2092,9 @@ textarea:focus-visible {
 }
 
 .status-badge.learning {
-  color: #8b3a11;
-  background: rgba(212, 154, 33, 0.2);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--gold) 25%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
 }
 
 .status-badge.remembered {
@@ -2456,6 +2462,13 @@ textarea:focus-visible {
   --surface-raised: rgba(18, 34, 56, 0.94);
   --shadow: 0 26px 90px rgba(0, 0, 0, 0.42);
   --shadow-tight: 0 18px 46px rgba(0, 0, 0, 0.36);
+  --shadow-accent: color-mix(in srgb, var(--accent) 36%, transparent);
+  --danger-bg: rgba(76, 29, 149, 0.16);
+  --danger-border: rgba(139, 92, 246, 0.22);
+  --danger-text: #c4b5fd;
+  --success-bg: rgba(14, 116, 144, 0.16);
+  --success-border: rgba(6, 182, 212, 0.22);
+  --success-text: #67e8f9;
 }
 
 :root[data-theme='ember'] {
@@ -2481,6 +2494,13 @@ textarea:focus-visible {
   --surface-raised: rgba(255, 253, 248, 0.96);
   --shadow: 0 24px 80px rgba(91, 45, 17, 0.13);
   --shadow-tight: 0 16px 38px rgba(91, 45, 17, 0.12);
+  --shadow-accent: color-mix(in srgb, var(--accent) 20%, transparent);
+  --danger-bg: #fff1f2;
+  --danger-border: rgba(225, 29, 72, 0.22);
+  --danger-text: #9f1239;
+  --success-bg: #f0fdf4;
+  --success-border: rgba(22, 163, 74, 0.2);
+  --success-text: #166534;
 }
 
 :root[data-theme='aurora'] body {
