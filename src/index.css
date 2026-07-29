@@ -2252,7 +2252,7 @@ textarea:focus-visible {
     height: auto;
     grid-template-columns: auto minmax(0, 1fr);
     gap: 12px;
-    padding: 12px;
+    padding: 8px 12px;
   }
 
   .sidebar nav {
@@ -2294,21 +2294,27 @@ textarea:focus-visible {
     margin-left: 0;
   }
 
-  .topbar,
+  .topbar {
+    align-items: center;
+    flex-direction: row;
+    height: auto;
+    gap: 12px;
+    padding: 8px 14px;
+  }
+
+  .topbar-actions {
+    flex: 1;
+    min-width: 0;
+  }
+
   .hero-row {
     align-items: start;
     flex-direction: column;
   }
 
-  .topbar {
-    height: auto;
-    gap: 18px;
-    padding: 20px;
-  }
-
-  .topbar-actions,
   .search-field {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
   }
 
   .dashboard {
