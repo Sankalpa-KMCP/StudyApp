@@ -246,9 +246,11 @@ button.brand-dot {
   align-items: center;
   gap: 12px;
   padding: 0 14px;
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, var(--line-strong) 72%, transparent);
   border-radius: var(--radius-sm);
-  background: rgba(245, 245, 244, 0.72);
+  background: color-mix(in srgb, var(--surface-raised) 82%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52);
+  transition: border-color 180ms var(--ease), box-shadow 180ms var(--ease);
 }
 
 .search-field input {
@@ -1001,15 +1003,32 @@ button.brand-dot {
 .field textarea {
   width: 100%;
   min-height: 42px;
-  padding: 9px 12px;
+  padding: 10px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   outline: 0;
   background: rgba(255, 255, 255, 0.84);
+  transition: border-color 180ms var(--ease), box-shadow 180ms var(--ease), background 180ms var(--ease);
 }
 
 .field textarea {
   resize: vertical;
+}
+
+.field input:hover,
+.field select:hover,
+.field textarea:hover {
+  background: #ffffff;
+  border-color: color-mix(in srgb, var(--line-strong) 85%, var(--ink));
+}
+
+.field input:disabled,
+.field select:disabled,
+.field textarea:disabled {
+  background: var(--bg);
+  border-color: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
 }
 
 .field-full {
@@ -1197,17 +1216,20 @@ button.brand-dot {
 .loading-panel,
 .empty-state {
   min-height: 230px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 12px;
-  padding: 28px;
-  border: 1px dashed var(--line-strong);
+  padding: 32px;
+  border: 1px dashed color-mix(in srgb, var(--line-strong) 80%, transparent);
   border-radius: var(--radius);
   color: var(--muted);
   text-align: center;
   background:
-    repeating-linear-gradient(135deg, rgba(17, 24, 39, 0.035), rgba(17, 24, 39, 0.035) 1px, transparent 1px, transparent 12px),
-    rgba(255, 255, 255, 0.58);
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.8), transparent 60%),
+    rgba(252, 252, 251, 0.6);
+  box-shadow: inset 0 2px 10px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 
 .empty-state h3,
@@ -1218,7 +1240,15 @@ button.brand-dot {
 .empty-state h3 {
   color: var(--ink);
   font-family: Outfit, Inter, sans-serif;
-  font-size: 1.08rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.empty-state p {
+  max-width: 280px;
+  line-height: 1.6;
+  margin-bottom: 8px;
 }
 
 .empty-icon {
