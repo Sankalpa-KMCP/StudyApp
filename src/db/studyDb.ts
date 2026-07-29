@@ -12,7 +12,7 @@ import type {
   StudyTask,
 } from './types'
 
-export const STUDY_DB_NAME = 'study-dashboard-db'
+const STUDY_DB_NAME = 'study-dashboard-db'
 const LEGACY_STORAGE_KEY = 'study-dashboard-v2'
 const LEGACY_MIGRATION_KEY = 'legacy-localstorage-migrated-v1'
 const DEFAULT_SUBJECT_COLORS = ['#111827', '#2563eb', '#0f766e', '#b45309', '#7c3aed', '#be123c']
@@ -44,7 +44,7 @@ export class StudyDatabase extends Dexie {
 
 export const studyDb = new StudyDatabase()
 
-export const studyTables = [
+const studyTables = [
   studyDb.tasks,
   studyDb.subjects,
   studyDb.notes,
