@@ -40,7 +40,7 @@ describe('UI Components', () => {
       const handleAction = vi.fn()
       render(<PanelHeader title="My Workspace" actionLabel="Add New" onAction={handleAction} />)
       
-      expect(screen.getByRole('heading', { level: 2, name: 'My Workspace' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 1, name: 'My Workspace' })).toBeInTheDocument()
       const button = screen.getByRole('button', { name: 'Add New' })
       
       fireEvent.click(button)

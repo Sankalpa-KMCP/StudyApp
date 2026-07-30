@@ -34,7 +34,7 @@ export function PanelHeader({ title, actionLabel, onAction }: { title: string; a
   return (
     <div className="workspace-heading">
       <div>
-        <h2 id={headingId}>{title}</h2>
+        <h1 id={headingId}>{title}</h1>
         <p>Manage your local-first study data.</p>
       </div>
       <button className="primary-command" type="button" onClick={onAction}>

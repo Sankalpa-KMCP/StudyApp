@@ -24,6 +24,20 @@ describe('App', () => {
     expect(screen.queryByText('Chemistry lab report')).not.toBeInTheDocument()
   })
 
+  it('focuses and clears global search with keyboard shortcuts', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const searchInput = await screen.findByPlaceholderText('Search')
+    await user.keyboard('/')
+    expect(searchInput).toHaveFocus()
+
+    await user.type(searchInput, 'calculus')
+    await user.keyboard('{Escape}')
+    expect(searchInput).toHaveValue('')
+    expect(searchInput).not.toHaveFocus()
+  })
+
   it('adds, edits, completes, searches, and deletes a task', async () => {
     const user = userEvent.setup()
     render(<App />)
@@ -363,11 +377,13 @@ describe('App', () => {
 
     const textarea = await screen.findByPlaceholderText(/Capture fast ideas/i)
     fireEvent.change(textarea, { target: { value: 'Review chapter 5 for exam' } })
+    expect(screen.getByText('Saving…')).toBeInTheDocument()
 
     await waitFor(async () => {
       const setting = await studyDb.settings.get('quickNotes')
       expect(Array.isArray(setting?.value) ? setting!.value[0] : setting?.value).toContain('Review chapter 5')
     })
+    expect(screen.getByText('Saved locally')).toBeInTheDocument()
   })
 
   it('filters tasks by all, open, and done status', async () => {
