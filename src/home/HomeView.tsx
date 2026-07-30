@@ -14,6 +14,7 @@ import type { StudyData, StudyNote, StudySession, StudySubject, StudyTask } from
 import { EmptyState, SubjectCard } from '../components/ui'
 import { StudyTime } from '../components/RightColumn'
 import type { ActiveSession, View } from '../App'
+import { useEffect, useState } from 'react'
 
 export function HomeView(props: {
   data: StudyData
@@ -23,7 +24,6 @@ export function HomeView(props: {
   dailyGoalMinutes: number
   todayFocusMinutes: number
   activeSession: ActiveSession | null
-  elapsedSeconds: number
   sessionLimitSeconds: number
   sessionNotice: string
   subjects: StudySubject[]
@@ -58,10 +58,10 @@ export function HomeView(props: {
       <div className="summary-grid">
         <TaskCard tasks={openTasks} subjectMap={props.subjectMap} onOpen={() => props.onNavigate('Tasks')} />
         <FocusCard
+          key={props.activeSession?.startedAt ?? 'idle'}
           focusMinutes={props.todayFocusMinutes}
           goalMinutes={props.dailyGoalMinutes}
           activeSession={props.activeSession}
-          elapsedSeconds={props.elapsedSeconds}
           sessionLimitSeconds={props.sessionLimitSeconds}
           sessionNotice={props.sessionNotice}
           subjects={props.subjects}
@@ -72,7 +72,7 @@ export function HomeView(props: {
           onStart={props.onStartSession}
           onStop={props.onStopSession}
         />
-        <QuickNoteCard notes={props.quickNotes} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
+        <QuickNoteCard key={props.quickNotes.join('\n')} notes={props.quickNotes} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
       </div>
       <SubjectsSection subjects={subjectStats} sessions={props.data.studySessions} onViewAll={() => props.onNavigate('Subjects')} />
       <div className="bottom-grid">
@@ -167,7 +167,6 @@ function FocusCard(props: {
   focusMinutes: number
   goalMinutes: number
   activeSession: ActiveSession | null
-  elapsedSeconds: number
   sessionLimitSeconds: number
   sessionNotice: string
   subjects: StudySubject[]
@@ -178,15 +177,23 @@ function FocusCard(props: {
   onStart: () => void
   onStop: () => Promise<void>
 }) {
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  useEffect(() => {
+    if (!props.activeSession) return undefined
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [props.activeSession])
+
+  const elapsedSeconds = props.activeSession ? Math.max(0, Math.floor((nowMs - props.activeSession.startedAtMs) / 1000)) : 0
   const focusPercent = percent(props.focusMinutes, props.goalMinutes)
-  const timerPercent = props.sessionLimitSeconds > 0 ? percent(props.elapsedSeconds, props.sessionLimitSeconds) : focusPercent
-  const remainingSeconds = props.sessionLimitSeconds > 0 ? Math.max(0, props.sessionLimitSeconds - props.elapsedSeconds) : 0
+  const timerPercent = props.sessionLimitSeconds > 0 ? percent(elapsedSeconds, props.sessionLimitSeconds) : focusPercent
+  const remainingSeconds = props.sessionLimitSeconds > 0 ? Math.max(0, props.sessionLimitSeconds - elapsedSeconds) : 0
   return (
     <section className="card focus-card" aria-labelledby="focus-title">
       <h2 id="focus-title">Focus Engine</h2>
       <div className="focus-ring" style={{ '--focus-percent': `${timerPercent}%` } as React.CSSProperties}>
         <div>
-          <strong>{props.activeSession ? formatElapsed(props.sessionLimitSeconds > 0 ? remainingSeconds : props.elapsedSeconds) : formatMinutes(props.focusMinutes)}</strong>
+          <strong>{props.activeSession ? formatElapsed(props.sessionLimitSeconds > 0 ? remainingSeconds : elapsedSeconds) : formatMinutes(props.focusMinutes)}</strong>
           <span>{props.activeSession ? (props.sessionLimitSeconds > 0 ? 'remaining' : 'elapsed') : `of ${formatMinutes(props.goalMinutes)}`}</span>
         </div>
       </div>
@@ -212,7 +219,7 @@ function FocusCard(props: {
       {props.activeSession ? (
         <p className="session-elapsed" aria-live="polite">
           <span>Elapsed</span>
-          <strong>{formatElapsed(props.elapsedSeconds)}</strong>
+          <strong>{formatElapsed(elapsedSeconds)}</strong>
         </p>
       ) : null}
       {props.sessionNotice ? <p className="session-complete" role="status">{props.sessionNotice}</p> : null}
@@ -232,18 +239,30 @@ function FocusCard(props: {
 }
 
 function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onChange: (value: string) => Promise<void>; onOpenNotes: () => void }) {
+  const savedValue = notes.join('\n')
+  const [draft, setDraft] = useState(savedValue)
+
+  useEffect(() => {
+    if (draft === savedValue) return undefined
+    const timer = window.setTimeout(() => void onChange(draft), 250)
+    return () => window.clearTimeout(timer)
+  }, [draft, onChange, savedValue])
+
   return (
     <section className="card quick-card" aria-labelledby="quick-notes-title">
       <div className="card-heading">
         <h2 id="quick-notes-title">Quick Notes</h2>
-        <button className="text-command" type="button" onClick={onOpenNotes}>Open Notes</button>
+        <div className="quick-note-actions">
+          <span className="save-status" aria-live="polite">{draft === savedValue ? 'Saved locally' : 'Saving…'}</span>
+          <button className="text-command" type="button" onClick={onOpenNotes}>Open Notes</button>
+        </div>
       </div>
       <label className="note-paper editable-paper">
         <span className="sr-only">Quick notes</span>
         <textarea
-          value={notes.join('\n')}
+          value={draft}
           placeholder="Capture fast ideas, formulas, or reminders..."
-          onChange={(event) => void onChange(event.target.value)}
+          onChange={(event) => setDraft(event.target.value)}
         />
       </label>
     </section>

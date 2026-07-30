@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   buildSearchResults,
@@ -51,6 +51,13 @@ const EMPTY_DATA: StudyData = {
   settings: [],
 }
 
+const THEME_COLORS: Record<ThemeMode, string> = {
+  light: '#f4f0e8',
+  dark: '#10141d',
+  aurora: '#111323',
+  ember: '#f3e4d2',
+}
+
 function isThemeMode(value: string | null): value is ThemeMode {
   return value === 'light' || value === 'dark' || value === 'aurora' || value === 'ember'
 }
@@ -71,7 +78,6 @@ function App() {
     return isThemeMode(savedTheme) ? savedTheme : 'light'
   })
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('study-dashboard-sidebar') === 'collapsed')
-  const [nowMs, setNowMs] = useState(() => Date.now())
   const [revealedCards, setRevealedCards] = useState<Set<string>>(() => new Set())
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
 
@@ -83,30 +89,23 @@ function App() {
   const data = liveData ?? EMPTY_DATA
   const isLoading = liveData === undefined
 
-  const dailyGoalMinutes = settingNumber(data, 'dailyGoalMinutes', 240)
-  const quickNotes = settingStringArray(data, 'quickNotes')
+  const deferredSearch = useDeferredValue(search)
+  const dailyGoalMinutes = useMemo(() => settingNumber(data, 'dailyGoalMinutes', 240), [data])
+  const quickNotes = useMemo(() => settingStringArray(data, 'quickNotes'), [data])
   const subjectMap = useMemo(() => new Map(data.subjects.map((subject) => [subject.id, subject])), [data.subjects])
-  const normalizedSearch = search.trim().toLowerCase()
-  const todayFocusMinutes = getTodayFocusMinutes(data.studySessions)
-  const weeklyStudyDays = getWeeklyStudyDays(data.studySessions)
-  const completedTasks = data.tasks.filter((task) => task.status === 'done')
-  const upcomingEvents = data.events.filter((event) => new Date(event.startAt).getTime() >= startOfToday()).slice(0, 4)
-  const dueCards = data.flashcards.filter((card) => isFlashcardDue(card))
-  const homeSearchResults = buildSearchResults(data, subjectMap, search)
-  const elapsedSeconds = activeSession ? Math.max(0, Math.floor((nowMs - activeSession.startedAtMs) / 1000)) : 0
+  const normalizedSearch = deferredSearch.trim().toLowerCase()
+  const todayFocusMinutes = useMemo(() => getTodayFocusMinutes(data.studySessions), [data.studySessions])
+  const weeklyStudyDays = useMemo(() => getWeeklyStudyDays(data.studySessions), [data.studySessions])
+  const weeklyStudyHours = useMemo(() => weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0), [weeklyStudyDays])
+  const completedTasks = useMemo(() => data.tasks.filter((task) => task.status === 'done'), [data.tasks])
+  const upcomingEvents = useMemo(() => data.events.filter((event) => new Date(event.startAt).getTime() >= startOfToday()).slice(0, 4), [data.events])
+  const dueCards = useMemo(() => data.flashcards.filter((card) => isFlashcardDue(card)), [data.flashcards])
+  const homeSearchResults = useMemo(() => buildSearchResults(data, subjectMap, deferredSearch), [data, deferredSearch, subjectMap])
   const sessionLimitSeconds = activeSession && activeSession.plannedMinutes > 0 ? activeSession.plannedMinutes * 60 : 0
 
   useEffect(() => {
-    if (!activeSession) return undefined
-    const timer = window.setInterval(() => {
-      setNowMs(Date.now())
-    }, 1000)
-    return () => window.clearInterval(timer)
-  }, [activeSession])
-
-  useEffect(() => {
     document.documentElement.dataset.theme = theme
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' || theme === 'aurora' ? '#101716' : '#f6f8f7')
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[theme])
     localStorage.setItem('study-dashboard-theme', theme)
   }, [theme])
 
@@ -114,31 +113,36 @@ function App() {
     localStorage.setItem('study-dashboard-sidebar', sidebarCollapsed ? 'collapsed' : 'expanded')
   }, [sidebarCollapsed])
 
-  const filteredTasks = data.tasks.filter((task) => {
+  useEffect(() => {
+    const behavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+    document.scrollingElement?.scrollTo?.({ behavior, top: 0 })
+  }, [activeView])
+
+  const filteredTasks = useMemo(() => data.tasks.filter((task) => {
     const subject = subjectMap.get(task.subjectId)?.name ?? 'General'
     const matchesSearch = `${task.title} ${subject} ${task.priority}`.toLowerCase().includes(normalizedSearch)
     const matchesFilter = taskFilter === 'all' || task.status === taskFilter
     return matchesSearch && matchesFilter
-  })
+  }), [data.tasks, normalizedSearch, subjectMap, taskFilter])
 
-  const filteredNotes = data.notes.filter((note) => {
+  const filteredNotes = useMemo(() => data.notes.filter((note) => {
     const subject = subjectMap.get(note.subjectId)?.name ?? 'General'
     return `${note.title} ${note.body} ${subject} ${note.tags.join(' ')}`.toLowerCase().includes(normalizedSearch)
-  })
+  }), [data.notes, normalizedSearch, subjectMap])
 
-  const filteredSubjects = data.subjects.filter((subject) => `${subject.name} ${subject.progress}`.toLowerCase().includes(normalizedSearch))
-  const filteredEvents = data.events.filter((event) => {
+  const filteredSubjects = useMemo(() => data.subjects.filter((subject) => `${subject.name} ${subject.progress}`.toLowerCase().includes(normalizedSearch)), [data.subjects, normalizedSearch])
+  const filteredEvents = useMemo(() => data.events.filter((event) => {
     const subject = subjectMap.get(event.subjectId)?.name ?? 'General'
     return `${event.title} ${event.location} ${subject}`.toLowerCase().includes(normalizedSearch)
-  })
-  const filteredFlashcards = data.flashcards.filter((card) => {
+  }), [data.events, normalizedSearch, subjectMap])
+  const filteredFlashcards = useMemo(() => data.flashcards.filter((card) => {
     const subject = subjectMap.get(card.subjectId)?.name ?? 'General'
     return `${card.front} ${card.back} ${subject} ${card.status}`.toLowerCase().includes(normalizedSearch)
-  }).sort((a, b) => Number(isFlashcardDue(b)) - Number(isFlashcardDue(a)))
+  }).sort((a, b) => Number(isFlashcardDue(b)) - Number(isFlashcardDue(a))), [data.flashcards, normalizedSearch, subjectMap])
 
-  const addQuickNote = async (value: string) => {
+  const addQuickNote = useCallback(async (value: string) => {
     await studyDb.settings.put({ key: 'quickNotes', value: value.split('\n').map((line) => line.trim()).filter(Boolean).slice(0, 8) })
-  }
+  }, [])
 
   const exportData = async () => {
     const payload = await exportStudyData()
@@ -176,7 +180,6 @@ function App() {
 
   const startSession = useCallback(() => {
     const startedAtMs = Date.now()
-    setNowMs(startedAtMs)
     setActiveSession({
       subjectId: focusSubjectId,
       startedAt: nowIso(),
@@ -212,12 +215,12 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [activeSession, sessionLimitSeconds, stopSession])
 
-  const updateFocusSubject = (subjectId: string) => {
+  const updateFocusSubject = useCallback((subjectId: string) => {
     setFocusSubjectId(subjectId)
     setActiveSession((session) => session ? { ...session, subjectId } : session)
-  }
+  }, [])
 
-  const clearSearch = () => setSearch('')
+  const clearSearch = useCallback(() => setSearch(''), [])
 
   return (
     <div className={sidebarCollapsed ? 'app-shell is-sidebar-collapsed' : 'app-shell'}>
@@ -251,16 +254,18 @@ function App() {
           {isLoading ? (
             <section className="loading-panel" aria-live="polite">Loading your study space...</section>
           ) : (
-            <div className="content-grid">
+            <div className={activeView === 'Home' ? 'content-grid' : 'content-grid is-workspace-view'}>
               <section className="primary-column" aria-label="Primary study summary">
                 {profileNotice ? <div className="settings-feedback success" role="status" style={{ margin: '0 0 16px 0', padding: '16px', background: 'var(--surface-sunken)', borderLeft: '4px solid var(--accent)', color: 'var(--text-strong)' }}>{profileNotice}</div> : null}
-                <HeroRow
-                  activeView={activeView}
-                  todayFocusMinutes={todayFocusMinutes}
-                  dailyGoalMinutes={dailyGoalMinutes}
-                  onCreateTask={openNewTask}
-                  onCreateSubject={openNewSubject}
-                />
+                {activeView === 'Home' ? (
+                  <HeroRow
+                    activeView={activeView}
+                    todayFocusMinutes={todayFocusMinutes}
+                    dailyGoalMinutes={dailyGoalMinutes}
+                    onCreateTask={openNewTask}
+                    onCreateSubject={openNewSubject}
+                  />
+                ) : null}
                 {activeView === 'Home' ? (
                   <HomeView
                     data={data}
@@ -270,13 +275,12 @@ function App() {
                     dailyGoalMinutes={dailyGoalMinutes}
                     todayFocusMinutes={todayFocusMinutes}
                     activeSession={activeSession}
-                    elapsedSeconds={elapsedSeconds}
                     sessionLimitSeconds={sessionLimitSeconds}
                     sessionNotice={sessionNotice}
                     subjects={data.subjects}
                     focusSubjectId={focusSubjectId}
                     focusDurationMinutes={focusDurationMinutes}
-                    search={search}
+                    search={deferredSearch}
                     searchResults={homeSearchResults}
                     onFocusSubjectChange={updateFocusSubject}
                     onFocusDurationChange={setFocusDurationMinutes}
@@ -287,9 +291,9 @@ function App() {
                   />
                 ) : null}
                 {activeView === 'Tasks' ? (
-                  <TasksView tasks={filteredTasks} subjects={data.subjects} filter={taskFilter} openEditorRequest={taskEditorRequest} onFilterChange={setTaskFilter} search={search} onClearSearch={clearSearch} />
+                  <TasksView tasks={filteredTasks} subjects={data.subjects} filter={taskFilter} openEditorRequest={taskEditorRequest} onFilterChange={setTaskFilter} search={deferredSearch} onClearSearch={clearSearch} />
                 ) : null}
-                {activeView === 'Notes' ? <NotesView notes={filteredNotes} subjects={data.subjects} subjectMap={subjectMap} search={search} onClearSearch={clearSearch} /> : null}
+                {activeView === 'Notes' ? <NotesView notes={filteredNotes} subjects={data.subjects} subjectMap={subjectMap} search={deferredSearch} onClearSearch={clearSearch} /> : null}
                 {activeView === 'Subjects' ? (
                   <SubjectsView
                     subjects={filteredSubjects}
@@ -302,7 +306,7 @@ function App() {
                   />
                 ) : null}
                 {activeView === 'Calendar' ? (
-                  <CalendarView events={filteredEvents} subjects={data.subjects} subjectMap={subjectMap} search={search} onClearSearch={clearSearch} />
+                  <CalendarView events={filteredEvents} subjects={data.subjects} subjectMap={subjectMap} search={deferredSearch} onClearSearch={clearSearch} />
                 ) : null}
                 {activeView === 'Flashcards' ? (
                   <FlashcardsView
@@ -338,7 +342,7 @@ function App() {
                     goals={data.goals}
                     dailyGoalMinutes={dailyGoalMinutes}
                     todayFocusMinutes={todayFocusMinutes}
-                    weeklyStudyHours={weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)}
+                    weeklyStudyHours={weeklyStudyHours}
                   />
                 ) : null}
                 {activeView === 'Settings' ? (
@@ -353,12 +357,14 @@ function App() {
                   />
                 ) : null}
               </section>
-              <aside className="right-column" aria-label="Progress and schedule">
-                <WeeklyProgress days={weeklyStudyDays} />
-                <Upcoming events={upcomingEvents} subjectMap={subjectMap} onViewAll={() => setActiveView('Calendar')} />
-                <StreakCard sessions={data.studySessions} />
-                <ReviewQueue count={dueCards.length} onOpen={() => setActiveView('Flashcards')} />
-              </aside>
+              {activeView === 'Home' ? (
+                <aside className="right-column" aria-label="Progress and schedule">
+                  <WeeklyProgress days={weeklyStudyDays} />
+                  <Upcoming events={upcomingEvents} subjectMap={subjectMap} onViewAll={() => setActiveView('Calendar')} />
+                  <StreakCard sessions={data.studySessions} />
+                  <ReviewQueue count={dueCards.length} onOpen={() => setActiveView('Flashcards')} />
+                </aside>
+              ) : null}
             </div>
           )}
         </main>
