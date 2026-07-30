@@ -959,11 +959,11 @@ button.brand-dot {
 }
 
 .primary-command:hover {
-  background: #2b2b2b;
+  background: color-mix(in srgb, var(--accent) 85%, var(--ink));
 }
 
 .secondary-command:hover {
-  background: #e2e2df;
+  background: color-mix(in srgb, var(--surface-raised) 90%, var(--accent-soft));
 }
 
 .editor-card,
