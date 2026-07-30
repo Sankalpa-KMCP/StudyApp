@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Added Monochrome, Blueprint, and Moss Library appearance themes using the existing visual token system.
+
+### Changed
+
+- New and invalid theme preferences now resolve to Monochrome while existing Canvas, Midnight, Aurora, and Ember preferences remain valid.
+- Updated browser and install metadata to match the Monochrome default palette.
+
 ## [1.3.0] - 2026-07-13
 
 ### Added

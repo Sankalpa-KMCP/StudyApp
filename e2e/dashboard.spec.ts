@@ -156,6 +156,74 @@ test('logs, edits, and confirms deletion of a study session', async ({ page }) =
   await expect(page.getByText('No sessions logged')).toBeVisible()
 })
 
+test('collapses the sidebar at medium desktop widths and persists the preference', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 800 })
+  const sidebar = page.getByRole('complementary', { name: 'Main navigation' })
+  const sidebarWidth = () => sidebar.evaluate((element) => Math.round(element.getBoundingClientRect().width))
+
+  await expect(page.getByRole('button', { name: 'Collapse sidebar' })).toBeVisible()
+  await expect.poll(sidebarWidth).toBeGreaterThan(200)
+
+  await page.getByRole('button', { name: 'Collapse sidebar' }).click()
+  await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible()
+  await expect.poll(sidebarWidth).toBeLessThan(100)
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('study-dashboard-sidebar'))).toBe('collapsed')
+
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible()
+  await expect.poll(sidebarWidth).toBeLessThan(100)
+
+  await page.getByRole('button', { name: 'Expand sidebar' }).click()
+  await expect(page.getByRole('button', { name: 'Collapse sidebar' })).toBeVisible()
+  await expect.poll(sidebarWidth).toBeGreaterThan(200)
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('study-dashboard-sidebar'))).toBe('expanded')
+})
+
+test('switches and persists all seven themes without layout overflow', async ({ page }, testInfo) => {
+  const compact = testInfo.project.name === 'mobile-chrome'
+  await page.setViewportSize({ width: compact ? 390 : 1280, height: compact ? 844 : 900 })
+  await page.goto('/')
+
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('monochrome')
+  await expect.poll(() => page.evaluate(() => document.querySelector('meta[name="theme-color"]')?.getAttribute('content'))).toBe('#111111')
+  await page.getByRole('button', { name: 'Settings' }).click()
+
+  const themeGroup = page.getByRole('radiogroup', { name: 'Theme' })
+  await expect(themeGroup.getByRole('radio')).toHaveCount(7)
+  const themes = [
+    ['Monochrome', 'monochrome', '#111111'],
+    ['Canvas', 'light', '#f4f0e8'],
+    ['Blueprint', 'blueprint', '#153f73'],
+    ['Moss Library', 'moss', '#294633'],
+    ['Midnight', 'dark', '#10141d'],
+    ['Aurora', 'aurora', '#111323'],
+    ['Ember', 'ember', '#f3e4d2'],
+  ] as const
+
+  for (const [label, theme, themeColor] of themes) {
+    const option = themeGroup.getByRole('radio', { name: new RegExp(label) })
+    await option.click()
+    await expect(option).toHaveAttribute('aria-checked', 'true')
+    await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe(theme)
+    await expect.poll(() => page.evaluate(() => document.querySelector('meta[name="theme-color"]')?.getAttribute('content'))).toBe(themeColor)
+    const layout = await page.evaluate(() => ({ viewport: window.innerWidth, page: document.documentElement.scrollWidth }))
+    expect(layout.page).toBeLessThanOrEqual(layout.viewport)
+  }
+
+  await themeGroup.getByRole('radio', { name: /Moss Library/ }).click()
+  await page.reload()
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('moss')
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('study-dashboard-theme'))).toBe('moss')
+
+  if (!compact) {
+    await page.setViewportSize({ width: 830, height: 900 })
+    await page.getByRole('button', { name: 'Progress' }).click()
+    await page.getByRole('button', { name: 'Log session', exact: true }).click()
+    const layout = await page.evaluate(() => ({ viewport: window.innerWidth, page: document.documentElement.scrollWidth }))
+    expect(layout.page).toBeLessThanOrEqual(layout.viewport)
+  }
+})
+
 test('keeps the dashboard usable on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.evaluate(() => localStorage.setItem('study-dashboard-sidebar', 'collapsed'))
