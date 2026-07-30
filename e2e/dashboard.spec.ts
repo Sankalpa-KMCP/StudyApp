@@ -66,6 +66,51 @@ test('creates and reviews a flashcard', async ({ page }) => {
   await expect(card.locator('.status-badge')).toHaveText('remembered')
 })
 
+test('logs, edits, and confirms deletion of a study session', async ({ page }) => {
+  await page.getByRole('button', { name: 'Subjects' }).click()
+  await page.getByRole('button', { name: 'New subject' }).click()
+  await page.getByLabel('Subject name').fill('Physics')
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  await page.getByRole('button', { name: 'Progress' }).click()
+  await page.getByRole('button', { name: 'Log session' }).click()
+  const sessionForm = page.getByRole('form', { name: 'Log study session' })
+  const localStart = await page.evaluate(() => {
+    const date = new Date(Date.now() - 90 * 60_000)
+    return {
+      date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+      time: `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
+    }
+  })
+  await sessionForm.getByLabel('Subject').selectOption({ label: 'Physics' })
+  await sessionForm.getByLabel('Date').fill(localStart.date)
+  await sessionForm.getByLabel('Start time').fill(localStart.time)
+  await sessionForm.getByLabel('Duration (minutes)').fill('30')
+  await sessionForm.getByLabel('Note Optional').fill('Reviewed momentum problems')
+  await sessionForm.getByRole('button', { name: 'Save session' }).click()
+
+  const journal = page.getByRole('region', { name: 'Study journal' })
+  await expect(journal.getByText('Physics')).toBeVisible()
+  await expect(journal.getByText('Reviewed momentum problems')).toBeVisible()
+  await expect(journal.getByRole('article', { name: /Physics, .*30m/ })).toBeVisible()
+
+  await journal.getByRole('button', { name: /Edit Physics session at/ }).click()
+  const editForm = page.getByRole('form', { name: 'Edit study session' })
+  await editForm.getByLabel('Duration (minutes)').fill('45')
+  await editForm.getByLabel('Note Optional').fill('Momentum review complete')
+  await editForm.getByRole('button', { name: 'Update session' }).click()
+  await expect(journal.getByText('Momentum review complete')).toBeVisible()
+
+  page.once('dialog', async (dialog) => dialog.dismiss())
+  await journal.getByRole('button', { name: /Delete Physics session at/ }).click()
+  await expect(journal.getByText('Physics')).toBeVisible()
+
+  page.once('dialog', async (dialog) => dialog.accept())
+  await journal.getByRole('button', { name: /Delete Physics session at/ }).click()
+  await expect(page.getByText('Session deleted.')).toBeVisible()
+  await expect(page.getByText('No sessions logged')).toBeVisible()
+})
+
 test('keeps the dashboard usable on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.evaluate(() => localStorage.setItem('study-dashboard-sidebar', 'collapsed'))

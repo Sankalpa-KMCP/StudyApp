@@ -1611,6 +1611,168 @@ textarea:focus-visible,
   background: var(--danger-bg);
 }
 
+.session-editor {
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+}
+
+.session-editor-heading,
+.session-note-field,
+.session-form-error,
+.session-editor-actions {
+  grid-column: 1 / -1;
+}
+
+.session-editor-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.session-editor-heading h2,
+.session-editor-heading p,
+.session-journal-heading p,
+.session-day-heading h3,
+.session-row h4,
+.session-row p {
+  margin: 0;
+}
+
+.session-editor-heading h2,
+.session-day-heading h3,
+.session-row h4 {
+  font-family: Outfit, Inter, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.session-editor-heading h2 {
+  font-size: 1.15rem;
+}
+
+.session-editor-heading p,
+.session-journal-heading p,
+.session-row p {
+  color: var(--muted);
+}
+
+.session-note-field span small {
+  color: var(--quiet);
+  font: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.session-form-error {
+  width: 100%;
+}
+
+.session-journal {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.session-journal-heading {
+  align-items: end;
+}
+
+.session-journal-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.session-journal-heading p {
+  font-size: 0.86rem;
+}
+
+.session-ledger {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.session-day + .session-day {
+  border-top: 1px solid var(--line-strong);
+}
+
+.session-day-heading {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-subtle);
+}
+
+.session-day-heading h3 {
+  font-size: 0.95rem;
+}
+
+.session-day-heading span {
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+}
+
+.session-row {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.session-row:last-child {
+  border-bottom: 0;
+}
+
+.session-row:hover {
+  background: var(--surface-subtle);
+}
+
+.session-time,
+.session-duration {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+}
+
+.session-time {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.session-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.session-copy h4 {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.98rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-copy h4.is-missing {
+  color: var(--danger);
+}
+
+.session-copy p {
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.session-duration {
+  min-width: 54px;
+  color: var(--ink);
+  text-align: right;
+}
+
 .calendar-strip {
   display: grid;
   grid-template-columns: repeat(7, minmax(92px, 1fr));
@@ -1933,6 +2095,17 @@ textarea:focus-visible,
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .session-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .session-editor-heading,
+  .session-note-field,
+  .session-form-error,
+  .session-editor-actions {
+    grid-column: auto;
+  }
+
   .theme-card {
     grid-column: auto;
   }
@@ -1949,6 +2122,30 @@ textarea:focus-visible,
   .list-row .row-actions {
     grid-column: 2;
     margin-left: 0;
+  }
+
+  .session-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    padding-block: 14px;
+  }
+
+  .session-time {
+    grid-column: 1;
+  }
+
+  .session-duration {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .session-copy,
+  .session-row .row-actions {
+    grid-column: 1 / -1;
+  }
+
+  .session-row .row-actions {
+    margin: 4px 0 0;
   }
 
   .note-row {
