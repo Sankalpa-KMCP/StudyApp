@@ -1516,10 +1516,10 @@ button.brand-dot {
 
 body {
   background:
-    radial-gradient(circle at 15% 8%, rgba(18, 106, 90, 0.16), transparent 25rem),
-    radial-gradient(circle at 86% 18%, rgba(196, 73, 36, 0.13), transparent 24rem),
-    radial-gradient(circle at 54% 86%, rgba(212, 154, 33, 0.12), transparent 22rem),
-    linear-gradient(135deg, #f6f8f7 0%, #edf3f2 45%, #ffffff 100%);
+    radial-gradient(circle at 15% 8%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 25rem),
+    radial-gradient(circle at 86% 18%, color-mix(in srgb, var(--accent-warm) 13%, transparent), transparent 24rem),
+    radial-gradient(circle at 54% 86%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 22rem),
+    linear-gradient(135deg, var(--bg) 0%, var(--surface-raised) 45%, var(--panel) 100%);
 }
 
 body::before {
@@ -1562,8 +1562,8 @@ textarea:focus-visible {
 
 .app-shell {
   background:
-    linear-gradient(90deg, rgba(18, 106, 90, 0.16) 1px, transparent 1px) 258px 0 / 1px 100% no-repeat,
-    repeating-linear-gradient(135deg, rgba(18, 106, 90, 0.018), rgba(18, 106, 90, 0.018) 1px, transparent 1px, transparent 11px);
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, transparent) 1px, transparent 1px) 258px 0 / 1px 100% no-repeat,
+    repeating-linear-gradient(135deg, color-mix(in srgb, var(--accent) 1.8%, transparent), color-mix(in srgb, var(--accent) 1.8%, transparent) 1px, transparent 1px, transparent 11px);
 }
 
 .sidebar {
@@ -2532,8 +2532,8 @@ body::before {
 .app-shell.is-sidebar-collapsed {
   grid-template-columns: 94px minmax(0, 1fr);
   background:
-    linear-gradient(90deg, rgba(18, 106, 90, 0.16) 1px, transparent 1px) 94px 0 / 1px 100% no-repeat,
-    repeating-linear-gradient(135deg, rgba(18, 106, 90, 0.018), rgba(18, 106, 90, 0.018) 1px, transparent 1px, transparent 11px);
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, transparent) 1px, transparent 1px) 94px 0 / 1px 100% no-repeat,
+    repeating-linear-gradient(135deg, color-mix(in srgb, var(--accent) 1.8%, transparent), color-mix(in srgb, var(--accent) 1.8%, transparent) 1px, transparent 1px, transparent 11px);
 }
 
 .brand-row {
@@ -2731,8 +2731,8 @@ body::before {
 @media (max-width: 1280px) {
   .app-shell {
     background:
-      linear-gradient(90deg, rgba(18, 106, 90, 0.16) 1px, transparent 1px) 88px 0 / 1px 100% no-repeat,
-      repeating-linear-gradient(135deg, rgba(18, 106, 90, 0.018), rgba(18, 106, 90, 0.018) 1px, transparent 1px, transparent 11px);
+      linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, transparent) 1px, transparent 1px) 88px 0 / 1px 100% no-repeat,
+      repeating-linear-gradient(135deg, color-mix(in srgb, var(--accent) 1.8%, transparent), color-mix(in srgb, var(--accent) 1.8%, transparent) 1px, transparent 1px, transparent 11px);
   }
 
   .brand-row {
@@ -2751,8 +2751,8 @@ body::before {
   .app-shell.is-sidebar-collapsed {
     grid-template-columns: 88px minmax(0, 1fr);
     background:
-      linear-gradient(90deg, rgba(18, 106, 90, 0.16) 1px, transparent 1px) 88px 0 / 1px 100% no-repeat,
-      repeating-linear-gradient(135deg, rgba(18, 106, 90, 0.018), rgba(18, 106, 90, 0.018) 1px, transparent 1px, transparent 11px);
+      linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, transparent) 1px, transparent 1px) 88px 0 / 1px 100% no-repeat,
+      repeating-linear-gradient(135deg, color-mix(in srgb, var(--accent) 1.8%, transparent), color-mix(in srgb, var(--accent) 1.8%, transparent) 1px, transparent 1px, transparent 11px);
   }
 }
 
@@ -2770,7 +2770,7 @@ body::before {
   .app-shell,
   .app-shell.is-sidebar-collapsed {
     grid-template-columns: 1fr;
-    background: repeating-linear-gradient(135deg, rgba(18, 106, 90, 0.018), rgba(18, 106, 90, 0.018) 1px, transparent 1px, transparent 11px);
+    background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--accent) 1.8%, transparent), color-mix(in srgb, var(--accent) 1.8%, transparent) 1px, transparent 1px, transparent 11px);
   }
 
   .brand-row {
