@@ -25,6 +25,7 @@ export function TasksView({
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [draft, setDraft] = useState({ title: '', subjectId: '', dueDate: '', priority: 'normal' as TaskPriority, minutes: 30 })
   const handledEditorRequest = useRef(0)
+  const titleFieldRef = useRef<HTMLInputElement | null>(null)
 
   const openEditor = useCallback((task?: StudyTask) => {
     setEditingTaskId(task?.id ?? 'new')
@@ -43,6 +44,10 @@ export function TasksView({
       openEditor()
     }
   }, [openEditor, openEditorRequest])
+
+  useEffect(() => {
+    if (editingTaskId) titleFieldRef.current?.focus()
+  }, [editingTaskId])
 
   const saveTask = async () => {
     const title = draft.title.trim()
@@ -73,7 +78,7 @@ export function TasksView({
       <SegmentedControl<'all' | 'open' | 'done'> value={filter} options={['all', 'open', 'done']} onChange={onFilterChange} />
       {editingTaskId ? (
         <div className="editor-card">
-          <TextInput label="Task title" value={draft.title} onChange={(title) => setDraft({ ...draft, title })} />
+          <TextInput label="Task title" value={draft.title} inputRef={titleFieldRef} onChange={(title) => setDraft({ ...draft, title })} />
           <SubjectSelect subjects={subjects} value={draft.subjectId} onChange={(subjectId) => setDraft({ ...draft, subjectId })} />
           <label className="field">
             <span>Priority</span>

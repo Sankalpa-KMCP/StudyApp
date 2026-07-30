@@ -50,6 +50,51 @@ test('opens new task and subject editors from the home hero', async ({ page }) =
   await expect(page.getByLabel('Subject name')).toBeVisible()
 })
 
+test('guides the first study loop without overflowing compact layouts', async ({ page }, testInfo) => {
+  const compactWidth = testInfo.project.name === 'mobile-chrome' ? 320 : 501
+  await page.setViewportSize({ width: compactWidth, height: 844 })
+
+  const checklist = page.getByRole('region', { name: 'Your first study loop' })
+  const checklistProgress = checklist.getByRole('progressbar', { name: 'First study loop progress' })
+  await expect(checklist).toBeVisible()
+  await expect(checklistProgress).toHaveAttribute('aria-valuetext', '0 of 3 steps complete')
+
+  await checklist.getByRole('button', { name: 'Create subject' }).click()
+  await expect(page.getByLabel('Subject name')).toBeFocused()
+  await page.getByLabel('Subject name').fill('Physics')
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  await page.getByRole('button', { name: 'Home' }).click()
+  await expect(checklistProgress).toHaveAttribute('aria-valuetext', '1 of 3 steps complete')
+  await checklist.getByRole('button', { name: 'Plan task' }).click()
+  await expect(page.getByLabel('Task title')).toBeFocused()
+  await page.getByLabel('Task title').fill('Momentum practice')
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  await page.getByRole('button', { name: 'Home' }).click()
+  await expect(checklistProgress).toHaveAttribute('aria-valuetext', '2 of 3 steps complete')
+  await checklist.getByRole('button', { name: 'Log session' }).click()
+  const sessionForm = page.getByRole('form', { name: 'Log study session' })
+  await expect(sessionForm.getByLabel('Subject')).toBeFocused()
+  const localStart = await page.evaluate(() => {
+    const date = new Date(Date.now() - 60 * 60_000)
+    return {
+      date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+      time: `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
+    }
+  })
+  await sessionForm.getByLabel('Subject').selectOption({ label: 'Physics' })
+  await sessionForm.getByLabel('Date').fill(localStart.date)
+  await sessionForm.getByLabel('Start time').fill(localStart.time)
+  await sessionForm.getByLabel('Duration (minutes)').fill('30')
+  await sessionForm.getByRole('button', { name: 'Save session' }).click()
+
+  await page.getByRole('button', { name: 'Home' }).click()
+  await expect(checklist).toBeHidden()
+  const layout = await page.evaluate(() => ({ viewport: window.innerWidth, page: document.documentElement.scrollWidth }))
+  expect(layout.page).toBeLessThanOrEqual(layout.viewport)
+})
+
 test('creates and reviews a flashcard', async ({ page }) => {
   await page.getByRole('button', { name: 'Flashcards' }).click()
   await page.getByRole('button', { name: 'New card' }).click()
