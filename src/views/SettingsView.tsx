@@ -6,10 +6,10 @@ import type { ThemeMode } from '../App'
 type SettingsFeedback = { tone: 'success' | 'error'; message: string }
 
 const themeOptions: Array<{ id: ThemeMode; label: string; description: string; swatches: string[] }> = [
-  { id: 'light', label: 'Dawn', description: 'Clean, bright, and calm.', swatches: ['#f6f8f7', '#126a5a', '#c44924'] },
-  { id: 'dark', label: 'Night', description: 'Low glare for deep focus.', swatches: ['#0e1111', '#5ee0c2', '#ff9069'] },
-  { id: 'aurora', label: 'Aurora', description: 'Cool energy with a premium glow.', swatches: ['#08111f', '#7dd3fc', '#c084fc'] },
-  { id: 'ember', label: 'Ember', description: 'Warm editorial study desk.', swatches: ['#fff4e8', '#9a3412', '#2563eb'] },
+  { id: 'light', label: 'Canvas', description: 'Warm paper, forest ink, vermilion details.', swatches: ['#f4f0e8', '#24594d', '#d45a43'] },
+  { id: 'dark', label: 'Midnight', description: 'Inky blue with a soft amber reading light.', swatches: ['#10141d', '#f2b56b', '#72c9c0'] },
+  { id: 'aurora', label: 'Aurora', description: 'Deep violet, orchid, and electric mint.', swatches: ['#111323', '#aa8df5', '#55d6c6'] },
+  { id: 'ember', label: 'Ember', description: 'Terracotta, parchment, and library blue.', swatches: ['#f3e4d2', '#b74e32', '#496a7d'] },
 ]
 
 export function SettingsView({
@@ -88,8 +88,8 @@ export function SettingsView({
         </button>
         <div className="action-card theme-card">
           <Layers3 size={24} aria-hidden="true" />
-          <strong>Theme Studio</strong>
-          <span>Choose a production palette for the whole workspace.</span>
+          <strong>Atmosphere</strong>
+          <span>Choose the room you want to study in.</span>
           <div className="theme-grid" role="radiogroup" aria-label="Theme">
             {themeOptions.map((option) => (
               <button
@@ -127,15 +127,14 @@ export function SettingsView({
             <strong>Confirm data deletion</strong>
             <p>Type DELETE to permanently remove all study data.</p>
             <input
-              className="field"
+              className="reset-confirm-input"
               type="text"
               value={deleteInput}
               onChange={(e) => setDeleteInput(e.target.value)}
               placeholder="DELETE"
               disabled={resetState === 'deleting'}
-              style={{ padding: '8px', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--surface-sunken)', color: 'var(--text-strong)', width: '100%', marginBottom: '16px' }}
             />
-            <div className="button-row" style={{ display: 'flex', gap: '8px' }}>
+            <div className="button-row">
               <button className="secondary-command" type="button" onClick={() => { setResetState('idle'); setDeleteInput('') }} disabled={resetState === 'deleting'}>Cancel</button>
               <button className="primary-command" type="button" disabled={deleteInput !== 'DELETE' || resetState === 'deleting'} onClick={() => void handleClear()}>Delete all data</button>
             </div>
