@@ -58,6 +58,56 @@ describe('studyDb', () => {
       updatedAt: timestamp,
     })
 
+    await Promise.all([
+      studyDb.tasks.add({
+        id: 'task-rule',
+        title: 'Review rule',
+        subjectId: 'subject-math',
+        dueDate: '',
+        priority: 'high',
+        status: 'open',
+        minutes: 30,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }),
+      studyDb.notes.add({
+        id: 'note-rule',
+        title: 'Rule notes',
+        body: 'Worked example',
+        subjectId: 'subject-math',
+        tags: ['revision'],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }),
+      studyDb.events.add({
+        id: 'event-rule',
+        title: 'Review block',
+        subjectId: 'subject-math',
+        startAt: timestamp,
+        endAt: timestamp,
+        location: 'Library',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }),
+      studyDb.studySessions.add({
+        id: 'session-rule',
+        subjectId: 'subject-math',
+        startedAt: timestamp,
+        endedAt: timestamp,
+        minutes: 25,
+        note: 'Practice',
+      }),
+      studyDb.goals.add({
+        id: 'goal-rule',
+        title: 'Study goal',
+        target: 120,
+        progress: 25,
+        period: 'weekly',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }),
+    ])
+
     const snapshot = await exportStudyData()
     await clearAllStudyData()
     await importStudyData(snapshot)
@@ -65,6 +115,40 @@ describe('studyDb', () => {
     const restored = await getStudyData()
     expect(restored.subjects[0]?.name).toBe('Math')
     expect(restored.flashcards[0]?.front).toBe('Rule')
+    expect(restored.tasks[0]?.title).toBe('Review rule')
+    expect(restored.notes[0]?.title).toBe('Rule notes')
+    expect(restored.events[0]?.title).toBe('Review block')
+    expect(restored.studySessions[0]?.note).toBe('Practice')
+    expect(restored.goals[0]?.title).toBe('Study goal')
+  })
+
+  it('rejects malformed records without replacing existing data', async () => {
+    const timestamp = nowIso()
+    await studyDb.subjects.add({
+      id: 'subject-existing',
+      name: 'Existing subject',
+      color: '#111827',
+      targetHours: 5,
+      progress: 10,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+
+    const malformedSnapshot = {
+      version: 1,
+      exportedAt: timestamp,
+      tasks: [],
+      subjects: [{ id: 'subject-invalid', name: 123 }],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+
+    await expect(importStudyData(malformedSnapshot)).rejects.toThrow('Import file is not a Study Dashboard export.')
+    expect(await studyDb.subjects.toArray()).toMatchObject([{ id: 'subject-existing', name: 'Existing subject' }])
   })
 
   it('ignores the old bundled sample data during legacy migration', async () => {
