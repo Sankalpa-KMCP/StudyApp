@@ -68,10 +68,12 @@ test('creates and reviews a flashcard', async ({ page }) => {
 
 test('keeps the dashboard usable on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
+  await page.evaluate(() => localStorage.setItem('study-dashboard-sidebar', 'collapsed'))
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: 'Good morning' })).toBeVisible()
   await expect(page.getByPlaceholder('Search')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Go to dashboard' })).toBeHidden()
   await page.getByRole('button', { name: 'Tasks' }).click()
   await expect(page.getByRole('heading', { name: 'Tasks', level: 1 })).toBeVisible()
   await page.getByRole('button', { name: 'Settings' }).click()

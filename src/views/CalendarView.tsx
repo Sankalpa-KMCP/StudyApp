@@ -44,7 +44,7 @@ export function CalendarView({ events, subjects, subjectMap, search = '', onClea
 
   return (
     <section className="workspace-panel" aria-labelledby="calendar-workspace-title">
-      <PanelHeader title="Calendar" actionLabel="New event" onAction={() => openEditor()} />
+      <PanelHeader title="Calendar" description="Schedule classes, study blocks, and deadlines." actionLabel="New event" onAction={() => openEditor()} />
       <CalendarStrip events={events} />
       {editingEventId ? (
         <div className="editor-card">

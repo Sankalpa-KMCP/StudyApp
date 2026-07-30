@@ -32,7 +32,7 @@ export const DefaultEmptyState: StoryObj<typeof EmptyState> = {
 export const DefaultPanelHeader: StoryObj<typeof PanelHeader> = {
   render: () => (
     <div style={{ width: '400px' }}>
-      <PanelHeader title="My Tasks" actionLabel="Add Task" onAction={() => console.log('Clicked')} />
+      <PanelHeader title="My Tasks" description="Plan the work that deserves your attention." actionLabel="Add Task" onAction={() => console.log('Clicked')} />
     </div>
   ),
 }

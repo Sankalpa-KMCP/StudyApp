@@ -69,7 +69,7 @@ export function TasksView({
 
   return (
     <section className="workspace-panel" aria-labelledby="tasks-workspace-title">
-      <PanelHeader title="Tasks" actionLabel="New task" onAction={() => openEditor()} />
+      <PanelHeader title="Tasks" description="Plan the work that deserves your attention." actionLabel="New task" onAction={() => openEditor()} />
       <SegmentedControl<'all' | 'open' | 'done'> value={filter} options={['all', 'open', 'done']} onChange={onFilterChange} />
       {editingTaskId ? (
         <div className="editor-card">
@@ -111,7 +111,7 @@ export function TasksView({
       ) : filter !== 'all' ? (
         <EmptyState
           icon={Check}
-          title="No matching tasks"
+          title="No tasks in this view"
           body="No tasks match the current filter."
           actionLabel="Clear filter"
           onAction={() => onFilterChange('all')}
@@ -127,7 +127,7 @@ export function TasksView({
       ) : (
         <EmptyState
           icon={Check}
-          title="No matching tasks"
+          title="No tasks yet"
           body="Add a task to shape today's queue."
           actionLabel="Create first task"
           onAction={() => openEditor()}

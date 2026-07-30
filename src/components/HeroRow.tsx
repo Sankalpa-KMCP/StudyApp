@@ -1,11 +1,9 @@
 import { BookOpen, Plus } from 'lucide-react'
 import { formatMinutes, percent } from '../appUtils'
-import type { View } from '../App'
 
 const todayLabel = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date())
 
 export function HeroRow(props: {
-  activeView: View
   todayFocusMinutes: number
   dailyGoalMinutes: number
   onCreateTask: () => void
@@ -16,7 +14,7 @@ export function HeroRow(props: {
       <div className="hero-copy">
         <span className="eyebrow">{todayLabel}</span>
         <h1>Good morning</h1>
-        <p>{props.activeView === 'Home' ? 'A quiet place to turn intention into progress—one focused block at a time.' : `${props.activeView} is open. Everything stays saved on this device.`}</p>
+        <p>Choose the next useful thing, then give it your full attention.</p>
       </div>
       <div className="hero-metrics" aria-label="Today focus summary">
         <span>
@@ -37,10 +35,6 @@ export function HeroRow(props: {
           <Plus size={17} aria-hidden="true" />
           Task
         </button>
-      </div>
-      <div className="date-stack">
-        <strong>{formatMinutes(props.dailyGoalMinutes)}</strong>
-        <span>daily goal</span>
       </div>
     </section>
   )

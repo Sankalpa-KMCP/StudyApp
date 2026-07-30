@@ -256,10 +256,9 @@ function App() {
           ) : (
             <div className={activeView === 'Home' ? 'content-grid' : 'content-grid is-workspace-view'}>
               <section className="primary-column" aria-label="Primary study summary">
-                {profileNotice ? <div className="settings-feedback success" role="status" style={{ margin: '0 0 16px 0', padding: '16px', background: 'var(--surface-sunken)', borderLeft: '4px solid var(--accent)', color: 'var(--text-strong)' }}>{profileNotice}</div> : null}
+                {profileNotice ? <div className="settings-feedback" role="status">{profileNotice}</div> : null}
                 {activeView === 'Home' ? (
                   <HeroRow
-                    activeView={activeView}
                     todayFocusMinutes={todayFocusMinutes}
                     dailyGoalMinutes={dailyGoalMinutes}
                     onCreateTask={openNewTask}
@@ -350,7 +349,6 @@ function App() {
                     onExport={() => void exportData()}
                     onImport={importData}
                     onClear={handleClearData}
-                    onClearSearch={clearSearch}
                     profileNotice={profileNotice}
                     theme={theme}
                     onThemeChange={setTheme}

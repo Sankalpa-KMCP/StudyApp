@@ -41,7 +41,7 @@ export function FlashcardsView(props: {
 
   return (
     <section className="workspace-panel" aria-labelledby="flashcards-workspace-title">
-      <PanelHeader title="Flashcards" actionLabel="New card" onAction={() => openEditor()} />
+      <PanelHeader title="Flashcards" description="Review what is due and keep recall moving." actionLabel="New card" onAction={() => openEditor()} />
       {editingCardId ? (
         <div className="editor-card">
           <TextInput label="Front" value={draft.front} onChange={(front) => setDraft({ ...draft, front })} />
