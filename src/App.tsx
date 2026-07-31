@@ -435,7 +435,13 @@ function App() {
       if (!result.ok) {
         if (result.reason === 'conflict') {
           hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+          return
         }
+
+        // Durable singleton already gone — clear obsolete React focus UI without logging history.
+        setActiveSession(null)
+        setStaleFocusSession(null)
+        setSessionNotice('That focus session is no longer saved. It was removed from the screen without logging study time.')
         return
       }
 
