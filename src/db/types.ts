@@ -111,17 +111,34 @@ export type ActiveFocusSession = {
   accumulatedPausedMs: number
 }
 
-export type StudyExport = {
-  version: 1
-  exportedAt: string
+/** Pre-metric goal shape found in version-1 backups (no `metric` field). */
+export type StudyGoalV1 = Omit<StudyGoal, 'metric'>
+
+type StudyExportTables = {
   tasks: StudyTask[]
   subjects: StudySubject[]
   notes: StudyNote[]
   events: CalendarEvent[]
   flashcards: Flashcard[]
   studySessions: StudySession[]
-  goals: StudyGoal[]
   settings: StudySetting[]
 }
+
+/** Legacy backup format (goals without required metrics). */
+export type StudyExportV1 = StudyExportTables & {
+  version: 1
+  exportedAt: string
+  goals: StudyGoalV1[]
+}
+
+/** Current backup format (goals require explicit metrics). */
+export type StudyExportV2 = StudyExportTables & {
+  version: 2
+  exportedAt: string
+  goals: StudyGoal[]
+}
+
+/** Current export/import product shape after normalization. */
+export type StudyExport = StudyExportV2
 
 export type StudyData = Omit<StudyExport, 'version' | 'exportedAt'>
