@@ -10,12 +10,13 @@ import {
   type SearchResult,
   type WeeklyStudyDay,
 } from '../appUtils'
-import type { StudyData, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
+import type { ActiveFocusSession, StudyData, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
 import { EmptyState, SubjectCard } from '../components/ui'
 import { StudyTime } from '../components/RightColumn'
-import type { ActiveSession, View } from '../App'
+import type { View } from '../App'
 import { useEffect, useState } from 'react'
 import { FirstStudyChecklist } from './FirstStudyChecklist'
+import { getActiveFocusElapsedMs } from '../db/activeFocusSession'
 
 export function HomeView(props: {
   data: StudyData
@@ -24,9 +25,10 @@ export function HomeView(props: {
   quickNotes: string[]
   dailyGoalMinutes: number
   todayFocusMinutes: number
-  activeSession: ActiveSession | null
+  activeSession: ActiveFocusSession | null
   sessionLimitSeconds: number
   sessionNotice: string
+  canStartFocus: boolean
   subjects: StudySubject[]
   focusSubjectId: string
   focusDurationMinutes: number
@@ -72,12 +74,13 @@ export function HomeView(props: {
       <div className="summary-grid">
         <TaskCard tasks={openTasks} subjectMap={props.subjectMap} onOpen={() => props.onNavigate('Tasks')} />
         <FocusCard
-          key={props.activeSession?.startedAt ?? 'idle'}
+          key={props.activeSession?.id ?? 'idle'}
           focusMinutes={props.todayFocusMinutes}
           goalMinutes={props.dailyGoalMinutes}
           activeSession={props.activeSession}
           sessionLimitSeconds={props.sessionLimitSeconds}
           sessionNotice={props.sessionNotice}
+          canStart={props.canStartFocus}
           subjects={props.subjects}
           selectedSubjectId={props.focusSubjectId}
           durationMinutes={props.focusDurationMinutes}
@@ -180,9 +183,10 @@ function TaskCard({ tasks, subjectMap, onOpen }: { tasks: StudyTask[]; subjectMa
 function FocusCard(props: {
   focusMinutes: number
   goalMinutes: number
-  activeSession: ActiveSession | null
+  activeSession: ActiveFocusSession | null
   sessionLimitSeconds: number
   sessionNotice: string
+  canStart: boolean
   subjects: StudySubject[]
   selectedSubjectId: string
   durationMinutes: number
@@ -193,12 +197,14 @@ function FocusCard(props: {
 }) {
   const [nowMs, setNowMs] = useState(() => Date.now())
   useEffect(() => {
-    if (!props.activeSession) return undefined
+    if (!props.activeSession || props.activeSession.status === 'paused') return undefined
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [props.activeSession])
 
-  const elapsedSeconds = props.activeSession ? Math.max(0, Math.floor((nowMs - props.activeSession.startedAtMs) / 1000)) : 0
+  const elapsedSeconds = props.activeSession
+    ? Math.max(0, Math.floor(getActiveFocusElapsedMs(props.activeSession, nowMs) / 1000))
+    : 0
   const focusPercent = percent(props.focusMinutes, props.goalMinutes)
   const timerPercent = props.sessionLimitSeconds > 0 ? percent(elapsedSeconds, props.sessionLimitSeconds) : focusPercent
   const remainingSeconds = props.sessionLimitSeconds > 0 ? Math.max(0, props.sessionLimitSeconds - elapsedSeconds) : 0
@@ -243,7 +249,7 @@ function FocusCard(props: {
           Stop session
         </button>
       ) : (
-        <button className="primary-command session-button" type="button" onClick={props.onStart}>
+        <button className="primary-command session-button" type="button" onClick={props.onStart} disabled={!props.canStart}>
           <Play size={18} aria-hidden="true" />
           Start focus
         </button>

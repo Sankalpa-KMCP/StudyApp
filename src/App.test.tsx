@@ -3,7 +3,33 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { formatShortTime, toInputDate, toInputTime } from './appUtils'
+import {
+  ACTIVE_FOCUS_SESSION_KEY,
+  createActiveFocusSession,
+  finalizeActiveFocusSession,
+  getActiveFocusSession,
+} from './db/activeFocusSession'
 import { studyDb } from './db/studyDb'
+import type { ActiveFocusSession } from './db/types'
+
+async function waitForFocusStartEnabled() {
+  const startButton = await screen.findByRole('button', { name: 'Start focus' })
+  await waitFor(() => expect(startButton).toBeEnabled())
+  return startButton
+}
+
+function makeDurableFocusSession(overrides: Partial<ActiveFocusSession> = {}): ActiveFocusSession {
+  return {
+    id: 'focus-restored',
+    subjectId: 'subject-focus',
+    startedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+    plannedMinutes: 25,
+    status: 'running',
+    pausedAt: null,
+    accumulatedPausedMs: 0,
+    ...overrides,
+  }
+}
 
 const THEME_CASES = [
   ['monochrome', '#111111'],
@@ -239,8 +265,10 @@ describe('App', () => {
 
     await user.selectOptions(await screen.findByLabelText('Focus subject'), 'subject-focus')
     expect(screen.getByLabelText('Session length')).toHaveValue('25')
+    await waitForFocusStartEnabled()
     await user.click(screen.getByRole('button', { name: 'Start focus' }))
     expect(await screen.findByText('Elapsed')).toBeInTheDocument()
+    expect(await getActiveFocusSession()).toMatchObject({ subjectId: 'subject-focus', plannedMinutes: 25 })
     await user.click(screen.getByRole('button', { name: 'Stop session' }))
 
     await waitFor(async () => {
@@ -248,6 +276,7 @@ describe('App', () => {
       expect(sessions).toHaveLength(1)
       expect(sessions[0].subjectId).toBe('subject-focus')
     })
+    expect(await getActiveFocusSession()).toBeNull()
   })
 
   it('blocks deleting subjects that still have linked records', async () => {
@@ -920,37 +949,230 @@ describe('App', () => {
   })
 
   it('logs focus session automatically when time limit is reached', async () => {
-    // Populate DB for coverage hits
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
     await studyDb.settings.put({ key: 'quickNotes', value: ['Test Note'] })
     await studyDb.subjects.add({ id: 'subj-cov', name: 'CovSubject', progress: 0, color: '#000000', targetHours: 1, createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
     await studyDb.flashcards.add({ id: 'fc-cov', subjectId: 'subj-cov', front: 'Q', back: 'A', status: 'new', dueAt: new Date().toISOString(), lastReviewedAt: '', createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
 
+    const nearlyDone = makeDurableFocusSession({
+      id: 'focus-auto-complete',
+      subjectId: 'subj-cov',
+      startedAt: new Date(Date.now() - (25 * 60_000 - 40)).toISOString(),
+      plannedMinutes: 25,
+    })
+    await createActiveFocusSession(nearlyDone)
+
     render(<App />)
 
-    await screen.findByRole('heading', { name: 'Good morning' })
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
 
-    const durationSelect = screen.getByRole('combobox', { name: 'Session length' })
-    fireEvent.change(durationSelect, { target: { value: '25' } })
+    await waitFor(async () => {
+      expect(screen.queryByRole('button', { name: 'Stop session' })).not.toBeInTheDocument()
+      expect(await studyDb.studySessions.count()).toBe(1)
+    }, { timeout: 3000 })
 
-    const subjectSelect = screen.getByRole('combobox', { name: 'Focus subject' })
-    fireEvent.change(subjectSelect, { target: { value: 'subj-cov' } })
-
-    vi.useFakeTimers()
-    fireEvent.click(screen.getByRole('button', { name: 'Start focus' }))
-
-    expect(screen.getByText('Stop session')).toBeInTheDocument()
-
-    vi.advanceTimersByTime(26 * 60 * 1000)
-
-    vi.useRealTimers()
-
-    await waitFor(() => {
-      expect(screen.queryByText('Stop session')).not.toBeInTheDocument()
-    })
     expect(screen.getByText(/Session complete: \d+m logged/)).toBeInTheDocument()
+    expect(await getActiveFocusSession()).toBeNull()
   })
 
+  it('restores a running focus session after remount', async () => {
+    await studyDb.subjects.add({
+      id: 'subject-focus',
+      name: 'Physics',
+      color: '#2563eb',
+      targetHours: 6,
+      progress: 10,
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    })
+    const session = makeDurableFocusSession({
+      id: 'focus-remount',
+      subjectId: 'subject-focus',
+      plannedMinutes: 50,
+    })
+    await createActiveFocusSession(session)
+
+    const first = render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Focus subject')).toHaveValue('subject-focus')
+    expect(screen.getByLabelText('Session length')).toHaveValue('50')
+    first.unmount()
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Focus subject')).toHaveValue('subject-focus')
+    expect(screen.getByLabelText('Session length')).toHaveValue('50')
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-remount', plannedMinutes: 50 })
+  })
+
+  it('keeps Start disabled until focus restoration finishes', async () => {
+    let releaseRestore: (value: ActiveFocusSession | null) => void = () => {}
+    const restoreGate = new Promise<ActiveFocusSession | null>((resolve) => {
+      releaseRestore = resolve
+    })
+    vi.spyOn(await import('./db/activeFocusSession'), 'getActiveFocusSession').mockImplementation(() => restoreGate)
+
+    render(<App />)
+    const startButton = await screen.findByRole('button', { name: 'Start focus' })
+    expect(startButton).toBeDisabled()
+
+    releaseRestore(null)
+    await waitFor(() => expect(startButton).toBeEnabled())
+  })
+
+  it('hydrates the existing durable session when Start conflicts', async () => {
+    const user = userEvent.setup()
+    await studyDb.subjects.add({
+      id: 'subject-focus',
+      name: 'Physics',
+      color: '#2563eb',
+      targetHours: 6,
+      progress: 10,
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    })
+    const existing = makeDurableFocusSession({
+      id: 'focus-conflict',
+      subjectId: 'subject-focus',
+      plannedMinutes: 50,
+    })
+    await createActiveFocusSession(existing)
+
+    const activeFocusApi = await import('./db/activeFocusSession')
+    vi.spyOn(activeFocusApi, 'getActiveFocusSession').mockResolvedValueOnce(null)
+
+    render(<App />)
+    await waitForFocusStartEnabled()
+    await user.click(screen.getByRole('button', { name: 'Start focus' }))
+
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+    expect(screen.getByText('An unfinished focus session was restored.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Session length')).toHaveValue('50')
+    expect((await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY))?.value).toMatchObject({ id: 'focus-conflict', plannedMinutes: 50 })
+  })
+
+  it('finalizes an already-expired restored timed session once', async () => {
+    await studyDb.subjects.add({
+      id: 'subject-focus',
+      name: 'Physics',
+      color: '#2563eb',
+      targetHours: 6,
+      progress: 10,
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    })
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-expired',
+      subjectId: 'subject-focus',
+      startedAt: new Date(Date.now() - 30 * 60_000).toISOString(),
+      plannedMinutes: 25,
+    }))
+
+    render(<App />)
+
+    await waitFor(async () => {
+      expect(await studyDb.studySessions.count()).toBe(1)
+      expect(await getActiveFocusSession()).toBeNull()
+    })
+    expect(screen.getByText(/Session complete: \d+m logged/)).toBeInTheDocument()
+
+    const sessions = await studyDb.studySessions.toArray()
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0].id).toBe('focus-expired')
+    expect(sessions[0].minutes).toBe(25)
+  })
+
+  it('records manual stop minutes from active elapsed time excluding paused time', async () => {
+    const user = userEvent.setup()
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-manual-stop',
+      subjectId: '',
+      startedAt: new Date(Date.now() - 10 * 60_000).toISOString(),
+      plannedMinutes: 0,
+      accumulatedPausedMs: 4 * 60_000,
+    }))
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Stop session' }))
+
+    await waitFor(async () => {
+      const sessions = await studyDb.studySessions.toArray()
+      expect(sessions).toHaveLength(1)
+      expect(sessions[0].minutes).toBe(6)
+      expect(sessions[0].note).toBe('General focus session')
+    })
+    expect(await getActiveFocusSession()).toBeNull()
+  })
+
+  it('keeps a restored paused session frozen without auto-completing', async () => {
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-paused',
+      subjectId: '',
+      startedAt: new Date(Date.now() - 40 * 60_000).toISOString(),
+      plannedMinutes: 25,
+      status: 'paused',
+      pausedAt: new Date(Date.now() - 35 * 60_000).toISOString(),
+      accumulatedPausedMs: 0,
+    }))
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Start focus' })).not.toBeInTheDocument()
+
+    await new Promise((resolve) => window.setTimeout(resolve, 80))
+    expect(await studyDb.studySessions.count()).toBe(0)
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-paused', status: 'paused' })
+  })
+
+  it('retains recoverable state when finalization fails', async () => {
+    const user = userEvent.setup()
+    const session = makeDurableFocusSession({
+      id: 'focus-fail-finalize',
+      subjectId: '',
+      plannedMinutes: 0,
+    })
+    await createActiveFocusSession(session)
+    vi.spyOn(await import('./db/activeFocusSession'), 'finalizeActiveFocusSession').mockRejectedValueOnce(new Error('write failed'))
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Stop session' }))
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Stop session' })).toBeInTheDocument())
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-fail-finalize' })
+    expect(await studyDb.studySessions.count()).toBe(0)
+  })
+
+  it('does not create duplicate history rows for repeated finalization', async () => {
+    const session = makeDurableFocusSession({
+      id: 'focus-idempotent',
+      subjectId: '',
+      plannedMinutes: 0,
+      startedAt: new Date(Date.now() - 3 * 60_000).toISOString(),
+    })
+    await createActiveFocusSession(session)
+
+    const first = await finalizeActiveFocusSession(session.id, {
+      subjectId: '',
+      startedAt: session.startedAt,
+      endedAt: new Date().toISOString(),
+      minutes: 3,
+      note: 'Focus session',
+    })
+    const second = await finalizeActiveFocusSession(session.id, {
+      subjectId: '',
+      startedAt: session.startedAt,
+      endedAt: new Date().toISOString(),
+      minutes: 99,
+      note: 'Duplicate',
+    })
+
+    expect(first.ok).toBe(true)
+    expect(second).toEqual(first)
+    expect(await studyDb.studySessions.count()).toBe(1)
+    expect(await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)).toBeUndefined()
+  })
   it('toggles flashcard reveal', async () => {
     // Put data to trigger callbacks for settings and flashcards
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })

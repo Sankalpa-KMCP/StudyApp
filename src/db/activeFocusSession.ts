@@ -1,4 +1,4 @@
-import type { ActiveFocusSession, ActiveFocusSessionStatus } from './types'
+import type { ActiveFocusSession, ActiveFocusSessionStatus, StudySession } from './types'
 import { studyDb } from './studyDb'
 
 export const ACTIVE_FOCUS_SESSION_KEY = 'activeFocusSession'
@@ -16,6 +16,11 @@ export type UpdateActiveFocusSessionResult =
   | { ok: false; reason: 'missing' }
   | { ok: false; reason: 'conflict'; existing: ActiveFocusSession }
   | { ok: false; reason: 'invalid' }
+
+export type FinalizeActiveFocusSessionResult =
+  | { ok: true; history: StudySession }
+  | { ok: false; reason: 'missing' }
+  | { ok: false; reason: 'conflict'; existing: ActiveFocusSession }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -142,4 +147,42 @@ export async function updateActiveFocusSession(session: ActiveFocusSession): Pro
 /** Clears only the reserved unfinished-session settings record. */
 export async function clearActiveFocusSession(): Promise<void> {
   await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
+}
+
+/**
+ * Atomically writes one study-history row (id = focus session id) and clears the
+ * unfinished singleton when the persisted active session id matches.
+ * Safe to call repeatedly for the same session id.
+ */
+export async function finalizeActiveFocusSession(
+  sessionId: string,
+  history: Omit<StudySession, 'id'>,
+): Promise<FinalizeActiveFocusSessionResult> {
+  if (!sessionId) return { ok: false, reason: 'missing' }
+
+  return studyDb.transaction('rw', studyDb.settings, studyDb.studySessions, async () => {
+    const existingHistory = await studyDb.studySessions.get(sessionId)
+    const activeRecord = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
+    const activeSession = activeRecord && isActiveFocusSession(activeRecord.value) ? activeRecord.value : null
+
+    if (activeSession && activeSession.id !== sessionId) {
+      return { ok: false, reason: 'conflict', existing: activeSession }
+    }
+
+    if (activeSession && activeSession.id === sessionId) {
+      const historyRow: StudySession = existingHistory ?? { id: sessionId, ...history }
+      if (!existingHistory) {
+        await studyDb.studySessions.add(historyRow)
+      }
+      await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
+      return { ok: true, history: historyRow }
+    }
+
+    // Unfinished record already cleared — treat matching history as successful finalize.
+    if (existingHistory) {
+      return { ok: true, history: existingHistory }
+    }
+
+    return { ok: false, reason: 'missing' }
+  })
 }
