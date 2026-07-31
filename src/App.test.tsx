@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -1282,6 +1282,63 @@ describe('App', () => {
     const second = await pauseActiveFocusSession(session.id)
     expect(second).toEqual({ ok: false, reason: 'invalid_state', existing: first.session })
     expect(await getActiveFocusSession()).toEqual(first.session)
+  })
+
+  it('synchronizes elapsed and remaining display immediately on resume after a long pause', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    const startedAt = new Date('2026-07-21T12:00:00.000Z')
+    vi.setSystemTime(startedAt)
+
+    await createActiveFocusSession({
+      id: 'focus-clock-sync',
+      subjectId: '',
+      startedAt: startedAt.toISOString(),
+      plannedMinutes: 25,
+      status: 'running',
+      pausedAt: null,
+      accumulatedPausedMs: 0,
+    })
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Pause' })).toBeInTheDocument()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5 * 60_000)
+    })
+    expect(screen.getByText('Elapsed').parentElement?.querySelector('strong')?.textContent).toBe('05:00')
+
+    await user.click(screen.getByRole('button', { name: 'Pause' }))
+    expect(await screen.findByRole('button', { name: 'Resume' })).toBeInTheDocument()
+    expect(screen.getByText('paused')).toBeInTheDocument()
+    expect(screen.getByText('Elapsed').parentElement?.querySelector('strong')?.textContent).toBe('05:00')
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10 * 60_000)
+    })
+    // Still frozen while paused even though wall time advanced 10 minutes.
+    expect(screen.getByText('Elapsed').parentElement?.querySelector('strong')?.textContent).toBe('05:00')
+
+    await user.click(screen.getByRole('button', { name: 'Resume' }))
+    expect(await screen.findByRole('button', { name: 'Pause' })).toBeInTheDocument()
+
+    // Flush the immediate clock sync timeout without advancing the one-second interval.
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 0)
+      })
+    })
+
+    // Must be correct before the next interval tick (do not advance fake intervals here).
+    expect(screen.getByText('Elapsed').parentElement?.querySelector('strong')?.textContent).toBe('05:00')
+    expect(screen.getByText('remaining')).toBeInTheDocument()
+    const ringValue = screen.getByText('remaining').previousElementSibling?.textContent
+    expect(ringValue).toBe('20:00')
+    expect(await getActiveFocusSession()).toMatchObject({
+      status: 'running',
+      pausedAt: null,
+      accumulatedPausedMs: 10 * 60_000,
+    })
   })
 
   it('toggles flashcard reveal', async () => {
