@@ -150,9 +150,37 @@ export async function updateActiveFocusSession(session: ActiveFocusSession): Pro
   })
 }
 
+export type DiscardActiveFocusSessionResult =
+  | { ok: true }
+  | { ok: false; reason: 'missing' }
+  | { ok: false; reason: 'conflict'; existing: ActiveFocusSession }
+
 /** Clears only the reserved unfinished-session settings record. */
 export async function clearActiveFocusSession(): Promise<void> {
   await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
+}
+
+/**
+ * Atomically removes the unfinished singleton when the persisted id matches.
+ * Never writes study-history rows.
+ */
+export async function discardActiveFocusSession(sessionId: string): Promise<DiscardActiveFocusSessionResult> {
+  if (!sessionId) return { ok: false, reason: 'missing' }
+
+  return studyDb.transaction('rw', studyDb.settings, async () => {
+    const existingRecord = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
+    if (!existingRecord || !isActiveFocusSession(existingRecord.value)) {
+      if (existingRecord) await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
+      return { ok: false, reason: 'missing' }
+    }
+
+    if (existingRecord.value.id !== sessionId) {
+      return { ok: false, reason: 'conflict', existing: existingRecord.value }
+    }
+
+    await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
+    return { ok: true }
+  })
 }
 
 /**
