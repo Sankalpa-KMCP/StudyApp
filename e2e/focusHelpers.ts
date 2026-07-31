@@ -141,3 +141,105 @@ export function parseElapsedToSeconds(text: string): number {
 export async function waitMs(ms: number) {
   await new Promise<void>((resolve) => setTimeout(resolve, ms))
 }
+
+export type StudySubjectRow = {
+  id: string
+  name: string
+  color: string
+  targetHours: number
+  progress: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type StudyExportPayload = {
+  version: 1
+  exportedAt: string
+  tasks: unknown[]
+  subjects: StudySubjectRow[]
+  notes: unknown[]
+  events: unknown[]
+  flashcards: unknown[]
+  studySessions: StudySessionRow[]
+  goals: unknown[]
+  settings: Array<{ key: string; value: unknown }>
+}
+
+/** Minimal valid Study Dashboard export (version 1) for Settings import tests. */
+export function makeStudyExport(overrides: Partial<StudyExportPayload> = {}): StudyExportPayload {
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    tasks: [],
+    subjects: [],
+    notes: [],
+    events: [],
+    flashcards: [],
+    studySessions: [],
+    goals: [],
+    settings: [],
+    ...overrides,
+  }
+}
+
+export function makeSubjectRow(overrides: Partial<StudySubjectRow> & Pick<StudySubjectRow, 'id' | 'name'>): StudySubjectRow {
+  const timestamp = '2026-06-29T00:00:00.000Z'
+  return {
+    color: '#2563eb',
+    targetHours: 4,
+    progress: 0,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    ...overrides,
+  }
+}
+
+export async function listSubjects(page: Page): Promise<StudySubjectRow[]> {
+  return page.evaluate(async (dbName) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(dbName)
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error ?? new Error('Failed to open IndexedDB'))
+    })
+
+    try {
+      const tx = db.transaction('subjects', 'readonly')
+      return await new Promise<StudySubjectRow[]>((resolve, reject) => {
+        const request = tx.objectStore('subjects').getAll()
+        request.onsuccess = () => resolve((request.result as StudySubjectRow[]) ?? [])
+        request.onerror = () => reject(request.error ?? new Error('Failed to read subjects'))
+      })
+    } finally {
+      db.close()
+    }
+  }, STUDY_DB_NAME)
+}
+
+/** Creates a subject through the Subjects workspace and returns its IndexedDB id. */
+export async function createSubjectViaUi(page: Page, name: string): Promise<string> {
+  await page.getByRole('button', { name: 'Subjects' }).click()
+  await page.getByRole('button', { name: 'New subject' }).click()
+  await page.getByLabel('Subject name').fill(name)
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByText(name)).toBeVisible({ timeout: 15_000 })
+
+  const subjects = await listSubjects(page)
+  const match = subjects.find((subject) => subject.name === name)
+  if (!match) throw new Error(`Subject not found in IndexedDB after save: ${name}`)
+  return match.id
+}
+
+/** Imports a valid export JSON through the Settings file input (real app import path). */
+export async function importStudyBackupViaSettings(page: Page, payload: StudyExportPayload): Promise<void> {
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible()
+
+  const importInput = page.getByLabel('Import data')
+  await importInput.setInputFiles({
+    name: 'study-dashboard-backup.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(payload)),
+  })
+
+  await expect(page.getByRole('status')).toContainText('Study data imported.', { timeout: 15_000 })
+}
