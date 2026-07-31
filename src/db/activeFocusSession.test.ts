@@ -9,6 +9,8 @@ import {
   getActiveFocusSession,
   isActiveFocusSession,
   isActiveFocusSessionStale,
+  pauseActiveFocusSession,
+  resumeActiveFocusSession,
   updateActiveFocusSession,
 } from './activeFocusSession'
 import { clearAllStudyData, exportStudyData, importStudyData, studyDb } from './studyDb'
@@ -251,5 +253,60 @@ describe('activeFocusSession persistence', () => {
     expect(result).toEqual({ ok: false, reason: 'conflict', existing })
     expect(await getActiveFocusSession()).toEqual(existing)
     expect(await studyDb.studySessions.count()).toBe(0)
+  })
+
+  it('pauses a running session and resumes with accumulated paused time', async () => {
+    const session = makeSession({ id: 'focus-pause' })
+    await createActiveFocusSession(session)
+
+    const pausedAt = '2026-07-20T10:10:00.000Z'
+    const paused = await pauseActiveFocusSession(session.id, pausedAt)
+    expect(paused).toEqual({
+      ok: true,
+      session: {
+        ...session,
+        status: 'paused',
+        pausedAt,
+      },
+    })
+    expect(await getActiveFocusSession()).toMatchObject({ status: 'paused', pausedAt })
+
+    const resumedAtMs = Date.parse(pausedAt) + 5 * 60_000
+    const resumed = await resumeActiveFocusSession(session.id, resumedAtMs)
+    expect(resumed).toEqual({
+      ok: true,
+      session: {
+        ...session,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 5 * 60_000,
+      },
+    })
+    expect(getActiveFocusElapsedMs((resumed as { ok: true; session: ActiveFocusSession }).session, resumedAtMs + 2 * 60_000)).toBe(12 * 60_000)
+  })
+
+  it('rejects pause/resume when status or identity does not match', async () => {
+    const session = makeSession({ id: 'focus-guard' })
+    await createActiveFocusSession(session)
+
+    expect(await pauseActiveFocusSession('focus-other')).toEqual({
+      ok: false,
+      reason: 'conflict',
+      existing: session,
+    })
+
+    await pauseActiveFocusSession(session.id, '2026-07-20T10:05:00.000Z')
+    const paused = await getActiveFocusSession()
+    expect(await pauseActiveFocusSession(session.id)).toEqual({
+      ok: false,
+      reason: 'invalid_state',
+      existing: paused,
+    })
+
+    expect(await resumeActiveFocusSession('focus-other')).toEqual({
+      ok: false,
+      reason: 'conflict',
+      existing: paused,
+    })
   })
 })

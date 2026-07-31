@@ -24,6 +24,8 @@ import {
   finalizeActiveFocusSession,
   getActiveFocusElapsedMs,
   getActiveFocusSession,
+  pauseActiveFocusSession,
+  resumeActiveFocusSession,
   updateActiveFocusSession,
 } from './db/activeFocusSession'
 import type { ActiveFocusSession, StudyData } from './db/types'
@@ -99,6 +101,7 @@ function App() {
   const [revealedCards, setRevealedCards] = useState<Set<string>>(() => new Set())
   const [activeSession, setActiveSession] = useState<ActiveFocusSession | null>(null)
   const [focusRestoreReady, setFocusRestoreReady] = useState(false)
+  const [focusTransitionPending, setFocusTransitionPending] = useState(false)
   const finalizingSessionIdRef = useRef<string | null>(null)
 
   const navigateToView = useCallback((view: View) => {
@@ -228,8 +231,15 @@ function App() {
     setActiveView('Progress')
   }
 
+  const hydrateActiveSession = useCallback((session: ActiveFocusSession, notice = '') => {
+    setActiveSession(session)
+    setFocusSubjectId(session.subjectId)
+    setFocusDurationMinutes(session.plannedMinutes)
+    setSessionNotice(notice)
+  }, [])
+
   const startSession = useCallback(async () => {
-    if (!focusRestoreReady || activeSession) return
+    if (!focusRestoreReady || activeSession || focusTransitionPending) return
 
     const session: ActiveFocusSession = {
       id: createId('focus'),
@@ -249,16 +259,61 @@ function App() {
     }
 
     if (result.reason === 'conflict') {
-      setActiveSession(result.existing)
-      setFocusSubjectId(result.existing.subjectId)
-      setFocusDurationMinutes(result.existing.plannedMinutes)
-      setSessionNotice('An unfinished focus session was restored.')
+      hydrateActiveSession(result.existing, 'An unfinished focus session was restored.')
     }
-  }, [activeSession, focusDurationMinutes, focusRestoreReady, focusSubjectId])
+  }, [activeSession, focusDurationMinutes, focusRestoreReady, focusSubjectId, focusTransitionPending, hydrateActiveSession])
+
+  const pauseSession = useCallback(async () => {
+    if (!activeSession || activeSession.status !== 'running' || focusTransitionPending) return
+    if (finalizingSessionIdRef.current === activeSession.id) return
+
+    setFocusTransitionPending(true)
+    try {
+      const result = await pauseActiveFocusSession(activeSession.id)
+      if (result.ok) {
+        setActiveSession(result.session)
+        setSessionNotice('')
+        return
+      }
+      if (result.reason === 'conflict' || result.reason === 'invalid_state') {
+        hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+        return
+      }
+      setSessionNotice('Could not pause the focus session. Try again.')
+    } catch {
+      setSessionNotice('Could not pause the focus session. Try again.')
+    } finally {
+      setFocusTransitionPending(false)
+    }
+  }, [activeSession, focusTransitionPending, hydrateActiveSession])
+
+  const resumeSession = useCallback(async () => {
+    if (!activeSession || activeSession.status !== 'paused' || focusTransitionPending) return
+    if (finalizingSessionIdRef.current === activeSession.id) return
+
+    setFocusTransitionPending(true)
+    try {
+      const result = await resumeActiveFocusSession(activeSession.id)
+      if (result.ok) {
+        setActiveSession(result.session)
+        setSessionNotice('')
+        return
+      }
+      if (result.reason === 'conflict' || result.reason === 'invalid_state') {
+        hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+        return
+      }
+      setSessionNotice('Could not resume the focus session. Try again.')
+    } catch {
+      setSessionNotice('Could not resume the focus session. Try again.')
+    } finally {
+      setFocusTransitionPending(false)
+    }
+  }, [activeSession, focusTransitionPending, hydrateActiveSession])
 
   const stopSession = useCallback(async (completed = false) => {
     if (!activeSession) return
-    if (finalizingSessionIdRef.current === activeSession.id) return
+    if (finalizingSessionIdRef.current === activeSession.id || focusTransitionPending) return
 
     finalizingSessionIdRef.current = activeSession.id
     const sessionToFinalize = activeSession
@@ -277,9 +332,7 @@ function App() {
 
       if (!result.ok) {
         if (result.reason === 'conflict') {
-          setActiveSession(result.existing)
-          setFocusSubjectId(result.existing.subjectId)
-          setFocusDurationMinutes(result.existing.plannedMinutes)
+          hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
         }
         return
       }
@@ -293,7 +346,7 @@ function App() {
         finalizingSessionIdRef.current = null
       }
     }
-  }, [activeSession])
+  }, [activeSession, focusTransitionPending, hydrateActiveSession])
 
   useEffect(() => {
     if (!activeSession || activeSession.status !== 'running' || activeSession.plannedMinutes <= 0) return undefined
@@ -309,7 +362,7 @@ function App() {
 
   const updateFocusSubject = useCallback((subjectId: string) => {
     setFocusSubjectId(subjectId)
-    if (!activeSession) return
+    if (!activeSession || focusTransitionPending) return
 
     const nextSession: ActiveFocusSession = { ...activeSession, subjectId }
     setActiveSession(nextSession)
@@ -319,12 +372,10 @@ function App() {
         return
       }
       if (result.reason === 'conflict') {
-        setActiveSession(result.existing)
-        setFocusSubjectId(result.existing.subjectId)
-        setFocusDurationMinutes(result.existing.plannedMinutes)
+        hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
       }
     })
-  }, [activeSession])
+  }, [activeSession, focusTransitionPending, hydrateActiveSession])
 
   const clearSearch = useCallback(() => setSearch(''), [])
 
@@ -383,6 +434,7 @@ function App() {
                     sessionLimitSeconds={sessionLimitSeconds}
                     sessionNotice={sessionNotice}
                     canStartFocus={canStartFocus}
+                    focusTransitionPending={focusTransitionPending}
                     subjects={data.subjects}
                     focusSubjectId={focusSubjectId}
                     focusDurationMinutes={focusDurationMinutes}
@@ -392,6 +444,8 @@ function App() {
                     onFocusDurationChange={setFocusDurationMinutes}
                     onQuickNotesChange={addQuickNote}
                     onStartSession={() => void startSession()}
+                    onPauseSession={() => void pauseSession()}
+                    onResumeSession={() => void resumeSession()}
                     onStopSession={() => stopSession(false)}
                     onNavigate={navigateToView}
                     onCreateSubject={openNewSubject}
