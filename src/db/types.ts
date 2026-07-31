@@ -87,6 +87,22 @@ export type StudySetting = {
   value: unknown
 }
 
+/** Unfinished focus session persisted under settings key `activeFocusSession`. */
+export type ActiveFocusSessionStatus = 'running' | 'paused'
+
+export type ActiveFocusSession = {
+  id: string
+  subjectId: string
+  /** Canonical start instant (ISO-8601). Elapsed time is derived from this. */
+  startedAt: string
+  /** Planned length in minutes; `0` means open-ended. */
+  plannedMinutes: number
+  status: ActiveFocusSessionStatus
+  /** Set when `status === 'paused'`; otherwise `null`. */
+  pausedAt: string | null
+  accumulatedPausedMs: number
+}
+
 export type StudyExport = {
   version: 1
   exportedAt: string
