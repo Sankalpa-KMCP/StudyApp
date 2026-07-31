@@ -6,6 +6,13 @@ export type FlashcardStatus = 'new' | 'learning' | 'remembered'
 
 export type GoalPeriod = 'daily' | 'weekly' | 'monthly'
 
+/** How goal progress is measured. `study_time` uses session totals; `manual` uses stored `progress`. */
+export type GoalMetric = 'manual' | 'study_time'
+
+export function isGoalMetric(value: unknown): value is GoalMetric {
+  return value === 'manual' || value === 'study_time'
+}
+
 export type StudyTask = {
   id: string
   title: string
@@ -78,6 +85,7 @@ export type StudyGoal = {
   target: number
   progress: number
   period: GoalPeriod
+  metric: GoalMetric
   createdAt: string
   updatedAt: string
 }
