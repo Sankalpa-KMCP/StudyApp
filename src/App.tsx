@@ -92,6 +92,7 @@ function App() {
   const [subjectEditorRequest, setSubjectEditorRequest] = useState(0)
   const [progressEditorRequested, setProgressEditorRequested] = useState(false)
   const [profileNotice, setProfileNotice] = useState('')
+  const [preferenceNotice, setPreferenceNotice] = useState<string | null>(null)
   const [focusSubjectId, setFocusSubjectId] = useState('')
   const [focusDurationMinutes, setFocusDurationMinutes] = useState(25)
   const [sessionNotice, setSessionNotice] = useState('')
@@ -107,6 +108,9 @@ function App() {
   const [focusTransitionPending, setFocusTransitionPending] = useState(false)
   const [focusImportPending, setFocusImportPending] = useState(false)
   const finalizingSessionIdRef = useRef<string | null>(null)
+  const focusSubjectWriteSeqRef = useRef(0)
+  const themeUserChangeRef = useRef(false)
+  const sidebarUserChangeRef = useRef(false)
 
   const navigateToView = useCallback((view: View) => {
     setProgressEditorRequested(false)
@@ -177,12 +181,40 @@ function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[theme])
-    localStorage.setItem('study-dashboard-theme', theme)
+    try {
+      localStorage.setItem('study-dashboard-theme', theme)
+    } catch {
+      if (themeUserChangeRef.current) {
+        setPreferenceNotice('Theme preference could not be saved.')
+      }
+    } finally {
+      themeUserChangeRef.current = false
+    }
   }, [theme])
 
   useEffect(() => {
-    localStorage.setItem('study-dashboard-sidebar', sidebarCollapsed ? 'collapsed' : 'expanded')
+    try {
+      localStorage.setItem('study-dashboard-sidebar', sidebarCollapsed ? 'collapsed' : 'expanded')
+    } catch {
+      if (sidebarUserChangeRef.current) {
+        setPreferenceNotice('Sidebar preference could not be saved.')
+      }
+    } finally {
+      sidebarUserChangeRef.current = false
+    }
   }, [sidebarCollapsed])
+
+  const handleThemeChange = useCallback((nextTheme: ThemeMode) => {
+    themeUserChangeRef.current = true
+    setPreferenceNotice(null)
+    setTheme(nextTheme)
+  }, [])
+
+  const handleSidebarToggle = useCallback(() => {
+    sidebarUserChangeRef.current = true
+    setPreferenceNotice(null)
+    setSidebarCollapsed((collapsed) => !collapsed)
+  }, [])
 
   useEffect(() => {
     const behavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
@@ -212,20 +244,27 @@ function App() {
   }).sort((a, b) => Number(isFlashcardDue(b)) - Number(isFlashcardDue(a))), [data.flashcards, normalizedSearch, subjectMap])
 
   const addQuickNote = useCallback(async (value: string) => {
-    await studyDb.settings.put({ key: 'quickNotes', value: value.split('\n').map((line) => line.trim()).filter(Boolean).slice(0, 8) })
+    await studyDb.settings.put({
+      key: 'quickNotes',
+      value: value.split('\n').map((line) => line.trim()).filter(Boolean).slice(0, 8),
+    })
   }, [])
 
   const exportData = async () => {
-    const payload = await exportStudyData()
-    const serialized = JSON.stringify(payload, null, 2)
-    const filename = `study-dashboard-${new Date().toISOString().slice(0, 10)}.json`
-    const blob = new Blob([serialized], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = filename
-    anchor.click()
-    URL.revokeObjectURL(url)
+    let objectUrl: string | null = null
+    try {
+      const payload = await exportStudyData()
+      const serialized = JSON.stringify(payload, null, 2)
+      const filename = `study-dashboard-${new Date().toISOString().slice(0, 10)}.json`
+      const blob = new Blob([serialized], { type: 'application/json' })
+      objectUrl = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = objectUrl
+      anchor.download = filename
+      anchor.click()
+    } finally {
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
   }
 
   const importData = async (file: File) => {
@@ -283,20 +322,24 @@ function App() {
       accumulatedPausedMs: 0,
     }
 
-    const result = await createActiveFocusSession(session)
-    if (result.ok) {
-      setActiveSession(result.session)
-      setSessionNotice('')
-      return
-    }
-
-    if (result.reason === 'conflict') {
-      if (isActiveFocusSessionStale(result.existing)) {
-        setStaleFocusSession(result.existing)
-        setSessionNotice('An unfinished focus session needs a decision before you start another.')
+    try {
+      const result = await createActiveFocusSession(session)
+      if (result.ok) {
+        setActiveSession(result.session)
+        setSessionNotice('')
         return
       }
-      hydrateActiveSession(result.existing, 'An unfinished focus session was restored.')
+
+      if (result.reason === 'conflict') {
+        if (isActiveFocusSessionStale(result.existing)) {
+          setStaleFocusSession(result.existing)
+          setSessionNotice('An unfinished focus session needs a decision before you start another.')
+          return
+        }
+        hydrateActiveSession(result.existing, 'An unfinished focus session was restored.')
+      }
+    } catch {
+      setSessionNotice('Could not start the focus session. Try again.')
     }
   }, [activeSession, focusActionsPending, focusDurationMinutes, focusRestoreReady, focusSubjectId, hydrateActiveSession, staleFocusSession])
 
@@ -448,6 +491,7 @@ function App() {
       setSessionNotice(completed ? `Session complete: ${formatMinutes(result.history.minutes)} logged.` : `Session stopped: ${formatMinutes(result.history.minutes)} logged.`)
     } catch {
       // Keep local + durable unfinished state recoverable after a persistence failure.
+      setSessionNotice('Could not stop the focus session. Try again.')
     } finally {
       if (finalizingSessionIdRef.current === sessionToFinalize.id) {
         finalizingSessionIdRef.current = null
@@ -471,17 +515,49 @@ function App() {
     setFocusSubjectId(subjectId)
     if (!activeSession || focusActionsPending) return
 
+    const baseline = activeSession
+    const writeSeq = ++focusSubjectWriteSeqRef.current
     const nextSession: ActiveFocusSession = { ...activeSession, subjectId }
     setActiveSession(nextSession)
-    void updateActiveFocusSession(nextSession).then((result) => {
-      if (result.ok) {
-        setActiveSession(result.session)
-        return
+
+    void (async () => {
+      try {
+        const result = await updateActiveFocusSession(nextSession)
+        if (writeSeq !== focusSubjectWriteSeqRef.current) return
+
+        if (result.ok) {
+          setActiveSession(result.session)
+          return
+        }
+
+        if (result.reason === 'conflict') {
+          hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+          return
+        }
+
+        const durable = await getActiveFocusSession()
+        if (writeSeq !== focusSubjectWriteSeqRef.current) return
+        if (durable) {
+          hydrateActiveSession(durable, 'Could not update the focus subject. Try again.')
+          return
+        }
+
+        setActiveSession(baseline)
+        setFocusSubjectId(baseline.subjectId)
+        setSessionNotice('Could not update the focus subject. Try again.')
+      } catch {
+        if (writeSeq !== focusSubjectWriteSeqRef.current) return
+        const durable = await getActiveFocusSession()
+        if (writeSeq !== focusSubjectWriteSeqRef.current) return
+        if (durable) {
+          hydrateActiveSession(durable, 'Could not update the focus subject. Try again.')
+          return
+        }
+        setActiveSession(baseline)
+        setFocusSubjectId(baseline.subjectId)
+        setSessionNotice('Could not update the focus subject. Try again.')
       }
-      if (result.reason === 'conflict') {
-        hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
-      }
-    })
+    })()
   }, [activeSession, focusActionsPending, hydrateActiveSession])
 
   const clearSearch = useCallback(() => setSearch(''), [])
@@ -493,7 +569,7 @@ function App() {
         activeView={activeView}
         collapsed={sidebarCollapsed}
         onNavigate={navigateToView}
-        onToggleCollapsed={() => setSidebarCollapsed((collapsed) => !collapsed)}
+        onToggleCollapsed={handleSidebarToggle}
       />
       <div className="workspace">
         <Topbar
@@ -521,6 +597,9 @@ function App() {
             <div className={activeView === 'Home' ? 'content-grid' : 'content-grid is-workspace-view'}>
               <section className="primary-column" aria-label="Primary study summary">
                 {profileNotice ? <div className="settings-feedback" role="status">{profileNotice}</div> : null}
+                {preferenceNotice && activeView !== 'Settings' ? (
+                  <div className="settings-feedback error" role="alert">{preferenceNotice}</div>
+                ) : null}
                 {activeView === 'Home' ? (
                   <HeroRow
                     todayFocusMinutes={todayFocusMinutes}
@@ -617,13 +696,15 @@ function App() {
                 ) : null}
                 {activeView === 'Settings' ? (
                   <SettingsView
-                    onExport={() => void exportData()}
+                    onExport={exportData}
                     onImport={importData}
                     onClear={handleClearData}
                     importPending={focusImportPending}
                     profileNotice={profileNotice}
+                    preferenceNotice={preferenceNotice}
+                    onDismissPreferenceNotice={() => setPreferenceNotice(null)}
                     theme={theme}
-                    onThemeChange={setTheme}
+                    onThemeChange={handleThemeChange}
                   />
                 ) : null}
               </section>

@@ -1,9 +1,8 @@
 import { useRef, useState } from 'react'
 import { Download, Upload, Layers3, RotateCcw } from 'lucide-react'
-import { PanelHeader } from '../components/ui'
+import { MutationNotice, PanelHeader } from '../components/ui'
+import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 import type { ThemeMode } from '../App'
-
-type SettingsFeedback = { tone: 'success' | 'error'; message: string }
 
 const themeOptions: Array<{ id: ThemeMode; label: string; description: string; swatches: string[] }> = [
   { id: 'monochrome', label: 'Monochrome', description: 'Crisp black ink on quiet neutral paper.', swatches: ['#f3f3f1', '#111111', '#6a6a67'] },
@@ -21,21 +20,56 @@ export function SettingsView({
   onClear,
   importPending = false,
   profileNotice,
+  preferenceNotice = null,
+  onDismissPreferenceNotice,
   theme,
   onThemeChange,
 }: {
-  onExport: () => void
+  onExport: () => Promise<void>
   onImport: (file: File) => Promise<void>
   onClear: () => Promise<void>
   importPending?: boolean
   profileNotice: string
+  preferenceNotice?: string | null
+  onDismissPreferenceNotice?: () => void
   theme: ThemeMode
   onThemeChange: (theme: ThemeMode) => void
 }) {
-  const [feedback, setFeedback] = useState<SettingsFeedback | null>(null)
+  const [importFeedback, setImportFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
+  const [clearError, setClearError] = useState<string | null>(null)
   const [resetState, setResetState] = useState<'idle' | 'confirm' | 'deleting'>('idle')
   const [deleteInput, setDeleteInput] = useState('')
   const themeOptionRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const exportMutation = useMutationState()
+  const {
+    clearFeedback: clearExportFeedback,
+    isPending: isExporting,
+    phase: exportPhase,
+    message: exportMessage,
+    run: runExport,
+  } = exportMutation
+
+  const noticePhase: MutationPhase = clearError
+    ? 'error'
+    : preferenceNotice
+      ? 'error'
+      : exportPhase === 'success' || exportPhase === 'error'
+        ? exportPhase
+        : importFeedback
+          ? importFeedback.tone
+          : 'idle'
+  const noticeMessage = clearError
+    ?? preferenceNotice
+    ?? (exportPhase === 'success' || exportPhase === 'error' ? exportMessage : null)
+    ?? importFeedback?.message
+    ?? null
+
+  const dismissNotice = () => {
+    setClearError(null)
+    setImportFeedback(null)
+    clearExportFeedback()
+    onDismissPreferenceNotice?.()
+  }
 
   const handleThemeKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
     let nextIndex: number | null = null
@@ -51,6 +85,19 @@ export function SettingsView({
     themeOptionRefs.current[nextIndex]?.focus()
   }
 
+  const handleExport = async () => {
+    if (isExporting || importPending || resetState === 'deleting') return
+    setClearError(null)
+    setImportFeedback(null)
+    onDismissPreferenceNotice?.()
+    await runExport(async () => {
+      await onExport()
+    }, {
+      successMessage: 'Backup exported.',
+      errorMessage: 'Backup could not be exported.',
+    })
+  }
+
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file || importPending) {
@@ -58,26 +105,32 @@ export function SettingsView({
       return
     }
 
+    setClearError(null)
+    clearExportFeedback()
+    onDismissPreferenceNotice?.()
     try {
       await onImport(file)
-      setFeedback({ tone: 'success', message: 'Study data imported.' })
+      setImportFeedback({ tone: 'success', message: 'Study data imported.' })
     } catch {
-      setFeedback({ tone: 'error', message: 'Import failed. Choose a valid Study Dashboard export.' })
+      setImportFeedback({ tone: 'error', message: 'Import failed. Choose a valid Study Dashboard export.' })
     } finally {
       event.target.value = ''
     }
   }
 
   const handleClear = async () => {
-    if (deleteInput !== 'DELETE') return
+    if (deleteInput !== 'DELETE' || resetState === 'deleting') return
+    setClearError(null)
+    clearExportFeedback()
+    setImportFeedback(null)
+    onDismissPreferenceNotice?.()
     setResetState('deleting')
     try {
       await onClear()
       // Success is handled by App.tsx navigating away
     } catch {
-      setFeedback({ tone: 'error', message: 'Could not clear study data. Try again.' })
-      setResetState('idle')
-      setDeleteInput('')
+      setClearError('Study data could not be cleared. Please try again.')
+      setResetState('confirm')
     }
   }
 
@@ -85,16 +138,18 @@ export function SettingsView({
     <section className="workspace-panel" aria-labelledby="settings-workspace-title">
       <PanelHeader title="Settings" description="Manage appearance, backups, and local data." />
       {profileNotice ? <p className="settings-feedback" role="status">{profileNotice}</p> : null}
-      {feedback ? (
-        <p className={`settings-feedback ${feedback.tone}`} role={feedback.tone === 'error' ? 'alert' : 'status'} aria-live="polite">
-          {feedback.message}
-        </p>
-      ) : null}
+      <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
       <div className="card-grid">
-        <button className="action-card" type="button" onClick={onExport}>
+        <button
+          className="action-card"
+          type="button"
+          onClick={() => void handleExport()}
+          disabled={isExporting || importPending}
+          aria-busy={isExporting || undefined}
+        >
           <Download size={24} aria-hidden="true" />
-          <strong>Export data</strong>
-          <span>Download a complete JSON backup.</span>
+          <strong>{isExporting ? 'Exporting backup...' : 'Export data'}</strong>
+          <span>{isExporting ? 'Preparing your JSON backup.' : 'Download a complete JSON backup.'}</span>
         </button>
         <label className={importPending ? 'action-card import-card is-pending' : 'action-card import-card'} aria-busy={importPending}>
           <Upload size={24} aria-hidden="true" />
@@ -104,7 +159,7 @@ export function SettingsView({
             className="sr-only"
             type="file"
             accept="application/json"
-            disabled={importPending}
+            disabled={importPending || isExporting}
             aria-label="Import data"
             onChange={(event) => void handleImport(event)}
           />
@@ -143,13 +198,13 @@ export function SettingsView({
       </div>
       <div className="card-grid danger-zone">
         {resetState === 'idle' ? (
-          <button className="action-card danger-card" type="button" onClick={() => setResetState('confirm')}>
+          <button className="action-card danger-card" type="button" onClick={() => { setResetState('confirm'); setClearError(null) }}>
             <RotateCcw size={24} aria-hidden="true" />
             <strong>Reset all study data</strong>
             <span>Permanently deletes local study data on this device.</span>
           </button>
         ) : (
-          <div className="action-card danger-card is-confirming">
+          <div className="action-card danger-card is-confirming" aria-busy={resetState === 'deleting' || undefined}>
             <strong>Confirm data deletion</strong>
             <p>Type DELETE to permanently remove all study data.</p>
             <input
@@ -161,8 +216,23 @@ export function SettingsView({
               disabled={resetState === 'deleting'}
             />
             <div className="button-row">
-              <button className="secondary-command" type="button" onClick={() => { setResetState('idle'); setDeleteInput('') }} disabled={resetState === 'deleting'}>Cancel</button>
-              <button className="primary-command" type="button" disabled={deleteInput !== 'DELETE' || resetState === 'deleting'} onClick={() => void handleClear()}>Delete all data</button>
+              <button
+                className="secondary-command"
+                type="button"
+                onClick={() => { setResetState('idle'); setDeleteInput(''); setClearError(null) }}
+                disabled={resetState === 'deleting'}
+              >
+                Cancel
+              </button>
+              <button
+                className="primary-command"
+                type="button"
+                disabled={deleteInput !== 'DELETE' || resetState === 'deleting'}
+                aria-busy={resetState === 'deleting' || undefined}
+                onClick={() => void handleClear()}
+              >
+                {resetState === 'deleting' ? 'Clearing...' : 'Delete all data'}
+              </button>
             </div>
           </div>
         )}
