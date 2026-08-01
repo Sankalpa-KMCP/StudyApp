@@ -23,6 +23,17 @@ export type StudySessionRow = {
   note: string
 }
 
+export type StudyGoalRow = {
+  id: string
+  title: string
+  target: number
+  progress: number
+  period: string
+  metric: 'manual' | 'study_time'
+  createdAt: string
+  updatedAt: string
+}
+
 async function openStudyDb(page: Page): Promise<void> {
   // Ensure Dexie has created the real schema before raw IndexedDB reads/writes.
   await page.goto('/')
@@ -100,6 +111,27 @@ export async function listStudySessions(page: Page): Promise<StudySessionRow[]> 
         const request = tx.objectStore('studySessions').getAll()
         request.onsuccess = () => resolve((request.result as StudySessionRow[]) ?? [])
         request.onerror = () => reject(request.error ?? new Error('Failed to read studySessions'))
+      })
+    } finally {
+      db.close()
+    }
+  }, STUDY_DB_NAME)
+}
+
+export async function listGoals(page: Page): Promise<StudyGoalRow[]> {
+  return page.evaluate(async (dbName) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(dbName)
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error ?? new Error('Failed to open IndexedDB'))
+    })
+
+    try {
+      const tx = db.transaction('goals', 'readonly')
+      return await new Promise<StudyGoalRow[]>((resolve, reject) => {
+        const request = tx.objectStore('goals').getAll()
+        request.onsuccess = () => resolve((request.result as StudyGoalRow[]) ?? [])
+        request.onerror = () => reject(request.error ?? new Error('Failed to read goals'))
       })
     } finally {
       db.close()
@@ -243,3 +275,62 @@ export async function importStudyBackupViaSettings(page: Page, payload: StudyExp
 
   await expect(page.getByRole('status')).toContainText('Study data imported.', { timeout: 15_000 })
 }
+
+export type StudyExportDownload = {
+  version: number
+  goals: StudyGoalRow[]
+}
+
+/** Exports study data through Settings and returns the downloaded JSON payload. */
+export async function exportStudyBackupViaSettings(page: Page): Promise<StudyExportDownload> {
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible()
+
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export data' }).click()
+  const download = await downloadPromise
+  const failure = await download.failure()
+  if (failure) throw new Error(`Export download failed: ${failure}`)
+
+  const stream = await download.createReadStream()
+  if (!stream) throw new Error('Export download stream unavailable')
+
+  const chunks: Buffer[] = []
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk))
+  return JSON.parse(Buffer.concat(chunks).toString('utf-8')) as StudyExportDownload
+}
+
+function goalCard(page: Page, title: string) {
+  return page.locator('article.detail-card', { has: page.getByRole('heading', { name: title }) })
+}
+
+/** Creates a manual goal titled with a legacy keyword and returns after the card is visible. */
+export async function createManualGoalViaUi(page: Page, title: string, targetPoints: number, progressPoints: number) {
+  await page.getByRole('button', { name: 'Goals' }).click()
+  await page.getByRole('button', { name: 'New goal' }).click()
+  await page.getByLabel('Goal title').fill(title)
+  await page.getByLabel(/Target \(points\)/).fill(String(targetPoints))
+  await page.getByLabel('Progress (points)').fill(String(progressPoints))
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(goalCard(page, title)).toBeVisible({ timeout: 15_000 })
+}
+
+/** Creates a study-time goal without legacy keywords in its title. */
+export async function createStudyTimeGoalViaUi(
+  page: Page,
+  title: string,
+  period: 'daily' | 'weekly' | 'monthly',
+  target: number,
+) {
+  await page.getByRole('button', { name: 'Goals' }).click()
+  await page.getByRole('button', { name: 'New goal' }).click()
+  await page.getByLabel('Goal title').fill(title)
+  await page.getByLabel('Metric').selectOption('study_time')
+  await page.getByLabel('Period').selectOption(period)
+  const unit = period === 'daily' ? 'minutes' : 'hours'
+  await page.getByLabel(new RegExp(`Target \\(${unit}\\)`)).fill(String(target))
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(goalCard(page, title)).toBeVisible({ timeout: 15_000 })
+}
+
+export { goalCard }

@@ -1,4 +1,11 @@
 import { expect, test } from '@playwright/test'
+import {
+  createManualGoalViaUi,
+  createStudyTimeGoalViaUi,
+  exportStudyBackupViaSettings,
+  goalCard,
+  listGoals,
+} from './focusHelpers'
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
@@ -236,4 +243,63 @@ test('keeps the dashboard usable on mobile', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Tasks', level: 1 })).toBeVisible()
   await page.getByRole('button', { name: 'Settings' }).click()
   await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible()
+})
+
+test('explicit goal metrics use persisted metric rather than title text', async ({ page }) => {
+  const manualTitle = 'Study every day'
+  const studyTitle = 'Weekly target'
+
+  await createManualGoalViaUi(page, manualTitle, 10, 5)
+  const manualGoal = goalCard(page, manualTitle)
+  await expect(manualGoal.getByText('Manual progress')).toBeVisible()
+  await expect(manualGoal.getByText('Daily', { exact: true })).toBeVisible()
+  await expect(manualGoal.getByText('5/10 points')).toBeVisible()
+
+  await createStudyTimeGoalViaUi(page, studyTitle, 'weekly', 5)
+  const studyGoal = goalCard(page, studyTitle)
+  await expect(studyGoal.getByText('Study time')).toBeVisible()
+  await expect(studyGoal.getByText('Weekly', { exact: true })).toBeVisible()
+  await expect(studyGoal.getByText('0/5 hours')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Progress' }).click()
+  await page.getByRole('button', { name: 'Log session' }).click()
+  const sessionForm = page.getByRole('form', { name: 'Log study session' })
+  const localStart = await page.evaluate(() => {
+    const date = new Date(Date.now() - 60 * 60_000)
+    return {
+      date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+      time: `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
+    }
+  })
+  await sessionForm.getByLabel('Date').fill(localStart.date)
+  await sessionForm.getByLabel('Start time').fill(localStart.time)
+  await sessionForm.getByLabel('Duration (minutes)').fill('60')
+  await sessionForm.getByRole('button', { name: 'Save session' }).click()
+  await expect(page.getByRole('status')).toContainText('Session logged.', { timeout: 15_000 })
+
+  await page.getByRole('button', { name: 'Goals' }).click()
+  await expect(studyGoal.getByText('1/5 hours')).toBeVisible()
+  await expect(studyGoal.getByRole('progressbar', { name: '20%' })).toBeVisible()
+  await expect(manualGoal.getByText('Manual progress')).toBeVisible()
+  await expect(manualGoal.getByText('5/10 points')).toBeVisible()
+
+  const goalsBeforeReload = await listGoals(page)
+  expect(goalsBeforeReload.find((goal) => goal.title === manualTitle)?.metric).toBe('manual')
+  expect(goalsBeforeReload.find((goal) => goal.title === studyTitle)?.metric).toBe('study_time')
+
+  await page.reload()
+  await page.getByRole('button', { name: 'Goals' }).click()
+  await expect(manualGoal.getByText('Manual progress')).toBeVisible()
+  await expect(manualGoal.getByText('5/10 points')).toBeVisible()
+  await expect(studyGoal.getByText('Study time')).toBeVisible()
+  await expect(studyGoal.getByText('1/5 hours')).toBeVisible()
+
+  const goalsAfterReload = await listGoals(page)
+  expect(goalsAfterReload.find((goal) => goal.title === manualTitle)?.metric).toBe('manual')
+  expect(goalsAfterReload.find((goal) => goal.title === studyTitle)?.metric).toBe('study_time')
+
+  const exported = await exportStudyBackupViaSettings(page)
+  expect(exported.version).toBe(2)
+  expect(exported.goals.find((goal) => goal.title === manualTitle)?.metric).toBe('manual')
+  expect(exported.goals.find((goal) => goal.title === studyTitle)?.metric).toBe('study_time')
 })
