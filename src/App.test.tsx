@@ -405,7 +405,8 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Subjects' }))
     expect(screen.getByRole('progressbar', { name: '50%' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Goals' }))
-    expect(screen.getByRole('progressbar', { name: '30/60' })).toBeInTheDocument()
+    expect(screen.getByText('30/60 minutes')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: '50%' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Progress' }))
     const editSessionButton = screen.getByLabelText(/Edit Physics session at/)
@@ -439,7 +440,8 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Home' }))
     expect(within(screen.getByLabelText('Today overview')).getByText('0m')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Goals' }))
-    expect(screen.getByRole('progressbar', { name: '0/60' })).toBeInTheDocument()
+    expect(screen.getByText('0/60 minutes')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: '0%' })).toBeInTheDocument()
   }, 15_000)
 
   it('groups cross-midnight sessions by local start date while crediting metrics on their local end date', async () => {
@@ -753,11 +755,144 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Study 2 hours daily')).toBeInTheDocument()
+    expect(screen.getByText('Manual progress')).toBeInTheDocument()
 
     const goals = await studyDb.goals.toArray()
     expect(goals).toHaveLength(1)
     expect(goals[0].title).toBe('Study 2 hours daily')
+    expect(goals[0].metric).toBe('manual')
   })
+
+  it('supports explicit goal metrics in the editor and cards', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 13, 15, 0))
+    const user = userEvent.setup()
+    const timestamp = new Date().toISOString()
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
+    await studyDb.studySessions.add({
+      id: 'session-goal-ui',
+      subjectId: '',
+      startedAt: new Date(2026, 6, 13, 10, 0).toISOString(),
+      endedAt: new Date(2026, 6, 13, 10, 45).toISOString(),
+      minutes: 45,
+      note: '',
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Goals' }))
+
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    expect(screen.getByLabelText('Metric')).toHaveValue('manual')
+    expect(screen.getByText('Update this goal yourself.')).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Goal title'), 'Study every day')
+    await user.clear(screen.getByLabelText(/Target \(points\)/))
+    await user.type(screen.getByLabelText(/Target \(points\)/), '90')
+    await user.clear(screen.getByLabelText('Progress (points)'))
+    await user.type(screen.getByLabelText('Progress (points)'), '12')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(async () => {
+      expect((await studyDb.goals.toArray()).some((goal) => goal.title === 'Study every day')).toBe(true)
+    })
+    const manualCard = (await screen.findByText('Study every day')).closest('article') as HTMLElement
+    expect(within(manualCard).getByText('Manual progress')).toBeInTheDocument()
+    expect(within(manualCard).getByText('Daily')).toBeInTheDocument()
+    expect(within(manualCard).getByText('12/90 points')).toBeInTheDocument()
+    expect((await studyDb.goals.toArray()).find((goal) => goal.title === 'Study every day')).toMatchObject({
+      metric: 'manual',
+      progress: 12,
+      target: 90,
+    })
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(120)
+
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.type(screen.getByLabelText('Goal title'), 'Weekly target')
+    await user.selectOptions(screen.getByLabelText('Metric'), 'study_time')
+    expect(screen.getByText('Calculated automatically from recorded study sessions.')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Progress (points)')).not.toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText('Period'), 'weekly')
+    expect(screen.getByLabelText(/Target \(hours\)/)).toBeInTheDocument()
+    await user.clear(screen.getByLabelText(/Target \(hours\)/))
+    await user.type(screen.getByLabelText(/Target \(hours\)/), '5')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const studyCard = (await screen.findByText('Weekly target')).closest('article') as HTMLElement
+    expect(within(studyCard).getByText('Study time')).toBeInTheDocument()
+    expect(within(studyCard).getByText('Weekly')).toBeInTheDocument()
+    expect(within(studyCard).getByText('1/5 hours')).toBeInTheDocument()
+
+    await user.click(within(studyCard).getByRole('button', { name: 'Edit Weekly target' }))
+    expect(screen.getByLabelText('Metric')).toHaveValue('study_time')
+    await user.clear(screen.getByLabelText('Goal title'))
+    await user.type(screen.getByLabelText('Goal title'), 'Renamed weekly target')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect((await studyDb.goals.toArray()).find((goal) => goal.title === 'Renamed weekly target')).toMatchObject({
+      metric: 'study_time',
+      period: 'weekly',
+    })
+
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.type(screen.getByLabelText('Goal title'), 'Daily target')
+    await user.selectOptions(screen.getByLabelText('Metric'), 'study_time')
+    await user.selectOptions(screen.getByLabelText('Period'), 'daily')
+    await user.clear(screen.getByLabelText(/Target \(minutes\)/))
+    await user.type(screen.getByLabelText(/Target \(minutes\)/), '75')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(75)
+
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.type(screen.getByLabelText('Goal title'), 'Daily focus manual')
+    await user.selectOptions(screen.getByLabelText('Metric'), 'manual')
+    await user.selectOptions(screen.getByLabelText('Period'), 'daily')
+    await user.clear(screen.getByLabelText(/Target \(points\)/))
+    await user.type(screen.getByLabelText(/Target \(points\)/), '80')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(75)
+
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.selectOptions(screen.getByLabelText('Metric'), 'manual')
+    await user.selectOptions(screen.getByLabelText('Metric'), 'study_time')
+    expect(screen.queryByLabelText('Progress (points)')).not.toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText('Metric'), 'manual')
+    expect(screen.getByLabelText('Progress (points)')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a goal title.')
+    await user.type(screen.getByLabelText('Goal title'), 'Invalid target goal')
+    const targetInput = screen.getByLabelText(/Target \(points\)/)
+    fireEvent.change(targetInput, { target: { value: '' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Target must be a number greater than zero.')
+    fireEvent.change(targetInput, { target: { value: '0' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Target must be a number greater than zero.')
+    fireEvent.change(targetInput, { target: { value: '-3' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Target must be a number greater than zero.')
+    fireEvent.change(targetInput, { target: { value: '10' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await studyDb.goals.toArray()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ title: 'Invalid target goal', target: 10, metric: 'manual' }),
+    ]))
+
+    await studyDb.goals.add({
+      id: 'goal-persisted-metric',
+      title: 'Persisted study goal',
+      target: 4,
+      progress: 99,
+      period: 'weekly',
+      metric: 'study_time',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit Persisted study goal' })).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Edit Persisted study goal' }))
+    expect(screen.getByLabelText('Metric')).toHaveValue('study_time')
+    expect(screen.queryByLabelText('Progress (points)')).not.toBeInTheDocument()
+  }, 20_000)
 
   it('creates a new subject from the subjects view', async () => {
     const user = userEvent.setup()

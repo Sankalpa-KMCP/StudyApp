@@ -1,4 +1,4 @@
-import type { Flashcard, StudyData, StudyGoal, StudySession, StudySubject } from './db/types'
+import type { Flashcard, GoalMetric, GoalPeriod, StudyData, StudyGoal, StudySession, StudySubject } from './db/types'
 
 export type WeeklyStudyDay = {
   key: string
@@ -20,13 +20,38 @@ export type SearchResult = {
   view: 'Tasks' | 'Notes' | 'Subjects' | 'Calendar' | 'Flashcards'
 }
 
-export type GoalProgressUnit = 'min' | 'hours' | 'points'
+export type GoalProgressUnit = 'minutes' | 'hours' | 'points'
 
 export type GoalProgressResult = {
   current: number
   target: number
   percentage: number
   unit: GoalProgressUnit
+}
+
+const GOAL_METRIC_LABELS: Record<GoalMetric, string> = {
+  manual: 'Manual progress',
+  study_time: 'Study time',
+}
+
+const GOAL_PERIOD_LABELS: Record<GoalPeriod, string> = {
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+}
+
+export function formatGoalMetricLabel(metric: GoalMetric) {
+  return GOAL_METRIC_LABELS[metric]
+}
+
+export function formatGoalPeriodLabel(period: GoalPeriod) {
+  return GOAL_PERIOD_LABELS[period]
+}
+
+export function getGoalTargetUnit(metric: GoalMetric, period: GoalPeriod): GoalProgressUnit {
+  if (metric === 'manual') return 'points'
+  if (period === 'daily') return 'minutes'
+  return 'hours'
 }
 
 export function getTodayFocusMinutes(sessions: StudySession[]) {
@@ -54,9 +79,7 @@ export function isStudyTimeGoal(goal: StudyGoal) {
 }
 
 export function getGoalUnit(goal: StudyGoal): GoalProgressUnit {
-  if (goal.metric === 'manual') return 'points'
-  if (goal.period === 'daily') return 'min'
-  return 'hours'
+  return getGoalTargetUnit(goal.metric, goal.period)
 }
 
 function isCreditedStudySession(session: StudySession, now: Date) {
