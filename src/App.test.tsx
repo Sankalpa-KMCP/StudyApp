@@ -210,15 +210,18 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Linear algebra drills')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Task created.')
 
     await user.click(screen.getByLabelText('Edit Linear algebra drills'))
     await user.clear(screen.getByLabelText('Task title'))
     await user.type(screen.getByLabelText('Task title'), 'Matrix practice')
     await user.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText('Matrix practice')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Task updated.')
 
     await user.click(screen.getByLabelText('Toggle Matrix practice'))
     await waitFor(() => expect(screen.getByText('Matrix practice').closest('.list-row')).toHaveClass('is-done'))
+    expect(await screen.findByRole('status')).toHaveTextContent('Task marked complete.')
 
     await user.type(screen.getByPlaceholderText('Search'), 'matrix')
     expect(screen.getByText('Matrix practice')).toBeInTheDocument()
@@ -227,6 +230,189 @@ describe('App', () => {
     const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
     await user.click(screen.getByLabelText('Delete Matrix practice'))
     await waitFor(() => expect(screen.queryByText('Matrix practice')).not.toBeInTheDocument())
+    expect(await screen.findByRole('status')).toHaveTextContent('Task deleted.')
+    confirmDelete.mockRestore()
+  })
+
+  it('prevents duplicate task create while save is pending', async () => {
+    const user = userEvent.setup()
+    let releaseAdd!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseAdd = resolve
+    })
+    const originalAdd = studyDb.tasks.add.bind(studyDb.tasks)
+    const addSpy = vi.spyOn(studyDb.tasks, 'add').mockImplementation(async (task) => {
+      await gate
+      return originalAdd(task)
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+    await user.click(screen.getByRole('button', { name: 'New task' }))
+    await user.type(screen.getByLabelText('Task title'), 'Pending create task')
+    await user.selectOptions(screen.getByLabelText('Priority'), 'high')
+    await user.type(screen.getByLabelText('Due date'), '2026-07-22')
+    await user.clear(screen.getByLabelText('Minutes'))
+    await user.type(screen.getByLabelText('Minutes'), '40')
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    const savingButton = await screen.findByRole('button', { name: 'Creating task...' })
+    expect(savingButton).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+
+    await user.click(savingButton)
+    expect(addSpy).toHaveBeenCalledTimes(1)
+
+    releaseAdd()
+    expect(await screen.findByText('Pending create task')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Task created.')
+    expect(await studyDb.tasks.count()).toBe(1)
+  })
+
+  it('preserves task draft after a failed create and allows retry', async () => {
+    const user = userEvent.setup()
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const originalAdd = studyDb.tasks.add.bind(studyDb.tasks)
+    const addSpy = vi.spyOn(studyDb.tasks, 'add')
+      .mockRejectedValueOnce(new Error('IndexedDB write failed: constraint detail'))
+      .mockImplementation(async (task) => originalAdd(task))
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+    await user.click(screen.getByRole('button', { name: 'New task' }))
+    await user.type(screen.getByLabelText('Task title'), 'Retryable task')
+    await user.selectOptions(screen.getByLabelText('Priority'), 'high')
+    await user.type(screen.getByLabelText('Due date'), '2026-07-25')
+    fireEvent.change(screen.getByLabelText('Minutes'), { target: { value: '55' } })
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Task could not be saved. Your details are still in the form.')
+    expect(screen.queryByText('IndexedDB')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Task title')).toHaveValue('Retryable task')
+    expect(screen.getByLabelText('Priority')).toHaveValue('high')
+    expect(screen.getByLabelText('Due date')).toHaveValue('2026-07-25')
+    expect(screen.getByLabelText('Minutes')).toHaveValue(55)
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Retryable task')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Task created.')
+    expect(await studyDb.tasks.count()).toBe(1)
+    expect(addSpy).toHaveBeenCalledTimes(2)
+    expect(consoleError).toHaveBeenCalled()
+  })
+
+  it('treats a missing-row edit as failure and keeps the editor open', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.tasks.add({
+      id: 'task-missing-edit',
+      title: 'Existing task',
+      subjectId: '',
+      dueDate: '2026-07-01',
+      priority: 'normal',
+      status: 'open',
+      minutes: 30,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(studyDb.tasks, 'update').mockResolvedValueOnce(0)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+    await user.click(await screen.findByLabelText('Edit Existing task'))
+    await user.clear(screen.getByLabelText('Task title'))
+    await user.type(screen.getByLabelText('Task title'), 'Renamed missing task')
+    await user.selectOptions(screen.getByLabelText('Priority'), 'low')
+    fireEvent.change(screen.getByLabelText('Minutes'), { target: { value: '70' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Task could not be saved. Your details are still in the form.')
+    expect(screen.getByLabelText('Task title')).toHaveValue('Renamed missing task')
+    expect(screen.getByLabelText('Priority')).toHaveValue('low')
+    expect(screen.getByLabelText('Due date')).toHaveValue('2026-07-01')
+    expect(screen.getByLabelText('Minutes')).toHaveValue(70)
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+  })
+
+  it('blocks duplicate status toggles and preserves status when toggle fails', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.tasks.add({
+      id: 'task-toggle-pending',
+      title: 'Toggle race task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 20,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+
+    let releaseUpdate!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseUpdate = resolve
+    })
+    const originalUpdate = studyDb.tasks.update.bind(studyDb.tasks)
+    const updateSpy = vi.spyOn(studyDb.tasks, 'update').mockImplementation(async (id, changes) => {
+      await gate
+      return originalUpdate(id, changes)
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+    const toggle = await screen.findByLabelText('Toggle Toggle race task')
+    await user.click(toggle)
+
+    expect(await screen.findByLabelText('Updating Toggle race task')).toBeDisabled()
+    expect(screen.getByLabelText('Edit Toggle race task')).toBeDisabled()
+    await user.click(screen.getByLabelText('Updating Toggle race task'))
+    expect(updateSpy).toHaveBeenCalledTimes(1)
+
+    releaseUpdate()
+    await waitFor(() => expect(screen.getByText('Toggle race task').closest('.list-row')).toHaveClass('is-done'))
+    expect(await screen.findByRole('status')).toHaveTextContent('Task marked complete.')
+
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    updateSpy.mockRejectedValueOnce(new Error('status write failed'))
+    await user.click(screen.getByLabelText('Toggle Toggle race task'))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Task could not be reopened.')
+    expect(screen.getByText('Toggle race task').closest('.list-row')).toHaveClass('is-done')
+  })
+
+  it('keeps a task visible when deletion fails', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.tasks.add({
+      id: 'task-delete-fail',
+      title: 'Sticky task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 15,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const deleteSpy = vi.spyOn(studyDb.tasks, 'delete').mockRejectedValueOnce(new Error('delete failed'))
+    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+    await user.click(await screen.findByLabelText('Delete Sticky task'))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Task could not be deleted. Please try again.')
+    expect(screen.getByText('Sticky task')).toBeInTheDocument()
+    expect(await studyDb.tasks.get('task-delete-fail')).toBeDefined()
+
+    deleteSpy.mockRestore()
+    await user.click(screen.getByLabelText('Delete Sticky task'))
+    await waitFor(() => expect(screen.queryByText('Sticky task')).not.toBeInTheDocument())
+    expect(await screen.findByRole('status')).toHaveTextContent('Task deleted.')
     confirmDelete.mockRestore()
   })
 
