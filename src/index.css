@@ -1909,6 +1909,35 @@ textarea:focus-visible,
   background: var(--danger-bg);
 }
 
+.mutation-notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mutation-notice p {
+  margin: 0;
+  flex: 1;
+}
+
+.mutation-notice-dismiss {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -4px 0 0;
+  color: inherit;
+  background: transparent;
+  border-radius: var(--radius-sm);
+}
+
+.mutation-notice-dismiss:hover {
+  background: var(--surface-subtle);
+}
+
 .session-editor {
   grid-template-columns: repeat(4, minmax(150px, 1fr));
 }
