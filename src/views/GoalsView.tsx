@@ -1,20 +1,18 @@
 import { useState } from 'react'
 import { Target } from 'lucide-react'
-import type { StudyGoal, GoalPeriod, GoalMetric } from '../db/types'
+import type { StudyGoal, StudySession, GoalPeriod, GoalMetric } from '../db/types'
 import { createId, nowIso, studyDb } from '../db/studyDb'
-import { clamp, percent, getGoalProgress, isDerivedGoal } from '../appUtils'
+import { calculateGoalProgress, clamp, isDerivedGoal } from '../appUtils'
 import { PanelHeader, TextInput, NumberInput, EditorActions, ProgressBar, RowActionButtons, EmptyState } from '../components/ui'
 
 export function GoalsView({
   goals,
   dailyGoalMinutes,
-  todayFocusMinutes,
-  weeklyStudyHours,
+  studySessions,
 }: {
   goals: StudyGoal[]
   dailyGoalMinutes: number
-  todayFocusMinutes: number
-  weeklyStudyHours: number
+  studySessions: StudySession[]
 }) {
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null)
   const [draft, setDraft] = useState<{
@@ -82,12 +80,12 @@ export function GoalsView({
       {goals.length > 0 ? (
         <div className="card-grid">
           {goals.map((goal) => {
-            const progress = getGoalProgress(goal, todayFocusMinutes, weeklyStudyHours)
+            const progress = calculateGoalProgress(goal, studySessions)
             return (
               <article className="detail-card" key={goal.id}>
                 <span className="pill">{isDerivedGoal(goal) ? `${goal.period} - derived` : goal.period}</span>
                 <h3>{goal.title}</h3>
-                <ProgressBar value={percent(progress, goal.target)} label={`${progress}/${goal.target}`} />
+                <ProgressBar value={progress.percentage} label={`${progress.current}/${progress.target}`} />
                 <RowActionButtons label={goal.title} onEdit={() => openEditor(goal)} onDelete={() => void studyDb.goals.delete(goal.id)} />
               </article>
             )
