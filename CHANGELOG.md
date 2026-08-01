@@ -4,6 +4,19 @@
 
 ### Added
 
+- Explicit goal metrics: **Manual progress** (`manual`) and **Study time** (`study_time`) with an accessible metric selector in Goals.
+- Automatic study-time progress for daily (minutes), weekly (rounded hours over the rolling seven local days ending today), and monthly (rounded hours in the current local calendar month) goals.
+- Playwright coverage proving goal behavior follows persisted metrics, not title text.
+
+### Changed
+
+- Replaced title-based goal detection with explicit metrics; goal titles no longer affect runtime calculation or settings sync.
+- Dexie schema upgraded to **version 2** with a backward-compatible migration that assigns metrics to existing goals once.
+- JSON backup exports now use **version 2**; version 1 backups remain importable and are normalized before replacement.
+- Daily `dailyGoalMinutes` setting sync now follows explicit daily study-time goals only (not goal titles).
+
+### Added (themes)
+
 - Added Monochrome, Blueprint, and Moss Library appearance themes using the existing visual token system.
 
 ### Changed
@@ -30,8 +43,8 @@
 
 ## Current storage compatibility
 
-- IndexedDB schema: Dexie version 1.
-- JSON backup format: version 1.
+- IndexedDB schema: Dexie **version 2** (upgrade from v1 assigns `manual` or `study_time` to legacy goals).
+- JSON backup format: **version 2** for new exports; **version 1** imports remain supported with normalization.
 - First launch remains empty; no bundled sample data is imported.
 - Customized data from the legacy `study-dashboard-v2` localStorage key is migrated once when safe.
 

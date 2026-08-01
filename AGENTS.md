@@ -18,9 +18,18 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 
 ## Project summary
 
-- **Study Dashboard v1.2.0** — local-first study workspace (tasks, notes, subjects, calendar, flashcards, focus sessions, goals).
+- **Study Dashboard v1.3.0** — local-first study workspace (tasks, notes, subjects, calendar, flashcards, focus sessions, goals).
 - **Web app:** React 19 + Vite 8 + Dexie/IndexedDB PWA at the repo root. UI is largely in `src/App.tsx` with helpers in `src/appUtils.ts`.
 - **No HTTP API**, no auth, no cloud database, no desktop shell.
+
+## Goals and metrics
+
+- Every goal has an explicit **`metric`**: `manual` (**Manual progress**) or `study_time` (**Study time**). Goal **titles never determine runtime calculation** — only the stored metric and period matter.
+- **Manual progress** uses stored `goal.progress` in **points**.
+- **Study time** derives progress from finalized recorded **`studySessions`** only (unfinished focus sessions do not count until finalized into history).
+- **Period units:** daily study-time goals use **minutes**; weekly and monthly study-time goals use **rounded hours** (weekly totals use the existing rolling seven local calendar days ending today; monthly totals use the current local calendar month).
+- **IndexedDB:** Dexie **version 2** (upgrade from v1 assigns metrics to legacy rows once via title rules in `src/db/goalMetricInference.ts` — migration/import only, not runtime).
+- **Backups:** new exports use JSON **version 2** with required goal metrics; valid **version 1** backups remain importable and are normalized before any table replacement.
 
 ## Hard rules
 
