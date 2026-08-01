@@ -18,7 +18,7 @@ npm run dev
 
 CI (`.github/workflows/ci.yml`) installs Node from `.nvmrc` and pins `npm@10.9.2` before `npm ci`.
 
-For the recorded Phase 0 clean-install, validation, and preview baseline (including coverage affinity and Lighthouse notes), see [docs/phase-0-baseline.md](docs/phase-0-baseline.md).
+For the recorded Phase 0 clean-install, validation, and preview baseline (including coverage affinity and Lighthouse notes), see [docs/phase-0-baseline.md](docs/phase-0-baseline.md). For v1.5.0 release scope and feature-freeze rules, see [docs/release-v1.5.0-contract.md](docs/release-v1.5.0-contract.md).
 
 ## Tests
 
