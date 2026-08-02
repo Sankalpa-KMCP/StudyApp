@@ -363,6 +363,7 @@ describe('App', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Task could not be saved. Your details are still in the form.')
     expect(screen.queryByText('IndexedDB')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Task title')).toHaveValue('Retryable task')
+    expect(screen.getByLabelText('Task title')).not.toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByLabelText('Priority')).toHaveValue('high')
     expect(screen.getByLabelText('Due date')).toHaveValue('2026-07-25')
     expect(screen.getByLabelText('Minutes')).toHaveValue(55)
@@ -374,6 +375,30 @@ describe('App', () => {
     expect(await studyDb.tasks.count()).toBe(1)
     expect(addSpy).toHaveBeenCalledTimes(2)
     expect(consoleError).toHaveBeenCalled()
+  })
+
+  it('associates an empty task title validation error with the title field', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+    await user.click(screen.getByRole('button', { name: 'New task' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const titleInput = screen.getByLabelText('Task title')
+    const error = screen.getByRole('alert')
+    expect(error).toHaveTextContent('Enter a task title.')
+    expect(error).toHaveAttribute('id', 'task-title-error')
+    expect(titleInput).toHaveAttribute('aria-invalid', 'true')
+    expect(titleInput).toHaveAttribute('aria-describedby', 'task-title-error')
+    expect(await studyDb.tasks.count()).toBe(0)
+
+    await user.type(titleInput, 'Associated title task')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Associated title task')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(await studyDb.tasks.count()).toBe(1)
   })
 
   it('treats a missing-row edit as failure and keeps the editor open', async () => {
@@ -1835,6 +1860,8 @@ describe('App', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Goal could not be saved. Your details are still in the form.')
     expect(screen.getByLabelText('Goal title')).toHaveValue('Retry goal')
+    expect(screen.getByLabelText('Goal title')).not.toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByLabelText(/Target \(points\)/)).not.toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByLabelText('Metric')).toHaveValue('manual')
     expect(screen.getByLabelText('Period')).toHaveValue('weekly')
     expect(screen.getByLabelText(/Target \(points\)/)).toHaveValue(55)
@@ -1852,6 +1879,64 @@ describe('App', () => {
       target: 55,
       progress: 11,
     })
+  })
+
+  it('associates goal validation errors with the responsible controls across metrics', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Goals' }))
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const titleInput = screen.getByLabelText('Goal title')
+    const titleError = screen.getByRole('alert')
+    expect(titleError).toHaveTextContent('Enter a goal title.')
+    expect(titleError).toHaveAttribute('id', 'goal-title-error')
+    expect(titleInput).toHaveAttribute('aria-invalid', 'true')
+    expect(titleInput).toHaveAttribute('aria-describedby', 'goal-title-error')
+    expect(await studyDb.goals.count()).toBe(0)
+
+    await user.type(titleInput, 'Manual association goal')
+    const targetInput = screen.getByLabelText(/Target \(points\)/)
+    fireEvent.change(targetInput, { target: { value: '0' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const targetError = screen.getByRole('alert')
+    expect(targetError).toHaveTextContent('Target must be a number greater than zero.')
+    expect(targetError).toHaveAttribute('id', 'goal-target-error')
+    expect(targetInput).toHaveAttribute('aria-invalid', 'true')
+    expect(targetInput).toHaveAttribute('aria-describedby', 'goal-target-error')
+    expect(titleInput).not.toHaveAttribute('aria-invalid', 'true')
+    expect(await studyDb.goals.count()).toBe(0)
+
+    await user.selectOptions(screen.getByLabelText('Metric'), 'study_time')
+    expect(screen.queryByLabelText('Progress (points)')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/Target \(minutes\)/)).not.toHaveAttribute('aria-invalid', 'true')
+
+    fireEvent.change(screen.getByLabelText(/Target \(minutes\)/), { target: { value: '' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    const studyTarget = screen.getByLabelText(/Target \(minutes\)/)
+    const studyTargetError = screen.getByRole('alert')
+    expect(studyTargetError).toHaveTextContent('Target must be a number greater than zero.')
+    expect(studyTarget).toHaveAttribute('aria-invalid', 'true')
+    expect(studyTarget).toHaveAttribute('aria-describedby', 'goal-target-error')
+    expect(await studyDb.goals.count()).toBe(0)
+
+    fireEvent.change(studyTarget, { target: { value: '45' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Manual association goal')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect((await studyDb.goals.toArray())[0]).toMatchObject({
+      title: 'Manual association goal',
+      metric: 'study_time',
+      period: 'daily',
+      target: 45,
+    })
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(45)
   })
 
   it('treats a missing-row goal edit as failure and keeps the editor open', async () => {
