@@ -106,6 +106,78 @@ describe('App', () => {
     expect(within(checklist).getByRole('button', { name: 'Log session' })).toBeInTheDocument()
   })
 
+  it('keeps a single Home h1 and exposes the topbar label outside the heading outline', async () => {
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Good morning' })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    expect(screen.getByRole('heading', { level: 2, name: 'Study Tasks' })).toBeInTheDocument()
+
+    const topbar = document.querySelector('.topbar')
+    expect(topbar).not.toBeNull()
+    expect(within(topbar as HTMLElement).getByText('Dashboard')).toBeInTheDocument()
+    expect(within(topbar as HTMLElement).queryByRole('heading')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
+  })
+
+  it('keeps a single Tasks workspace h1 while the topbar view label stays visible non-heading chrome', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Tasks' })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+
+    const topbar = document.querySelector('.topbar')
+    expect(topbar).not.toBeNull()
+    expect(within(topbar as HTMLElement).getByText('Tasks')).toBeInTheDocument()
+    expect(within(topbar as HTMLElement).queryByRole('heading')).not.toBeInTheDocument()
+  })
+
+  it('names task toggles without exposing nested decorative icons', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.tasks.add({
+      id: 'task-a11y-toggle',
+      title: 'Accessible toggle task',
+      subjectId: '',
+      status: 'open',
+      priority: 'normal',
+      minutes: 30,
+      dueDate: '',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+
+    const toggle = await screen.findByRole('button', { name: 'Toggle Accessible toggle task' })
+    expect(toggle).toHaveAccessibleName('Toggle Accessible toggle task')
+    expect(within(toggle).queryByRole('img')).not.toBeInTheDocument()
+    expect(toggle.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('exposes human-readable subject swatch names and persists the exact hex value', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Subjects' }))
+    await user.click(screen.getByRole('button', { name: 'New subject' }))
+
+    expect(screen.getByRole('button', { name: 'Use blue' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Use teal' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Use #/ })).not.toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Subject name'), 'Named swatch subject')
+    await user.click(screen.getByRole('button', { name: 'Use amber' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Named swatch subject')).toBeInTheDocument()
+    expect((await studyDb.subjects.toArray())[0].color).toBe('#b45309')
+  })
+
   it('derives checklist progress from subjects, tasks or events, and sessions with live updates', async () => {
     await addFirstStudySubject()
     render(<App />)
@@ -1974,7 +2046,7 @@ describe('App', () => {
     await user.click(await screen.findByRole('button', { name: 'Subjects' }))
     await user.click(screen.getByRole('button', { name: 'New subject' }))
     await user.type(screen.getByLabelText('Subject name'), 'Retry subject')
-    await user.click(screen.getByLabelText('Use #0f766e'))
+    await user.click(screen.getByLabelText('Use teal'))
     fireEvent.change(screen.getByLabelText('Target hours'), { target: { value: '7' } })
     fireEvent.change(screen.getByLabelText('Progress %'), { target: { value: '35' } })
     await user.click(screen.getByRole('button', { name: 'Save' }))

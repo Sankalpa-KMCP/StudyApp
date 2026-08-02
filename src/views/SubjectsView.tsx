@@ -15,7 +15,16 @@ import type { StudySubject, StudyTask, StudyNote, CalendarEvent, Flashcard, Stud
 import { clamp, formatMinutes, getSubjectProgress } from '../appUtils'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 
-const colorSwatches = ['#111827', '#2563eb', '#0f766e', '#b45309', '#7c3aed', '#be123c', '#475569', '#047857']
+const colorSwatches = [
+  { value: '#111827', name: 'charcoal' },
+  { value: '#2563eb', name: 'blue' },
+  { value: '#0f766e', name: 'teal' },
+  { value: '#b45309', name: 'amber' },
+  { value: '#7c3aed', name: 'violet' },
+  { value: '#be123c', name: 'rose' },
+  { value: '#475569', name: 'slate' },
+  { value: '#047857', name: 'emerald' },
+] as const
 
 type SubjectDraft = {
   name: string
@@ -26,7 +35,7 @@ type SubjectDraft = {
 
 const emptyDraft = (): SubjectDraft => ({
   name: '',
-  color: colorSwatches[0],
+  color: colorSwatches[0].value,
   targetHours: 5,
   progress: 0,
 })
@@ -80,7 +89,7 @@ export function SubjectsView({
     setEditingSubjectId(subject?.id ?? 'new')
     setDraft({
       name: subject?.name ?? '',
-      color: subject?.color ?? colorSwatches[0],
+      color: subject?.color ?? colorSwatches[0].value,
       targetHours: subject?.targetHours ?? 5,
       progress: subject?.progress ?? 0,
     })
@@ -209,15 +218,15 @@ export function SubjectsView({
           <label className="field">
             <span>Color</span>
             <div className="swatch-row">
-              {colorSwatches.map((color) => (
+              {colorSwatches.map((swatch) => (
                 <button
-                  className={draft.color === color ? 'swatch is-active' : 'swatch'}
-                  style={{ backgroundColor: color }}
+                  className={draft.color === swatch.value ? 'swatch is-active' : 'swatch'}
+                  style={{ backgroundColor: swatch.value }}
                   type="button"
-                  key={color}
-                  aria-label={`Use ${color}`}
+                  key={swatch.value}
+                  aria-label={`Use ${swatch.name}`}
                   disabled={isSaving}
-                  onClick={() => setDraft({ ...draft, color })}
+                  onClick={() => setDraft({ ...draft, color: swatch.value })}
                 />
               ))}
             </div>
