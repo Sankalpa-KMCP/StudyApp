@@ -54,7 +54,7 @@ Study data is local-first and stored in IndexedDB through Dexie. Keep destructiv
 
 Backup import validates size, shape/version, uniqueness, subject references, semantic integrity, known settings, and record-count limits **before** any IndexedDB clear/write. Reject invalid payloads entirely; do not silently repair duplicates, orphans, or out-of-range values. Failed imports must leave existing data and visible focus ownership intact. When changing import rules, inspect `useStudyBackup.ts`, `studyExportLimits.ts`, `studyExportValidation.ts`, and `studyDb.ts` together (see `AGENTS.md` Backups).
 
-Settings clear-all is not currently serialized with an in-flight backup import (pre-existing behavior). Prefer not to expand that race; treat any fix as a dedicated hardening change with explicit product approval. A dedicated Playwright scenario that rejects an invalid import through Settings remains optional; unit and App suites already cover rejection and focus preservation.
+Settings import and clear-all operations are strictly serialized via `DataOperationCoordinator`. Any changes to this flow must preserve the mutual exclusion invariant and ensure the focused regression tests in `src/db/dataCoordinator.test.ts` and `e2e/dataCoordinator.spec.ts` continue to pass. A dedicated Playwright scenario that rejects an invalid import through Settings remains optional; unit and App suites already cover rejection and focus preservation.
 
 Optional fields on stored records should stay backward-compatible with older IndexedDB rows and JSON exports. For example, flashcard scheduling fields are optional so older cards remain due immediately. Unknown settings keys on import stay accepted for forward compatibility.
 

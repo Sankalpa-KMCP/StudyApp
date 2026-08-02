@@ -142,10 +142,10 @@ Every active entry includes:
 | Field | Value |
 |-------|-------|
 | Severity | Medium |
-| Status | OPEN |
+| Status | RESOLVED |
 | Category | Data safety / mutation coordination |
-| User impact | Concurrent destructive Settings flows could still create confusing or unsafe edge cases because clear-all is not serialized with an in-flight import. |
-| Evidence | [CONTRIBUTING.md](../CONTRIBUTING.md) states that Settings clear-all is not currently serialized with an in-flight backup import. [AGENTS.md](../AGENTS.md) repeats that this is pre-existing behavior and should only be hardened deliberately. |
+| User impact | Historical. Concurrent destructive Settings flows previously risked confusing or unsafe edge cases because clear-all was not serialized with an in-flight import. |
+| Evidence | Resolved via `DataOperationCoordinator`. Verified by focused tests in `src/db/dataCoordinator.test.ts` and E2E in `e2e/dataCoordinator.spec.ts`. |
 | Dependencies | Settings backup/clear-all behavior in [`src/hooks/useStudyBackup.ts`](../src/hooks/useStudyBackup.ts), focus import lock behavior in [`src/hooks/useFocusSession.ts`](../src/hooks/useFocusSession.ts), and current tests that already cover ordinary import failure handling. |
 | Planned phase | Unscheduled |
 | Verification criteria | Introduce explicit serialization or mutual exclusion between import and clear-all, then prove with focused tests that conflicting actions cannot interleave into unsafe state transitions or misleading UI. |
