@@ -6,6 +6,7 @@ import { formatShortTime, toInputDate, toInputTime } from './appUtils'
 import {
   ACTIVE_FOCUS_SESSION_KEY,
   ACTIVE_FOCUS_SESSION_STALE_AFTER_MS,
+  clearActiveFocusSession,
   createActiveFocusSession,
   discardActiveFocusSession,
   finalizeActiveFocusSession,
@@ -3044,6 +3045,452 @@ describe('App', () => {
     }, { timeout: 3000 })
     expect(screen.getByText(/Session complete: \d+m logged/)).toBeInTheDocument()
   })
+
+  it('defers timed auto-complete while Pause is pending and successful Pause wins', async () => {
+    const user = userEvent.setup()
+    const remainingMs = 700
+    const sessionId = 'focus-race-pause-win'
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: sessionId,
+      subjectId: '',
+      startedAt: new Date(Date.now() - (25 * 60_000 - remainingMs)).toISOString(),
+      plannedMinutes: 25,
+    }))
+
+    let releasePause!: () => void
+    let pauseGateSettled = false
+    const pauseGate = new Promise<void>((resolve) => {
+      releasePause = () => {
+        pauseGateSettled = true
+        resolve()
+      }
+    })
+    const activeFocusApi = await import('./db/activeFocusSession')
+    const originalPause = activeFocusApi.pauseActiveFocusSession.bind(activeFocusApi)
+    vi.spyOn(activeFocusApi, 'pauseActiveFocusSession').mockImplementation(async (id, pausedAt) => {
+      await pauseGate
+      return originalPause(id, pausedAt)
+    })
+
+    try {
+      render(<App />)
+      const pauseButton = await screen.findByRole('button', { name: 'Pause' })
+      await user.click(pauseButton)
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeDisabled())
+
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, remainingMs + 250))
+      })
+      expect(await studyDb.studySessions.count()).toBe(0)
+      expect(screen.queryByText(/Session complete:/)).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Pause' })).toBeDisabled()
+      expect(await getActiveFocusSession()).toMatchObject({ id: sessionId, status: 'running' })
+
+      releasePause()
+      await waitFor(async () => {
+        expect(await getActiveFocusSession()).toMatchObject({ id: sessionId, status: 'paused' })
+      })
+      expect(pauseGateSettled).toBe(true)
+      expect(await studyDb.studySessions.count()).toBe(0)
+      expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument()
+      expect(screen.getByText('paused')).toBeInTheDocument()
+      expect(screen.queryByText(/Session complete:/)).not.toBeInTheDocument()
+      const frozenElapsed = screen.getByText('Elapsed').parentElement?.querySelector('strong')?.textContent
+      expect(frozenElapsed).toMatch(/^\d{2}:\d{2}$/)
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, 120))
+      })
+      expect(screen.getByText('Elapsed').parentElement?.querySelector('strong')?.textContent).toBe(frozenElapsed)
+    } finally {
+      if (!pauseGateSettled) releasePause()
+    }
+  }, 15_000)
+
+  it('finalizes once after failed Pause when durable session remains running and complete', async () => {
+    const user = userEvent.setup()
+    const remainingMs = 700
+    const sessionId = 'focus-race-pause-fail'
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: sessionId,
+      subjectId: '',
+      startedAt: new Date(Date.now() - (25 * 60_000 - remainingMs)).toISOString(),
+      plannedMinutes: 25,
+    }))
+
+    let rejectPause!: (error?: Error) => void
+    let pauseGateSettled = false
+    const pauseGate = new Promise<never>((_, reject) => {
+      rejectPause = (error = new Error('write failed')) => {
+        pauseGateSettled = true
+        reject(error)
+      }
+    })
+    pauseGate.catch(() => undefined)
+    const activeFocusApi = await import('./db/activeFocusSession')
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(activeFocusApi, 'pauseActiveFocusSession').mockImplementation(async () => {
+      await pauseGate
+      throw new Error('unreachable')
+    })
+
+    try {
+      render(<App />)
+      await user.click(await screen.findByRole('button', { name: 'Pause' }))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeDisabled())
+
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, remainingMs + 250))
+      })
+      expect(await studyDb.studySessions.count()).toBe(0)
+      expect(screen.queryByText(/Session complete:/)).not.toBeInTheDocument()
+
+      rejectPause()
+      expect(await screen.findByText('Could not pause the focus session. Try again.')).toBeInTheDocument()
+
+      await waitFor(async () => {
+        expect(await studyDb.studySessions.count()).toBe(1)
+        expect(await getActiveFocusSession()).toBeNull()
+      })
+      const history = await studyDb.studySessions.toArray()
+      expect(history).toHaveLength(1)
+      expect(history[0].id).toBe(sessionId)
+      expect(history[0].minutes).toBe(25)
+      // Deferred finalize reuses the single sessionNotice slot after the pause failure was shown.
+      expect(screen.getByText(/Session complete: \d+m logged/)).toBeInTheDocument()
+    } finally {
+      if (!pauseGateSettled) rejectPause()
+    }
+  }, 15_000)
+
+  it('keeps Resume pending from writing history before durable settlement', async () => {
+    const user = userEvent.setup()
+    const sessionId = 'focus-race-resume-pending'
+    // Active elapsed is 20m; wall clock is already past the 25m plan.
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: sessionId,
+      subjectId: '',
+      startedAt: new Date(Date.now() - 30 * 60_000).toISOString(),
+      plannedMinutes: 25,
+      status: 'paused',
+      pausedAt: new Date(Date.now() - 10 * 60_000).toISOString(),
+      accumulatedPausedMs: 0,
+    }))
+
+    let releaseResume!: () => void
+    let resumeGateSettled = false
+    const resumeGate = new Promise<void>((resolve) => {
+      releaseResume = () => {
+        resumeGateSettled = true
+        resolve()
+      }
+    })
+    const activeFocusApi = await import('./db/activeFocusSession')
+    const originalResume = activeFocusApi.resumeActiveFocusSession.bind(activeFocusApi)
+    vi.spyOn(activeFocusApi, 'resumeActiveFocusSession').mockImplementation(async (id, resumedAtMs) => {
+      await resumeGate
+      return originalResume(id, resumedAtMs)
+    })
+
+    try {
+      render(<App />)
+      await user.click(await screen.findByRole('button', { name: 'Resume' }))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Resume' })).toBeDisabled())
+
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, 200))
+      })
+      expect(await studyDb.studySessions.count()).toBe(0)
+      expect(await getActiveFocusSession()).toMatchObject({ id: sessionId, status: 'paused' })
+      expect(screen.queryByText(/Session complete:/)).not.toBeInTheDocument()
+
+      releaseResume()
+      await waitFor(async () => {
+        expect(await getActiveFocusSession()).toMatchObject({ id: sessionId, status: 'running', pausedAt: null })
+      })
+      expect(resumeGateSettled).toBe(true)
+      const resumed = await getActiveFocusSession()
+      expect(resumed!.accumulatedPausedMs).toBeGreaterThanOrEqual(10 * 60_000 - 2_000)
+      expect(await studyDb.studySessions.count()).toBe(0)
+      expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument()
+      expect(screen.queryByText(/Session complete:/)).not.toBeInTheDocument()
+    } finally {
+      if (!resumeGateSettled) releaseResume()
+    }
+  }, 15_000)
+
+  it('waits remaining active time after Resume before timed completion', async () => {
+    const user = userEvent.setup()
+    const remainingMs = 700
+    const sessionId = 'focus-race-resume-remaining'
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: sessionId,
+      subjectId: '',
+      startedAt: new Date(Date.now() - (25 * 60_000 - remainingMs)).toISOString(),
+      plannedMinutes: 25,
+      status: 'paused',
+      pausedAt: new Date().toISOString(),
+      accumulatedPausedMs: 0,
+    }))
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Resume' })).toBeInTheDocument()
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 150))
+    })
+    expect(await studyDb.studySessions.count()).toBe(0)
+
+    await user.click(screen.getByRole('button', { name: 'Resume' }))
+    await waitFor(async () => {
+      expect(await getActiveFocusSession()).toMatchObject({ id: sessionId, status: 'running' })
+    })
+    expect(await studyDb.studySessions.count()).toBe(0)
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, remainingMs + 250))
+    })
+    await waitFor(async () => {
+      expect(await studyDb.studySessions.count()).toBe(1)
+      expect(await getActiveFocusSession()).toBeNull()
+    })
+    const history = await studyDb.studySessions.toArray()
+    expect(history).toHaveLength(1)
+    expect(history[0].id).toBe(sessionId)
+    expect(history[0].minutes).toBe(25)
+    expect(screen.getByText(/Session complete: \d+m logged/)).toBeInTheDocument()
+  }, 15_000)
+
+  it('keeps failed Resume paused without auto-completing past wall-clock plan', async () => {
+    const user = userEvent.setup()
+    const sessionId = 'focus-race-resume-fail'
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: sessionId,
+      subjectId: '',
+      startedAt: new Date(Date.now() - 30 * 60_000).toISOString(),
+      plannedMinutes: 25,
+      status: 'paused',
+      pausedAt: new Date(Date.now() - 10 * 60_000).toISOString(),
+      accumulatedPausedMs: 0,
+    }))
+
+    let rejectResume!: (error?: Error) => void
+    let resumeGateSettled = false
+    const resumeGate = new Promise<never>((_, reject) => {
+      rejectResume = (error = new Error('write failed')) => {
+        resumeGateSettled = true
+        reject(error)
+      }
+    })
+    resumeGate.catch(() => undefined)
+    const activeFocusApi = await import('./db/activeFocusSession')
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(activeFocusApi, 'resumeActiveFocusSession').mockImplementation(async () => {
+      await resumeGate
+      throw new Error('unreachable')
+    })
+
+    try {
+      render(<App />)
+      await user.click(await screen.findByRole('button', { name: 'Resume' }))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Resume' })).toBeDisabled())
+
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, 200))
+      })
+      expect(await studyDb.studySessions.count()).toBe(0)
+
+      rejectResume()
+      expect(await screen.findByText('Could not resume the focus session. Try again.')).toBeInTheDocument()
+      expect(await getActiveFocusSession()).toMatchObject({ id: sessionId, status: 'paused' })
+      expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument()
+      expect(screen.getByText('paused')).toBeInTheDocument()
+      expect(await studyDb.studySessions.count()).toBe(0)
+      expect(screen.queryByText(/Session complete:/)).not.toBeInTheDocument()
+
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, 200))
+      })
+      expect(await studyDb.studySessions.count()).toBe(0)
+      expect(await getActiveFocusSession()).toMatchObject({ id: sessionId, status: 'paused' })
+    } finally {
+      if (!resumeGateSettled) rejectResume()
+    }
+  }, 15_000)
+
+  it('does not finalize session A when Pause settles with a replacement session B', async () => {
+    const user = userEvent.setup()
+    const remainingMs = 700
+    const sessionA = 'focus-race-conflict-a'
+    const sessionB = makeDurableFocusSession({
+      id: 'focus-race-conflict-b',
+      subjectId: '',
+      startedAt: new Date(Date.now() - 2 * 60_000).toISOString(),
+      plannedMinutes: 50,
+      status: 'running',
+    })
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: sessionA,
+      subjectId: '',
+      startedAt: new Date(Date.now() - (25 * 60_000 - remainingMs)).toISOString(),
+      plannedMinutes: 25,
+    }))
+
+    let releasePause!: () => void
+    let pauseGateSettled = false
+    const pauseGate = new Promise<void>((resolve) => {
+      releasePause = () => {
+        pauseGateSettled = true
+        resolve()
+      }
+    })
+    const activeFocusApi = await import('./db/activeFocusSession')
+    vi.spyOn(activeFocusApi, 'pauseActiveFocusSession').mockImplementation(async () => {
+      await pauseGate
+      return { ok: false, reason: 'conflict', existing: sessionB }
+    })
+
+    try {
+      render(<App />)
+      await user.click(await screen.findByRole('button', { name: 'Pause' }))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeDisabled())
+
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, remainingMs + 250))
+      })
+      expect(await studyDb.studySessions.count()).toBe(0)
+
+      await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: sessionB })
+      releasePause()
+      await waitFor(() => {
+        expect(screen.getByText('Focus session was updated elsewhere.')).toBeInTheDocument()
+      })
+      expect(pauseGateSettled).toBe(true)
+      expect(await getActiveFocusSession()).toMatchObject({ id: sessionB.id, plannedMinutes: 50 })
+      expect(screen.getByLabelText('Session length')).toHaveValue('50')
+      expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument()
+      expect(await studyDb.studySessions.count()).toBe(0)
+      expect(screen.queryByText(/Session complete:/)).not.toBeInTheDocument()
+      expect((await studyDb.studySessions.toArray()).find((row) => row.id === sessionA)).toBeUndefined()
+    } finally {
+      if (!pauseGateSettled) releasePause()
+    }
+  }, 15_000)
+
+  it('writes no history when Pause settles missing after deferred completion was queued', async () => {
+    const user = userEvent.setup()
+    const remainingMs = 700
+    const sessionId = 'focus-race-missing'
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: sessionId,
+      subjectId: '',
+      startedAt: new Date(Date.now() - (25 * 60_000 - remainingMs)).toISOString(),
+      plannedMinutes: 25,
+    }))
+
+    let releasePause!: () => void
+    let pauseGateSettled = false
+    const pauseGate = new Promise<void>((resolve) => {
+      releasePause = () => {
+        pauseGateSettled = true
+        resolve()
+      }
+    })
+    const activeFocusApi = await import('./db/activeFocusSession')
+    vi.spyOn(activeFocusApi, 'pauseActiveFocusSession').mockImplementation(async () => {
+      await pauseGate
+      return { ok: false, reason: 'missing' }
+    })
+
+    try {
+      render(<App />)
+      await user.click(await screen.findByRole('button', { name: 'Pause' }))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeDisabled())
+
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, remainingMs + 250))
+      })
+      expect(await studyDb.studySessions.count()).toBe(0)
+
+      await clearActiveFocusSession()
+      releasePause()
+      expect(await screen.findByText('Could not pause the focus session. Try again.')).toBeInTheDocument()
+      expect(pauseGateSettled).toBe(true)
+      expect(screen.queryByText(/no longer saved/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Session complete:/)).not.toBeInTheDocument()
+      expect(await studyDb.studySessions.count()).toBe(0)
+      expect(await getActiveFocusSession()).toBeNull()
+
+      await createActiveFocusSession(makeDurableFocusSession({
+        id: 'focus-race-missing-next',
+        subjectId: '',
+        startedAt: new Date(Date.now() - 60_000).toISOString(),
+        plannedMinutes: 50,
+      }))
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, 200))
+      })
+      expect(await studyDb.studySessions.count()).toBe(0)
+      expect((await studyDb.studySessions.toArray()).find((row) => row.id === sessionId)).toBeUndefined()
+    } finally {
+      if (!pauseGateSettled) releasePause()
+    }
+  }, 15_000)
+
+  it('keeps failed-Pause deferred completion idempotent across settlement and timer paths', async () => {
+    const user = userEvent.setup()
+    const remainingMs = 700
+    const sessionId = 'focus-race-idempotent'
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: sessionId,
+      subjectId: '',
+      startedAt: new Date(Date.now() - (25 * 60_000 - remainingMs)).toISOString(),
+      plannedMinutes: 25,
+    }))
+
+    let rejectPause!: (error?: Error) => void
+    let pauseGateSettled = false
+    const pauseGate = new Promise<never>((_, reject) => {
+      rejectPause = (error = new Error('write failed')) => {
+        pauseGateSettled = true
+        reject(error)
+      }
+    })
+    pauseGate.catch(() => undefined)
+    const activeFocusApi = await import('./db/activeFocusSession')
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    vi.spyOn(activeFocusApi, 'pauseActiveFocusSession').mockImplementation(async () => {
+      await pauseGate
+      throw new Error('unreachable')
+    })
+
+    try {
+      render(<App />)
+      await user.click(await screen.findByRole('button', { name: 'Pause' }))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeDisabled())
+
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, remainingMs + 250))
+      })
+      expect(await studyDb.studySessions.count()).toBe(0)
+
+      rejectPause()
+      expect(await screen.findByText('Could not pause the focus session. Try again.')).toBeInTheDocument()
+
+      await waitFor(async () => {
+        expect(await studyDb.studySessions.count()).toBe(1)
+        expect(await getActiveFocusSession()).toBeNull()
+      })
+
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, 300))
+      })
+      const history = await studyDb.studySessions.toArray()
+      expect(history).toHaveLength(1)
+      expect(history[0].id).toBe(sessionId)
+      expect(screen.getAllByText(/Session complete: \d+m logged/)).toHaveLength(1)
+    } finally {
+      if (!pauseGateSettled) rejectPause()
+    }
+  }, 15_000)
 
   it('keeps visible status when pause persistence fails', async () => {
     const user = userEvent.setup()
