@@ -28,6 +28,7 @@ import {
   isActiveFocusSessionStale,
   pauseActiveFocusSession,
   resumeActiveFocusSession,
+  shouldAutoCompleteFocusSession,
   updateActiveFocusSession,
 } from './db/activeFocusSession'
 import type { ActiveFocusSession, StudyData } from './db/types'
@@ -108,6 +109,9 @@ function App() {
   const [focusTransitionPending, setFocusTransitionPending] = useState(false)
   const [focusImportPending, setFocusImportPending] = useState(false)
   const finalizingSessionIdRef = useRef<string | null>(null)
+  const deferredAutoCompleteSessionIdRef = useRef<string | null>(null)
+  const focusTransitionPendingRef = useRef(false)
+  const focusImportPendingRef = useRef(false)
   const focusSubjectWriteSeqRef = useRef(0)
   const themeUserChangeRef = useRef(false)
   const sidebarUserChangeRef = useRef(false)
@@ -119,6 +123,7 @@ function App() {
 
   /** Clears both React focus slots, then applies at most one persisted session (never both). */
   const applyPersistedFocusSession = useCallback((restored: ActiveFocusSession | null) => {
+    deferredAutoCompleteSessionIdRef.current = null
     setActiveSession(null)
     setStaleFocusSession(null)
     if (!restored) return
@@ -153,6 +158,7 @@ function App() {
     })()
     return () => {
       cancelled = true
+      deferredAutoCompleteSessionIdRef.current = null
     }
   }, [applyPersistedFocusSession])
 
@@ -268,11 +274,13 @@ function App() {
   }
 
   const importData = async (file: File) => {
+    focusImportPendingRef.current = true
     setFocusImportPending(true)
     try {
       await importStudyData(JSON.parse(await file.text()) as unknown)
       await reloadFocusFromIndexedDb()
     } finally {
+      focusImportPendingRef.current = false
       setFocusImportPending(false)
     }
   }
@@ -287,6 +295,9 @@ function App() {
     setActiveSession(null)
     setStaleFocusSession(null)
     finalizingSessionIdRef.current = null
+    deferredAutoCompleteSessionIdRef.current = null
+    focusTransitionPendingRef.current = false
+    focusImportPendingRef.current = false
     setProfileNotice('All study data has been permanently deleted.')
     navigateToView('Home')
     setTimeout(() => setProfileNotice(''), 5000)
@@ -325,12 +336,14 @@ function App() {
     try {
       const result = await createActiveFocusSession(session)
       if (result.ok) {
+        deferredAutoCompleteSessionIdRef.current = null
         setActiveSession(result.session)
         setSessionNotice('')
         return
       }
 
       if (result.reason === 'conflict') {
+        deferredAutoCompleteSessionIdRef.current = null
         if (isActiveFocusSessionStale(result.existing)) {
           setStaleFocusSession(result.existing)
           setSessionNotice('An unfinished focus session needs a decision before you start another.')
@@ -350,12 +363,14 @@ function App() {
     try {
       const current = await getActiveFocusSession()
       if (!current) {
+        deferredAutoCompleteSessionIdRef.current = null
         setStaleFocusSession(null)
         setSessionNotice('That unfinished focus session is no longer available.')
         return
       }
 
       if (current.id !== staleFocusSession.id) {
+        deferredAutoCompleteSessionIdRef.current = null
         if (isActiveFocusSessionStale(current)) {
           setStaleFocusSession(current)
           setSessionNotice('Focus session was updated elsewhere.')
@@ -382,12 +397,14 @@ function App() {
     try {
       const result = await discardActiveFocusSession(staleFocusSession.id)
       if (result.ok) {
+        deferredAutoCompleteSessionIdRef.current = null
         setStaleFocusSession(null)
         setSessionNotice('Unfinished focus session discarded.')
         return
       }
 
       if (result.reason === 'conflict') {
+        deferredAutoCompleteSessionIdRef.current = null
         if (isActiveFocusSessionStale(result.existing)) {
           setStaleFocusSession(result.existing)
           setSessionNotice('Focus session was updated elsewhere.')
@@ -398,6 +415,7 @@ function App() {
         return
       }
 
+      deferredAutoCompleteSessionIdRef.current = null
       setStaleFocusSession(null)
       setSessionNotice('That unfinished focus session is no longer available.')
     } catch {
@@ -407,10 +425,102 @@ function App() {
     }
   }, [focusActionsPending, hydrateActiveSession, staleFocusSession])
 
+  const finalizeFocusSession = useCallback(async (sessionToFinalize: ActiveFocusSession, completed: boolean) => {
+    if (finalizingSessionIdRef.current === sessionToFinalize.id) return
+
+    if (deferredAutoCompleteSessionIdRef.current === sessionToFinalize.id) {
+      deferredAutoCompleteSessionIdRef.current = null
+    }
+    finalizingSessionIdRef.current = sessionToFinalize.id
+    const elapsedMs = getActiveFocusElapsedMs(sessionToFinalize)
+    const actualMinutes = Math.round(elapsedMs / 60_000)
+    const minutes = Math.max(1, completed && sessionToFinalize.plannedMinutes > 0 ? sessionToFinalize.plannedMinutes : actualMinutes)
+
+    try {
+      const result = await finalizeActiveFocusSession(sessionToFinalize.id, {
+        subjectId: sessionToFinalize.subjectId,
+        startedAt: sessionToFinalize.startedAt,
+        endedAt: nowIso(),
+        minutes,
+        note: completed ? 'Completed focus session' : sessionToFinalize.subjectId ? 'Focus session' : 'General focus session',
+      })
+
+      if (!result.ok) {
+        deferredAutoCompleteSessionIdRef.current = null
+        if (result.reason === 'conflict') {
+          hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+          return
+        }
+
+        // Durable singleton already gone — clear obsolete React focus UI without logging history.
+        setActiveSession(null)
+        setStaleFocusSession(null)
+        setSessionNotice('That focus session is no longer saved. It was removed from the screen without logging study time.')
+        return
+      }
+
+      deferredAutoCompleteSessionIdRef.current = null
+      setActiveSession(null)
+      setSessionNotice(completed ? `Session complete: ${formatMinutes(result.history.minutes)} logged.` : `Session stopped: ${formatMinutes(result.history.minutes)} logged.`)
+    } catch {
+      // Keep local + durable unfinished state recoverable after a persistence failure.
+      setSessionNotice('Could not stop the focus session. Try again.')
+    } finally {
+      if (finalizingSessionIdRef.current === sessionToFinalize.id) {
+        finalizingSessionIdRef.current = null
+      }
+    }
+  }, [hydrateActiveSession])
+
+  const evaluateTimedCompletion = useCallback(async (expectedSessionId: string) => {
+    const clearDeferredForExpected = () => {
+      if (deferredAutoCompleteSessionIdRef.current === expectedSessionId) {
+        deferredAutoCompleteSessionIdRef.current = null
+      }
+    }
+
+    if (focusTransitionPendingRef.current || focusImportPendingRef.current) {
+      deferredAutoCompleteSessionIdRef.current = expectedSessionId
+      return
+    }
+
+    try {
+      const durable = await getActiveFocusSession()
+      if (!durable || durable.id !== expectedSessionId) {
+        clearDeferredForExpected()
+        return
+      }
+
+      if (!shouldAutoCompleteFocusSession(durable)) {
+        clearDeferredForExpected()
+        return
+      }
+
+      if (finalizingSessionIdRef.current === durable.id) {
+        clearDeferredForExpected()
+        return
+      }
+
+      await finalizeFocusSession(durable, true)
+    } finally {
+      clearDeferredForExpected()
+    }
+  }, [finalizeFocusSession])
+
+  const settleFocusTransition = useCallback(() => {
+    focusTransitionPendingRef.current = false
+    setFocusTransitionPending(false)
+    const deferredId = deferredAutoCompleteSessionIdRef.current
+    if (!deferredId) return
+    deferredAutoCompleteSessionIdRef.current = null
+    void evaluateTimedCompletion(deferredId)
+  }, [evaluateTimedCompletion])
+
   const pauseSession = useCallback(async () => {
     if (!activeSession || activeSession.status !== 'running' || focusActionsPending) return
     if (finalizingSessionIdRef.current === activeSession.id) return
 
+    focusTransitionPendingRef.current = true
     setFocusTransitionPending(true)
     try {
       const result = await pauseActiveFocusSession(activeSession.id)
@@ -427,14 +537,15 @@ function App() {
     } catch {
       setSessionNotice('Could not pause the focus session. Try again.')
     } finally {
-      setFocusTransitionPending(false)
+      settleFocusTransition()
     }
-  }, [activeSession, focusActionsPending, hydrateActiveSession])
+  }, [activeSession, focusActionsPending, hydrateActiveSession, settleFocusTransition])
 
   const resumeSession = useCallback(async () => {
     if (!activeSession || activeSession.status !== 'paused' || focusActionsPending) return
     if (finalizingSessionIdRef.current === activeSession.id) return
 
+    focusTransitionPendingRef.current = true
     setFocusTransitionPending(true)
     try {
       const result = await resumeActiveFocusSession(activeSession.id)
@@ -451,65 +562,33 @@ function App() {
     } catch {
       setSessionNotice('Could not resume the focus session. Try again.')
     } finally {
-      setFocusTransitionPending(false)
+      settleFocusTransition()
     }
-  }, [activeSession, focusActionsPending, hydrateActiveSession])
+  }, [activeSession, focusActionsPending, hydrateActiveSession, settleFocusTransition])
 
   const stopSession = useCallback(async (completed = false) => {
     if (!activeSession) return
     if (finalizingSessionIdRef.current === activeSession.id || focusActionsPending) return
 
-    finalizingSessionIdRef.current = activeSession.id
-    const sessionToFinalize = activeSession
-    const elapsedMs = getActiveFocusElapsedMs(sessionToFinalize)
-    const actualMinutes = Math.round(elapsedMs / 60_000)
-    const minutes = Math.max(1, completed && sessionToFinalize.plannedMinutes > 0 ? sessionToFinalize.plannedMinutes : actualMinutes)
-
-    try {
-      const result = await finalizeActiveFocusSession(sessionToFinalize.id, {
-        subjectId: sessionToFinalize.subjectId,
-        startedAt: sessionToFinalize.startedAt,
-        endedAt: nowIso(),
-        minutes,
-        note: completed ? 'Completed focus session' : sessionToFinalize.subjectId ? 'Focus session' : 'General focus session',
-      })
-
-      if (!result.ok) {
-        if (result.reason === 'conflict') {
-          hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
-          return
-        }
-
-        // Durable singleton already gone — clear obsolete React focus UI without logging history.
-        setActiveSession(null)
-        setStaleFocusSession(null)
-        setSessionNotice('That focus session is no longer saved. It was removed from the screen without logging study time.')
-        return
-      }
-
-      setActiveSession(null)
-      setSessionNotice(completed ? `Session complete: ${formatMinutes(result.history.minutes)} logged.` : `Session stopped: ${formatMinutes(result.history.minutes)} logged.`)
-    } catch {
-      // Keep local + durable unfinished state recoverable after a persistence failure.
-      setSessionNotice('Could not stop the focus session. Try again.')
-    } finally {
-      if (finalizingSessionIdRef.current === sessionToFinalize.id) {
-        finalizingSessionIdRef.current = null
-      }
-    }
-  }, [activeSession, focusActionsPending, hydrateActiveSession])
+    await finalizeFocusSession(activeSession, completed)
+  }, [activeSession, finalizeFocusSession, focusActionsPending])
 
   useEffect(() => {
     if (!activeSession || activeSession.status !== 'running' || activeSession.plannedMinutes <= 0) return undefined
 
+    const sessionId = activeSession.id
     const limitMs = activeSession.plannedMinutes * 60_000
     const remainingMs = Math.max(0, limitMs - getActiveFocusElapsedMs(activeSession))
 
     const timer = window.setTimeout(() => {
-      void stopSession(true)
+      if (focusTransitionPendingRef.current || focusImportPendingRef.current) {
+        deferredAutoCompleteSessionIdRef.current = sessionId
+        return
+      }
+      void evaluateTimedCompletion(sessionId)
     }, remainingMs)
     return () => window.clearTimeout(timer)
-  }, [activeSession, stopSession])
+  }, [activeSession, evaluateTimedCompletion])
 
   const updateFocusSubject = useCallback((subjectId: string) => {
     setFocusSubjectId(subjectId)
