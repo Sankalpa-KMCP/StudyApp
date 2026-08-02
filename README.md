@@ -60,8 +60,34 @@ Normal local development does not require a `.env` file.
 | `src/hooks/useMutationState.ts` | Shared pending/success/error helper for ordinary local mutations |
 | `src/db/` | Dexie schema, import/export, clear-all, and legacy migration helpers |
 | `src/views/` | Workspace views (tasks, notes, subjects, calendar, flashcards, progress, goals, settings) |
-| `src/index.css` | Visual system, responsive layout, themes, cards, charts, and motion |
+| `src/index.css` | Ordered global CSS entry (imports only) |
+| `src/styles/` | Modular plain CSS (tokens, layout, components, Home, workspaces, responsive, preferences) |
 | `e2e/` | Playwright desktop/mobile persistence and focus/import smoke tests |
+
+## CSS architecture
+
+Styling uses **plain global CSS** (no CSS Modules, CSS-in-JS, or per-component stylesheet imports).
+
+- `src/index.css` is the **single ordered entry** imported by the app (`src/main.tsx`) and Storybook (`.storybook/preview.ts`).
+- Modules live under `src/styles/` and load in a fixed cascade: fonts → tokens/themes → base → layout → components → home → workspaces → settings → progress → mixed → responsive → preferences.
+- Seven themes share CSS variables in `tokens.css` (Monochrome uses base `:root` defaults).
+- Width breakpoints and reduced-motion / reduced-transparency rules load **last** so they continue to override earlier declarations.
+
+```
+src/styles/
+  fonts.css          # @font-face
+  tokens.css         # :root tokens + theme overrides
+  base.css           # reset, focus-visible, sr-only, skip-link
+  layout.css         # app shell, sidebar, topbar, page grids
+  components.css     # shared cards, fields, buttons, notices, charts
+  home.css           # hero, first-study, focus, quick notes, Home search
+  workspaces.css     # Tasks/Notes/Subjects/Flashcards-owned extras
+  settings.css       # theme studio, import, danger zone
+  progress.css       # session editor and journal
+  mixed.css          # intentionally cross-owned selector groups
+  responsive.css     # width breakpoints (1220 → 420)
+  preferences.css    # reduced-motion, reduced-transparency
+```
 
 ## Data storage
 

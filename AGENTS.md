@@ -64,6 +64,43 @@ npm run check:bundle
 $env:CI="true"; npm run test:e2e
 ```
 
+## CSS architecture
+
+Plain global CSS only. `src/index.css` is an **import barrel**; do not add ordinary rules there. Preserve this order:
+
+`fonts` → `tokens` → `base` → `layout` → `components` → `home` → `workspaces` → `settings` → `progress` → `mixed` → `responsive` → `preferences`
+
+| Module | Ownership |
+|--------|-----------|
+| `fonts.css` | `@font-face` only |
+| `tokens.css` | Design tokens and `:root[data-theme]` overrides (Monochrome = bare `:root`) |
+| `base.css` | Reset, global form controls, `:focus-visible`, `::selection`, `.sr-only`, `.skip-link` |
+| `layout.css` | App shell, sidebar, topbar, dashboard/page grids |
+| `components.css` | Reusable primitives (cards, fields, commands, notices, charts, calendar-strip, empty states) |
+| `home.css` | Hero, first-study, focus timer, quick notes, Home search/previews |
+| `workspaces.css` | Tasks/Notes/Subjects/Flashcards-owned extras (e.g. swatches, flashcard states) |
+| `settings.css` | Theme studio, import card, danger/clear-all |
+| `progress.css` | Manual session editor and study journal |
+| `mixed.css` | Cross-owned grouped selectors kept **intact** (do not split to force ownership) |
+| `responsive.css` | Width breakpoints only |
+| `preferences.css` | `prefers-reduced-motion`, then `prefers-reduced-transparency` |
+
+Maintenance rules:
+
+- Keep `responsive` and `preferences` last; never duplicate declarations across modules to “claim” ownership.
+- Avoid selector renaming, specificity increases, CSS Modules, CSS-in-JS, or visual redesign during maintenance-only work.
+- App and Storybook both load `src/index.css` — validate both after broad CSS changes.
+
+```bash
+npm test -- --run
+npm run lint
+npm run build
+npm run check:bundle
+# PowerShell clean Playwright server:
+$env:CI="true"; npm run test:e2e
+npm run build-storybook
+```
+
 ## Hard rules
 
 1. **Local-first only** — Do not add backend servers, cloud DB, auth, or telemetry without explicit user request.
