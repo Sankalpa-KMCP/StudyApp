@@ -6,15 +6,15 @@ This document defines the authoritative product contract, browser support target
 
 ## Release Classification & Status
 
-- **Classification:** PUBLIC BETA
+- **Classification:** PUBLIC BETA (Paused)
 - **Current Version:** `1.4.0` (Targeting `1.5.0`)
-- **Status:** Feature Freeze Active
+- **Status:** Production Release Paused
 
 ---
 
 ## Feature Freeze Rules
 
-Feature development is **frozen** until the v1.5.0 release candidate (RC) is complete.
+The v1.5.0 production release is explicitly paused. The release-candidate freeze is suspended until public-release activity resumes.
 
 1. **Permitted Work:**
    - Critical release blockers and bug fixes
@@ -65,6 +65,7 @@ The following browser targets define the support scope for the v1.5.0 release:
 
 ## Governance & Release Tracking
 
-- **Parent Tracking Issue:** The master release issue will be named exactly `Public Release v1.5.0`.
-- **Task Linkage:** Every remaining release task, PR, and validation check must be linked under or referenced by the `Public Release v1.5.0` parent tracking issue.
-- **Phase 0 Exit Requirements:** Production and staging deployment pipeline correction remains a required prerequisite before the Phase 0 exit gate passes. See the [Staging Architecture & Recovery Guide](staging-architecture.md).
+- **Deployment Scope:** GitHub Pages is the sole current deployment target and acts only as a preview/testing environment. Only `master` may deploy to GitHub Pages. `V2` builds and tests but does not deploy. No Netlify site, staging environment, token, or secondary hosting provider is required or planned.
+- **Deferred Requirements:** The requirement for separate staging and production paths is deferred, not satisfied. If public-release work resumes, deployment architecture and release gates must be reconsidered before production designation. Phase 0 must not be declared complete based solely on the GitHub Pages preview.
+- **Parent Tracking Issue:** Creation of the `Public Release v1.5.0` tracking issue is deferred until the owner resumes the public-release process.
+- **Validation Status:** Browser certification and public-release validation remain incomplete. GitHub Pages preview availability does not constitute General Availability or Public Beta release completion.
