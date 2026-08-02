@@ -19,7 +19,7 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 ## Project summary
 
 - **Study Dashboard v1.4.0** — local-first study workspace (tasks, notes, subjects, calendar, flashcards, focus sessions, goals).
-- **Feature freeze active:** See [docs/release-v1.5.0-contract.md](docs/release-v1.5.0-contract.md) for the v1.5.0 Public Beta release contract.
+- **Production release paused:** The v1.5.0 release-candidate freeze is suspended. Ordinary project development may proceed under normal repository controls. Work explicitly designated as resumed v1.5.0 release work must follow the [v1.5.0 Public Beta release contract](docs/release-v1.5.0-contract.md). No current work may claim RC, Public Beta launch, production readiness, browser certification, or Phase 0 completion without new evidence.
 - **Web app:** React 19 + Vite 8 + Dexie/IndexedDB PWA at the repo root.
 - **`App.tsx` is the composition root** — live Dexie data, sole `useCurrentDate()`, derived Home metrics, URL-synced navigation/layout (`src/navigation/viewRoutes.ts` + History API), shared preference notices, and view wiring. Pure helpers stay in `src/appUtils.ts`.
 - **Extracted React orchestration (do not re-inline into App):**
@@ -227,7 +227,7 @@ npm run check:bundle
 npm run test:e2e
 ```
 
-CI (`.github/workflows/ci.yml`): lint → unit tests with coverage (`npm run test:coverage`) → build → bundle check → dist path verification → Playwright E2E. On successful `push` or `workflow_dispatch` for `master`/`V2` only, `check` uploads that verified `dist` and a `deploy` job with `needs: check` publishes GitHub Pages from it. Pull requests run checks and never deploy. There is no separate deploy-only workflow.
+CI (`.github/workflows/ci.yml`): lint → unit tests with coverage (`npm run test:coverage`) → build → bundle check → dist path verification → Playwright E2E. Pushes to `master` and `V2` run the `check` job. Only a successful push or `workflow_dispatch` on `master` may upload `github-pages-dist` and deploy GitHub Pages. `V2` is validation-only and non-deploying. Pull requests run checks and never deploy. There is no separate deploy-only workflow.
 
 ## Human-oriented docs
 

@@ -46,7 +46,7 @@ For the recorded Phase 0 clean-install, validation, and preview baseline (includ
 
 Shared App suite reset lives in `src/test/appTestSetup.ts` (plus small focus/backup/home helpers). Prefer the matching feature suite when adding App-level coverage.
 
-Coverage (`vitest.config.ts`) instruments all production `src/**/*.{ts,tsx}` files and excludes tests, `src/test/**`, and `*.d.ts`. Thresholds stay at 80% lines/functions/statements and 70% branches. Do not lower those thresholds to green a change. CI enforces this gate with `npm run test:coverage` (not a separate plain `npm test` step). GitHub Pages deploys only from that CI workflow after `check` succeeds on `master` or `V2` (`push` or `workflow_dispatch`); pull requests never deploy.
+Coverage (`vitest.config.ts`) instruments all production `src/**/*.{ts,tsx}` files and excludes tests, `src/test/**`, and `*.d.ts`. Thresholds stay at 80% lines/functions/statements and 70% branches. Do not lower those thresholds to green a change. CI enforces this gate with `npm run test:coverage` (not a separate plain `npm test` step). GitHub Pages deploys only from that CI workflow after `check` succeeds on `master` (`push` or `workflow_dispatch`). `V2` continues to run CI checks but does not deploy. The hosted Pages site is currently a preview/testing deployment. Pull requests never deploy.
 
 ## Data Safety
 
