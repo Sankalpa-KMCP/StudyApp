@@ -133,12 +133,12 @@ Measured at baseline commit `75670e02757a43c358510b13d438b29203cb784f` under Nod
 |------|--------|
 | Clean `npm ci` | Pass (613 added / 614 audited) |
 | `npm run lint` | Pass |
-| `npm test` | **72** files / **750** tests passed; **0** failed / skipped / timed out |
-| `npm run test:coverage` (4-CPU affinity) | **72** files / **750** tests passed; statements **96.99%**; branches **91.99%**; functions **92.73%**; lines **96.99%**; **0** failed / skipped / timed out |
+| `npm test` | **75** files / **783** tests passed; **0** failed / skipped / timed out |
+| `npm run test:coverage` (4-CPU affinity) | **75** files / **783** tests passed; statements **94.62%**; branches **90.66%**; functions **89.04%**; lines **94.62%**; **0** failed / skipped / timed out |
 | `npm run build` | Pass (Vite **8.0.16**; PWA `generateSW`) |
-| `npm run check:bundle` | Pass - main JS raw **332,372** / gzip **95,221** (limit **512,000**); total JS raw **436,859** / gzip **129,524** (limit **1,200,000**) |
+| `npm run check:bundle` | Pass - main JS gzip **96,363** (limit **512,000**); total JS gzip **130,666** (limit **1,200,000**) |
 | Dist path / no-source-entry | Pass - `/StudyApp/assets/...` in `dist/index.html`; no `main.tsx`; no `dist/src` |
-| `CI=true` E2E | **108** passed; **0** failed / skipped / retries / flakes (also reconfirmed under a controlled Node 22 / npm 10.9.2 PATH for outer + nested `npm run dev`) |
+| `CI=true` E2E | **112** passed (includes **1** flaky); **0** failed / skipped / retries / flakes (also reconfirmed under a controlled Node 22 / npm 10.9.2 PATH for outer + nested `npm run dev`) |
 
 Representative production main chunk at baseline: `dist/assets/index-JgzJgmuN.js`.
 
@@ -254,7 +254,7 @@ Later phases should compare at least:
 5. `npm run build` success
 6. `npm run check:bundle` main/total gzip vs limits **512,000** / **1,200,000**
 7. Dist `/StudyApp/` path and no-source-entry checks
-8. `CI=true` Playwright E2E pass count (baseline **108**)
+8. `CI=true` Playwright E2E pass count (baseline **112**)
 9. Optional: Lighthouse desktop/mobile categories and core metrics on `http://127.0.0.1:4173/StudyApp/`
 10. Optional: production axe smoke (0 violations at baseline Home)
 
