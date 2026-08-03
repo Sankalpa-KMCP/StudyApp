@@ -60,6 +60,24 @@ describe('appUtils', () => {
     expect(groups[1].sessions.map((session) => session.id)).toEqual(['night', 'morning'])
   })
 
+  it('localDateKey matches local calendar fields and can differ from an ISO UTC date prefix', () => {
+    const localMorning = new Date(2026, 6, 23, 0, 30)
+    expect(localDateKey(localMorning)).toBe('2026-07-23')
+    expect(localDateKey(localMorning.toISOString())).toBe('2026-07-23')
+
+    // Host-independent characterization via offset-shifted UTC fields (same mechanism as CalendarStrip tests).
+    const aheadIso = '2026-07-22T19:00:00.000Z'
+    const behindIso = '2026-07-24T01:00:00.000Z'
+    const keyAtOffset = (value: string, timezoneOffsetMinutes: number) => {
+      const shifted = new Date(new Date(value).getTime() - timezoneOffsetMinutes * 60_000)
+      return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, '0')}-${String(shifted.getUTCDate()).padStart(2, '0')}`
+    }
+    expect(aheadIso.slice(0, 10)).toBe('2026-07-22')
+    expect(keyAtOffset(aheadIso, -330)).toBe('2026-07-23')
+    expect(behindIso.slice(0, 10)).toBe('2026-07-24')
+    expect(keyAtOffset(behindIso, 300)).toBe('2026-07-23')
+  })
+
   it('uses local calendar dates for today totals and parses valid local timestamps', () => {
     vi.useFakeTimers()
     const now = new Date(2026, 5, 29, 0, 30)
