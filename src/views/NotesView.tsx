@@ -46,27 +46,28 @@ export function NotesView({
 }) {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [draft, setDraft] = useState<NoteDraft>(() => emptyDraft())
-  const [validationError, setValidationError] = useState<string | null>(null)
+  const [validationError, setValidationError] = useState<{ reason: 'empty_title' | null, message: string | null }>({ reason: null, message: null })
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const handledEditorRequest = useRef(0)
+  const titleInputRef = useRef<HTMLInputElement>(null)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
   const { clearFeedback: clearRowFeedback, isPending: isRowPending, phase: rowPhase, message: rowMessage, run: runRow } = rowMutation
 
-  const noticePhase: MutationPhase = validationError
+  const noticePhase: MutationPhase = validationError.message
     ? 'error'
     : savePhase === 'success' || savePhase === 'error'
       ? savePhase
       : rowPhase === 'success' || rowPhase === 'error'
         ? rowPhase
         : 'idle'
-  const noticeMessage = validationError
+  const noticeMessage = validationError.message
     ?? (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
     ?? (rowPhase === 'success' || rowPhase === 'error' ? rowMessage : null)
 
   const openEditor = useCallback((note?: StudyNote) => {
-    setValidationError(null)
+    setValidationError({ reason: null, message: null })
     clearSaveFeedback()
     setEditingNoteId(note?.id ?? 'new')
     setDraft({
@@ -88,23 +89,26 @@ export function NotesView({
     if (isSaving) return
     setEditingNoteId(null)
     setDraft(emptyDraft(subjects[0]?.id ?? ''))
-    setValidationError(null)
+    setValidationError({ reason: null, message: null })
   }, [isSaving, subjects])
 
   const dismissNotice = () => {
-    setValidationError(null)
+    setValidationError({ reason: null, message: null })
     clearSaveFeedback()
     clearRowFeedback()
   }
 
   const saveNote = async () => {
-    setValidationError(null)
+    setValidationError({ reason: null, message: null })
     clearSaveFeedback()
     clearRowFeedback()
 
     const validated = validateNoteEditorDraft(draft)
     if (!validated.ok) {
-      setValidationError('Enter a note title.')
+      setValidationError({ reason: validated.reason, message: 'Enter a note title.' })
+      requestAnimationFrame(() => {
+        if (validated.reason === 'empty_title') titleInputRef.current?.focus()
+      })
       return
     }
 
@@ -124,7 +128,7 @@ export function NotesView({
       onSuccess: () => {
         setEditingNoteId(null)
         setDraft(emptyDraft(subjects[0]?.id ?? ''))
-        setValidationError(null)
+        setValidationError({ reason: null, message: null })
       },
     })
   }
@@ -132,7 +136,7 @@ export function NotesView({
   const deleteNote = async (note: StudyNote) => {
     if (pendingDeleteId || isSaving || isRowPending) return
 
-    setValidationError(null)
+    setValidationError({ reason: null, message: null })
     clearSaveFeedback()
     clearRowFeedback()
     setPendingDeleteId(note.id)
@@ -147,7 +151,7 @@ export function NotesView({
           if (editingNoteId === note.id) {
             setEditingNoteId(null)
             setDraft(emptyDraft(subjects[0]?.id ?? ''))
-            setValidationError(null)
+            setValidationError({ reason: null, message: null })
           }
         },
       })
@@ -162,10 +166,17 @@ export function NotesView({
   return (
     <section className="workspace-panel" aria-labelledby="notes-workspace-title">
       <PanelHeader title="Notes" description="Keep study notes searchable and close to the work." actionLabel="New note" onAction={() => openEditor()} />
-      <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
+      <MutationNotice id="mutation-notice-message" phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
       {editingNoteId ? (
         <div className="editor-card note-editor" aria-busy={isSaving || undefined}>
-          <TextInput label="Note title" value={draft.title} onChange={(title) => setDraft({ ...draft, title })} />
+          <TextInput
+            label="Note title"
+            value={draft.title}
+            onChange={(title) => setDraft({ ...draft, title })}
+            inputRef={titleInputRef}
+            invalid={validationError.reason === 'empty_title'}
+            describedBy={validationError.reason === 'empty_title' ? 'mutation-notice-message' : undefined}
+          />
           <SubjectSelect subjects={subjects} value={draft.subjectId} onChange={(subjectId) => setDraft({ ...draft, subjectId })} />
           <TextInput label="Tags" value={draft.tags} onChange={(tags) => setDraft({ ...draft, tags })} />
           <label className="field field-full">

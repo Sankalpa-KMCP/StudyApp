@@ -20,6 +20,13 @@ import { formatDateTime, todayInputValue, toInputDate, toInputTime } from '../ap
 import { CalendarStrip } from '../components/CalendarStrip'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 import { validateCalendarEventEditorDraft } from '../validation/editorDraftValidation'
+
+type CalendarValidationField = 'title' | 'start' | 'duration'
+
+const EVENT_TITLE_ERROR_ID = 'event-title-error'
+const EVENT_START_ERROR_ID = 'event-start-error'
+const EVENT_DURATION_ERROR_ID = 'event-duration-error'
+
 import {
   CALENDAR_EDITOR_DURATION_MAX,
   CALENDAR_EDITOR_DURATION_MIN,
@@ -61,26 +68,32 @@ export function CalendarView({
   const [editingEventId, setEditingEventId] = useState<string | null>(null)
   const [draft, setDraft] = useState<EventDraft>(() => emptyDraft())
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [validationField, setValidationField] = useState<CalendarValidationField | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const titleFieldRef = useRef<HTMLInputElement | null>(null)
+  const dateFieldRef = useRef<HTMLInputElement | null>(null)
+  const durationFieldRef = useRef<HTMLInputElement | null>(null)
   const handledEditorRequest = useRef(0)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
   const { clearFeedback: clearRowFeedback, isPending: isRowPending, phase: rowPhase, message: rowMessage, run: runRow } = rowMutation
 
-  const noticePhase: MutationPhase = validationError
-    ? 'error'
-    : savePhase === 'success' || savePhase === 'error'
-      ? savePhase
-      : rowPhase === 'success' || rowPhase === 'error'
-        ? rowPhase
-        : 'idle'
-  const noticeMessage = validationError
-    ?? (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
+  const noticePhase: MutationPhase = savePhase === 'success' || savePhase === 'error'
+    ? savePhase
+    : rowPhase === 'success' || rowPhase === 'error'
+      ? rowPhase
+      : 'idle'
+  const noticeMessage = (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
     ?? (rowPhase === 'success' || rowPhase === 'error' ? rowMessage : null)
 
-  const openEditor = useCallback((event?: CalendarEvent) => {
+  const clearValidation = useCallback(() => {
     setValidationError(null)
+    setValidationField(null)
+  }, [])
+
+  const openEditor = useCallback((event?: CalendarEvent) => {
+    clearValidation()
     clearSaveFeedback()
     if (event) {
       const start = new Date(event.startAt)
@@ -103,7 +116,7 @@ export function CalendarView({
 
     setEditingEventId('new')
     setDraft(emptyDraft(subjects[0]?.id ?? ''))
-  }, [clearSaveFeedback, subjects])
+  }, [clearSaveFeedback, clearValidation, subjects])
 
   useEffect(() => {
     if (openEditorRequest > handledEditorRequest.current) {
@@ -116,31 +129,37 @@ export function CalendarView({
     if (isSaving) return
     setEditingEventId(null)
     setDraft(emptyDraft(subjects[0]?.id ?? ''))
-    setValidationError(null)
-  }, [isSaving, subjects])
+    clearValidation()
+  }, [clearValidation, isSaving, subjects])
 
   const dismissNotice = () => {
-    setValidationError(null)
+    clearValidation()
     clearSaveFeedback()
     clearRowFeedback()
   }
 
   const saveEvent = async () => {
-    setValidationError(null)
+    clearValidation()
     clearSaveFeedback()
     clearRowFeedback()
 
     const validated = validateCalendarEventEditorDraft(draft)
     if (!validated.ok) {
       if (validated.reason === 'empty_title') {
+        setValidationField('title')
         setValidationError('Enter an event title.')
+        titleFieldRef.current?.focus()
         return
       }
       if (validated.reason === 'invalid_start') {
+        setValidationField('start')
         setValidationError('Enter a valid date and start time.')
+        dateFieldRef.current?.focus()
         return
       }
+      setValidationField('duration')
       setValidationError('Duration must be at least 15 minutes.')
+      durationFieldRef.current?.focus()
       return
     }
 
@@ -160,7 +179,7 @@ export function CalendarView({
       onSuccess: () => {
         setEditingEventId(null)
         setDraft(emptyDraft(subjects[0]?.id ?? ''))
-        setValidationError(null)
+        clearValidation()
       },
     })
   }
@@ -168,7 +187,7 @@ export function CalendarView({
   const deleteEvent = async (event: CalendarEvent) => {
     if (pendingDeleteId || isSaving || isRowPending) return
 
-    setValidationError(null)
+    clearValidation()
     clearSaveFeedback()
     clearRowFeedback()
     setPendingDeleteId(event.id)
@@ -183,7 +202,7 @@ export function CalendarView({
           if (editingEventId === event.id) {
             setEditingEventId(null)
             setDraft(emptyDraft(subjects[0]?.id ?? ''))
-            setValidationError(null)
+            clearValidation()
           }
         },
       })
@@ -194,6 +213,9 @@ export function CalendarView({
 
   const loadingLabel = editingEventId && editingEventId !== 'new' ? 'Saving event...' : 'Creating event...'
   const rowActionsLocked = isSaving || Boolean(pendingDeleteId)
+  const titleInvalid = validationField === 'title'
+  const startInvalid = validationField === 'start'
+  const durationInvalid = validationField === 'duration'
 
   return (
     <section className="workspace-panel" aria-labelledby="calendar-workspace-title">
@@ -202,17 +224,60 @@ export function CalendarView({
       <CalendarStrip events={events} />
       {editingEventId ? (
         <div className="editor-card" aria-busy={isSaving || undefined}>
-          <TextInput label="Event title" value={draft.title} onChange={(title) => setDraft({ ...draft, title })} />
+          <TextInput
+            id="event-title"
+            label="Event title"
+            value={draft.title}
+            inputRef={titleFieldRef}
+            invalid={titleInvalid}
+            describedBy={titleInvalid ? EVENT_TITLE_ERROR_ID : undefined}
+            onChange={(title) => setDraft({ ...draft, title })}
+          />
+          {titleInvalid ? (
+            <p id={EVENT_TITLE_ERROR_ID} className="settings-feedback error" role="alert">
+              {validationError}
+            </p>
+          ) : null}
           <SubjectSelect subjects={subjects} value={draft.subjectId} onChange={(subjectId) => setDraft({ ...draft, subjectId })} />
-          <TextInput label="Date" type="date" value={draft.date} onChange={(date) => setDraft({ ...draft, date })} />
-          <TextInput label="Time" type="time" value={draft.time} onChange={(time) => setDraft({ ...draft, time })} />
+          <TextInput
+            id="event-date"
+            label="Date"
+            type="date"
+            value={draft.date}
+            inputRef={dateFieldRef}
+            invalid={startInvalid}
+            describedBy={startInvalid ? EVENT_START_ERROR_ID : undefined}
+            onChange={(date) => setDraft({ ...draft, date })}
+          />
+          <TextInput
+            label="Time"
+            type="time"
+            value={draft.time}
+            invalid={startInvalid}
+            describedBy={startInvalid ? EVENT_START_ERROR_ID : undefined}
+            onChange={(time) => setDraft({ ...draft, time })}
+          />
+          {startInvalid ? (
+            <p id={EVENT_START_ERROR_ID} className="settings-feedback error" role="alert">
+              {validationError}
+            </p>
+          ) : null}
           <NumberInput
+            id="event-duration"
             label="Duration"
             value={draft.duration}
+            inputRef={durationFieldRef}
+            invalid={durationInvalid}
+            describedBy={durationInvalid ? EVENT_DURATION_ERROR_ID : undefined}
             min={CALENDAR_EDITOR_DURATION_MIN}
             max={CALENDAR_EDITOR_DURATION_MAX}
             onChange={(duration) => setDraft({ ...draft, duration })}
           />
+          {durationInvalid ? (
+            <p id={EVENT_DURATION_ERROR_ID} className="settings-feedback error" role="alert">
+              {validationError}
+            </p>
+          ) : null}
           <TextInput label="Location" value={draft.location} onChange={(location) => setDraft({ ...draft, location })} />
           <EditorActions
             onSave={() => void saveEvent()}

@@ -20,6 +20,11 @@ import {
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 import { validateFlashcardEditorDraft } from '../validation/editorDraftValidation'
 
+type FlashcardValidationField = 'front' | 'back'
+
+const FLASHCARD_FRONT_ERROR_ID = 'flashcard-front-error'
+const FLASHCARD_BACK_ERROR_ID = 'flashcard-back-error'
+
 type CardDraft = {
   front: string
   back: string
@@ -46,27 +51,32 @@ export function FlashcardsView(props: {
   const [editingCardId, setEditingCardId] = useState<string | null>(null)
   const [draft, setDraft] = useState<CardDraft>(() => emptyDraft())
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [validationField, setValidationField] = useState<FlashcardValidationField | null>(null)
   const [pendingCardId, setPendingCardId] = useState<string | null>(null)
   const [pendingCardKind, setPendingCardKind] = useState<'review' | 'delete' | null>(null)
+  const frontFieldRef = useRef<HTMLInputElement | null>(null)
+  const backFieldRef = useRef<HTMLInputElement | null>(null)
   const handledEditorRequest = useRef(0)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
   const { clearFeedback: clearRowFeedback, isPending: isRowPending, phase: rowPhase, message: rowMessage, run: runRow } = rowMutation
 
-  const noticePhase: MutationPhase = validationError
-    ? 'error'
-    : savePhase === 'success' || savePhase === 'error'
-      ? savePhase
-      : rowPhase === 'success' || rowPhase === 'error'
-        ? rowPhase
-        : 'idle'
-  const noticeMessage = validationError
-    ?? (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
+  const noticePhase: MutationPhase = savePhase === 'success' || savePhase === 'error'
+    ? savePhase
+    : rowPhase === 'success' || rowPhase === 'error'
+      ? rowPhase
+      : 'idle'
+  const noticeMessage = (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
     ?? (rowPhase === 'success' || rowPhase === 'error' ? rowMessage : null)
 
-  const openEditor = useCallback((card?: Flashcard) => {
+  const clearValidation = useCallback(() => {
     setValidationError(null)
+    setValidationField(null)
+  }, [])
+
+  const openEditor = useCallback((card?: Flashcard) => {
+    clearValidation()
     clearSaveFeedback()
     setEditingCardId(card?.id ?? 'new')
     setDraft({
@@ -74,7 +84,7 @@ export function FlashcardsView(props: {
       back: card?.back ?? '',
       subjectId: card?.subjectId ?? props.subjects[0]?.id ?? '',
     })
-  }, [clearSaveFeedback, props.subjects])
+  }, [clearSaveFeedback, clearValidation, props.subjects])
 
   useEffect(() => {
     if (openEditorRequest > handledEditorRequest.current) {
@@ -87,23 +97,31 @@ export function FlashcardsView(props: {
     if (isSaving) return
     setEditingCardId(null)
     setDraft(emptyDraft(props.subjects[0]?.id ?? ''))
-    setValidationError(null)
-  }, [isSaving, props.subjects])
+    clearValidation()
+  }, [clearValidation, isSaving, props.subjects])
 
   const dismissNotice = () => {
-    setValidationError(null)
+    clearValidation()
     clearSaveFeedback()
     clearRowFeedback()
   }
 
   const saveCard = async () => {
-    setValidationError(null)
+    clearValidation()
     clearSaveFeedback()
     clearRowFeedback()
 
     const validated = validateFlashcardEditorDraft(draft)
     if (!validated.ok) {
-      setValidationError('Enter both the front and back of the flashcard.')
+      if (!draft.front.trim()) {
+        setValidationField('front')
+        setValidationError('Enter the front of the flashcard.')
+        frontFieldRef.current?.focus()
+      } else {
+        setValidationField('back')
+        setValidationError('Enter the back of the flashcard.')
+        backFieldRef.current?.focus()
+      }
       return
     }
 
@@ -123,7 +141,7 @@ export function FlashcardsView(props: {
       onSuccess: () => {
         setEditingCardId(null)
         setDraft(emptyDraft(props.subjects[0]?.id ?? ''))
-        setValidationError(null)
+        clearValidation()
       },
     })
   }
@@ -131,7 +149,7 @@ export function FlashcardsView(props: {
   const reviewCard = async (card: Flashcard, status: 'learning' | 'remembered') => {
     if (pendingCardId || isSaving || isRowPending) return
 
-    setValidationError(null)
+    clearValidation()
     clearSaveFeedback()
     clearRowFeedback()
     setPendingCardId(card.id)
@@ -157,7 +175,7 @@ export function FlashcardsView(props: {
   const deleteCard = async (card: Flashcard) => {
     if (pendingCardId || isSaving || isRowPending) return
 
-    setValidationError(null)
+    clearValidation()
     clearSaveFeedback()
     clearRowFeedback()
     setPendingCardId(card.id)
@@ -173,7 +191,7 @@ export function FlashcardsView(props: {
           if (editingCardId === card.id) {
             setEditingCardId(null)
             setDraft(emptyDraft(props.subjects[0]?.id ?? ''))
-            setValidationError(null)
+            clearValidation()
           }
         },
       })
@@ -185,6 +203,8 @@ export function FlashcardsView(props: {
 
   const loadingLabel = editingCardId && editingCardId !== 'new' ? 'Saving flashcard...' : 'Creating flashcard...'
   const cardActionsLocked = isSaving || Boolean(pendingCardId)
+  const frontInvalid = validationField === 'front'
+  const backInvalid = validationField === 'back'
 
   return (
     <section className="workspace-panel" aria-labelledby="flashcards-workspace-title">
@@ -192,8 +212,34 @@ export function FlashcardsView(props: {
       <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
       {editingCardId ? (
         <div className="editor-card" aria-busy={isSaving || undefined}>
-          <TextInput label="Front" value={draft.front} onChange={(front) => setDraft({ ...draft, front })} />
-          <TextInput label="Back" value={draft.back} onChange={(back) => setDraft({ ...draft, back })} />
+          <TextInput
+            id="flashcard-front"
+            label="Front"
+            value={draft.front}
+            inputRef={frontFieldRef}
+            invalid={frontInvalid}
+            describedBy={frontInvalid ? FLASHCARD_FRONT_ERROR_ID : undefined}
+            onChange={(front) => setDraft({ ...draft, front })}
+          />
+          {frontInvalid ? (
+            <p id={FLASHCARD_FRONT_ERROR_ID} className="settings-feedback error" role="alert">
+              {validationError}
+            </p>
+          ) : null}
+          <TextInput
+            id="flashcard-back"
+            label="Back"
+            value={draft.back}
+            inputRef={backFieldRef}
+            invalid={backInvalid}
+            describedBy={backInvalid ? FLASHCARD_BACK_ERROR_ID : undefined}
+            onChange={(back) => setDraft({ ...draft, back })}
+          />
+          {backInvalid ? (
+            <p id={FLASHCARD_BACK_ERROR_ID} className="settings-feedback error" role="alert">
+              {validationError}
+            </p>
+          ) : null}
           <SubjectSelect subjects={props.subjects} value={draft.subjectId} onChange={(subjectId) => setDraft({ ...draft, subjectId })} />
           <EditorActions
             onSave={() => void saveCard()}
