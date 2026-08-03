@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { FileText } from 'lucide-react'
+import { FileText } from '../components/icons'
 import {
   PanelHeader,
   TextInput,

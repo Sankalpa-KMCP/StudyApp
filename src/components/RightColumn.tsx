@@ -2,7 +2,7 @@ import { clamp, calculateStreak, formatHours, formatMinutes, formatShortTime, li
 import type { CalendarEvent, StudySession, StudySubject } from '../db/types'
 import type { WeeklyStudyDay } from '../appUtils'
 import { EmptyState, ProgressBar } from './ui'
-import { BarChart3, CalendarDays, Flame } from 'lucide-react'
+import { BarChart3, CalendarDays, Flame } from './icons'
 
 export function WeeklyProgress({ days }: { days: WeeklyStudyDay[] }) {
   const total = days.reduce((sum, day) => sum + day.hours, 0)

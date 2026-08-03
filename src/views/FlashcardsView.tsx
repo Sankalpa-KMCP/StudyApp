@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { NotebookText } from 'lucide-react'
+import { NotebookText } from '../components/icons'
 import type { Flashcard, StudySubject, FlashcardStatus } from '../db/types'
 import { createId, nowIso, studyDb } from '../db/studyDb'
 import { isFlashcardDue, formatFlashcardDue, nextFlashcardSchedule } from '../appUtils'

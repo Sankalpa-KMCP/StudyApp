@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { Check } from 'lucide-react'
+import { Check } from './icons'
 import { ProgressBar, EmptyState, PanelHeader, MetricCard, SubjectCard } from './ui'
 import type { StudySubject } from '../db/types'
 

@@ -1,7 +1,7 @@
-import { Home, Check, FileText, BookOpen, CalendarDays, NotebookText, TrendingUp, Target, PanelLeftOpen, PanelLeftClose, Settings } from 'lucide-react'
+import { Home, Check, FileText, BookOpen, CalendarDays, NotebookText, TrendingUp, Target, PanelLeftOpen, PanelLeftClose, Settings, type AppIcon } from './icons'
 import type { View } from '../App'
 
-const navItems: Array<{ label: View; icon: typeof Home }> = [
+const navItems: Array<{ label: View; icon: AppIcon }> = [
   { label: 'Home', icon: Home },
   { label: 'Tasks', icon: Check },
   { label: 'Notes', icon: FileText },

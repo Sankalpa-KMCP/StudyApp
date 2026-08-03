@@ -1,7 +1,7 @@
 import { clamp } from '../appUtils'
 import type { StudySubject } from '../db/types'
 import type { MutationPhase } from '../hooks/useMutationState'
-import { BookOpen, Check, Edit3, Plus, Save, Trash2, X } from 'lucide-react'
+import { BookOpen, Edit3, Plus, Save, Trash2, X, type AppIcon } from './icons'
 import type { Ref } from 'react'
 
 export function SubjectCard({ subject, progressValue = subject.progress }: { subject: StudySubject; progressValue?: number }) {
@@ -17,7 +17,7 @@ export function SubjectCard({ subject, progressValue = subject.progress }: { sub
   )
 }
 
-export function EmptyState({ icon: Icon, title, body, actionLabel, onAction }: { icon: typeof Check; title: string; body: string; actionLabel: string; onAction: () => void }) {
+export function EmptyState({ icon: Icon, title, body, actionLabel, onAction }: { icon: AppIcon; title: string; body: string; actionLabel: string; onAction: () => void }) {
   return (
     <div className="empty-state">
       <div className="empty-icon">

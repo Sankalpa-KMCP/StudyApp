@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Check, Square } from 'lucide-react'
+import { Check, Square } from '../components/icons'
 import { clamp } from '../appUtils'
 import { createId, nowIso, studyDb } from '../db/studyDb'
 import type { StudyTask, StudySubject, TaskPriority } from '../db/types'

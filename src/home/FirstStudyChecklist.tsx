@@ -1,4 +1,4 @@
-import { ArrowRight, Check } from 'lucide-react'
+import { ArrowRight, Check } from '../components/icons'
 
 type FirstStudyStep = {
   title: string

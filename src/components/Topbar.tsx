@@ -1,4 +1,4 @@
-import { Search, X, Bell, CircleUserRound } from 'lucide-react'
+import { Search, X, Bell, CircleUserRound } from './icons'
 import type { View } from '../App'
 import { useEffect, useRef } from 'react'
 

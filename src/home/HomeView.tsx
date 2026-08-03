@@ -1,4 +1,4 @@
-import { BookOpen, Check, FileText, Flame, NotebookText, Pause, Play, Square, StopCircle, Target, Search } from 'lucide-react'
+import { BookOpen, Check, FileText, Flame, NotebookText, Pause, Play, Square, StopCircle, Target, Search, type AppIcon } from '../components/icons'
 import {
   formatDate,
   formatDateTime,
@@ -115,7 +115,7 @@ export function HomeView(props: {
   )
 }
 
-function InsightTile({ icon: Icon, label, value, detail }: { icon: typeof Target; label: string; value: string; detail: string }) {
+function InsightTile({ icon: Icon, label, value, detail }: { icon: AppIcon; label: string; value: string; detail: string }) {
   return (
     <article className="insight-tile">
       <div className="insight-icon">

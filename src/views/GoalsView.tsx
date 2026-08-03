@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { Target } from 'lucide-react'
+import { Target } from '../components/icons'
 import { isGoalMetric, type StudyGoal, type StudySession, type GoalPeriod, type GoalMetric } from '../db/types'
 import { createId, nowIso, studyDb } from '../db/studyDb'
 import {
