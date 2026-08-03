@@ -112,6 +112,53 @@ $env:CI="true"; npm run test:e2e
 npm run build-storybook
 ```
 
+## Accessibility maintenance
+
+### Semantics
+
+- Preserve **one primary `h1` per page**; Topbar context (e.g. “Dashboard”) must stay visible but **outside the heading outline**.
+- Decorative icons inside already named controls must use `aria-hidden`.
+- Named chart wrappers (weekly bar chart, Study Time line chart) need a valid role such as `role="img"` plus a concise accessible name; decorative SVG/path/day-label descendants must not duplicate that name in the accessibility tree.
+
+### Keyboard and focus
+
+- Non-modal popovers (Notifications) must stay keyboard-dismissible; Escape must restore focus to the trigger where implemented.
+- Do not add focus traps to inline editors or confirmations.
+- Fixed mobile bottom navigation must not obscure focused content (`scroll-padding-bottom` at the bottom-nav breakpoint).
+- Preserve visible `:focus-visible` indicators.
+
+### Forms and announcements
+
+- Field-specific validation (Tasks, Goals) should use stable error IDs, `aria-invalid`, and `aria-describedby`.
+- Persistence failures remain form-level alerts via `MutationNotice`; do not duplicate the same validation message into competing live regions.
+- Routine success uses polite `status`; blocking errors use `alert`.
+- Rapidly changing focus timer values must **not** be live-announced every tick (keep `.session-elapsed` as ordinary text).
+
+### Contrast and themes
+
+- Preserve automated theme-token contrast contracts in `src/styles/themeTokenContrast.ts` / `.test.ts`.
+- Normal text and meaningful control-boundary pairs must continue passing committed thresholds.
+- Monochrome remains the base bare `:root`; token changes require all-theme contrast verification.
+
+### Axe policy
+
+- Playwright axe scans (`e2e/a11y.spec.ts`, `e2e/a11yHelpers.ts`) must remain **unsuppressed**.
+- Do not disable rules, exclude application selectors, or add known-violation baselines merely to obtain green tests.
+- Genuine violations require focused remediation.
+- Keep accessibility specs in normal E2E discovery (`testDir: ./e2e`).
+
+After broad accessibility work, run:
+
+```bash
+npm test -- --run
+npm run lint
+npm run build
+npm run check:bundle
+npm run build-storybook
+# PowerShell clean Playwright server:
+$env:CI="true"; npm run test:e2e
+```
+
 ## Hard rules
 
 1. **Local-first only** — Do not add backend servers, cloud DB, auth, or telemetry without explicit user request.
