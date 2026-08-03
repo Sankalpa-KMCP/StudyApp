@@ -55,7 +55,6 @@ Normal local development does not require a `.env` file.
 | `npm run lint` | ESLint |
 | `npm run check:bundle` | Built JS gzip budget check |
 | `npm run test:e2e` | Playwright end-to-end tests |
-| `npm run storybook` | Component Storybook (`http://localhost:6006`) |
 
 ## Structure
 
@@ -74,7 +73,7 @@ Normal local development does not require a `.env` file.
 
 Styling uses **plain global CSS** (no CSS Modules, CSS-in-JS, or per-component stylesheet imports).
 
-- `src/index.css` is the **single ordered entry** imported by the app (`src/main.tsx`) and Storybook (`.storybook/preview.ts`).
+- `src/index.css` is the **single ordered entry** imported by the app (`src/main.tsx`).
 - Modules live under `src/styles/` and load in a fixed cascade: fonts → tokens/themes → base → layout → components → home → workspaces → settings → progress → mixed → responsive → preferences.
 - Seven themes share CSS variables in `tokens.css` (Monochrome uses base `:root` defaults).
 - Width breakpoints and reduced-motion / reduced-transparency rules load **last** so they continue to override earlier declarations.
