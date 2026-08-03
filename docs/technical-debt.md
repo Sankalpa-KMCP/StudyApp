@@ -67,16 +67,16 @@ Every active entry includes:
 
 | Field | Value |
 |-------|-------|
-| Status | OPEN |
+| Status | RESOLVED |
 | Severity | High |
 | Release criticality | Release-critical |
 | Owner role | Dependency and Release Owner |
-| Planned phase | Next Dependency Maintenance Cycle |
+| Planned phase | Phase 1 — Repository Baseline Reconciliation |
 | Category | Dependency hygiene / security review |
-| User impact | Contributors cannot currently distinguish harmless advisories from issues that need near-term remediation, and clean installs continue to surface deprecation warnings that obscure future signal. |
-| Verification evidence | [docs/phase-0-baseline.md](phase-0-baseline.md) records `npm ci` with **6** audit findings (**1** low, **5** high) plus deprecation warnings for `source-map@0.8.0-beta.0`, `glob@11.1.0`, and `glob@10.5.0`. No exploitability analysis or remediation plan is yet tracked. |
-| Resolution / acceptance condition | Classify each baseline audit finding and deprecation warning, identify whether it is reachable in supported workflows, and either remediate or document why it remains accepted. Any remediation must preserve lockfile integrity and green validation gates. |
-| Notes / constraints | Severity reflects **untriaged engineering/security risk**, not npm's package labels alone. This entry does not authorize `npm audit fix` without deliberate review. |
+| User impact | Historical. Contributors previously could not distinguish harmless advisories from issues needing remediation, causing alert fatigue and obscuring future signal. |
+| Verification evidence | Resolved. Deliberate review confirmed 6 baseline audit findings (`brace-expansion`, `esbuild`, `fast-uri`, `js-yaml`, `postcss`, `undici`) and 3 deprecations (`source-map@0.8.0-beta.0`, `glob@11.1.0`, `glob@10.5.0`). All belong exclusively to `devDependencies` (`vite`, `eslint`, `vitest`, `vite-plugin-pwa` trees) and are unreachable in production. `npm 10.9.2 audit fix` remediated 5/6 findings cleanly. Validated under Node v22.23.2 and npm 10.9.2; canonical validation gates passed: lint, build, test:coverage, check:bundle, and test:e2e. `npm audit --omit=dev` confirms 0 production vulnerabilities. |
+| Resolution / acceptance condition | Classify each baseline audit finding and deprecation warning, identify whether it is reachable in supported workflows, and either remediate or document why it remains accepted. (Condition met). |
+| Notes / constraints | The remaining `esbuild` finding (arbitrary file read in Windows dev server) and `glob`/`source-map` deprecations are **ACCEPTED** as they pose zero risk to production users and acceptable risk to local trusted development environments. Future re-review trigger: Next Dependency Maintenance Cycle. |
 
 ### TD-003 - Supported toolchain selection depends on explicit local wrapper discipline
 
@@ -157,13 +157,13 @@ Every active entry includes:
 
 | Field | Value |
 |-------|-------|
-| Status | OPEN |
+| Status | RESOLVED |
 | Severity | Medium |
 | Release criticality | Non-release-critical |
 | Owner role | Accessibility Owner |
-| Planned phase | Ordinary Development — Maintenance |
+| Planned phase | Phase 1 — Repository Baseline Reconciliation |
 | Category | Accessibility / forms |
-| User impact | Some editors may still rely on generic mutation notices or visual validation without complete field-specific `aria-invalid` / `aria-describedby` wiring, making error recovery less precise for assistive technologies. |
-| Verification evidence | Current code shows field-level associations in `src/views/GoalsView.tsx` and `src/views/ProgressView.tsx`, while other editors such as `src/views/NotesView.tsx`, `src/views/CalendarView.tsx`, and `src/views/FlashcardsView.tsx` still surface `MutationNotice` but have no visible field-level validation wiring in the tracked evidence review. |
-| Resolution / acceptance condition | For each remaining editor with local validation, associate validation messages to the responsible control using stable IDs and `aria-describedby`, verify with focused tests, and keep form-level mutation notices for persistence failures only. |
-| Notes / constraints | This entry is intentionally scoped to editors with local validation; it should not duplicate successful Task/Goal/Progress coverage. |
+| User impact | Historical. Some editors previously relied on generic mutation notices or visual validation without complete field-specific `aria-invalid` / `aria-describedby` wiring, making error recovery less precise for assistive technologies. |
+| Verification evidence | Resolved via updates to `NotesView.tsx`, `CalendarView.tsx`, `FlashcardsView.tsx`, and shared input support in `ui.tsx` providing field-level error associations. Verified by focused workspace test coverage in `App.workspaces.test.tsx` (50 passing tests) asserting `aria-invalid` and `aria-describedby` presence on validation failures. Lint and build gates both pass. |
+| Resolution / acceptance condition | For each remaining editor with local validation, associate validation messages to the responsible control using stable IDs and `aria-describedby`, verify with focused tests, and keep form-level mutation notices for persistence failures only. (Condition met). |
+| Notes / constraints | This entry is intentionally scoped to editors with local validation; it should not duplicate successful Task/Goal/Progress coverage. Do not claim manual assistive-technology or browser certification based on this. |
