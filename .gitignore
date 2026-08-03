@@ -11,8 +11,13 @@ node_modules
 coverage
 storybook-static
 test-results
+playwright-report
+blob-report
 dist
 dist-ssr
+.vite
+.eslintcache
+*.tsbuildinfo
 *.local
 /screenshot-*.png
 
