@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { formatShortTime, toInputDate, toInputTime } from './appUtils'
 import { formatHeroDate } from './components/heroDate'
@@ -84,6 +84,14 @@ describe('App', () => {
     themeColorMeta.setAttribute('content', '#111111')
     await studyDb.delete()
     await studyDb.open()
+  })
+
+  afterEach(async () => {
+    vi.useRealTimers()
+    // Let deferred focus settle macrotasks finish before the next test wipes IndexedDB.
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
   })
 
   it('renders an empty database-backed dashboard shell', async () => {
@@ -727,11 +735,11 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Progress' }))
     const editSessionButton = screen.getByLabelText(/Edit Physics session at/)
     await user.click(editSessionButton)
-    expect(screen.getByLabelText('Subject')).toHaveFocus()
+    await waitFor(() => expect(screen.getByLabelText('Subject')).toHaveFocus())
     await user.clear(screen.getByLabelText('Duration (minutes)'))
     await user.type(screen.getByLabelText('Duration (minutes)'), '35')
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(editSessionButton).toHaveFocus()
+    await waitFor(() => expect(editSessionButton).toHaveFocus())
     expect((await studyDb.studySessions.toArray())[0].minutes).toBe(30)
 
     await user.click(editSessionButton)
@@ -743,7 +751,7 @@ describe('App', () => {
 
     await waitFor(async () => expect((await studyDb.studySessions.toArray())[0]).toMatchObject({ minutes: 45, note: 'Momentum and force review' }))
     await waitFor(() => expect(screen.getByLabelText(/Physics, .*45m/)).toBeInTheDocument())
-    expect(editSessionButton).toHaveFocus()
+    await waitFor(() => expect(editSessionButton).toHaveFocus())
 
     const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
     await user.click(screen.getByLabelText(/Delete Physics session at/))
@@ -2909,7 +2917,7 @@ describe('App', () => {
     const nearlyDone = makeDurableFocusSession({
       id: 'focus-auto-complete',
       subjectId: 'subj-cov',
-      startedAt: new Date(Date.now() - (25 * 60_000 - 40)).toISOString(),
+      startedAt: new Date(Date.now() - (25 * 60_000 - 500)).toISOString(),
       plannedMinutes: 25,
     })
     await createActiveFocusSession(nearlyDone)
@@ -3286,10 +3294,11 @@ describe('App', () => {
 
   it('freezes timed auto-complete while paused and finishes remaining time after resume', async () => {
     const user = userEvent.setup()
+    const remainingMs = 500
     await createActiveFocusSession(makeDurableFocusSession({
       id: 'focus-timed-pause',
       subjectId: '',
-      startedAt: new Date(Date.now() - (25 * 60_000 - 80)).toISOString(),
+      startedAt: new Date(Date.now() - (25 * 60_000 - remainingMs)).toISOString(),
       plannedMinutes: 25,
       status: 'paused',
       pausedAt: new Date().toISOString(),
@@ -3298,7 +3307,9 @@ describe('App', () => {
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Resume' })).toBeInTheDocument()
-    await new Promise((resolve) => window.setTimeout(resolve, 120))
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 120))
+    })
     expect(await studyDb.studySessions.count()).toBe(0)
     expect(await getActiveFocusSession()).toMatchObject({ status: 'paused' })
 
@@ -3409,7 +3420,7 @@ describe('App', () => {
       expect(screen.queryByText(/Session complete:/)).not.toBeInTheDocument()
 
       rejectPause()
-      expect(await screen.findByText('Could not pause the focus session. Try again.')).toBeInTheDocument()
+      expect(await screen.findByRole('alert')).toHaveTextContent('Could not pause the focus session. Try again.')
 
       await waitFor(async () => {
         expect(await studyDb.studySessions.count()).toBe(1)
@@ -3737,7 +3748,7 @@ describe('App', () => {
       expect(await studyDb.studySessions.count()).toBe(0)
 
       rejectPause()
-      expect(await screen.findByText('Could not pause the focus session. Try again.')).toBeInTheDocument()
+      expect(await screen.findByRole('alert')).toHaveTextContent('Could not pause the focus session. Try again.')
 
       await waitFor(async () => {
         expect(await studyDb.studySessions.count()).toBe(1)

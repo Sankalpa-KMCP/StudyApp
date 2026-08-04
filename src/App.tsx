@@ -457,7 +457,11 @@ function App() {
     const deferredId = deferredAutoCompleteSessionIdRef.current
     if (!deferredId) return
     deferredAutoCompleteSessionIdRef.current = null
-    void evaluateTimedCompletion(deferredId)
+    // Yield so React can commit pause/resume failure notices before deferred
+    // auto-complete reuses the shared sessionNotice slot.
+    window.setTimeout(() => {
+      void evaluateTimedCompletion(deferredId)
+    }, 0)
   }, [evaluateTimedCompletion])
 
   const pauseSession = useCallback(async () => {
