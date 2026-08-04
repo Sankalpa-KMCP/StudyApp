@@ -33,7 +33,7 @@ The app uses plain CSS, Vite, React, Dexie, and lucide icons. Do not add a UI/ch
 ## Adding an E2E spec
 
 1. Create `e2e/<feature>.spec.ts` beside existing specs.
-2. Start with `page.goto('/')` and wait for the Dashboard or Good morning heading.
+2. Start with `page.goto('/')` and wait for the Home greeting heading (`Good morning`, `Good afternoon`, or `Good evening` — see `HOME_GREETING_HEADING` in `e2e/a11yHelpers.ts`).
 3. Run `npm run test:e2e -- e2e/<feature>.spec.ts` locally before pushing.
 
 ## Shared UI components
