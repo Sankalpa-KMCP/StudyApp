@@ -13,8 +13,12 @@ export default mergeConfig(
       include: ['src/**/*.{test,spec}.{ts,tsx}'],
       coverage: {
         provider: 'v8',
-        include: ['src/App.tsx'],
-        exclude: ['src/**/*.test.tsx', 'src/test/**'],
+        include: [
+          'src/App.tsx',
+          'src/hooks/useThemePreference.ts',
+          'src/hooks/useSidebarPreference.ts',
+        ],
+        exclude: ['src/**/*.test.tsx', 'src/**/*.test.ts', 'src/test/**'],
         thresholds: {
           lines: 80,
           functions: 80,
