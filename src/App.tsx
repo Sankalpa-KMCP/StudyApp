@@ -1,7 +1,6 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
-  buildSearchResults,
   getTodayFocusMinutes,
   getWeeklyStudyDays,
   isFlashcardDue,
@@ -9,6 +8,7 @@ import {
   startOfToday,
   formatMinutes,
 } from './appUtils'
+import { useAppSearch } from './hooks/useAppSearch'
 import { useCurrentDate } from './hooks/useCurrentDate'
 import { useSidebarPreference } from './hooks/useSidebarPreference'
 import { useThemePreference } from './hooks/useThemePreference'
@@ -50,7 +50,6 @@ import { GoalsView } from './views/GoalsView'
 import { SettingsView } from './views/SettingsView'
 
 export type View = 'Home' | 'Tasks' | 'Notes' | 'Subjects' | 'Calendar' | 'Flashcards' | 'Progress' | 'Goals' | 'Settings'
-type TaskFilter = 'all' | 'open' | 'done'
 export type SettingsFeedback = { tone: 'success' | 'error'; message: string }
 /** @deprecated Use ActiveFocusSession — kept as alias for existing imports. */
 export type ActiveSession = ActiveFocusSession
@@ -70,9 +69,8 @@ const EMPTY_DATA: StudyData = {
 
 function App() {
   const [activeView, setActiveView] = useState<View>('Home')
-  const [search, setSearch] = useState('')
   const [noticeOpen, setNoticeOpen] = useState(false)
-  const [taskFilter, setTaskFilter] = useState<TaskFilter>('all')
+  const [taskFilter, setTaskFilter] = useState<'all' | 'open' | 'done'>('all')
   const [taskEditorRequest, setTaskEditorRequest] = useState(0)
   const [subjectEditorRequest, setSubjectEditorRequest] = useState(0)
   const [progressEditorRequested, setProgressEditorRequested] = useState(false)
@@ -154,11 +152,21 @@ function App() {
   const isLoading = liveData === undefined
 
   const currentDate = useCurrentDate()
-  const deferredSearch = useDeferredValue(search)
   const dailyGoalMinutes = useMemo(() => settingNumber(data, 'dailyGoalMinutes', 240), [data])
   const quickNotes = useMemo(() => settingStringArray(data, 'quickNotes'), [data])
   const subjectMap = useMemo(() => new Map(data.subjects.map((subject) => [subject.id, subject])), [data.subjects])
-  const normalizedSearch = deferredSearch.trim().toLowerCase()
+  const {
+    search,
+    setSearch,
+    deferredSearch,
+    clearSearch,
+    homeSearchResults,
+    filteredTasks,
+    filteredNotes,
+    filteredSubjects,
+    filteredEvents,
+    filteredFlashcards,
+  } = useAppSearch({ data, subjectMap, taskFilter })
   const todayFocusMinutes = useMemo(
     () => getTodayFocusMinutes(data.studySessions, currentDate),
     [currentDate, data.studySessions],
@@ -173,7 +181,6 @@ function App() {
     [currentDate, data.events],
   )
   const dueCards = useMemo(() => data.flashcards.filter((card) => isFlashcardDue(card)), [data.flashcards])
-  const homeSearchResults = useMemo(() => buildSearchResults(data, subjectMap, deferredSearch), [data, deferredSearch, subjectMap])
   const sessionLimitSeconds = activeSession && activeSession.plannedMinutes > 0 ? activeSession.plannedMinutes * 60 : 0
   const focusActionsPending = focusTransitionPending || focusImportPending
   const canStartFocus = focusRestoreReady && !focusImportPending && !activeSession && !staleFocusSession
@@ -185,28 +192,6 @@ function App() {
     const behavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
     document.scrollingElement?.scrollTo?.({ behavior, top: 0 })
   }, [activeView])
-
-  const filteredTasks = useMemo(() => data.tasks.filter((task) => {
-    const subject = subjectMap.get(task.subjectId)?.name ?? 'General'
-    const matchesSearch = `${task.title} ${subject} ${task.priority}`.toLowerCase().includes(normalizedSearch)
-    const matchesFilter = taskFilter === 'all' || task.status === taskFilter
-    return matchesSearch && matchesFilter
-  }), [data.tasks, normalizedSearch, subjectMap, taskFilter])
-
-  const filteredNotes = useMemo(() => data.notes.filter((note) => {
-    const subject = subjectMap.get(note.subjectId)?.name ?? 'General'
-    return `${note.title} ${note.body} ${subject} ${note.tags.join(' ')}`.toLowerCase().includes(normalizedSearch)
-  }), [data.notes, normalizedSearch, subjectMap])
-
-  const filteredSubjects = useMemo(() => data.subjects.filter((subject) => `${subject.name} ${subject.progress}`.toLowerCase().includes(normalizedSearch)), [data.subjects, normalizedSearch])
-  const filteredEvents = useMemo(() => data.events.filter((event) => {
-    const subject = subjectMap.get(event.subjectId)?.name ?? 'General'
-    return `${event.title} ${event.location} ${subject}`.toLowerCase().includes(normalizedSearch)
-  }), [data.events, normalizedSearch, subjectMap])
-  const filteredFlashcards = useMemo(() => data.flashcards.filter((card) => {
-    const subject = subjectMap.get(card.subjectId)?.name ?? 'General'
-    return `${card.front} ${card.back} ${subject} ${card.status}`.toLowerCase().includes(normalizedSearch)
-  }).sort((a, b) => Number(isFlashcardDue(b)) - Number(isFlashcardDue(a))), [data.flashcards, normalizedSearch, subjectMap])
 
   const addQuickNote = useCallback(async (value: string) => {
     await studyDb.settings.put({
@@ -598,7 +583,6 @@ function App() {
     })()
   }, [activeSession, focusActionsPending, hydrateActiveSession])
 
-  const clearSearch = useCallback(() => setSearch(''), [])
   const closeNotices = useCallback(() => setNoticeOpen(false), [])
   const toggleNotices = useCallback(() => setNoticeOpen((open) => !open), [])
 
