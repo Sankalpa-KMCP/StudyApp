@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { formatShortTime, toInputDate, toInputTime } from './appUtils'
+import { formatHeroDate } from './components/heroDate'
 import { getMillisecondsUntilNextLocalMidnight } from './hooks/useCurrentDate'
 import {
   ACTIVE_FOCUS_SESSION_KEY,
@@ -88,7 +89,7 @@ describe('App', () => {
   it('renders an empty database-backed dashboard shell', async () => {
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: 'Good morning' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Study Tasks' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Weekly Progress' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Home' })).toHaveClass('is-active')
@@ -136,7 +137,7 @@ describe('App', () => {
   it('keeps a single Home h1 and exposes the topbar label outside the heading outline', async () => {
     render(<App />)
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Good morning' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(screen.getByRole('heading', { level: 2, name: 'Study Tasks' })).toBeInTheDocument()
 
@@ -247,7 +248,7 @@ describe('App', () => {
 
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: 'Good morning' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Your first study loop' })).not.toBeInTheDocument()
   })
 
@@ -1050,7 +1051,7 @@ describe('App', () => {
     localStorage.setItem('study-dashboard-theme', theme)
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: 'Good morning' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     expect(document.documentElement.dataset.theme).toBe(theme)
     expect(localStorage.getItem('study-dashboard-theme')).toBe(theme)
     expect(document.querySelector('meta[name="theme-color"]')).toHaveAttribute('content', themeColor)
@@ -1060,7 +1061,7 @@ describe('App', () => {
     localStorage.setItem('study-dashboard-theme', 'unknown-theme')
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: 'Good morning' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     expect(document.documentElement.dataset.theme).toBe('monochrome')
     expect(localStorage.getItem('study-dashboard-theme')).toBe('monochrome')
     expect(document.querySelector('meta[name="theme-color"]')).toHaveAttribute('content', '#111111')
@@ -1499,7 +1500,7 @@ describe('App', () => {
 
     // Verify success message and redirection to Home (empty state)
     expect(await screen.findByRole('status', { name: '' })).toHaveTextContent('All study data has been permanently deleted.')
-    expect(await screen.findByRole('heading', { name: 'Good morning' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
 
     // Quick notes should be gone
     const quickNotesData = await studyDb.settings.get('quickNotes')
@@ -2599,7 +2600,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await screen.findByRole('heading', { name: 'Good morning' })
+    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
 
     const noticesBtn = screen.getByRole('button', { name: 'Notifications' })
     expect(noticesBtn).toHaveAttribute('aria-expanded', 'false')
@@ -2623,7 +2624,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await screen.findByRole('heading', { name: 'Good morning' })
+    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
     const noticesBtn = screen.getByRole('button', { name: 'Notifications' })
 
     await user.click(noticesBtn)
@@ -2645,7 +2646,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await screen.findByRole('heading', { name: 'Good morning' })
+    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
     const noticesBtn = screen.getByRole('button', { name: 'Notifications' })
     const searchInput = screen.getByPlaceholderText('Search')
 
@@ -2667,7 +2668,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await screen.findByRole('heading', { name: 'Good morning' })
+    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
     const noticesBtn = screen.getByRole('button', { name: 'Notifications' })
     const searchInput = screen.getByPlaceholderText('Search')
 
@@ -2709,7 +2710,7 @@ describe('App', () => {
       return originalCreateElement(tagName)
     })
 
-    await screen.findByRole('heading', { name: 'Good morning' })
+    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
     await user.click(screen.getByRole('button', { name: 'Settings' }))
     await user.click(screen.getByText('Export data'))
 
@@ -2821,7 +2822,7 @@ describe('App', () => {
 
     clearSpy.mockImplementation(async () => originalClear())
     await user.click(screen.getByRole('button', { name: 'Delete all data' }))
-    expect(await screen.findByRole('heading', { name: 'Good morning' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     expect(await studyDb.tasks.count()).toBe(0)
   })
 
@@ -4101,7 +4102,7 @@ describe('App', () => {
     await studyDb.flashcards.add({ id: 'fc1', subjectId: 'subj1', front: 'Q', back: 'A', status: 'new', dueAt: new Date().toISOString(), lastReviewedAt: '', createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
 
     render(<App />)
-    await screen.findByRole('heading', { name: 'Good morning' })
+    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
 
     // Reveal flashcard
     fireEvent.click(screen.getByRole('button', { name: 'Flashcards' }))
@@ -4119,7 +4120,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await screen.findByRole('heading', { name: 'Good morning' })
+    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
 
     // Navigate to tasks
     await user.click(screen.getByRole('button', { name: 'Tasks' }))
@@ -4141,7 +4142,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await screen.findByRole('heading', { name: 'Good morning' })
+    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
 
     const rightColumn = screen.getByRole('complementary', { name: 'Progress and schedule' })
     const viewAllBtn = within(rightColumn).getByRole('button', { name: 'View all' })
@@ -4155,7 +4156,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await screen.findByRole('heading', { name: 'Good morning' })
+    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
 
     const rightColumn = screen.getByRole('complementary', { name: 'Progress and schedule' })
     const reviewCardsBtn = within(rightColumn).getByRole('button', { name: 'Review cards' })
@@ -4197,17 +4198,21 @@ describe('App', () => {
     })
 
     render(<App />)
-    await screen.findByRole('heading', { name: 'Good morning' })
+    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
     expect(midnightCallbacks).toHaveLength(1)
 
     const hero = screen.getByLabelText('Today overview')
     expect(within(hero).getByText('45m')).toBeInTheDocument()
+    expect(within(hero).getByText(formatHeroDate(beforeMidnight))).toBeInTheDocument()
+    expect(within(hero).getByRole('heading', { level: 1, name: 'Good evening' })).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'Streak' })).getByText('1')).toBeInTheDocument()
 
     // Wall clock approaches midnight without firing the rollover callback.
     vi.setSystemTime(new Date(beforeMidnight.getTime() + getMillisecondsUntilNextLocalMidnight(beforeMidnight) - 1))
 
     expect(within(hero).getByText('45m')).toBeInTheDocument()
+    expect(within(hero).getByText(formatHeroDate(beforeMidnight))).toBeInTheDocument()
+    expect(within(hero).getByRole('heading', { level: 1, name: 'Good evening' })).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'Streak' })).getByText('1')).toBeInTheDocument()
   })
 
@@ -4253,12 +4258,14 @@ describe('App', () => {
     })
 
     render(<App />)
-    await screen.findByRole('heading', { name: 'Good morning' })
+    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
     expect(midnightCallbacks).toHaveLength(1)
 
     const hero = screen.getByLabelText('Today overview')
     const rightColumn = screen.getByRole('complementary', { name: 'Progress and schedule' })
     expect(within(hero).getByText('45m')).toBeInTheDocument()
+    expect(within(hero).getByText(formatHeroDate(beforeMidnight))).toBeInTheDocument()
+    expect(within(hero).getByRole('heading', { level: 1, name: 'Good evening' })).toBeInTheDocument()
     expect(within(rightColumn).getByText('Morning review')).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'Streak' })).getByText('1')).toBeInTheDocument()
 
@@ -4278,6 +4285,9 @@ describe('App', () => {
     })
 
     expect(within(hero).getByText('0m')).toBeInTheDocument()
+    expect(within(hero).getByText(formatHeroDate(afterMidnight))).toBeInTheDocument()
+    expect(within(hero).queryByText(formatHeroDate(beforeMidnight))).not.toBeInTheDocument()
+    expect(within(hero).getByRole('heading', { level: 1, name: 'Good morning' })).toBeInTheDocument()
     expect(within(rightColumn).queryByText('Morning review')).not.toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'Streak' })).getByText('0')).toBeInTheDocument()
 
