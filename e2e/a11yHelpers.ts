@@ -56,9 +56,12 @@ export async function expectNoAxeViolations(page: Page, testInfo: TestInfo, labe
   expect(results.violations, formatAxeViolations(results.violations)).toEqual([])
 }
 
+/** Home h1 is exactly one time-of-day greeting from `getTimeOfDayGreeting`. */
+export const HOME_GREETING_HEADING = /^(Good morning|Good afternoon|Good evening)$/
+
 export async function waitForSettledHome(page: Page): Promise<void> {
   await page.goto('/')
-  await expect(page.getByRole('heading', { level: 1, name: 'Good morning' })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { level: 1, name: HOME_GREETING_HEADING })).toBeVisible({ timeout: 15_000 })
   await expect(page.getByRole('button', { name: 'Start focus' })).toBeEnabled()
   await expect(page.getByRole('button', { name: 'Notifications' })).toHaveAttribute('aria-expanded', 'false')
 }
