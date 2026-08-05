@@ -37,6 +37,21 @@ async function seedVersion1Goals(goals: Array<Record<string, unknown>>) {
   v1.close()
 }
 
+async function seedVersion1SubjectsAndSessions(
+  subjects: Array<Record<string, unknown>>,
+  sessions: Array<Record<string, unknown>>,
+) {
+  if (studyDb.isOpen()) studyDb.close()
+  await studyDb.delete()
+
+  const v1 = new StudyDatabaseV1Only()
+  await v1.open()
+  expect(v1.verno).toBe(1)
+  await v1.table('subjects').bulkAdd(subjects)
+  await v1.table('studySessions').bulkAdd(sessions)
+  v1.close()
+}
+
 describe('studyDb', () => {
   beforeEach(async () => {
     localStorage.clear()
@@ -80,6 +95,7 @@ describe('studyDb', () => {
       color: '#111827',
       targetHours: 5,
       progress: 10,
+      progressMode: 'manual',
       createdAt: timestamp,
       updatedAt: timestamp,
     })
@@ -157,11 +173,12 @@ describe('studyDb', () => {
     expect(restored.events[0]?.title).toBe('Review block')
     expect(restored.studySessions[0]?.note).toBe('Practice')
     expect(restored.goals[0]?.title).toBe('Study goal')
-    expect(snapshot.version).toBe(2)
+    expect(snapshot.version).toBe(3)
     expect(restored.goals[0]?.metric).toBe('study_time')
+    expect(restored.subjects[0]?.progressMode).toBe('manual')
   })
 
-  it('exports version 2 with explicit goal metrics and round-trips them', async () => {
+  it('exports version 3 with explicit subject progress modes and round-trips them', async () => {
     const timestamp = nowIso()
     await studyDb.goals.bulkAdd([
       {
@@ -185,19 +202,48 @@ describe('studyDb', () => {
         updatedAt: timestamp,
       },
     ])
+    await studyDb.subjects.bulkAdd([
+      {
+        id: 'subject-manual-export',
+        name: 'Manual Subject',
+        color: '#111827',
+        targetHours: 4,
+        progress: 25,
+        progressMode: 'manual',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: 'subject-study-export',
+        name: 'Study Subject',
+        color: '#2563eb',
+        targetHours: 2,
+        progress: 10,
+        progressMode: 'study_time',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ])
 
     const snapshot = await exportStudyData()
-    expect(snapshot.version).toBe(2)
+    expect(snapshot.version).toBe(3)
     expect(snapshot.goals.every((goal) => goal.metric === 'manual' || goal.metric === 'study_time')).toBe(true)
+    expect(snapshot.subjects.every((subject) => subject.progressMode === 'manual' || subject.progressMode === 'study_time')).toBe(true)
 
     await clearAllStudyData()
     await importStudyData(snapshot)
 
-    const restored = await studyDb.goals.toArray()
-    const byId = new Map(restored.map((goal) => [goal.id, goal]))
-    expect(byId.get('goal-manual-export')?.metric).toBe('manual')
-    expect(byId.get('goal-study-export')?.metric).toBe('study_time')
-    expect(byId.get('goal-manual-export')?.title).toBe('Daily focus')
+    const restoredGoals = await studyDb.goals.toArray()
+    const goalsById = new Map(restoredGoals.map((goal) => [goal.id, goal]))
+    expect(goalsById.get('goal-manual-export')?.metric).toBe('manual')
+    expect(goalsById.get('goal-study-export')?.metric).toBe('study_time')
+    expect(goalsById.get('goal-manual-export')?.title).toBe('Daily focus')
+
+    const restoredSubjects = await studyDb.subjects.toArray()
+    const subjectsById = new Map(restoredSubjects.map((subject) => [subject.id, subject]))
+    expect(subjectsById.get('subject-manual-export')?.progressMode).toBe('manual')
+    expect(subjectsById.get('subject-study-export')?.progressMode).toBe('study_time')
+    expect(subjectsById.get('subject-study-export')?.progress).toBe(10)
   })
 
   it('imports version-1 backups by normalizing legacy goal metrics', async () => {
@@ -299,6 +345,7 @@ describe('studyDb', () => {
       color: '#111827',
       targetHours: 5,
       progress: 10,
+      progressMode: 'manual',
       createdAt: timestamp,
       updatedAt: timestamp,
     })
@@ -374,6 +421,7 @@ describe('studyDb', () => {
       color: '#2563eb',
       targetHours: 3,
       progress: 0,
+      progressMode: 'manual',
       createdAt: timestamp,
       updatedAt: timestamp,
     })
@@ -425,9 +473,145 @@ describe('studyDb', () => {
     await expect(importStudyData(nonStringMetric)).rejects.toThrow('Import file is not a Study Dashboard export.')
     expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
 
-    await expect(importStudyData({ ...validV2, version: 3 })).rejects.toThrow('Import file is not a Study Dashboard export.')
+    await expect(importStudyData({ ...validV2, version: 4 })).rejects.toThrow('Import file is not a Study Dashboard export.')
     expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
     expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ id: 'focus-imported' })
+  })
+
+  it('normalizes version-1 and version-2 subject modes from imported sessions', async () => {
+    const timestamp = '2026-07-21T08:00:00.000Z'
+    const subjects = [
+      {
+        id: 'subject-with-time',
+        name: 'Chemistry',
+        color: '#0f766e',
+        targetHours: 2,
+        progress: 40,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: 'subject-manual-only',
+        name: 'History',
+        color: '#b45309',
+        targetHours: 3,
+        progress: 15,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ]
+    const studySessions = [
+      {
+        id: 'session-chem',
+        subjectId: 'subject-with-time',
+        startedAt: timestamp,
+        endedAt: timestamp,
+        minutes: 30,
+        note: 'Lab',
+      },
+    ]
+
+    await importStudyData({
+      version: 1 as const,
+      exportedAt: timestamp,
+      tasks: [],
+      subjects,
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions,
+      goals: [],
+      settings: [],
+    })
+
+    expect(await studyDb.subjects.get('subject-with-time')).toMatchObject({
+      progress: 40,
+      targetHours: 2,
+      progressMode: 'study_time',
+    })
+    expect(await studyDb.subjects.get('subject-manual-only')).toMatchObject({
+      progress: 15,
+      progressMode: 'manual',
+    })
+
+    await clearAllStudyData()
+    await importStudyData({
+      version: 2 as const,
+      exportedAt: timestamp,
+      tasks: [],
+      subjects,
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions,
+      goals: [],
+      settings: [],
+    })
+
+    expect(await studyDb.subjects.get('subject-with-time')).toMatchObject({ progressMode: 'study_time', progress: 40 })
+    expect(await studyDb.subjects.get('subject-manual-only')).toMatchObject({ progressMode: 'manual', progress: 15 })
+  })
+
+  it('rejects version-3 backups with missing or invalid subject modes without clearing data', async () => {
+    const timestamp = nowIso()
+    await studyDb.subjects.add({
+      id: 'subject-seeded',
+      name: 'Seeded subject',
+      color: '#2563eb',
+      targetHours: 3,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+
+    const validSubject = {
+      id: 'subject-ok',
+      name: 'Ok',
+      color: '#111827',
+      targetHours: 2,
+      progress: 10,
+      progressMode: 'manual' as const,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+
+    const baseV3 = {
+      version: 3 as const,
+      exportedAt: timestamp,
+      tasks: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+
+    const missingMode = {
+      ...baseV3,
+      subjects: [{
+        id: 'subject-missing-mode',
+        name: 'Missing mode',
+        color: '#111827',
+        targetHours: 2,
+        progress: 10,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    }
+    await expect(importStudyData(missingMode)).rejects.toThrow('Import file is not a Study Dashboard export.')
+    expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+
+    const invalidMode = {
+      ...baseV3,
+      subjects: [{ ...validSubject, progressMode: 'derived' }],
+    }
+    await expect(importStudyData(invalidMode)).rejects.toThrow('Import file is not a Study Dashboard export.')
+    expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+
+    await importStudyData({ ...baseV3, subjects: [validSubject] })
+    expect(await studyDb.subjects.get('subject-ok')).toMatchObject({ progressMode: 'manual', progress: 10 })
   })
 
   it('rejects malformed records without replacing existing data', async () => {
@@ -438,6 +622,7 @@ describe('studyDb', () => {
       color: '#111827',
       targetHours: 5,
       progress: 10,
+      progressMode: 'manual',
       createdAt: timestamp,
       updatedAt: timestamp,
     })
@@ -569,7 +754,7 @@ describe('goal metric Dexie version 2 upgrade', () => {
     ])
 
     await studyDb.open()
-    expect(studyDb.verno).toBe(2)
+    expect(studyDb.verno).toBe(3)
 
     const goals = await studyDb.goals.toArray()
     const byId = new Map(goals.map((goal) => [goal.id, goal]))
@@ -636,5 +821,129 @@ describe('goal metric Dexie version 2 upgrade', () => {
     expect(renamed.target).toBe(60)
     expect(renamed.progress).toBe(10)
     expect(renamed.createdAt).toBe(timestamp)
+  })
+})
+
+describe('subject progressMode Dexie version 3 upgrade', () => {
+  afterEach(async () => {
+    if (studyDb.isOpen()) studyDb.close()
+    await studyDb.delete()
+  })
+
+  it('assigns study_time when matching session minutes are positive and manual otherwise', async () => {
+    const timestamp = '2026-07-21T10:00:00.000Z'
+    await seedVersion1SubjectsAndSessions(
+      [
+        {
+          id: 'subject-logged',
+          name: 'Physics',
+          color: '#2563eb',
+          targetHours: 4,
+          progress: 20,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'subject-empty',
+          name: 'Biology',
+          color: '#0f766e',
+          targetHours: 3,
+          progress: 55,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {
+          id: 'subject-preassigned',
+          name: 'Chemistry',
+          color: '#b45309',
+          targetHours: 2,
+          progress: 10,
+          progressMode: 'manual',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ],
+      [
+        {
+          id: 'session-physics',
+          subjectId: 'subject-logged',
+          startedAt: timestamp,
+          endedAt: timestamp,
+          minutes: 45,
+          note: 'Practice',
+        },
+        {
+          id: 'session-zero',
+          subjectId: 'subject-empty',
+          startedAt: timestamp,
+          endedAt: timestamp,
+          minutes: 0,
+          note: 'Empty',
+        },
+      ],
+    )
+
+    await studyDb.open()
+    expect(studyDb.verno).toBe(3)
+
+    const subjects = await studyDb.subjects.toArray()
+    const byId = new Map(subjects.map((subject) => [subject.id, subject]))
+
+    expect(byId.get('subject-logged')).toMatchObject({
+      id: 'subject-logged',
+      name: 'Physics',
+      targetHours: 4,
+      progress: 20,
+      progressMode: 'study_time',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    expect(byId.get('subject-empty')).toMatchObject({
+      progress: 55,
+      progressMode: 'manual',
+    })
+    expect(byId.get('subject-preassigned')).toMatchObject({
+      progress: 10,
+      progressMode: 'manual',
+    })
+  })
+
+  it('does not reassign valid modes on reopen', async () => {
+    const timestamp = '2026-07-21T11:00:00.000Z'
+    await seedVersion1SubjectsAndSessions(
+      [
+        {
+          id: 'subject-stable',
+          name: 'Stable',
+          color: '#111827',
+          targetHours: 2,
+          progress: 30,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ],
+      [
+        {
+          id: 'session-stable',
+          subjectId: 'subject-stable',
+          startedAt: timestamp,
+          endedAt: timestamp,
+          minutes: 60,
+          note: 'Logged',
+        },
+      ],
+    )
+
+    await studyDb.open()
+    expect((await studyDb.subjects.get('subject-stable'))?.progressMode).toBe('study_time')
+
+    await studyDb.subjects.update('subject-stable', { progressMode: 'manual', progress: 30 })
+    studyDb.close()
+    await studyDb.open()
+
+    const subject = await studyDb.subjects.get('subject-stable')
+    expect(subject?.progressMode).toBe('manual')
+    expect(subject?.progress).toBe(30)
+    expect(subject?.targetHours).toBe(2)
   })
 })

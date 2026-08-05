@@ -33,6 +33,7 @@ describe('App focus', () => {
       color: '#2563eb',
       targetHours: 6,
       progress: 10,
+      progressMode: 'manual',
       createdAt: '2026-06-29T00:00:00.000Z',
       updatedAt: '2026-06-29T00:00:00.000Z',
     })
@@ -106,6 +107,7 @@ describe('App focus', () => {
         color: '#2563eb',
         targetHours: 4,
         progress: 0,
+        progressMode: 'manual',
         createdAt: '2026-06-29T00:00:00.000Z',
         updatedAt: '2026-06-29T00:00:00.000Z',
       }],
@@ -275,7 +277,7 @@ describe('App focus', () => {
   it('logs focus session automatically when time limit is reached', async () => {
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
     await studyDb.settings.put({ key: 'quickNotes', value: ['Test Note'] })
-    await studyDb.subjects.add({ id: 'subj-cov', name: 'CovSubject', progress: 0, color: '#000000', targetHours: 1, createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
+    await studyDb.subjects.add({ id: 'subj-cov', name: 'CovSubject', progress: 0, progressMode: 'manual', color: '#000000', targetHours: 1, createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
     await studyDb.flashcards.add({ id: 'fc-cov', subjectId: 'subj-cov', front: 'Q', back: 'A', status: 'new', dueAt: new Date().toISOString(), lastReviewedAt: '', createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
 
     const nearlyDone = makeDurableFocusSession({
@@ -306,6 +308,7 @@ describe('App focus', () => {
       color: '#2563eb',
       targetHours: 6,
       progress: 10,
+      progressMode: 'manual',
       createdAt: '2026-06-29T00:00:00.000Z',
       updatedAt: '2026-06-29T00:00:00.000Z',
     })
@@ -352,6 +355,7 @@ describe('App focus', () => {
       color: '#2563eb',
       targetHours: 6,
       progress: 10,
+      progressMode: 'manual',
       createdAt: '2026-06-29T00:00:00.000Z',
       updatedAt: '2026-06-29T00:00:00.000Z',
     })
@@ -382,6 +386,7 @@ describe('App focus', () => {
       color: '#2563eb',
       targetHours: 6,
       progress: 10,
+      progressMode: 'manual',
       createdAt: '2026-06-29T00:00:00.000Z',
       updatedAt: '2026-06-29T00:00:00.000Z',
     })
@@ -492,6 +497,7 @@ describe('App focus', () => {
       color: '#2563eb',
       targetHours: 4,
       progress: 0,
+      progressMode: 'manual',
       createdAt: '2026-06-29T00:00:00.000Z',
       updatedAt: '2026-06-29T00:00:00.000Z',
     })
@@ -501,6 +507,7 @@ describe('App focus', () => {
       color: '#0f766e',
       targetHours: 4,
       progress: 0,
+      progressMode: 'manual',
       createdAt: '2026-06-29T00:00:00.000Z',
       updatedAt: '2026-06-29T00:00:00.000Z',
     })

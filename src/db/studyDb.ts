@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie'
+import { inferSubjectProgressMode } from '../appUtils'
 import { inferLegacyGoalMetric } from './goalMetricInference'
 import type {
   CalendarEvent,
@@ -12,9 +13,10 @@ import type {
   StudySession,
   StudySetting,
   StudySubject,
+  StudySubjectLegacy,
   StudyTask,
 } from './types'
-import { isGoalMetric } from './types'
+import { isGoalMetric, isSubjectProgressMode } from './types'
 
 const STUDY_DB_NAME = 'study-dashboard-db'
 const LEGACY_STORAGE_KEY = 'study-dashboard-v2'
@@ -58,6 +60,14 @@ export class StudyDatabase extends Dexie {
         goal.metric = inferLegacyGoalMetric(period, title)
       })
     })
+    this.version(3).stores(STUDY_DB_STORES).upgrade(async (transaction) => {
+      const sessions = await transaction.table('studySessions').toArray() as StudySession[]
+      await transaction.table('subjects').toCollection().modify((subject: Record<string, unknown>) => {
+        if (isSubjectProgressMode(subject.progressMode)) return
+        const subjectId = typeof subject.id === 'string' ? subject.id : ''
+        subject.progressMode = inferSubjectProgressMode(subjectId, sessions)
+      })
+    })
   }
 }
 
@@ -99,7 +109,7 @@ export async function getStudyData(): Promise<StudyData> {
 
 export async function exportStudyData(): Promise<StudyExport> {
   return {
-    version: 2,
+    version: 3,
     exportedAt: nowIso(),
     ...(await getStudyData()),
   }
@@ -176,7 +186,7 @@ export async function migrateLegacyLocalStorage() {
 }
 
 /**
- * Validates a version-1 or version-2 backup and normalizes it to the current export shape.
+ * Validates a version-1, version-2, or version-3 backup and normalizes it to the current export shape.
  * Throws before any database mutation when the payload is unsupported or invalid.
  */
 function parseAndNormalizeStudyExport(value: unknown): StudyExport {
@@ -185,14 +195,13 @@ function parseAndNormalizeStudyExport(value: unknown): StudyExport {
   }
 
   const version = value.version
-  if (version !== 1 && version !== 2) {
+  if (version !== 1 && version !== 2 && version !== 3) {
     throw new Error('Import file is not a Study Dashboard export.')
   }
 
   if (
     !isDate(value.exportedAt)
     || !isArrayOf(value.tasks, isStudyTask)
-    || !isArrayOf(value.subjects, isStudySubject)
     || !isArrayOf(value.notes, isStudyNote)
     || !isArrayOf(value.events, isCalendarEvent)
     || !isArrayOf(value.flashcards, isFlashcard)
@@ -202,14 +211,39 @@ function parseAndNormalizeStudyExport(value: unknown): StudyExport {
     throw new Error('Import file is not a Study Dashboard export.')
   }
 
+  const studySessions = value.studySessions
+
+  if (version === 3) {
+    if (!isArrayOf(value.subjects, isStudySubject) || !isArrayOf(value.goals, isCurrentStudyGoal)) {
+      throw new Error('Import file is not a Study Dashboard export.')
+    }
+    return {
+      version: 3,
+      exportedAt: value.exportedAt,
+      tasks: value.tasks,
+      subjects: value.subjects,
+      notes: value.notes,
+      events: value.events,
+      flashcards: value.flashcards,
+      studySessions,
+      goals: value.goals,
+      settings: value.settings,
+    }
+  }
+
+  if (!isArrayOf(value.subjects, isLegacyStudySubject)) {
+    throw new Error('Import file is not a Study Dashboard export.')
+  }
+
+  const subjects = normalizeLegacySubjects(value.subjects, studySessions)
   const tables = {
     exportedAt: value.exportedAt,
     tasks: value.tasks,
-    subjects: value.subjects,
+    subjects,
     notes: value.notes,
     events: value.events,
     flashcards: value.flashcards,
-    studySessions: value.studySessions,
+    studySessions,
     settings: value.settings,
   }
 
@@ -218,7 +252,7 @@ function parseAndNormalizeStudyExport(value: unknown): StudyExport {
       throw new Error('Import file is not a Study Dashboard export.')
     }
     return {
-      version: 2,
+      version: 3,
       ...tables,
       goals: value.goals.map((goal) => ({
         ...goal,
@@ -232,10 +266,17 @@ function parseAndNormalizeStudyExport(value: unknown): StudyExport {
   }
 
   return {
-    version: 2,
+    version: 3,
     ...tables,
     goals: value.goals,
   }
+}
+
+function normalizeLegacySubjects(subjects: StudySubjectLegacy[], sessions: StudySession[]): StudySubject[] {
+  return subjects.map((subject) => ({
+    ...subject,
+    progressMode: inferSubjectProgressMode(subject.id, sessions),
+  }))
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -284,7 +325,7 @@ function isStudyTask(value: unknown): value is StudyTask {
   )
 }
 
-function isStudySubject(value: unknown): value is StudySubject {
+function isLegacyStudySubject(value: unknown): value is StudySubjectLegacy {
   if (!isRecord(value)) return false
   return (
     hasRecordIdentity(value) &&
@@ -294,6 +335,11 @@ function isStudySubject(value: unknown): value is StudySubject {
     isNumber(value.progress) &&
     hasTimestamps(value)
   )
+}
+
+function isStudySubject(value: unknown): value is StudySubject {
+  if (!isRecord(value) || !isSubjectProgressMode(value.progressMode)) return false
+  return isLegacyStudySubject(value)
 }
 
 function isStudyNote(value: unknown): value is StudyNote {
@@ -400,6 +446,7 @@ function migrateLegacyData(data: LegacyData): StudyData {
       color: DEFAULT_SUBJECT_COLORS[subjectMap.size % DEFAULT_SUBJECT_COLORS.length],
       targetHours: 5,
       progress: 0,
+      progressMode: 'manual',
       createdAt,
       updatedAt: createdAt,
     }
@@ -416,6 +463,7 @@ function migrateLegacyData(data: LegacyData): StudyData {
       color: DEFAULT_SUBJECT_COLORS[subjectMap.size % DEFAULT_SUBJECT_COLORS.length],
       targetHours: Math.max(1, Math.round((subject.topicsLeft ?? 2) * 1.5)),
       progress: clamp(subject.progress ?? 0, 0, 100),
+      progressMode: 'manual',
       createdAt,
       updatedAt: createdAt,
     })
@@ -479,22 +527,26 @@ function migrateLegacyData(data: LegacyData): StudyData {
   if ((data.focusMinutes ?? 0) > 0) {
     const subject = ensureSubject('General')
     const endedAt = nowIso()
+    const studySessions: StudySession[] = [
+      {
+        id: createId('session'),
+        subjectId: subject.id,
+        startedAt: addMinutes(endedAt, -clamp(data.focusMinutes ?? 0, 1, 720)),
+        endedAt,
+        minutes: clamp(data.focusMinutes ?? 0, 1, 720),
+        note: 'Migrated focus time',
+      },
+    ]
     return {
       tasks,
-      subjects: Array.from(subjectMap.values()),
+      subjects: Array.from(subjectMap.values()).map((entry) => ({
+        ...entry,
+        progressMode: inferSubjectProgressMode(entry.id, studySessions),
+      })),
       notes,
       events,
       flashcards: [],
-      studySessions: [
-        {
-          id: createId('session'),
-          subjectId: subject.id,
-          startedAt: addMinutes(endedAt, -clamp(data.focusMinutes ?? 0, 1, 720)),
-          endedAt,
-          minutes: clamp(data.focusMinutes ?? 0, 1, 720),
-          note: 'Migrated focus time',
-        },
-      ],
+      studySessions,
       goals: [],
       settings,
     }

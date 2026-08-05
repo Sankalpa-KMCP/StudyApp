@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   calculateGoalProgress,
   calculateStreak,
+  calculateSubjectProgress,
   getDailyStudyMinutes,
   getGoalProgress,
   getGoalUnit,
@@ -9,6 +10,7 @@ import {
   getRollingWeeklyStudyHours,
   getSubjectProgress,
   getTodayFocusMinutes,
+  inferSubjectProgressMode,
   isDerivedGoal,
   isStudyTimeGoal,
   nextFlashcardSchedule,
@@ -19,7 +21,8 @@ import {
   parseLocalDateTime,
   startOfToday,
 } from './appUtils'
-import type { StudyGoal } from './db/types'
+import type { StudyGoal, StudySubject } from './db/types'
+import { isSubjectProgressMode } from './db/types'
 
 describe('appUtils', () => {
   afterEach(() => {
@@ -124,27 +127,59 @@ describe('appUtils', () => {
     expect(getWeeklyStudyDays(sessions, dayTwo).at(-1)?.key).toBe(localDateKey(dayTwo))
   })
 
-  it('derives progress from study sessions and focus goals', () => {
-    expect(getSubjectProgress({
-      id: 'math',
-      name: 'Math',
-      color: '#111827',
-      targetHours: 2,
-      progress: 10,
-      createdAt: '2026-06-29T00:00:00.000Z',
-      updatedAt: '2026-06-29T00:00:00.000Z',
-    }, [{
+  it('calculates subject progress from the explicit stored mode', () => {
+    const sessions = [{
       id: 'session-1',
       subjectId: 'math',
       startedAt: '2026-06-29T09:00:00.000Z',
       endedAt: '2026-06-29T10:00:00.000Z',
       minutes: 60,
       note: 'Focus session',
-    }])).toBe(50)
+    }]
+    const manualSubject = subjectFixture({ progressMode: 'manual', progress: 10, targetHours: 2 })
+    const studySubject = subjectFixture({ progressMode: 'study_time', progress: 10, targetHours: 2 })
+
+    expect(calculateSubjectProgress(manualSubject, sessions)).toEqual({
+      percentage: 10,
+      mode: 'manual',
+      loggedMinutes: 60,
+      targetMinutes: 120,
+    })
+    expect(calculateSubjectProgress(studySubject, sessions)).toEqual({
+      percentage: 50,
+      mode: 'study_time',
+      loggedMinutes: 60,
+      targetMinutes: 120,
+    })
+    expect(getSubjectProgress(studySubject, sessions)).toBe(50)
+    expect(getSubjectProgress(manualSubject, sessions)).toBe(10)
+    expect(inferSubjectProgressMode('math', sessions)).toBe('study_time')
+    expect(inferSubjectProgressMode('other', sessions)).toBe('manual')
+    expect(isSubjectProgressMode('manual')).toBe(true)
+    expect(isSubjectProgressMode('study_time')).toBe(true)
+    expect(isSubjectProgressMode('derived')).toBe(false)
 
     const now = new Date(2026, 5, 29, 12, 0)
-    const sessions = [sessionAt('today', new Date(2026, 5, 29, 9, 0), 45, new Date(2026, 5, 29, 9, 45))]
-    expect(getGoalProgress(goalFixture({ period: 'daily', metric: 'study_time', target: 120 }), sessions, now)).toBe(45)
+    const goalSessions = [sessionAt('today', new Date(2026, 5, 29, 9, 0), 45, new Date(2026, 5, 29, 9, 45))]
+    expect(getGoalProgress(goalFixture({ period: 'daily', metric: 'study_time', target: 120 }), goalSessions, now)).toBe(45)
+  })
+
+  it('clamps study_time subject progress and keeps manual progress stored under study_time mode', () => {
+    const subject = subjectFixture({
+      progressMode: 'study_time',
+      progress: 42,
+      targetHours: 1,
+    })
+    const sessions = [
+      { ...sessionAt('a', new Date(2026, 5, 29, 9, 0), 90, new Date(2026, 5, 29, 10, 30)), subjectId: subject.id },
+    ]
+    expect(calculateSubjectProgress(subject, sessions)).toMatchObject({
+      percentage: 100,
+      mode: 'study_time',
+      loggedMinutes: 90,
+      targetMinutes: 60,
+    })
+    expect(subject.progress).toBe(42)
   })
 
   describe('goal progress by explicit metric', () => {
@@ -309,6 +344,20 @@ function goalFixture(overrides: Partial<StudyGoal> = {}): StudyGoal {
     progress: 0,
     period: 'daily',
     metric: 'manual',
+    createdAt: '2026-06-29T00:00:00.000Z',
+    updatedAt: '2026-06-29T00:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function subjectFixture(overrides: Partial<StudySubject> = {}): StudySubject {
+  return {
+    id: 'math',
+    name: 'Math',
+    color: '#111827',
+    targetHours: 2,
+    progress: 10,
+    progressMode: 'manual',
     createdAt: '2026-06-29T00:00:00.000Z',
     updatedAt: '2026-06-29T00:00:00.000Z',
     ...overrides,

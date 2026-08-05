@@ -310,6 +310,7 @@ describe('App workspaces', () => {
       color: '#b45309',
       targetHours: 4,
       progress: 0,
+      progressMode: 'manual',
       createdAt: '2026-06-29T00:00:00.000Z',
       updatedAt: '2026-06-29T00:00:00.000Z',
     })
@@ -919,6 +920,7 @@ describe('App workspaces', () => {
       color: '#2563eb',
       targetHours: 5,
       progress: 10,
+      progressMode: 'manual',
       createdAt: timestamp,
       updatedAt: timestamp,
     })
@@ -949,6 +951,7 @@ describe('App workspaces', () => {
       color: '#111827',
       targetHours: 3,
       progress: 0,
+      progressMode: 'manual',
       createdAt: timestamp,
       updatedAt: timestamp,
     })
@@ -1034,7 +1037,7 @@ describe('App workspaces', () => {
     // Put data to trigger callbacks for settings and flashcards
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
     await studyDb.settings.put({ key: 'quickNotes', value: ['Note'] })
-    await studyDb.subjects.add({ id: 'subj1', name: 'Math', progress: 0, color: '#000000', targetHours: 1, createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
+    await studyDb.subjects.add({ id: 'subj1', name: 'Math', progress: 0, progressMode: 'manual', color: '#000000', targetHours: 1, createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
     await studyDb.flashcards.add({ id: 'fc1', subjectId: 'subj1', front: 'Q', back: 'A', status: 'new', dueAt: new Date().toISOString(), lastReviewedAt: '', createdAt: '2026-07-06T00:00:00.000Z', updatedAt: '2026-07-06T00:00:00.000Z' })
 
     render(<App />)
