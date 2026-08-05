@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDataCoordinator } from './hooks/useDataCoordinator'
 import { useFocusSession } from './hooks/useFocusSession'
 import { useMobileNavBreakpoint } from './hooks/useMobileNavBreakpoint'
@@ -9,6 +9,7 @@ import {
   dismissOnboardingChecklist,
   showOnboardingChecklist,
 } from './db/onboardingChecklistPreference'
+import { formatMigrationNotice } from './db/migrationNotice'
 import { migrateLegacyLocalStorage } from './db/studyDb'
 import type { ActiveFocusSession, StudySubject } from './db/types'
 import { Sidebar } from './components/Sidebar'
@@ -84,8 +85,35 @@ function App() {
     syncUrlToView(view, 'push')
   }, [clearEditorRequests, syncUrlToView])
 
+  const migrationStartedRef = useRef(false)
+
   useEffect(() => {
+    let isMounted = true
+    if (migrationStartedRef.current) return
+    migrationStartedRef.current = true
+
     void migrateLegacyLocalStorage()
+      .then((result) => {
+        if (!isMounted) return
+        const notice = formatMigrationNotice(result)
+        if (!notice || notice.kind === 'none' || !notice.message) return
+
+        if (notice.kind === 'success') {
+          setProfileNotice(notice.message)
+        } else {
+          setPreferenceNotice(notice.message)
+        }
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setPreferenceNotice(
+          'Legacy study data could not be imported due to a storage error. No data was changed, and migration can be retried by reloading the page.'
+        )
+      })
+
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   useEffect(() => {

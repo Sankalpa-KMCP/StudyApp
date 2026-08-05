@@ -1,7 +1,9 @@
+import React from 'react'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import * as studyDbModule from './db/studyDb'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 const THEME_CASES = [
@@ -267,5 +269,110 @@ describe('App', () => {
     expect(screen.queryByText(/quota exceeded/i)).not.toBeInTheDocument()
   })
 
+  describe('legacy migration startup integration', () => {
+    it.each([
+      ['already_migrated', { status: 'already_migrated' }],
+      ['no_legacy_data', { status: 'no_legacy_data' }],
+      ['demo_data_skipped', { status: 'demo_data_skipped' }],
+      ['empty_data_skipped', { status: 'empty_data_skipped' }],
+    ] as const)('handles %s migration status silently without notice alerts', async (_, result) => {
+      vi.spyOn(studyDbModule, 'migrateLegacyLocalStorage').mockResolvedValue(result as studyDbModule.MigrationResult)
+      render(<App />)
 
+      expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      expect(screen.queryByText(/Legacy study data/i)).not.toBeInTheDocument()
+    })
+
+    it('shows a non-blocking success notice on successful legacy migration', async () => {
+      vi.spyOn(studyDbModule, 'migrateLegacyLocalStorage').mockResolvedValue({
+        status: 'success',
+        recordCount: 5,
+      })
+      render(<App />)
+
+      expect(await screen.findByRole('status')).toHaveTextContent('Legacy study data imported successfully.')
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('shows a recoverable notice when legacy data is invalid', async () => {
+      vi.spyOn(studyDbModule, 'migrateLegacyLocalStorage').mockResolvedValue({
+        status: 'invalid_data',
+        reason: 'SyntaxError: Unexpected token in JSON at position 12',
+      })
+      render(<App />)
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('Legacy study data could not be imported due to invalid formatting')
+      expect(alert).toHaveTextContent('Your legacy data remains preserved on this device and can be retried after reloading or correcting the data.')
+      expect(screen.queryByText(/SyntaxError/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/Unexpected token/i)).not.toBeInTheDocument()
+    })
+
+    it('shows a data-protection notice when legacy data collides with existing records', async () => {
+      vi.spyOn(studyDbModule, 'migrateLegacyLocalStorage').mockResolvedValue({
+        status: 'collision',
+        entity: 'tasks',
+        id: 'task-123',
+      })
+      render(<App />)
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('Legacy study data migration was stopped to protect existing records from conflicts.')
+      expect(alert).toHaveTextContent('No data was changed.')
+      expect(screen.queryByText(/task-123/i)).not.toBeInTheDocument()
+    })
+
+    it('shows a retry-safe storage failure notice when migration transaction fails', async () => {
+      vi.spyOn(studyDbModule, 'migrateLegacyLocalStorage').mockResolvedValue({
+        status: 'transaction_failed',
+        error: 'QuotaExceededError: Storage limit reached',
+      })
+      render(<App />)
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('Legacy study data could not be imported due to a storage error.')
+      expect(alert).toHaveTextContent('No data was changed, and migration can be retried by reloading the page.')
+      expect(screen.queryByText(/QuotaExceededError/i)).not.toBeInTheDocument()
+    })
+
+    it('shows a warning notice when legacy storage cleanup fails after migration', async () => {
+      vi.spyOn(studyDbModule, 'migrateLegacyLocalStorage').mockResolvedValue({
+        status: 'cleanup_failed',
+      })
+      render(<App />)
+
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('Legacy study data was imported successfully, but obsolete browser storage could not be removed.')
+      expect(alert).toHaveTextContent('Future imports are safely prevented.')
+    })
+
+    it('invokes migration only once under React StrictMode', async () => {
+      const spy = vi.spyOn(studyDbModule, 'migrateLegacyLocalStorage').mockResolvedValue({ status: 'no_legacy_data' })
+      render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>
+      )
+
+      await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
+      expect(spy).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not update state if the component unmounts before migration resolves', async () => {
+      let resolveMigration!: (res: studyDbModule.MigrationResult) => void
+      const migrationPromise = new Promise<studyDbModule.MigrationResult>((resolve) => {
+        resolveMigration = resolve
+      })
+      vi.spyOn(studyDbModule, 'migrateLegacyLocalStorage').mockReturnValue(migrationPromise)
+
+      const { unmount } = render(<App />)
+      unmount()
+
+      resolveMigration({ status: 'invalid_data', reason: 'bad json' })
+      await flushDeferredAppWork()
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+  })
 })
