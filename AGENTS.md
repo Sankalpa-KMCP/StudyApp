@@ -19,7 +19,14 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 ## Project summary
 
 - **Study Dashboard v1.3.0** — local-first study workspace (tasks, notes, subjects, calendar, flashcards, focus sessions, goals).
-- **Web app:** React 19 + Vite 8 + Dexie/IndexedDB PWA at the repo root. UI is largely in `src/App.tsx` with helpers in `src/appUtils.ts`.
+- **Web app:** React 19 + Vite 8 + Dexie/IndexedDB PWA at the repo root.
+- **`App.tsx` is the composition root** — live Dexie data, sole `useCurrentDate()`, derived Home metrics, navigation/layout, shared preference notices, and view wiring. Pure helpers stay in `src/appUtils.ts`.
+- **Extracted React orchestration (do not re-inline into App):**
+  - `useThemePreference` / `useSidebarPreference` — `localStorage` preferences + theme DOM side effects
+  - `useAppSearch` — search state, `useDeferredValue` filters, Home results via `buildSearchResults`
+  - `useFocusSession` — focus restore/actions/timed completion; exposes `reloadFocusFromIndexedDb`, `runWithFocusImportLock`, `clearFocusLocalState`
+  - `useStudyBackup` — export download, import under focus lock, clear-all then local focus reset
+- **Domain persistence** remains in `src/db/activeFocusSession.ts` and `src/db/studyDb.ts` (validation/transactions), not in the hooks.
 - **No HTTP API**, no auth, no cloud database, no desktop shell.
 
 ## Goals and metrics
@@ -55,10 +62,10 @@ Use the shared helper for ordinary async IndexedDB mutations:
 
 | Flow | Why |
 |------|-----|
-| Focus start/pause/resume/stop/stale/subject | Domain result contracts + singleton/idempotency protections in `activeFocusSession` / `App.tsx` |
-| Settings import | Dedicated `focusImportPending` must stay synchronized with focus action gating and post-import `reloadFocusFromIndexedDb()` |
+| Focus start/pause/resume/stop/stale/subject | Owned by `useFocusSession`; domain result contracts + singleton/idempotency in `activeFocusSession` |
+| Settings import / clear-all | `useStudyBackup` + `runWithFocusImportLock` / `reloadFocusFromIndexedDb` / `clearFocusLocalState`; keep `focusImportPending` gating on focus actions. Clear-all is not serialized with an in-flight import (pre-existing; harden only as a separate product-approved change) |
 | Quick-note autosave | Sequential latest-value write queue so a stale write cannot overwrite newer draft text |
-| Theme / sidebar preferences | `localStorage`-backed; report friendly failures without migrating to IndexedDB |
+| Theme / sidebar preferences | Owned by preference hooks; report friendly failures via App’s shared preference notice; do not migrate to IndexedDB |
 
 ### Focus timed completion
 
@@ -69,7 +76,7 @@ Use the shared helper for ordinary async IndexedDB mutations:
 - Resume must honor updated `accumulatedPausedMs` (paused wall time excluded).
 - `finalizingSessionIdRef` is a UI-level duplicate guard; identity-checked, idempotent `finalizeActiveFocusSession` (history id = focus session id) remains the domain guard.
 - Clear deferred completion markers at session identity/ownership boundaries (restore, import success, clear-all, start, discard, conflict/missing, finalize, unmount). Preserve established conflict, missing, stale, import, and clear-all contracts.
-- Cover precise pending-write races with deterministic Promise-gated `App.test.tsx` cases — do not add flaky real-time E2E for the Dexie-pending window.
+- Cover precise pending-write races with deterministic Promise-gated `App.focus.test.tsx` cases — do not add flaky real-time E2E for the Dexie-pending window.
 
 After broad mutation changes, run:
 
