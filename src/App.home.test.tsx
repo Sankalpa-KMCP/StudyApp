@@ -408,4 +408,30 @@ describe('App home', () => {
     expect(await studyDb.studySessions.count()).toBe(sessionCountBefore)
     expect(await studyDb.events.count()).toBe(eventCountBefore)
   })
+
+  it('exposes the weekly progress bar chart as a named non-interactive image', async () => {
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Weekly Progress' })).toBeInTheDocument()
+    const chart = screen.getByRole('img', { name: 'Weekly progress by day' })
+    expect(chart).toHaveClass('bar-chart')
+    expect(chart).not.toHaveAttribute('tabindex')
+    expect(chart.tabIndex).toBeLessThan(0)
+    expect(within(chart).queryByRole('button')).not.toBeInTheDocument()
+    expect(document.querySelector('.bar-days')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('exposes the Study Time line chart as a named non-interactive image', async () => {
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Study Time' })).toBeInTheDocument()
+    const chart = screen.getByRole('img', { name: 'Study time trend' })
+    expect(chart).toHaveClass('line-chart')
+    expect(chart).not.toHaveAttribute('tabindex')
+    expect(chart.tabIndex).toBeLessThan(0)
+    expect(within(chart).queryByRole('button')).not.toBeInTheDocument()
+    expect(within(chart).queryByRole('img')).not.toBeInTheDocument()
+    expect(chart.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+    expect(document.querySelector('.line-days')).toHaveAttribute('aria-hidden', 'true')
+  })
 })

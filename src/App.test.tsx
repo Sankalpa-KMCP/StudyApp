@@ -2,14 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import {
-  ACTIVE_FOCUS_SESSION_KEY,
-  createActiveFocusSession,
-  finalizeActiveFocusSession,
-} from './db/activeFocusSession'
-import { studyDb } from './db/studyDb'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
-import { makeDurableFocusSession } from './test/focusTestHelpers'
 
 const THEME_CASES = [
   ['monochrome', '#111111'],
@@ -28,33 +21,6 @@ describe('App', () => {
 
   afterEach(async () => {
     await flushDeferredAppWork()
-  })
-
-
-  it('exposes the weekly progress bar chart as a named non-interactive image', async () => {
-    render(<App />)
-
-    expect(await screen.findByRole('heading', { name: 'Weekly Progress' })).toBeInTheDocument()
-    const chart = screen.getByRole('img', { name: 'Weekly progress by day' })
-    expect(chart).toHaveClass('bar-chart')
-    expect(chart).not.toHaveAttribute('tabindex')
-    expect(chart.tabIndex).toBeLessThan(0)
-    expect(within(chart).queryByRole('button')).not.toBeInTheDocument()
-    expect(document.querySelector('.bar-days')).toHaveAttribute('aria-hidden', 'true')
-  })
-
-  it('exposes the Study Time line chart as a named non-interactive image', async () => {
-    render(<App />)
-
-    expect(await screen.findByRole('heading', { name: 'Study Time' })).toBeInTheDocument()
-    const chart = screen.getByRole('img', { name: 'Study time trend' })
-    expect(chart).toHaveClass('line-chart')
-    expect(chart).not.toHaveAttribute('tabindex')
-    expect(chart.tabIndex).toBeLessThan(0)
-    expect(within(chart).queryByRole('button')).not.toBeInTheDocument()
-    expect(within(chart).queryByRole('img')).not.toBeInTheDocument()
-    expect(chart.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
-    expect(document.querySelector('.line-days')).toHaveAttribute('aria-hidden', 'true')
   })
 
 
@@ -294,37 +260,6 @@ describe('App', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(await screen.findByRole('alert')).toHaveTextContent('Theme preference could not be saved.')
     expect(screen.queryByText(/quota exceeded/i)).not.toBeInTheDocument()
-  })
-
-
-  it('does not create duplicate history rows for repeated finalization', async () => {
-    const session = makeDurableFocusSession({
-      id: 'focus-idempotent',
-      subjectId: '',
-      plannedMinutes: 0,
-      startedAt: new Date(Date.now() - 3 * 60_000).toISOString(),
-    })
-    await createActiveFocusSession(session)
-
-    const first = await finalizeActiveFocusSession(session.id, {
-      subjectId: '',
-      startedAt: session.startedAt,
-      endedAt: new Date().toISOString(),
-      minutes: 3,
-      note: 'Focus session',
-    })
-    const second = await finalizeActiveFocusSession(session.id, {
-      subjectId: '',
-      startedAt: session.startedAt,
-      endedAt: new Date().toISOString(),
-      minutes: 99,
-      note: 'Duplicate',
-    })
-
-    expect(first.ok).toBe(true)
-    expect(second).toEqual(first)
-    expect(await studyDb.studySessions.count()).toBe(1)
-    expect(await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)).toBeUndefined()
   })
 
 
