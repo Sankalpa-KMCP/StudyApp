@@ -4,6 +4,10 @@ import {
   exportStudyData,
   importStudyData,
 } from '../db/studyDb'
+import {
+  assertStudyExportImportFileSize,
+  assertStudyExportImportTextLength,
+} from '../db/studyExportLimits'
 import type { ActiveFocusSession } from '../db/types'
 
 export type UseStudyBackupOptions = {
@@ -49,7 +53,10 @@ export function useStudyBackup({
 
   const importBackup = useCallback(async (file: File) => {
     await runWithFocusImportLock(async () => {
-      await importStudyData(JSON.parse(await file.text()) as unknown)
+      assertStudyExportImportFileSize(file)
+      const text = await file.text()
+      assertStudyExportImportTextLength(text)
+      await importStudyData(JSON.parse(text) as unknown)
       await reloadFocusFromIndexedDb()
     })
   }, [reloadFocusFromIndexedDb, runWithFocusImportLock])
