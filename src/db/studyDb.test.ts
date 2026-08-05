@@ -644,6 +644,323 @@ describe('studyDb', () => {
     expect(await studyDb.subjects.toArray()).toMatchObject([{ id: 'subject-existing', name: 'Existing subject' }])
   })
 
+  it('rejects duplicate entity ids and settings keys without clearing existing data', async () => {
+    const timestamp = nowIso()
+    await studyDb.subjects.add({
+      id: 'subject-seeded',
+      name: 'Seeded subject',
+      color: '#2563eb',
+      targetHours: 3,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await studyDb.tasks.add({
+      id: 'task-seeded',
+      title: 'Seeded task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 30,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await studyDb.settings.put({
+      key: 'activeFocusSession',
+      value: {
+        id: 'focus-seeded',
+        subjectId: '',
+        startedAt: timestamp,
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      },
+    })
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 180 })
+
+    const emptyTables = {
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+
+    const subjectRow = {
+      id: 'dup-subject',
+      name: 'Dup',
+      color: '#111827',
+      targetHours: 2,
+      progress: 0,
+      progressMode: 'manual' as const,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+    const legacySubjectRow = {
+      id: 'dup-subject',
+      name: 'Dup',
+      color: '#111827',
+      targetHours: 2,
+      progress: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+
+    const duplicateCases = [
+      {
+        version: 3 as const,
+        ...emptyTables,
+        subjects: [subjectRow, { ...subjectRow, name: 'Other' }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        tasks: [
+          {
+            id: 'dup-task',
+            title: 'A',
+            subjectId: '',
+            dueDate: '',
+            priority: 'normal' as const,
+            status: 'open' as const,
+            minutes: 30,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+          {
+            id: 'dup-task',
+            title: 'B',
+            subjectId: '',
+            dueDate: '',
+            priority: 'normal' as const,
+            status: 'open' as const,
+            minutes: 30,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        ],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        notes: [
+          {
+            id: 'dup-note',
+            title: 'A',
+            body: '',
+            subjectId: '',
+            tags: [] as string[],
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+          {
+            id: 'dup-note',
+            title: 'B',
+            body: '',
+            subjectId: '',
+            tags: [] as string[],
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        ],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        events: [
+          {
+            id: 'dup-event',
+            title: 'A',
+            subjectId: '',
+            startAt: timestamp,
+            endAt: timestamp,
+            location: '',
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+          {
+            id: 'dup-event',
+            title: 'B',
+            subjectId: '',
+            startAt: timestamp,
+            endAt: timestamp,
+            location: '',
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        ],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        flashcards: [
+          {
+            id: 'dup-card',
+            front: 'A',
+            back: 'A',
+            subjectId: '',
+            status: 'new' as const,
+            lastReviewedAt: '',
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+          {
+            id: 'dup-card',
+            front: 'B',
+            back: 'B',
+            subjectId: '',
+            status: 'new' as const,
+            lastReviewedAt: '',
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        ],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        studySessions: [
+          {
+            id: 'dup-session',
+            subjectId: '',
+            startedAt: timestamp,
+            endedAt: timestamp,
+            minutes: 10,
+            note: '',
+          },
+          {
+            id: 'dup-session',
+            subjectId: '',
+            startedAt: timestamp,
+            endedAt: timestamp,
+            minutes: 20,
+            note: '',
+          },
+        ],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        goals: [
+          {
+            id: 'dup-goal',
+            title: 'A',
+            target: 10,
+            progress: 0,
+            period: 'daily' as const,
+            metric: 'manual' as const,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+          {
+            id: 'dup-goal',
+            title: 'B',
+            target: 10,
+            progress: 0,
+            period: 'daily' as const,
+            metric: 'manual' as const,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        ],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        settings: [
+          { key: 'dailyGoalMinutes', value: 120 },
+          { key: 'dailyGoalMinutes', value: 999 },
+        ],
+      },
+      {
+        version: 1 as const,
+        ...emptyTables,
+        subjects: [legacySubjectRow, { ...legacySubjectRow, name: 'Other' }],
+        goals: [],
+      },
+      {
+        version: 2 as const,
+        ...emptyTables,
+        subjects: [legacySubjectRow, { ...legacySubjectRow, name: 'Other' }],
+        goals: [],
+      },
+    ]
+
+    for (const snapshot of duplicateCases) {
+      await expect(importStudyData({ ...snapshot, exportedAt: timestamp }))
+        .rejects.toThrow('Import file is not a Study Dashboard export.')
+      expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+      expect(await studyDb.tasks.get('task-seeded')).toMatchObject({ title: 'Seeded task' })
+      expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(180)
+      expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ id: 'focus-seeded' })
+    }
+  })
+
+  it('allows the same identifier across different entity tables on import', async () => {
+    const timestamp = nowIso()
+    const sharedId = 'shared-cross-table-id'
+
+    await importStudyData({
+      version: 3 as const,
+      exportedAt: timestamp,
+      subjects: [{
+        id: sharedId,
+        name: 'Shared subject',
+        color: '#111827',
+        targetHours: 2,
+        progress: 0,
+        progressMode: 'manual' as const,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      tasks: [{
+        id: sharedId,
+        title: 'Shared task',
+        subjectId: sharedId,
+        dueDate: '',
+        priority: 'normal' as const,
+        status: 'open' as const,
+        minutes: 30,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      notes: [{
+        id: sharedId,
+        title: 'Shared note',
+        body: '',
+        subjectId: sharedId,
+        tags: [],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [{
+        id: sharedId,
+        title: 'Shared goal',
+        target: 10,
+        progress: 0,
+        period: 'daily' as const,
+        metric: 'manual' as const,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      settings: [{ key: 'dailyGoalMinutes', value: 200 }],
+    })
+
+    expect(await studyDb.subjects.get(sharedId)).toMatchObject({ name: 'Shared subject' })
+    expect(await studyDb.tasks.get(sharedId)).toMatchObject({ title: 'Shared task' })
+    expect(await studyDb.notes.get(sharedId)).toMatchObject({ title: 'Shared note' })
+    expect(await studyDb.goals.get(sharedId)).toMatchObject({ title: 'Shared goal' })
+  })
+
   it('ignores the old bundled sample data during legacy migration', async () => {
     localStorage.setItem(
       'study-dashboard-v2',
