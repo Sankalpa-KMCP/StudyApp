@@ -14,7 +14,8 @@ There is **no backend**, authentication, or cloud synchronization. The browser I
 - Successful Settings backup import resynchronizes focus UI from IndexedDB without a page reload
 - Flashcards with a simple review schedule (`dueAt`, `intervalDays`, `reviewCount`)
 - Progress includes a local-date study journal with manual session logging, correction, and deletion
-- Progress, Home totals, subject cards, and study-time goals update from finalized logged study sessions
+- Progress, Home totals, and study-time goals update from finalized logged study sessions
+- Subjects support explicit **Manual progress** (stored percentage) and **Study time** (automatic from matching recorded sessions toward target hours); cards and search use the same calculated value
 - Calendar strip days and Home date summaries use the local calendar day and refresh after local midnight without a reload
 - Goals support explicit **Manual progress** (stored points) and **Study time** (automatic from recorded sessions); metric and period are separate choices
 - Settings include JSON import/export, clear-all confirmation, and seven local theme palettes; Monochrome is the default
@@ -119,6 +120,14 @@ First launch starts empty with create-first actions. Existing customized data fr
 - **Monthly study-time** totals use the **current local calendar month**.
 - **Renaming a goal does not change** how it is calculated; only the stored metric and period matter.
 
+### Subjects
+
+- **Manual progress** — you set a percentage (0–100); the value stays stored even if you switch modes.
+- **Study time** — progress is **matching finalized study-session minutes ÷ (target hours × 60)**, clamped to 0–100. It uses all matching recorded sessions (not limited to a day/week/month). Unfinished focus sessions do not count until they are saved to history.
+- New subjects default to **Manual progress**. The Subjects editor lets you choose the mode; Progress % appears only in manual mode.
+- Subject cards and Home search use one shared calculator for the displayed percentage.
+- **Subject Distribution** on Progress is separate: it shows each subject’s share of total logged study time, not progress toward a subject’s target hours.
+
 ### Focus sessions
 
 - Running and paused unfinished sessions are restored after reload or browser reopen.
@@ -128,8 +137,9 @@ First launch starts empty with create-first actions. Existing customized data fr
 
 ### Backups
 
-- New exports use JSON format **version 2** with an explicit `metric` on every goal.
-- Valid **version 1** backups remain importable; goals are normalized to explicit metrics **before** any local data is replaced.
+- New exports use JSON format **version 3** with an explicit `metric` on every goal and an explicit `progressMode` on every subject (`manual` or `study_time`).
+- Valid **version 1** and **version 2** backups remain importable. Goals without metrics (v1) and subjects without modes (v1/v2) are normalized from the **complete imported study-session set** **before** any local data is replaced.
+- Version 3 backups that omit or use an invalid subject `progressMode` (or goal `metric`) fail validation **before** table replacement; existing data stays intact.
 - Import validation runs before table replacement; invalid payloads are rejected and existing data stays intact.
 
 ## Documentation

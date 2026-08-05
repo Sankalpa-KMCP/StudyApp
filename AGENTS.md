@@ -35,8 +35,24 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 - **Manual progress** uses stored `goal.progress` in **points**.
 - **Study time** derives progress from finalized recorded **`studySessions`** only (unfinished focus sessions do not count until finalized into history).
 - **Period units:** daily study-time goals use **minutes**; weekly and monthly study-time goals use **rounded hours** (weekly totals use the existing rolling seven local calendar days ending today; monthly totals use the current local calendar month).
-- **IndexedDB:** Dexie **version 2** (upgrade from v1 assigns metrics to legacy rows once via title rules in `src/db/goalMetricInference.ts` — migration/import only, not runtime).
-- **Backups:** new exports use JSON **version 2** with required goal metrics; valid **version 1** backups remain importable and are normalized before any table replacement.
+- Dexie **version 2** assigned metrics to legacy goal rows once via title rules in `src/db/goalMetricInference.ts` (migration / v1 import only — not runtime).
+
+## Subject progress
+
+- Every subject has an explicit **`progressMode`**: `manual` (**Manual progress**) or `study_time` (**Study time**). Subject **names never determine** mode or displayed progress.
+- **Manual progress** uses stored `subject.progress` (0–100 percentage). That stored value is **retained** while study-time mode is active and after mode switches.
+- **Study time** uses all matching finalized **`studySessions`** minutes ÷ (`targetHours × 60`), clamped 0–100. It is **not** period-limited (unlike study-time goals).
+- New subjects default to **`manual`**. The Subjects editor exposes the mode selector; Progress % is editable only in manual mode.
+- **`calculateSubjectProgress`** in `src/appUtils.ts` is the authoritative display helper for Subject cards, Home subject cards, and Home/search metadata and progress-number filtering (`SubjectsView`, `HomeView`, `buildSearchResults`, `useAppSearch`).
+- **Subject Distribution** (`SubjectDistribution` in `src/components/RightColumn.tsx`) remains a separate share-of-total logged study-time chart — not subject target progress.
+- **IndexedDB:** current Dexie schema is **version 3**. Upgrade from v2 assigns missing/invalid `progressMode` once via `inferSubjectProgressMode` (positive matching session minutes → `study_time`, else `manual` — session presence only, no title heuristics).
+- **Inspect together when changing subject progress:** `src/db/types.ts`, `src/db/studyDb.ts`, `src/appUtils.ts` (`calculateSubjectProgress` / `inferSubjectProgressMode`), `src/views/SubjectsView.tsx`, `src/home/HomeView.tsx`, `src/hooks/useAppSearch.ts`, `src/components/ui.tsx` (`SubjectCard`).
+
+## Backups
+
+- New exports use JSON **version 3** with required goal **`metric`** and subject **`progressMode`**.
+- Valid **version 1** and **version 2** backups remain importable: goals (v1) and subjects (v1/v2) are normalized from the **complete imported study-session set** before any table replacement.
+- Invalid or missing modes/metrics on **version 3** backups fail validation **before** existing data is replaced.
 
 ## Local calendar dates
 
