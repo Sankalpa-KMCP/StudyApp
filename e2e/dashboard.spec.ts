@@ -400,9 +400,15 @@ test('explicit goal metrics use persisted metric rather than title text', async 
   expect(goalsAfterReload.find((goal) => goal.title === studyTitle)?.metric).toBe('study_time')
 
   const exported = await exportStudyBackupViaSettings(page)
-  expect(exported.version).toBe(2)
+  expect(exported.version).toBe(3)
   expect(exported.goals.find((goal) => goal.title === manualTitle)?.metric).toBe('manual')
   expect(exported.goals.find((goal) => goal.title === studyTitle)?.metric).toBe('study_time')
+  expect(Array.isArray(exported.subjects)).toBe(true)
+  expect(
+    exported.subjects.every(
+      (subject) => subject.progressMode === 'manual' || subject.progressMode === 'study_time',
+    ),
+  ).toBe(true)
 })
 
 test('keeps Settings danger actions above the mobile bottom nav after focus scroll', async ({ page }) => {

@@ -913,7 +913,7 @@ describe('App workspaces', () => {
       progressMode: 'study_time',
       progress: 35,
     })
-    expect(screen.getByRole('progressbar', { name: '0%' })).toBeInTheDocument()
+    expect(await screen.findByRole('progressbar', { name: '0%' })).toBeInTheDocument()
 
     await user.click(screen.getByLabelText('Edit Mode Switch'))
     expect(screen.getByLabelText('Progress mode')).toHaveValue('study_time')
