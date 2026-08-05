@@ -1,7 +1,16 @@
 import Dexie, { type Table } from 'dexie'
 import { inferSubjectProgressMode } from '../appUtils'
+import { getAppVersion } from '../appVersion'
 import { inferLegacyGoalMetric } from './goalMetricInference'
-import { assertUniqueStudyExportIdentifiers, assertStudyExportSubjectReferences, assertStudyExportSemantics, assertStudyExportSettingsValues, assertStudyExportRecordCounts } from './studyExportValidation'
+import {
+  assertUniqueStudyExportIdentifiers,
+  assertStudyExportSubjectReferences,
+  assertStudyExportSemantics,
+  assertStudyExportSettingsValues,
+  assertStudyExportRecordCounts,
+  STUDY_EXPORT_IMPORT_VALIDATION_ERROR,
+  StudyExportValidationError,
+} from './studyExportValidation'
 import type {
   CalendarEvent,
   Flashcard,
@@ -17,7 +26,7 @@ import type {
   StudySubjectLegacy,
   StudyTask,
 } from './types'
-import { isGoalMetric, isSubjectProgressMode } from './types'
+import { EXPORT_SCHEMA_VERSION, isGoalMetric, isSubjectProgressMode } from './types'
 
 const STUDY_DB_NAME = 'study-dashboard-db'
 const LEGACY_STORAGE_KEY = 'study-dashboard-v2'
@@ -116,11 +125,13 @@ export async function readStudyDataSnapshot(): Promise<StudyData> {
 
 export function createStudyExportPayload(
   snapshot: StudyData,
-  exportedAt = nowIso()
+  exportedAt = nowIso(),
+  appVersion = getAppVersion()
 ): StudyExport {
   return {
-    version: 3,
+    version: EXPORT_SCHEMA_VERSION,
     exportedAt,
+    appVersion,
     ...snapshot,
   }
 }
@@ -130,22 +141,32 @@ export async function exportStudyData(): Promise<StudyExport> {
   return createStudyExportPayload(snapshot)
 }
 
-export async function importStudyData(payload: unknown) {
+export async function importStudyData(payload: unknown): Promise<void> {
   const normalized = parseAndNormalizeStudyExport(payload)
 
-  await studyDb.transaction('rw', studyTables, async () => {
-    await Promise.all(studyTables.map((table) => table.clear()))
-    await Promise.all([
-      studyDb.tasks.bulkPut(normalized.tasks),
-      studyDb.subjects.bulkPut(normalized.subjects),
-      studyDb.notes.bulkPut(normalized.notes),
-      studyDb.events.bulkPut(normalized.events),
-      studyDb.flashcards.bulkPut(normalized.flashcards),
-      studyDb.studySessions.bulkPut(normalized.studySessions),
-      studyDb.goals.bulkPut(normalized.goals),
-      studyDb.settings.bulkPut(normalized.settings),
-    ])
-  })
+  try {
+    await studyDb.transaction('rw', studyTables, async () => {
+      await Promise.all(studyTables.map((table) => table.clear()))
+      await Promise.all([
+        studyDb.tasks.bulkPut(normalized.tasks),
+        studyDb.subjects.bulkPut(normalized.subjects),
+        studyDb.notes.bulkPut(normalized.notes),
+        studyDb.events.bulkPut(normalized.events),
+        studyDb.flashcards.bulkPut(normalized.flashcards),
+        studyDb.studySessions.bulkPut(normalized.studySessions),
+        studyDb.goals.bulkPut(normalized.goals),
+        studyDb.settings.bulkPut(normalized.settings),
+      ])
+    })
+  } catch (err) {
+    if (err instanceof StudyExportValidationError) {
+      throw err
+    }
+    throw new StudyExportValidationError(
+      'transaction_failed',
+      'Database storage transaction failed during import.'
+    )
+  }
 }
 
 export async function clearAllStudyData() {
@@ -478,85 +499,156 @@ export async function migrateLegacyLocalStorage(
  * Throws before any database mutation when the payload is unsupported or invalid.
  */
 export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
-  if (!isRecord(value)) {
-    throw new Error('Import file is not a Study Dashboard export.')
+  let parsed = value
+  if (typeof value === 'string') {
+    try {
+      parsed = JSON.parse(value)
+    } catch {
+      throw new StudyExportValidationError(
+        'invalid_json',
+        'Import file contains invalid JSON syntax.'
+      )
+    }
   }
 
-  const version = value.version
+  if (!isRecord(parsed)) {
+    throw new StudyExportValidationError(
+      'invalid_structure',
+      STUDY_EXPORT_IMPORT_VALIDATION_ERROR
+    )
+  }
+
+  const version = parsed.version
+  if (typeof version !== 'number') {
+    throw new StudyExportValidationError(
+      'invalid_structure',
+      STUDY_EXPORT_IMPORT_VALIDATION_ERROR
+    )
+  }
+
+  if (version > EXPORT_SCHEMA_VERSION) {
+    throw new StudyExportValidationError(
+      'future_version',
+      `Import file schema version (${version}) is newer than supported version (${EXPORT_SCHEMA_VERSION}).`,
+      { encounteredVersion: version }
+    )
+  }
+
+  if (version < 1) {
+    throw new StudyExportValidationError(
+      'unsupported_old_version',
+      `Import file schema version (${version}) is unsupported.`,
+      { encounteredVersion: version }
+    )
+  }
+
   if (version !== 1 && version !== 2 && version !== 3) {
-    throw new Error('Import file is not a Study Dashboard export.')
+    throw new StudyExportValidationError(
+      'invalid_structure',
+      STUDY_EXPORT_IMPORT_VALIDATION_ERROR
+    )
+  }
+
+  if (parsed.appVersion !== undefined) {
+    if (
+      typeof parsed.appVersion !== 'string'
+      || parsed.appVersion.trim().length === 0
+      || parsed.appVersion.length > 64
+    ) {
+      throw new StudyExportValidationError(
+        'invalid_records',
+        'Import file contains invalid app version metadata.'
+      )
+    }
   }
 
   if (
-    !isDate(value.exportedAt)
-    || !isArrayOf(value.tasks, isStudyTask)
-    || !isArrayOf(value.notes, isStudyNote)
-    || !isArrayOf(value.events, isCalendarEvent)
-    || !isArrayOf(value.flashcards, isFlashcard)
-    || !isArrayOf(value.studySessions, isStudySession)
-    || !isArrayOf(value.settings, isStudySetting)
+    !isDate(parsed.exportedAt)
+    || !isArrayOf(parsed.tasks, isStudyTask)
+    || !isArrayOf(parsed.notes, isStudyNote)
+    || !isArrayOf(parsed.events, isCalendarEvent)
+    || !isArrayOf(parsed.flashcards, isFlashcard)
+    || !isArrayOf(parsed.studySessions, isStudySession)
+    || !isArrayOf(parsed.settings, isStudySetting)
   ) {
-    throw new Error('Import file is not a Study Dashboard export.')
+    throw new StudyExportValidationError(
+      'invalid_structure',
+      STUDY_EXPORT_IMPORT_VALIDATION_ERROR
+    )
   }
 
-  const studySessions = value.studySessions
+  const studySessions = parsed.studySessions
 
   if (version === 3) {
-    if (!isArrayOf(value.subjects, isStudySubject) || !isArrayOf(value.goals, isCurrentStudyGoal)) {
-      throw new Error('Import file is not a Study Dashboard export.')
+    if (!isArrayOf(parsed.subjects, isStudySubject) || !isArrayOf(parsed.goals, isCurrentStudyGoal)) {
+      throw new StudyExportValidationError(
+        'invalid_records',
+        STUDY_EXPORT_IMPORT_VALIDATION_ERROR
+      )
     }
     return finalizeStudyExport({
       version: 3,
-      exportedAt: value.exportedAt,
-      tasks: value.tasks,
-      subjects: value.subjects,
-      notes: value.notes,
-      events: value.events,
-      flashcards: value.flashcards,
+      exportedAt: parsed.exportedAt,
+      appVersion: parsed.appVersion,
+      tasks: parsed.tasks,
+      subjects: parsed.subjects,
+      notes: parsed.notes,
+      events: parsed.events,
+      flashcards: parsed.flashcards,
       studySessions,
-      goals: value.goals,
-      settings: value.settings,
+      goals: parsed.goals,
+      settings: parsed.settings,
     })
   }
 
-  if (!isArrayOf(value.subjects, isLegacyStudySubject)) {
-    throw new Error('Import file is not a Study Dashboard export.')
+  if (!isArrayOf(parsed.subjects, isLegacyStudySubject)) {
+    throw new StudyExportValidationError(
+      'invalid_records',
+      STUDY_EXPORT_IMPORT_VALIDATION_ERROR
+    )
   }
 
-  const subjects = normalizeLegacySubjects(value.subjects, studySessions)
+  const subjects = normalizeLegacySubjects(parsed.subjects, studySessions)
   const tables = {
-    exportedAt: value.exportedAt,
-    tasks: value.tasks,
+    exportedAt: parsed.exportedAt,
+    appVersion: parsed.appVersion,
+    tasks: parsed.tasks,
     subjects,
-    notes: value.notes,
-    events: value.events,
-    flashcards: value.flashcards,
+    notes: parsed.notes,
+    events: parsed.events,
+    flashcards: parsed.flashcards,
     studySessions,
-    settings: value.settings,
+    settings: parsed.settings,
   }
 
   if (version === 1) {
-    if (!isArrayOf(value.goals, isLegacyStudyGoal)) {
-      throw new Error('Import file is not a Study Dashboard export.')
+    if (!isArrayOf(parsed.goals, isLegacyStudyGoal)) {
+      throw new StudyExportValidationError(
+        'invalid_records',
+        STUDY_EXPORT_IMPORT_VALIDATION_ERROR
+      )
     }
     return finalizeStudyExport({
       version: 3,
       ...tables,
-      goals: value.goals.map((goal) => ({
+      goals: parsed.goals.map((goal) => ({
         ...goal,
         metric: inferLegacyGoalMetric(goal.period, goal.title),
       })),
     })
   }
 
-  if (!isArrayOf(value.goals, isCurrentStudyGoal)) {
-    throw new Error('Import file is not a Study Dashboard export.')
+  if (!isArrayOf(parsed.goals, isCurrentStudyGoal)) {
+    throw new StudyExportValidationError(
+      'invalid_records',
+      STUDY_EXPORT_IMPORT_VALIDATION_ERROR
+    )
   }
 
   return finalizeStudyExport({
     version: 3,
     ...tables,
-    goals: value.goals,
+    goals: parsed.goals,
   })
 }
 

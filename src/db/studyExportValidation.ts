@@ -20,11 +20,44 @@ import {
 /** Stable internal error; Settings maps import failures to a fixed friendly message. */
 export const STUDY_EXPORT_IMPORT_VALIDATION_ERROR = 'Import file is not a Study Dashboard export.'
 
+export type StudyExportValidationCode =
+  | 'invalid_json'
+  | 'invalid_structure'
+  | 'future_version'
+  | 'unsupported_old_version'
+  | 'invalid_records'
+  | 'transaction_failed'
+
+export class StudyExportValidationError extends Error {
+  readonly code: StudyExportValidationCode
+  readonly details?: { encounteredVersion?: number }
+  readonly encounteredVersion?: number
+
+  constructor(
+    code: StudyExportValidationCode,
+    message: string = STUDY_EXPORT_IMPORT_VALIDATION_ERROR,
+    options?: { encounteredVersion?: number }
+  ) {
+    super(message)
+    this.name = 'StudyExportValidationError'
+    this.code = code
+    this.details = options
+    this.encounteredVersion = options?.encounteredVersion
+  }
+}
+
+function failValidation(
+  code: StudyExportValidationCode = 'invalid_records',
+  message: string = STUDY_EXPORT_IMPORT_VALIDATION_ERROR
+): never {
+  throw new StudyExportValidationError(code, message)
+}
+
 function assertUniqueKeys(keys: string[]): void {
   const seen = new Set<string>()
   for (const key of keys) {
     if (seen.has(key)) {
-      throw new Error(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+      failValidation('invalid_records')
     }
     seen.add(key)
   }
@@ -52,7 +85,7 @@ export function assertUniqueStudyExportIdentifiers(
 
 function assertSubjectReference(subjectId: string, subjectIds: ReadonlySet<string>): void {
   if (!isPersistedSubjectReference(subjectId, subjectIds)) {
-    throw new Error(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+    failValidation('invalid_records')
   }
 }
 
@@ -92,10 +125,6 @@ export function assertStudyExportSubjectReferences(
     if (!isActiveFocusSession(setting.value)) continue
     assertSubjectReference(setting.value.subjectId, subjectIds)
   }
-}
-
-function failValidation(): never {
-  throw new Error(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
 }
 
 /**

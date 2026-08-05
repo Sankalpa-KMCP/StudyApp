@@ -126,6 +126,9 @@ export type ActiveFocusSession = {
 /** Pre-metric goal shape found in version-1 backups (no `metric` field). */
 export type StudyGoalV1 = Omit<StudyGoal, 'metric'>
 
+export const EXPORT_SCHEMA_VERSION = 3
+export type ExportSchemaVersion = typeof EXPORT_SCHEMA_VERSION
+
 type StudyExportTablesLegacy = {
   tasks: StudyTask[]
   subjects: StudySubjectLegacy[]
@@ -150,6 +153,7 @@ type StudyExportTables = {
 export type StudyExportV1 = StudyExportTablesLegacy & {
   version: 1
   exportedAt: string
+  appVersion?: string
   goals: StudyGoalV1[]
 }
 
@@ -157,6 +161,7 @@ export type StudyExportV1 = StudyExportTablesLegacy & {
 export type StudyExportV2 = StudyExportTablesLegacy & {
   version: 2
   exportedAt: string
+  appVersion?: string
   goals: StudyGoal[]
 }
 
@@ -164,10 +169,11 @@ export type StudyExportV2 = StudyExportTablesLegacy & {
 export type StudyExportV3 = StudyExportTables & {
   version: 3
   exportedAt: string
+  appVersion?: string
   goals: StudyGoal[]
 }
 
 /** Current export/import product shape after normalization. */
 export type StudyExport = StudyExportV3
 
-export type StudyData = Omit<StudyExport, 'version' | 'exportedAt'>
+export type StudyData = Omit<StudyExport, 'version' | 'exportedAt' | 'appVersion'>

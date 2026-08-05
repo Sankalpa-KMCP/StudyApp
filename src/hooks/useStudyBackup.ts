@@ -80,7 +80,7 @@ export function useStudyBackup({
         assertStudyExportImportFileSize(file)
         const text = await file.text()
         assertStudyExportImportTextLength(text)
-        await importStudyData(JSON.parse(text) as unknown)
+        await importStudyData(text)
         await reloadFocusFromIndexedDb()
       })
     })

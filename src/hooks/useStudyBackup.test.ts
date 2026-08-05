@@ -252,7 +252,7 @@ describe('useStudyBackup', () => {
     await result.current.importBackup(file)
 
     expect(importStudyData).toHaveBeenCalledTimes(1)
-    expect(importStudyData).toHaveBeenCalledWith({ version: 3 })
+    expect(importStudyData).toHaveBeenCalledWith(payload)
     expect(reloadFocusFromIndexedDb).toHaveBeenCalledTimes(1)
   })
 
@@ -261,11 +261,12 @@ describe('useStudyBackup', () => {
     const reloadFocusFromIndexedDb = vi.fn(async () => null)
     const { result } = renderBackupHook({ reloadFocusFromIndexedDb })
 
-    const file = new File([JSON.stringify({ version: 1 })], 'ok.json', { type: 'application/json' })
+    const raw = JSON.stringify({ version: 1 })
+    const file = new File([raw], 'ok.json', { type: 'application/json' })
     await result.current.importBackup(file)
 
     expect(file.size).toBeLessThanOrEqual(MAX_STUDY_EXPORT_IMPORT_BYTES)
-    expect(importStudyData).toHaveBeenCalledWith({ version: 1 })
+    expect(importStudyData).toHaveBeenCalledWith(raw)
     expect(reloadFocusFromIndexedDb).toHaveBeenCalledTimes(1)
   })
 
