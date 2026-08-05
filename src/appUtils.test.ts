@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  buildSearchResults,
   calculateGoalProgress,
   calculateStreak,
   calculateSubjectProgress,
@@ -21,7 +22,7 @@ import {
   parseLocalDateTime,
   startOfToday,
 } from './appUtils'
-import type { StudyGoal, StudySubject } from './db/types'
+import type { StudyData, StudyGoal, StudySubject } from './db/types'
 import { isSubjectProgressMode } from './db/types'
 
 describe('appUtils', () => {
@@ -180,6 +181,48 @@ describe('appUtils', () => {
       targetMinutes: 60,
     })
     expect(subject.progress).toBe(42)
+  })
+
+  it('builds subject search metadata from calculated progress', () => {
+    const subject = subjectFixture({
+      id: 'subject-search',
+      name: 'Physics',
+      progress: 15,
+      progressMode: 'study_time',
+      targetHours: 1,
+    })
+    const data = {
+      tasks: [],
+      subjects: [subject],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [
+        {
+          id: 'session-1',
+          subjectId: subject.id,
+          startedAt: '2026-06-29T09:00:00.000Z',
+          endedAt: '2026-06-29T09:30:00.000Z',
+          minutes: 30,
+          note: '',
+        },
+      ],
+      goals: [],
+      settings: [],
+    } satisfies StudyData
+    const subjectMap = new Map([[subject.id, subject]])
+
+    expect(buildSearchResults(data, subjectMap, 'Physics')).toEqual([
+      {
+        id: 'subject-search',
+        type: 'Subject',
+        title: 'Physics',
+        meta: '50% progress',
+        view: 'Subjects',
+      },
+    ])
+    expect(buildSearchResults(data, subjectMap, '50')).toHaveLength(1)
+    expect(buildSearchResults(data, subjectMap, '15')).toEqual([])
   })
 
   describe('goal progress by explicit metric', () => {

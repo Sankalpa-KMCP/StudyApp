@@ -146,7 +146,7 @@ describe('UI Components', () => {
     }
 
     it('renders subject name, target hours, progress, and decorative icon', () => {
-      const { container } = render(<SubjectCard subject={subject} />)
+      const { container } = render(<SubjectCard subject={subject} progressValue={subject.progress} />)
 
       expect(screen.getByRole('heading', { level: 3, name: 'Mathematics' })).toBeInTheDocument()
       expect(screen.getByText('10h target')).toBeInTheDocument()

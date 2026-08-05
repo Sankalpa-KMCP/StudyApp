@@ -4,7 +4,7 @@ import type { MutationPhase } from '../hooks/useMutationState'
 import { BookOpen, Edit3, Plus, Save, Trash2, X, type AppIcon } from './icons'
 import type { Ref } from 'react'
 
-export function SubjectCard({ subject, progressValue = subject.progress }: { subject: StudySubject; progressValue?: number }) {
+export function SubjectCard({ subject, progressValue }: { subject: StudySubject; progressValue: number }) {
   return (
     <article className="card subject-card" style={{ '--subject-color': subject.color } as React.CSSProperties}>
       <div className="subject-icon" style={{ backgroundColor: subject.color }}>

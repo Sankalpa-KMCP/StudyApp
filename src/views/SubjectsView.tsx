@@ -12,7 +12,13 @@ import {
 } from '../components/ui'
 import { createId, nowIso, studyDb } from '../db/studyDb'
 import type { StudySubject, StudyTask, StudyNote, CalendarEvent, Flashcard, StudySession, SubjectProgressMode } from '../db/types'
-import { clamp, formatMinutes, getSubjectProgress, getSubjectStudyMinutes } from '../appUtils'
+import { isSubjectProgressMode } from '../db/types'
+import {
+  calculateSubjectProgress,
+  clamp,
+  formatMinutes,
+  formatSubjectProgressModeLabel,
+} from '../appUtils'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 
 const colorSwatches = [
@@ -42,6 +48,8 @@ const emptyDraft = (): SubjectDraft => ({
   progressMode: 'manual',
 })
 
+const SUBJECT_MODE_HELP_ID = 'subject-progress-mode-help'
+
 export function SubjectsView({
   subjects,
   tasks,
@@ -69,6 +77,7 @@ export function SubjectsView({
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const handledEditorRequest = useRef(0)
   const nameFieldRef = useRef<HTMLInputElement | null>(null)
+  const progressModeFieldRef = useRef<HTMLSelectElement | null>(null)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
@@ -138,6 +147,12 @@ export function SubjectsView({
     const name = draft.name.trim()
     if (!name) {
       setValidationError('Enter a subject name.')
+      return
+    }
+
+    if (!isSubjectProgressMode(draft.progressMode)) {
+      setValidationError('Choose a valid progress mode.')
+      progressModeFieldRef.current?.focus()
       return
     }
 
@@ -235,8 +250,31 @@ export function SubjectsView({
               ))}
             </div>
           </label>
+          <label className="field" htmlFor="subject-progress-mode">
+            <span>Progress mode</span>
+            <select
+              id="subject-progress-mode"
+              ref={progressModeFieldRef}
+              value={draft.progressMode}
+              required
+              aria-required="true"
+              aria-describedby={SUBJECT_MODE_HELP_ID}
+              disabled={isSaving}
+              onChange={(event) => setDraft({ ...draft, progressMode: event.target.value as SubjectProgressMode })}
+            >
+              <option value="manual">{formatSubjectProgressModeLabel('manual')}</option>
+              <option value="study_time">{formatSubjectProgressModeLabel('study_time')}</option>
+            </select>
+          </label>
+          <p className="settings-feedback" id={SUBJECT_MODE_HELP_ID}>
+            {draft.progressMode === 'manual'
+              ? 'Update this subject yourself.'
+              : 'Calculated automatically from recorded study sessions.'}
+          </p>
           <NumberInput label="Target hours" value={draft.targetHours} min={1} max={100} onChange={(targetHours) => setDraft({ ...draft, targetHours })} />
-          <NumberInput label="Progress %" value={draft.progress} min={0} max={100} onChange={(progress) => setDraft({ ...draft, progress })} />
+          {draft.progressMode === 'manual' ? (
+            <NumberInput label="Progress %" value={draft.progress} min={0} max={100} onChange={(progress) => setDraft({ ...draft, progress })} />
+          ) : null}
           <EditorActions
             onSave={() => void saveSubject()}
             onCancel={closeEditor}
@@ -251,8 +289,7 @@ export function SubjectsView({
             const taskCount = tasks.filter((task) => task.subjectId === subject.id).length
             const linked = getLinkedCounts(subject.id)
             const linkedTotal = Object.values(linked).reduce((sum, count) => sum + count, 0)
-            const progressValue = getSubjectProgress(subject, sessions)
-            const minutes = getSubjectStudyMinutes(subject.id, sessions)
+            const { percentage: progressValue, loggedMinutes: minutes } = calculateSubjectProgress(subject, sessions)
             return (
               <article className="card subject-card editable-subject" style={{ '--subject-color': subject.color } as React.CSSProperties} key={subject.id}>
                 <div className="subject-icon" style={{ backgroundColor: subject.color }}>

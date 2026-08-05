@@ -34,6 +34,11 @@ const GOAL_METRIC_LABELS: Record<GoalMetric, string> = {
   study_time: 'Study time',
 }
 
+const SUBJECT_PROGRESS_MODE_LABELS: Record<SubjectProgressMode, string> = {
+  manual: 'Manual progress',
+  study_time: 'Study time',
+}
+
 const GOAL_PERIOD_LABELS: Record<GoalPeriod, string> = {
   daily: 'Daily',
   weekly: 'Weekly',
@@ -42,6 +47,10 @@ const GOAL_PERIOD_LABELS: Record<GoalPeriod, string> = {
 
 export function formatGoalMetricLabel(metric: GoalMetric) {
   return GOAL_METRIC_LABELS[metric]
+}
+
+export function formatSubjectProgressModeLabel(mode: SubjectProgressMode) {
+  return SUBJECT_PROGRESS_MODE_LABELS[mode]
 }
 
 export function formatGoalPeriodLabel(period: GoalPeriod) {
@@ -255,8 +264,14 @@ export function buildSearchResults(data: StudyData, subjectMap: Map<string, Stud
       .filter((note) => matches(note.title, note.body, note.tags.join(' '), subjectName(note.subjectId)))
       .map((note): SearchResult => ({ id: note.id, type: 'Note', title: note.title, meta: subjectName(note.subjectId), view: 'Notes' })),
     ...data.subjects
-      .filter((subject) => matches(subject.name, subject.progress, subject.targetHours))
-      .map((subject): SearchResult => ({ id: subject.id, type: 'Subject', title: subject.name, meta: `${subject.progress}% progress`, view: 'Subjects' })),
+      .filter((subject) => {
+        const percentage = Math.round(calculateSubjectProgress(subject, data.studySessions).percentage)
+        return matches(subject.name, percentage, subject.targetHours)
+      })
+      .map((subject): SearchResult => {
+        const percentage = Math.round(calculateSubjectProgress(subject, data.studySessions).percentage)
+        return { id: subject.id, type: 'Subject', title: subject.name, meta: `${percentage}% progress`, view: 'Subjects' }
+      }),
     ...data.events
       .filter((event) => matches(event.title, event.location, subjectName(event.subjectId)))
       .map((event): SearchResult => ({ id: event.id, type: 'Event', title: event.title, meta: `${formatDateTime(event.startAt)} - ${subjectName(event.subjectId)}`, view: 'Calendar' })),
