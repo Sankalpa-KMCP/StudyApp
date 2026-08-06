@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { ACTIVE_FOCUS_SESSION_KEY } from './activeFocusSession'
 import {
+  assertStudyExportRecordCounts,
+  assertStudyExportRecordCountTotals,
   assertStudyExportSemantics,
   assertStudyExportSettingsValues,
   assertStudyExportSubjectReferences,
   assertUniqueStudyExportIdentifiers,
   STUDY_EXPORT_IMPORT_VALIDATION_ERROR,
 } from './studyExportValidation'
+import { STUDY_EXPORT_RECORD_LIMITS, type StudyExportRecordLimits } from './studyExportLimits'
 import type { StudyExport } from './types'
 
 const timestamp = '2026-07-24T00:00:00.000Z'
@@ -809,5 +812,244 @@ describe('assertStudyExportSettingsValues', () => {
     expect(() => assertStudyExportSettingsValues({
       settings: [{ key: ACTIVE_FOCUS_SESSION_KEY, value: { ...validFocus, subjectId: '' } }],
     })).not.toThrow()
+  })
+})
+
+describe('assertStudyExportRecordCountTotals', () => {
+  const zeroCounts = {
+    subjects: 0,
+    tasks: 0,
+    notes: 0,
+    events: 0,
+    flashcards: 0,
+    studySessions: 0,
+    goals: 0,
+    settings: 0,
+  }
+
+  it('accepts exact production per-table and total boundaries without allocating rows', () => {
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      subjects: STUDY_EXPORT_RECORD_LIMITS.subjects,
+    })).not.toThrow()
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      tasks: STUDY_EXPORT_RECORD_LIMITS.tasks,
+    })).not.toThrow()
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      notes: STUDY_EXPORT_RECORD_LIMITS.notes,
+    })).not.toThrow()
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      events: STUDY_EXPORT_RECORD_LIMITS.events,
+    })).not.toThrow()
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      flashcards: STUDY_EXPORT_RECORD_LIMITS.flashcards,
+    })).not.toThrow()
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      studySessions: STUDY_EXPORT_RECORD_LIMITS.studySessions,
+    })).not.toThrow()
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      goals: STUDY_EXPORT_RECORD_LIMITS.goals,
+    })).not.toThrow()
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      settings: STUDY_EXPORT_RECORD_LIMITS.settings,
+    })).not.toThrow()
+    expect(() => assertStudyExportRecordCountTotals({
+      subjects: 500,
+      tasks: 5_000,
+      notes: 5_000,
+      events: 5_000,
+      flashcards: 4_500,
+      studySessions: 4_500,
+      goals: 500,
+      settings: 0,
+    })).not.toThrow()
+  })
+
+  it('rejects production over-limit per-table counts and total overflow with individually valid tables', () => {
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      subjects: STUDY_EXPORT_RECORD_LIMITS.subjects + 1,
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      tasks: STUDY_EXPORT_RECORD_LIMITS.tasks + 1,
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      notes: STUDY_EXPORT_RECORD_LIMITS.notes + 1,
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      events: STUDY_EXPORT_RECORD_LIMITS.events + 1,
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      flashcards: STUDY_EXPORT_RECORD_LIMITS.flashcards + 1,
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      studySessions: STUDY_EXPORT_RECORD_LIMITS.studySessions + 1,
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      goals: STUDY_EXPORT_RECORD_LIMITS.goals + 1,
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+    expect(() => assertStudyExportRecordCountTotals({
+      ...zeroCounts,
+      settings: STUDY_EXPORT_RECORD_LIMITS.settings + 1,
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportRecordCountTotals({
+      subjects: 500,
+      tasks: 5_000,
+      notes: 5_000,
+      events: 5_000,
+      flashcards: 4_500,
+      studySessions: 4_501,
+      goals: 500,
+      settings: 0,
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+  })
+})
+
+describe('assertStudyExportRecordCounts', () => {
+  const tinyLimits: StudyExportRecordLimits = {
+    total: 5,
+    subjects: 2,
+    tasks: 2,
+    notes: 2,
+    events: 2,
+    flashcards: 2,
+    studySessions: 2,
+    goals: 2,
+    settings: 2,
+  }
+
+  const subject = (id: string) => ({
+    id,
+    name: id,
+    color: '#111827',
+    targetHours: 1,
+    progress: 0,
+    progressMode: 'manual' as const,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  })
+
+  it('accepts snapshot boundaries under injectable limits and rejects over-limit arrays', () => {
+    expect(() => assertStudyExportRecordCounts({
+      ...emptyTables(),
+      subjects: [subject('a'), subject('b')],
+    }, tinyLimits)).not.toThrow()
+
+    expect(() => assertStudyExportRecordCounts({
+      ...emptyTables(),
+      subjects: [subject('a'), subject('b'), subject('c')],
+    }, tinyLimits)).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportRecordCounts({
+      ...emptyTables(),
+      subjects: [subject('a')],
+      tasks: [{
+        id: 't1',
+        title: 'T',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      notes: [{
+        id: 'n1',
+        title: 'N',
+        body: '',
+        subjectId: '',
+        tags: [],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      events: [{
+        id: 'e1',
+        title: 'E',
+        subjectId: '',
+        startAt: timestamp,
+        endAt: timestamp,
+        location: '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      flashcards: [{
+        id: 'c1',
+        front: 'Q',
+        back: 'A',
+        subjectId: '',
+        status: 'new',
+        lastReviewedAt: '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    }, tinyLimits)).not.toThrow()
+
+    expect(() => assertStudyExportRecordCounts({
+      ...emptyTables(),
+      subjects: [subject('a')],
+      tasks: [{
+        id: 't1',
+        title: 'T',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      notes: [{
+        id: 'n1',
+        title: 'N',
+        body: '',
+        subjectId: '',
+        tags: [],
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      events: [{
+        id: 'e1',
+        title: 'E',
+        subjectId: '',
+        startAt: timestamp,
+        endAt: timestamp,
+        location: '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      flashcards: [{
+        id: 'c1',
+        front: 'Q',
+        back: 'A',
+        subjectId: '',
+        status: 'new',
+        lastReviewedAt: '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      studySessions: [{
+        id: 's1',
+        subjectId: '',
+        startedAt: timestamp,
+        endedAt: timestamp,
+        minutes: 1,
+        note: '',
+      }],
+    }, tinyLimits)).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
   })
 })

@@ -1651,6 +1651,127 @@ describe('studyDb', () => {
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(720)
   })
 
+  it('rejects over-limit record counts without clearing existing data', async () => {
+    const timestamp = nowIso()
+    await studyDb.subjects.add({
+      id: 'subject-seeded',
+      name: 'Seeded subject',
+      color: '#2563eb',
+      targetHours: 3,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 180 })
+    await studyDb.settings.put({
+      key: 'activeFocusSession',
+      value: {
+        id: 'focus-seeded',
+        subjectId: '',
+        startedAt: timestamp,
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      },
+    })
+
+    const subjectsOverLimit = Array.from({ length: 501 }, (_, index) => ({
+      id: `subject-over-${index}`,
+      name: `Subject ${index}`,
+      color: '#111827',
+      targetHours: 1,
+      progress: 0,
+      progressMode: 'manual' as const,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }))
+
+    await expect(importStudyData({
+      version: 3 as const,
+      exportedAt: timestamp,
+      tasks: [],
+      subjects: subjectsOverLimit,
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    })).rejects.toThrow('Import file is not a Study Dashboard export.')
+
+    expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+    expect(await studyDb.subjects.count()).toBe(1)
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(180)
+    expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ id: 'focus-seeded' })
+
+    const settingsOverLimit = Array.from({ length: 65 }, (_, index) => ({
+      key: `setting-${index}`,
+      value: index,
+    }))
+
+    await expect(importStudyData({
+      version: 3 as const,
+      exportedAt: timestamp,
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: settingsOverLimit,
+    })).rejects.toThrow('Import file is not a Study Dashboard export.')
+    expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+
+    const legacySubjectsOverLimit = subjectsOverLimit.map(({ progressMode: _mode, ...rest }) => rest)
+    await expect(importStudyData({
+      version: 1 as const,
+      exportedAt: timestamp,
+      tasks: [],
+      subjects: legacySubjectsOverLimit,
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    })).rejects.toThrow('Import file is not a Study Dashboard export.')
+    expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+    expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ id: 'focus-seeded' })
+  })
+
+  it('imports an exact subject-count boundary under the production limit', async () => {
+    const timestamp = nowIso()
+    const subjects = Array.from({ length: 500 }, (_, index) => ({
+      id: `subject-boundary-${index}`,
+      name: `Subject ${index}`,
+      color: '#111827',
+      targetHours: 1,
+      progress: 0,
+      progressMode: 'manual' as const,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }))
+
+    await importStudyData({
+      version: 3 as const,
+      exportedAt: timestamp,
+      tasks: [],
+      subjects,
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [{ key: 'dailyGoalMinutes', value: 240 }],
+    })
+
+    expect(await studyDb.subjects.count()).toBe(500)
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(240)
+  })
+
   it('ignores the old bundled sample data during legacy migration', async () => {
     localStorage.setItem(
       'study-dashboard-v2',
