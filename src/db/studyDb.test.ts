@@ -1814,6 +1814,217 @@ describe('studyDb', () => {
     expect(data.notes[0]?.title).toBe('Treaty summary')
     expect(data.settings.find((setting) => setting.key === 'dailyGoalMinutes')?.value).toBe(180)
   })
+
+  it('defaults legacy event start times to 09:00 when time is missing', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        events: [{ id: 'legacy-event', title: 'Office hours', detail: 'Room 12' }],
+      }),
+    )
+
+    await migrateLegacyLocalStorage()
+    const events = await studyDb.events.toArray()
+
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({
+      id: 'legacy-event',
+      title: 'Office hours',
+      location: 'Room 12',
+    })
+    expect(events[0]?.startAt).toMatch(/T09:00:00\.000$/)
+    expect(new Date(events[0]!.endAt).getTime() - new Date(events[0]!.startAt).getTime()).toBe(60 * 60_000)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+  })
+
+  it('converts a valid legacy event wall-clock time into an ISO start time', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        events: [{ id: 'legacy-timed', title: 'Lab session', time: '14:30' }],
+      }),
+    )
+
+    await migrateLegacyLocalStorage()
+    const event = await studyDb.events.get('legacy-timed')
+
+    expect(event?.title).toBe('Lab session')
+    expect(event?.startAt).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+    expect(event?.startAt.endsWith('T09:00:00.000')).toBe(false)
+    expect(Number.isNaN(new Date(event!.startAt).getTime())).toBe(false)
+    expect(new Date(event!.endAt).getTime() - new Date(event!.startAt).getTime()).toBe(60 * 60_000)
+  })
+
+  it('falls back to 09:00 when a legacy event time cannot be parsed', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        events: [{ id: 'legacy-bad-time', title: 'Broken clock event', time: 'not-a-time' }],
+      }),
+    )
+
+    await migrateLegacyLocalStorage()
+    const event = await studyDb.events.get('legacy-bad-time')
+
+    expect(event?.title).toBe('Broken clock event')
+    expect(event?.startAt).toMatch(/T09:00:00\.000$/)
+  })
+
+  it('skips localStorage import when the migration flag is already set', async () => {
+    await studyDb.settings.put({ key: 'legacy-localstorage-migrated-v1', value: true })
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'late-task', title: 'Should stay out', subject: 'Physics', done: false, minutes: 40 }],
+      }),
+    )
+
+    await migrateLegacyLocalStorage()
+
+    expect(await studyDb.tasks.count()).toBe(0)
+    expect(await studyDb.subjects.count()).toBe(0)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+  })
+
+  it('marks migration complete without importing malformed legacy JSON', async () => {
+    localStorage.setItem('study-dashboard-v2', '{not-json')
+
+    await migrateLegacyLocalStorage()
+
+    expect(await studyDb.tasks.count()).toBe(0)
+    expect(await studyDb.subjects.count()).toBe(0)
+    expect(await studyDb.events.count()).toBe(0)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+  })
+
+  it('marks migration complete without importing empty or title-less legacy payloads', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'blank-task', title: '   ', subject: 'Ignored', done: false }],
+        subjects: [{ id: 'blank-subject', name: '  ', progress: 10 }],
+        notes: [{ id: 'blank-note', title: '', body: '' }],
+        events: [{ id: 'blank-event', title: ' ' }],
+        dailyGoalMinutes: 300,
+      }),
+    )
+
+    await migrateLegacyLocalStorage()
+
+    expect(await studyDb.tasks.count()).toBe(0)
+    expect(await studyDb.subjects.count()).toBe(0)
+    expect(await studyDb.notes.count()).toBe(0)
+    expect(await studyDb.events.count()).toBe(0)
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBeUndefined()
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+  })
+
+  it('does not re-import legacy localStorage data on a second migration pass', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'once-task', title: 'First import only', subject: 'Biology', done: false, minutes: 20 }],
+      }),
+    )
+
+    await migrateLegacyLocalStorage()
+    expect(await studyDb.tasks.count()).toBe(1)
+
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [
+          { id: 'once-task', title: 'First import only', subject: 'Biology', done: false, minutes: 20 },
+          { id: 'second-task', title: 'Should not appear', subject: 'Biology', done: false, minutes: 15 },
+        ],
+      }),
+    )
+
+    await migrateLegacyLocalStorage()
+
+    expect(await studyDb.tasks.count()).toBe(1)
+    expect(await studyDb.tasks.get('second-task')).toBeUndefined()
+    expect((await studyDb.tasks.get('once-task'))?.title).toBe('First import only')
+  })
+
+  it('infers study_time for General when legacy focus minutes accompany migrated tasks', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'focus-task', title: 'Keep migration non-empty', subject: 'Chemistry', done: false, minutes: 30 }],
+        focusMinutes: 45,
+      }),
+    )
+
+    await migrateLegacyLocalStorage()
+
+    const subjects = await studyDb.subjects.toArray()
+    const byName = new Map(subjects.map((subject) => [subject.name, subject]))
+
+    expect(byName.get('Chemistry')?.progressMode).toBe('manual')
+    expect(byName.get('General')?.progressMode).toBe('study_time')
+    expect(await studyDb.tasks.count()).toBe(1)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+  })
+
+  it('skips the focus-minute subject path when legacy focus minutes are zero', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'zero-focus-task', title: 'No focus credit', subject: 'Chemistry', done: false, minutes: 30 }],
+        focusMinutes: 0,
+      }),
+    )
+
+    await migrateLegacyLocalStorage()
+
+    const subjects = await studyDb.subjects.toArray()
+    expect(subjects).toHaveLength(1)
+    expect(subjects[0]).toMatchObject({ name: 'Chemistry', progressMode: 'manual' })
+    expect(await studyDb.studySessions.count()).toBe(0)
+  })
+
+  it('imports a General study_time subject from focus-only legacy payloads without sessions', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        focusMinutes: 60,
+        dailyGoalMinutes: 200,
+      }),
+    )
+
+    await migrateLegacyLocalStorage()
+
+    const subjects = await studyDb.subjects.toArray()
+    expect(subjects).toHaveLength(1)
+    expect(subjects[0]).toMatchObject({ name: 'General', progressMode: 'study_time' })
+    // migrateLegacyData builds a session, but migrateLegacyLocalStorage never persists it.
+    expect(await studyDb.studySessions.count()).toBe(0)
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(200)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+  })
+
+  // Known defect: migrateLegacyData builds studySessions for focusMinutes, but
+  // migrateLegacyLocalStorage never persists studySessions (or goals/flashcards).
+  it.fails('clamps migrated legacy focus minutes into a persisted study session', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'focus-task', title: 'Keep migration non-empty', subject: 'Chemistry', done: false, minutes: 30 }],
+        focusMinutes: 900,
+      }),
+    )
+
+    await migrateLegacyLocalStorage()
+
+    const sessions = await studyDb.studySessions.toArray()
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0]).toMatchObject({
+      minutes: 720,
+      note: 'Migrated focus time',
+    })
+    expect(new Date(sessions[0]!.endedAt).getTime() - new Date(sessions[0]!.startedAt).getTime()).toBe(720 * 60_000)
+  })
 })
 
 describe('goal metric Dexie version 2 upgrade', () => {
