@@ -1506,6 +1506,151 @@ describe('studyDb', () => {
     expect(await studyDb.goals.get('goal-over')).toMatchObject({ progress: 40 })
   })
 
+  it('rejects invalid known settings without clearing existing data', async () => {
+    const timestamp = nowIso()
+    await studyDb.subjects.add({
+      id: 'subject-seeded',
+      name: 'Seeded subject',
+      color: '#2563eb',
+      targetHours: 3,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 180 })
+    await studyDb.settings.put({
+      key: 'activeFocusSession',
+      value: {
+        id: 'focus-seeded',
+        subjectId: '',
+        startedAt: timestamp,
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      },
+    })
+    await studyDb.settings.put({ key: 'customFutureKey', value: { keep: true } })
+
+    const emptyTables = {
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+    }
+
+    const settingsCases = [
+      {
+        version: 3 as const,
+        ...emptyTables,
+        settings: [{ key: 'dailyGoalMinutes', value: 29 }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        settings: [{ key: 'dailyGoalMinutes', value: 721 }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        settings: [{ key: 'quickNotes', value: ['1', '2', '3', '4', '5', '6', '7', '8', '9'] }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        settings: [{ key: 'quickNotes', value: [1] }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        settings: [{ key: 'legacy-localstorage-migrated-v1', value: false }],
+      },
+      {
+        version: 3 as const,
+        ...emptyTables,
+        settings: [{ key: 'activeFocusSession', value: { id: '', status: 'running' } }],
+      },
+      {
+        version: 1 as const,
+        ...emptyTables,
+        settings: [{ key: 'dailyGoalMinutes', value: '240' }],
+      },
+      {
+        version: 2 as const,
+        ...emptyTables,
+        settings: [{ key: 'quickNotes', value: 'not-an-array' }],
+        goals: [],
+      },
+    ]
+
+    for (const snapshot of settingsCases) {
+      await expect(importStudyData({ ...snapshot, exportedAt: timestamp }))
+        .rejects.toThrow('Import file is not a Study Dashboard export.')
+      expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+      expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(180)
+      expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ id: 'focus-seeded' })
+      expect((await studyDb.settings.get('customFutureKey'))?.value).toEqual({ keep: true })
+    }
+  })
+
+  it('imports valid known settings boundaries and preserves unknown keys', async () => {
+    const timestamp = nowIso()
+
+    await importStudyData({
+      version: 3 as const,
+      exportedAt: timestamp,
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [
+        { key: 'dailyGoalMinutes', value: 30 },
+        { key: 'quickNotes', value: ['one', 'two'] },
+        { key: 'legacy-localstorage-migrated-v1', value: true },
+        {
+          key: 'activeFocusSession',
+          value: {
+            id: 'focus-imported',
+            subjectId: '',
+            startedAt: timestamp,
+            plannedMinutes: 0,
+            status: 'running',
+            pausedAt: null,
+            accumulatedPausedMs: 0,
+          },
+        },
+        { key: 'plugin.future.setting', value: { ok: true, n: 2 } },
+      ],
+    })
+
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(30)
+    expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['one', 'two'])
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ id: 'focus-imported', subjectId: '' })
+    expect((await studyDb.settings.get('plugin.future.setting'))?.value).toEqual({ ok: true, n: 2 })
+
+    await importStudyData({
+      version: 2 as const,
+      exportedAt: timestamp,
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [{ key: 'dailyGoalMinutes', value: 720 }],
+    })
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(720)
+  })
+
   it('ignores the old bundled sample data during legacy migration', async () => {
     localStorage.setItem(
       'study-dashboard-v2',

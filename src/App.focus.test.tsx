@@ -185,7 +185,7 @@ describe('App focus', () => {
     expect(screen.queryByRole('button', { name: 'Start focus' })).not.toBeInTheDocument()
   })
 
-  it('import with a corrupt activeFocusSession clears focus UI and deletes the corrupt setting', async () => {
+  it('import with a corrupt activeFocusSession preserves the visible focus session', async () => {
     const user = userEvent.setup()
     await createActiveFocusSession(makeDurableFocusSession({
       id: 'focus-before-corrupt-import',
@@ -199,13 +199,11 @@ describe('App focus', () => {
     await importStudyExport(user, makeEmptyExport({
       settings: [{ key: ACTIVE_FOCUS_SESSION_KEY, value: { id: '', status: 'running' } }],
     }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Study data imported.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Import failed. Choose a valid Study Dashboard export.')
 
     await user.click(screen.getByRole('button', { name: 'Home' }))
-    await waitForFocusStartEnabled()
-    expect(screen.queryByRole('button', { name: 'Stop session' })).not.toBeInTheDocument()
-    expect(await getActiveFocusSession()).toBeNull()
-    expect(await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)).toBeUndefined()
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-before-corrupt-import' })
   })
 
   it('invalid JSON or invalid export structure preserves the original visible focus session', async () => {

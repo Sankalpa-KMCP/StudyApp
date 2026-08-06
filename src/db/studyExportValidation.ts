@@ -46,7 +46,7 @@ function assertSubjectReference(subjectId: string, subjectIds: ReadonlySet<strin
  * Empty string remains valid (General / unassigned). Call after uniqueness checks, before any IDB write.
  *
  * For `activeFocusSession`, only structurally valid values (via `isActiveFocusSession`) are
- * relationship-checked; malformed focus payloads are left for a later settings-value step.
+ * relationship-checked here; malformed focus payloads are rejected by settings-value validation.
  */
 export function assertStudyExportSubjectReferences(
   snapshot: Pick<
@@ -126,5 +126,47 @@ export function assertStudyExportSemantics(
   for (const card of snapshot.flashcards) {
     if (card.intervalDays !== undefined && card.intervalDays < 0) failValidation()
     if (card.reviewCount !== undefined && card.reviewCount < 0) failValidation()
+  }
+}
+
+const LEGACY_MIGRATION_SETTING_KEY = 'legacy-localstorage-migrated-v1'
+const DAILY_GOAL_MINUTES_KEY = 'dailyGoalMinutes'
+const QUICK_NOTES_KEY = 'quickNotes'
+const DAILY_GOAL_MINUTES_MIN = 30
+const DAILY_GOAL_MINUTES_MAX = 720
+const QUICK_NOTES_MAX = 8
+
+/**
+ * Validates known settings value contracts. Unknown keys are accepted unchanged.
+ * Call after uniqueness checks (and preferably after other structural validators), before any IDB write.
+ */
+export function assertStudyExportSettingsValues(
+  snapshot: Pick<StudyExport, 'settings'>,
+): void {
+  for (const setting of snapshot.settings) {
+    switch (setting.key) {
+      case DAILY_GOAL_MINUTES_KEY: {
+        const value = setting.value
+        if (typeof value !== 'number' || !Number.isFinite(value)) failValidation()
+        if (value < DAILY_GOAL_MINUTES_MIN || value > DAILY_GOAL_MINUTES_MAX) failValidation()
+        break
+      }
+      case QUICK_NOTES_KEY: {
+        const value = setting.value
+        if (!Array.isArray(value) || value.length > QUICK_NOTES_MAX) failValidation()
+        if (!value.every((entry) => typeof entry === 'string')) failValidation()
+        break
+      }
+      case LEGACY_MIGRATION_SETTING_KEY: {
+        if (setting.value !== true) failValidation()
+        break
+      }
+      case ACTIVE_FOCUS_SESSION_KEY: {
+        if (!isActiveFocusSession(setting.value)) failValidation()
+        break
+      }
+      default:
+        break
+    }
   }
 }
