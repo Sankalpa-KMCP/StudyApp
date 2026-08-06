@@ -53,6 +53,19 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 - New exports use JSON **version 3** with required goal **`metric`** and subject **`progressMode`**.
 - Valid **version 1** and **version 2** backups remain importable: goals (v1) and subjects (v1/v2) are normalized from the **complete imported study-session set** before any table replacement.
 - Invalid or missing modes/metrics on **version 3** backups fail validation **before** existing data is replaced.
+- **Import validation order** (all rejection paths leave IndexedDB and visible focus ownership unchanged):
+  1. File byte size (`File.size`, 5 MiB) — `useStudyBackup` + `studyExportLimits`
+  2. Text length after `file.text()` (5 MiB characters)
+  3. JSON parsing and shape/version checks (`parseAndNormalizeStudyExport` in `studyDb.ts`)
+  4. Legacy normalization (v1 goals; v1/v2 subject `progressMode` from imported sessions)
+  5. Duplicate entity IDs and duplicate settings keys
+  6. Subject references (non-empty `subjectId` must exist; `''` = General)
+  7. Semantic integrity (subject progress 0–100 and `targetHours > 0`; task minutes ≥ 0; session minutes > 0; event/session end not before start; goal `target > 0` and `progress ≥ 0`; non-negative optional flashcard counters)
+  8. Known settings values (`dailyGoalMinutes` 30–720; `quickNotes` string[] max 8; `legacy-localstorage-migrated-v1` exactly `true`; `activeFocusSession` via `isActiveFocusSession`). **Unknown settings keys are accepted and preserved.**
+  9. Record counts (total **25,000**; subjects **500**; tasks/notes/events **5,000**; flashcards/study sessions **10,000**; goals **500**; settings **64**)
+  10. Dexie clear + `bulkPut` (only after steps 1–9 succeed); then reload focus from IndexedDB on success
+- Import integrity does **not** enforce stricter UI-only editor maximums (e.g. Tasks minutes 5–720 clamp, Progress “end not in the future”). Do not silently repair duplicate, orphaned, or semantically invalid records — reject the whole import.
+- **Inspect together when changing import validation:** `src/hooks/useStudyBackup.ts`, `src/db/studyExportLimits.ts`, `src/db/studyExportValidation.ts`, `src/db/studyDb.ts` (`parseAndNormalizeStudyExport` / `finalizeStudyExport` / `importStudyData`), `src/db/activeFocusSession.ts` (focus settings contract), plus `studyExportValidation.test.ts`, `studyExportLimits.test.ts`, `studyDb.test.ts`, `useStudyBackup.test.ts`, and App backup/focus suites as needed.
 
 ## Local calendar dates
 

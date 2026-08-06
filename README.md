@@ -140,7 +140,11 @@ First launch starts empty with create-first actions. Existing customized data fr
 - New exports use JSON format **version 3** with an explicit `metric` on every goal and an explicit `progressMode` on every subject (`manual` or `study_time`).
 - Valid **version 1** and **version 2** backups remain importable. Goals without metrics (v1) and subjects without modes (v1/v2) are normalized from the **complete imported study-session set** **before** any local data is replaced.
 - Version 3 backups that omit or use an invalid subject `progressMode` (or goal `metric`) fail validation **before** table replacement; existing data stays intact.
-- Import validation runs before table replacement; invalid payloads are rejected and existing data stays intact.
+- **Imports validate fully before replacing local data.** Size, shape/version, uniqueness, subject references, semantic integrity, known settings values, and record-count limits are checked first. Only then does IndexedDB clear and rewrite. Invalid imports leave existing data and the visible focus session unchanged.
+- Integrity checks reject duplicate entity IDs and duplicate settings keys; orphan non-empty `subjectId` values (empty string remains General / unassigned); out-of-range subject progress or non-positive target hours; negative task minutes; non-positive session minutes; event or session end before start; non-positive goal targets or negative goal progress; and negative flashcard scheduling counters when present.
+- Known settings are checked (`dailyGoalMinutes` 30–720; `quickNotes` string array up to 8; migration flag exactly `true`; `activeFocusSession` must match its domain contract). Unknown settings keys stay accepted and preserved for forward compatibility.
+- Resource limits: **5 MiB** file bytes and text length; **25,000** total records; subjects **500**; tasks/notes/events **5,000** each; flashcards/study sessions **10,000** each; goals **500**; settings **64**.
+- Import integrity is structural (ranges, uniqueness, references, order). Stricter UI editor limits (for example task minutes 5–720, or Progress’s “session end not in the future” rule) are **not** re-enforced on import.
 
 ## Documentation
 

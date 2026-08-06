@@ -11,7 +11,7 @@ npm run dev
 
 | Command | Purpose |
 |---------|---------|
-| `npm test` | Vitest unit and component tests (full suite; currently 274 cases) |
+| `npm test` | Vitest unit and component tests (full suite) |
 | `npm run test:coverage` | Main coverage gate (`App.tsx` + extracted App orchestration hooks) |
 | `npm run test:e2e` | Playwright user journeys for Chromium desktop and mobile projects |
 | `npm run lint` | ESLint including jsx-a11y rules |
@@ -39,9 +39,11 @@ Coverage thresholds (`vitest.config.ts`) include `src/App.tsx` and the five extr
 
 Study data is local-first and stored in IndexedDB through Dexie. Keep destructive flows confirmed by the user and covered by tests.
 
-Settings clear-all is not currently serialized with an in-flight backup import (pre-existing behavior). Prefer not to expand that race; treat any fix as a dedicated hardening change with explicit product approval.
+Backup import validates size, shape/version, uniqueness, subject references, semantic integrity, known settings, and record-count limits **before** any IndexedDB clear/write. Reject invalid payloads entirely; do not silently repair duplicates, orphans, or out-of-range values. Failed imports must leave existing data and visible focus ownership intact. When changing import rules, inspect `useStudyBackup.ts`, `studyExportLimits.ts`, `studyExportValidation.ts`, and `studyDb.ts` together (see `AGENTS.md` Backups).
 
-Optional fields on stored records should stay backward-compatible with older IndexedDB rows and JSON exports. For example, flashcard scheduling fields are optional so older cards remain due immediately.
+Settings clear-all is not currently serialized with an in-flight backup import (pre-existing behavior). Prefer not to expand that race; treat any fix as a dedicated hardening change with explicit product approval. A dedicated Playwright scenario that rejects an invalid import through Settings remains optional; unit and App suites already cover rejection and focus preservation.
+
+Optional fields on stored records should stay backward-compatible with older IndexedDB rows and JSON exports. For example, flashcard scheduling fields are optional so older cards remain due immediately. Unknown settings keys on import stay accepted for forward compatibility.
 
 ## Dependency Hygiene
 

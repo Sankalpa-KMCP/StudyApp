@@ -6,11 +6,13 @@
 
 - Explicit subject progress modes: **Manual progress** (`manual`) and **Study time** (`study_time`), with an accessible mode selector in Subjects. New subjects default to manual. Stored manual percentage is retained across mode switches.
 - Shared `calculateSubjectProgress` for subject target progress on Subject cards, Home subject cards, and Home/search metadata and progress-number filtering. Study-time subject progress uses all matching finalized session minutes toward target hours (not period-limited). Subject Distribution remains a separate share-of-total study-time chart.
+- Backup import integrity gates (validate fully before IndexedDB replacement): 5 MiB file/text limits; duplicate entity IDs and settings keys; orphan non-empty subject references (`''` remains General); semantic ranges/order for subjects, tasks, sessions, events, goals, and flashcard counters; known settings value contracts with unknown keys preserved; total and per-table record-count ceilings (25,000 total; subjects/goals 500; tasks/notes/events 5,000; flashcards/sessions 10,000; settings 64).
 
 ### Changed
 
 - Dexie schema upgraded to **version 3** with a backward-compatible migration that assigns `progressMode` to existing subjects once from matching session presence (positive minutes → `study_time`, else `manual`).
 - JSON backup exports now use **version 3** with required subject `progressMode` (and required goal `metric`). Version 1 and 2 backups remain importable; subjects without modes are normalized from the complete imported study-session set before replacement. Invalid version 3 modes fail before any data is replaced.
+- Failed backup imports reject before table clear/write and preserve existing local data and visible focus ownership. Import integrity stays structural; stricter UI editor maximums are not re-applied on import.
 - Extracted App React orchestration into focused hooks without changing product behavior: theme and sidebar preferences (`useThemePreference`, `useSidebarPreference`), application search (`useAppSearch`), focus-session restore/actions/timed completion and import locking (`useFocusSession`), and backup export/import/clear coordination (`useStudyBackup`). `App.tsx` remains the composition root for live data, the sole local-midnight date signal, derived metrics, navigation, and view wiring. Domain persistence stays in `activeFocusSession` / `studyDb`.
 - Split App integration tests into feature suites (`App.focus`, `App.backup`, `App.goals`, `App.home`, `App.navigation`, `App.workspaces`, `App.progress`) with shared reset helpers under `src/test/`. `App.test.tsx` now covers app-shell behavior only (theme, sidebar, notices, global search keyboard).
 
