@@ -961,6 +961,281 @@ describe('studyDb', () => {
     expect(await studyDb.goals.get(sharedId)).toMatchObject({ title: 'Shared goal' })
   })
 
+  it('rejects orphan subject references without clearing existing data', async () => {
+    const timestamp = nowIso()
+    await studyDb.subjects.add({
+      id: 'subject-seeded',
+      name: 'Seeded subject',
+      color: '#2563eb',
+      targetHours: 3,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await studyDb.tasks.add({
+      id: 'task-seeded',
+      title: 'Seeded task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 30,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 180 })
+    await studyDb.settings.put({
+      key: 'activeFocusSession',
+      value: {
+        id: 'focus-seeded',
+        subjectId: '',
+        startedAt: timestamp,
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      },
+    })
+    await studyDb.settings.put({ key: 'customFutureKey', value: { keep: true } })
+
+    const presentSubject = {
+      id: 'subject-present',
+      name: 'Present',
+      color: '#111827',
+      targetHours: 2,
+      progress: 0,
+      progressMode: 'manual' as const,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+    const legacyPresentSubject = {
+      id: 'subject-present',
+      name: 'Present',
+      color: '#111827',
+      targetHours: 2,
+      progress: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+    const emptyTables = {
+      tasks: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [] as Array<{ key: string; value: unknown }>,
+    }
+
+    const orphanCases = [
+      {
+        version: 3 as const,
+        subjects: [presentSubject],
+        ...emptyTables,
+        tasks: [{
+          id: 'task-orphan',
+          title: 'Orphan',
+          subjectId: 'missing-subject',
+          dueDate: '',
+          priority: 'normal' as const,
+          status: 'open' as const,
+          minutes: 30,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }],
+      },
+      {
+        version: 3 as const,
+        subjects: [presentSubject],
+        ...emptyTables,
+        notes: [{
+          id: 'note-orphan',
+          title: 'Orphan',
+          body: '',
+          subjectId: 'missing-subject',
+          tags: [] as string[],
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }],
+      },
+      {
+        version: 3 as const,
+        subjects: [presentSubject],
+        ...emptyTables,
+        events: [{
+          id: 'event-orphan',
+          title: 'Orphan',
+          subjectId: 'missing-subject',
+          startAt: timestamp,
+          endAt: timestamp,
+          location: '',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }],
+      },
+      {
+        version: 3 as const,
+        subjects: [presentSubject],
+        ...emptyTables,
+        flashcards: [{
+          id: 'card-orphan',
+          front: 'Q',
+          back: 'A',
+          subjectId: 'missing-subject',
+          status: 'new' as const,
+          lastReviewedAt: '',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }],
+      },
+      {
+        version: 3 as const,
+        subjects: [presentSubject],
+        ...emptyTables,
+        studySessions: [{
+          id: 'session-orphan',
+          subjectId: 'missing-subject',
+          startedAt: timestamp,
+          endedAt: timestamp,
+          minutes: 10,
+          note: '',
+        }],
+      },
+      {
+        version: 3 as const,
+        subjects: [presentSubject],
+        ...emptyTables,
+        settings: [{
+          key: 'activeFocusSession',
+          value: {
+            id: 'focus-orphan',
+            subjectId: 'missing-subject',
+            startedAt: timestamp,
+            plannedMinutes: 25,
+            status: 'running',
+            pausedAt: null,
+            accumulatedPausedMs: 0,
+          },
+        }],
+      },
+      {
+        version: 1 as const,
+        subjects: [legacyPresentSubject],
+        ...emptyTables,
+        tasks: [{
+          id: 'task-orphan-v1',
+          title: 'Orphan',
+          subjectId: 'missing-subject',
+          dueDate: '',
+          priority: 'normal' as const,
+          status: 'open' as const,
+          minutes: 30,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }],
+        goals: [],
+      },
+      {
+        version: 2 as const,
+        subjects: [legacyPresentSubject],
+        ...emptyTables,
+        studySessions: [{
+          id: 'session-orphan-v2',
+          subjectId: 'missing-subject',
+          startedAt: timestamp,
+          endedAt: timestamp,
+          minutes: 10,
+          note: '',
+        }],
+        goals: [],
+      },
+    ]
+
+    for (const snapshot of orphanCases) {
+      await expect(importStudyData({ ...snapshot, exportedAt: timestamp }))
+        .rejects.toThrow('Import file is not a Study Dashboard export.')
+      expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
+      expect(await studyDb.tasks.get('task-seeded')).toMatchObject({ title: 'Seeded task' })
+      expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(180)
+      expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ id: 'focus-seeded' })
+      expect((await studyDb.settings.get('customFutureKey'))?.value).toEqual({ keep: true })
+    }
+  })
+
+  it('imports General empty subjectIds and valid linked subjectIds', async () => {
+    const timestamp = nowIso()
+
+    await importStudyData({
+      version: 3 as const,
+      exportedAt: timestamp,
+      subjects: [{
+        id: 'subject-chem',
+        name: 'Chemistry',
+        color: '#0f766e',
+        targetHours: 4,
+        progress: 0,
+        progressMode: 'manual' as const,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      tasks: [{
+        id: 'task-linked',
+        title: 'Linked task',
+        subjectId: 'subject-chem',
+        dueDate: '',
+        priority: 'normal' as const,
+        status: 'open' as const,
+        minutes: 30,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }, {
+        id: 'task-general',
+        title: 'General task',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal' as const,
+        status: 'open' as const,
+        minutes: 15,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [{
+        id: 'session-general',
+        subjectId: '',
+        startedAt: timestamp,
+        endedAt: timestamp,
+        minutes: 20,
+        note: 'General',
+      }],
+      goals: [],
+      settings: [{
+        key: 'activeFocusSession',
+        value: {
+          id: 'focus-general',
+          subjectId: '',
+          startedAt: timestamp,
+          plannedMinutes: 0,
+          status: 'running',
+          pausedAt: null,
+          accumulatedPausedMs: 0,
+        },
+      }, {
+        key: 'unknownForwardKey',
+        value: 'kept',
+      }],
+    })
+
+    expect(await studyDb.tasks.get('task-linked')).toMatchObject({ subjectId: 'subject-chem' })
+    expect(await studyDb.tasks.get('task-general')).toMatchObject({ subjectId: '' })
+    expect(await studyDb.studySessions.get('session-general')).toMatchObject({ subjectId: '' })
+    expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ subjectId: '' })
+    expect((await studyDb.settings.get('unknownForwardKey'))?.value).toBe('kept')
+  })
+
   it('ignores the old bundled sample data during legacy migration', async () => {
     localStorage.setItem(
       'study-dashboard-v2',
