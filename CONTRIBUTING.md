@@ -47,7 +47,7 @@ Optional fields on stored records should stay backward-compatible with older Ind
 
 ## Dependency Hygiene
 
-The app uses plain CSS, Vite, React, Dexie, and lucide icons. Do not add a UI/charting/state dependency unless the product code imports it and the bundle budget still passes.
+The app uses plain CSS, Vite, React, and Dexie. Icons are local React components under `src/components/icons/`, derived from a Lucide subset — reuse or extend that set rather than importing `lucide-react` (it is not an installed dependency). When adding icons, keep the required attribution in `src/components/icons/LICENSE.txt`. Do not add a UI/charting/state dependency unless the product code imports it and the bundle budget still passes.
 
 ## Adding an E2E spec
 
