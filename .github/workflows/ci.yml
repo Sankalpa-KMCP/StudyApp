@@ -4,6 +4,10 @@ on:
   push:
     branches: [V2, master]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   check:
@@ -33,8 +37,60 @@ jobs:
       - name: Bundle size budget
         run: npm run check:bundle
 
+      - name: Verify dist output
+        run: |
+          test -f dist/index.html
+          grep -q '/StudyApp/assets/' dist/index.html
+          ! grep -q 'main.tsx' dist/index.html
+
       - name: Install Playwright Chromium
         run: npx playwright install chromium --with-deps
 
       - name: Playwright E2E
         run: npm run test:e2e
+
+      # Preserve the exact post-check dist for Pages; skip on pull requests and non-deploy branches.
+      - name: Upload checked dist artifact
+        if: >-
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+          (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/V2')
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-pages-dist
+          path: dist
+          retention-days: 1
+
+  deploy:
+    needs: check
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/V2')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    steps:
+      - name: Download checked dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages-dist
+          path: dist
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
