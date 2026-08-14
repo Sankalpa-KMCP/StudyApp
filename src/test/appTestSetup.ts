@@ -2,11 +2,12 @@ import { act } from '@testing-library/react'
 import { vi } from 'vitest'
 import { studyDb } from '../db/studyDb'
 
-/** Reset timers, mocks, preference storage, theme meta, and IndexedDB for App suites. */
+/** Reset timers, mocks, preference storage, theme meta, URL, and IndexedDB for App suites. */
 export async function resetAppTestEnvironment(): Promise<void> {
   vi.useRealTimers()
   vi.restoreAllMocks()
   localStorage.clear()
+  window.history.replaceState(null, '', '/')
   document.documentElement.dataset.theme = 'monochrome'
   let themeColorMeta = document.querySelector('meta[name="theme-color"]')
   if (!themeColorMeta) {

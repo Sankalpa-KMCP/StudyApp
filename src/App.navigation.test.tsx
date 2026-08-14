@@ -1,7 +1,8 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
+import { pathForView } from './navigation/viewRoutes'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 describe('App navigation', () => {
@@ -21,6 +22,7 @@ describe('App navigation', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Tasks' })).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    expect(window.location.pathname).toBe('/tasks')
 
     const topbar = document.querySelector('.topbar')
     expect(topbar).not.toBeNull()
@@ -35,8 +37,10 @@ describe('App navigation', () => {
     await user.click(await screen.findByRole('button', { name: 'Profile' }))
     const notices = await screen.findAllByText(/Profile settings live in this local/i)
     expect(notices.length).toBeGreaterThan(0)
+    expect(window.location.pathname).toBe('/settings')
 
     await user.click(screen.getByRole('button', { name: 'Progress' }))
+    expect(window.location.pathname).toBe('/progress')
     const logSessionButton = screen.getByRole('button', { name: 'Log session' })
     await user.click(logSessionButton)
     expect(await screen.findByRole('heading', { name: 'Log study session' })).toBeInTheDocument()
@@ -59,6 +63,7 @@ describe('App navigation', () => {
 
     // Confirm Calendar view is open by looking for its unique action button
     expect(await screen.findByRole('button', { name: 'New event' })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/calendar')
   })
 
   it('navigates to Flashcards from Review Queue widget', async () => {
@@ -73,5 +78,87 @@ describe('App navigation', () => {
 
     // Confirm Flashcards view is open by looking for its unique action button
     expect(await screen.findByRole('button', { name: 'New card' })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/flashcards')
+  })
+
+  it('opens Home at / without auto-opening an editor', async () => {
+    window.history.replaceState(null, '', '/')
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/')
+    expect(screen.queryByLabelText('Task title')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['/tasks', 'Tasks', 'New task'],
+    ['/notes', 'Notes', 'New note'],
+    ['/subjects', 'Subjects', 'New subject'],
+    ['/calendar', 'Calendar', 'New event'],
+    ['/flashcards', 'Flashcards', 'New card'],
+    ['/progress', 'Progress', 'Log session'],
+    ['/goals', 'Goals', 'New goal'],
+    ['/settings', 'Settings', /Export data/],
+  ] as const)('opens %s directly as %s without auto-opening an editor', async (path, heading, actionLabel) => {
+    window.history.replaceState(null, '', path)
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
+    expect(window.location.pathname).toBe(path)
+    expect(screen.getByRole('button', { name: actionLabel })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Task title')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Note title')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Subject name')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Log study session' })).not.toBeInTheDocument()
+  })
+
+  it('pushes history on sidebar navigation and restores views on popstate', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+    expect(window.location.pathname).toBe(pathForView('Tasks'))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Tasks' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Notes' }))
+    expect(window.location.pathname).toBe(pathForView('Notes'))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Notes' })).toBeInTheDocument()
+
+    act(() => {
+      window.history.back()
+    })
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/tasks')
+      expect(screen.getByRole('heading', { level: 1, name: 'Tasks' })).toBeInTheDocument()
+    })
+
+    act(() => {
+      window.history.forward()
+    })
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/notes')
+      expect(screen.getByRole('heading', { level: 1, name: 'Notes' })).toBeInTheDocument()
+    })
+  })
+
+  it('replaceStates unknown paths to Home without leaving an extra history entry', async () => {
+    window.history.replaceState(null, '', '/')
+    window.history.pushState(null, '', '/tasks')
+    window.history.pushState(null, '', '/not-a-workspace')
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/')
+    })
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+
+    act(() => {
+      window.history.back()
+    })
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/tasks')
+      expect(screen.getByRole('heading', { level: 1, name: 'Tasks' })).toBeInTheDocument()
+    })
   })
 })

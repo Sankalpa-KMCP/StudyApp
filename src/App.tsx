@@ -32,8 +32,14 @@ import { FlashcardsView } from './views/FlashcardsView'
 import { ProgressView } from './views/ProgressView'
 import { GoalsView } from './views/GoalsView'
 import { SettingsView } from './views/SettingsView'
+import {
+  pathForView,
+  pathnamesMatch,
+  resolveViewFromPathname,
+  type View,
+} from './navigation/viewRoutes'
 
-export type View = 'Home' | 'Tasks' | 'Notes' | 'Subjects' | 'Calendar' | 'Flashcards' | 'Progress' | 'Goals' | 'Settings'
+export type { View }
 export type SettingsFeedback = { tone: 'success' | 'error'; message: string }
 /** @deprecated Use ActiveFocusSession — kept as alias for existing imports. */
 export type ActiveSession = ActiveFocusSession
@@ -52,7 +58,7 @@ const EMPTY_DATA: StudyData = {
 }
 
 function App() {
-  const [activeView, setActiveView] = useState<View>('Home')
+  const [activeView, setActiveView] = useState<View>(() => resolveViewFromPathname(window.location.pathname).view)
   const [noticeOpen, setNoticeOpen] = useState(false)
   const [taskFilter, setTaskFilter] = useState<'all' | 'open' | 'done'>('all')
   const [taskEditorRequest, setTaskEditorRequest] = useState(0)
@@ -72,14 +78,45 @@ function App() {
   })
   const [revealedCards, setRevealedCards] = useState<Set<string>>(() => new Set())
 
+  const syncUrlToView = useCallback((view: View, historyMode: 'push' | 'replace') => {
+    const nextPath = pathForView(view)
+    if (pathnamesMatch(window.location.pathname, nextPath)) return
+    if (historyMode === 'replace') {
+      window.history.replaceState(null, '', nextPath)
+      return
+    }
+    window.history.pushState(null, '', nextPath)
+  }, [])
+
   const navigateToView = useCallback((view: View) => {
     setProgressEditorRequested(false)
     setActiveView(view)
-  }, [])
+    syncUrlToView(view, 'push')
+  }, [syncUrlToView])
 
   useEffect(() => {
     void migrateLegacyLocalStorage()
   }, [])
+
+  useEffect(() => {
+    const resolved = resolveViewFromPathname(window.location.pathname)
+    if (resolved.needsReplace) {
+      syncUrlToView(resolved.view, 'replace')
+    }
+  }, [syncUrlToView])
+
+  useEffect(() => {
+    const onPopState = () => {
+      const resolved = resolveViewFromPathname(window.location.pathname)
+      if (resolved.needsReplace) {
+        syncUrlToView(resolved.view, 'replace')
+      }
+      setProgressEditorRequested(false)
+      setActiveView(resolved.view)
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [syncUrlToView])
 
   const liveData = useLiveQuery(() => getStudyData(), [])
   const data = liveData ?? EMPTY_DATA
@@ -175,6 +212,7 @@ function App() {
   const openManualSession = () => {
     setProgressEditorRequested(true)
     setActiveView('Progress')
+    syncUrlToView('Progress', 'push')
   }
 
   const closeNotices = useCallback(() => setNoticeOpen(false), [])

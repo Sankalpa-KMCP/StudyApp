@@ -8,7 +8,7 @@ There is **no backend**, authentication, or cloud synchronization. The browser I
 
 - Home dashboard with cross-entity search results
 - Data-derived first-study checklist for creating a subject, planning work, and recording the first session
-- Tasks, notes, subjects, calendar, flashcards, progress, goals, and settings workspaces
+- Tasks, notes, subjects, calendar, flashcards, progress, goals, and settings workspaces (bookmarkable paths such as `/tasks`; production URLs sit under `/StudyApp/`)
 - Focus timer with subject selection, Pomodoro-style duration, open-ended mode, and local session logging
 - Running and paused focus sessions survive reload and browser reopen; stale sessions offer Resume or Discard
 - Successful Settings backup import resynchronizes focus UI from IndexedDB without a page reload
