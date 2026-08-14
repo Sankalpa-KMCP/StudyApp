@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-25 — Stable Local Study Dashboard
+
 ### Added
 
 - Explicit subject progress modes: **Manual progress** (`manual`) and **Study time** (`study_time`), with an accessible mode selector in Subjects. New subjects default to manual. Stored manual percentage is retained across mode switches.
@@ -91,6 +93,7 @@
 
 - IndexedDB schema: Dexie **version 3** (upgrade from v2 assigns missing/invalid subject `progressMode` once from matching session presence; upgrade from v1 assigned goal metrics).
 - JSON backup format: **version 3** for new exports; **version 1** and **version 2** imports remain supported with normalization before replacement.
+- Before upgrading, export a Study Dashboard JSON backup from Settings. Imports support backup versions **1**, **2**, and **3**.
 - First launch remains empty; no bundled sample data is imported.
 - Customized data from the legacy `study-dashboard-v2` localStorage key is migrated once when safe.
 
@@ -102,5 +105,6 @@
 - Removed the Tauri shell, folder sync, encrypted backups, cloud/server integrations, and the former repository layer. Those items are historical only and are not part of the current architecture.
 - Preserved local tasks, subjects, notes, calendar events, flashcards, focus sessions, goals, themes, JSON backups, and offline support.
 
-[1.3.0]: https://github.com/IT25100142/StudyApp/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/IT25100142/StudyApp/releases/tag/v1.2.0
+[1.4.0]: https://github.com/Sankalpa-KMCP/StudyApp/compare/48066f5...v1.4.0
+[1.3.0]: https://github.com/Sankalpa-KMCP/StudyApp/compare/v1.2.0...48066f5
+[1.2.0]: https://github.com/Sankalpa-KMCP/StudyApp/releases/tag/v1.2.0
