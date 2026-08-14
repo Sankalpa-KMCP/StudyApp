@@ -541,7 +541,7 @@ describe('App workspaces', () => {
     releaseDelete()
     expect(await screen.findByRole('status')).toHaveTextContent('Note deleted.')
     expect(screen.queryByLabelText('Note title')).not.toBeInTheDocument()
-    expect(screen.queryByText('Editable note')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Editable note')).not.toBeInTheDocument())
     expect(await studyDb.notes.get('note-edit-delete')).toBeUndefined()
   })
 
@@ -1000,7 +1000,7 @@ describe('App workspaces', () => {
     releaseDelete()
     expect(await screen.findByRole('status')).toHaveTextContent('Event deleted.')
     expect(screen.queryByLabelText('Event title')).not.toBeInTheDocument()
-    expect(screen.queryByText('Editable event')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Editable event')).not.toBeInTheDocument())
     expect(await studyDb.events.get('event-edit-delete')).toBeUndefined()
   })
 
