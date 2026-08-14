@@ -90,6 +90,8 @@ function App() {
 
   const navigateToView = useCallback((view: View) => {
     setProgressEditorRequested(false)
+    setTaskEditorRequest(0)
+    setSubjectEditorRequest(0)
     setActiveView(view)
     syncUrlToView(view, 'push')
   }, [syncUrlToView])
@@ -112,6 +114,8 @@ function App() {
         syncUrlToView(resolved.view, 'replace')
       }
       setProgressEditorRequested(false)
+      setTaskEditorRequest(0)
+      setSubjectEditorRequest(0)
       setActiveView(resolved.view)
     }
     window.addEventListener('popstate', onPopState)
@@ -200,16 +204,24 @@ function App() {
   }, [])
 
   const openNewTask = () => {
-    navigateToView('Tasks')
+    setProgressEditorRequested(false)
+    setSubjectEditorRequest(0)
+    setActiveView('Tasks')
+    syncUrlToView('Tasks', 'push')
     setTaskEditorRequest((request) => request + 1)
   }
 
   const openNewSubject = () => {
-    navigateToView('Subjects')
+    setProgressEditorRequested(false)
+    setTaskEditorRequest(0)
+    setActiveView('Subjects')
+    syncUrlToView('Subjects', 'push')
     setSubjectEditorRequest((request) => request + 1)
   }
 
   const openManualSession = () => {
+    setTaskEditorRequest(0)
+    setSubjectEditorRequest(0)
     setProgressEditorRequested(true)
     setActiveView('Progress')
     syncUrlToView('Progress', 'push')
