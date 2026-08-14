@@ -42,7 +42,7 @@
 
 ### Changed
 
-- Split the former monolithic `src/index.css` into ordered modules under `src/styles/`; `src/index.css` remains the single import barrel for the app and Storybook. Themes, responsive layout, accessibility preference media, production `/StudyApp/` paths, and rendered behavior were preserved — no visual redesign or selector migration.
+- Split the former monolithic `src/index.css` into ordered modules under `src/styles/`; `src/index.css` remains the single import barrel for the app. Themes, responsive layout, accessibility preference media, production `/StudyApp/` paths, and rendered behavior were preserved — no visual redesign or selector migration.
 - Standardized local CRUD mutation feedback across workspaces: pending controls, loading labels, accessible success/error announcements, and friendly messages instead of raw Dexie errors.
 - Failed saves keep forms open with every field and editing identity preserved; editors reset or close only after a confirmed successful write.
 - Duplicate create/save and repeated row actions (status toggle, flashcard review, delete) are blocked while a mutation is pending.
@@ -89,8 +89,8 @@
 
 ## Current storage compatibility
 
-- IndexedDB schema: Dexie **version 2** (upgrade from v1 assigns `manual` or `study_time` to legacy goals).
-- JSON backup format: **version 2** for new exports; **version 1** imports remain supported with normalization.
+- IndexedDB schema: Dexie **version 3** (upgrade from v2 assigns missing/invalid subject `progressMode` once from matching session presence; upgrade from v1 assigned goal metrics).
+- JSON backup format: **version 3** for new exports; **version 1** and **version 2** imports remain supported with normalization before replacement.
 - First launch remains empty; no bundled sample data is imported.
 - Customized data from the legacy `study-dashboard-v2` localStorage key is migrated once when safe.
 
