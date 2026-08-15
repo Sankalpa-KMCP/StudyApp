@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { studyDb } from './db/studyDb'
+import * as notesService from './db/notesService'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 describe('App workspaces', () => {
@@ -359,10 +360,10 @@ describe('App workspaces', () => {
     const gate = new Promise<void>((resolve) => {
       releaseAdd = resolve
     })
-    const originalAdd = studyDb.notes.add.bind(studyDb.notes)
-    const addSpy = vi.spyOn(studyDb.notes, 'add').mockImplementation(async (note) => {
+    const originalCreate = notesService.createNote
+    const addSpy = vi.spyOn(notesService, 'createNote').mockImplementation(async (fields) => {
       await gate
-      return originalAdd(note)
+      return originalCreate(fields)
     })
 
     render(<App />)
@@ -386,10 +387,10 @@ describe('App workspaces', () => {
   it('preserves note draft after a failed create and allows retry', async () => {
     const user = userEvent.setup()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const originalAdd = studyDb.notes.add.bind(studyDb.notes)
-    const addSpy = vi.spyOn(studyDb.notes, 'add')
+    const originalCreate = notesService.createNote
+    const addSpy = vi.spyOn(notesService, 'createNote')
       .mockRejectedValueOnce(new Error('IndexedDB note write failed'))
-      .mockImplementation(async (note) => originalAdd(note))
+      .mockImplementation(async (fields) => originalCreate(fields))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Notes' }))
@@ -431,7 +432,7 @@ describe('App workspaces', () => {
       updatedAt: timestamp,
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    vi.spyOn(studyDb.notes, 'update').mockResolvedValueOnce(0)
+    vi.spyOn(notesService, 'updateNote').mockRejectedValueOnce(new Error('Note no longer exists.'))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Notes' }))
@@ -469,8 +470,8 @@ describe('App workspaces', () => {
     const gate = new Promise<void>((resolve) => {
       releaseDelete = resolve
     })
-    const originalDelete = studyDb.notes.delete.bind(studyDb.notes)
-    const deleteSpy = vi.spyOn(studyDb.notes, 'delete').mockImplementation(async () => {
+    const originalDelete = notesService.deleteNote
+    const deleteSpy = vi.spyOn(notesService, 'deleteNote').mockImplementation(async () => {
       await gate
       throw new Error('delete failed')
     })
@@ -514,8 +515,8 @@ describe('App workspaces', () => {
     const gate = new Promise<void>((resolve) => {
       releaseDelete = resolve
     })
-    const originalDelete = studyDb.notes.delete.bind(studyDb.notes)
-    const deleteSpy = vi.spyOn(studyDb.notes, 'delete').mockImplementation(async (id) => {
+    const originalDelete = notesService.deleteNote
+    const deleteSpy = vi.spyOn(notesService, 'deleteNote').mockImplementation(async (id) => {
       await gate
       return originalDelete(id)
     })
@@ -558,7 +559,7 @@ describe('App workspaces', () => {
       updatedAt: timestamp,
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    vi.spyOn(studyDb.notes, 'delete').mockRejectedValueOnce(new Error('delete failed'))
+    vi.spyOn(notesService, 'deleteNote').mockRejectedValueOnce(new Error('delete failed'))
     vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
