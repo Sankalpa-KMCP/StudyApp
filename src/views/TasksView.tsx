@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, Square } from '../components/icons'
 import { clamp } from '../appUtils'
-import { createId, nowIso, studyDb } from '../db/studyDb'
+import {
+  createTask,
+  deleteTask as deleteTaskRecord,
+  setTaskStatus,
+  updateTask,
+} from '../db/taskService'
 import type { StudyTask, StudySubject, TaskPriority } from '../db/types'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 import {
@@ -121,34 +126,22 @@ export function TasksView({
     }
 
     const isEdit = Boolean(editingTaskId && editingTaskId !== 'new')
-    const timestamp = nowIso()
     const minutes = clamp(draft.minutes, 5, 720)
+    const fields = {
+      title,
+      subjectId: draft.subjectId,
+      dueDate: draft.dueDate,
+      priority: draft.priority,
+      minutes,
+    }
 
     await runSave(async () => {
       if (isEdit && editingTaskId) {
-        const updated = await studyDb.tasks.update(editingTaskId, {
-          title,
-          subjectId: draft.subjectId,
-          dueDate: draft.dueDate,
-          priority: draft.priority,
-          minutes,
-          updatedAt: timestamp,
-        })
-        if (updated === 0) throw new Error('Task no longer exists.')
+        await updateTask(editingTaskId, fields)
         return
       }
 
-      await studyDb.tasks.add({
-        id: createId('task'),
-        title,
-        subjectId: draft.subjectId,
-        dueDate: draft.dueDate,
-        priority: draft.priority,
-        status: 'open',
-        minutes,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      })
+      await createTask(fields)
     }, {
       successMessage: isEdit ? 'Task updated.' : 'Task created.',
       errorMessage: 'Task could not be saved. Your details are still in the form.',
@@ -177,8 +170,7 @@ export function TasksView({
 
     try {
       await runRow(async () => {
-        const updated = await studyDb.tasks.update(task.id, { status: nextStatus, updatedAt: nowIso() })
-        if (updated === 0) throw new Error('Task no longer exists.')
+        await setTaskStatus(task.id, nextStatus)
       }, {
         successMessage,
         errorMessage,
@@ -200,7 +192,7 @@ export function TasksView({
 
     try {
       await runRow(async () => {
-        await studyDb.tasks.delete(task.id)
+        await deleteTaskRecord(task.id)
       }, {
         successMessage: 'Task deleted.',
         errorMessage: 'Task could not be deleted. Please try again.',
