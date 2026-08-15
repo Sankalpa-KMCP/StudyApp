@@ -6,6 +6,7 @@ import { studyDb } from './db/studyDb'
 import * as notesService from './db/notesService'
 import * as taskService from './db/taskService'
 import * as calendarEventService from './db/calendarEventService'
+import * as flashcardService from './db/flashcardService'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 describe('App workspaces', () => {
@@ -647,10 +648,10 @@ describe('App workspaces', () => {
   it('preserves flashcard draft after a failed create', async () => {
     const user = userEvent.setup()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const originalAdd = studyDb.flashcards.add.bind(studyDb.flashcards)
-    vi.spyOn(studyDb.flashcards, 'add')
+    const originalCreate = flashcardService.createFlashcard
+    vi.spyOn(flashcardService, 'createFlashcard')
       .mockRejectedValueOnce(new Error('IndexedDB card write failed'))
-      .mockImplementation(async (card) => originalAdd(card))
+      .mockImplementation(async (fields) => originalCreate(fields))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Flashcards' }))
@@ -687,7 +688,7 @@ describe('App workspaces', () => {
       updatedAt: timestamp,
     })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    vi.spyOn(studyDb.flashcards, 'update').mockResolvedValueOnce(0)
+    vi.spyOn(flashcardService, 'updateFlashcard').mockRejectedValueOnce(new Error('Flashcard no longer exists.'))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Flashcards' }))
@@ -724,10 +725,10 @@ describe('App workspaces', () => {
     const gate = new Promise<void>((resolve) => {
       releaseUpdate = resolve
     })
-    const originalUpdate = studyDb.flashcards.update.bind(studyDb.flashcards)
-    const updateSpy = vi.spyOn(studyDb.flashcards, 'update').mockImplementation(async (id, changes) => {
+    const originalReview = flashcardService.reviewFlashcard
+    const updateSpy = vi.spyOn(flashcardService, 'reviewFlashcard').mockImplementation(async (card, result) => {
       await gate
-      return originalUpdate(id, changes)
+      return originalReview(card, result)
     })
 
     render(<App />)
@@ -775,8 +776,8 @@ describe('App workspaces', () => {
     const gate = new Promise<void>((resolve) => {
       releaseDelete = resolve
     })
-    const originalDelete = studyDb.flashcards.delete.bind(studyDb.flashcards)
-    const deleteSpy = vi.spyOn(studyDb.flashcards, 'delete').mockImplementation(async () => {
+    const originalDelete = flashcardService.deleteFlashcard
+    const deleteSpy = vi.spyOn(flashcardService, 'deleteFlashcard').mockImplementation(async () => {
       await gate
       throw new Error('delete failed')
     })

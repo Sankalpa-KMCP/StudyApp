@@ -1,8 +1,13 @@
 import { useCallback, useState } from 'react'
 import { NotebookText } from '../components/icons'
-import type { Flashcard, StudySubject, FlashcardStatus } from '../db/types'
-import { createId, nowIso, studyDb } from '../db/studyDb'
-import { isFlashcardDue, formatFlashcardDue, nextFlashcardSchedule } from '../appUtils'
+import type { Flashcard, StudySubject } from '../db/types'
+import {
+  createFlashcard,
+  deleteFlashcard,
+  reviewFlashcard,
+  updateFlashcard,
+} from '../db/flashcardService'
+import { isFlashcardDue, formatFlashcardDue } from '../appUtils'
 import {
   PanelHeader,
   TextInput,
@@ -93,26 +98,19 @@ export function FlashcardsView(props: {
     }
 
     const isEdit = Boolean(editingCardId && editingCardId !== 'new')
-    const timestamp = nowIso()
-    const payload = { front, back, subjectId: draft.subjectId, updatedAt: timestamp }
+    const fields = {
+      front,
+      back,
+      subjectId: draft.subjectId,
+    }
 
     await runSave(async () => {
       if (isEdit && editingCardId) {
-        const updated = await studyDb.flashcards.update(editingCardId, payload)
-        if (updated === 0) throw new Error('Flashcard no longer exists.')
+        await updateFlashcard(editingCardId, fields)
         return
       }
 
-      await studyDb.flashcards.add({
-        id: createId('card'),
-        ...payload,
-        status: 'new',
-        lastReviewedAt: '',
-        dueAt: timestamp,
-        intervalDays: 0,
-        reviewCount: 0,
-        createdAt: timestamp,
-      })
+      await createFlashcard(fields)
     }, {
       successMessage: isEdit ? 'Flashcard updated.' : 'Flashcard created.',
       errorMessage: 'Flashcard could not be saved. Your details are still in the form.',
@@ -124,7 +122,7 @@ export function FlashcardsView(props: {
     })
   }
 
-  const reviewCard = async (card: Flashcard, status: FlashcardStatus) => {
+  const reviewCard = async (card: Flashcard, status: 'learning' | 'remembered') => {
     if (pendingCardId || isSaving || isRowPending) return
 
     setValidationError(null)
@@ -133,21 +131,13 @@ export function FlashcardsView(props: {
     setPendingCardId(card.id)
     setPendingCardKind('review')
 
-    const reviewedAt = nowIso()
-    const schedule = nextFlashcardSchedule(card, status === 'remembered' ? 'remembered' : 'learning', new Date(reviewedAt))
     const successMessage = status === 'remembered'
       ? 'Flashcard marked remembered.'
       : 'Flashcard marked for learning.'
 
     try {
       await runRow(async () => {
-        const updated = await studyDb.flashcards.update(card.id, {
-          status,
-          lastReviewedAt: reviewedAt,
-          updatedAt: reviewedAt,
-          ...schedule,
-        })
-        if (updated === 0) throw new Error('Flashcard no longer exists.')
+        await reviewFlashcard(card, status)
       }, {
         successMessage,
         errorMessage: 'Review could not be saved. The card has not been advanced.',
@@ -169,7 +159,7 @@ export function FlashcardsView(props: {
 
     try {
       await runRow(async () => {
-        await studyDb.flashcards.delete(card.id)
+        await deleteFlashcard(card.id)
       }, {
         successMessage: 'Flashcard deleted.',
         errorMessage: 'Flashcard could not be deleted.',
