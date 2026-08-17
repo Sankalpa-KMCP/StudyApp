@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import * as appShellRead from './db/appShellRead'
+import * as subjectRead from './db/subjectRead'
 import * as calendarEventRead from './db/calendarEventRead'
 import { createCalendarEvent } from './db/calendarEventService'
 import * as flashcardRead from './db/flashcardRead'
@@ -36,8 +36,8 @@ describe('App UI settings live query isolation', () => {
     await flushDeferredAppWork()
   })
 
-  it('reruns UI settings without rerunning the Subjects shell for Quick Notes saves and refreshes Home', async () => {
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+  it('reruns UI settings without rerunning Subjects for Quick Notes saves and refreshes Home', async () => {
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
 
     render(<App />)
@@ -59,10 +59,10 @@ describe('App UI settings live query isolation', () => {
     await waitFor(() => expect(screen.getByLabelText('Quick notes')).toHaveValue('Live quick note'))
   })
 
-  it('reruns Goals and UI settings without the Subjects shell for a qualifying daily study-time Goal', async () => {
+  it('reruns Goals and UI settings without Subjects for a qualifying daily study-time Goal', async () => {
     const user = userEvent.setup()
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 100 })
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
     const goalsSpy = vi.spyOn(goalRead, 'listGoals')
 
@@ -108,7 +108,7 @@ describe('App UI settings live query isolation', () => {
     })
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 60 })
 
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
     const goalsSpy = vi.spyOn(goalRead, 'listGoals')
 
@@ -151,8 +151,8 @@ describe('App UI settings live query isolation', () => {
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(60)
   })
 
-  it('does not rerun UI settings or Subjects shell for active-focus create/update/cleanup', async () => {
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+  it('does not rerun UI settings or Subjects for active-focus create/update/cleanup', async () => {
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
 
     render(<App />)
@@ -182,7 +182,7 @@ describe('App UI settings live query isolation', () => {
     expect(shellSpy.mock.calls.length).toBe(shellBefore)
   })
 
-  it('reruns Sessions on focus finalization without UI settings or Subjects shell', async () => {
+  it('reruns Sessions on focus finalization without UI settings or Subjects', async () => {
     const user = userEvent.setup()
     await studyDb.subjects.add({
       id: 'subject-focus-ui',
@@ -195,7 +195,7 @@ describe('App UI settings live query isolation', () => {
       updatedAt: '2026-07-01T00:00:00.000Z',
     })
 
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 
@@ -228,8 +228,8 @@ describe('App UI settings live query isolation', () => {
     expect(await screen.findByRole('button', { name: 'Start focus' })).toBeInTheDocument()
   })
 
-  it('does not rerun UI settings or Subjects shell for migration-marker or unknown-key writes', async () => {
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+  it('does not rerun UI settings or Subjects for migration-marker or unknown-key writes', async () => {
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
 
     render(<App />)
@@ -249,8 +249,8 @@ describe('App UI settings live query isolation', () => {
     expect(shellSpy.mock.calls.length).toBe(shellBefore)
   })
 
-  it('reruns Subjects shell without UI settings for Subject writes', async () => {
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+  it('reruns Subjects without UI settings for Subject writes', async () => {
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
 
     render(<App />)
@@ -399,7 +399,7 @@ describe('App UI settings live query isolation', () => {
       updatedAt: '2026-07-01T00:00:00.000Z',
     })
 
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
 
     render(<App />)

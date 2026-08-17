@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import * as appShellRead from './db/appShellRead'
+import * as subjectRead from './db/subjectRead'
 import * as goalRead from './db/goalRead'
 import { createGoal } from './db/goalService'
 import { createNote, updateNote } from './db/notesService'
@@ -22,7 +22,7 @@ describe('App notes live query isolation', () => {
     await flushDeferredAppWork()
   })
 
-  it('reruns Notes without rerunning the App shell for Note writes and updates consumers', async () => {
+  it('reruns Notes without rerunning the Subjects query for Note writes and updates consumers', async () => {
     const user = userEvent.setup()
     await studyDb.subjects.add({
       id: 'subject-notes',
@@ -35,7 +35,7 @@ describe('App notes live query isolation', () => {
       updatedAt: '2026-07-01T00:00:00.000Z',
     })
 
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const notesSpy = vi.spyOn(noteRead, 'listNotes')
 
     render(<App />)
@@ -115,7 +115,7 @@ describe('App notes live query isolation', () => {
   })
 
   it('does not rerun Study Notes for Quick Notes settings writes', async () => {
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const notesSpy = vi.spyOn(noteRead, 'listNotes')
 
     render(<App />)
@@ -187,7 +187,7 @@ describe('App notes live query isolation', () => {
       tags: [],
     })
 
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const notesSpy = vi.spyOn(noteRead, 'listNotes')
 
     render(<App />)

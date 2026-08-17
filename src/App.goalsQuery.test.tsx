@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import * as appShellRead from './db/appShellRead'
+import * as subjectRead from './db/subjectRead'
 import * as goalRead from './db/goalRead'
 import { createGoal } from './db/goalService'
 import { createNote } from './db/notesService'
@@ -29,9 +29,9 @@ describe('App goals live query isolation', () => {
     await flushDeferredAppWork()
   })
 
-  it('refreshes Goals without rerunning the App shell for a non-qualifying Goal write', async () => {
+  it('refreshes Goals without rerunning the Subjects query for a non-qualifying Goal write', async () => {
     const user = userEvent.setup()
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const goalsSpy = vi.spyOn(goalRead, 'listGoals')
 
     await openGoalsWorkspace(user)
@@ -48,10 +48,10 @@ describe('App goals live query isolation', () => {
     expect(shellSpy.mock.calls.length).toBe(shellBefore)
   })
 
-  it('refreshes Goals without rerunning the Subjects shell when a qualifying daily study-time Goal updates settings', async () => {
+  it('refreshes Goals without rerunning Subjects when a qualifying daily study-time Goal updates settings', async () => {
     const user = userEvent.setup()
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 100 })
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const goalsSpy = vi.spyOn(goalRead, 'listGoals')
 
     await openGoalsWorkspace(user)
@@ -84,7 +84,7 @@ describe('App goals live query isolation', () => {
       period: 'daily',
       metric: 'manual',
     })
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
+    const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const goalsSpy = vi.spyOn(goalRead, 'listGoals')
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
     const notesSpy = vi.spyOn(noteRead, 'listNotes')

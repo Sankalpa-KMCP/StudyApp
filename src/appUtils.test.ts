@@ -23,7 +23,6 @@ import {
   startOfToday,
 } from './appUtils'
 import type { StudyGoal, StudySubject } from './db/types'
-import type { AppShellData } from './db/appShellRead'
 import { isSubjectProgressMode } from './db/types'
 
 describe('appUtils', () => {
@@ -192,9 +191,7 @@ describe('appUtils', () => {
       progressMode: 'study_time',
       targetHours: 1,
     })
-    const data = {
-      subjects: [subject],
-    } satisfies AppShellData
+    const subjects = [subject]
     const sessions = [
       {
         id: 'session-1',
@@ -207,7 +204,7 @@ describe('appUtils', () => {
     ]
     const subjectMap = new Map([[subject.id, subject]])
 
-    expect(buildSearchResults(data, [], [], [], [], sessions, subjectMap, 'Physics')).toEqual([
+    expect(buildSearchResults(subjects, [], [], [], [], sessions, subjectMap, 'Physics')).toEqual([
       {
         id: 'subject-search',
         type: 'Subject',
@@ -216,8 +213,8 @@ describe('appUtils', () => {
         view: 'Subjects',
       },
     ])
-    expect(buildSearchResults(data, [], [], [], [], sessions, subjectMap, '50')).toHaveLength(1)
-    expect(buildSearchResults(data, [], [], [], [], sessions, subjectMap, '15')).toEqual([])
+    expect(buildSearchResults(subjects, [], [], [], [], sessions, subjectMap, '50')).toHaveLength(1)
+    expect(buildSearchResults(subjects, [], [], [], [], sessions, subjectMap, '15')).toEqual([])
   })
 
   describe('goal progress by explicit metric', () => {

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { Clock3, Save } from '../components/icons'
-import type { AppShellData } from '../db/appShellRead'
 import type { Flashcard, StudySession, StudySubject, StudyTask } from '../db/types'
 import {
   formatHours,
@@ -31,7 +30,7 @@ type SessionDraft = {
 }
 
 export function ProgressView(props: {
-  data: AppShellData
+  subjects: StudySubject[]
   tasks: StudyTask[]
   studySessions: StudySession[]
   flashcards: Flashcard[]
@@ -253,7 +252,7 @@ export function ProgressView(props: {
             >
               <option value="">General</option>
               {draft.subjectId && !props.subjectMap.has(draft.subjectId) ? <option value={draft.subjectId} disabled>Missing subject — choose another</option> : null}
-              {props.data.subjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.name}</option>)}
+              {props.subjects.map((subject) => <option value={subject.id} key={subject.id}>{subject.name}</option>)}
             </select>
           </label>
           <label className="field">
@@ -369,7 +368,7 @@ export function ProgressView(props: {
         )}
       </section>
       <StudyTime days={props.weeklyStudyDays} />
-      <SubjectDistribution subjects={props.data.subjects} sessions={props.studySessions} subjectMap={props.subjectMap} />
+      <SubjectDistribution subjects={props.subjects} sessions={props.studySessions} subjectMap={props.subjectMap} />
     </section>
   )
 }
