@@ -12,7 +12,7 @@ import {
   type WeeklyStudyDay,
 } from '../appUtils'
 import type { AppShellData } from '../db/appShellRead'
-import type { ActiveFocusSession, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
+import type { ActiveFocusSession, CalendarEvent, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
 import { EmptyState, SubjectCard } from '../components/ui'
 import { StudyTime } from '../components/RightColumn'
 import type { View } from '../App'
@@ -23,6 +23,7 @@ import { getActiveFocusElapsedMs } from '../db/activeFocusSession'
 export function HomeView(props: {
   data: AppShellData
   notes: StudyNote[]
+  events: CalendarEvent[]
   subjectMap: Map<string, StudySubject>
   weeklyStudyDays: WeeklyStudyDay[]
   quickNotes: string[]
@@ -69,7 +70,7 @@ export function HomeView(props: {
       {!props.search.trim() ? (
         <FirstStudyChecklist
           hasSubject={props.data.subjects.length > 0}
-          hasPlan={props.data.tasks.length > 0 || props.data.events.length > 0}
+          hasPlan={props.data.tasks.length > 0 || props.events.length > 0}
           hasSession={props.data.studySessions.length > 0}
           onCreateSubject={props.onCreateSubject}
           onCreatePlan={props.onCreatePlan}

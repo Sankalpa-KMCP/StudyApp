@@ -1,19 +1,18 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { AppShellData } from '../db/appShellRead'
-import type { StudyNote } from '../db/types'
+import type { CalendarEvent, StudyNote } from '../db/types'
 import { useAppSearch } from './useAppSearch'
 
 const EMPTY_SHELL: AppShellData = {
   tasks: [],
   subjects: [],
-  events: [],
   flashcards: [],
   studySessions: [],
   settings: [],
 }
 
-function makeFixture(): { data: AppShellData; notes: StudyNote[] } {
+function makeFixture(): { data: AppShellData; notes: StudyNote[]; events: CalendarEvent[] } {
   return {
     data: {
       ...EMPTY_SHELL,
@@ -63,18 +62,6 @@ function makeFixture(): { data: AppShellData; notes: StudyNote[] } {
           updatedAt: '2026-06-29T00:00:00.000Z',
         },
       ],
-      events: [
-        {
-          id: 'event-1',
-          title: 'Math clinic',
-          location: 'Library',
-          subjectId: 'subject-math',
-          startAt: '2026-07-02T10:00:00.000Z',
-          endAt: '2026-07-02T11:00:00.000Z',
-          createdAt: '2026-06-29T00:00:00.000Z',
-          updatedAt: '2026-06-29T00:00:00.000Z',
-        },
-      ],
       flashcards: [
         {
           id: 'card-due',
@@ -111,14 +98,26 @@ function makeFixture(): { data: AppShellData; notes: StudyNote[] } {
         updatedAt: '2026-06-29T00:00:00.000Z',
       },
     ],
+    events: [
+      {
+        id: 'event-1',
+        title: 'Math clinic',
+        location: 'Library',
+        subjectId: 'subject-math',
+        startAt: '2026-07-02T10:00:00.000Z',
+        endAt: '2026-07-02T11:00:00.000Z',
+        createdAt: '2026-06-29T00:00:00.000Z',
+        updatedAt: '2026-06-29T00:00:00.000Z',
+      },
+    ],
   }
 }
 
 describe('useAppSearch', () => {
   it('exposes deferred search and clears the input state', () => {
-    const { data, notes } = makeFixture()
+    const { data, notes, events } = makeFixture()
     const subjectMap = new Map(data.subjects.map((subject) => [subject.id, subject]))
-    const { result } = renderHook(() => useAppSearch({ data, notes, subjectMap, taskFilter: 'all' }))
+    const { result } = renderHook(() => useAppSearch({ data, notes, events, subjectMap, taskFilter: 'all' }))
 
     expect(result.current.search).toBe('')
     expect(result.current.deferredSearch).toBe('')
@@ -139,10 +138,10 @@ describe('useAppSearch', () => {
   })
 
   it('filters workspace collections with current search and task-status semantics', () => {
-    const { data, notes } = makeFixture()
+    const { data, notes, events } = makeFixture()
     const subjectMap = new Map(data.subjects.map((subject) => [subject.id, subject]))
     const { result, rerender } = renderHook(
-      ({ taskFilter }: { taskFilter: 'all' | 'open' | 'done' }) => useAppSearch({ data, notes, subjectMap, taskFilter }),
+      ({ taskFilter }: { taskFilter: 'all' | 'open' | 'done' }) => useAppSearch({ data, notes, events, subjectMap, taskFilter }),
       { initialProps: { taskFilter: 'all' as const } },
     )
 
@@ -166,15 +165,15 @@ describe('useAppSearch', () => {
   })
 
   it('sorts filtered flashcards with due cards first', () => {
-    const { data, notes } = makeFixture()
+    const { data, notes, events } = makeFixture()
     const subjectMap = new Map(data.subjects.map((subject) => [subject.id, subject]))
-    const { result } = renderHook(() => useAppSearch({ data, notes, subjectMap, taskFilter: 'all' }))
+    const { result } = renderHook(() => useAppSearch({ data, notes, events, subjectMap, taskFilter: 'all' }))
 
     expect(result.current.filteredFlashcards.map((card) => card.id)).toEqual(['card-due', 'card-later'])
   })
 
   it('filters and labels subjects using calculated progress instead of stale stored progress', () => {
-    const { data, notes } = makeFixture()
+    const { data, notes, events } = makeFixture()
     data.subjects[0] = {
       ...data.subjects[0],
       progress: 40,
@@ -192,7 +191,7 @@ describe('useAppSearch', () => {
       },
     ]
     const subjectMap = new Map(data.subjects.map((subject) => [subject.id, subject]))
-    const { result } = renderHook(() => useAppSearch({ data, notes, subjectMap, taskFilter: 'all' }))
+    const { result } = renderHook(() => useAppSearch({ data, notes, events, subjectMap, taskFilter: 'all' }))
 
     act(() => {
       result.current.setSearch('50')
@@ -217,7 +216,7 @@ describe('useAppSearch', () => {
   })
 
   it('derives Home results through buildSearchResults with the existing cap', () => {
-    const { data, notes } = makeFixture()
+    const { data, notes, events } = makeFixture()
     for (let index = 0; index < 10; index += 1) {
       data.tasks.push({
         id: `task-extra-${index}`,
@@ -232,7 +231,7 @@ describe('useAppSearch', () => {
       })
     }
     const subjectMap = new Map(data.subjects.map((subject) => [subject.id, subject]))
-    const { result } = renderHook(() => useAppSearch({ data, notes, subjectMap, taskFilter: 'all' }))
+    const { result } = renderHook(() => useAppSearch({ data, notes, events, subjectMap, taskFilter: 'all' }))
 
     expect(result.current.homeSearchResults).toEqual([])
 
