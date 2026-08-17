@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { formatHeroDate } from './components/heroDate'
 import { getMillisecondsUntilNextLocalMidnight } from './hooks/useCurrentDate'
-import { studyDb } from './db/studyDb'
+import { studyDb, clearAllStudyData, importStudyData } from './db/studyDb'
 import * as quickNotesService from './db/quickNotesService'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 import {
@@ -13,6 +13,7 @@ import {
   addFirstStudySubject,
   FIRST_STUDY_TIMESTAMP,
 } from './test/homeTestHelpers'
+import { makeEmptyExport } from './test/backupTestHelpers'
 
 describe('App home', () => {
   beforeEach(async () => {
@@ -311,6 +312,88 @@ describe('App home', () => {
     await waitFor(() => expect(screen.getByText('Saved locally')).toBeInTheDocument())
     expect(saveSpy).toHaveBeenCalledWith('Updated draft after failure')
     expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Updated draft after failure'])
+  })
+
+  it('applies external Quick Notes clears and imports while Home stays mounted', async () => {
+    await studyDb.settings.put({ key: 'quickNotes', value: ['mounted note'] })
+    render(<App />)
+    expect(await screen.findByLabelText('Quick notes')).toHaveValue('mounted note')
+
+    await clearAllStudyData()
+    await waitFor(() => expect(screen.getByLabelText('Quick notes')).toHaveValue(''))
+
+    await importStudyData(makeEmptyExport({
+      settings: [{ key: 'quickNotes', value: ['imported while mounted'] }],
+    }))
+    await waitFor(() => {
+      expect(screen.getByLabelText('Quick notes')).toHaveValue('imported while mounted')
+    })
+    expect(screen.getByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+  })
+
+  it('does not overwrite an unsaved Quick Notes draft when live props change externally', async () => {
+    await studyDb.settings.put({ key: 'quickNotes', value: ['persisted'] })
+    render(<App />)
+    const textarea = await screen.findByLabelText('Quick notes')
+    expect(textarea).toHaveValue('persisted')
+
+    fireEvent.change(textarea, { target: { value: 'unsaved local draft' } })
+    expect(textarea).toHaveValue('unsaved local draft')
+
+    await studyDb.settings.delete('quickNotes')
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+
+    expect(textarea).toHaveValue('unsaved local draft')
+  })
+
+  it('does not overwrite a queued or in-flight Quick Notes save when live props change', async () => {
+    await studyDb.settings.put({ key: 'quickNotes', value: ['seed'] })
+    render(<App />)
+    const textarea = await screen.findByLabelText('Quick notes')
+
+    let releaseSave!: () => void
+    const saveGate = new Promise<void>((resolve) => {
+      releaseSave = resolve
+    })
+    const originalSave = quickNotesService.saveQuickNotes
+    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes').mockImplementation(async (value) => {
+      await saveGate
+      return originalSave(value)
+    })
+
+    fireEvent.change(textarea, { target: { value: 'in flight draft' } })
+    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('in flight draft'))
+    expect(screen.getByText('Saving...')).toBeInTheDocument()
+
+    await studyDb.settings.put({ key: 'quickNotes', value: ['stale external'] })
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+    expect(textarea).toHaveValue('in flight draft')
+
+    releaseSave()
+    await waitFor(() => expect(screen.getByText('Saved locally')).toBeInTheDocument())
+    expect(textarea).toHaveValue('in flight draft')
+    expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['in flight draft'])
+  })
+
+  it('does not re-persist when a successful local save is echoed by the live query', async () => {
+    render(<App />)
+    const textarea = await screen.findByLabelText('Quick notes')
+    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes')
+
+    fireEvent.change(textarea, { target: { value: 'echo me once' } })
+    await waitFor(() => expect(screen.getByText('Saved locally')).toBeInTheDocument())
+    expect(saveSpy).toHaveBeenCalledTimes(1)
+    const callsAfterSave = saveSpy.mock.calls.length
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    })
+    expect(saveSpy.mock.calls.length).toBe(callsAfterSave)
+    expect(textarea).toHaveValue('echo me once')
   })
 
   it('clears search when no results are found', async () => {
