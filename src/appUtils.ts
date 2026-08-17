@@ -1,4 +1,4 @@
-import type { CalendarEvent, Flashcard, GoalMetric, GoalPeriod, StudyGoal, StudyNote, StudySession, StudySubject, SubjectProgressMode } from './db/types'
+import type { CalendarEvent, Flashcard, GoalMetric, GoalPeriod, StudyGoal, StudyNote, StudySession, StudySubject, StudyTask, SubjectProgressMode } from './db/types'
 import type { AppShellData } from './db/appShellRead'
 
 export type WeeklyStudyDay = {
@@ -255,6 +255,7 @@ export function buildSearchResults(
   notes: StudyNote[],
   events: CalendarEvent[],
   flashcards: Flashcard[],
+  tasks: StudyTask[],
   subjectMap: Map<string, StudySubject>,
   query: string,
 ): SearchResult[] {
@@ -265,7 +266,7 @@ export function buildSearchResults(
   const matches = (...values: Array<string | number>) => values.join(' ').toLowerCase().includes(normalized)
 
   return [
-    ...data.tasks
+    ...tasks
       .filter((task) => matches(task.title, task.priority, task.status, subjectName(task.subjectId)))
       .map((task): SearchResult => ({ id: task.id, type: 'Task', title: task.title, meta: `${subjectName(task.subjectId)} - ${task.status}`, view: 'Tasks' })),
     ...notes

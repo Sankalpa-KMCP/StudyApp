@@ -14,6 +14,7 @@ import { createGoal } from './db/goalService'
 import { createNote } from './db/notesService'
 import * as noteRead from './db/noteRead'
 import { createTask } from './db/taskService'
+import * as taskRead from './db/taskRead'
 import { saveQuickNotes } from './db/quickNotesService'
 import { createStudySession } from './db/studySessionService'
 import { exportStudyData, getStudyData, studyDb } from './db/studyDb'
@@ -76,13 +77,16 @@ describe('App events live query isolation', () => {
   it('does not rerun Events for unrelated task or study-session writes', async () => {
     const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
     const eventsSpy = vi.spyOn(calendarEventRead, 'listCalendarEvents')
+    const tasksSpy = vi.spyOn(taskRead, 'listTasks')
 
     render(<App />)
     await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
     await waitFor(() => expect(shellSpy).toHaveBeenCalled())
     await waitFor(() => expect(eventsSpy).toHaveBeenCalled())
+    await waitFor(() => expect(tasksSpy).toHaveBeenCalled())
     const shellBefore = shellSpy.mock.calls.length
     const eventsBefore = eventsSpy.mock.calls.length
+    const tasksBefore = tasksSpy.mock.calls.length
 
     await createTask({
       title: 'Unrelated task',
@@ -92,8 +96,9 @@ describe('App events live query isolation', () => {
       minutes: 20,
     })
 
-    await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
+    await waitFor(() => expect(tasksSpy.mock.calls.length).toBeGreaterThan(tasksBefore))
     expect(eventsSpy.mock.calls.length).toBe(eventsBefore)
+    expect(shellSpy.mock.calls.length).toBe(shellBefore)
 
     const shellAfterTask = shellSpy.mock.calls.length
     const eventsAfterTask = eventsSpy.mock.calls.length

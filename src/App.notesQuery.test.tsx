@@ -8,6 +8,7 @@ import { createGoal } from './db/goalService'
 import { createNote, updateNote } from './db/notesService'
 import * as noteRead from './db/noteRead'
 import { createTask } from './db/taskService'
+import * as taskRead from './db/taskRead'
 import { saveQuickNotes } from './db/quickNotesService'
 import { exportStudyData, getStudyData, studyDb } from './db/studyDb'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
@@ -66,15 +67,15 @@ describe('App notes live query isolation', () => {
   }, 15_000)
 
   it('does not rerun Notes for unrelated task writes', async () => {
-    const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
     const notesSpy = vi.spyOn(noteRead, 'listNotes')
+    const tasksSpy = vi.spyOn(taskRead, 'listTasks')
 
     render(<App />)
     await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
-    await waitFor(() => expect(shellSpy).toHaveBeenCalled())
     await waitFor(() => expect(notesSpy).toHaveBeenCalled())
-    const shellBefore = shellSpy.mock.calls.length
+    await waitFor(() => expect(tasksSpy).toHaveBeenCalled())
     const notesBefore = notesSpy.mock.calls.length
+    const tasksBefore = tasksSpy.mock.calls.length
 
     await createTask({
       title: 'Unrelated task',
@@ -84,7 +85,7 @@ describe('App notes live query isolation', () => {
       minutes: 20,
     })
 
-    await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
+    await waitFor(() => expect(tasksSpy.mock.calls.length).toBeGreaterThan(tasksBefore))
     expect(notesSpy.mock.calls.length).toBe(notesBefore)
   })
 

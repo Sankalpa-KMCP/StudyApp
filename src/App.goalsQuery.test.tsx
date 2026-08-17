@@ -6,8 +6,10 @@ import * as appShellRead from './db/appShellRead'
 import * as goalRead from './db/goalRead'
 import { createGoal } from './db/goalService'
 import { createNote } from './db/notesService'
+import * as noteRead from './db/noteRead'
 import { createStudySession } from './db/studySessionService'
 import { createTask } from './db/taskService'
+import * as taskRead from './db/taskRead'
 import { exportStudyData, getStudyData, studyDb } from './db/studyDb'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
@@ -84,12 +86,18 @@ describe('App goals live query isolation', () => {
     })
     const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
     const goalsSpy = vi.spyOn(goalRead, 'listGoals')
+    const tasksSpy = vi.spyOn(taskRead, 'listTasks')
+    const notesSpy = vi.spyOn(noteRead, 'listNotes')
 
     await openGoalsWorkspace(user)
     expect(await screen.findByText('Existing goal')).toBeInTheDocument()
     await waitFor(() => expect(shellSpy).toHaveBeenCalled())
+    await waitFor(() => expect(tasksSpy).toHaveBeenCalled())
+    await waitFor(() => expect(notesSpy).toHaveBeenCalled())
     const shellBefore = shellSpy.mock.calls.length
     const goalsBefore = goalsSpy.mock.calls.length
+    const tasksBefore = tasksSpy.mock.calls.length
+    const notesBefore = notesSpy.mock.calls.length
 
     await createTask({
       title: 'Unrelated task',
@@ -98,6 +106,10 @@ describe('App goals live query isolation', () => {
       priority: 'normal',
       minutes: 25,
     })
+    await waitFor(() => expect(tasksSpy.mock.calls.length).toBeGreaterThan(tasksBefore))
+    expect(goalsSpy.mock.calls.length).toBe(goalsBefore)
+    expect(shellSpy.mock.calls.length).toBe(shellBefore)
+
     await createNote({
       title: 'Unrelated note',
       body: 'body',
@@ -105,8 +117,9 @@ describe('App goals live query isolation', () => {
       tags: [],
     })
 
-    await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
+    await waitFor(() => expect(notesSpy.mock.calls.length).toBeGreaterThan(notesBefore))
     expect(goalsSpy.mock.calls.length).toBe(goalsBefore)
+    expect(shellSpy.mock.calls.length).toBe(shellBefore)
   })
 
   it('updates Goal progress from App studySessions without rereading Goal rows', async () => {
