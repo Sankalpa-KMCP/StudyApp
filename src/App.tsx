@@ -16,8 +16,8 @@ import { useThemePreference } from './hooks/useThemePreference'
 import {
   getStudyData,
   migrateLegacyLocalStorage,
-  studyDb,
 } from './db/studyDb'
+import { saveQuickNotes } from './db/quickNotesService'
 import type { ActiveFocusSession, StudyData } from './db/types'
 import { ReviewQueue, StreakCard, Upcoming, WeeklyProgress } from './components/RightColumn'
 import { HomeView } from './home/HomeView'
@@ -197,10 +197,7 @@ function App() {
   }, [activeView])
 
   const addQuickNote = useCallback(async (value: string) => {
-    await studyDb.settings.put({
-      key: 'quickNotes',
-      value: value.split('\n').map((line) => line.trim()).filter(Boolean).slice(0, 8),
-    })
+    await saveQuickNotes(value)
   }, [])
 
   const openNewTask = () => {
