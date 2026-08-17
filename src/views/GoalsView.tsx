@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { Target } from '../components/icons'
 import { isGoalMetric, type StudyGoal, type StudySession, type GoalPeriod, type GoalMetric } from '../db/types'
+import { listGoals } from '../db/goalRead'
 import {
   createGoal,
   deleteGoal as deleteGoalRecord,
@@ -58,14 +60,15 @@ function composeDescribedBy(...ids: Array<string | undefined>) {
 }
 
 export function GoalsView({
-  goals,
   dailyGoalMinutes,
   studySessions,
 }: {
-  goals: StudyGoal[]
   dailyGoalMinutes: number
   studySessions: StudySession[]
 }) {
+  const liveGoals = useLiveQuery(() => listGoals(), [])
+  const goalsReady = liveGoals !== undefined
+  const goals = liveGoals ?? []
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null)
   const [draft, setDraft] = useState<GoalDraft>(() => createGoalDraft(dailyGoalMinutes))
   const [validationError, setValidationError] = useState<string | null>(null)
@@ -305,7 +308,7 @@ export function GoalsView({
           />
         </div>
       ) : null}
-      {goals.length > 0 ? (
+      {goalsReady && goals.length > 0 ? (
         <div className="card-grid">
           {goals.map((goal) => {
             const progress = calculateGoalProgress(goal, studySessions)
@@ -331,9 +334,9 @@ export function GoalsView({
             )
           })}
         </div>
-      ) : (
+      ) : goalsReady ? (
         <EmptyState icon={Target} title="No goals yet" body="Set focus, review, or weekly study goals and track progress here." actionLabel="Create first goal" onAction={() => openEditor()} />
-      )}
+      ) : null}
     </section>
   )
 }

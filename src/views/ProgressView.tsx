@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Clock3, Save } from '../components/icons'
-import type { StudyData, StudySession, StudySubject } from '../db/types'
+import type { AppShellData } from '../db/appShellRead'
+import type { StudySession, StudySubject } from '../db/types'
 import {
   formatHours,
   formatMinutes,
@@ -30,7 +31,7 @@ type SessionDraft = {
 }
 
 export function ProgressView(props: {
-  data: StudyData
+  data: AppShellData
   weeklyStudyDays: WeeklyStudyDay[]
   dailyGoalMinutes: number
   todayFocusMinutes: number
