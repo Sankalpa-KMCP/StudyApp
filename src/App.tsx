@@ -14,12 +14,13 @@ import { useSidebarPreference } from './hooks/useSidebarPreference'
 import { useStudyBackup } from './hooks/useStudyBackup'
 import { useThemePreference } from './hooks/useThemePreference'
 import { migrateLegacyLocalStorage } from './db/studyDb'
-import { EMPTY_APP_SHELL_DATA, getAppShellData, type AppShellData } from './db/appShellRead'
+import { EMPTY_APP_SHELL_DATA, getAppShellData } from './db/appShellRead'
 import { listCalendarEvents } from './db/calendarEventRead'
 import { listFlashcards } from './db/flashcardRead'
 import { listNotes } from './db/noteRead'
 import { listTasks } from './db/taskRead'
 import { listStudySessions } from './db/studySessionRead'
+import { EMPTY_UI_SETTINGS, getUiSettings } from './db/uiSettingsRead'
 import { saveQuickNotes } from './db/quickNotesService'
 import type { ActiveFocusSession, CalendarEvent, Flashcard, StudySession, StudyTask } from './db/types'
 import { ReviewQueue, StreakCard, Upcoming, WeeklyProgress } from './components/RightColumn'
@@ -125,18 +126,20 @@ function App() {
   const liveFlashcards = useLiveQuery(() => listFlashcards(), [])
   const liveTasks = useLiveQuery(() => listTasks(), [])
   const liveStudySessions = useLiveQuery(() => listStudySessions(), [])
+  const liveUiSettings = useLiveQuery(() => getUiSettings(), [])
   const data = liveData ?? EMPTY_APP_SHELL_DATA
   const notes = liveNotes ?? []
   const events = liveEvents ?? EMPTY_EVENTS
   const flashcards = liveFlashcards ?? EMPTY_FLASHCARDS
   const tasks = liveTasks ?? EMPTY_TASKS
   const studySessions = liveStudySessions ?? EMPTY_STUDY_SESSIONS
+  const uiSettings = liveUiSettings ?? EMPTY_UI_SETTINGS
   // Wait for shell + extracted App reads so consumers never paint an empty flash after partial readiness.
-  const isLoading = liveData === undefined || liveNotes === undefined || liveEvents === undefined || liveFlashcards === undefined || liveTasks === undefined || liveStudySessions === undefined
+  const isLoading = liveData === undefined || liveNotes === undefined || liveEvents === undefined || liveFlashcards === undefined || liveTasks === undefined || liveStudySessions === undefined || liveUiSettings === undefined
 
   const currentDate = useCurrentDate()
-  const dailyGoalMinutes = useMemo(() => settingNumber(data, 'dailyGoalMinutes', 240), [data])
-  const quickNotes = useMemo(() => settingStringArray(data, 'quickNotes'), [data])
+  const dailyGoalMinutes = uiSettings.dailyGoalMinutes
+  const quickNotes = uiSettings.quickNotes
   const subjectMap = useMemo(() => new Map(data.subjects.map((subject) => [subject.id, subject])), [data.subjects])
   const {
     search,
@@ -405,17 +408,6 @@ function App() {
       </div>
     </div>
   )
-}
-
-
-function settingNumber(data: AppShellData, key: string, fallback: number) {
-  const value = data.settings.find((setting) => setting.key === key)?.value
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
-}
-
-function settingStringArray(data: AppShellData, key: string) {
-  const value = data.settings.find((setting) => setting.key === key)?.value
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
 }
 
 export default App

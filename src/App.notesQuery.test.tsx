@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -127,7 +127,10 @@ describe('App notes live query isolation', () => {
 
     await saveQuickNotes('Quick line one')
 
-    await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 40))
+    })
+    expect(shellSpy.mock.calls.length).toBe(shellBefore)
     expect(notesSpy.mock.calls.length).toBe(notesBefore)
   })
 

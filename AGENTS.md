@@ -20,7 +20,7 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 
 - **Study Dashboard v1.4.0** — local-first study workspace (tasks, notes, subjects, calendar, flashcards, focus sessions, goals).
 - **Web app:** React 19 + Vite 8 + Dexie/IndexedDB PWA at the repo root.
-- **`App.tsx` is the composition root** — live Dexie data, sole `useCurrentDate()`, derived Home metrics, URL-synced navigation/layout (`src/navigation/viewRoutes.ts` + History API), shared preference notices, and view wiring. Pure helpers stay in `src/appUtils.ts`.
+- **`App.tsx` is the composition root** — live Dexie data (`getAppShellData` Subjects-only shell; App-owned `listNotes` / `listCalendarEvents` / `listFlashcards` / `listTasks` / `listStudySessions` / `getUiSettings`; GoalsView owns `listGoals`), sole `useCurrentDate()`, derived Home metrics, URL-synced navigation/layout (`src/navigation/viewRoutes.ts` + History API), shared preference notices, and view wiring. Pure helpers stay in `src/appUtils.ts`.
 - **Extracted React orchestration (do not re-inline into App):**
   - `useThemePreference` / `useSidebarPreference` — `localStorage` preferences + theme DOM side effects
   - `useAppSearch` — search state, `useDeferredValue` filters, Home results via `buildSearchResults`

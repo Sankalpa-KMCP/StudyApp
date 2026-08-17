@@ -13,7 +13,7 @@ describe('appShellRead', () => {
     await studyDb.delete()
   })
 
-  it('reads only subjects and settings without goals, notes, events, flashcards, tasks, or sessions', async () => {
+  it('reads only subjects without goals, notes, events, flashcards, tasks, sessions, or settings', async () => {
     await studyDb.tasks.add({
       id: 'task-1',
       title: 'Hidden task',
@@ -83,10 +83,11 @@ describe('appShellRead', () => {
       updatedAt: '2026-07-01T00:00:00.000Z',
     })
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
+    await studyDb.settings.put({ key: 'quickNotes', value: ['hidden'] })
 
     const shell = await getAppShellData()
     expect(shell.subjects).toHaveLength(1)
-    expect(shell.settings).toEqual([{ key: 'dailyGoalMinutes', value: 120 }])
+    expect(shell).not.toHaveProperty('settings')
     expect(shell).not.toHaveProperty('goals')
     expect(shell).not.toHaveProperty('notes')
     expect(shell).not.toHaveProperty('events')
@@ -99,5 +100,6 @@ describe('appShellRead', () => {
     expect(await studyDb.flashcards.count()).toBe(1)
     expect(await studyDb.tasks.count()).toBe(1)
     expect(await studyDb.studySessions.count()).toBe(1)
+    expect(await studyDb.settings.count()).toBe(2)
   })
 })

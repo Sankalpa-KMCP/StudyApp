@@ -6,7 +6,6 @@ import { useAppSearch } from './useAppSearch'
 
 const EMPTY_SHELL: AppShellData = {
   subjects: [],
-  settings: [],
 }
 
 function makeFixture(): {

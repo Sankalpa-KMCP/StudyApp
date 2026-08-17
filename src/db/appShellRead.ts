@@ -1,31 +1,24 @@
 import { studyDb } from './studyDb'
-import type {
-  StudySetting,
-  StudySubject,
-} from './types'
+import type { StudySubject } from './types'
 
 /**
- * App-shell live-query payload excluding Goal, Study Note, Calendar event, Flashcard, Task, and StudySession rows.
+ * App-shell live-query payload excluding Goal, Study Note, Calendar event, Flashcard, Task,
+ * StudySession, and UI settings rows.
  * Goals: `GoalsView` via `listGoals`. Notes: App via `listNotes`. Events: App via `listCalendarEvents`.
  * Flashcards: App via `listFlashcards`. Tasks: App via `listTasks`. Sessions: App via `listStudySessions`.
+ * UI settings (`dailyGoalMinutes`, `quickNotes`): App via `getUiSettings`.
  * Full snapshots for backup/export continue to use `getStudyData`.
  */
 export type AppShellData = {
   subjects: StudySubject[]
-  settings: StudySetting[]
 }
 
 export const EMPTY_APP_SHELL_DATA: AppShellData = {
   subjects: [],
-  settings: [],
 }
 
-/** Parallel shell reads matching `getStudyData` ordering, excluding extracted entity tables. */
+/** Subjects-only shell read. Extracted entity and UI-settings tables use dedicated App live queries. */
 export async function getAppShellData(): Promise<AppShellData> {
-  const [subjects, settings] = await Promise.all([
-    studyDb.subjects.orderBy('createdAt').toArray(),
-    studyDb.settings.toArray(),
-  ])
-
-  return { subjects, settings }
+  const subjects = await studyDb.subjects.orderBy('createdAt').toArray()
+  return { subjects }
 }

@@ -194,7 +194,6 @@ describe('appUtils', () => {
     })
     const data = {
       subjects: [subject],
-      settings: [],
     } satisfies AppShellData
     const sessions = [
       {
