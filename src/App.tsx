@@ -19,8 +19,9 @@ import { listCalendarEvents } from './db/calendarEventRead'
 import { listFlashcards } from './db/flashcardRead'
 import { listNotes } from './db/noteRead'
 import { listTasks } from './db/taskRead'
+import { listStudySessions } from './db/studySessionRead'
 import { saveQuickNotes } from './db/quickNotesService'
-import type { ActiveFocusSession, CalendarEvent, Flashcard, StudyTask } from './db/types'
+import type { ActiveFocusSession, CalendarEvent, Flashcard, StudySession, StudyTask } from './db/types'
 import { ReviewQueue, StreakCard, Upcoming, WeeklyProgress } from './components/RightColumn'
 import { HomeView } from './home/HomeView'
 import { TasksView } from './views/TasksView'
@@ -51,6 +52,7 @@ export type { ThemeMode } from './hooks/useThemePreference'
 const EMPTY_EVENTS: CalendarEvent[] = []
 const EMPTY_FLASHCARDS: Flashcard[] = []
 const EMPTY_TASKS: StudyTask[] = []
+const EMPTY_STUDY_SESSIONS: StudySession[] = []
 
 function App() {
   const [activeView, setActiveView] = useState<View>(() => resolveViewFromPathname(window.location.pathname).view)
@@ -122,13 +124,15 @@ function App() {
   const liveEvents = useLiveQuery(() => listCalendarEvents(), [])
   const liveFlashcards = useLiveQuery(() => listFlashcards(), [])
   const liveTasks = useLiveQuery(() => listTasks(), [])
+  const liveStudySessions = useLiveQuery(() => listStudySessions(), [])
   const data = liveData ?? EMPTY_APP_SHELL_DATA
   const notes = liveNotes ?? []
   const events = liveEvents ?? EMPTY_EVENTS
   const flashcards = liveFlashcards ?? EMPTY_FLASHCARDS
   const tasks = liveTasks ?? EMPTY_TASKS
+  const studySessions = liveStudySessions ?? EMPTY_STUDY_SESSIONS
   // Wait for shell + extracted App reads so consumers never paint an empty flash after partial readiness.
-  const isLoading = liveData === undefined || liveNotes === undefined || liveEvents === undefined || liveFlashcards === undefined || liveTasks === undefined
+  const isLoading = liveData === undefined || liveNotes === undefined || liveEvents === undefined || liveFlashcards === undefined || liveTasks === undefined || liveStudySessions === undefined
 
   const currentDate = useCurrentDate()
   const dailyGoalMinutes = useMemo(() => settingNumber(data, 'dailyGoalMinutes', 240), [data])
@@ -145,7 +149,7 @@ function App() {
     filteredSubjects,
     filteredEvents,
     filteredFlashcards,
-  } = useAppSearch({ data, notes, events, flashcards, tasks, subjectMap, taskFilter })
+  } = useAppSearch({ data, notes, events, flashcards, tasks, studySessions, subjectMap, taskFilter })
   const {
     activeSession,
     staleFocusSession,
@@ -181,12 +185,12 @@ function App() {
     onClearSuccess: onBackupClearSuccess,
   })
   const todayFocusMinutes = useMemo(
-    () => getTodayFocusMinutes(data.studySessions, currentDate),
-    [currentDate, data.studySessions],
+    () => getTodayFocusMinutes(studySessions, currentDate),
+    [currentDate, studySessions],
   )
   const weeklyStudyDays = useMemo(
-    () => getWeeklyStudyDays(data.studySessions, currentDate),
-    [currentDate, data.studySessions],
+    () => getWeeklyStudyDays(studySessions, currentDate),
+    [currentDate, studySessions],
   )
   const completedTasks = useMemo(() => tasks.filter((task) => task.status === 'done'), [tasks])
   const upcomingEvents = useMemo(
@@ -287,6 +291,7 @@ function App() {
                     events={events}
                     flashcards={flashcards}
                     tasks={tasks}
+                    studySessions={studySessions}
                     subjectMap={subjectMap}
                     weeklyStudyDays={weeklyStudyDays}
                     quickNotes={quickNotes}
@@ -330,7 +335,7 @@ function App() {
                     notes={notes}
                     events={events}
                     flashcards={flashcards}
-                    sessions={data.studySessions}
+                    sessions={studySessions}
                     openEditorRequest={subjectEditorRequest}
                   />
                 ) : null}
@@ -357,6 +362,7 @@ function App() {
                   <ProgressView
                     data={data}
                     tasks={tasks}
+                    studySessions={studySessions}
                     flashcards={flashcards}
                     weeklyStudyDays={weeklyStudyDays}
                     dailyGoalMinutes={dailyGoalMinutes}
@@ -368,7 +374,7 @@ function App() {
                 {activeView === 'Goals' ? (
                   <GoalsView
                     dailyGoalMinutes={dailyGoalMinutes}
-                    studySessions={data.studySessions}
+                    studySessions={studySessions}
                   />
                 ) : null}
                 {activeView === 'Settings' ? (
@@ -389,7 +395,7 @@ function App() {
                 <aside className="right-column" aria-label="Progress and schedule">
                   <WeeklyProgress days={weeklyStudyDays} />
                   <Upcoming events={upcomingEvents} subjectMap={subjectMap} onViewAll={() => navigateToView('Calendar')} />
-                  <StreakCard sessions={data.studySessions} now={currentDate} />
+                  <StreakCard sessions={studySessions} now={currentDate} />
                   <ReviewQueue count={dueCards.length} onOpen={() => navigateToView('Flashcards')} />
                 </aside>
               ) : null}

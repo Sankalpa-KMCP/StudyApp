@@ -256,6 +256,7 @@ export function buildSearchResults(
   events: CalendarEvent[],
   flashcards: Flashcard[],
   tasks: StudyTask[],
+  studySessions: StudySession[],
   subjectMap: Map<string, StudySubject>,
   query: string,
 ): SearchResult[] {
@@ -274,11 +275,11 @@ export function buildSearchResults(
       .map((note): SearchResult => ({ id: note.id, type: 'Note', title: note.title, meta: subjectName(note.subjectId), view: 'Notes' })),
     ...data.subjects
       .filter((subject) => {
-        const percentage = Math.round(calculateSubjectProgress(subject, data.studySessions).percentage)
+        const percentage = Math.round(calculateSubjectProgress(subject, studySessions).percentage)
         return matches(subject.name, percentage, subject.targetHours)
       })
       .map((subject): SearchResult => {
-        const percentage = Math.round(calculateSubjectProgress(subject, data.studySessions).percentage)
+        const percentage = Math.round(calculateSubjectProgress(subject, studySessions).percentage)
         return { id: subject.id, type: 'Subject', title: subject.name, meta: `${percentage}% progress`, view: 'Subjects' }
       }),
     ...events

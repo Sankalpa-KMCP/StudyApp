@@ -20,6 +20,7 @@ import {
 } from './db/taskService'
 import { saveQuickNotes } from './db/quickNotesService'
 import { createStudySession } from './db/studySessionService'
+import * as studySessionRead from './db/studySessionRead'
 import { exportStudyData, getStudyData, studyDb } from './db/studyDb'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
@@ -120,16 +121,19 @@ describe('App tasks live query isolation', () => {
     expect(tasksTableSpy.mock.calls.length).toBe(orderByBefore)
   })
 
-  it('does not rerun Tasks for study-session writes that do rerun the App shell', async () => {
+  it('does not rerun Tasks for study-session writes', async () => {
     const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
+    const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 
     render(<App />)
     await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
     await waitFor(() => expect(shellSpy).toHaveBeenCalled())
     await waitFor(() => expect(tasksSpy).toHaveBeenCalled())
+    await waitFor(() => expect(sessionsSpy).toHaveBeenCalled())
     const shellBefore = shellSpy.mock.calls.length
     const tasksBefore = tasksSpy.mock.calls.length
+    const sessionsBefore = sessionsSpy.mock.calls.length
 
     await createStudySession({
       subjectId: '',
@@ -139,7 +143,8 @@ describe('App tasks live query isolation', () => {
       note: 'manual',
     })
 
-    await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
+    await waitFor(() => expect(sessionsSpy.mock.calls.length).toBeGreaterThan(sessionsBefore))
+    expect(shellSpy.mock.calls.length).toBe(shellBefore)
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
   })
 

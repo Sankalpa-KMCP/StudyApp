@@ -194,21 +194,21 @@ describe('appUtils', () => {
     })
     const data = {
       subjects: [subject],
-      studySessions: [
-        {
-          id: 'session-1',
-          subjectId: subject.id,
-          startedAt: '2026-06-29T09:00:00.000Z',
-          endedAt: '2026-06-29T09:30:00.000Z',
-          minutes: 30,
-          note: '',
-        },
-      ],
       settings: [],
     } satisfies AppShellData
+    const sessions = [
+      {
+        id: 'session-1',
+        subjectId: subject.id,
+        startedAt: '2026-06-29T09:00:00.000Z',
+        endedAt: '2026-06-29T09:30:00.000Z',
+        minutes: 30,
+        note: '',
+      },
+    ]
     const subjectMap = new Map([[subject.id, subject]])
 
-    expect(buildSearchResults(data, [], [], [], [], subjectMap, 'Physics')).toEqual([
+    expect(buildSearchResults(data, [], [], [], [], sessions, subjectMap, 'Physics')).toEqual([
       {
         id: 'subject-search',
         type: 'Subject',
@@ -217,8 +217,8 @@ describe('appUtils', () => {
         view: 'Subjects',
       },
     ])
-    expect(buildSearchResults(data, [], [], [], [], subjectMap, '50')).toHaveLength(1)
-    expect(buildSearchResults(data, [], [], [], [], subjectMap, '15')).toEqual([])
+    expect(buildSearchResults(data, [], [], [], [], sessions, subjectMap, '50')).toHaveLength(1)
+    expect(buildSearchResults(data, [], [], [], [], sessions, subjectMap, '15')).toEqual([])
   })
 
   describe('goal progress by explicit metric', () => {

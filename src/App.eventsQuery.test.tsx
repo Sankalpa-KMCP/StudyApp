@@ -17,6 +17,7 @@ import { createTask } from './db/taskService'
 import * as taskRead from './db/taskRead'
 import { saveQuickNotes } from './db/quickNotesService'
 import { createStudySession } from './db/studySessionService'
+import * as studySessionRead from './db/studySessionRead'
 import { exportStudyData, getStudyData, studyDb } from './db/studyDb'
 import { getMillisecondsUntilNextLocalMidnight } from './hooks/useCurrentDate'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
@@ -78,15 +79,18 @@ describe('App events live query isolation', () => {
     const shellSpy = vi.spyOn(appShellRead, 'getAppShellData')
     const eventsSpy = vi.spyOn(calendarEventRead, 'listCalendarEvents')
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
+    const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 
     render(<App />)
     await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
     await waitFor(() => expect(shellSpy).toHaveBeenCalled())
     await waitFor(() => expect(eventsSpy).toHaveBeenCalled())
     await waitFor(() => expect(tasksSpy).toHaveBeenCalled())
+    await waitFor(() => expect(sessionsSpy).toHaveBeenCalled())
     const shellBefore = shellSpy.mock.calls.length
     const eventsBefore = eventsSpy.mock.calls.length
     const tasksBefore = tasksSpy.mock.calls.length
+    const sessionsBefore = sessionsSpy.mock.calls.length
 
     await createTask({
       title: 'Unrelated task',
@@ -99,9 +103,11 @@ describe('App events live query isolation', () => {
     await waitFor(() => expect(tasksSpy.mock.calls.length).toBeGreaterThan(tasksBefore))
     expect(eventsSpy.mock.calls.length).toBe(eventsBefore)
     expect(shellSpy.mock.calls.length).toBe(shellBefore)
+    expect(sessionsSpy.mock.calls.length).toBe(sessionsBefore)
 
     const shellAfterTask = shellSpy.mock.calls.length
     const eventsAfterTask = eventsSpy.mock.calls.length
+    const sessionsAfterTask = sessionsSpy.mock.calls.length
 
     await createStudySession({
       subjectId: '',
@@ -111,7 +117,8 @@ describe('App events live query isolation', () => {
       note: 'manual',
     })
 
-    await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellAfterTask))
+    await waitFor(() => expect(sessionsSpy.mock.calls.length).toBeGreaterThan(sessionsAfterTask))
+    expect(shellSpy.mock.calls.length).toBe(shellAfterTask)
     expect(eventsSpy.mock.calls.length).toBe(eventsAfterTask)
   })
 
