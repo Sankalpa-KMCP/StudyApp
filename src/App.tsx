@@ -15,6 +15,7 @@ import { useStudyBackup } from './hooks/useStudyBackup'
 import { useThemePreference } from './hooks/useThemePreference'
 import { migrateLegacyLocalStorage } from './db/studyDb'
 import { EMPTY_APP_SHELL_DATA, getAppShellData, type AppShellData } from './db/appShellRead'
+import { listNotes } from './db/noteRead'
 import { saveQuickNotes } from './db/quickNotesService'
 import type { ActiveFocusSession } from './db/types'
 import { ReviewQueue, StreakCard, Upcoming, WeeklyProgress } from './components/RightColumn'
@@ -110,8 +111,11 @@ function App() {
   }, [syncUrlToView])
 
   const liveData = useLiveQuery(() => getAppShellData(), [])
+  const liveNotes = useLiveQuery(() => listNotes(), [])
   const data = liveData ?? EMPTY_APP_SHELL_DATA
-  const isLoading = liveData === undefined
+  const notes = liveNotes ?? []
+  // Wait for both queries so Notes consumers never paint an empty flash after shell is ready.
+  const isLoading = liveData === undefined || liveNotes === undefined
 
   const currentDate = useCurrentDate()
   const dailyGoalMinutes = useMemo(() => settingNumber(data, 'dailyGoalMinutes', 240), [data])
@@ -128,7 +132,7 @@ function App() {
     filteredSubjects,
     filteredEvents,
     filteredFlashcards,
-  } = useAppSearch({ data, subjectMap, taskFilter })
+  } = useAppSearch({ data, notes, subjectMap, taskFilter })
   const {
     activeSession,
     staleFocusSession,
@@ -266,6 +270,7 @@ function App() {
                 {activeView === 'Home' ? (
                   <HomeView
                     data={data}
+                    notes={notes}
                     subjectMap={subjectMap}
                     weeklyStudyDays={weeklyStudyDays}
                     quickNotes={quickNotes}
@@ -306,7 +311,7 @@ function App() {
                   <SubjectsView
                     subjects={filteredSubjects}
                     tasks={data.tasks}
-                    notes={data.notes}
+                    notes={notes}
                     events={data.events}
                     flashcards={data.flashcards}
                     sessions={data.studySessions}

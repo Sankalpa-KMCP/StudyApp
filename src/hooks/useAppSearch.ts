@@ -7,6 +7,7 @@ export type TaskSearchFilter = 'all' | 'open' | 'done'
 
 export type UseAppSearchOptions = {
   data: AppShellData
+  notes: StudyNote[]
   subjectMap: Map<string, StudySubject>
   taskFilter: TaskSearchFilter
 }
@@ -30,6 +31,7 @@ export type UseAppSearchResult = {
  */
 export function useAppSearch({
   data,
+  notes,
   subjectMap,
   taskFilter,
 }: UseAppSearchOptions): UseAppSearchResult {
@@ -38,8 +40,8 @@ export function useAppSearch({
   const normalizedSearch = deferredSearch.trim().toLowerCase()
 
   const homeSearchResults = useMemo(
-    () => buildSearchResults(data, subjectMap, deferredSearch),
-    [data, deferredSearch, subjectMap],
+    () => buildSearchResults(data, notes, subjectMap, deferredSearch),
+    [data, deferredSearch, notes, subjectMap],
   )
 
   const filteredTasks = useMemo(() => data.tasks.filter((task) => {
@@ -49,10 +51,10 @@ export function useAppSearch({
     return matchesSearch && matchesFilter
   }), [data.tasks, normalizedSearch, subjectMap, taskFilter])
 
-  const filteredNotes = useMemo(() => data.notes.filter((note) => {
+  const filteredNotes = useMemo(() => notes.filter((note) => {
     const subject = subjectMap.get(note.subjectId)?.name ?? 'General'
     return `${note.title} ${note.body} ${subject} ${note.tags.join(' ')}`.toLowerCase().includes(normalizedSearch)
-  }), [data.notes, normalizedSearch, subjectMap])
+  }), [notes, normalizedSearch, subjectMap])
 
   const filteredSubjects = useMemo(
     () => data.subjects.filter((subject) => {

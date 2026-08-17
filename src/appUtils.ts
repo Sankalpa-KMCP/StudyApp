@@ -1,4 +1,4 @@
-import type { Flashcard, GoalMetric, GoalPeriod, StudyGoal, StudySession, StudySubject, SubjectProgressMode } from './db/types'
+import type { Flashcard, GoalMetric, GoalPeriod, StudyGoal, StudyNote, StudySession, StudySubject, SubjectProgressMode } from './db/types'
 import type { AppShellData } from './db/appShellRead'
 
 export type WeeklyStudyDay = {
@@ -250,7 +250,12 @@ export function groupStudySessionsByLocalDate(sessions: StudySession[], now = ne
   }))
 }
 
-export function buildSearchResults(data: AppShellData, subjectMap: Map<string, StudySubject>, query: string): SearchResult[] {
+export function buildSearchResults(
+  data: AppShellData,
+  notes: StudyNote[],
+  subjectMap: Map<string, StudySubject>,
+  query: string,
+): SearchResult[] {
   const normalized = query.trim().toLowerCase()
   if (!normalized) return []
 
@@ -261,7 +266,7 @@ export function buildSearchResults(data: AppShellData, subjectMap: Map<string, S
     ...data.tasks
       .filter((task) => matches(task.title, task.priority, task.status, subjectName(task.subjectId)))
       .map((task): SearchResult => ({ id: task.id, type: 'Task', title: task.title, meta: `${subjectName(task.subjectId)} - ${task.status}`, view: 'Tasks' })),
-    ...data.notes
+    ...notes
       .filter((note) => matches(note.title, note.body, note.tags.join(' '), subjectName(note.subjectId)))
       .map((note): SearchResult => ({ id: note.id, type: 'Note', title: note.title, meta: subjectName(note.subjectId), view: 'Notes' })),
     ...data.subjects
