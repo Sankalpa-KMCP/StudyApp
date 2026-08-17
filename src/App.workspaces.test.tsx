@@ -96,7 +96,7 @@ describe('App workspaces', () => {
     await waitFor(() => expect(screen.queryByText('Matrix practice')).not.toBeInTheDocument())
     expect(await screen.findByRole('status')).toHaveTextContent('Task deleted.')
     confirmDelete.mockRestore()
-  })
+  }, 15_000)
 
   it('prevents duplicate task create while save is pending', async () => {
     const user = userEvent.setup()

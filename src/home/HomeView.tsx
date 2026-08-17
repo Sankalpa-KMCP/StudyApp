@@ -12,7 +12,7 @@ import {
   type WeeklyStudyDay,
 } from '../appUtils'
 import type { AppShellData } from '../db/appShellRead'
-import type { ActiveFocusSession, CalendarEvent, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
+import type { ActiveFocusSession, CalendarEvent, Flashcard, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
 import { EmptyState, SubjectCard } from '../components/ui'
 import { StudyTime } from '../components/RightColumn'
 import type { View } from '../App'
@@ -24,6 +24,7 @@ export function HomeView(props: {
   data: AppShellData
   notes: StudyNote[]
   events: CalendarEvent[]
+  flashcards: Flashcard[]
   subjectMap: Map<string, StudySubject>
   weeklyStudyDays: WeeklyStudyDay[]
   quickNotes: string[]
@@ -59,7 +60,7 @@ export function HomeView(props: {
   const openTasks = props.data.tasks.filter((task) => task.status === 'open').slice(0, 5)
   const recentNotes = props.notes.slice(0, 3)
   const subjectStats = props.data.subjects.slice(0, 5)
-  const dueCards = props.data.flashcards.filter((card) => isFlashcardDue(card)).length
+  const dueCards = props.flashcards.filter((card) => isFlashcardDue(card)).length
   const weekHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
 
   return (

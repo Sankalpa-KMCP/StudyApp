@@ -254,6 +254,7 @@ export function buildSearchResults(
   data: AppShellData,
   notes: StudyNote[],
   events: CalendarEvent[],
+  flashcards: Flashcard[],
   subjectMap: Map<string, StudySubject>,
   query: string,
 ): SearchResult[] {
@@ -282,7 +283,7 @@ export function buildSearchResults(
     ...events
       .filter((event) => matches(event.title, event.location, subjectName(event.subjectId)))
       .map((event): SearchResult => ({ id: event.id, type: 'Event', title: event.title, meta: `${formatDateTime(event.startAt)} - ${subjectName(event.subjectId)}`, view: 'Calendar' })),
-    ...data.flashcards
+    ...flashcards
       .filter((card) => matches(card.front, card.back, card.status, subjectName(card.subjectId)))
       .map((card): SearchResult => ({ id: card.id, type: 'Flashcard', title: card.front, meta: `${subjectName(card.subjectId)} - ${card.status}`, view: 'Flashcards' })),
   ].slice(0, 8)

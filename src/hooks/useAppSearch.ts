@@ -9,6 +9,7 @@ export type UseAppSearchOptions = {
   data: AppShellData
   notes: StudyNote[]
   events: CalendarEvent[]
+  flashcards: Flashcard[]
   subjectMap: Map<string, StudySubject>
   taskFilter: TaskSearchFilter
 }
@@ -34,6 +35,7 @@ export function useAppSearch({
   data,
   notes,
   events,
+  flashcards,
   subjectMap,
   taskFilter,
 }: UseAppSearchOptions): UseAppSearchResult {
@@ -42,8 +44,8 @@ export function useAppSearch({
   const normalizedSearch = deferredSearch.trim().toLowerCase()
 
   const homeSearchResults = useMemo(
-    () => buildSearchResults(data, notes, events, subjectMap, deferredSearch),
-    [data, deferredSearch, events, notes, subjectMap],
+    () => buildSearchResults(data, notes, events, flashcards, subjectMap, deferredSearch),
+    [data, deferredSearch, events, flashcards, notes, subjectMap],
   )
 
   const filteredTasks = useMemo(() => data.tasks.filter((task) => {
@@ -71,10 +73,10 @@ export function useAppSearch({
     return `${event.title} ${event.location} ${subject}`.toLowerCase().includes(normalizedSearch)
   }), [events, normalizedSearch, subjectMap])
 
-  const filteredFlashcards = useMemo(() => data.flashcards.filter((card) => {
+  const filteredFlashcards = useMemo(() => flashcards.filter((card) => {
     const subject = subjectMap.get(card.subjectId)?.name ?? 'General'
     return `${card.front} ${card.back} ${subject} ${card.status}`.toLowerCase().includes(normalizedSearch)
-  }).sort((a, b) => Number(isFlashcardDue(b)) - Number(isFlashcardDue(a))), [data.flashcards, normalizedSearch, subjectMap])
+  }).sort((a, b) => Number(isFlashcardDue(b)) - Number(isFlashcardDue(a))), [flashcards, normalizedSearch, subjectMap])
 
   const clearSearch = useCallback(() => setSearch(''), [])
 

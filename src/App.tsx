@@ -16,9 +16,10 @@ import { useThemePreference } from './hooks/useThemePreference'
 import { migrateLegacyLocalStorage } from './db/studyDb'
 import { EMPTY_APP_SHELL_DATA, getAppShellData, type AppShellData } from './db/appShellRead'
 import { listCalendarEvents } from './db/calendarEventRead'
+import { listFlashcards } from './db/flashcardRead'
 import { listNotes } from './db/noteRead'
 import { saveQuickNotes } from './db/quickNotesService'
-import type { ActiveFocusSession, CalendarEvent } from './db/types'
+import type { ActiveFocusSession, CalendarEvent, Flashcard } from './db/types'
 import { ReviewQueue, StreakCard, Upcoming, WeeklyProgress } from './components/RightColumn'
 import { HomeView } from './home/HomeView'
 import { TasksView } from './views/TasksView'
@@ -47,6 +48,7 @@ export type ActiveSession = ActiveFocusSession
 export type { ThemeMode } from './hooks/useThemePreference'
 
 const EMPTY_EVENTS: CalendarEvent[] = []
+const EMPTY_FLASHCARDS: Flashcard[] = []
 
 function App() {
   const [activeView, setActiveView] = useState<View>(() => resolveViewFromPathname(window.location.pathname).view)
@@ -116,11 +118,13 @@ function App() {
   const liveData = useLiveQuery(() => getAppShellData(), [])
   const liveNotes = useLiveQuery(() => listNotes(), [])
   const liveEvents = useLiveQuery(() => listCalendarEvents(), [])
+  const liveFlashcards = useLiveQuery(() => listFlashcards(), [])
   const data = liveData ?? EMPTY_APP_SHELL_DATA
   const notes = liveNotes ?? []
   const events = liveEvents ?? EMPTY_EVENTS
-  // Wait for shell, Notes, and Events so consumers never paint an empty flash after partial readiness.
-  const isLoading = liveData === undefined || liveNotes === undefined || liveEvents === undefined
+  const flashcards = liveFlashcards ?? EMPTY_FLASHCARDS
+  // Wait for shell, Notes, Events, and Flashcards so consumers never paint an empty flash after partial readiness.
+  const isLoading = liveData === undefined || liveNotes === undefined || liveEvents === undefined || liveFlashcards === undefined
 
   const currentDate = useCurrentDate()
   const dailyGoalMinutes = useMemo(() => settingNumber(data, 'dailyGoalMinutes', 240), [data])
@@ -137,7 +141,7 @@ function App() {
     filteredSubjects,
     filteredEvents,
     filteredFlashcards,
-  } = useAppSearch({ data, notes, events, subjectMap, taskFilter })
+  } = useAppSearch({ data, notes, events, flashcards, subjectMap, taskFilter })
   const {
     activeSession,
     staleFocusSession,
@@ -185,7 +189,7 @@ function App() {
     () => events.filter((event) => new Date(event.startAt).getTime() >= startOfToday(currentDate)).slice(0, 4),
     [currentDate, events],
   )
-  const dueCards = useMemo(() => data.flashcards.filter((card) => isFlashcardDue(card)), [data.flashcards])
+  const dueCards = useMemo(() => flashcards.filter((card) => isFlashcardDue(card)), [flashcards])
 
   useEffect(() => {
     const behavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
@@ -277,6 +281,7 @@ function App() {
                     data={data}
                     notes={notes}
                     events={events}
+                    flashcards={flashcards}
                     subjectMap={subjectMap}
                     weeklyStudyDays={weeklyStudyDays}
                     quickNotes={quickNotes}
@@ -319,7 +324,7 @@ function App() {
                     tasks={data.tasks}
                     notes={notes}
                     events={events}
-                    flashcards={data.flashcards}
+                    flashcards={flashcards}
                     sessions={data.studySessions}
                     openEditorRequest={subjectEditorRequest}
                   />
@@ -346,6 +351,7 @@ function App() {
                 {activeView === 'Progress' ? (
                   <ProgressView
                     data={data}
+                    flashcards={flashcards}
                     weeklyStudyDays={weeklyStudyDays}
                     dailyGoalMinutes={dailyGoalMinutes}
                     todayFocusMinutes={todayFocusMinutes}
