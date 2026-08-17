@@ -12,7 +12,11 @@ import {
   toInputTime,
   type WeeklyStudyDay,
 } from '../appUtils'
-import { createId, studyDb } from '../db/studyDb'
+import {
+  createStudySession,
+  deleteStudySession,
+  updateStudySession,
+} from '../db/studySessionService'
 import { EmptyState, MetricCard, MutationNotice, PanelHeader, RowActionButtons } from '../components/ui'
 import { StudyTime, SubjectDistribution } from '../components/RightColumn'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
@@ -157,7 +161,7 @@ export function ProgressView(props: {
     }
 
     const isEdit = Boolean(editingSessionId && editingSessionId !== 'new')
-    const payload = {
+    const fields = {
       subjectId: draft.subjectId,
       startedAt: startedAt.toISOString(),
       endedAt: endedAt.toISOString(),
@@ -167,12 +171,11 @@ export function ProgressView(props: {
 
     await runSave(async () => {
       if (isEdit && editingSessionId) {
-        const updated = await studyDb.studySessions.update(editingSessionId, payload)
-        if (updated === 0) throw new Error('Session no longer exists.')
+        await updateStudySession(editingSessionId, fields)
         return
       }
 
-      await studyDb.studySessions.add({ id: createId('session'), ...payload })
+      await createStudySession(fields)
     }, {
       successMessage: isEdit ? 'Study session updated.' : 'Study session recorded.',
       errorMessage: 'Study session could not be saved. Your details are still in the form.',
@@ -198,7 +201,7 @@ export function ProgressView(props: {
 
     try {
       await runRow(async () => {
-        await studyDb.studySessions.delete(session.id)
+        await deleteStudySession(session.id)
       }, {
         successMessage: 'Study session deleted.',
         errorMessage: 'Study session could not be deleted. Please try again.',
