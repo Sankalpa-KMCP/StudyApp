@@ -5,6 +5,17 @@ import {
   type StudyExportRecordLimits,
 } from './studyExportLimits'
 import type { StudyExport } from './types'
+import {
+  isPersistedGoalProgress,
+  isPersistedGoalTarget,
+  isPersistedOptionalNonNegativeCounter,
+  isPersistedStudySessionMinutes,
+  isPersistedSubjectProgress,
+  isPersistedSubjectReference,
+  isPersistedSubjectTargetHours,
+  isPersistedTaskMinutes,
+  isPersistedTimestampOrder,
+} from './validation/persistedInvariants'
 
 /** Stable internal error; Settings maps import failures to a fixed friendly message. */
 export const STUDY_EXPORT_IMPORT_VALIDATION_ERROR = 'Import file is not a Study Dashboard export.'
@@ -40,8 +51,7 @@ export function assertUniqueStudyExportIdentifiers(
 }
 
 function assertSubjectReference(subjectId: string, subjectIds: ReadonlySet<string>): void {
-  if (subjectId === '') return
-  if (!subjectIds.has(subjectId)) {
+  if (!isPersistedSubjectReference(subjectId, subjectIds)) {
     throw new Error(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
   }
 }
@@ -88,12 +98,6 @@ function failValidation(): never {
   throw new Error(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
 }
 
-function assertTimestampOrder(startIso: string, endIso: string): void {
-  if (Date.parse(endIso) < Date.parse(startIso)) {
-    failValidation()
-  }
-}
-
 /**
  * Rejects integrity-level semantic violations (ranges, non-positive durations, temporal order).
  * Does not enforce UI maximums or future-ended session policy. Call after uniqueness and
@@ -106,31 +110,31 @@ export function assertStudyExportSemantics(
   >,
 ): void {
   for (const subject of snapshot.subjects) {
-    if (subject.progress < 0 || subject.progress > 100) failValidation()
-    if (subject.targetHours <= 0) failValidation()
+    if (!isPersistedSubjectProgress(subject.progress)) failValidation()
+    if (!isPersistedSubjectTargetHours(subject.targetHours)) failValidation()
   }
 
   for (const task of snapshot.tasks) {
-    if (task.minutes < 0) failValidation()
+    if (!isPersistedTaskMinutes(task.minutes)) failValidation()
   }
 
   for (const session of snapshot.studySessions) {
-    if (session.minutes <= 0) failValidation()
-    assertTimestampOrder(session.startedAt, session.endedAt)
+    if (!isPersistedStudySessionMinutes(session.minutes)) failValidation()
+    if (!isPersistedTimestampOrder(session.startedAt, session.endedAt)) failValidation()
   }
 
   for (const event of snapshot.events) {
-    assertTimestampOrder(event.startAt, event.endAt)
+    if (!isPersistedTimestampOrder(event.startAt, event.endAt)) failValidation()
   }
 
   for (const goal of snapshot.goals) {
-    if (goal.target <= 0) failValidation()
-    if (goal.progress < 0) failValidation()
+    if (!isPersistedGoalTarget(goal.target)) failValidation()
+    if (!isPersistedGoalProgress(goal.progress)) failValidation()
   }
 
   for (const card of snapshot.flashcards) {
-    if (card.intervalDays !== undefined && card.intervalDays < 0) failValidation()
-    if (card.reviewCount !== undefined && card.reviewCount < 0) failValidation()
+    if (!isPersistedOptionalNonNegativeCounter(card.intervalDays)) failValidation()
+    if (!isPersistedOptionalNonNegativeCounter(card.reviewCount)) failValidation()
   }
 }
 
