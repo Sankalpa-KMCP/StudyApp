@@ -174,18 +174,28 @@ describe('App notes live query isolation', () => {
   })
 
   it('updates Home recent notes ordering after a Note update without shell Notes reads', async () => {
-    const older = await createNote({
-      title: 'Older recent',
-      body: 'a',
-      subjectId: '',
-      tags: [],
-    })
-    await createNote({
-      title: 'Newer recent',
-      body: 'b',
-      subjectId: '',
-      tags: [],
-    })
+    // Distinct updatedAt values: back-to-back createNote() often shares one ISO millisecond,
+    // and Dexie orderBy(updatedAt).reverse() is non-deterministic on ties.
+    await studyDb.notes.bulkAdd([
+      {
+        id: 'note-older-recent',
+        title: 'Older recent',
+        body: 'a',
+        subjectId: '',
+        tags: [],
+        createdAt: '2026-07-01T10:00:00.000Z',
+        updatedAt: '2026-07-01T10:00:00.000Z',
+      },
+      {
+        id: 'note-newer-recent',
+        title: 'Newer recent',
+        body: 'b',
+        subjectId: '',
+        tags: [],
+        createdAt: '2026-07-01T11:00:00.000Z',
+        updatedAt: '2026-07-01T11:00:00.000Z',
+      },
+    ])
 
     const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const notesSpy = vi.spyOn(noteRead, 'listNotes')
@@ -193,12 +203,14 @@ describe('App notes live query isolation', () => {
     render(<App />)
     await screen.findByRole('heading', { name: 'Recent Notes' })
     const list = screen.getByRole('heading', { name: 'Recent Notes' }).closest('section') as HTMLElement
-    const titles = within(list).getAllByRole('heading', { level: 3 }).map((node) => node.textContent)
-    expect(titles[0]).toBe('Newer recent')
+    await waitFor(() => {
+      const titles = within(list).getAllByRole('heading', { level: 3 }).map((node) => node.textContent)
+      expect(titles[0]).toBe('Newer recent')
+    })
 
     const shellBefore = shellSpy.mock.calls.length
     const notesBefore = notesSpy.mock.calls.length
-    await updateNote(older.id, {
+    await updateNote('note-older-recent', {
       title: 'Older recent bumped',
       body: 'a',
       subjectId: '',
