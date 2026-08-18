@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { formatHeroDate } from './components/heroDate'
 import { getMillisecondsUntilNextLocalMidnight } from './hooks/useCurrentDate'
-import { studyDb, clearAllStudyData, importStudyData } from './db/studyDb'
+import { studyDb, clearAllStudyData, getStudyData, importStudyData } from './db/studyDb'
 import * as quickNotesService from './db/quickNotesService'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 import {
@@ -105,6 +105,74 @@ describe('App home', () => {
 
     expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Your first study loop' })).not.toBeInTheDocument()
+  })
+
+  it('hides the checklist after dismissal without changing study data or focus state', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const before = await getStudyData()
+    expect(before.subjects).toHaveLength(0)
+    expect(before.tasks).toHaveLength(0)
+    expect(before.events).toHaveLength(0)
+    expect(before.studySessions).toHaveLength(0)
+    expect(await getActiveFocusSession()).toBeNull()
+
+    await user.click(await screen.findByRole('button', { name: 'Hide checklist' }))
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Your first study loop' })).not.toBeInTheDocument())
+
+    expect((await studyDb.settings.get('onboardingChecklistDismissed'))?.value).toBe(true)
+    const after = await getStudyData()
+    expect(after.subjects).toHaveLength(0)
+    expect(after.tasks).toHaveLength(0)
+    expect(after.events).toHaveLength(0)
+    expect(after.studySessions).toHaveLength(0)
+    expect(await getActiveFocusSession()).toBeNull()
+  })
+
+  it('preserves dismissal across reload and render restart', async () => {
+    const user = userEvent.setup()
+    const firstRender = render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Hide checklist' }))
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Your first study loop' })).not.toBeInTheDocument())
+
+    firstRender.unmount()
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Your first study loop' })).not.toBeInTheDocument()
+  })
+
+  it('keeps completed onboarding hidden after restart from Settings', async () => {
+    const user = userEvent.setup()
+    await addFirstStudySubject()
+    await addFirstStudyEvent()
+    await addFirstStudySession()
+    await studyDb.settings.put({ key: 'onboardingChecklistDismissed', value: true })
+
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Your first study loop' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Show onboarding checklist' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Onboarding checklist will appear on Home.')
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Your first study loop' })).not.toBeInTheDocument()
+  })
+
+  it('moves focus to Today after keyboard dismissal removes the checklist', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const dismissButton = await screen.findByRole('button', { name: 'Hide checklist' })
+    dismissButton.focus()
+    await user.keyboard('{Enter}')
+
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Your first study loop' })).not.toBeInTheDocument())
+    expect(screen.getByRole('heading', { name: 'Today' })).toHaveFocus()
   })
 
   it('opens checklist workflows with native keyboard actions and supported focus', async () => {

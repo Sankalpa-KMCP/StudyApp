@@ -106,6 +106,72 @@ describe('App backup', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Import failed. Choose a valid Study Dashboard export.')
   })
 
+  it('shows the onboarding control, restores the checklist, and does not clear study data', async () => {
+    const user = userEvent.setup()
+    await studyDb.tasks.add({
+      id: 'task-onboarding-keep',
+      title: 'Keep my task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 20,
+      createdAt: '2026-06-29T00:00:00.000Z',
+      updatedAt: '2026-06-29T00:00:00.000Z',
+    })
+    await studyDb.settings.put({ key: 'onboardingChecklistDismissed', value: true })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+
+    const showButton = screen.getByRole('button', { name: 'Show onboarding checklist' })
+    expect(showButton).toBeInTheDocument()
+    expect(screen.getByText(/Bring the Home checklist back without changing your saved study data./i)).toBeInTheDocument()
+
+    await user.click(showButton)
+    expect(await screen.findByRole('status')).toHaveTextContent('Onboarding checklist will appear on Home.')
+    expect(await studyDb.settings.get('onboardingChecklistDismissed')).toBeUndefined()
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(await screen.findByRole('region', { name: 'Your first study loop' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tasks' }))
+    expect(await screen.findByText('Keep my task')).toBeInTheDocument()
+  })
+
+  it('keeps the onboarding control disabled while restart is pending and reports failures safely', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    await studyDb.settings.put({ key: 'onboardingChecklistDismissed', value: true })
+
+    let releaseDelete!: () => void
+    const gate = new Promise<void>((resolve) => {
+      releaseDelete = resolve
+    })
+    const deleteSpy = vi.spyOn(studyDb.settings, 'delete').mockImplementation(async (key) => {
+      if (key === 'onboardingChecklistDismissed') {
+        await gate
+        throw new Error('restart failed')
+      }
+      return Promise.resolve(undefined as never)
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    const showButton = screen.getByRole('button', { name: 'Show onboarding checklist' })
+    await user.click(showButton)
+
+    const pendingButton = await screen.findByRole('button', { name: 'Show onboarding checklist' })
+    expect(pendingButton).toHaveTextContent('Showing onboarding...')
+    expect(pendingButton).toBeDisabled()
+    await user.click(pendingButton)
+    expect(deleteSpy).toHaveBeenCalledTimes(1)
+
+    releaseDelete()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Onboarding checklist could not be shown. Please try again.')
+    expect(screen.getByRole('button', { name: 'Show onboarding checklist' })).toBeEnabled()
+    expect((await studyDb.settings.get('onboardingChecklistDismissed'))?.value).toBe(true)
+  })
+
   it('import replaces all existing study data', async () => {
     const user = userEvent.setup()
     await studyDb.tasks.add({

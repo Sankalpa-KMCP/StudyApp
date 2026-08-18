@@ -4,6 +4,10 @@ import { useMobileNavBreakpoint } from './hooks/useMobileNavBreakpoint'
 import { useSidebarPreference } from './hooks/useSidebarPreference'
 import { useStudyBackup } from './hooks/useStudyBackup'
 import { useThemePreference } from './hooks/useThemePreference'
+import {
+  dismissOnboardingChecklist,
+  showOnboardingChecklist,
+} from './db/onboardingChecklistPreference'
 import { migrateLegacyLocalStorage } from './db/studyDb'
 import type { ActiveFocusSession, StudySubject } from './db/types'
 import { Sidebar } from './components/Sidebar'
@@ -287,6 +291,7 @@ function App() {
               onExport={exportBackup}
               onImport={importBackup}
               onClear={clearAllBackup}
+              onShowOnboardingChecklist={showOnboardingChecklist}
               importPending={focusImportPending}
             />
           )}
@@ -342,6 +347,8 @@ function App() {
             onExport={exportBackup}
             onImport={importBackup}
             onClear={clearAllBackup}
+            onDismissOnboardingChecklist={dismissOnboardingChecklist}
+            onShowOnboardingChecklist={showOnboardingChecklist}
           />
         </LiveReadErrorBoundary>
       </div>

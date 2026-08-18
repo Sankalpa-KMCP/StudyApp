@@ -15,6 +15,8 @@ export function FirstStudyChecklist(props: {
   onCreateSubject: () => void
   onCreatePlan: () => void
   onLogSession: () => void
+  onDismiss: (moveFocusOnSuccess: boolean) => void
+  dismissPending: boolean
 }) {
   const steps: FirstStudyStep[] = [
     {
@@ -53,9 +55,20 @@ export function FirstStudyChecklist(props: {
           <h2 id="first-study-title">Your first study loop</h2>
           <p>Set up one useful plan, then record the work.</p>
         </div>
-        <div className="first-study-progress-copy">
-          <strong aria-live="polite">{completedCount}/{steps.length}</strong>
-          <span>complete</span>
+        <div className="first-study-heading-actions">
+          <div className="first-study-progress-copy">
+            <strong aria-live="polite">{completedCount}/{steps.length}</strong>
+            <span>complete</span>
+          </div>
+          <button
+            className="secondary-command first-study-dismiss"
+            type="button"
+            disabled={props.dismissPending}
+            aria-busy={props.dismissPending || undefined}
+            onClick={() => props.onDismiss(true)}
+          >
+            {props.dismissPending ? 'Dismissing...' : 'Hide checklist'}
+          </button>
         </div>
       </div>
       <div

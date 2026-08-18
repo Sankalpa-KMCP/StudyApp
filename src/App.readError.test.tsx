@@ -71,6 +71,7 @@ describe('App live-read recovery', () => {
     expect(window.location.pathname).toBe(pathForView('Settings'))
     expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Export data|Exporting backup/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show onboarding checklist' })).toBeInTheDocument()
     expect(screen.getByLabelText('Import data')).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent(LIVE_READ_ERROR_MESSAGE)
     expect(screen.getByRole('button', { name: 'Retry' })).toBeEnabled()

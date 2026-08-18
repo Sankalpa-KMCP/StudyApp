@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Download, Upload, Layers3, RotateCcw } from '../components/icons'
+import { BookOpen, Download, Upload, Layers3, RotateCcw } from '../components/icons'
 import { MutationNotice, PanelHeader } from '../components/ui'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 import type { ThemeMode } from '../hooks/useThemePreference'
@@ -18,6 +18,7 @@ export function SettingsView({
   onExport,
   onImport,
   onClear,
+  onShowOnboardingChecklist,
   importPending = false,
   profileNotice,
   preferenceNotice = null,
@@ -28,6 +29,7 @@ export function SettingsView({
   onExport: () => Promise<void>
   onImport: (file: File) => Promise<void>
   onClear: () => Promise<void>
+  onShowOnboardingChecklist: () => Promise<void>
   importPending?: boolean
   profileNotice: string
   preferenceNotice?: string | null
@@ -41,6 +43,7 @@ export function SettingsView({
   const [deleteInput, setDeleteInput] = useState('')
   const themeOptionRefs = useRef<Array<HTMLButtonElement | null>>([])
   const exportMutation = useMutationState()
+  const onboardingMutation = useMutationState()
   const {
     clearFeedback: clearExportFeedback,
     isPending: isExporting,
@@ -53,6 +56,8 @@ export function SettingsView({
     ? 'error'
     : preferenceNotice
       ? 'error'
+      : onboardingMutation.phase === 'success' || onboardingMutation.phase === 'error'
+        ? onboardingMutation.phase
       : exportPhase === 'success' || exportPhase === 'error'
         ? exportPhase
         : importFeedback
@@ -60,6 +65,7 @@ export function SettingsView({
           : 'idle'
   const noticeMessage = clearError
     ?? preferenceNotice
+    ?? (onboardingMutation.phase === 'success' || onboardingMutation.phase === 'error' ? onboardingMutation.message : null)
     ?? (exportPhase === 'success' || exportPhase === 'error' ? exportMessage : null)
     ?? importFeedback?.message
     ?? null
@@ -67,6 +73,7 @@ export function SettingsView({
   const dismissNotice = () => {
     setClearError(null)
     setImportFeedback(null)
+    onboardingMutation.clearFeedback()
     clearExportFeedback()
     onDismissPreferenceNotice?.()
   }
@@ -134,6 +141,20 @@ export function SettingsView({
     }
   }
 
+  const handleShowOnboardingChecklist = async () => {
+    if (onboardingMutation.isPending || importPending || resetState === 'deleting') return
+    setClearError(null)
+    setImportFeedback(null)
+    clearExportFeedback()
+    onDismissPreferenceNotice?.()
+    await onboardingMutation.run(async () => {
+      await onShowOnboardingChecklist()
+    }, {
+      successMessage: 'Onboarding checklist will appear on Home.',
+      errorMessage: 'Onboarding checklist could not be shown. Please try again.',
+    })
+  }
+
   return (
     <section className="workspace-panel" aria-labelledby="settings-workspace-title">
       <PanelHeader title="Settings" description="Manage appearance, backups, and local data." />
@@ -192,6 +213,18 @@ export function SettingsView({
             ))}
           </div>
         </div>
+        <button
+          className="action-card"
+          type="button"
+          aria-label="Show onboarding checklist"
+          onClick={() => void handleShowOnboardingChecklist()}
+          disabled={onboardingMutation.isPending || importPending || resetState === 'deleting'}
+          aria-busy={onboardingMutation.isPending || undefined}
+        >
+          <BookOpen size={24} aria-hidden="true" />
+          <strong>{onboardingMutation.isPending ? 'Showing onboarding...' : 'Show onboarding checklist'}</strong>
+          <span>Bring the Home checklist back without changing your saved study data.</span>
+        </button>
       </div>
       <div className="section-heading danger-heading">
         <h2>Danger zone</h2>

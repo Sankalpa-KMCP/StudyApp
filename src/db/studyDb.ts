@@ -152,6 +152,7 @@ export async function clearAllStudyData() {
     await Promise.all([
       studyDb.settings.delete('quickNotes'),
       studyDb.settings.delete('activeFocusSession'),
+      studyDb.settings.delete('onboardingChecklistDismissed'),
     ])
   })
 }

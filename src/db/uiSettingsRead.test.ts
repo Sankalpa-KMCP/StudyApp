@@ -16,10 +16,12 @@ describe('uiSettingsRead', () => {
   it('returns valid dailyGoalMinutes and quickNotes values', async () => {
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 180 })
     await studyDb.settings.put({ key: 'quickNotes', value: ['alpha', 'beta'] })
+    await studyDb.settings.put({ key: 'onboardingChecklistDismissed', value: true })
 
     await expect(getUiSettings()).resolves.toEqual({
       dailyGoalMinutes: 180,
       quickNotes: ['alpha', 'beta'],
+      onboardingChecklistDismissed: true,
     })
   })
 
@@ -34,6 +36,7 @@ describe('uiSettingsRead', () => {
     await expect(getUiSettings()).resolves.toEqual({
       dailyGoalMinutes: 240,
       quickNotes: ['keep'],
+      onboardingChecklistDismissed: false,
     })
   })
 
@@ -52,6 +55,7 @@ describe('uiSettingsRead', () => {
     await expect(getUiSettings()).resolves.toEqual({
       dailyGoalMinutes: 90,
       quickNotes: [],
+      onboardingChecklistDismissed: false,
     })
   })
 
@@ -64,6 +68,19 @@ describe('uiSettingsRead', () => {
     await expect(getUiSettings()).resolves.toEqual({
       dailyGoalMinutes: 240,
       quickNotes: ['ok', 'also'],
+      onboardingChecklistDismissed: false,
+    })
+  })
+
+  it('falls back malformed onboarding dismissal while keeping other values', async () => {
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
+    await studyDb.settings.put({ key: 'quickNotes', value: ['one'] })
+    await studyDb.settings.put({ key: 'onboardingChecklistDismissed', value: 'yes' })
+
+    await expect(getUiSettings()).resolves.toEqual({
+      dailyGoalMinutes: 120,
+      quickNotes: ['one'],
+      onboardingChecklistDismissed: false,
     })
   })
 
@@ -77,6 +94,7 @@ describe('uiSettingsRead', () => {
     await expect(getUiSettings()).resolves.toEqual({
       dailyGoalMinutes: 120,
       quickNotes: ['one'],
+      onboardingChecklistDismissed: false,
     })
   })
 })
