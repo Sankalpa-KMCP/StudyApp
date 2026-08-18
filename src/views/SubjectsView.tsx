@@ -17,14 +17,19 @@ import {
   updateSubject,
 } from '../db/subjectService'
 import type { StudySubject, StudyTask, StudyNote, CalendarEvent, Flashcard, StudySession, SubjectProgressMode } from '../db/types'
-import { isSubjectProgressMode } from '../db/types'
 import {
   calculateSubjectProgress,
-  clamp,
   formatMinutes,
   formatSubjectProgressModeLabel,
 } from '../appUtils'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
+import { validateSubjectEditorDraft } from '../validation/editorDraftValidation'
+import {
+  SUBJECT_EDITOR_PROGRESS_MAX,
+  SUBJECT_EDITOR_PROGRESS_MIN,
+  SUBJECT_EDITOR_TARGET_HOURS_MAX,
+  SUBJECT_EDITOR_TARGET_HOURS_MIN,
+} from '../validation/editorLimits'
 
 const colorSwatches = [
   { value: '#111827', name: 'charcoal' },
@@ -149,26 +154,20 @@ export function SubjectsView({
     clearSaveFeedback()
     clearRowFeedback()
 
-    const name = draft.name.trim()
-    if (!name) {
-      setValidationError('Enter a subject name.')
-      return
-    }
+    const validated = validateSubjectEditorDraft(draft)
+    if (!validated.ok) {
+      if (validated.reason === 'empty_name') {
+        setValidationError('Enter a subject name.')
+        return
+      }
 
-    if (!isSubjectProgressMode(draft.progressMode)) {
       setValidationError('Choose a valid progress mode.')
       progressModeFieldRef.current?.focus()
       return
     }
 
     const isEdit = Boolean(editingSubjectId && editingSubjectId !== 'new')
-    const fields = {
-      name,
-      color: draft.color,
-      targetHours: clamp(draft.targetHours, 1, 100),
-      progress: clamp(draft.progress, 0, 100),
-      progressMode: draft.progressMode,
-    }
+    const fields = validated.fields
 
     await runSave(async () => {
       if (isEdit && editingSubjectId) {
@@ -273,9 +272,21 @@ export function SubjectsView({
               ? 'Update this subject yourself.'
               : 'Calculated automatically from recorded study sessions.'}
           </p>
-          <NumberInput label="Target hours" value={draft.targetHours} min={1} max={100} onChange={(targetHours) => setDraft({ ...draft, targetHours })} />
+          <NumberInput
+            label="Target hours"
+            value={draft.targetHours}
+            min={SUBJECT_EDITOR_TARGET_HOURS_MIN}
+            max={SUBJECT_EDITOR_TARGET_HOURS_MAX}
+            onChange={(targetHours) => setDraft({ ...draft, targetHours })}
+          />
           {draft.progressMode === 'manual' ? (
-            <NumberInput label="Progress %" value={draft.progress} min={0} max={100} onChange={(progress) => setDraft({ ...draft, progress })} />
+            <NumberInput
+              label="Progress %"
+              value={draft.progress}
+              min={SUBJECT_EDITOR_PROGRESS_MIN}
+              max={SUBJECT_EDITOR_PROGRESS_MAX}
+              onChange={(progress) => setDraft({ ...draft, progress })}
+            />
           ) : null}
           <EditorActions
             onSave={() => void saveSubject()}
