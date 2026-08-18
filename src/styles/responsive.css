@@ -242,13 +242,133 @@
     right: 12px;
     width: min(220px, calc(100vw - 24px));
   }
+
+  /* Shared workspace ergonomics: touch targets, clearance, narrow editors */
+  .primary-command,
+  .secondary-command {
+    min-height: 44px;
+  }
+
+  .segmented-control {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .segmented-control button {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+
+  .row-actions {
+    gap: 6px;
+  }
+
+  .row-actions button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .task-check {
+    width: 44px;
+    height: 44px;
+  }
+
+  .editor-actions,
+  .session-editor-actions,
+  .button-row,
+  .workspace-heading .primary-command,
+  .danger-zone .action-card,
+  .confirm-dialog {
+    scroll-margin-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .editor-actions,
+  .session-editor-actions {
+    width: 100%;
+  }
+
+  .editor-actions .primary-command,
+  .editor-actions .secondary-command,
+  .session-editor-actions .primary-command,
+  .session-editor-actions .secondary-command {
+    flex: 1 1 8rem;
+  }
+
+  .field textarea {
+    min-height: 120px;
+  }
+
+  .note-editor textarea {
+    min-height: 160px;
+  }
+
+  .calendar-strip {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+    overflow-x: visible;
+  }
+
+  .calendar-day {
+    min-height: 72px;
+    padding: 8px 4px;
+  }
+
+  .calendar-day strong {
+    font-size: clamp(1rem, 4.5vw, 1.25rem);
+  }
+
+  .confirm-dialog-backdrop {
+    padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px));
+    align-items: end;
+  }
+
+  .confirm-dialog {
+    width: min(100%, 420px);
+    max-height: min(100%, calc(100dvh - 24px - env(safe-area-inset-bottom, 0px)));
+    margin-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .confirm-dialog-actions {
+    gap: 8px;
+  }
+
+  .confirm-dialog-actions .secondary-command,
+  .confirm-dialog-actions .primary-command {
+    flex: 1 1 8rem;
+  }
+
+  .theme-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .theme-option {
+    min-height: 72px;
+  }
+
+  .flashcard .button-row .primary-command,
+  .flashcard .button-row .secondary-command {
+    flex: 1 1 8rem;
+    min-height: 44px;
+  }
+
+  .detail-card .row-actions,
+  .subject-card .row-actions {
+    margin-top: 4px;
+  }
+
+  .list-row h3,
+  .detail-card h3,
+  .note-row h3,
+  .session-row h4 {
+    overflow-wrap: anywhere;
+  }
 }
 
 @media (max-width: 420px) {
   .icon-button,
   .avatar-button {
-    width: 38px;
-    height: 38px;
+    width: 44px;
+    height: 44px;
   }
 
   .quick-add-trigger {
@@ -288,5 +408,15 @@
   .quick-note-actions {
     align-items: flex-end;
     flex-direction: column-reverse;
+  }
+
+  .confirm-dialog-actions {
+    flex-direction: column-reverse;
+  }
+
+  .confirm-dialog-actions .secondary-command,
+  .confirm-dialog-actions .primary-command {
+    width: 100%;
+    flex: 1 1 auto;
   }
 }
