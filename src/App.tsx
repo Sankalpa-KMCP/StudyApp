@@ -32,6 +32,7 @@ function App() {
   const [noteEditorRequest, setNoteEditorRequest] = useState(0)
   const [eventEditorRequest, setEventEditorRequest] = useState(0)
   const [flashcardEditorRequest, setFlashcardEditorRequest] = useState(0)
+  const [focusAttentionRequest, setFocusAttentionRequest] = useState(0)
   const [progressEditorRequested, setProgressEditorRequested] = useState(false)
   const [profileNotice, setProfileNotice] = useState('')
   const [preferenceNotice, setPreferenceNotice] = useState<string | null>(null)
@@ -65,6 +66,7 @@ function App() {
     setNoteEditorRequest(0)
     setEventEditorRequest(0)
     setFlashcardEditorRequest(0)
+    setFocusAttentionRequest(0)
   }, [])
 
   const navigateToView = useCallback((view: View) => {
@@ -134,9 +136,11 @@ function App() {
   })
 
   useEffect(() => {
+    // Focus quick-add owns scroll/focus for Home; do not yank the viewport to the top first.
+    if (activeView === 'Home' && focusAttentionRequest > 0) return
     const behavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
     document.scrollingElement?.scrollTo?.({ behavior, top: 0 })
-  }, [activeView])
+  }, [activeView, focusAttentionRequest])
 
   const openNewTask = () => {
     setProgressEditorRequested(false)
@@ -144,6 +148,7 @@ function App() {
     setNoteEditorRequest(0)
     setEventEditorRequest(0)
     setFlashcardEditorRequest(0)
+    setFocusAttentionRequest(0)
     setActiveView('Tasks')
     syncUrlToView('Tasks', 'push')
     setTaskEditorRequest((request) => request + 1)
@@ -155,6 +160,7 @@ function App() {
     setNoteEditorRequest(0)
     setEventEditorRequest(0)
     setFlashcardEditorRequest(0)
+    setFocusAttentionRequest(0)
     setActiveView('Subjects')
     syncUrlToView('Subjects', 'push')
     setSubjectEditorRequest((request) => request + 1)
@@ -166,6 +172,7 @@ function App() {
     setSubjectEditorRequest(0)
     setEventEditorRequest(0)
     setFlashcardEditorRequest(0)
+    setFocusAttentionRequest(0)
     setActiveView('Notes')
     syncUrlToView('Notes', 'push')
     setNoteEditorRequest((request) => request + 1)
@@ -177,6 +184,7 @@ function App() {
     setSubjectEditorRequest(0)
     setNoteEditorRequest(0)
     setFlashcardEditorRequest(0)
+    setFocusAttentionRequest(0)
     setActiveView('Calendar')
     syncUrlToView('Calendar', 'push')
     setEventEditorRequest((request) => request + 1)
@@ -188,9 +196,22 @@ function App() {
     setSubjectEditorRequest(0)
     setNoteEditorRequest(0)
     setEventEditorRequest(0)
+    setFocusAttentionRequest(0)
     setActiveView('Flashcards')
     syncUrlToView('Flashcards', 'push')
     setFlashcardEditorRequest((request) => request + 1)
+  }
+
+  const openFocusAttention = () => {
+    setProgressEditorRequested(false)
+    setTaskEditorRequest(0)
+    setSubjectEditorRequest(0)
+    setNoteEditorRequest(0)
+    setEventEditorRequest(0)
+    setFlashcardEditorRequest(0)
+    setActiveView('Home')
+    syncUrlToView('Home', 'push')
+    setFocusAttentionRequest((request) => request + 1)
   }
 
   const openManualSession = () => {
@@ -199,16 +220,18 @@ function App() {
     setNoteEditorRequest(0)
     setEventEditorRequest(0)
     setFlashcardEditorRequest(0)
+    setFocusAttentionRequest(0)
     setProgressEditorRequested(true)
     setActiveView('Progress')
     syncUrlToView('Progress', 'push')
   }
 
-  const onQuickAdd = (item: 'task' | 'note' | 'event' | 'flashcard') => {
+  const onQuickAdd = (item: 'task' | 'note' | 'event' | 'flashcard' | 'focus') => {
     if (item === 'task') openNewTask()
     else if (item === 'note') openNewNote()
     else if (item === 'event') openNewEvent()
-    else openNewFlashcard()
+    else if (item === 'flashcard') openNewFlashcard()
+    else openFocusAttention()
   }
 
   const closeNotices = useCallback(() => setNoticeOpen(false), [])
@@ -266,6 +289,7 @@ function App() {
             noteEditorRequest={noteEditorRequest}
             eventEditorRequest={eventEditorRequest}
             flashcardEditorRequest={flashcardEditorRequest}
+            focusAttentionRequest={focusAttentionRequest}
             progressEditorRequested={progressEditorRequested}
             noticeOpen={noticeOpen}
             noticePopoverId="notice-popover"

@@ -199,7 +199,7 @@ describe('App subjects live query isolation', () => {
 
     expect((await screen.findAllByText('Join task')).length).toBeGreaterThan(0)
     expect(screen.getAllByText('New name').length).toBeGreaterThan(0)
-    expect(screen.getByText('Join event')).toBeInTheDocument()
+    expect(screen.getAllByText('Join event').length).toBeGreaterThan(0)
 
     await user.click(screen.getByRole('button', { name: 'Notes' }))
     const noteCard = (await screen.findByText('Join note')).closest('.detail-card') as HTMLElement

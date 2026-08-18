@@ -49,6 +49,7 @@ export type AppLiveDataProps = {
   noteEditorRequest: number
   eventEditorRequest: number
   flashcardEditorRequest: number
+  focusAttentionRequest: number
   progressEditorRequested: boolean
   noticeOpen: boolean
   noticePopoverId: string
@@ -103,6 +104,7 @@ export function AppLiveData({
   noteEditorRequest,
   eventEditorRequest,
   flashcardEditorRequest,
+  focusAttentionRequest,
   progressEditorRequested,
   noticeOpen,
   noticePopoverId,
@@ -266,6 +268,7 @@ export function AppLiveData({
                   focusDurationMinutes={focusDurationMinutes}
                   search={deferredSearch}
                   searchResults={homeSearchResults}
+                  focusAttentionRequest={focusAttentionRequest}
                   onFocusSubjectChange={onFocusSubjectChange}
                   onFocusDurationChange={onFocusDurationChange}
                   onQuickNotesChange={addQuickNote}
