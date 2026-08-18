@@ -1,6 +1,7 @@
 import { Search, X, Bell, CircleUserRound } from './icons'
 import type { View } from '../App'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { QuickAddMenu, type QuickAddItem } from './QuickAddMenu'
 
 export function Topbar(props: {
   activeView: View
@@ -12,10 +13,17 @@ export function Topbar(props: {
   onToggleNotices: () => void
   onCloseNotices: () => void
   onOpenProfile: () => void
+  onQuickAdd: (item: QuickAddItem) => void
 }) {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const noticeTriggerRef = useRef<HTMLButtonElement>(null)
-  const { onClearSearch, onCloseNotices, noticeOpen } = props
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
+  const { onClearSearch, onCloseNotices, noticeOpen, onToggleNotices } = props
+
+  const handleQuickAddOpenChange = useCallback((open: boolean) => {
+    setQuickAddOpen(open)
+    if (open) onCloseNotices()
+  }, [onCloseNotices])
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -25,14 +33,14 @@ export function Topbar(props: {
         event.preventDefault()
         searchInputRef.current?.focus()
       }
-      if (event.key === 'Escape' && !noticeOpen && document.activeElement === searchInputRef.current) {
+      if (event.key === 'Escape' && !noticeOpen && !quickAddOpen && document.activeElement === searchInputRef.current) {
         onClearSearch()
         searchInputRef.current?.blur()
       }
     }
     window.addEventListener('keydown', handleShortcut)
     return () => window.removeEventListener('keydown', handleShortcut)
-  }, [onClearSearch, noticeOpen])
+  }, [onClearSearch, noticeOpen, quickAddOpen])
 
   useEffect(() => {
     if (!noticeOpen) return
@@ -63,6 +71,11 @@ export function Topbar(props: {
             </button>
           ) : <kbd className="search-shortcut" aria-hidden="true">/</kbd>}
         </label>
+        <QuickAddMenu
+          open={quickAddOpen}
+          onOpenChange={handleQuickAddOpenChange}
+          onSelect={props.onQuickAdd}
+        />
         <button
           ref={noticeTriggerRef}
           className={props.noticeOpen ? 'icon-button is-active' : 'icon-button'}
@@ -70,14 +83,27 @@ export function Topbar(props: {
           aria-label="Notifications"
           aria-expanded={props.noticeOpen}
           aria-controls={props.noticePopoverId}
-          onClick={props.onToggleNotices}
+          onClick={() => {
+            setQuickAddOpen(false)
+            onToggleNotices()
+          }}
         >
           <Bell size={20} aria-hidden="true" />
         </button>
-        <button className="avatar-button" type="button" aria-label="Profile" onClick={props.onOpenProfile}>
+        <button
+          className="avatar-button"
+          type="button"
+          aria-label="Profile"
+          onClick={() => {
+            setQuickAddOpen(false)
+            props.onOpenProfile()
+          }}
+        >
           <CircleUserRound size={21} aria-hidden="true" />
         </button>
       </div>
     </header>
   )
 }
+
+export type { QuickAddItem }

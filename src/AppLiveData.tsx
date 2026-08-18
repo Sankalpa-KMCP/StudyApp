@@ -32,6 +32,7 @@ import { GoalsView } from './views/GoalsView'
 import { SettingsView } from './views/SettingsView'
 import type { ThemeMode } from './hooks/useThemePreference'
 import type { View } from './navigation/viewRoutes'
+import type { QuickAddItem } from './components/QuickAddMenu'
 
 const EMPTY_EVENTS: CalendarEvent[] = []
 const EMPTY_FLASHCARDS: Flashcard[] = []
@@ -45,6 +46,9 @@ export type AppLiveDataProps = {
   onTaskFilterChange: (filter: 'all' | 'open' | 'done') => void
   taskEditorRequest: number
   subjectEditorRequest: number
+  noteEditorRequest: number
+  eventEditorRequest: number
+  flashcardEditorRequest: number
   progressEditorRequested: boolean
   noticeOpen: boolean
   noticePopoverId: string
@@ -57,6 +61,7 @@ export type AppLiveDataProps = {
   onThemeChange: (theme: ThemeMode) => void
   onNavigate: (view: View) => void
   onOpenProfile: () => void
+  onQuickAdd: (item: QuickAddItem) => void
   onCreateTask: () => void
   onCreateSubject: () => void
   onLogSession: () => void
@@ -95,6 +100,9 @@ export function AppLiveData({
   onTaskFilterChange,
   taskEditorRequest,
   subjectEditorRequest,
+  noteEditorRequest,
+  eventEditorRequest,
+  flashcardEditorRequest,
   progressEditorRequested,
   noticeOpen,
   noticePopoverId,
@@ -107,6 +115,7 @@ export function AppLiveData({
   onThemeChange,
   onNavigate,
   onOpenProfile,
+  onQuickAdd,
   onCreateTask,
   onCreateSubject,
   onLogSession,
@@ -205,6 +214,7 @@ export function AppLiveData({
         onToggleNotices={onToggleNotices}
         onCloseNotices={onCloseNotices}
         onOpenProfile={onOpenProfile}
+        onQuickAdd={onQuickAdd}
       />
       {noticeOpen ? (
         <div id={noticePopoverId} className="notice-popover" role="status">
@@ -283,7 +293,14 @@ export function AppLiveData({
                 />
               ) : null}
               {activeView === 'Notes' ? (
-                <NotesView notes={filteredNotes} subjects={subjects} subjectMap={subjectMap} search={deferredSearch} onClearSearch={clearSearch} />
+                <NotesView
+                  notes={filteredNotes}
+                  subjects={subjects}
+                  subjectMap={subjectMap}
+                  openEditorRequest={noteEditorRequest}
+                  search={deferredSearch}
+                  onClearSearch={clearSearch}
+                />
               ) : null}
               {activeView === 'Subjects' ? (
                 <SubjectsView
@@ -297,13 +314,21 @@ export function AppLiveData({
                 />
               ) : null}
               {activeView === 'Calendar' ? (
-                <CalendarView events={filteredEvents} subjects={subjects} subjectMap={subjectMap} search={deferredSearch} onClearSearch={clearSearch} />
+                <CalendarView
+                  events={filteredEvents}
+                  subjects={subjects}
+                  subjectMap={subjectMap}
+                  openEditorRequest={eventEditorRequest}
+                  search={deferredSearch}
+                  onClearSearch={clearSearch}
+                />
               ) : null}
               {activeView === 'Flashcards' ? (
                 <FlashcardsView
                   cards={filteredFlashcards}
                   subjects={subjects}
                   subjectMap={subjectMap}
+                  openEditorRequest={flashcardEditorRequest}
                   revealedCards={revealedCards}
                   onToggleReveal={(id) =>
                     setRevealedCards((current) => {

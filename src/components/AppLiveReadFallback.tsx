@@ -3,6 +3,7 @@ import { LiveReadErrorPanel } from './LiveReadErrorPanel'
 import { SettingsView } from '../views/SettingsView'
 import type { ThemeMode } from '../hooks/useThemePreference'
 import type { View } from '../navigation/viewRoutes'
+import type { QuickAddItem } from './QuickAddMenu'
 
 export const LIVE_READ_ERROR_MESSAGE = 'Study data could not be loaded. Your local data is still on this device.'
 
@@ -12,6 +13,7 @@ export type AppLiveReadFallbackProps = {
   noticePopoverId: string
   onToggleNotices: () => void
   onCloseNotices: () => void
+  onQuickAdd: (item: QuickAddItem) => void
   onOpenProfile: () => void
   onRetry: () => void
   profileNotice: string
@@ -35,6 +37,7 @@ export function AppLiveReadFallback({
   noticePopoverId,
   onToggleNotices,
   onCloseNotices,
+  onQuickAdd,
   onOpenProfile,
   onRetry,
   profileNotice,
@@ -61,6 +64,7 @@ export function AppLiveReadFallback({
         onToggleNotices={onToggleNotices}
         onCloseNotices={onCloseNotices}
         onOpenProfile={onOpenProfile}
+        onQuickAdd={onQuickAdd}
       />
       <main id="dashboard-main" className="dashboard" aria-label="Study dashboard">
         {activeView === 'Settings' ? (

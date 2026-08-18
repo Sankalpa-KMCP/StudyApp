@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { NotebookText } from '../components/icons'
 import type { Flashcard, StudySubject } from '../db/types'
 import {
@@ -36,16 +36,19 @@ export function FlashcardsView(props: {
   cards: Flashcard[]
   subjects: StudySubject[]
   subjectMap: Map<string, StudySubject>
+  openEditorRequest?: number
   revealedCards: Set<string>
   onToggleReveal: (id: string) => void
   search?: string
   onClearSearch?: () => void
 }) {
+  const openEditorRequest = props.openEditorRequest ?? 0
   const [editingCardId, setEditingCardId] = useState<string | null>(null)
   const [draft, setDraft] = useState<CardDraft>(() => emptyDraft())
   const [validationError, setValidationError] = useState<string | null>(null)
   const [pendingCardId, setPendingCardId] = useState<string | null>(null)
   const [pendingCardKind, setPendingCardKind] = useState<'review' | 'delete' | null>(null)
+  const handledEditorRequest = useRef(0)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
@@ -72,6 +75,13 @@ export function FlashcardsView(props: {
       subjectId: card?.subjectId ?? props.subjects[0]?.id ?? '',
     })
   }, [clearSaveFeedback, props.subjects])
+
+  useEffect(() => {
+    if (openEditorRequest > handledEditorRequest.current) {
+      handledEditorRequest.current = openEditorRequest
+      openEditor()
+    }
+  }, [openEditor, openEditorRequest])
 
   const closeEditor = useCallback(() => {
     if (isSaving) return

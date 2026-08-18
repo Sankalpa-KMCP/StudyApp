@@ -724,3 +724,71 @@
   background: #7a1818;
   border-color: #7a1818;
 }
+
+.quick-add {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.quick-add-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.quick-add-trigger:hover,
+.quick-add-trigger.is-active {
+  color: var(--ink);
+  background: var(--surface-muted);
+}
+
+.quick-add-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 13;
+  width: min(220px, calc(100vw - 24px));
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-popover);
+}
+
+.quick-add-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  width: 100%;
+  padding: 0 12px;
+  border: 0;
+  border-radius: calc(var(--radius) - 4px);
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quick-add-item:hover,
+.quick-add-item:focus-visible {
+  background: var(--surface-muted);
+}
