@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { BookOpen } from '../components/icons'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import {
   PanelHeader,
   TextInput,
@@ -85,6 +86,7 @@ export function SubjectsView({
   const [draft, setDraft] = useState<SubjectDraft>(() => emptyDraft())
   const [validationError, setValidationError] = useState<string | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [confirmSubject, setConfirmSubject] = useState<StudySubject | null>(null)
   const handledEditorRequest = useRef(0)
   const nameFieldRef = useRef<HTMLInputElement | null>(null)
   const progressModeFieldRef = useRef<HTMLSelectElement | null>(null)
@@ -187,8 +189,8 @@ export function SubjectsView({
     })
   }
 
-  const deleteSubject = async (subject: StudySubject) => {
-    if (pendingDeleteId || isSaving || isRowPending) return
+  const requestDeleteSubject = async (subject: StudySubject) => {
+    if (pendingDeleteId || isSaving || isRowPending || confirmSubject) return
 
     setValidationError(null)
     clearSaveFeedback()
@@ -203,7 +205,16 @@ export function SubjectsView({
       return
     }
 
-    if (!window.confirm(`Delete ${subject.name}? This subject has no linked records.`)) return
+    setConfirmSubject(subject)
+  }
+
+  const deleteSubject = async (subject: StudySubject) => {
+    if (pendingDeleteId || isSaving || isRowPending) return
+
+    setConfirmSubject(null)
+    setValidationError(null)
+    clearSaveFeedback()
+    clearRowFeedback()
 
     setPendingDeleteId(subject.id)
     try {
@@ -316,7 +327,7 @@ export function SubjectsView({
                 <RowActionButtons
                   label={subject.name}
                   onEdit={() => openEditor(subject)}
-                  onDelete={() => void deleteSubject(subject)}
+                  onDelete={() => void requestDeleteSubject(subject)}
                   confirmDelete={false}
                   isDisabled={rowActionsLocked}
                   isDeleting={pendingDeleteId === subject.id}
@@ -330,6 +341,23 @@ export function SubjectsView({
       ) : (
         <EmptyState icon={BookOpen} title="No subjects yet" body="Create subjects first, then connect tasks, notes, events, and cards." actionLabel="Create first subject" onAction={() => openEditor()} />
       )}
+      <ConfirmDialog
+        open={confirmSubject !== null}
+        title="Confirm deletion"
+        description={
+          confirmSubject
+            ? `Delete ${confirmSubject.name}? This subject has no linked records.`
+            : ''
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        onCancel={() => setConfirmSubject(null)}
+        onConfirm={() => {
+          if (!confirmSubject) return
+          void deleteSubject(confirmSubject)
+        }}
+      />
     </section>
   )
 }

@@ -660,3 +660,67 @@
   margin-bottom: 4px;
   line-height: 1.55;
 }
+
+.confirm-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(11, 11, 11, 0.42);
+}
+
+.confirm-dialog {
+  width: min(100%, 420px);
+  max-height: min(100%, calc(100vh - 32px));
+  overflow: auto;
+  display: grid;
+  gap: 14px;
+  padding: 22px 20px 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-popover);
+}
+
+.confirm-dialog-title {
+  margin: 0;
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.confirm-dialog-description {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.confirm-dialog-actions .secondary-command,
+.confirm-dialog-actions .primary-command {
+  min-height: 44px;
+  min-width: 96px;
+  padding-inline: 16px;
+}
+
+.confirm-dialog-confirm.is-destructive {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #ffffff;
+}
+
+.confirm-dialog-confirm.is-destructive:hover:not(:disabled) {
+  background: #7a1818;
+  border-color: #7a1818;
+}

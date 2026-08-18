@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi } from 'vitest'
 import { Check } from './icons'
 import {
@@ -86,25 +87,28 @@ describe('UI Components', () => {
   })
 
   describe('RowActionButtons', () => {
-    it('requires confirmation before a destructive row action', () => {
+    it('requires confirmation before a destructive row action', async () => {
+      const user = userEvent.setup()
       const handleDelete = vi.fn()
-      const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
       render(<RowActionButtons label="Practice set" onEdit={() => {}} onDelete={handleDelete} />)
 
-      fireEvent.click(screen.getByRole('button', { name: 'Delete Practice set' }))
+      await user.click(screen.getByRole('button', { name: 'Delete Practice set' }))
       expect(handleDelete).not.toHaveBeenCalled()
+      expect(screen.getByRole('dialog')).toHaveAccessibleDescription('Delete Practice set? This cannot be undone.')
 
-      fireEvent.click(screen.getByRole('button', { name: 'Delete Practice set' }))
-      expect(confirm).toHaveBeenCalledWith('Delete Practice set? This cannot be undone.')
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+      expect(handleDelete).not.toHaveBeenCalled()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'Delete Practice set' }))
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
       expect(handleDelete).toHaveBeenCalledTimes(1)
-
-      confirm.mockRestore()
     })
 
-    it('disables edit and delete while deleting', () => {
+    it('disables edit and delete while deleting', async () => {
+      const user = userEvent.setup()
       const handleDelete = vi.fn()
       const handleEdit = vi.fn()
-      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
       render(
         <RowActionButtons
           label="Practice set"
@@ -119,9 +123,9 @@ describe('UI Components', () => {
       expect(deleteButton).toHaveAttribute('aria-busy', 'true')
       expect(screen.getByRole('button', { name: 'Edit Practice set' })).toBeDisabled()
 
-      fireEvent.click(deleteButton)
+      await user.click(deleteButton)
       expect(handleDelete).not.toHaveBeenCalled()
-      confirm.mockRestore()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
   })
 

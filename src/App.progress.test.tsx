@@ -5,7 +5,7 @@ import App from './App'
 import { formatShortTime, toInputDate, toInputTime } from './appUtils'
 import { studyDb } from './db/studyDb'
 import * as studySessionService from './db/studySessionService'
-import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
+import { cancelOpenDeletion, confirmOpenDeletion, flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 describe('App progress', () => {
   beforeEach(async () => {
@@ -91,13 +91,14 @@ describe('App progress', () => {
     await waitFor(() => expect(screen.getByLabelText(/Physics, .*45m/)).toBeInTheDocument())
     await waitFor(() => expect(editSessionButton).toHaveFocus())
 
-    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
     await user.click(screen.getByLabelText(/Delete Physics session at/))
+    expect(await screen.findByRole('dialog')).toHaveAccessibleDescription(`Delete session from ${formatShortTime(start.toISOString())}? This cannot be undone.`)
+    await cancelOpenDeletion(user)
     expect(await studyDb.studySessions.count()).toBe(1)
     await user.click(screen.getByLabelText(/Delete Physics session at/))
+    await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByLabelText(/Physics, .*45m/)).not.toBeInTheDocument())
     expect(screen.getByRole('status')).toHaveTextContent('Study session deleted.')
-    expect(confirmDelete).toHaveBeenCalledWith(`Delete session from ${formatShortTime(start.toISOString())}? This cannot be undone.`)
 
     await user.click(screen.getByRole('button', { name: 'Home' }))
     expect(within(screen.getByLabelText('Today overview')).getByText('0m')).toBeInTheDocument()
@@ -335,12 +336,12 @@ describe('App progress', () => {
       await gate
       throw new Error('delete failed')
     })
-    const confirmDelete = vi.spyOn(window, 'confirm').mockReturnValue(true)
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Progress' }))
     expect(within(screen.getByText('Weekly study').closest('article')! as HTMLElement).getByText('0h 30m')).toBeInTheDocument()
     await user.click(screen.getByLabelText(/Delete General session at/))
+    await confirmOpenDeletion(user)
 
     expect(await screen.findByLabelText(/Deleting General session at/)).toBeDisabled()
     expect(screen.getByLabelText(/Edit General session at/)).toBeDisabled()
@@ -358,10 +359,10 @@ describe('App progress', () => {
     await user.click(screen.getByRole('button', { name: 'Progress' }))
     deleteSpy.mockImplementation(async (id) => originalDelete(id))
     await user.click(screen.getByLabelText(/Delete General session at/))
+    await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky session')).not.toBeInTheDocument())
     expect(await screen.findByRole('status')).toHaveTextContent('Study session deleted.')
     expect(within(screen.getByText('Weekly study').closest('article')! as HTMLElement).getByText('0h')).toBeInTheDocument()
-    confirmDelete.mockRestore()
   })
 
   it('labels sessions whose subject no longer exists', async () => {

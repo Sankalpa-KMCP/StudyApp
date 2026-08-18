@@ -16,6 +16,7 @@ import {
   deleteStudySession,
   updateStudySession,
 } from '../db/studySessionService'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { EmptyState, MetricCard, MutationNotice, PanelHeader, RowActionButtons } from '../components/ui'
 import { StudyTime, SubjectDistribution } from '../components/RightColumn'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
@@ -46,6 +47,7 @@ export function ProgressView(props: {
   const [draft, setDraft] = useState<SessionDraft>(() => defaultSessionDraft())
   const [validationError, setValidationError] = useState<string | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [confirmSession, setConfirmSession] = useState<StudySession | null>(null)
   const editorTriggerRef = useRef<HTMLElement | null>(null)
   const logSessionButtonRef = useRef<HTMLButtonElement | null>(null)
   const restoreEditorFocusRef = useRef(false)
@@ -183,12 +185,15 @@ export function ProgressView(props: {
     })
   }
 
+  const requestDeleteSession = (session: StudySession) => {
+    if (pendingDeleteId || isSaving || isRowPending || confirmSession) return
+    setConfirmSession(session)
+  }
+
   const deleteSession = async (session: StudySession) => {
     if (pendingDeleteId || isSaving || isRowPending) return
 
-    const startTime = sessionStartLabel(session)
-    if (!window.confirm(`Delete session from ${startTime}? This cannot be undone.`)) return
-
+    setConfirmSession(null)
     setValidationError(null)
     clearSaveFeedback()
     clearRowFeedback()
@@ -344,7 +349,7 @@ export function ProgressView(props: {
                       <RowActionButtons
                         label={`${subjectName} session at ${startTime}`}
                         onEdit={() => openEditor(session)}
-                        onDelete={() => void deleteSession(session)}
+                        onDelete={() => requestDeleteSession(session)}
                         confirmDelete={false}
                         isDisabled={rowActionsLocked}
                         isDeleting={pendingDeleteId === session.id}
@@ -361,6 +366,23 @@ export function ProgressView(props: {
       </section>
       <StudyTime days={props.weeklyStudyDays} />
       <SubjectDistribution subjects={props.subjects} sessions={props.studySessions} subjectMap={props.subjectMap} />
+      <ConfirmDialog
+        open={confirmSession !== null}
+        title="Confirm deletion"
+        description={
+          confirmSession
+            ? `Delete session from ${sessionStartLabel(confirmSession)}? This cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        onCancel={() => setConfirmSession(null)}
+        onConfirm={() => {
+          if (!confirmSession) return
+          void deleteSession(confirmSession)
+        }}
+      />
     </section>
   )
 }

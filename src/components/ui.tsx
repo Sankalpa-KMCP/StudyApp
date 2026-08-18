@@ -1,8 +1,9 @@
+import { useState, type Ref } from 'react'
 import { clamp } from '../appUtils'
 import type { StudySubject } from '../db/types'
 import type { MutationPhase } from '../hooks/useMutationState'
+import { ConfirmDialog } from './ConfirmDialog'
 import { BookOpen, Edit3, Plus, Save, Trash2, X, type AppIcon } from './icons'
-import type { Ref } from 'react'
 
 export function SubjectCard({ subject, progressValue }: { subject: StudySubject; progressValue: number }) {
   return (
@@ -197,11 +198,16 @@ export function RowActionButtons({
   isDisabled?: boolean
   isDeleting?: boolean
 }) {
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const busy = isDisabled || isDeleting
 
   const handleDelete = () => {
     if (busy) return
-    if (!confirmDelete || window.confirm(`Delete ${label}? This cannot be undone.`)) onDelete()
+    if (!confirmDelete) {
+      onDelete()
+      return
+    }
+    setConfirmOpen(true)
   }
 
   return (
@@ -219,6 +225,19 @@ export function RowActionButtons({
       >
         <Trash2 size={16} aria-hidden="true" />
       </button>
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Confirm deletion"
+        description={`Delete ${label}? This cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false)
+          onDelete()
+        }}
+      />
     </div>
   )
 }
