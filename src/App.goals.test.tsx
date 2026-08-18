@@ -381,6 +381,76 @@ describe('App goals', () => {
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(80)
   })
 
+  it('clamps Goal editor targets to 1–10000 on save and keeps import range separation', async () => {
+    const user = userEvent.setup()
+    const createSpy = vi.spyOn(goalService, 'createGoal')
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Goals' }))
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    const targetInput = screen.getByLabelText(/Target \(points\)/)
+    expect(targetInput).toHaveAttribute('min', '1')
+    expect(targetInput).toHaveAttribute('max', '10000')
+
+    await user.type(screen.getByLabelText('Goal title'), 'Ceiling goal')
+    fireEvent.change(targetInput, { target: { value: '10000' } })
+    fireEvent.change(screen.getByLabelText('Progress (points)'), { target: { value: '10000' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Goal created.')
+    expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Ceiling goal',
+      target: 10_000,
+      progress: 10_000,
+    }))
+
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.type(screen.getByLabelText('Goal title'), 'Clamped above max')
+    fireEvent.change(screen.getByLabelText(/Target \(points\)/), { target: { value: '10001' } })
+    fireEvent.change(screen.getByLabelText('Progress (points)'), { target: { value: '20000' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Clamped above max')).toBeInTheDocument()
+    expect(createSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      title: 'Clamped above max',
+      target: 10_000,
+      progress: 10_000,
+    }))
+    expect((await studyDb.goals.toArray()).find((goal) => goal.title === 'Clamped above max')).toMatchObject({
+      target: 10_000,
+      progress: 10_000,
+    })
+  })
+
+  it('applies the same Goal title validation on edit without calling the service', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.goals.add({
+      id: 'goal-edit-validation',
+      title: 'Editable goal',
+      target: 40,
+      progress: 5,
+      period: 'weekly',
+      metric: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    const updateSpy = vi.spyOn(goalService, 'updateGoal')
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Goals' }))
+    await user.click(await screen.findByRole('button', { name: 'Edit Editable goal' }))
+    await user.clear(screen.getByLabelText('Goal title'))
+    await user.type(screen.getByLabelText('Goal title'), '   ')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter a goal title.')
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Goal title')).toHaveValue('   ')
+    expect(screen.getByLabelText(/Target \(points\)/)).toHaveValue(40)
+    expect(await studyDb.goals.get('goal-edit-validation')).toMatchObject({ title: 'Editable goal' })
+  })
+
   it('keeps a goal visible when confirmed deletion fails and blocks duplicate deletes', async () => {
     const user = userEvent.setup()
     const timestamp = '2026-06-29T00:00:00.000Z'

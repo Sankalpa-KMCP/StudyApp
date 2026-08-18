@@ -728,6 +728,37 @@ describe('assertStudyExportSemantics', () => {
     })).not.toThrow()
   })
 
+  it('keeps Goal editor 1–10000 and settings dailyGoalMinutes 30–720 ranges distinct', () => {
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      goals: [{
+        id: 'goal-above-editor',
+        title: 'Import above editor max',
+        target: 10_001,
+        progress: 0,
+        period: 'daily',
+        metric: 'manual',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    })).not.toThrow()
+
+    expect(() => assertStudyExportSettingsValues({
+      ...emptyTables(),
+      settings: [{ key: 'dailyGoalMinutes', value: 29 }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      ...emptyTables(),
+      settings: [{ key: 'dailyGoalMinutes', value: 721 }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      ...emptyTables(),
+      settings: [{ key: 'dailyGoalMinutes', value: 30 }],
+    })).not.toThrow()
+  })
+
   it('rejects negative flashcard intervalDays or reviewCount when present', () => {
     expect(() => assertStudyExportSemantics({
       ...emptyTables(),

@@ -3,9 +3,13 @@ import {
   CALENDAR_EDITOR_DURATION_MAX,
   CALENDAR_EDITOR_DURATION_MIN,
   clampCalendarEditorDuration,
+  clampGoalEditorManualProgress,
+  clampGoalEditorTarget,
   clampSubjectEditorProgress,
   clampSubjectEditorTargetHours,
   clampTaskEditorMinutes,
+  GOAL_EDITOR_TARGET_MAX,
+  GOAL_EDITOR_TARGET_MIN,
   SUBJECT_EDITOR_PROGRESS_MAX,
   SUBJECT_EDITOR_PROGRESS_MIN,
   SUBJECT_EDITOR_TARGET_HOURS_MAX,
@@ -67,5 +71,27 @@ describe('editorLimits Calendar duration and Progress session minutes', () => {
     expect(clampCalendarEditorDuration(14)).toBe(15)
     expect(clampCalendarEditorDuration(481)).toBe(480)
     expect(clampCalendarEditorDuration(Number.NaN)).toBe(15)
+  })
+})
+
+describe('editorLimits Goal target and manual progress', () => {
+  it('exposes Goal editor target range 1–10000 distinct from dailyGoalMinutes 30–720', () => {
+    expect(GOAL_EDITOR_TARGET_MIN).toBe(1)
+    expect(GOAL_EDITOR_TARGET_MAX).toBe(10_000)
+  })
+
+  it('rounds then clamps targets and manual progress relative to target', () => {
+    expect(clampGoalEditorTarget(1)).toBe(1)
+    expect(clampGoalEditorTarget(10_000)).toBe(10_000)
+    expect(clampGoalEditorTarget(10_001)).toBe(10_000)
+    expect(clampGoalEditorTarget(1.4)).toBe(1)
+    expect(clampGoalEditorTarget(1.5)).toBe(2)
+    expect(clampGoalEditorTarget(Number.NaN)).toBe(1)
+
+    expect(clampGoalEditorManualProgress(0, 50)).toBe(0)
+    expect(clampGoalEditorManualProgress(50, 50)).toBe(50)
+    expect(clampGoalEditorManualProgress(51, 50)).toBe(50)
+    expect(clampGoalEditorManualProgress(-1, 50)).toBe(0)
+    expect(clampGoalEditorManualProgress(Number.NaN, 50)).toBe(0)
   })
 })
