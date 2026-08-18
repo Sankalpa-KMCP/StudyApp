@@ -57,10 +57,13 @@ export function AppLiveReadFallback({
       <Topbar
         activeView={activeView}
         search=""
+        searchResults={[]}
+        searchEnabled={false}
         noticeOpen={noticeOpen}
         noticePopoverId={noticePopoverId}
         onSearch={() => undefined}
         onClearSearch={() => undefined}
+        onSelectSearchResult={() => undefined}
         onToggleNotices={onToggleNotices}
         onCloseNotices={onCloseNotices}
         onOpenProfile={onOpenProfile}

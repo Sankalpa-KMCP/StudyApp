@@ -88,7 +88,7 @@ describe('App workspaces', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Task marked complete.')
 
     await user.type(screen.getByPlaceholderText('Search'), 'matrix')
-    expect(screen.getByText('Matrix practice')).toBeInTheDocument()
+    expect(within(screen.getByRole('main')).getByRole('heading', { name: 'Matrix practice' })).toBeInTheDocument()
     expect(screen.queryByText('Chemistry lab report')).not.toBeInTheDocument()
     await user.click(screen.getByLabelText('Delete Matrix practice'))
     await confirmOpenDeletion(user)

@@ -123,6 +123,11 @@
     width: 100%;
   }
 
+  .global-search {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
   .search-field {
     width: auto;
     flex: 1;
@@ -130,6 +135,15 @@
 
   .search-shortcut {
     display: none;
+  }
+
+  .global-search-panel {
+    position: fixed;
+    top: 68px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-height: min(50vh, calc(100vh - 140px));
   }
 
   .dashboard {
@@ -268,14 +282,6 @@
 
   .note-row .pill,
   .note-row time {
-    grid-column: 2;
-  }
-
-  .search-result-row {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .search-result-row small {
     grid-column: 2;
   }
 
