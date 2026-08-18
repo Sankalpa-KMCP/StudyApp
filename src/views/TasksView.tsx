@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Check, Square } from '../components/icons'
-import { clamp } from '../appUtils'
+import {
+  clampTaskEditorMinutes,
+  TASK_EDITOR_MINUTES_MAX,
+  TASK_EDITOR_MINUTES_MIN,
+} from '../validation/editorLimits'
 import {
   createTask,
   deleteTask as deleteTaskRecord,
@@ -126,7 +130,7 @@ export function TasksView({
     }
 
     const isEdit = Boolean(editingTaskId && editingTaskId !== 'new')
-    const minutes = clamp(draft.minutes, 5, 720)
+    const minutes = clampTaskEditorMinutes(draft.minutes)
     const fields = {
       title,
       subjectId: draft.subjectId,
@@ -245,7 +249,7 @@ export function TasksView({
             </select>
           </label>
           <TextInput label="Due date" type="date" value={draft.dueDate} onChange={(dueDate) => setDraft({ ...draft, dueDate })} />
-          <NumberInput label="Minutes" value={draft.minutes} min={5} max={720} onChange={(minutes) => setDraft({ ...draft, minutes })} />
+          <NumberInput label="Minutes" value={draft.minutes} min={TASK_EDITOR_MINUTES_MIN} max={TASK_EDITOR_MINUTES_MAX} onChange={(minutes) => setDraft({ ...draft, minutes })} />
           <EditorActions
             onSave={() => void saveTask()}
             onCancel={closeEditor}
