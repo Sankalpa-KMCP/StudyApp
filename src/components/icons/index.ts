@@ -11,6 +11,7 @@ export {
   Clock3,
   Download,
   Edit3,
+  Ellipsis,
   FileText,
   Flame,
   Home,

@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { navigateWorkspace } from './navHelpers'
 
 /** Matches ACTIVE_FOCUS_SESSION_KEY / study-dashboard-db in production Dexie schema. */
 export const STUDY_DB_NAME = 'study-dashboard-db'
@@ -249,7 +250,7 @@ export async function listSubjects(page: Page): Promise<StudySubjectRow[]> {
 
 /** Creates a subject through the Subjects workspace and returns its IndexedDB id. */
 export async function createSubjectViaUi(page: Page, name: string): Promise<string> {
-  await page.getByRole('button', { name: 'Subjects' }).click()
+  await navigateWorkspace(page, 'Subjects')
   await page.getByRole('button', { name: 'New subject' }).click()
   await page.getByLabel('Subject name').fill(name)
   await page.getByRole('button', { name: 'Save' }).click()
@@ -263,7 +264,7 @@ export async function createSubjectViaUi(page: Page, name: string): Promise<stri
 
 /** Imports a valid export JSON through the Settings file input (real app import path). */
 export async function importStudyBackupViaSettings(page: Page, payload: StudyExportPayload): Promise<void> {
-  await page.getByRole('button', { name: 'Settings' }).click()
+  await navigateWorkspace(page, 'Settings')
   await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible()
 
   const importInput = page.getByLabel('Import data')
@@ -288,7 +289,7 @@ export type StudyExportDownload = {
 
 /** Exports study data through Settings and returns the downloaded JSON payload. */
 export async function exportStudyBackupViaSettings(page: Page): Promise<StudyExportDownload> {
-  await page.getByRole('button', { name: 'Settings' }).click()
+  await navigateWorkspace(page, 'Settings')
   await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible()
 
   const downloadPromise = page.waitForEvent('download')
@@ -311,7 +312,7 @@ function goalCard(page: Page, title: string) {
 
 /** Creates a manual goal titled with a legacy keyword and returns after the card is visible. */
 export async function createManualGoalViaUi(page: Page, title: string, targetPoints: number, progressPoints: number) {
-  await page.getByRole('button', { name: 'Goals' }).click()
+  await navigateWorkspace(page, 'Goals')
   await page.getByRole('button', { name: 'New goal' }).click()
   await page.getByLabel('Goal title').fill(title)
   await page.getByLabel(/Target \(points\)/).fill(String(targetPoints))
@@ -327,7 +328,7 @@ export async function createStudyTimeGoalViaUi(
   period: 'daily' | 'weekly' | 'monthly',
   target: number,
 ) {
-  await page.getByRole('button', { name: 'Goals' }).click()
+  await navigateWorkspace(page, 'Goals')
   await page.getByRole('button', { name: 'New goal' }).click()
   await page.getByLabel('Goal title').fill(title)
   await page.getByLabel('Metric').selectOption('study_time')

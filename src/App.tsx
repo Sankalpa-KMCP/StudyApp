@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useFocusSession } from './hooks/useFocusSession'
+import { useMobileNavBreakpoint } from './hooks/useMobileNavBreakpoint'
 import { useSidebarPreference } from './hooks/useSidebarPreference'
 import { useStudyBackup } from './hooks/useStudyBackup'
 import { useThemePreference } from './hooks/useThemePreference'
 import { migrateLegacyLocalStorage } from './db/studyDb'
 import type { ActiveFocusSession, StudySubject } from './db/types'
 import { Sidebar } from './components/Sidebar'
+import { MobileNavigation } from './components/MobileNavigation'
 import { AppLiveReadFallback } from './components/AppLiveReadFallback'
 import { LiveReadErrorBoundary } from './components/LiveReadErrorBoundary'
 import { AppLiveData } from './AppLiveData'
@@ -48,6 +50,7 @@ function App() {
     onPreferenceError: reportPreferenceError,
     clearPreferenceNotice,
   })
+  const isMobileNav = useMobileNavBreakpoint()
 
   const syncUrlToView = useCallback((view: View, historyMode: 'push' | 'replace') => {
     const nextPath = pathForView(view)
@@ -244,14 +247,22 @@ function App() {
   }, [])
 
   return (
-    <div className={sidebarCollapsed ? 'app-shell is-sidebar-collapsed' : 'app-shell'}>
+    <div className={[
+      'app-shell',
+      sidebarCollapsed ? 'is-sidebar-collapsed' : '',
+      isMobileNav ? 'is-mobile-nav' : '',
+    ].filter(Boolean).join(' ')}>
       <a className="skip-link" href="#dashboard-main">Skip to dashboard</a>
-      <Sidebar
-        activeView={activeView}
-        collapsed={sidebarCollapsed}
-        onNavigate={navigateToView}
-        onToggleCollapsed={toggleSidebarCollapsed}
-      />
+      {isMobileNav ? (
+        <MobileNavigation activeView={activeView} onNavigate={navigateToView} />
+      ) : (
+        <Sidebar
+          activeView={activeView}
+          collapsed={sidebarCollapsed}
+          onNavigate={navigateToView}
+          onToggleCollapsed={toggleSidebarCollapsed}
+        />
+      )}
       <div className="workspace">
         <LiveReadErrorBoundary
           key={liveReadEpoch}
