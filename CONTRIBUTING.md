@@ -2,10 +2,21 @@
 
 ## Setup
 
+Use the supported toolchain declared in `package.json`, `.nvmrc`, and `.node-version`:
+
+- **Node.js** 22 (`engines.node`: `^22.0.0`)
+- **npm** 10.9.2 (`packageManager`: `npm@10.9.2`)
+
+These declarations are compatibility guidance for local work and CI. Strict engine rejection is not enabled (`.npmrc` has `engine-strict=false`).
+
 ```bash
+node --version   # expect v22.x
+npm --version    # expect 10.9.2
 npm ci
 npm run dev
 ```
+
+CI (`.github/workflows/ci.yml`) installs Node from `.nvmrc` and pins `npm@10.9.2` before `npm ci`.
 
 ## Tests
 

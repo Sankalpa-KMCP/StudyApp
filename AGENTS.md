@@ -206,7 +206,7 @@ $env:CI="true"; npm run test:e2e
 2. **No HTTP API** — IndexedDB via Dexie is the source of truth.
 3. **Minimal diffs** — Change only what the task requires.
 4. **Read before edit** — Inspect the full target file and nearest similar feature first.
-5. **npm only** — Use `npm ci` / `npm install` (`package-lock.json` is canonical).
+5. **npm only** — Use `npm ci` / `npm install` (`package-lock.json` is canonical). Supported toolchain: Node.js 22 (`engines.node` `^22.0.0`, `.nvmrc` / `.node-version`) and npm 10.9.2 (`packageManager`). Declarations are guidance only — `engine-strict` stays false.
 6. **No secrets** — Never commit `.env`, keys, or tokens.
 7. **Dexie migrations** — Schema changes need `version(N)` in `src/db/studyDb.ts` plus tests in `studyDb.test.ts`.
 8. **Destructive flows** — Keep confirmation and user feedback (see Settings in `App.tsx`).

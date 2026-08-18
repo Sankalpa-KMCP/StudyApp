@@ -39,7 +39,14 @@ These are accessibility improvements and checks—not a claim of universal WCAG 
 
 ## Quick start
 
+Supported toolchain (compatibility guidance — `.npmrc` keeps `engine-strict=false`, so other versions are not rejected automatically):
+
+- **Node.js** 22 (`^22.0.0`; see `.nvmrc` / `.node-version`)
+- **npm** 10.9.2 (`packageManager` in `package.json`; matches CI)
+
 ```bash
+node --version   # expect v22.x
+npm --version    # expect 10.9.2
 npm ci
 npm run dev         # http://localhost:5173
 ```
