@@ -14,6 +14,7 @@ import {
   FIRST_STUDY_TIMESTAMP,
 } from './test/homeTestHelpers'
 import { makeEmptyExport } from './test/backupTestHelpers'
+import { ACTIVE_FOCUS_SESSION_KEY, getActiveFocusSession } from './db/activeFocusSession'
 
 describe('App home', () => {
   beforeEach(async () => {
@@ -577,5 +578,183 @@ describe('App home', () => {
     expect(within(chart).queryByRole('img')).not.toBeInTheDocument()
     expect(chart.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
     expect(document.querySelector('.line-days')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('shows actionable Today metrics and recommends create-subject on an empty database', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument()
+    const today = screen.getByRole('heading', { name: 'Today' }).closest('section') as HTMLElement
+    expect(within(today).getByRole('listitem', { name: '0 tasks due today' })).toHaveTextContent('0')
+    expect(within(today).getByRole('listitem', { name: '0 overdue tasks' })).toHaveTextContent('0')
+    expect(within(today).getByRole('listitem', { name: '0 flashcards due' })).toHaveTextContent('0')
+    expect(within(today).getByRole('listitem', { name: '0 events today' })).toHaveTextContent('0')
+    expect(within(today).getByRole('listitem', { name: '0 day study streak' })).toHaveTextContent('0')
+    expect(within(today).getByText('Recommended next')).toBeInTheDocument()
+    expect(within(today).getByRole('heading', { name: 'Create a subject' })).toBeInTheDocument()
+
+    await user.click(within(today).getByRole('button', { name: 'Create subject' }))
+    expect(await screen.findByLabelText('Subject name')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Subjects', level: 1 })).toBeInTheDocument()
+  })
+
+  it('surfaces due-today, overdue, flashcard, event, streak, and week focus with a task recommendation', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const now = new Date(2026, 6, 26, 15, 0, 0, 0)
+    vi.setSystemTime(now)
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+
+    await studyDb.subjects.add({
+      id: 'dash-subject',
+      name: 'Biology',
+      color: '#2563eb',
+      targetHours: 2,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    })
+    await studyDb.tasks.bulkAdd([
+      {
+        id: 'task-overdue',
+        title: 'Overdue lab writeup',
+        subjectId: 'dash-subject',
+        dueDate: '2026-07-25',
+        priority: 'normal',
+        status: 'open',
+        minutes: 40,
+        createdAt: '2026-07-01T00:00:00.000Z',
+        updatedAt: '2026-07-01T00:00:00.000Z',
+      },
+      {
+        id: 'task-today',
+        title: 'Due today reading',
+        subjectId: 'dash-subject',
+        dueDate: '2026-07-26',
+        priority: 'normal',
+        status: 'open',
+        minutes: 25,
+        createdAt: '2026-07-02T00:00:00.000Z',
+        updatedAt: '2026-07-02T00:00:00.000Z',
+      },
+      {
+        id: 'task-done-today',
+        title: 'Finished today',
+        subjectId: 'dash-subject',
+        dueDate: '2026-07-26',
+        priority: 'normal',
+        status: 'done',
+        minutes: 20,
+        createdAt: '2026-07-03T00:00:00.000Z',
+        updatedAt: '2026-07-03T00:00:00.000Z',
+      },
+      {
+        id: 'task-tomorrow',
+        title: 'Tomorrow task',
+        subjectId: 'dash-subject',
+        dueDate: '2026-07-27',
+        priority: 'normal',
+        status: 'open',
+        minutes: 20,
+        createdAt: '2026-07-04T00:00:00.000Z',
+        updatedAt: '2026-07-04T00:00:00.000Z',
+      },
+    ])
+    await studyDb.flashcards.add({
+      id: 'card-due',
+      front: 'Mitochondria',
+      back: 'Powerhouse',
+      subjectId: 'dash-subject',
+      status: 'learning',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    })
+    await studyDb.events.bulkAdd([
+      {
+        id: 'event-today',
+        title: 'Lab block',
+        subjectId: 'dash-subject',
+        startAt: new Date(2026, 6, 26, 11, 0).toISOString(),
+        endAt: new Date(2026, 6, 26, 12, 0).toISOString(),
+        location: '',
+        createdAt: '2026-07-01T00:00:00.000Z',
+        updatedAt: '2026-07-01T00:00:00.000Z',
+      },
+      {
+        id: 'event-tomorrow',
+        title: 'Tomorrow seminar',
+        subjectId: 'dash-subject',
+        startAt: new Date(2026, 6, 27, 11, 0).toISOString(),
+        endAt: new Date(2026, 6, 27, 12, 0).toISOString(),
+        location: '',
+        createdAt: '2026-07-01T00:00:00.000Z',
+        updatedAt: '2026-07-01T00:00:00.000Z',
+      },
+    ])
+    await studyDb.studySessions.add({
+      id: 'session-today',
+      subjectId: 'dash-subject',
+      startedAt: new Date(2026, 6, 26, 9, 0).toISOString(),
+      endedAt: new Date(2026, 6, 26, 9, 45).toISOString(),
+      minutes: 45,
+      note: '',
+    })
+
+    render(<App />)
+    const today = (await screen.findByRole('heading', { name: 'Today' })).closest('section') as HTMLElement
+    expect(within(today).getByRole('listitem', { name: '1 tasks due today' })).toHaveTextContent('1')
+    expect(within(today).getByRole('listitem', { name: '1 overdue tasks' })).toHaveTextContent('1')
+    expect(within(today).getByRole('listitem', { name: '1 flashcards due' })).toHaveTextContent('1')
+    expect(within(today).getByRole('listitem', { name: '1 events today' })).toHaveTextContent('1')
+    expect(within(today).getByRole('listitem', { name: '1 day study streak' })).toHaveTextContent('1')
+    expect(within(today).getByRole('listitem', { name: /focus in the last seven days/i })).toHaveTextContent('0h 45m')
+    expect(within(today).getByText('Overdue lab writeup')).toBeInTheDocument()
+    expect(within(today).getByText('Lab block')).toBeInTheDocument()
+    expect(within(today).queryByText('Tomorrow seminar')).not.toBeInTheDocument()
+    expect(within(today).queryByText('Finished today')).not.toBeInTheDocument()
+    expect(within(today).getByRole('heading', { name: 'Overdue task' })).toBeInTheDocument()
+    expect(within(today).getByText(/Catch up on "Overdue lab writeup"/)).toBeInTheDocument()
+
+    await user.click(within(today).getByRole('button', { name: 'Open Tasks' }))
+    expect(await screen.findByRole('heading', { name: 'Tasks', level: 1 })).toBeInTheDocument()
+    expect(screen.getByText('Overdue lab writeup')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Task title')).not.toBeInTheDocument()
+  })
+
+  it('recommends continuing an active focus session without mutating it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 6, 26, 15, 0, 0, 0))
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+
+    await addFirstStudySubject()
+    await studyDb.settings.put({
+      key: ACTIVE_FOCUS_SESSION_KEY,
+      value: {
+        id: 'focus-dash',
+        subjectId: 'first-study-subject',
+        startedAt: new Date(2026, 6, 26, 14, 55).toISOString(),
+        plannedMinutes: 0,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      },
+    })
+
+    render(<App />)
+    const today = (await screen.findByRole('heading', { name: 'Today' })).closest('section') as HTMLElement
+    expect(within(today).getByRole('heading', { name: 'Focus in progress' })).toBeInTheDocument()
+
+    await user.click(within(today).getByRole('button', { name: 'Go to focus' }))
+    expect(screen.getByRole('button', { name: 'Pause' })).toHaveFocus()
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-dash', status: 'running', plannedMinutes: 0 })
+  })
+
+  it('keeps FocusCard and Quick Notes on the actionable Home dashboard', async () => {
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Focus session' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Quick Notes' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Weekly Progress' })).toBeInTheDocument()
   })
 })

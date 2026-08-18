@@ -1,5 +1,6 @@
-import { BookOpen, Check, FileText, Flame, NotebookText, Pause, Play, Square, StopCircle, Target, Search, type AppIcon } from '../components/icons'
+import { BookOpen, CalendarDays, Check, Clock3, FileText, Flame, NotebookText, Pause, Play, Square, StopCircle, Target, Search } from '../components/icons'
 import {
+  calculateStreak,
   calculateSubjectProgress,
   formatDate,
   formatDateTime,
@@ -14,10 +15,21 @@ import {
 import type { ActiveFocusSession, CalendarEvent, Flashcard, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
 import { EmptyState, SubjectCard } from '../components/ui'
 import { StudyTime } from '../components/RightColumn'
-import type { View } from '../App'
+import type { View } from '../navigation/viewRoutes'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FirstStudyChecklist } from './FirstStudyChecklist'
 import { getActiveFocusElapsedMs } from '../db/activeFocusSession'
+import {
+  getOpenOverdueTasks,
+  getOpenTasksDueToday,
+  getTodaysEvents,
+} from './dashboardDateHelpers'
+import {
+  getRecommendedNextAction,
+  type RecommendedNextAction,
+} from './recommendedNextAction'
+
+export const HOME_FOCUS_SESSION_ID = 'home-focus-session'
 
 export function HomeView(props: {
   notes: StudyNote[]
@@ -30,6 +42,7 @@ export function HomeView(props: {
   quickNotes: string[]
   dailyGoalMinutes: number
   todayFocusMinutes: number
+  currentDate: Date
   activeSession: ActiveFocusSession | null
   staleFocusSession: ActiveFocusSession | null
   staleFocusSubjectName: string
@@ -57,11 +70,34 @@ export function HomeView(props: {
   onLogSession: () => void
   onClearSearch?: () => void
 }) {
+  const now = props.currentDate
+  const dueTodayTasks = getOpenTasksDueToday(props.tasks, now)
+  const overdueTasks = getOpenOverdueTasks(props.tasks, now)
+  const todaysEvents = getTodaysEvents(props.events, now)
+  const dueFlashcards = props.flashcards.filter((card) => isFlashcardDue(card))
+  const streakDays = calculateStreak(props.studySessions, now)
+  const weekHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
+  const recommended = getRecommendedNextAction({
+    tasks: props.tasks,
+    flashcards: props.flashcards,
+    events: props.events,
+    subjects: props.subjects,
+    activeSession: props.activeSession,
+    todayFocusMinutes: props.todayFocusMinutes,
+    dailyGoalMinutes: props.dailyGoalMinutes,
+    now,
+  })
+
   const openTasks = props.tasks.filter((task) => task.status === 'open').slice(0, 5)
   const recentNotes = props.notes.slice(0, 3)
   const subjectStats = props.subjects.slice(0, 5)
-  const dueCards = props.flashcards.filter((card) => isFlashcardDue(card)).length
-  const weekHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
+
+  const activateRecommended = () => {
+    activateRecommendedNextAction(recommended, {
+      onNavigate: props.onNavigate,
+      onCreateSubject: props.onCreateSubject,
+    })
+  }
 
   return (
     <>
@@ -78,13 +114,33 @@ export function HomeView(props: {
           onLogSession={props.onLogSession}
         />
       ) : null}
-      <div className="insight-grid" aria-label="Study pulse">
-        <InsightTile icon={Target} label="Today target" value={`${Math.round(percent(props.todayFocusMinutes, props.dailyGoalMinutes))}%`} detail={`${formatMinutes(props.todayFocusMinutes)} of ${formatMinutes(props.dailyGoalMinutes)}`} />
-        <InsightTile icon={Flame} label="Week momentum" value={formatHours(weekHours)} detail={`${props.weeklyStudyDays.filter((day) => day.hours > 0).length} active days`} />
-        <InsightTile icon={NotebookText} label="Review queue" value={`${dueCards}`} detail={dueCards === 1 ? 'card due now' : 'cards due now'} />
-      </div>
+      {!props.search.trim() ? (
+        <HomeTodayDashboard
+          dueTodayCount={dueTodayTasks.length}
+          overdueCount={overdueTasks.length}
+          dueFlashcardCount={dueFlashcards.length}
+          todayEventCount={todaysEvents.length}
+          streakDays={streakDays}
+          weekHours={weekHours}
+          todayFocusMinutes={props.todayFocusMinutes}
+          dailyGoalMinutes={props.dailyGoalMinutes}
+          overduePreview={overdueTasks.slice(0, 2)}
+          todayEventPreview={todaysEvents.slice(0, 2)}
+          recommended={recommended}
+          onActivateRecommended={activateRecommended}
+          onOpenTasks={() => props.onNavigate('Tasks')}
+          onOpenFlashcards={() => props.onNavigate('Flashcards')}
+          onOpenCalendar={() => props.onNavigate('Calendar')}
+        />
+      ) : null}
       <div className="summary-grid">
-        <TaskCard tasks={openTasks} subjectMap={props.subjectMap} onOpen={() => props.onNavigate('Tasks')} />
+        <TaskCard
+          tasks={openTasks}
+          subjectMap={props.subjectMap}
+          dueTodayCount={dueTodayTasks.length}
+          overdueCount={overdueTasks.length}
+          onOpen={() => props.onNavigate('Tasks')}
+        />
         <FocusCard
           key={props.activeSession?.id ?? props.staleFocusSession?.id ?? 'idle'}
           focusMinutes={props.todayFocusMinutes}
@@ -119,18 +175,213 @@ export function HomeView(props: {
   )
 }
 
-function InsightTile({ icon: Icon, label, value, detail }: { icon: AppIcon; label: string; value: string; detail: string }) {
+function activateRecommendedNextAction(
+  action: RecommendedNextAction,
+  handlers: {
+    onNavigate: (view: View) => void
+    onCreateSubject: () => void
+  },
+) {
+  switch (action.intent) {
+    case 'navigate':
+      if (action.view) handlers.onNavigate(action.view)
+      return
+    case 'create_subject':
+      handlers.onCreateSubject()
+      return
+    case 'focus_card': {
+      const focusCard = document.getElementById(HOME_FOCUS_SESSION_ID)
+      if (focusCard && typeof focusCard.scrollIntoView === 'function') {
+        focusCard.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      }
+      const focusTarget = focusCard?.querySelector<HTMLElement>('button.primary-command, button.session-button')
+      focusTarget?.focus()
+      return
+    }
+    default: {
+      const _exhaustive: never = action.intent
+      return _exhaustive
+    }
+  }
+}
+
+function recommendedActionCopy(action: RecommendedNextAction): { title: string; detail: string; buttonLabel: string } {
+  switch (action.kind) {
+    case 'overdue_task':
+      return {
+        title: 'Overdue task',
+        detail: action.title ? `Catch up on "${action.title}".` : 'Open Tasks to clear overdue work.',
+        buttonLabel: 'Open Tasks',
+      }
+    case 'due_today_task':
+      return {
+        title: 'Task due today',
+        detail: action.title ? `Work on "${action.title}".` : 'Open Tasks to see what is due today.',
+        buttonLabel: 'Open Tasks',
+      }
+    case 'due_flashcard':
+      return {
+        title: 'Flashcard due',
+        detail: action.title ? `Review "${action.title}".` : 'Open Flashcards to start a review.',
+        buttonLabel: 'Open Flashcards',
+      }
+    case 'today_event':
+      return {
+        title: 'Event today',
+        detail: action.title ? `Prepare for "${action.title}".` : 'Open Calendar to see today\'s events.',
+        buttonLabel: 'Open Calendar',
+      }
+    case 'continue_focus':
+      return {
+        title: 'Focus in progress',
+        detail: 'Return to your active focus session.',
+        buttonLabel: 'Go to focus',
+      }
+    case 'start_focus':
+      return {
+        title: 'Start focusing',
+        detail: 'Begin a focus session toward today\'s study target.',
+        buttonLabel: 'Go to focus',
+      }
+    case 'create_subject':
+      return {
+        title: 'Create a subject',
+        detail: 'Add a subject so tasks, notes, and focus time stay organized.',
+        buttonLabel: 'Create subject',
+      }
+    case 'neutral':
+      return {
+        title: 'Keep studying',
+        detail: 'Today\'s target is met. Review Progress or start another focus session when you are ready.',
+        buttonLabel: 'Open Progress',
+      }
+    default: {
+      const _exhaustive: never = action.kind
+      return _exhaustive
+    }
+  }
+}
+
+function HomeTodayDashboard(props: {
+  dueTodayCount: number
+  overdueCount: number
+  dueFlashcardCount: number
+  todayEventCount: number
+  streakDays: number
+  weekHours: number
+  todayFocusMinutes: number
+  dailyGoalMinutes: number
+  overduePreview: StudyTask[]
+  todayEventPreview: CalendarEvent[]
+  recommended: RecommendedNextAction
+  onActivateRecommended: () => void
+  onOpenTasks: () => void
+  onOpenFlashcards: () => void
+  onOpenCalendar: () => void
+}) {
+  const copy = recommendedActionCopy(props.recommended)
+  const targetPercent = Math.round(percent(props.todayFocusMinutes, props.dailyGoalMinutes))
+
   return (
-    <article className="insight-tile">
-      <div className="insight-icon">
-        <Icon size={20} aria-hidden="true" />
+    <section className="card home-today-card" aria-labelledby="home-today-title">
+      <div className="card-heading">
+        <div>
+          <h2 id="home-today-title">Today</h2>
+          <span>{targetPercent}% of today's focus target · {formatMinutes(props.todayFocusMinutes)} of {formatMinutes(props.dailyGoalMinutes)}</span>
+        </div>
       </div>
-      <div>
-        <span>{label}</span>
-        <strong>{value}</strong>
-        <small>{detail}</small>
+
+      <ul className="home-today-metrics">
+        <li className="home-today-metric" aria-label={`${props.dueTodayCount} tasks due today`}>
+          <Target size={18} aria-hidden="true" />
+          <div>
+            <span className="home-today-metric-label">Due today</span>
+            <strong>{props.dueTodayCount}</strong>
+          </div>
+          <button className="text-command home-today-metric-action" type="button" aria-label="View due-today items" onClick={props.onOpenTasks}>View</button>
+        </li>
+        <li className={`home-today-metric${props.overdueCount > 0 ? ' is-overdue' : ''}`} aria-label={`${props.overdueCount} overdue tasks`}>
+          <Check size={18} aria-hidden="true" />
+          <div>
+            <span className="home-today-metric-label">Overdue</span>
+            <strong>{props.overdueCount}</strong>
+          </div>
+          <button className="text-command home-today-metric-action" type="button" aria-label="View overdue items" onClick={props.onOpenTasks}>View</button>
+        </li>
+        <li className="home-today-metric" aria-label={`${props.dueFlashcardCount} flashcards due`}>
+          <NotebookText size={18} aria-hidden="true" />
+          <div>
+            <span className="home-today-metric-label">Flashcards due</span>
+            <strong>{props.dueFlashcardCount}</strong>
+          </div>
+          <button className="text-command home-today-metric-action" type="button" aria-label="View flashcard review" onClick={props.onOpenFlashcards}>View</button>
+        </li>
+        <li className="home-today-metric" aria-label={`${props.todayEventCount} events today`}>
+          <CalendarDays size={18} aria-hidden="true" />
+          <div>
+            <span className="home-today-metric-label">Events today</span>
+            <strong>{props.todayEventCount}</strong>
+          </div>
+          <button className="text-command home-today-metric-action" type="button" aria-label="View today's calendar" onClick={props.onOpenCalendar}>View</button>
+        </li>
+        <li className="home-today-metric" aria-label={`${props.streakDays} day study streak`}>
+          <Flame size={18} aria-hidden="true" />
+          <div>
+            <span className="home-today-metric-label">Study streak</span>
+            <strong>{props.streakDays}</strong>
+          </div>
+          <span className="home-today-metric-hint">days</span>
+        </li>
+        <li className="home-today-metric" aria-label={`${formatHours(props.weekHours)} focus in the last seven days`}>
+          <Clock3 size={18} aria-hidden="true" />
+          <div>
+            <span className="home-today-metric-label">Last 7 days</span>
+            <strong>{formatHours(props.weekHours)}</strong>
+          </div>
+          <span className="home-today-metric-hint">focus</span>
+        </li>
+      </ul>
+
+      {(props.overduePreview.length > 0 || props.todayEventPreview.length > 0) ? (
+        <div className="home-today-previews">
+          {props.overduePreview.length > 0 ? (
+            <div>
+              <h3 className="home-today-preview-title">Overdue preview</h3>
+              <ul className="home-today-preview-list">
+                {props.overduePreview.map((task) => (
+                  <li key={task.id}>{task.title}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {props.todayEventPreview.length > 0 ? (
+            <div>
+              <h3 className="home-today-preview-title">Today's events</h3>
+              <ul className="home-today-preview-list">
+                {props.todayEventPreview.map((event) => (
+                  <li key={event.id}>{event.title}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="home-recommended">
+        <div className="home-recommended-copy">
+          <p className="home-recommended-eyebrow">Recommended next</p>
+          <h3 className="home-recommended-title">{copy.title}</h3>
+          <p className="home-recommended-detail">{copy.detail}</p>
+        </div>
+        <button
+          className="primary-command home-recommended-action"
+          type="button"
+          onClick={props.onActivateRecommended}
+        >
+          {copy.buttonLabel}
+        </button>
       </div>
-    </article>
+    </section>
   )
 }
 
@@ -172,13 +423,25 @@ function HomeSearchResults({ query, results, onNavigate, onClearSearch }: { quer
   )
 }
 
-function TaskCard({ tasks, subjectMap, onOpen }: { tasks: StudyTask[]; subjectMap: Map<string, StudySubject>; onOpen: () => void }) {
+function TaskCard({
+  tasks,
+  subjectMap,
+  dueTodayCount,
+  overdueCount,
+  onOpen,
+}: {
+  tasks: StudyTask[]
+  subjectMap: Map<string, StudySubject>
+  dueTodayCount: number
+  overdueCount: number
+  onOpen: () => void
+}) {
   return (
     <section className="card task-card" aria-labelledby="tasks-title">
       <div className="card-heading">
         <div>
           <h2 id="tasks-title">Study Tasks</h2>
-          <span>{tasks.length} open</span>
+          <span>{dueTodayCount} due today · {overdueCount} overdue · {tasks.length} open shown</span>
         </div>
         <button className="text-command" type="button" onClick={onOpen}>View</button>
       </div>
@@ -244,7 +507,7 @@ function FocusCard(props: {
   if (props.staleFocusSession && !props.activeSession) {
     const stale = props.staleFocusSession
     return (
-      <section className="card focus-card" aria-labelledby="focus-stale-title">
+      <section id={HOME_FOCUS_SESSION_ID} className="card focus-card" aria-labelledby="focus-stale-title" tabIndex={-1}>
         <h2 id="focus-stale-title">Unfinished focus session</h2>
         <p className="session-stale-copy">
           A focus session from {formatDateTime(stale.startedAt)} is still saved locally. It was{' '}
@@ -266,7 +529,7 @@ function FocusCard(props: {
   }
 
   return (
-    <section className="card focus-card" aria-labelledby="focus-title">
+    <section id={HOME_FOCUS_SESSION_ID} className="card focus-card" aria-labelledby="focus-title" tabIndex={-1}>
       <h2 id="focus-title">Focus session</h2>
       <div className="focus-ring" style={{ '--focus-percent': `${timerPercent}%` } as React.CSSProperties}>
         <div>

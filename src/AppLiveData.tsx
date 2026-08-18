@@ -243,6 +243,7 @@ export function AppLiveData({
                   quickNotes={quickNotes}
                   dailyGoalMinutes={dailyGoalMinutes}
                   todayFocusMinutes={todayFocusMinutes}
+                  currentDate={currentDate}
                   activeSession={activeSession}
                   staleFocusSession={staleFocusSession}
                   staleFocusSubjectName={staleFocusSubjectName}

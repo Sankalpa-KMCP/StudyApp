@@ -22,7 +22,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .metric-grid {
+  .metric-grid,
+  .home-today-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -167,11 +168,20 @@
   }
 
   .insight-grid,
+  .home-today-metrics,
   .bottom-grid,
   .right-column,
   .metric-grid,
   .theme-grid {
     grid-template-columns: 1fr;
+  }
+
+  .home-recommended {
+    align-items: stretch;
+  }
+
+  .home-recommended-action {
+    width: 100%;
   }
 
   .insight-tile {
