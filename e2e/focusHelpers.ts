@@ -38,7 +38,7 @@ export type StudyGoalRow = {
 async function openStudyDb(page: Page): Promise<void> {
   // Ensure Dexie has created the real schema before raw IndexedDB reads/writes.
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Focus session' }).or(page.getByRole('heading', { name: 'Unfinished focus session' }))).toBeVisible({
+  await expect(page.getByRole('heading', { name: 'Focus session', exact: true }).or(page.getByRole('heading', { name: 'Unfinished focus session', exact: true }))).toBeVisible({
     timeout: 15_000,
   })
 }

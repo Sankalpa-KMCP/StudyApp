@@ -65,7 +65,7 @@ export type AppLiveDataProps = {
   onQuickAdd: (item: QuickAddItem) => void
   onCreateTask: () => void
   onCreateSubject: () => void
-  onLogSession: () => void
+  onRevealFocusSession: () => void
   onSubjectMapChange: (subjectMap: Map<string, StudySubject>) => void
   activeSession: ActiveFocusSession | null
   staleFocusSession: ActiveFocusSession | null
@@ -122,7 +122,7 @@ export function AppLiveData({
   onQuickAdd,
   onCreateTask,
   onCreateSubject,
-  onLogSession,
+  onRevealFocusSession,
   onSubjectMapChange,
   activeSession,
   staleFocusSession,
@@ -289,8 +289,8 @@ export function AppLiveData({
                   onDiscardStaleFocusSession={onDiscardStaleFocusSession}
                   onNavigate={onNavigate}
                   onCreateSubject={onCreateSubject}
-                  onCreatePlan={onCreateTask}
-                  onLogSession={onLogSession}
+                  onCreateTask={onCreateTask}
+                  onRevealFocusSession={onRevealFocusSession}
                   onDismissOnboardingChecklist={onDismissOnboardingChecklist}
                 />
               ) : null}

@@ -85,7 +85,7 @@ describe('App study sessions live query isolation', () => {
     await user.click(screen.getByRole('button', { name: 'Home' }))
     expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     expect(within(screen.getByLabelText('Today overview')).getByText('30m')).toBeInTheDocument()
-    expect(screen.getByLabelText('First study loop progress')).toHaveAttribute('aria-valuenow', '2')
+    expect(screen.getByLabelText('First study loop progress')).toHaveAttribute('aria-valuenow', '1')
 
     await user.click(screen.getByRole('button', { name: 'Subjects' }))
     const subjectCard = (await screen.findByText('Physics')).closest('article') as HTMLElement

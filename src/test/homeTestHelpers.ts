@@ -28,6 +28,20 @@ export async function addFirstStudyEvent() {
   })
 }
 
+export async function addFirstStudyTask() {
+  await studyDb.tasks.add({
+    id: 'first-study-task',
+    title: 'Practice problems',
+    subjectId: 'first-study-subject',
+    dueDate: '',
+    priority: 'normal',
+    status: 'open',
+    minutes: 30,
+    createdAt: FIRST_STUDY_TIMESTAMP,
+    updatedAt: FIRST_STUDY_TIMESTAMP,
+  })
+}
+
 export async function addFirstStudySession() {
   await studyDb.studySessions.add({
     id: 'first-study-session',
@@ -36,5 +50,16 @@ export async function addFirstStudySession() {
     endedAt: '2026-07-13T08:30:00.000Z',
     minutes: 30,
     note: 'First study loop',
+  })
+}
+
+export async function addFirstStudyFocusHistory() {
+  await studyDb.studySessions.add({
+    id: 'focus-first-study',
+    subjectId: 'first-study-subject',
+    startedAt: '2026-07-13T08:00:00.000Z',
+    endedAt: '2026-07-13T08:30:00.000Z',
+    minutes: 30,
+    note: 'Focused session',
   })
 }

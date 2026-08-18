@@ -1,46 +1,28 @@
 import { ArrowRight, Check } from '../components/icons'
-
-type FirstStudyStep = {
-  title: string
-  body: string
-  actionLabel: string
-  complete: boolean
-  onAction: () => void
-}
+import { buildFirstStudyChecklistSteps } from './firstStudyChecklistData'
 
 export function FirstStudyChecklist(props: {
   hasSubject: boolean
-  hasPlan: boolean
-  hasSession: boolean
+  hasTask: boolean
+  hasStartedFocus: boolean
   onCreateSubject: () => void
-  onCreatePlan: () => void
-  onLogSession: () => void
+  onCreateTask: () => void
+  onRevealFocus: () => void
   onDismiss: (moveFocusOnSuccess: boolean) => void
   dismissPending: boolean
 }) {
-  const steps: FirstStudyStep[] = [
-    {
-      title: 'Create a subject',
-      body: 'Give your study work a clear home.',
-      actionLabel: 'Create subject',
-      complete: props.hasSubject,
-      onAction: props.onCreateSubject,
-    },
-    {
-      title: 'Plan a study action',
-      body: 'Add a task or calendar event.',
-      actionLabel: 'Plan task',
-      complete: props.hasPlan,
-      onAction: props.onCreatePlan,
-    },
-    {
-      title: 'Record study time',
-      body: 'Use focus or log a completed session.',
-      actionLabel: 'Log session',
-      complete: props.hasSession,
-      onAction: props.onLogSession,
-    },
-  ]
+  const steps = buildFirstStudyChecklistSteps({
+    hasSubject: props.hasSubject,
+    hasTask: props.hasTask,
+    hasStartedFocus: props.hasStartedFocus,
+  }).map((step, index) => ({
+    ...step,
+    onAction: index === 0
+      ? props.onCreateSubject
+      : index === 1
+        ? props.onCreateTask
+        : props.onRevealFocus,
+  }))
   const completedCount = steps.filter((step) => step.complete).length
 
   if (completedCount === steps.length) return null
@@ -53,7 +35,7 @@ export function FirstStudyChecklist(props: {
         <div>
           <span className="eyebrow">Getting started</span>
           <h2 id="first-study-title">Your first study loop</h2>
-          <p>Set up one useful plan, then record the work.</p>
+          <p>Create a subject, add a task, and start focusing.</p>
         </div>
         <div className="first-study-heading-actions">
           <div className="first-study-progress-copy">

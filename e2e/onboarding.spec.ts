@@ -36,6 +36,8 @@ test.beforeEach(async ({ page }) => {
 test('onboarding can be keyboard-dismissed, stays hidden after reload, and restarts from Settings', async ({ page }) => {
   const checklist = page.getByRole('region', { name: 'Your first study loop' })
   await expect(checklist).toBeVisible()
+  await expect(checklist.getByRole('button', { name: 'Add task' })).toBeVisible()
+  await expect(checklist.getByRole('button', { name: 'Go to focus' })).toBeVisible()
 
   await checklist.getByRole('button', { name: 'Create subject' }).click()
   await page.getByLabel('Subject name').fill('Physics')
@@ -68,6 +70,48 @@ test('onboarding can be keyboard-dismissed, stays hidden after reload, and resta
     '1 of 3 steps complete',
   )
   await expect(checklist.locator('.first-study-step.is-complete .first-study-status')).toHaveText(/Complete/)
+})
+
+test('onboarding guides Subject, Task, and Focus workflow without auto-starting focus', async ({ page }) => {
+  const checklist = page.getByRole('region', { name: 'Your first study loop' })
+  await expect(checklist).toBeVisible()
+  await expect(checklist.getByRole('heading', { name: 'Create a subject' })).toBeVisible()
+  await expect(checklist.getByRole('heading', { name: 'Add your first task' })).toBeVisible()
+  await expect(checklist.getByRole('heading', { name: 'Start a focus session' })).toBeVisible()
+
+  await checklist.getByRole('button', { name: 'Create subject' }).click()
+  await page.getByLabel('Subject name').fill('Biology')
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  await navigateWorkspace(page, 'Home')
+  await expect(checklist.getByRole('progressbar', { name: 'First study loop progress' })).toHaveAttribute(
+    'aria-valuetext',
+    '1 of 3 steps complete',
+  )
+
+  await checklist.getByRole('button', { name: 'Add task' }).click()
+  await page.getByLabel('Task title').fill('Read chapter 1')
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  await navigateWorkspace(page, 'Home')
+  await expect(checklist.getByRole('progressbar', { name: 'First study loop progress' })).toHaveAttribute(
+    'aria-valuetext',
+    '2 of 3 steps complete',
+  )
+
+  const focusAction = checklist.getByRole('button', { name: 'Go to focus' })
+  await focusAction.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('button', { name: 'Start focus' })).toBeFocused()
+  await expect(page.getByRole('button', { name: 'Stop session' })).toHaveCount(0)
+  await expect(checklist.getByRole('progressbar', { name: 'First study loop progress' })).toHaveAttribute(
+    'aria-valuetext',
+    '2 of 3 steps complete',
+  )
+
+  await page.getByRole('button', { name: 'Start focus' }).click()
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
+  await expect(checklist).toBeHidden()
 })
 
 for (const width of [390, 320] as const) {

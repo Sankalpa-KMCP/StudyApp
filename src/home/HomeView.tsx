@@ -28,6 +28,7 @@ import {
   getRecommendedNextAction,
   type RecommendedNextAction,
 } from './recommendedNextAction'
+import { hasStartedFocusSession } from './firstStudyChecklistData'
 import { HOME_FOCUS_SESSION_ID, revealHomeFocusSession } from './revealHomeFocusSession'
 
 export { HOME_FOCUS_SESSION_ID } from './revealHomeFocusSession'
@@ -67,14 +68,14 @@ export function HomeView(props: {
   onDiscardStaleFocusSession: () => void
   onNavigate: (view: View) => void
   onCreateSubject: () => void
-  onCreatePlan: () => void
-  onLogSession: () => void
+  onCreateTask: () => void
+  onRevealFocusSession: () => void
   onDismissOnboardingChecklist: () => Promise<void>
 }) {
   const focusAttentionRequest = props.focusAttentionRequest ?? 0
   const handledFocusAttention = useRef(0)
   const homeTodayTitleRef = useRef<HTMLHeadingElement | null>(null)
-  const [restoreFocusAfterChecklistDismiss, setRestoreFocusAfterChecklistDismiss] = useState(false)
+  const restoreFocusAfterChecklistDismiss = useRef(false)
   const dismissChecklistMutation = useMutationState()
 
   useLayoutEffect(() => {
@@ -118,15 +119,19 @@ export function HomeView(props: {
   const recentNotes = props.notes.slice(0, 3)
   const subjectStats = props.subjects.slice(0, 5)
   const hasSubject = props.subjects.length > 0
-  const hasPlan = props.tasks.length > 0 || props.events.length > 0
-  const hasSession = props.studySessions.length > 0
-  const showChecklist = !props.onboardingChecklistDismissed && !(hasSubject && hasPlan && hasSession)
+  const hasTask = props.tasks.length > 0
+  const hasStartedFocus = hasStartedFocusSession(
+    props.activeSession,
+    props.staleFocusSession,
+    props.studySessions,
+  )
+  const showChecklist = !props.onboardingChecklistDismissed && !(hasSubject && hasTask && hasStartedFocus)
 
   useEffect(() => {
-    if (showChecklist || !restoreFocusAfterChecklistDismiss) return
+    if (showChecklist || !restoreFocusAfterChecklistDismiss.current) return
     homeTodayTitleRef.current?.focus()
-    setRestoreFocusAfterChecklistDismiss(false)
-  }, [restoreFocusAfterChecklistDismiss, showChecklist])
+    restoreFocusAfterChecklistDismiss.current = false
+  }, [showChecklist])
 
   const activateRecommended = () => {
     activateRecommendedNextAction(recommended, {
@@ -142,7 +147,7 @@ export function HomeView(props: {
     }, {
       errorMessage: 'Onboarding checklist could not be dismissed. Please try again.',
       onSuccess: () => {
-        setRestoreFocusAfterChecklistDismiss(true)
+        restoreFocusAfterChecklistDismiss.current = true
       },
     })
   }
@@ -153,11 +158,11 @@ export function HomeView(props: {
         <>
           <FirstStudyChecklist
             hasSubject={hasSubject}
-            hasPlan={hasPlan}
-            hasSession={hasSession}
+            hasTask={hasTask}
+            hasStartedFocus={hasStartedFocus}
             onCreateSubject={props.onCreateSubject}
-            onCreatePlan={props.onCreatePlan}
-            onLogSession={props.onLogSession}
+            onCreateTask={props.onCreateTask}
+            onRevealFocus={props.onRevealFocusSession}
             onDismiss={dismissChecklist}
             dismissPending={dismissChecklistMutation.isPending}
           />
@@ -310,7 +315,24 @@ function recommendedActionCopy(action: RecommendedNextAction): { title: string; 
   }
 }
 
-function HomeTodayDashboard(props: {
+function HomeTodayDashboard({
+  headingRef,
+  dueTodayCount,
+  overdueCount,
+  dueFlashcardCount,
+  todayEventCount,
+  streakDays,
+  weekHours,
+  todayFocusMinutes,
+  dailyGoalMinutes,
+  overduePreview,
+  todayEventPreview,
+  recommended,
+  onActivateRecommended,
+  onOpenTasks,
+  onOpenFlashcards,
+  onOpenCalendar,
+}: {
   headingRef: React.RefObject<HTMLHeadingElement | null>
   dueTodayCount: number
   overdueCount: number
@@ -328,86 +350,86 @@ function HomeTodayDashboard(props: {
   onOpenFlashcards: () => void
   onOpenCalendar: () => void
 }) {
-  const copy = recommendedActionCopy(props.recommended)
-  const targetPercent = Math.round(percent(props.todayFocusMinutes, props.dailyGoalMinutes))
+  const copy = recommendedActionCopy(recommended)
+  const targetPercent = Math.round(percent(todayFocusMinutes, dailyGoalMinutes))
 
   return (
     <section className="card home-today-card" aria-labelledby="home-today-title">
       <div className="card-heading">
         <div>
-          <h2 id="home-today-title" ref={props.headingRef} tabIndex={-1}>Today</h2>
-          <span>{targetPercent}% of today's focus target · {formatMinutes(props.todayFocusMinutes)} of {formatMinutes(props.dailyGoalMinutes)}</span>
+          <h2 id="home-today-title" ref={headingRef} tabIndex={-1}>Today</h2>
+          <span>{targetPercent}% of today's focus target · {formatMinutes(todayFocusMinutes)} of {formatMinutes(dailyGoalMinutes)}</span>
         </div>
       </div>
 
       <ul className="home-today-metrics">
-        <li className="home-today-metric" aria-label={`${props.dueTodayCount} tasks due today`}>
+        <li className="home-today-metric" aria-label={`${dueTodayCount} tasks due today`}>
           <Target size={18} aria-hidden="true" />
           <div>
             <span className="home-today-metric-label">Due today</span>
-            <strong>{props.dueTodayCount}</strong>
+            <strong>{dueTodayCount}</strong>
           </div>
-          <button className="text-command home-today-metric-action" type="button" aria-label="View due-today items" onClick={props.onOpenTasks}>View</button>
+          <button className="text-command home-today-metric-action" type="button" aria-label="View due-today items" onClick={onOpenTasks}>View</button>
         </li>
-        <li className={`home-today-metric${props.overdueCount > 0 ? ' is-overdue' : ''}`} aria-label={`${props.overdueCount} overdue tasks`}>
+        <li className={`home-today-metric${overdueCount > 0 ? ' is-overdue' : ''}`} aria-label={`${overdueCount} overdue tasks`}>
           <Check size={18} aria-hidden="true" />
           <div>
             <span className="home-today-metric-label">Overdue</span>
-            <strong>{props.overdueCount}</strong>
+            <strong>{overdueCount}</strong>
           </div>
-          <button className="text-command home-today-metric-action" type="button" aria-label="View overdue items" onClick={props.onOpenTasks}>View</button>
+          <button className="text-command home-today-metric-action" type="button" aria-label="View overdue items" onClick={onOpenTasks}>View</button>
         </li>
-        <li className="home-today-metric" aria-label={`${props.dueFlashcardCount} flashcards due`}>
+        <li className="home-today-metric" aria-label={`${dueFlashcardCount} flashcards due`}>
           <NotebookText size={18} aria-hidden="true" />
           <div>
             <span className="home-today-metric-label">Flashcards due</span>
-            <strong>{props.dueFlashcardCount}</strong>
+            <strong>{dueFlashcardCount}</strong>
           </div>
-          <button className="text-command home-today-metric-action" type="button" aria-label="View flashcard review" onClick={props.onOpenFlashcards}>View</button>
+          <button className="text-command home-today-metric-action" type="button" aria-label="View flashcard review" onClick={onOpenFlashcards}>View</button>
         </li>
-        <li className="home-today-metric" aria-label={`${props.todayEventCount} events today`}>
+        <li className="home-today-metric" aria-label={`${todayEventCount} events today`}>
           <CalendarDays size={18} aria-hidden="true" />
           <div>
             <span className="home-today-metric-label">Events today</span>
-            <strong>{props.todayEventCount}</strong>
+            <strong>{todayEventCount}</strong>
           </div>
-          <button className="text-command home-today-metric-action" type="button" aria-label="View today's calendar" onClick={props.onOpenCalendar}>View</button>
+          <button className="text-command home-today-metric-action" type="button" aria-label="View today's calendar" onClick={onOpenCalendar}>View</button>
         </li>
-        <li className="home-today-metric" aria-label={`${props.streakDays} day study streak`}>
+        <li className="home-today-metric" aria-label={`${streakDays} day study streak`}>
           <Flame size={18} aria-hidden="true" />
           <div>
             <span className="home-today-metric-label">Study streak</span>
-            <strong>{props.streakDays}</strong>
+            <strong>{streakDays}</strong>
           </div>
           <span className="home-today-metric-hint">days</span>
         </li>
-        <li className="home-today-metric" aria-label={`${formatHours(props.weekHours)} focus in the last seven days`}>
+        <li className="home-today-metric" aria-label={`${formatHours(weekHours)} focus in the last seven days`}>
           <Clock3 size={18} aria-hidden="true" />
           <div>
             <span className="home-today-metric-label">Last 7 days</span>
-            <strong>{formatHours(props.weekHours)}</strong>
+            <strong>{formatHours(weekHours)}</strong>
           </div>
           <span className="home-today-metric-hint">focus</span>
         </li>
       </ul>
 
-      {(props.overduePreview.length > 0 || props.todayEventPreview.length > 0) ? (
+      {(overduePreview.length > 0 || todayEventPreview.length > 0) ? (
         <div className="home-today-previews">
-          {props.overduePreview.length > 0 ? (
+          {overduePreview.length > 0 ? (
             <div>
               <h3 className="home-today-preview-title">Overdue preview</h3>
               <ul className="home-today-preview-list">
-                {props.overduePreview.map((task) => (
+                {overduePreview.map((task) => (
                   <li key={task.id}>{task.title}</li>
                 ))}
               </ul>
             </div>
           ) : null}
-          {props.todayEventPreview.length > 0 ? (
+          {todayEventPreview.length > 0 ? (
             <div>
               <h3 className="home-today-preview-title">Today's events</h3>
               <ul className="home-today-preview-list">
-                {props.todayEventPreview.map((event) => (
+                {todayEventPreview.map((event) => (
                   <li key={event.id}>{event.title}</li>
                 ))}
               </ul>
@@ -425,7 +447,7 @@ function HomeTodayDashboard(props: {
         <button
           className="primary-command home-recommended-action"
           type="button"
-          onClick={props.onActivateRecommended}
+          onClick={onActivateRecommended}
         >
           {copy.buttonLabel}
         </button>
