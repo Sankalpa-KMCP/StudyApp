@@ -1,12 +1,15 @@
-import { parseTags } from '../appUtils'
+import { parseLocalDateTime, parseTags } from '../appUtils'
 import { isSubjectProgressMode, type SubjectProgressMode } from '../db/types'
 import {
+  CALENDAR_EDITOR_DURATION_MIN,
   clampSubjectEditorProgress,
   clampSubjectEditorTargetHours,
+  STUDY_SESSION_EDITOR_DURATION_MIN,
 } from './editorLimits'
 
 /**
- * Message-neutral create/edit draft checks for Subjects, Notes, and Flashcards.
+ * Message-neutral create/edit draft checks for Subjects, Notes, Flashcards,
+ * Calendar events, and manual Progress study sessions.
  * Views own user-facing copy, accessibility, mutation state, and persistence.
  */
 
@@ -120,6 +123,118 @@ export function validateFlashcardEditorDraft(
       front,
       back,
       subjectId: draft.subjectId,
+    },
+  }
+}
+
+export type CalendarEventEditorDraftInput = {
+  title: string
+  subjectId: string
+  date: string
+  time: string
+  duration: number
+  location: string
+}
+
+export type CalendarEventEditorFields = {
+  title: string
+  subjectId: string
+  startAt: string
+  endAt: string
+  location: string
+}
+
+export type CalendarEventEditorDraftValidation =
+  | { ok: true; fields: CalendarEventEditorFields }
+  | { ok: false; reason: 'empty_title' | 'invalid_start' | 'invalid_duration' }
+
+export function validateCalendarEventEditorDraft(
+  draft: CalendarEventEditorDraftInput,
+): CalendarEventEditorDraftValidation {
+  const title = draft.title.trim()
+  if (!title) {
+    return { ok: false, reason: 'empty_title' }
+  }
+
+  const startedAt = parseLocalDateTime(draft.date, draft.time)
+  if (!startedAt) {
+    return { ok: false, reason: 'invalid_start' }
+  }
+
+  if (!Number.isFinite(draft.duration) || draft.duration < CALENDAR_EDITOR_DURATION_MIN) {
+    return { ok: false, reason: 'invalid_duration' }
+  }
+
+  return {
+    ok: true,
+    fields: {
+      title,
+      subjectId: draft.subjectId,
+      startAt: startedAt.toISOString(),
+      endAt: new Date(startedAt.getTime() + draft.duration * 60_000).toISOString(),
+      location: draft.location.trim(),
+    },
+  }
+}
+
+export type StudySessionEditorDraftInput = {
+  subjectId: string
+  date: string
+  time: string
+  duration: string
+  note: string
+  /** True when `subjectId` is non-empty and absent from the available subject map. */
+  subjectMissing: boolean
+  /** Wall-clock reference for the future-end check; defaults to `Date.now()`. */
+  nowMs?: number
+}
+
+export type StudySessionEditorFields = {
+  subjectId: string
+  startedAt: string
+  endedAt: string
+  minutes: number
+  note: string
+}
+
+export type StudySessionEditorDraftValidation =
+  | { ok: true; fields: StudySessionEditorFields }
+  | {
+      ok: false
+      reason: 'missing_subject' | 'invalid_start' | 'invalid_duration' | 'future_end'
+    }
+
+export function validateStudySessionEditorDraft(
+  draft: StudySessionEditorDraftInput,
+): StudySessionEditorDraftValidation {
+  if (draft.subjectMissing) {
+    return { ok: false, reason: 'missing_subject' }
+  }
+
+  const startedAt = parseLocalDateTime(draft.date, draft.time)
+  if (!startedAt) {
+    return { ok: false, reason: 'invalid_start' }
+  }
+
+  const minutes = Number(draft.duration)
+  if (!Number.isInteger(minutes) || minutes < STUDY_SESSION_EDITOR_DURATION_MIN) {
+    return { ok: false, reason: 'invalid_duration' }
+  }
+
+  const endedAt = new Date(startedAt.getTime() + minutes * 60_000)
+  const nowMs = draft.nowMs ?? Date.now()
+  if (endedAt.getTime() > nowMs) {
+    return { ok: false, reason: 'future_end' }
+  }
+
+  return {
+    ok: true,
+    fields: {
+      subjectId: draft.subjectId,
+      startedAt: startedAt.toISOString(),
+      endedAt: endedAt.toISOString(),
+      minutes,
+      note: draft.note.trim(),
     },
   }
 }

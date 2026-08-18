@@ -660,6 +660,30 @@ describe('assertStudyExportSemantics', () => {
     })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
   })
 
+  it('accepts events longer than the Calendar editor duration ceiling and future-ended study sessions', () => {
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      events: [{
+        id: 'event-long',
+        title: 'All-day block',
+        subjectId: '',
+        startAt: '2026-07-24T08:00:00.000Z',
+        endAt: '2026-07-24T18:00:00.000Z',
+        location: '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+      studySessions: [{
+        id: 'session-future',
+        subjectId: '',
+        startedAt: '2099-01-01T10:00:00.000Z',
+        endedAt: '2099-01-01T11:00:00.000Z',
+        minutes: 60,
+        note: '',
+      }],
+    })).not.toThrow()
+  })
+
   it('rejects non-positive goal targets and negative progress, allowing over-target progress', () => {
     expect(() => assertStudyExportSemantics({
       ...emptyTables(),

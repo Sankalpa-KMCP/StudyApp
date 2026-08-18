@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { parseLocalDateTime } from '../appUtils'
 import {
+  validateCalendarEventEditorDraft,
   validateFlashcardEditorDraft,
   validateNoteEditorDraft,
+  validateStudySessionEditorDraft,
   validateSubjectEditorDraft,
 } from './editorDraftValidation'
 
@@ -170,6 +173,141 @@ describe('validateFlashcardEditorDraft', () => {
         front: 'Power rule',
         back: 'n x^{n-1}',
         subjectId: 'math',
+      },
+    })
+  })
+})
+
+describe('validateCalendarEventEditorDraft', () => {
+  const validDraft = {
+    title: '  Study block  ',
+    subjectId: 'subject-1',
+    date: '2026-08-01',
+    time: '14:30',
+    duration: 60,
+    location: '  Library  ',
+  }
+
+  it('rejects whitespace-only titles before parsing date or duration', () => {
+    expect(validateCalendarEventEditorDraft({ ...validDraft, title: '   ' })).toEqual({
+      ok: false,
+      reason: 'empty_title',
+    })
+  })
+
+  it('rejects malformed or missing local date/time via parseLocalDateTime', () => {
+    expect(validateCalendarEventEditorDraft({ ...validDraft, date: '', time: '14:30' })).toEqual({
+      ok: false,
+      reason: 'invalid_start',
+    })
+    expect(validateCalendarEventEditorDraft({ ...validDraft, date: '2026-08-01', time: '' })).toEqual({
+      ok: false,
+      reason: 'invalid_start',
+    })
+    expect(validateCalendarEventEditorDraft({ ...validDraft, date: '2026-02-30', time: '14:30' })).toEqual({
+      ok: false,
+      reason: 'invalid_start',
+    })
+  })
+
+  it('rejects non-finite and below-minimum durations without enforcing the NumberInput ceiling on save', () => {
+    expect(validateCalendarEventEditorDraft({ ...validDraft, duration: 14 })).toEqual({
+      ok: false,
+      reason: 'invalid_duration',
+    })
+    expect(validateCalendarEventEditorDraft({ ...validDraft, duration: Number.NaN })).toEqual({
+      ok: false,
+      reason: 'invalid_duration',
+    })
+    expect(validateCalendarEventEditorDraft({ ...validDraft, duration: Number.POSITIVE_INFINITY })).toEqual({
+      ok: false,
+      reason: 'invalid_duration',
+    })
+
+    const atMin = validateCalendarEventEditorDraft({ ...validDraft, duration: 15 })
+    expect(atMin.ok).toBe(true)
+    const atUiMax = validateCalendarEventEditorDraft({ ...validDraft, duration: 480 })
+    expect(atUiMax.ok).toBe(true)
+    const aboveUiMax = validateCalendarEventEditorDraft({ ...validDraft, duration: 481 })
+    expect(aboveUiMax.ok).toBe(true)
+  })
+
+  it('trims title and location and derives local startAt/endAt from duration', () => {
+    const startedAt = parseLocalDateTime('2026-08-01', '14:30')
+    expect(startedAt).not.toBeNull()
+    expect(validateCalendarEventEditorDraft({ ...validDraft, duration: 90 })).toEqual({
+      ok: true,
+      fields: {
+        title: 'Study block',
+        subjectId: 'subject-1',
+        startAt: startedAt!.toISOString(),
+        endAt: new Date(startedAt!.getTime() + 90 * 60_000).toISOString(),
+        location: 'Library',
+      },
+    })
+  })
+})
+
+describe('validateStudySessionEditorDraft', () => {
+  const validDraft = {
+    subjectId: '',
+    date: '2026-07-13',
+    time: '13:00',
+    duration: '30',
+    note: '  Momentum  ',
+    subjectMissing: false,
+    nowMs: new Date(2026, 6, 13, 15, 0).getTime(),
+  }
+
+  it('accepts General and known subjects, rejecting only missing non-empty subjects first', () => {
+    expect(
+      validateStudySessionEditorDraft({
+        ...validDraft,
+        subjectId: 'gone',
+        subjectMissing: true,
+        date: '',
+        duration: '0',
+      }),
+    ).toEqual({ ok: false, reason: 'missing_subject' })
+
+    expect(validateStudySessionEditorDraft({ ...validDraft, subjectId: '' }).ok).toBe(true)
+    expect(validateStudySessionEditorDraft({ ...validDraft, subjectId: 'physics' }).ok).toBe(true)
+  })
+
+  it('rejects malformed start, non-integer or sub-minimum duration, then future ends', () => {
+    expect(validateStudySessionEditorDraft({ ...validDraft, date: '' })).toEqual({
+      ok: false,
+      reason: 'invalid_start',
+    })
+    expect(validateStudySessionEditorDraft({ ...validDraft, duration: '0' })).toEqual({
+      ok: false,
+      reason: 'invalid_duration',
+    })
+    expect(validateStudySessionEditorDraft({ ...validDraft, duration: '1.5' })).toEqual({
+      ok: false,
+      reason: 'invalid_duration',
+    })
+    expect(validateStudySessionEditorDraft({ ...validDraft, duration: '1' }).ok).toBe(true)
+
+    const future = validateStudySessionEditorDraft({
+      ...validDraft,
+      time: '14:30',
+      duration: '45',
+    })
+    expect(future).toEqual({ ok: false, reason: 'future_end' })
+  })
+
+  it('stores the same local timestamps and trimmed note as the Progress editor', () => {
+    const startedAt = parseLocalDateTime('2026-07-13', '13:00')
+    expect(startedAt).not.toBeNull()
+    expect(validateStudySessionEditorDraft(validDraft)).toEqual({
+      ok: true,
+      fields: {
+        subjectId: '',
+        startedAt: startedAt!.toISOString(),
+        endedAt: new Date(startedAt!.getTime() + 30 * 60_000).toISOString(),
+        minutes: 30,
+        note: 'Momentum',
       },
     })
   })
