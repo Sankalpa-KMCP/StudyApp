@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useDataCoordinator } from './hooks/useDataCoordinator'
 import { useFocusSession } from './hooks/useFocusSession'
 import { useMobileNavBreakpoint } from './hooks/useMobileNavBreakpoint'
 import { useSidebarPreference } from './hooks/useSidebarPreference'
@@ -31,6 +32,7 @@ export type { ThemeMode } from './hooks/useThemePreference'
 
 function App() {
   const [activeView, setActiveView] = useState<View>(() => resolveViewFromPathname(window.location.pathname).view)
+  const { coordinator } = useDataCoordinator()
   const [noticeOpen, setNoticeOpen] = useState(false)
   const [taskFilter, setTaskFilter] = useState<'all' | 'open' | 'done'>('all')
   const [taskEditorRequest, setTaskEditorRequest] = useState(0)
@@ -126,7 +128,6 @@ function App() {
     acceptStaleFocusSession,
     discardStaleFocusSession,
     reloadFocusFromIndexedDb,
-    runWithFocusImportLock,
     clearFocusLocalState,
   } = useFocusSession({ subjectMap })
 
@@ -136,7 +137,7 @@ function App() {
     setTimeout(() => setProfileNotice(''), 5000)
   }, [navigateToView])
   const { exportBackup, importBackup, clearAllBackup } = useStudyBackup({
-    runWithFocusImportLock,
+    coordinator,
     reloadFocusFromIndexedDb,
     clearFocusLocalState,
     onClearSuccess: onBackupClearSuccess,

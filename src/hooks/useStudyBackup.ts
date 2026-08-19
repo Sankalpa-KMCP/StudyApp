@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import type { IDataOperationCoordinator } from '../db/dataCoordinator'
 import {
   clearAllStudyData,
   exportStudyData,
@@ -11,17 +12,21 @@ import {
 import type { ActiveFocusSession } from '../db/types'
 
 export type UseStudyBackupOptions = {
-  runWithFocusImportLock: <T>(action: () => Promise<T>) => Promise<T>
+  coordinator: IDataOperationCoordinator
   reloadFocusFromIndexedDb: () => Promise<ActiveFocusSession | null>
   clearFocusLocalState: () => void
   /** Invoked only after successful persistent clear + local focus reset. */
   onClearSuccess: () => void
 }
 
+export type BackupOperationResult =
+  | { ok: true }
+  | { ok: false; reason: 'busy' }
+
 export type UseStudyBackupResult = {
-  exportBackup: () => Promise<void>
-  importBackup: (file: File) => Promise<void>
-  clearAllBackup: () => Promise<void>
+  exportBackup: () => Promise<BackupOperationResult>
+  importBackup: (file: File) => Promise<BackupOperationResult>
+  clearAllBackup: () => Promise<BackupOperationResult>
 }
 
 /**
@@ -29,43 +34,59 @@ export type UseStudyBackupResult = {
  * and clear-all with post-success focus reset. Validation/transactions stay in studyDb.
  */
 export function useStudyBackup({
-  runWithFocusImportLock,
+  coordinator,
   reloadFocusFromIndexedDb,
   clearFocusLocalState,
   onClearSuccess,
 }: UseStudyBackupOptions): UseStudyBackupResult {
-  const exportBackup = useCallback(async () => {
+  const exportBackup = useCallback(async (): Promise<BackupOperationResult> => {
     let objectUrl: string | null = null
-    try {
-      const payload = await exportStudyData()
-      const serialized = JSON.stringify(payload, null, 2)
-      const filename = `study-dashboard-${new Date().toISOString().slice(0, 10)}.json`
-      const blob = new Blob([serialized], { type: 'application/json' })
-      objectUrl = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = objectUrl
-      anchor.download = filename
-      anchor.click()
-    } finally {
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    const result = await coordinator.runExport(async () => {
+      try {
+        const payload = await exportStudyData()
+        const serialized = JSON.stringify(payload, null, 2)
+        const filename = `study-dashboard-${new Date().toISOString().slice(0, 10)}.json`
+        const blob = new Blob([serialized], { type: 'application/json' })
+        objectUrl = URL.createObjectURL(blob)
+        const anchor = document.createElement('a')
+        anchor.href = objectUrl
+        anchor.download = filename
+        anchor.click()
+      } finally {
+        if (objectUrl) URL.revokeObjectURL(objectUrl)
+      }
+    })
+    if (!result.ok) {
+      return { ok: false, reason: 'busy' }
     }
-  }, [])
+    return { ok: true }
+  }, [coordinator])
 
-  const importBackup = useCallback(async (file: File) => {
-    await runWithFocusImportLock(async () => {
+  const importBackup = useCallback(async (file: File): Promise<BackupOperationResult> => {
+    const result = await coordinator.runImport(async () => {
       assertStudyExportImportFileSize(file)
       const text = await file.text()
       assertStudyExportImportTextLength(text)
       await importStudyData(JSON.parse(text) as unknown)
       await reloadFocusFromIndexedDb()
     })
-  }, [reloadFocusFromIndexedDb, runWithFocusImportLock])
+    if (!result.ok) {
+      return { ok: false, reason: 'busy' }
+    }
+    return { ok: true }
+  }, [coordinator, reloadFocusFromIndexedDb])
 
-  const clearAllBackup = useCallback(async () => {
-    await clearAllStudyData()
-    clearFocusLocalState()
-    onClearSuccess()
-  }, [clearFocusLocalState, onClearSuccess])
+  const clearAllBackup = useCallback(async (): Promise<BackupOperationResult> => {
+    const result = await coordinator.runDeleteAll(async () => {
+      await clearAllStudyData()
+      clearFocusLocalState()
+      onClearSuccess()
+    })
+    if (!result.ok) {
+      return { ok: false, reason: 'busy' }
+    }
+    return { ok: true }
+  }, [clearFocusLocalState, coordinator, onClearSuccess])
 
   return {
     exportBackup,

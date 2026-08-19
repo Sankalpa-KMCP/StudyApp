@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearAllStudyData, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, studyDb } from './studyDb'
 import type { StudyGoal } from './types'
 
@@ -176,6 +176,36 @@ describe('studyDb', () => {
     expect(snapshot.version).toBe(3)
     expect(restored.goals[0]?.metric).toBe('study_time')
     expect(restored.subjects[0]?.progressMode).toBe('manual')
+  })
+
+  it('AC-7: exports study data inside one Dexie readonly transaction covering all study tables', async () => {
+    let capturedMode: string | null = null
+    let capturedTables: string[] = []
+
+    const originalTransaction = studyDb.transaction.bind(studyDb)
+    const transactionSpy = vi.spyOn(studyDb, 'transaction').mockImplementation((mode: unknown, ...args: unknown[]) => {
+      capturedMode = mode as string
+      const tables = args.slice(0, -1).flat() as Array<{ name: string }>
+      capturedTables = tables.map((t) => t.name)
+      return (originalTransaction as (...a: unknown[]) => unknown)(mode, ...args) as Promise<unknown>
+    })
+
+    const snapshot = await exportStudyData()
+
+    expect(transactionSpy).toHaveBeenCalledTimes(1)
+    expect(capturedMode).toBe('r')
+    expect(capturedTables).toEqual([
+      'tasks',
+      'subjects',
+      'notes',
+      'events',
+      'flashcards',
+      'studySessions',
+      'goals',
+      'settings',
+    ])
+    expect(snapshot.version).toBe(3)
+    transactionSpy.mockRestore()
   })
 
   it('exports version 3 with explicit subject progress modes and round-trips them', async () => {

@@ -109,11 +109,13 @@ export async function getStudyData(): Promise<StudyData> {
 }
 
 export async function exportStudyData(): Promise<StudyExport> {
-  return {
-    version: 3,
-    exportedAt: nowIso(),
-    ...(await getStudyData()),
-  }
+  return studyDb.transaction('r', studyTables, async () => {
+    return {
+      version: 3,
+      exportedAt: nowIso(),
+      ...(await getStudyData()),
+    }
+  })
 }
 
 export async function importStudyData(payload: unknown) {
