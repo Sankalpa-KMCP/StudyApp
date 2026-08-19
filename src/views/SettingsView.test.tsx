@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { DataOperationCoordinator } from '../db/dataCoordinator'
@@ -88,7 +88,7 @@ describe('SettingsView concurrency and coordinator integration', () => {
     const coordinator = new DataOperationCoordinator()
     const onImport = vi.fn().mockResolvedValue(undefined)
 
-    const { rerender } = render(<TestSettingsViewWrapper coordinator={coordinator} onImport={onImport} />)
+    render(<TestSettingsViewWrapper coordinator={coordinator} onImport={onImport} />)
 
     const file = new File(['{"version":3}'], 'test.json', { type: 'application/json' })
     const input = screen.getByLabelText(/Import data/) as HTMLInputElement
