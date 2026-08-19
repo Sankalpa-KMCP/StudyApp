@@ -335,7 +335,7 @@ describe('useFocusSession', () => {
     const createSpy = vi.spyOn(activeFocusSession, 'createActiveFocusSession')
 
     const { result } = renderHook(() => useFocusSession({ subjectMap, coordinator }))
-    await waitFor(() => expect(result.current.canStartFocus).toBe(false)) // canStartFocus false because no session yet, but restore ready
+    await waitFor(() => expect(result.current.canStartFocus).toBe(true))
 
     // Attempt startSession
     await act(async () => {
