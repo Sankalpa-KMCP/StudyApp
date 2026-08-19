@@ -26,9 +26,9 @@ export function SettingsView({
   theme,
   onThemeChange,
 }: {
-  onExport: () => Promise<unknown>
-  onImport: (file: File) => Promise<unknown>
-  onClear: () => Promise<unknown>
+  onExport: () => Promise<void>
+  onImport: (file: File) => Promise<void>
+  onClear: () => Promise<void>
   onShowOnboardingChecklist: () => Promise<void>
   importPending?: boolean
   profileNotice: string
