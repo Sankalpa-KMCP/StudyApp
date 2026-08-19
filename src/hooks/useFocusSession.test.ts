@@ -322,4 +322,53 @@ describe('useFocusSession', () => {
       subjectId: 'subject-c',
     })
   })
+
+  it('AC-1, AC-5: blocks focus start/pause/resume/stop/subject updates when coordinator is busy', async () => {
+    const { DataOperationCoordinator } = await import('../db/dataCoordinator')
+    const coordinator = new DataOperationCoordinator()
+
+    // Lock the coordinator with an import
+    let releaseImport!: () => void
+    const importGate = new Promise<void>((resolve) => { releaseImport = resolve })
+    void coordinator.runImport(async () => importGate)
+
+    const createSpy = vi.spyOn(activeFocusSession, 'createActiveFocusSession')
+
+    const { result } = renderHook(() => useFocusSession({ subjectMap, coordinator }))
+    await waitFor(() => expect(result.current.canStartFocus).toBe(false)) // canStartFocus false because no session yet, but restore ready
+
+    // Attempt startSession
+    await act(async () => {
+      await result.current.startSession()
+    })
+
+    expect(createSpy).not.toHaveBeenCalled()
+    expect(result.current.sessionNotice).toBe('A data operation is currently in progress. Please wait.')
+
+    releaseImport()
+  })
+
+  it('AC-4: permits focus writes during active Export', async () => {
+    const { DataOperationCoordinator } = await import('../db/dataCoordinator')
+    const coordinator = new DataOperationCoordinator()
+
+    // Start an export
+    let releaseExport!: () => void
+    const exportGate = new Promise<void>((resolve) => { releaseExport = resolve })
+    const exportTask = coordinator.runExport(async () => exportGate)
+
+    const { result } = renderHook(() => useFocusSession({ subjectMap, coordinator }))
+    await waitFor(() => expect(result.current.canStartFocus).toBe(true))
+
+    await act(async () => {
+      await result.current.startSession()
+    })
+
+    expect(result.current.activeSession).not.toBe(null)
+    expect(result.current.sessionNotice).toBe('')
+
+    releaseExport()
+    await exportTask
+  })
 })
+

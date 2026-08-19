@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { formatMinutes } from '../appUtils'
 import {
   createActiveFocusSession,
@@ -12,11 +12,13 @@ import {
   shouldAutoCompleteFocusSession,
   updateActiveFocusSession,
 } from '../db/activeFocusSession'
+import { DataOperationCoordinator, type IDataOperationCoordinator } from '../db/dataCoordinator'
 import { createId, nowIso } from '../db/studyDb'
 import type { ActiveFocusSession, StudySubject } from '../db/types'
 
 export type UseFocusSessionOptions = {
   subjectMap: Map<string, StudySubject>
+  coordinator?: IDataOperationCoordinator
 }
 
 export type UseFocusSessionResult = {
@@ -50,7 +52,8 @@ export type UseFocusSessionResult = {
  * decisions, subject updates, timed auto-complete with sync pending refs, and
  * import/clear coordination helpers. Domain persistence stays in activeFocusSession.
  */
-export function useFocusSession({ subjectMap }: UseFocusSessionOptions): UseFocusSessionResult {
+export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }: UseFocusSessionOptions): UseFocusSessionResult {
+  const coordinator = useMemo(() => optionsCoordinator ?? new DataOperationCoordinator(), [optionsCoordinator])
   const [focusSubjectId, setFocusSubjectId] = useState('')
   const [focusDurationMinutes, setFocusDurationMinutes] = useState(25)
   const [sessionNotice, setSessionNotice] = useState('')
@@ -129,97 +132,115 @@ export function useFocusSession({ subjectMap }: UseFocusSessionOptions): UseFocu
       accumulatedPausedMs: 0,
     }
 
-    try {
-      const result = await createActiveFocusSession(session)
-      if (result.ok) {
-        deferredAutoCompleteSessionIdRef.current = null
-        setActiveSession(result.session)
-        setSessionNotice('')
-        return
-      }
-
-      if (result.reason === 'conflict') {
-        deferredAutoCompleteSessionIdRef.current = null
-        if (isActiveFocusSessionStale(result.existing)) {
-          setStaleFocusSession(result.existing)
-          setSessionNotice('An unfinished focus session needs a decision before you start another.')
+    const res = await coordinator.runFocusWrite(async () => {
+      try {
+        const result = await createActiveFocusSession(session)
+        if (result.ok) {
+          deferredAutoCompleteSessionIdRef.current = null
+          setActiveSession(result.session)
+          setSessionNotice('')
           return
         }
-        hydrateActiveSession(result.existing, 'An unfinished focus session was restored.')
+
+        if (result.reason === 'conflict') {
+          deferredAutoCompleteSessionIdRef.current = null
+          if (isActiveFocusSessionStale(result.existing)) {
+            setStaleFocusSession(result.existing)
+            setSessionNotice('An unfinished focus session needs a decision before you start another.')
+            return
+          }
+          hydrateActiveSession(result.existing, 'An unfinished focus session was restored.')
+        }
+      } catch {
+        setSessionNotice('Could not start the focus session. Try again.')
       }
-    } catch {
-      setSessionNotice('Could not start the focus session. Try again.')
+    })
+
+    if (!res.ok) {
+      setSessionNotice('A data operation is currently in progress. Please wait.')
     }
-  }, [activeSession, focusActionsPending, focusDurationMinutes, focusRestoreReady, focusSubjectId, hydrateActiveSession, staleFocusSession])
+  }, [activeSession, coordinator, focusActionsPending, focusDurationMinutes, focusRestoreReady, focusSubjectId, hydrateActiveSession, staleFocusSession])
 
   const acceptStaleFocusSession = useCallback(async () => {
     if (!staleFocusSession || focusActionsPending) return
 
     setFocusTransitionPending(true)
     try {
-      const current = await getActiveFocusSession()
-      if (!current) {
-        deferredAutoCompleteSessionIdRef.current = null
-        setStaleFocusSession(null)
-        setSessionNotice('That unfinished focus session is no longer available.')
-        return
-      }
-
-      if (current.id !== staleFocusSession.id) {
-        deferredAutoCompleteSessionIdRef.current = null
-        if (isActiveFocusSessionStale(current)) {
-          setStaleFocusSession(current)
-          setSessionNotice('Focus session was updated elsewhere.')
+      const res = await coordinator.runFocusWrite(async () => {
+        const current = await getActiveFocusSession()
+        if (!current) {
+          deferredAutoCompleteSessionIdRef.current = null
+          setStaleFocusSession(null)
+          setSessionNotice('That unfinished focus session is no longer available.')
           return
         }
-        setStaleFocusSession(null)
-        hydrateActiveSession(current, 'Focus session was updated elsewhere.')
-        return
-      }
 
-      setStaleFocusSession(null)
-      hydrateActiveSession(current)
+        if (current.id !== staleFocusSession.id) {
+          deferredAutoCompleteSessionIdRef.current = null
+          if (isActiveFocusSessionStale(current)) {
+            setStaleFocusSession(current)
+            setSessionNotice('Focus session was updated elsewhere.')
+            return
+          }
+          setStaleFocusSession(null)
+          hydrateActiveSession(current, 'Focus session was updated elsewhere.')
+          return
+        }
+
+        setStaleFocusSession(null)
+        hydrateActiveSession(current)
+      })
+
+      if (!res.ok) {
+        setSessionNotice('A data operation is currently in progress. Please wait.')
+      }
     } catch {
       setSessionNotice('Could not resume the unfinished focus session. Try again.')
     } finally {
       setFocusTransitionPending(false)
     }
-  }, [focusActionsPending, hydrateActiveSession, staleFocusSession])
+  }, [coordinator, focusActionsPending, hydrateActiveSession, staleFocusSession])
 
   const discardStaleFocusSession = useCallback(async () => {
     if (!staleFocusSession || focusActionsPending) return
 
     setFocusTransitionPending(true)
     try {
-      const result = await discardActiveFocusSession(staleFocusSession.id)
-      if (result.ok) {
-        deferredAutoCompleteSessionIdRef.current = null
-        setStaleFocusSession(null)
-        setSessionNotice('Unfinished focus session discarded.')
-        return
-      }
-
-      if (result.reason === 'conflict') {
-        deferredAutoCompleteSessionIdRef.current = null
-        if (isActiveFocusSessionStale(result.existing)) {
-          setStaleFocusSession(result.existing)
-          setSessionNotice('Focus session was updated elsewhere.')
+      const res = await coordinator.runFocusWrite(async () => {
+        const result = await discardActiveFocusSession(staleFocusSession.id)
+        if (result.ok) {
+          deferredAutoCompleteSessionIdRef.current = null
+          setStaleFocusSession(null)
+          setSessionNotice('Unfinished focus session discarded.')
           return
         }
-        setStaleFocusSession(null)
-        hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
-        return
-      }
 
-      deferredAutoCompleteSessionIdRef.current = null
-      setStaleFocusSession(null)
-      setSessionNotice('That unfinished focus session is no longer available.')
+        if (result.reason === 'conflict') {
+          deferredAutoCompleteSessionIdRef.current = null
+          if (isActiveFocusSessionStale(result.existing)) {
+            setStaleFocusSession(result.existing)
+            setSessionNotice('Focus session was updated elsewhere.')
+            return
+          }
+          setStaleFocusSession(null)
+          hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+          return
+        }
+
+        deferredAutoCompleteSessionIdRef.current = null
+        setStaleFocusSession(null)
+        setSessionNotice('That unfinished focus session is no longer available.')
+      })
+
+      if (!res.ok) {
+        setSessionNotice('A data operation is currently in progress. Please wait.')
+      }
     } catch {
       setSessionNotice('Could not discard the unfinished focus session. Try again.')
     } finally {
       setFocusTransitionPending(false)
     }
-  }, [focusActionsPending, hydrateActiveSession, staleFocusSession])
+  }, [coordinator, focusActionsPending, hydrateActiveSession, staleFocusSession])
 
   const finalizeFocusSession = useCallback(async (sessionToFinalize: ActiveFocusSession, completed: boolean) => {
     if (finalizingSessionIdRef.current === sessionToFinalize.id) return
@@ -248,7 +269,6 @@ export function useFocusSession({ subjectMap }: UseFocusSessionOptions): UseFocu
           return
         }
 
-        // Durable singleton already gone — clear obsolete React focus UI without logging history.
         setActiveSession(null)
         setStaleFocusSession(null)
         setSessionNotice('That focus session is no longer saved. It was removed from the screen without logging study time.')
@@ -259,7 +279,6 @@ export function useFocusSession({ subjectMap }: UseFocusSessionOptions): UseFocu
       setActiveSession(null)
       setSessionNotice(completed ? `Session complete: ${formatMinutes(result.history.minutes)} logged.` : `Session stopped: ${formatMinutes(result.history.minutes)} logged.`)
     } catch {
-      // Keep local + durable unfinished state recoverable after a persistence failure.
       setSessionNotice('Could not stop the focus session. Try again.')
     } finally {
       if (finalizingSessionIdRef.current === sessionToFinalize.id) {
@@ -275,33 +294,53 @@ export function useFocusSession({ subjectMap }: UseFocusSessionOptions): UseFocu
       }
     }
 
-    if (focusTransitionPendingRef.current || focusImportPendingRef.current) {
+    if (focusTransitionPendingRef.current || focusImportPendingRef.current || !coordinator.getSnapshot().canMutateFocus) {
       deferredAutoCompleteSessionIdRef.current = expectedSessionId
       return
     }
 
-    try {
-      const durable = await getActiveFocusSession()
-      if (!durable || durable.id !== expectedSessionId) {
-        clearDeferredForExpected()
-        return
-      }
+    const res = await coordinator.runFocusWrite(async () => {
+      try {
+        const durable = await getActiveFocusSession()
+        if (!durable || durable.id !== expectedSessionId) {
+          clearDeferredForExpected()
+          return
+        }
 
-      if (!shouldAutoCompleteFocusSession(durable)) {
-        clearDeferredForExpected()
-        return
-      }
+        if (!shouldAutoCompleteFocusSession(durable)) {
+          clearDeferredForExpected()
+          return
+        }
 
-      if (finalizingSessionIdRef.current === durable.id) {
-        clearDeferredForExpected()
-        return
-      }
+        if (finalizingSessionIdRef.current === durable.id) {
+          clearDeferredForExpected()
+          return
+        }
 
-      await finalizeFocusSession(durable, true)
-    } finally {
-      clearDeferredForExpected()
+        await finalizeFocusSession(durable, true)
+      } finally {
+        clearDeferredForExpected()
+      }
+    })
+
+    if (!res.ok) {
+      deferredAutoCompleteSessionIdRef.current = expectedSessionId
     }
-  }, [finalizeFocusSession])
+  }, [coordinator, finalizeFocusSession])
+
+  useEffect(() => {
+    const unsubscribe = coordinator.subscribe(() => {
+      const deferredId = deferredAutoCompleteSessionIdRef.current
+      if (deferredId && coordinator.getSnapshot().canMutateFocus) {
+        window.setTimeout(() => {
+          if (deferredAutoCompleteSessionIdRef.current === deferredId) {
+            void evaluateTimedCompletion(deferredId)
+          }
+        }, 0)
+      }
+    })
+    return unsubscribe
+  }, [coordinator, evaluateTimedCompletion])
 
   const settleFocusTransition = useCallback(() => {
     focusTransitionPendingRef.current = false
@@ -309,8 +348,6 @@ export function useFocusSession({ subjectMap }: UseFocusSessionOptions): UseFocu
     const deferredId = deferredAutoCompleteSessionIdRef.current
     if (!deferredId) return
     deferredAutoCompleteSessionIdRef.current = null
-    // Yield so React can commit pause/resume failure notices before deferred
-    // auto-complete reuses the shared sessionNotice slot.
     window.setTimeout(() => {
       void evaluateTimedCompletion(deferredId)
     }, 0)
@@ -323,23 +360,29 @@ export function useFocusSession({ subjectMap }: UseFocusSessionOptions): UseFocu
     focusTransitionPendingRef.current = true
     setFocusTransitionPending(true)
     try {
-      const result = await pauseActiveFocusSession(activeSession.id)
-      if (result.ok) {
-        setActiveSession(result.session)
-        setSessionNotice('')
-        return
+      const res = await coordinator.runFocusWrite(async () => {
+        const result = await pauseActiveFocusSession(activeSession.id)
+        if (result.ok) {
+          setActiveSession(result.session)
+          setSessionNotice('')
+          return
+        }
+        if (result.reason === 'conflict' || result.reason === 'invalid_state') {
+          hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+          return
+        }
+        setSessionNotice('Could not pause the focus session. Try again.')
+      })
+
+      if (!res.ok) {
+        setSessionNotice('A data operation is currently in progress. Please wait.')
       }
-      if (result.reason === 'conflict' || result.reason === 'invalid_state') {
-        hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
-        return
-      }
-      setSessionNotice('Could not pause the focus session. Try again.')
     } catch {
       setSessionNotice('Could not pause the focus session. Try again.')
     } finally {
       settleFocusTransition()
     }
-  }, [activeSession, focusActionsPending, hydrateActiveSession, settleFocusTransition])
+  }, [activeSession, coordinator, focusActionsPending, hydrateActiveSession, settleFocusTransition])
 
   const resumeSession = useCallback(async () => {
     if (!activeSession || activeSession.status !== 'paused' || focusActionsPending) return
@@ -348,30 +391,42 @@ export function useFocusSession({ subjectMap }: UseFocusSessionOptions): UseFocu
     focusTransitionPendingRef.current = true
     setFocusTransitionPending(true)
     try {
-      const result = await resumeActiveFocusSession(activeSession.id)
-      if (result.ok) {
-        setActiveSession(result.session)
-        setSessionNotice('')
-        return
+      const res = await coordinator.runFocusWrite(async () => {
+        const result = await resumeActiveFocusSession(activeSession.id)
+        if (result.ok) {
+          setActiveSession(result.session)
+          setSessionNotice('')
+          return
+        }
+        if (result.reason === 'conflict' || result.reason === 'invalid_state') {
+          hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+          return
+        }
+        setSessionNotice('Could not resume the focus session. Try again.')
+      })
+
+      if (!res.ok) {
+        setSessionNotice('A data operation is currently in progress. Please wait.')
       }
-      if (result.reason === 'conflict' || result.reason === 'invalid_state') {
-        hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
-        return
-      }
-      setSessionNotice('Could not resume the focus session. Try again.')
     } catch {
       setSessionNotice('Could not resume the focus session. Try again.')
     } finally {
       settleFocusTransition()
     }
-  }, [activeSession, focusActionsPending, hydrateActiveSession, settleFocusTransition])
+  }, [activeSession, coordinator, focusActionsPending, hydrateActiveSession, settleFocusTransition])
 
   const stopSession = useCallback(async (completed = false) => {
     if (!activeSession) return
     if (finalizingSessionIdRef.current === activeSession.id || focusActionsPending) return
 
-    await finalizeFocusSession(activeSession, completed)
-  }, [activeSession, finalizeFocusSession, focusActionsPending])
+    const res = await coordinator.runFocusWrite(async () => {
+      await finalizeFocusSession(activeSession, completed)
+    })
+
+    if (!res.ok) {
+      setSessionNotice('A data operation is currently in progress. Please wait.')
+    }
+  }, [activeSession, coordinator, finalizeFocusSession, focusActionsPending])
 
   useEffect(() => {
     if (!activeSession || activeSession.status !== 'running' || activeSession.plannedMinutes <= 0) return undefined
@@ -381,14 +436,14 @@ export function useFocusSession({ subjectMap }: UseFocusSessionOptions): UseFocu
     const remainingMs = Math.max(0, limitMs - getActiveFocusElapsedMs(activeSession))
 
     const timer = window.setTimeout(() => {
-      if (focusTransitionPendingRef.current || focusImportPendingRef.current) {
+      if (focusTransitionPendingRef.current || focusImportPendingRef.current || !coordinator.getSnapshot().canMutateFocus) {
         deferredAutoCompleteSessionIdRef.current = sessionId
         return
       }
       void evaluateTimedCompletion(sessionId)
     }, remainingMs)
     return () => window.clearTimeout(timer)
-  }, [activeSession, evaluateTimedCompletion])
+  }, [activeSession, coordinator, evaluateTimedCompletion])
 
   const updateFocusSubject = useCallback((subjectId: string) => {
     setFocusSubjectId(subjectId)
@@ -400,44 +455,54 @@ export function useFocusSession({ subjectMap }: UseFocusSessionOptions): UseFocu
     setActiveSession(nextSession)
 
     void (async () => {
-      try {
-        const result = await updateActiveFocusSession(nextSession)
-        if (writeSeq !== focusSubjectWriteSeqRef.current) return
+      const res = await coordinator.runFocusWrite(async () => {
+        try {
+          const result = await updateActiveFocusSession(nextSession)
+          if (writeSeq !== focusSubjectWriteSeqRef.current) return
 
-        if (result.ok) {
-          setActiveSession(result.session)
-          return
-        }
+          if (result.ok) {
+            setActiveSession(result.session)
+            return
+          }
 
-        if (result.reason === 'conflict') {
-          hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
-          return
-        }
+          if (result.reason === 'conflict') {
+            hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+            return
+          }
 
-        const durable = await getActiveFocusSession()
-        if (writeSeq !== focusSubjectWriteSeqRef.current) return
-        if (durable) {
-          hydrateActiveSession(durable, 'Could not update the focus subject. Try again.')
-          return
-        }
+          const durable = await getActiveFocusSession()
+          if (writeSeq !== focusSubjectWriteSeqRef.current) return
+          if (durable) {
+            hydrateActiveSession(durable, 'Could not update the focus subject. Try again.')
+            return
+          }
 
-        setActiveSession(baseline)
-        setFocusSubjectId(baseline.subjectId)
-        setSessionNotice('Could not update the focus subject. Try again.')
-      } catch {
-        if (writeSeq !== focusSubjectWriteSeqRef.current) return
-        const durable = await getActiveFocusSession()
-        if (writeSeq !== focusSubjectWriteSeqRef.current) return
-        if (durable) {
-          hydrateActiveSession(durable, 'Could not update the focus subject. Try again.')
-          return
+          setActiveSession(baseline)
+          setFocusSubjectId(baseline.subjectId)
+          setSessionNotice('Could not update the focus subject. Try again.')
+        } catch {
+          if (writeSeq !== focusSubjectWriteSeqRef.current) return
+          const durable = await getActiveFocusSession()
+          if (writeSeq !== focusSubjectWriteSeqRef.current) return
+          if (durable) {
+            hydrateActiveSession(durable, 'Could not update the focus subject. Try again.')
+            return
+          }
+          setActiveSession(baseline)
+          setFocusSubjectId(baseline.subjectId)
+          setSessionNotice('Could not update the focus subject. Try again.')
         }
-        setActiveSession(baseline)
-        setFocusSubjectId(baseline.subjectId)
-        setSessionNotice('Could not update the focus subject. Try again.')
+      })
+
+      if (!res.ok) {
+        if (writeSeq === focusSubjectWriteSeqRef.current) {
+          setActiveSession(baseline)
+          setFocusSubjectId(baseline.subjectId)
+          setSessionNotice('A data operation is currently in progress. Please wait.')
+        }
       }
     })()
-  }, [activeSession, focusActionsPending, hydrateActiveSession])
+  }, [activeSession, coordinator, focusActionsPending, hydrateActiveSession])
 
   const runWithFocusImportLock = useCallback(async <T,>(action: () => Promise<T>): Promise<T> => {
     focusImportPendingRef.current = true
