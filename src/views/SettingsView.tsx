@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
-import { BookOpen, Download, Upload, Layers3, RotateCcw } from '../components/icons'
+import { BookOpen, Download, Layers3, RotateCcw, Upload } from '../components/icons'
 import { MutationNotice, PanelHeader } from '../components/ui'
-import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
+import type { DataCoordinatorSnapshot } from '../db/dataCoordinator'
+import { type MutationPhase, useMutationState } from '../hooks/useMutationState'
 import type { ThemeMode } from '../hooks/useThemePreference'
 
 const themeOptions: Array<{ id: ThemeMode; label: string; description: string; swatches: string[] }> = [
@@ -15,6 +16,7 @@ const themeOptions: Array<{ id: ThemeMode; label: string; description: string; s
 ]
 
 export function SettingsView({
+  coordinatorState,
   onExport,
   onImport,
   onClear,
@@ -26,6 +28,7 @@ export function SettingsView({
   theme,
   onThemeChange,
 }: {
+  coordinatorState?: DataCoordinatorSnapshot
   onExport: () => Promise<void>
   onImport: (file: File) => Promise<void>
   onClear: () => Promise<void>
@@ -41,6 +44,7 @@ export function SettingsView({
   const [clearError, setClearError] = useState<string | null>(null)
   const [resetState, setResetState] = useState<'idle' | 'confirm' | 'deleting'>('idle')
   const [deleteInput, setDeleteInput] = useState('')
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const themeOptionRefs = useRef<Array<HTMLButtonElement | null>>([])
   const exportMutation = useMutationState()
   const onboardingMutation = useMutationState()
@@ -52,17 +56,21 @@ export function SettingsView({
     run: runExport,
   } = exportMutation
 
+  const isExportDisabled = isExporting || (coordinatorState ? !coordinatorState.canExport : false)
+  const isImportDisabled = importPending || (coordinatorState ? !coordinatorState.canImport : false)
+  const isClearDisabled = resetState === 'deleting' || (coordinatorState ? !coordinatorState.canClear : false)
+
   const noticePhase: MutationPhase = clearError
     ? 'error'
     : preferenceNotice
       ? 'error'
       : onboardingMutation.phase === 'success' || onboardingMutation.phase === 'error'
         ? onboardingMutation.phase
-      : exportPhase === 'success' || exportPhase === 'error'
-        ? exportPhase
-        : importFeedback
-          ? importFeedback.tone
-          : 'idle'
+        : exportPhase === 'success' || exportPhase === 'error'
+          ? exportPhase
+          : importFeedback
+            ? importFeedback.tone
+            : 'idle'
   const noticeMessage = clearError
     ?? preferenceNotice
     ?? (onboardingMutation.phase === 'success' || onboardingMutation.phase === 'error' ? onboardingMutation.message : null)
@@ -93,22 +101,36 @@ export function SettingsView({
   }
 
   const handleExport = async () => {
-    if (isExporting || importPending || resetState === 'deleting') return
+    if (isExportDisabled) {
+      if (coordinatorState && !coordinatorState.canExport) {
+        setClearError('A data operation is currently in progress. Please wait.')
+      }
+      return
+    }
     setClearError(null)
     setImportFeedback(null)
     onDismissPreferenceNotice?.()
-    await runExport(async () => {
-      await onExport()
-    }, {
-      successMessage: 'Backup exported.',
-      errorMessage: 'Backup could not be exported.',
-    })
+    try {
+      await runExport(async () => {
+        await onExport()
+      }, {
+        successMessage: 'Backup exported.',
+        errorMessage: 'Backup could not be exported.',
+      })
+    } catch {
+      setClearError('A data operation is currently in progress. Please wait.')
+    }
   }
 
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (!file || importPending) {
-      event.target.value = ''
+    if (!file) {
+      if (event.target) event.target.value = ''
+      return
+    }
+    if (isImportDisabled) {
+      if (event.target) event.target.value = ''
+      setImportFeedback({ tone: 'error', message: 'A data operation is currently in progress. Please wait.' })
       return
     }
 
@@ -121,12 +143,16 @@ export function SettingsView({
     } catch {
       setImportFeedback({ tone: 'error', message: 'Import failed. Choose a valid Study Dashboard export.' })
     } finally {
-      event.target.value = ''
+      if (event.target) event.target.value = ''
     }
   }
 
   const handleClear = async () => {
-    if (deleteInput !== 'DELETE' || resetState === 'deleting') return
+    if (deleteInput !== 'DELETE' || isClearDisabled) return
+    if (coordinatorState && !coordinatorState.canClear) {
+      setClearError('A data operation is currently in progress. Please wait.')
+      return
+    }
     setClearError(null)
     clearExportFeedback()
     setImportFeedback(null)
@@ -142,7 +168,7 @@ export function SettingsView({
   }
 
   const handleShowOnboardingChecklist = async () => {
-    if (onboardingMutation.isPending || importPending || resetState === 'deleting') return
+    if (onboardingMutation.isPending || isImportDisabled || resetState === 'deleting') return
     setClearError(null)
     setImportFeedback(null)
     clearExportFeedback()
@@ -159,28 +185,37 @@ export function SettingsView({
     <section className="workspace-panel" aria-labelledby="settings-workspace-title">
       <PanelHeader title="Settings" description="Manage appearance, backups, and local data." />
       {profileNotice ? <p className="settings-feedback" role="status">{profileNotice}</p> : null}
+      {coordinatorState?.statusLabel ? (
+        <div className="settings-active-operation-status" aria-live="polite">
+          {coordinatorState.statusLabel}
+        </div>
+      ) : null}
       <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
       <div className="card-grid">
         <button
           className="action-card"
           type="button"
           onClick={() => void handleExport()}
-          disabled={isExporting || importPending}
-          aria-busy={isExporting || undefined}
+          disabled={isExportDisabled}
+          aria-busy={isExporting || coordinatorState?.activeDataOperation === 'export' || undefined}
         >
           <Download size={24} aria-hidden="true" />
-          <strong>{isExporting ? 'Exporting backup...' : 'Export data'}</strong>
-          <span>{isExporting ? 'Preparing your JSON backup.' : 'Download a complete JSON backup.'}</span>
+          <strong>{isExporting || coordinatorState?.activeDataOperation === 'export' ? 'Creating backup…' : 'Export data'}</strong>
+          <span>{isExporting || coordinatorState?.activeDataOperation === 'export' ? 'Preparing your JSON backup.' : 'Download a complete JSON backup.'}</span>
         </button>
-        <label className={importPending ? 'action-card import-card is-pending' : 'action-card import-card'} aria-busy={importPending}>
+        <label
+          className={importPending || coordinatorState?.activeDataOperation === 'import' ? 'action-card import-card is-pending' : isImportDisabled ? 'action-card import-card is-disabled' : 'action-card import-card'}
+          aria-busy={importPending || coordinatorState?.activeDataOperation === 'import' || undefined}
+        >
           <Upload size={24} aria-hidden="true" />
-          <strong>Import data</strong>
-          <span>{importPending ? 'Importing and syncing focus state…' : 'Replace local data from a Study Dashboard backup.'}</span>
+          <strong>{importPending || coordinatorState?.activeDataOperation === 'import' ? 'Importing backup…' : 'Import data'}</strong>
+          <span>{importPending || coordinatorState?.activeDataOperation === 'import' ? 'Importing and syncing focus state…' : 'Replace local data from a Study Dashboard backup.'}</span>
           <input
+            ref={fileInputRef}
             className="sr-only"
             type="file"
             accept="application/json"
-            disabled={importPending || isExporting}
+            disabled={isImportDisabled}
             aria-label="Import data"
             onChange={(event) => void handleImport(event)}
           />
@@ -218,7 +253,7 @@ export function SettingsView({
           type="button"
           aria-label="Show onboarding checklist"
           onClick={() => void handleShowOnboardingChecklist()}
-          disabled={onboardingMutation.isPending || importPending || resetState === 'deleting'}
+          disabled={onboardingMutation.isPending || isImportDisabled || resetState === 'deleting'}
           aria-busy={onboardingMutation.isPending || undefined}
         >
           <BookOpen size={24} aria-hidden="true" />
@@ -231,13 +266,25 @@ export function SettingsView({
       </div>
       <div className="card-grid danger-zone">
         {resetState === 'idle' ? (
-          <button className="action-card danger-card" type="button" onClick={() => { setResetState('confirm'); setClearError(null) }}>
+          <button
+            className="action-card danger-card"
+            type="button"
+            disabled={isClearDisabled}
+            onClick={() => {
+              if (coordinatorState && !coordinatorState.canClear) {
+                setClearError('A data operation is currently in progress. Please wait.')
+                return
+              }
+              setResetState('confirm')
+              setClearError(null)
+            }}
+          >
             <RotateCcw size={24} aria-hidden="true" />
             <strong>Reset all study data</strong>
             <span>Permanently deletes local study data on this device.</span>
           </button>
         ) : (
-          <div className="action-card danger-card is-confirming" aria-busy={resetState === 'deleting' || undefined}>
+          <div className="action-card danger-card is-confirming" aria-busy={resetState === 'deleting' || coordinatorState?.activeDataOperation === 'deleteAll' || undefined}>
             <strong>Confirm data deletion</strong>
             <p>Type DELETE to permanently remove all study data.</p>
             <input
@@ -246,7 +293,7 @@ export function SettingsView({
               value={deleteInput}
               onChange={(e) => setDeleteInput(e.target.value)}
               placeholder="DELETE"
-              disabled={resetState === 'deleting'}
+              disabled={resetState === 'deleting' || isClearDisabled}
             />
             <div className="button-row">
               <button
@@ -260,11 +307,11 @@ export function SettingsView({
               <button
                 className="primary-command"
                 type="button"
-                disabled={deleteInput !== 'DELETE' || resetState === 'deleting'}
-                aria-busy={resetState === 'deleting' || undefined}
+                disabled={deleteInput !== 'DELETE' || isClearDisabled}
+                aria-busy={resetState === 'deleting' || coordinatorState?.activeDataOperation === 'deleteAll' || undefined}
                 onClick={() => void handleClear()}
               >
-                {resetState === 'deleting' ? 'Clearing...' : 'Delete all data'}
+                {resetState === 'deleting' || coordinatorState?.activeDataOperation === 'deleteAll' ? 'Deleting study data…' : 'Delete all data'}
               </button>
             </div>
           </div>

@@ -260,7 +260,7 @@ describe('App backup', () => {
 
     await user.click(screen.getByRole('button', { name: /Export data/ }))
 
-    const exportingButton = await screen.findByRole('button', { name: /Exporting backup/ })
+    const exportingButton = await screen.findByRole('button', { name: /Creating backup/ })
     expect(exportingButton).toBeDisabled()
     await user.click(exportingButton)
     expect(exportSpy).toHaveBeenCalledTimes(1)
@@ -314,8 +314,8 @@ describe('App backup', () => {
     await user.type(screen.getByPlaceholderText('DELETE'), 'DELETE')
     await user.click(screen.getByRole('button', { name: 'Delete all data' }))
 
-    expect(await screen.findByRole('button', { name: 'Clearing...' })).toBeDisabled()
-    await user.click(screen.getByRole('button', { name: 'Clearing...' }))
+    expect(await screen.findByRole('button', { name: /Deleting study data/ })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: /Deleting study data/ }))
     expect(clearSpy).toHaveBeenCalledTimes(1)
 
     releaseClear()
@@ -328,4 +328,76 @@ describe('App backup', () => {
     expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     expect(await studyDb.tasks.count()).toBe(0)
   })
+
+  it('displays exact active-operation status labels and disables controls while a Settings operation is active', async () => {
+    const user = userEvent.setup()
+    let releaseExport!: () => void
+    const exportGate = new Promise<void>((resolve) => {
+      releaseExport = resolve
+    })
+    vi.spyOn(await import('./db/studyDb'), 'exportStudyData').mockImplementationOnce(async () => {
+      await exportGate
+      return makeEmptyExport()
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+
+    // Trigger Export
+    await user.click(screen.getByRole('button', { name: /Export data/ }))
+
+    // Status label should be displayed accessibly
+    expect((await screen.findAllByText('Creating backup…'))[0]).toBeInTheDocument()
+
+    // All three Settings data-operation controls should be disabled while export is active
+    expect(screen.getByRole('button', { name: /Creating backup/ })).toBeDisabled()
+    expect(screen.getByLabelText(/Import data/)).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Reset all study data/ })).toBeDisabled()
+
+    releaseExport()
+
+    await waitFor(() => {
+      expect(screen.queryByText('Creating backup…')).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: /Export data/ })).toBeEnabled()
+    expect(screen.getByLabelText(/Import data/)).toBeEnabled()
+    expect(screen.getByRole('button', { name: /Reset all study data/ })).toBeEnabled()
+  })
+
+  it('disables Import and Delete All during an active focus-session write while keeping Export enabled', async () => {
+    const user = userEvent.setup()
+
+    // Start a focus write (via activeFocusSession create)
+    let releaseFocusWrite!: () => void
+    const focusGate = new Promise<void>((resolve) => { releaseFocusWrite = resolve })
+    const realCreate = (await import('./db/activeFocusSession')).createActiveFocusSession
+    vi.spyOn(await import('./db/activeFocusSession'), 'createActiveFocusSession').mockImplementationOnce(async (session) => {
+      await focusGate
+      return realCreate(session)
+    })
+
+    render(<App />)
+
+    // Start a focus session to acquire focus write lease
+    const { waitForFocusStartEnabled } = await import('./test/focusTestHelpers')
+    const startBtn = await waitForFocusStartEnabled()
+    await user.click(startBtn)
+
+    // Navigate to Settings while focus write is in-flight
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+
+    // Import and Delete All must be disabled during active focus write
+    expect(screen.getByLabelText(/Import data/)).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Reset all study data/ })).toBeDisabled()
+
+    // Export remains enabled during focus write
+    expect(screen.getByRole('button', { name: /Export data/ })).toBeEnabled()
+
+    releaseFocusWrite()
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Import data/)).toBeEnabled()
+    })
+    expect(screen.getByRole('button', { name: /Reset all study data/ })).toBeEnabled()
+  })
 })
+
