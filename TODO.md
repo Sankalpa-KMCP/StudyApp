@@ -5,6 +5,8 @@
 - [x] Remove only the corresponding scripts from package.json
 - [x] Verify with npm test (and optionally coverage scripts) that standard workflow remains intact
 
+Active, evidence-backed residuals now live in [docs/technical-debt.md](docs/technical-debt.md).
+
 
 
 
