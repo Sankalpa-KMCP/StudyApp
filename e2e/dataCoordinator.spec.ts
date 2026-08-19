@@ -21,7 +21,7 @@ test('Settings operation coordinator serializes Delete All and Export in one bro
 
   // 3. Open Delete All confirmation and type DELETE
   await page.getByRole('button', { name: 'Reset all study data' }).click()
-  await page.getByPlaceholderText('DELETE').fill('DELETE')
+  await page.getByPlaceholder('DELETE').fill('DELETE')
 
   // 4. Register download listener
   let downloadTriggered = false
