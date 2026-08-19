@@ -43,7 +43,7 @@ test('Settings operation coordinator serializes Delete All and Export in one bro
 
   // 6. Assertions:
   // - Delete All completes successfully and navigates to Home with success notice
-  await expect(page.getByRole('status')).toHaveTextContent('All study data has been permanently deleted.', { timeout: 15_000 })
+  await expect(page.getByRole('status')).toContainText('All study data has been permanently deleted.', { timeout: 15_000 })
   await expect(page.getByRole('heading', { name: HOME_GREETING_HEADING })).toBeVisible()
 
   // - Seeded task is deleted
@@ -56,6 +56,6 @@ test('Settings operation coordinator serializes Delete All and Export in one bro
   // - Controls become available again after settlement
   await navigateWorkspace(page, 'Settings')
   await expect(page.getByRole('button', { name: 'Export data' })).toBeEnabled()
-  await expect(page.getByLabelText('Import data')).toBeEnabled()
+  await expect(page.getByLabel('Import data')).toBeEnabled()
   await expect(page.getByRole('button', { name: 'Reset all study data' })).toBeEnabled()
 })
