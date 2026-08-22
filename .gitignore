@@ -46,3 +46,7 @@ Thumbs.db
 
 # Cursor rules local only
 /.cursor/rules/
+
+# Local agent tooling (rules/workflows) and local archives
+.agents/
+/study_app.zip

@@ -153,6 +153,7 @@ export interface TestImportHooks {
   forceQuotaError?: boolean
   abortTransaction?: boolean
   forceCleanupError?: boolean
+  forceSettingsPutError?: boolean
 }
 
 export async function importStudyData(
@@ -178,6 +179,9 @@ export async function importStudyData(
       }
       if (_testHooks?.abortTransaction) {
         throw new Error('Explicit transaction abort')
+      }
+      if (_testHooks?.forceSettingsPutError) {
+        throw new Error('Forced settings put error')
       }
 
       await Promise.all([
@@ -265,9 +269,12 @@ export class LegacyMigrationCollisionError extends Error {
 }
 
 export interface TestMigrationHooks {
+  beforeTransactionAcquisition?: () => void | Promise<void>
   beforeEntityWrite?: () => void | Promise<void>
   beforeMarkerWrite?: () => void | Promise<void>
   forceQuotaError?: boolean
+  forceEntityWriteError?: boolean
+  forceMarkerWriteError?: boolean
   abortTransaction?: boolean
 }
 
@@ -459,6 +466,10 @@ export async function migrateLegacyLocalStorage(
       return { status: 'empty_data_skipped' }
     }
 
+    if (_testHooks?.beforeTransactionAcquisition) {
+      await _testHooks.beforeTransactionAcquisition()
+    }
+
     let alreadyMigratedInTx = false
 
     await studyDb.transaction('rw', studyTables, async () => {
@@ -491,6 +502,9 @@ export async function migrateLegacyLocalStorage(
       if (_testHooks?.beforeEntityWrite) {
         await _testHooks.beforeEntityWrite()
       }
+      if (_testHooks?.forceEntityWriteError) {
+        throw new Error('Forced entity write error')
+      }
 
       await Promise.all([
         studyDb.subjects.bulkAdd(subjectsToAdd),
@@ -509,6 +523,9 @@ export async function migrateLegacyLocalStorage(
 
       if (_testHooks?.beforeMarkerWrite) {
         await _testHooks.beforeMarkerWrite()
+      }
+      if (_testHooks?.forceMarkerWriteError) {
+        throw new Error('Forced marker write error')
       }
       if (_testHooks?.forceQuotaError) {
         throw new DOMException('QuotaExceededError', 'QuotaExceededError')

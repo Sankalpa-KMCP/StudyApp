@@ -399,5 +399,35 @@ describe('App backup', () => {
     })
     expect(screen.getByRole('button', { name: /Reset all study data/ })).toBeEnabled()
   })
+
+  it('Scenario 49: omitted active focus session in imported backup clears durable IndexedDB setting and resets React UI focus state to idle without creating a study session', async () => {
+    const user = userEvent.setup()
+    const { createActiveFocusSession } = await import('./db/activeFocusSession')
+    const { makeDurableFocusSession, waitForFocusStartEnabled } = await import('./test/focusTestHelpers')
+
+    await createActiveFocusSession(makeDurableFocusSession({
+      id: 'focus-omitted-test',
+      subjectId: '',
+      plannedMinutes: 0,
+    }))
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    const validExportNoFocus = makeEmptyExport()
+
+    await importStudyExport(user, validExportNoFocus, 'no-focus.json')
+    expect(await screen.findByRole('status')).toHaveTextContent('Study data imported.')
+
+    const focusSetting = await studyDb.settings.get('activeFocusSession')
+    expect(focusSetting).toBeUndefined()
+
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    await waitForFocusStartEnabled()
+    expect(screen.queryByRole('button', { name: 'Stop session' })).not.toBeInTheDocument()
+
+    expect(await studyDb.studySessions.count()).toBe(0)
+  })
 })
 

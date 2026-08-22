@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearAllStudyData, createStudyExportPayload, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, parseAndNormalizeStudyExport, readStudyDataSnapshot, studyDb, StudyDatabase } from './studyDb'
-import { MAX_STUDY_EXPORT_IMPORT_BYTES, MAX_STUDY_EXPORT_IMPORT_CHARS } from './studyExportLimits'
+import { assertStudyExportImportFileSize, assertStudyExportImportTextLength, MAX_STUDY_EXPORT_IMPORT_BYTES, MAX_STUDY_EXPORT_IMPORT_CHARS } from './studyExportLimits'
 import type { ActiveFocusSession, StudyGoal } from './types'
 
 const STUDY_DB_NAME = 'study-dashboard-db'
@@ -56,6 +56,9 @@ async function seedVersion1SubjectsAndSessions(
 describe('studyDb', () => {
   beforeEach(async () => {
     localStorage.clear()
+    if (studyDb.isOpen()) {
+      studyDb.close()
+    }
     await studyDb.delete()
     await studyDb.open()
   })
@@ -1879,6 +1882,19 @@ describe('studyDb', () => {
     expect((await getStudyData()).tasks).toHaveLength(0)
   })
 
+  async function readCompleteStudyDbSnapshot() {
+    return {
+      tasks: await studyDb.tasks.toArray(),
+      subjects: await studyDb.subjects.toArray(),
+      notes: await studyDb.notes.toArray(),
+      events: await studyDb.events.toArray(),
+      flashcards: await studyDb.flashcards.toArray(),
+      studySessions: await studyDb.studySessions.toArray(),
+      goals: await studyDb.goals.toArray(),
+      settings: await studyDb.settings.toArray(),
+    }
+  }
+
   it('migrates customized legacy localStorage data once', async () => {
     localStorage.setItem(
       'study-dashboard-v2',
@@ -2183,7 +2199,188 @@ describe('studyDb', () => {
     expect(alreadyMigratedResult).toEqual({ status: 'already_migrated' })
   })
 
-  it('rolls back database modifications and preserves legacy storage when quota error occurs during transaction', async () => {
+  it('Scenario 6: deduplicates equivalent incoming duplicate legacy records with differing property insertion order', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [
+          { id: 'task-dup-order', title: 'Order Test Task', subject: 'Math', done: false, minutes: 20 },
+          { subject: 'Math', done: false, minutes: 20, title: 'Order Test Task', id: 'task-dup-order' },
+        ],
+        notes: [
+          { id: 'note-unrelated', title: 'Unrelated Note', tag: 'Science', body: 'Unrelated note body' },
+        ],
+      }),
+    )
+
+    const result = await migrateLegacyLocalStorage()
+
+    expect(result.status).toBe('success')
+    if (result.status === 'success') {
+      expect(result.recordCount).toBe(4)
+    }
+
+    const tasks = await studyDb.tasks.toArray()
+    expect(tasks).toHaveLength(1)
+    expect(tasks[0].id).toBe('task-dup-order')
+
+    const notes = await studyDb.notes.toArray()
+    expect(notes).toHaveLength(1)
+    expect(notes[0].id).toBe('note-unrelated')
+
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+  })
+
+  it('Scenario 8: deduplicates structurally equivalent existing IndexedDB rows and completes migration successfully', async () => {
+    // Fake only Date so migration stamps deterministic timestamps; faking all
+    // timers deadlocks Dexie's scheduler.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const fixedNow = new Date('2026-06-01T12:00:00.000Z')
+    vi.setSystemTime(fixedNow)
+
+    try {
+      // Seeds mirror exactly what migrateLegacyData derives from the legacy
+      // payload below (default color, targetHours formula, clamped minutes).
+      const timestamp = fixedNow.toISOString()
+      const mathSubject = {
+        id: 'subject-math-id',
+        name: 'Math',
+        color: '#111827',
+        targetHours: 3,
+        progress: 0,
+        progressMode: 'manual' as const,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }
+      const seededTask = {
+        id: 'task-equiv-1',
+        title: 'Equivalent Task',
+        subjectId: 'subject-math-id',
+        dueDate: '',
+        priority: 'normal' as const,
+        status: 'open' as const,
+        minutes: 30,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }
+
+      await studyDb.subjects.add(mathSubject)
+      await studyDb.tasks.add(seededTask)
+
+      localStorage.setItem(
+        'study-dashboard-v2',
+        JSON.stringify({
+          subjects: [{ id: 'subject-math-id', name: 'Math', topicsLeft: 2, progress: 0 }],
+          tasks: [
+            { id: 'task-equiv-1', title: 'Equivalent Task', subject: 'Math', done: false, minutes: 30 },
+            { id: 'task-new-2', title: 'New Task 2', subject: 'Math', done: false, minutes: 20 },
+          ],
+        }),
+      )
+
+      const result = await migrateLegacyLocalStorage()
+
+      expect(result.status).toBe('success')
+      expect(await studyDb.tasks.count()).toBe(2)
+      expect(await studyDb.tasks.get('task-equiv-1')).toEqual(seededTask)
+      expect(await studyDb.tasks.get('task-new-2')).toBeDefined()
+      expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+      expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('Scenario 10 & 14: rolls back complete pre-operation database snapshot on entity-write failure', async () => {
+    await studyDb.tasks.add({
+      id: 'task-pre-existing',
+      title: 'Pre-existing Task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 30,
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
+    })
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
+
+    const snapshotBefore = await readCompleteStudyDbSnapshot()
+
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'task-write-fail', title: 'Fail Task', subject: 'Chem', done: false, minutes: 20 }],
+      }),
+    )
+
+    const result = await migrateLegacyLocalStorage({ forceEntityWriteError: true })
+
+    expect(result).toEqual({
+      status: 'transaction_failed',
+      error: 'Forced entity write error',
+    })
+
+    const snapshotAfter = await readCompleteStudyDbSnapshot()
+    expect(snapshotAfter).toEqual(snapshotBefore)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBeUndefined()
+    expect(localStorage.getItem('study-dashboard-v2')).not.toBeNull()
+  })
+
+  it('Scenario 11 & 14 & 15: rolls back complete database snapshot on marker-write failure and succeeds on subsequent retry', async () => {
+    await studyDb.tasks.add({
+      id: 'task-marker-pre',
+      title: 'Pre Task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 15,
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
+    })
+    const snapshotBefore = await readCompleteStudyDbSnapshot()
+
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'task-marker-incoming', title: 'Marker Task', subject: 'History', done: false, minutes: 25 }],
+      }),
+    )
+
+    const failResult = await migrateLegacyLocalStorage({ forceMarkerWriteError: true })
+
+    expect(failResult).toEqual({
+      status: 'transaction_failed',
+      error: 'Forced marker write error',
+    })
+
+    expect(await readCompleteStudyDbSnapshot()).toEqual(snapshotBefore)
+    expect(localStorage.getItem('study-dashboard-v2')).not.toBeNull()
+
+    const retryResult = await migrateLegacyLocalStorage()
+
+    expect(retryResult.status).toBe('success')
+    expect(await studyDb.tasks.get('task-marker-incoming')).toBeDefined()
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+  })
+
+  it('Scenario 14 & 15: rolls back complete database snapshot on quota error and succeeds on subsequent retry', async () => {
+    await studyDb.tasks.add({
+      id: 'task-quota-pre',
+      title: 'Quota Pre Task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 20,
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
+    })
+    const snapshotBefore = await readCompleteStudyDbSnapshot()
+
     localStorage.setItem(
       'study-dashboard-v2',
       JSON.stringify({
@@ -2197,13 +2394,31 @@ describe('studyDb', () => {
     if (result.status === 'transaction_failed') {
       expect(result.error).toContain('QuotaExceededError')
     }
-    expect(await studyDb.tasks.count()).toBe(0)
-    expect(await studyDb.subjects.count()).toBe(0)
-    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBeUndefined()
+    expect(await readCompleteStudyDbSnapshot()).toEqual(snapshotBefore)
     expect(localStorage.getItem('study-dashboard-v2')).not.toBeNull()
+
+    // Retry
+    const retryResult = await migrateLegacyLocalStorage()
+    expect(retryResult.status).toBe('success')
+    expect(await studyDb.tasks.get('quota-task')).toBeDefined()
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
   })
 
-  it('rolls back database modifications and preserves legacy storage when transaction is explicitly aborted', async () => {
+  it('Scenario 14 & 15: rolls back complete database snapshot on explicit abort and succeeds on subsequent retry', async () => {
+    await studyDb.tasks.add({
+      id: 'task-abort-pre',
+      title: 'Abort Pre Task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 20,
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
+    })
+    const snapshotBefore = await readCompleteStudyDbSnapshot()
+
     localStorage.setItem(
       'study-dashboard-v2',
       JSON.stringify({
@@ -2217,49 +2432,45 @@ describe('studyDb', () => {
       status: 'transaction_failed',
       error: 'Explicit transaction abort',
     })
-    expect(await studyDb.tasks.count()).toBe(0)
-    expect(await studyDb.subjects.count()).toBe(0)
-    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBeUndefined()
+    expect(await readCompleteStudyDbSnapshot()).toEqual(snapshotBefore)
     expect(localStorage.getItem('study-dashboard-v2')).not.toBeNull()
+
+    // Retry
+    const retryResult = await migrateLegacyLocalStorage()
+    expect(retryResult.status).toBe('success')
+    expect(await studyDb.tasks.get('abort-task')).toBeDefined()
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
   })
 
-  it('verifies write-ordering: entities are written before the migration marker is set', async () => {
+  it('Scenario 19: enforces in-transaction marker recheck to prevent concurrent migration invocations from duplicating writes', async () => {
     localStorage.setItem(
       'study-dashboard-v2',
       JSON.stringify({
-        tasks: [{ id: 'order-task', title: 'Order Task', subject: 'History', done: false, minutes: 15 }],
+        tasks: [{ id: 'race-task', title: 'Race Task', subject: 'Math', done: false, minutes: 15 }],
       }),
     )
 
-    let entityWriteCalled = false
-    let markerWriteCalled = false
-    let taskCountBeforeMarker = -1
-    let markerValueBeforeMarker: boolean | undefined = undefined
+    // Verify initial migration marker is undefined (fast path will pass)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBeUndefined()
 
-    await migrateLegacyLocalStorage({
-      beforeEntityWrite: () => {
-        entityWriteCalled = true
-      },
-      beforeMarkerWrite: async () => {
-        markerWriteCalled = true
-        taskCountBeforeMarker = await studyDb.tasks.count()
-        const marker = await studyDb.settings.get('legacy-localstorage-migrated-v1')
-        markerValueBeforeMarker = marker?.value
+    // Fast path passes, but before transaction acquisition the marker is set (simulating concurrent execution)
+    const result = await migrateLegacyLocalStorage({
+      beforeTransactionAcquisition: async () => {
+        await studyDb.settings.put({ key: 'legacy-localstorage-migrated-v1', value: true })
       },
     })
 
-    expect(entityWriteCalled).toBe(true)
-    expect(markerWriteCalled).toBe(true)
-    expect(taskCountBeforeMarker).toBe(1)
-    expect(markerValueBeforeMarker).toBeUndefined()
+    expect(result).toEqual({ status: 'already_migrated' })
+    expect(await studyDb.tasks.count()).toBe(0)
     expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
   })
 
-  it('returns cleanup_failed when transaction succeeds but legacy storage cleanup fails', async () => {
+  it('Scenarios 18 & 53: retries legacy storage cleanup on subsequent invocation without re-importing data', async () => {
     localStorage.setItem(
       'study-dashboard-v2',
       JSON.stringify({
-        tasks: [{ id: 'cleanup-task', title: 'Cleanup Task', subject: 'Art', done: false, minutes: 10 }],
+        tasks: [{ id: 'cleanup-retry-task', title: 'Cleanup Retry Task', subject: 'Art', done: false, minutes: 10 }],
       }),
     )
 
@@ -2268,14 +2479,107 @@ describe('studyDb', () => {
     })
 
     try {
-      const result = await migrateLegacyLocalStorage()
-
-      expect(result).toEqual({ status: 'cleanup_failed' })
+      const result1 = await migrateLegacyLocalStorage()
+      expect(result1).toEqual({ status: 'cleanup_failed' })
       expect(await studyDb.tasks.count()).toBe(1)
       expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+      expect(localStorage.getItem('study-dashboard-v2')).not.toBeNull()
     } finally {
       removeItemSpy.mockRestore()
     }
+
+    const result2 = await migrateLegacyLocalStorage()
+
+    expect(result2).toEqual({ status: 'already_migrated' })
+    expect(await studyDb.tasks.count()).toBe(1)
+    expect(await studyDb.tasks.get('cleanup-retry-task')).toBeDefined()
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+  })
+
+  it('Scenario 43 & 14: rolls back complete import replacement when forced settings put fails', async () => {
+    await studyDb.tasks.add({
+      id: 'task-pre-import',
+      title: 'Pre-import Task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 20,
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
+    })
+    await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 180 })
+
+    const snapshotBefore = await readCompleteStudyDbSnapshot()
+
+    const validPayload = {
+      version: 3,
+      exportedAt: '2026-07-01T00:00:00.000Z',
+      tasks: [{ id: 'new-task', title: 'New Task', subjectId: '', dueDate: '', priority: 'normal', status: 'open', minutes: 15, createdAt: '2026-07-01T00:00:00.000Z', updatedAt: '2026-07-01T00:00:00.000Z' }],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+
+    await expect(importStudyData(validPayload, { forceSettingsPutError: true })).rejects.toThrow(
+      'Database storage transaction failed during import.'
+    )
+
+    const snapshotAfter = await readCompleteStudyDbSnapshot()
+    expect(snapshotAfter).toEqual(snapshotBefore)
+  })
+
+  it('Scenario 36: enforces file-size, text-length, and record-count limits independently before database mutation', async () => {
+    await studyDb.tasks.add({
+      id: 'task-limit-keep',
+      title: 'Limit Keep',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 20,
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
+    })
+    const snapshotBefore = await readCompleteStudyDbSnapshot()
+
+    const hugeFile = new File(['x'], 'huge.json', { type: 'application/json' })
+    Object.defineProperty(hugeFile, 'size', { value: 6 * 1024 * 1024 })
+    expect(() => assertStudyExportImportFileSize(hugeFile)).toThrow('Import file exceeds the Study Dashboard size limit.')
+
+    const hugeText = 'x'.repeat(6 * 1024 * 1024)
+    expect(() => assertStudyExportImportTextLength(hugeText)).toThrow('Import file exceeds the Study Dashboard size limit.')
+
+    const overLimitPayload = {
+      version: 3,
+      exportedAt: '2026-07-01T00:00:00.000Z',
+      tasks: Array.from({ length: 5001 }, (_, i) => ({
+        id: `t-${i}`,
+        title: `Task ${i}`,
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 10,
+        createdAt: '2026-07-01T00:00:00.000Z',
+        updatedAt: '2026-07-01T00:00:00.000Z',
+      })),
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+
+    await expect(importStudyData(overLimitPayload)).rejects.toThrow('Import file is not a Study Dashboard export.')
+
+    expect(await readCompleteStudyDbSnapshot()).toEqual(snapshotBefore)
   })
 })
 
@@ -3231,6 +3535,7 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
         await studyDb.open()
       }
       await clearAllStudyData()
+      await studyDb.settings.clear()
     })
 
     const timestamp = '2026-08-05T12:00:00.000Z'
