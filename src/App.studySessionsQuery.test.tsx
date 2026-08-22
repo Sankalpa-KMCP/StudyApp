@@ -40,6 +40,7 @@ describe('App study sessions live query isolation', () => {
   })
 
   it('reruns Sessions without rerunning the Subjects query for manual journal writes and updates consumers', async () => {
+    vi.setSystemTime(new Date(2026, 6, 13, 15, 0))
     const user = userEvent.setup()
     await studyDb.subjects.add({
       id: 'subject-sessions',
