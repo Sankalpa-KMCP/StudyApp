@@ -17,6 +17,10 @@ dist-ssr
 .vite
 .eslintcache
 *.tsbuildinfo
+# Environment & local files
+.env
+.env.*
+!.env.example
 *.local
 /screenshot-*.png
 
@@ -49,4 +53,5 @@ Thumbs.db
 
 # Local agent tooling (rules/workflows) and local archives
 .agents/
+.gemini/
 /study_app.zip
