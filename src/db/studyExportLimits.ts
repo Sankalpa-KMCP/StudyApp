@@ -17,7 +17,6 @@ export const MAX_STUDY_EXPORT_SUBJECTS = 500
 export const MAX_STUDY_EXPORT_TASKS = 5_000
 export const MAX_STUDY_EXPORT_NOTES = 5_000
 export const MAX_STUDY_EXPORT_EVENTS = 5_000
-export const MAX_STUDY_EXPORT_FLASHCARDS = 10_000
 export const MAX_STUDY_EXPORT_STUDY_SESSIONS = 10_000
 export const MAX_STUDY_EXPORT_GOALS = 500
 export const MAX_STUDY_EXPORT_SETTINGS = 64
@@ -28,7 +27,6 @@ export type StudyExportRecordLimits = {
   tasks: number
   notes: number
   events: number
-  flashcards: number
   studySessions: number
   goals: number
   settings: number
@@ -41,7 +39,6 @@ export const STUDY_EXPORT_RECORD_LIMITS: StudyExportRecordLimits = {
   tasks: MAX_STUDY_EXPORT_TASKS,
   notes: MAX_STUDY_EXPORT_NOTES,
   events: MAX_STUDY_EXPORT_EVENTS,
-  flashcards: MAX_STUDY_EXPORT_FLASHCARDS,
   studySessions: MAX_STUDY_EXPORT_STUDY_SESSIONS,
   goals: MAX_STUDY_EXPORT_GOALS,
   settings: MAX_STUDY_EXPORT_SETTINGS,
@@ -52,7 +49,6 @@ export type StudyExportRecordCounts = {
   tasks: number
   notes: number
   events: number
-  flashcards: number
   studySessions: number
   goals: number
   settings: number

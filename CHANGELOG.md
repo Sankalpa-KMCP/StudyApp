@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Removed
+
+- Completely removed the Flashcards feature across the application (views, navigation, routes, search indexing, quick add, home metrics, recommendations, and styles).
+- Dropped the `flashcards` IndexedDB table via Dexie version 4 schema upgrade.
+- Updated JSON backup export format to version 4 (without flashcards). Version 1, 2, and 3 backups remain importable, cleanly discarding legacy flashcards during normalization.
+
 ## [1.4.0] - 2026-07-25 — Stable Local Study Dashboard
 
 ### Added

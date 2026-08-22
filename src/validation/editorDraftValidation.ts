@@ -16,8 +16,8 @@ import {
 } from './editorLimits'
 
 /**
- * Message-neutral create/edit draft checks for Subjects, Notes, Flashcards,
- * Calendar events, manual Progress study sessions, and Goals.
+ * Message-neutral create/edit draft checks for Subjects, Notes,
+ * Calendar Events, manual Progress study sessions, and Goals.
  * Views own user-facing copy, accessibility, mutation state, and persistence.
  */
 
@@ -96,41 +96,6 @@ export function validateNoteEditorDraft(draft: NoteEditorDraftInput): NoteEditor
       body: draft.body.trim(),
       subjectId: draft.subjectId,
       tags: parseTags(draft.tags),
-    },
-  }
-}
-
-export type FlashcardEditorDraftInput = {
-  front: string
-  back: string
-  subjectId: string
-}
-
-export type FlashcardEditorFields = {
-  front: string
-  back: string
-  subjectId: string
-}
-
-export type FlashcardEditorDraftValidation =
-  | { ok: true; fields: FlashcardEditorFields }
-  | { ok: false; reason: 'empty_sides' }
-
-export function validateFlashcardEditorDraft(
-  draft: FlashcardEditorDraftInput,
-): FlashcardEditorDraftValidation {
-  const front = draft.front.trim()
-  const back = draft.back.trim()
-  if (!front || !back) {
-    return { ok: false, reason: 'empty_sides' }
-  }
-
-  return {
-    ok: true,
-    fields: {
-      front,
-      back,
-      subjectId: draft.subjectId,
     },
   }
 }

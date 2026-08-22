@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { studyDb } from './db/studyDb'
 import { createNote } from './db/notesService'
-import { createFlashcard } from './db/flashcardService'
 import { createCalendarEvent } from './db/calendarEventService'
 import { createTask } from './db/taskService'
 import { pathForView } from './navigation/viewRoutes'
@@ -34,11 +33,6 @@ async function seedSearchCorpus() {
     body: 'Phases of mitosis',
     subjectId: 'subject-search',
     tags: ['exam'],
-  })
-  await createFlashcard({
-    front: 'What is DNA?',
-    back: 'Genetic material',
-    subjectId: 'subject-search',
   })
   await createCalendarEvent({
     title: 'Lab block',
@@ -76,7 +70,7 @@ describe('App global search', () => {
     expect(await studyDb.tasks.count()).toBe(taskCount)
   })
 
-  it('navigates Note, Subject, Flashcard, and Event results from a non-Home route', async () => {
+  it('navigates Note, Subject, and Event results from a non-Home route', async () => {
     const user = userEvent.setup()
     await seedSearchCorpus()
     render(<App />)
@@ -92,10 +86,6 @@ describe('App global search', () => {
     await user.type(search, 'Biology')
     await user.click(await screen.findByRole('option', { name: /Subject.*Biology/i }))
     expect(window.location.pathname).toBe(pathForView('Subjects'))
-
-    await user.type(search, 'DNA')
-    await user.click(await screen.findByRole('option', { name: /Flashcard.*What is DNA/i }))
-    expect(window.location.pathname).toBe(pathForView('Flashcards'))
 
     await user.type(search, 'Lab block')
     await user.click(await screen.findByRole('option', { name: /Event.*Lab block/i }))

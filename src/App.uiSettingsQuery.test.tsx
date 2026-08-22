@@ -5,8 +5,6 @@ import App from './App'
 import * as subjectRead from './db/subjectRead'
 import * as calendarEventRead from './db/calendarEventRead'
 import { createCalendarEvent } from './db/calendarEventService'
-import * as flashcardRead from './db/flashcardRead'
-import { createFlashcard } from './db/flashcardService'
 import * as goalRead from './db/goalRead'
 import { createGoal, deleteGoal, updateGoal } from './db/goalService'
 import { createNote } from './db/notesService'
@@ -301,12 +299,11 @@ describe('App UI settings live query isolation', () => {
     expect(uiSpy.mock.calls.length).toBe(uiBefore)
   })
 
-  it('does not rerun UI settings for Task, Note, Event, Flashcard, or manual session writes', async () => {
+  it('does not rerun UI settings for Task, Note, Event, or manual session writes', async () => {
     const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
     const notesSpy = vi.spyOn(noteRead, 'listNotes')
     const eventsSpy = vi.spyOn(calendarEventRead, 'listCalendarEvents')
-    const flashcardsSpy = vi.spyOn(flashcardRead, 'listFlashcards')
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 
     render(<App />)
@@ -317,7 +314,6 @@ describe('App UI settings live query isolation', () => {
     const tasksBefore = tasksSpy.mock.calls.length
     const notesBefore = notesSpy.mock.calls.length
     const eventsBefore = eventsSpy.mock.calls.length
-    const flashcardsBefore = flashcardsSpy.mock.calls.length
     const sessionsBefore = sessionsSpy.mock.calls.length
 
     await createTask({
@@ -347,14 +343,6 @@ describe('App UI settings live query isolation', () => {
       location: '',
     })
     await waitFor(() => expect(eventsSpy.mock.calls.length).toBeGreaterThan(eventsBefore))
-    expect(uiSpy.mock.calls.length).toBe(uiBaseline)
-
-    await createFlashcard({
-      front: 'Unrelated card',
-      back: 'answer',
-      subjectId: '',
-    })
-    await waitFor(() => expect(flashcardsSpy.mock.calls.length).toBeGreaterThan(flashcardsBefore))
     expect(uiSpy.mock.calls.length).toBe(uiBaseline)
 
     await createStudySession({

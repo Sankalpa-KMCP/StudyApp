@@ -85,7 +85,7 @@ describe('MobileNavigation', () => {
     const user = userEvent.setup()
     render(<MobileNavigation activeView="Home" onNavigate={() => undefined} />)
     await user.click(screen.getByRole('button', { name: 'More' }))
-    for (const label of ['Subjects', 'Calendar', 'Flashcards', 'Goals', 'Settings'] as const) {
+    for (const label of ['Subjects', 'Calendar', 'Goals', 'Settings'] as const) {
       expect(screen.getByRole('menuitem', { name: label })).toBeInTheDocument()
     }
   })

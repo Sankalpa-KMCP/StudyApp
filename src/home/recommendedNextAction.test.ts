@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ActiveFocusSession, CalendarEvent, Flashcard, StudySubject, StudyTask } from '../db/types'
+import type { ActiveFocusSession, CalendarEvent, StudySubject, StudyTask } from '../db/types'
 import { getRecommendedNextAction } from './recommendedNextAction'
 
 const NOW = new Date(2026, 6, 26, 15, 30, 0, 0)
@@ -13,17 +13,6 @@ function task(partial: Partial<StudyTask> & Pick<StudyTask, 'id' | 'title'>): St
     priority: 'normal',
     status: 'open',
     minutes: 30,
-    createdAt: '2026-07-01T00:00:00.000Z',
-    updatedAt: '2026-07-01T00:00:00.000Z',
-    ...partial,
-  }
-}
-
-function card(partial: Partial<Flashcard> & Pick<Flashcard, 'id' | 'front'>): Flashcard {
-  return {
-    back: 'Answer',
-    subjectId: '',
-    status: 'learning',
     createdAt: '2026-07-01T00:00:00.000Z',
     updatedAt: '2026-07-01T00:00:00.000Z',
     ...partial,
@@ -68,7 +57,6 @@ function activeSession(id = 'focus-1'): ActiveFocusSession {
 
 const base = {
   tasks: [] as StudyTask[],
-  flashcards: [] as Flashcard[],
   events: [] as CalendarEvent[],
   subjects: [subject()],
   activeSession: null as ActiveFocusSession | null,
@@ -82,14 +70,12 @@ describe('getRecommendedNextAction', () => {
     const overdueOlder = task({ id: 'o1', title: 'Older overdue', dueDate: '2026-07-20', createdAt: '2026-07-01T00:00:00.000Z' })
     const overdueNewer = task({ id: 'o2', title: 'Newer overdue', dueDate: YESTERDAY, createdAt: '2026-07-02T00:00:00.000Z' })
     const dueToday = task({ id: 't1', title: 'Due today', dueDate: TODAY })
-    const dueCard = card({ id: 'c1', front: 'Card', dueAt: new Date(2026, 6, 25).toISOString() })
     const todayEvent = event({
       id: 'e1',
       title: 'Event',
       startAt: new Date(2026, 6, 26, 10, 0, 0, 0).toISOString(),
     })
     const tasks = [dueToday, overdueOlder, overdueNewer]
-    const flashcards = [dueCard]
     const events = [todayEvent]
     const subjects = [subject()]
     const session = activeSession()
@@ -97,7 +83,6 @@ describe('getRecommendedNextAction', () => {
     expect(getRecommendedNextAction({
       ...base,
       tasks,
-      flashcards,
       events,
       subjects,
       activeSession: session,
@@ -109,7 +94,6 @@ describe('getRecommendedNextAction', () => {
       title: 'Older overdue',
     })
     expect(tasks.map((item) => item.id)).toEqual(['t1', 'o1', 'o2'])
-    expect(flashcards[0]).toBe(dueCard)
     expect(events[0]).toBe(todayEvent)
   })
 
@@ -119,30 +103,12 @@ describe('getRecommendedNextAction', () => {
     expect(getRecommendedNextAction({
       ...base,
       tasks: [dueToday, dueLater],
-      flashcards: [card({ id: 'c1', front: 'Card' })],
       events: [event({ id: 'e1', title: 'Event', startAt: new Date(2026, 6, 26, 9, 0).toISOString() })],
       activeSession: activeSession(),
     })).toMatchObject({ kind: 'due_today_task', recordId: 't1', view: 'Tasks' })
   })
 
-  it('prefers a due flashcard after tasks are cleared', () => {
-    const firstDue = card({ id: 'c1', front: 'First', createdAt: '2026-07-01T00:00:00.000Z' })
-    const secondDue = card({ id: 'c2', front: 'Second', createdAt: '2026-07-02T00:00:00.000Z' })
-    expect(getRecommendedNextAction({
-      ...base,
-      flashcards: [firstDue, secondDue],
-      events: [event({ id: 'e1', title: 'Event', startAt: new Date(2026, 6, 26, 9, 0).toISOString() })],
-      activeSession: activeSession(),
-    })).toEqual({
-      kind: 'due_flashcard',
-      intent: 'navigate',
-      view: 'Flashcards',
-      recordId: 'c1',
-      title: 'First',
-    })
-  })
-
-  it('prefers today’s earliest event after tasks and flashcards', () => {
+  it('prefers today’s earliest event after tasks are cleared', () => {
     const later = event({
       id: 'e-late',
       title: 'Later',
@@ -208,13 +174,11 @@ describe('getRecommendedNextAction', () => {
 
   it('does not mutate input arrays', () => {
     const tasks = [task({ id: 't', title: 'T', dueDate: YESTERDAY })]
-    const flashcards = [card({ id: 'c', front: 'C' })]
     const events = [event({ id: 'e', title: 'E', startAt: new Date(2026, 6, 26, 11, 0).toISOString() })]
     const subjects = [subject()]
     const taskIds = tasks.map((item) => item.id)
-    getRecommendedNextAction({ ...base, tasks, flashcards, events, subjects })
+    getRecommendedNextAction({ ...base, tasks, events, subjects })
     expect(tasks.map((item) => item.id)).toEqual(taskIds)
-    expect(flashcards).toHaveLength(1)
     expect(events).toHaveLength(1)
     expect(subjects).toHaveLength(1)
   })

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   isPersistedGoalProgress,
   isPersistedGoalTarget,
-  isPersistedOptionalNonNegativeCounter,
   isPersistedStudySessionMinutes,
   isPersistedSubjectProgress,
   isPersistedSubjectReference,
@@ -81,15 +80,6 @@ describe('persistedInvariants', () => {
       expect(isPersistedGoalProgress(0)).toBe(true)
       expect(isPersistedGoalProgress(50)).toBe(true)
       expect(isPersistedGoalProgress(-1)).toBe(false)
-    })
-  })
-
-  describe('isPersistedOptionalNonNegativeCounter', () => {
-    it('accepts undefined and zero; rejects negative', () => {
-      expect(isPersistedOptionalNonNegativeCounter(undefined)).toBe(true)
-      expect(isPersistedOptionalNonNegativeCounter(0)).toBe(true)
-      expect(isPersistedOptionalNonNegativeCounter(3)).toBe(true)
-      expect(isPersistedOptionalNonNegativeCounter(-1)).toBe(false)
     })
   })
 

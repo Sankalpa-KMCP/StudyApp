@@ -66,19 +66,12 @@ describe('App navigation', () => {
     expect(window.location.pathname).toBe('/calendar')
   })
 
-  it('navigates to Flashcards from Review Queue widget', async () => {
-    const user = userEvent.setup()
+  it('redirects legacy /flashcards route to Home', async () => {
+    window.history.replaceState(null, '', '/flashcards')
     render(<App />)
 
-    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
-
-    const rightColumn = screen.getByRole('complementary', { name: 'Progress and schedule' })
-    const reviewCardsBtn = within(rightColumn).getByRole('button', { name: 'Review cards' })
-    await user.click(reviewCardsBtn)
-
-    // Confirm Flashcards view is open by looking for its unique action button
-    expect(await screen.findByRole('button', { name: 'New card' })).toBeInTheDocument()
-    expect(window.location.pathname).toBe('/flashcards')
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/')
   })
 
   it('opens Home at / without auto-opening an editor', async () => {
@@ -95,7 +88,6 @@ describe('App navigation', () => {
     ['/notes', 'Notes', 'New note'],
     ['/subjects', 'Subjects', 'New subject'],
     ['/calendar', 'Calendar', 'New event'],
-    ['/flashcards', 'Flashcards', 'New card'],
     ['/progress', 'Progress', 'Log session'],
     ['/goals', 'Goals', 'New goal'],
     ['/settings', 'Settings', /Export data/],

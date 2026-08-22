@@ -224,7 +224,7 @@ describe('App backup', () => {
     expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:test-url')
     const blob = createObjectURLMock.mock.calls[0][0] as Blob
     const exported = JSON.parse(await blob.text()) as { version: number }
-    expect(exported.version).toBe(3)
+    expect(exported.version).toBe(4)
     expect(await screen.findByRole('status')).toHaveTextContent('Backup exported.')
 
     createElementSpy.mockRestore()

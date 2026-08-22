@@ -6,10 +6,10 @@ import {
 } from './navDestinations'
 
 describe('navDestinations', () => {
-  it('defines five primary and five More destinations without overlap', () => {
+  it('defines four primary and four More destinations without overlap', () => {
     expect(MOBILE_PRIMARY_VIEWS).toEqual(['Home', 'Tasks', 'Notes', 'Progress'])
-    expect(MOBILE_MORE_VIEWS).toEqual(['Subjects', 'Calendar', 'Flashcards', 'Goals', 'Settings'])
-    expect(new Set([...MOBILE_PRIMARY_VIEWS, ...MOBILE_MORE_VIEWS]).size).toBe(9)
+    expect(MOBILE_MORE_VIEWS).toEqual(['Subjects', 'Calendar', 'Goals', 'Settings'])
+    expect(new Set([...MOBILE_PRIMARY_VIEWS, ...MOBILE_MORE_VIEWS]).size).toBe(8)
   })
 
   it('detects More destinations', () => {

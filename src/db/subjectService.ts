@@ -15,7 +15,6 @@ export type SubjectLinkedUsage = {
   tasks: number
   notes: number
   events: number
-  flashcards: number
   sessions: number
 }
 
@@ -58,14 +57,13 @@ export async function updateSubject(id: string, fields: SubjectWriteFields): Pro
  * Count study records linked to a subject across the tables protected by the delete policy.
  */
 export async function getSubjectLinkedUsage(subjectId: string): Promise<SubjectLinkedUsage> {
-  const [tasks, notes, events, flashcards, sessions] = await Promise.all([
+  const [tasks, notes, events, sessions] = await Promise.all([
     studyDb.tasks.where('subjectId').equals(subjectId).count(),
     studyDb.notes.where('subjectId').equals(subjectId).count(),
     studyDb.events.where('subjectId').equals(subjectId).count(),
-    studyDb.flashcards.where('subjectId').equals(subjectId).count(),
     studyDb.studySessions.where('subjectId').equals(subjectId).count(),
   ])
-  return { tasks, notes, events, flashcards, sessions }
+  return { tasks, notes, events, sessions }
 }
 
 /**

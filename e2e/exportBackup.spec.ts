@@ -16,7 +16,7 @@ async function seedFullDatabase(page: Page): Promise<void> {
 
     try {
       const tx = db.transaction(
-        ['subjects', 'tasks', 'notes', 'events', 'flashcards', 'studySessions', 'goals', 'settings'],
+        ['subjects', 'tasks', 'notes', 'events', 'studySessions', 'goals', 'settings'],
         'readwrite',
       )
 
@@ -64,19 +64,6 @@ async function seedFullDatabase(page: Page): Promise<void> {
         updatedAt: '2026-07-01T00:00:00.000Z',
       })
 
-      tx.objectStore('flashcards').put({
-        id: 'card-e2e-1',
-        front: 'What is F=ma?',
-        back: 'Newton second law',
-        subjectId: 'subj-e2e-1',
-        status: 'learning',
-        lastReviewedAt: '2026-07-01T00:00:00.000Z',
-        intervalDays: 1,
-        reviewCount: 2,
-        createdAt: '2026-07-01T00:00:00.000Z',
-        updatedAt: '2026-07-01T00:00:00.000Z',
-      })
-
       tx.objectStore('studySessions').put({
         id: 'session-e2e-1',
         subjectId: 'subj-e2e-1',
@@ -99,7 +86,7 @@ async function seedFullDatabase(page: Page): Promise<void> {
 
       tx.objectStore('settings').put({
         key: 'quickNotes',
-        value: ['Review equations', 'Prepare flashcards'],
+        value: ['Review equations', 'Prepare summary'],
       })
 
       tx.objectStore('settings').put({
@@ -126,8 +113,8 @@ async function seedFullDatabase(page: Page): Promise<void> {
   }, STUDY_DB_NAME)
 }
 
-test('exports populated study database and validates version-3 structure and exclusions', async ({ page }) => {
-  // 1. Seed deterministic records across all 8 IndexedDB tables
+test('exports populated study database and validates version-4 structure and exclusions', async ({ page }) => {
+  // 1. Seed deterministic records across all 7 IndexedDB tables
   await seedFullDatabase(page)
 
   // 2. Set recognizable device-local preferences in localStorage
@@ -161,7 +148,7 @@ test('exports populated study database and validates version-3 structure and exc
   const backup = JSON.parse(jsonString)
 
   // 7. Validate top-level metadata
-  expect(backup.version).toBe(3)
+  expect(backup.version).toBe(4)
   expect(typeof backup.exportedAt).toBe('string')
   expect(isNaN(Date.parse(backup.exportedAt))).toBe(false)
 
@@ -174,19 +161,18 @@ test('exports populated study database and validates version-3 structure and exc
     'tasks',
     'notes',
     'events',
-    'flashcards',
     'studySessions',
     'goals',
     'settings',
   ].sort()
   expect(Object.keys(backup).sort()).toEqual(expectedTopLevelKeys)
 
-  const collections = ['subjects', 'tasks', 'notes', 'events', 'flashcards', 'studySessions', 'goals', 'settings']
+  const collections = ['subjects', 'tasks', 'notes', 'events', 'studySessions', 'goals', 'settings']
   for (const collection of collections) {
     expect(Array.isArray(backup[collection])).toBe(true)
   }
 
-  // 9. Validate representative seeded records across all 8 tables
+  // 9. Validate representative seeded records across all active tables
   const subject = backup.subjects.find((s: { id: string }) => s.id === 'subj-e2e-1')
   expect(subject).toBeDefined()
   expect(subject).toMatchObject({
@@ -227,16 +213,6 @@ test('exports populated study database and validates version-3 structure and exc
     location: 'Room 101',
   })
 
-  const card = backup.flashcards.find((c: { id: string }) => c.id === 'card-e2e-1')
-  expect(card).toBeDefined()
-  expect(card).toMatchObject({
-    id: 'card-e2e-1',
-    front: 'What is F=ma?',
-    back: 'Newton second law',
-    subjectId: 'subj-e2e-1',
-    status: 'learning',
-  })
-
   const session = backup.studySessions.find((s: { id: string }) => s.id === 'session-e2e-1')
   expect(session).toBeDefined()
   expect(session).toMatchObject({
@@ -259,7 +235,7 @@ test('exports populated study database and validates version-3 structure and exc
 
   const quickNotesRow = backup.settings.find((s: { key: string }) => s.key === 'quickNotes')
   expect(quickNotesRow).toBeDefined()
-  expect(quickNotesRow.value).toEqual(['Review equations', 'Prepare flashcards'])
+  expect(quickNotesRow.value).toEqual(['Review equations', 'Prepare summary'])
 
   const activeFocusRow = backup.settings.find((s: { key: string }) => s.key === 'activeFocusSession')
   expect(activeFocusRow).toBeDefined()
@@ -279,9 +255,6 @@ test('exports populated study database and validates version-3 structure and exc
     if (item.subjectId) expect(subjectIds.has(item.subjectId)).toBe(true)
   }
   for (const item of backup.events) {
-    if (item.subjectId) expect(subjectIds.has(item.subjectId)).toBe(true)
-  }
-  for (const item of backup.flashcards) {
     if (item.subjectId) expect(subjectIds.has(item.subjectId)).toBe(true)
   }
   for (const item of backup.studySessions) {

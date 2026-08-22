@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { parseLocalDateTime } from '../appUtils'
 import {
   validateCalendarEventEditorDraft,
-  validateFlashcardEditorDraft,
   validateGoalEditorDraft,
   validateNoteEditorDraft,
   validateStudySessionEditorDraft,
@@ -143,37 +142,6 @@ describe('validateNoteEditorDraft', () => {
         body: '',
         subjectId: '',
         tags: [],
-      },
-    })
-  })
-})
-
-describe('validateFlashcardEditorDraft', () => {
-  it('rejects empty or whitespace front and back with one shared reason', () => {
-    expect(
-      validateFlashcardEditorDraft({ front: '', back: 'Back', subjectId: '' }),
-    ).toEqual({ ok: false, reason: 'empty_sides' })
-    expect(
-      validateFlashcardEditorDraft({ front: 'Front', back: '   ', subjectId: '' }),
-    ).toEqual({ ok: false, reason: 'empty_sides' })
-    expect(
-      validateFlashcardEditorDraft({ front: '  ', back: '\t', subjectId: 's1' }),
-    ).toEqual({ ok: false, reason: 'empty_sides' })
-  })
-
-  it('trims both sides on success', () => {
-    expect(
-      validateFlashcardEditorDraft({
-        front: '  Power rule  ',
-        back: '  n x^{n-1}  ',
-        subjectId: 'math',
-      }),
-    ).toEqual({
-      ok: true,
-      fields: {
-        front: 'Power rule',
-        back: 'n x^{n-1}',
-        subjectId: 'math',
       },
     })
   })

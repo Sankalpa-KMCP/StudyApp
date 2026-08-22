@@ -93,7 +93,6 @@ describe('subjectService', () => {
       tasks: 0,
       notes: 0,
       events: 0,
-      flashcards: 0,
       sessions: 0,
     })
   })
@@ -150,19 +149,6 @@ describe('subjectService', () => {
       createdAt: timestamp,
       updatedAt: timestamp,
     })
-    await studyDb.flashcards.add({
-      id: 'card-1',
-      front: 'Q',
-      back: 'A',
-      subjectId,
-      status: 'new',
-      lastReviewedAt: '',
-      dueAt: timestamp,
-      intervalDays: 0,
-      reviewCount: 0,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    })
     await studyDb.studySessions.bulkAdd([
       {
         id: 'session-1',
@@ -205,7 +191,6 @@ describe('subjectService', () => {
       tasks: 1,
       notes: 2,
       events: 1,
-      flashcards: 1,
       sessions: 3,
     })
   })

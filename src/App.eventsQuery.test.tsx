@@ -227,7 +227,7 @@ describe('App events live query isolation', () => {
     expect(full.events).toHaveLength(1)
     expect(full.events[0]?.title).toBe('Export event')
     expect(exported.events).toEqual(full.events)
-    expect(exported.version).toBe(3)
+    expect(exported.version).toBe(4)
   })
 
   it('updates Calendar list order after event updates without shell Events reads', async () => {

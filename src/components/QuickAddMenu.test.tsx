@@ -32,7 +32,6 @@ describe('QuickAddMenu', () => {
       'Task',
       'Note',
       'Event',
-      'Flashcard',
       'Focus session',
     ])
   })
@@ -145,8 +144,8 @@ describe('QuickAddMenu', () => {
     rerender(<QuickAddMenu open={false} onOpenChange={onOpenChange} onSelect={onSelect} />)
     await user.click(screen.getByRole('button', { name: 'Quick add' }))
     rerender(<QuickAddMenu open onOpenChange={onOpenChange} onSelect={onSelect} />)
-    await user.click(screen.getByRole('menuitem', { name: 'Flashcard' }))
-    expect(onSelect).toHaveBeenNthCalledWith(2, 'flashcard')
+    await user.click(screen.getByRole('menuitem', { name: 'Note' }))
+    expect(onSelect).toHaveBeenNthCalledWith(2, 'note')
 
     rerender(<QuickAddMenu open={false} onOpenChange={onOpenChange} onSelect={onSelect} />)
     await user.click(screen.getByRole('button', { name: 'Quick add' }))

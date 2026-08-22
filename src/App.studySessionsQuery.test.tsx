@@ -5,8 +5,6 @@ import App from './App'
 import * as subjectRead from './db/subjectRead'
 import * as calendarEventRead from './db/calendarEventRead'
 import { createCalendarEvent } from './db/calendarEventService'
-import * as flashcardRead from './db/flashcardRead'
-import { createFlashcard } from './db/flashcardService'
 import * as goalRead from './db/goalRead'
 import { createGoal } from './db/goalService'
 import { createNote } from './db/notesService'
@@ -177,13 +175,12 @@ describe('App study sessions live query isolation', () => {
     expect(sessionsSpy.mock.calls.length).toBe(sessionsBefore)
   })
 
-  it('does not rerun Sessions for Task, Note, Event, Flashcard, or Goal-only writes', async () => {
+  it('does not rerun Sessions for Task, Note, Event, or Goal-only writes', async () => {
     const user = userEvent.setup()
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
     const notesSpy = vi.spyOn(noteRead, 'listNotes')
     const eventsSpy = vi.spyOn(calendarEventRead, 'listCalendarEvents')
-    const flashcardsSpy = vi.spyOn(flashcardRead, 'listFlashcards')
     const goalsSpy = vi.spyOn(goalRead, 'listGoals')
 
     render(<App />)
@@ -194,7 +191,6 @@ describe('App study sessions live query isolation', () => {
     const tasksBefore = tasksSpy.mock.calls.length
     const notesBefore = notesSpy.mock.calls.length
     const eventsBefore = eventsSpy.mock.calls.length
-    const flashcardsBefore = flashcardsSpy.mock.calls.length
 
     await createTask({
       title: 'Unrelated task',
@@ -223,14 +219,6 @@ describe('App study sessions live query isolation', () => {
       location: '',
     })
     await waitFor(() => expect(eventsSpy.mock.calls.length).toBeGreaterThan(eventsBefore))
-    expect(sessionsSpy.mock.calls.length).toBe(sessionsBaseline)
-
-    await createFlashcard({
-      front: 'Unrelated card',
-      back: 'answer',
-      subjectId: '',
-    })
-    await waitFor(() => expect(flashcardsSpy.mock.calls.length).toBeGreaterThan(flashcardsBefore))
     expect(sessionsSpy.mock.calls.length).toBe(sessionsBaseline)
 
     await user.click(screen.getByRole('button', { name: 'Goals' }))
@@ -288,7 +276,7 @@ describe('App study sessions live query isolation', () => {
     expect(full.studySessions).toHaveLength(1)
     expect(full.studySessions[0]?.note).toBe('Export session')
     expect(exported.studySessions).toEqual(full.studySessions)
-    expect(exported.version).toBe(3)
+    expect(exported.version).toBe(4)
   })
 
   it('updates Sessions after edit and delete without shell Sessions reads', async () => {

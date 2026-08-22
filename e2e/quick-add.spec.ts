@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-async function openQuickAdd(page: import('@playwright/test').Page, item: 'Task' | 'Note' | 'Event' | 'Flashcard' | 'Focus session') {
+async function openQuickAdd(page: import('@playwright/test').Page, item: 'Task' | 'Note' | 'Event' | 'Focus session') {
   await page.getByRole('button', { name: 'Quick add' }).click()
   await page.getByRole('menuitem', { name: item }).click()
 }
@@ -15,7 +15,7 @@ test('quick-add opens Task create from Home with focused title', async ({ page }
   await expect(page.getByLabel('Task title')).toBeFocused()
 })
 
-test('quick-add opens Note, Event, and Flashcard create editors', async ({ page }) => {
+test('quick-add opens Note and Event create editors', async ({ page }) => {
   await page.goto('/')
 
   await openQuickAdd(page, 'Note')
@@ -26,11 +26,6 @@ test('quick-add opens Note, Event, and Flashcard create editors', async ({ page 
   await openQuickAdd(page, 'Event')
   await expect(page).toHaveURL(/\/calendar$/)
   await expect(page.getByLabel('Event title')).toBeVisible()
-  await page.getByRole('button', { name: 'Cancel' }).click()
-
-  await openQuickAdd(page, 'Flashcard')
-  await expect(page).toHaveURL(/\/flashcards$/)
-  await expect(page.getByLabel('Front')).toBeVisible()
 })
 
 test('quick-add Focus session from Tasks focuses Start without starting', async ({ page }) => {

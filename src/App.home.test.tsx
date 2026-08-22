@@ -649,7 +649,6 @@ describe('App home', () => {
     const today = screen.getByRole('heading', { name: 'Today' }).closest('section') as HTMLElement
     expect(within(today).getByRole('listitem', { name: '0 tasks due today' })).toHaveTextContent('0')
     expect(within(today).getByRole('listitem', { name: '0 overdue tasks' })).toHaveTextContent('0')
-    expect(within(today).getByRole('listitem', { name: '0 flashcards due' })).toHaveTextContent('0')
     expect(within(today).getByRole('listitem', { name: '0 events today' })).toHaveTextContent('0')
     expect(within(today).getByRole('listitem', { name: '0 day study streak' })).toHaveTextContent('0')
     expect(within(today).getByText('Recommended next')).toBeInTheDocument()
@@ -660,7 +659,7 @@ describe('App home', () => {
     expect(screen.getByRole('heading', { name: 'Subjects', level: 1 })).toBeInTheDocument()
   })
 
-  it('surfaces due-today, overdue, flashcard, event, streak, and week focus with a task recommendation', async () => {
+  it('surfaces due-today, overdue, event, streak, and week focus with a task recommendation', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     const now = new Date(2026, 6, 26, 15, 0, 0, 0)
     vi.setSystemTime(now)
@@ -722,15 +721,6 @@ describe('App home', () => {
         updatedAt: '2026-07-04T00:00:00.000Z',
       },
     ])
-    await studyDb.flashcards.add({
-      id: 'card-due',
-      front: 'Mitochondria',
-      back: 'Powerhouse',
-      subjectId: 'dash-subject',
-      status: 'learning',
-      createdAt: '2026-07-01T00:00:00.000Z',
-      updatedAt: '2026-07-01T00:00:00.000Z',
-    })
     await studyDb.events.bulkAdd([
       {
         id: 'event-today',
@@ -766,7 +756,6 @@ describe('App home', () => {
     const today = (await screen.findByRole('heading', { name: 'Today' })).closest('section') as HTMLElement
     expect(within(today).getByRole('listitem', { name: '1 tasks due today' })).toHaveTextContent('1')
     expect(within(today).getByRole('listitem', { name: '1 overdue tasks' })).toHaveTextContent('1')
-    expect(within(today).getByRole('listitem', { name: '1 flashcards due' })).toHaveTextContent('1')
     expect(within(today).getByRole('listitem', { name: '1 events today' })).toHaveTextContent('1')
     expect(within(today).getByRole('listitem', { name: '1 day study streak' })).toHaveTextContent('1')
     expect(within(today).getByRole('listitem', { name: /focus in the last seven days/i })).toHaveTextContent('0h 45m')

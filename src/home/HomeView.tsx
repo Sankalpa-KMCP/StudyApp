@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, Check, Clock3, FileText, Flame, NotebookText, Pause, Play, Square, StopCircle, Target } from '../components/icons'
+import { BookOpen, CalendarDays, Check, Clock3, FileText, Flame, Pause, Play, Square, StopCircle, Target } from '../components/icons'
 import {
   calculateStreak,
   calculateSubjectProgress,
@@ -7,11 +7,10 @@ import {
   formatElapsed,
   formatHours,
   formatMinutes,
-  isFlashcardDue,
   percent,
   type WeeklyStudyDay,
 } from '../appUtils'
-import type { ActiveFocusSession, CalendarEvent, Flashcard, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
+import type { ActiveFocusSession, CalendarEvent, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
 import { EmptyState, MutationNotice, SubjectCard } from '../components/ui'
 import { StudyTime } from '../components/RightColumn'
 import type { View } from '../navigation/viewRoutes'
@@ -36,7 +35,6 @@ export { HOME_FOCUS_SESSION_ID } from './revealHomeFocusSession'
 export function HomeView(props: {
   notes: StudyNote[]
   events: CalendarEvent[]
-  flashcards: Flashcard[]
   tasks: StudyTask[]
   studySessions: StudySession[]
   subjectMap: Map<string, StudySubject>
@@ -101,12 +99,10 @@ export function HomeView(props: {
   const dueTodayTasks = getOpenTasksDueToday(props.tasks, now)
   const overdueTasks = getOpenOverdueTasks(props.tasks, now)
   const todaysEvents = getTodaysEvents(props.events, now)
-  const dueFlashcards = props.flashcards.filter((card) => isFlashcardDue(card))
   const streakDays = calculateStreak(props.studySessions, now)
   const weekHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
   const recommended = getRecommendedNextAction({
     tasks: props.tasks,
-    flashcards: props.flashcards,
     events: props.events,
     subjects: props.subjects,
     activeSession: props.activeSession,
@@ -177,7 +173,6 @@ export function HomeView(props: {
         headingRef={homeTodayTitleRef}
         dueTodayCount={dueTodayTasks.length}
         overdueCount={overdueTasks.length}
-        dueFlashcardCount={dueFlashcards.length}
         todayEventCount={todaysEvents.length}
         streakDays={streakDays}
         weekHours={weekHours}
@@ -188,7 +183,6 @@ export function HomeView(props: {
         recommended={recommended}
         onActivateRecommended={activateRecommended}
         onOpenTasks={() => props.onNavigate('Tasks')}
-        onOpenFlashcards={() => props.onNavigate('Flashcards')}
         onOpenCalendar={() => props.onNavigate('Calendar')}
       />
       <div className="summary-grid">
@@ -272,12 +266,6 @@ function recommendedActionCopy(action: RecommendedNextAction): { title: string; 
         detail: action.title ? `Work on "${action.title}".` : 'Open Tasks to see what is due today.',
         buttonLabel: 'Open Tasks',
       }
-    case 'due_flashcard':
-      return {
-        title: 'Flashcard due',
-        detail: action.title ? `Review "${action.title}".` : 'Open Flashcards to start a review.',
-        buttonLabel: 'Open Flashcards',
-      }
     case 'today_event':
       return {
         title: 'Event today',
@@ -319,7 +307,6 @@ function HomeTodayDashboard({
   headingRef,
   dueTodayCount,
   overdueCount,
-  dueFlashcardCount,
   todayEventCount,
   streakDays,
   weekHours,
@@ -330,13 +317,11 @@ function HomeTodayDashboard({
   recommended,
   onActivateRecommended,
   onOpenTasks,
-  onOpenFlashcards,
   onOpenCalendar,
 }: {
   headingRef: React.RefObject<HTMLHeadingElement | null>
   dueTodayCount: number
   overdueCount: number
-  dueFlashcardCount: number
   todayEventCount: number
   streakDays: number
   weekHours: number
@@ -347,7 +332,6 @@ function HomeTodayDashboard({
   recommended: RecommendedNextAction
   onActivateRecommended: () => void
   onOpenTasks: () => void
-  onOpenFlashcards: () => void
   onOpenCalendar: () => void
 }) {
   const copy = recommendedActionCopy(recommended)
@@ -378,14 +362,6 @@ function HomeTodayDashboard({
             <strong>{overdueCount}</strong>
           </div>
           <button className="text-command home-today-metric-action" type="button" aria-label="View overdue items" onClick={onOpenTasks}>View</button>
-        </li>
-        <li className="home-today-metric" aria-label={`${dueFlashcardCount} flashcards due`}>
-          <NotebookText size={18} aria-hidden="true" />
-          <div>
-            <span className="home-today-metric-label">Flashcards due</span>
-            <strong>{dueFlashcardCount}</strong>
-          </div>
-          <button className="text-command home-today-metric-action" type="button" aria-label="View flashcard review" onClick={onOpenFlashcards}>View</button>
         </li>
         <li className="home-today-metric" aria-label={`${todayEventCount} events today`}>
           <CalendarDays size={18} aria-hidden="true" />
@@ -776,7 +752,7 @@ function SubjectsSection({ subjects, sessions, onViewAll }: { subjects: StudySub
           ))}
         </div>
       ) : (
-        <EmptyState icon={BookOpen} title="No subjects yet" body="Subjects organize tasks, notes, flashcards, and study time." actionLabel="Create subject" onAction={onViewAll} />
+        <EmptyState icon={BookOpen} title="No subjects yet" body="Subjects organize tasks, notes, and study time." actionLabel="Create subject" onAction={onViewAll} />
       )}
     </section>
   )

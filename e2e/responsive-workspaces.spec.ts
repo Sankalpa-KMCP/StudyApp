@@ -74,14 +74,6 @@ for (const width of [390, 320] as const) {
     await assertAboveMobileNav(page, page.getByRole('button', { name: 'Save' }))
     await page.getByRole('button', { name: 'Cancel' }).click()
 
-    await navigateWorkspace(page, 'Flashcards')
-    await page.getByRole('button', { name: 'New card' }).click()
-    await page.getByLabel('Front').fill(`Front side ${width}`)
-    await page.getByLabel('Back').fill(`Back side ${width}`)
-    await assertNoPageOverflow(page)
-    await assertAboveMobileNav(page, page.getByRole('button', { name: 'Save' }))
-    await page.getByRole('button', { name: 'Cancel' }).click()
-
     await navigateWorkspace(page, 'Progress')
     await page.getByRole('button', { name: 'Log session' }).click()
     await assertNoPageOverflow(page)

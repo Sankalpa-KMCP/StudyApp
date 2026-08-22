@@ -69,7 +69,6 @@ describe('studyDb', () => {
       subjects: [],
       notes: [],
       events: [],
-      flashcards: [],
       studySessions: [],
       goals: [],
     })
@@ -100,16 +99,6 @@ describe('studyDb', () => {
       targetHours: 5,
       progress: 10,
       progressMode: 'manual',
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    })
-    await studyDb.flashcards.add({
-      id: 'card-rule',
-      front: 'Rule',
-      back: 'Answer',
-      subjectId: 'subject-math',
-      status: 'new',
-      lastReviewedAt: '',
       createdAt: timestamp,
       updatedAt: timestamp,
     })
@@ -171,13 +160,12 @@ describe('studyDb', () => {
 
     const restored = await getStudyData()
     expect(restored.subjects[0]?.name).toBe('Math')
-    expect(restored.flashcards[0]?.front).toBe('Rule')
     expect(restored.tasks[0]?.title).toBe('Review rule')
     expect(restored.notes[0]?.title).toBe('Rule notes')
     expect(restored.events[0]?.title).toBe('Review block')
     expect(restored.studySessions[0]?.note).toBe('Practice')
     expect(restored.goals[0]?.title).toBe('Study goal')
-    expect(snapshot.version).toBe(3)
+    expect(snapshot.version).toBe(4)
     expect(restored.goals[0]?.metric).toBe('study_time')
     expect(restored.subjects[0]?.progressMode).toBe('manual')
   })
@@ -203,12 +191,11 @@ describe('studyDb', () => {
       'subjects',
       'notes',
       'events',
-      'flashcards',
       'studySessions',
       'goals',
       'settings',
     ])
-    expect(snapshot.version).toBe(3)
+    expect(snapshot.version).toBe(4)
     transactionSpy.mockRestore()
   })
 
@@ -233,7 +220,6 @@ describe('studyDb', () => {
       'subjects',
       'notes',
       'events',
-      'flashcards',
       'studySessions',
       'goals',
       'settings',
@@ -245,13 +231,12 @@ describe('studyDb', () => {
     transactionSpy.mockRestore()
   })
 
-  it('assembles version-3 export payload with supplied timestamp post-transaction', () => {
+  it('assembles version-4 export payload with supplied timestamp post-transaction', () => {
     const fakeSnapshot = {
       tasks: [],
       subjects: [],
       notes: [],
       events: [],
-      flashcards: [],
       studySessions: [],
       goals: [],
       settings: [],
@@ -259,13 +244,13 @@ describe('studyDb', () => {
     const customTimestamp = '2026-07-28T12:00:00.000Z'
     const payload = createStudyExportPayload(fakeSnapshot, customTimestamp)
 
-    expect(payload.version).toBe(3)
+    expect(payload.version).toBe(4)
     expect(payload.exportedAt).toBe(customTimestamp)
     expect(payload.tasks).toEqual([])
     expect(payload.subjects).toEqual([])
   })
 
-  it('exports version 3 with explicit subject progress modes and round-trips them', async () => {
+  it('exports version 4 with explicit subject progress modes and round-trips them', async () => {
     const timestamp = nowIso()
     await studyDb.goals.bulkAdd([
       {
@@ -313,7 +298,7 @@ describe('studyDb', () => {
     ])
 
     const snapshot = await exportStudyData()
-    expect(snapshot.version).toBe(3)
+    expect(snapshot.version).toBe(4)
     expect(snapshot.goals.every((goal) => goal.metric === 'manual' || goal.metric === 'study_time')).toBe(true)
     expect(snapshot.subjects.every((subject) => subject.progressMode === 'manual' || subject.progressMode === 'study_time')).toBe(true)
 
@@ -560,7 +545,7 @@ describe('studyDb', () => {
     await expect(importStudyData(nonStringMetric)).rejects.toThrow('Import file is not a Study Dashboard export.')
     expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
 
-    await expect(importStudyData({ ...validV2, version: 4 })).rejects.toThrow('Import file schema version (4) is newer than supported version (3).')
+    await expect(importStudyData({ ...validV2, version: 5 })).rejects.toThrow('Import file schema version (5) is newer than supported version (4).')
     expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
     expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ id: 'focus-imported' })
   })
@@ -886,32 +871,6 @@ describe('studyDb', () => {
       {
         version: 3 as const,
         ...emptyTables,
-        flashcards: [
-          {
-            id: 'dup-card',
-            front: 'A',
-            back: 'A',
-            subjectId: '',
-            status: 'new' as const,
-            lastReviewedAt: '',
-            createdAt: timestamp,
-            updatedAt: timestamp,
-          },
-          {
-            id: 'dup-card',
-            front: 'B',
-            back: 'B',
-            subjectId: '',
-            status: 'new' as const,
-            lastReviewedAt: '',
-            createdAt: timestamp,
-            updatedAt: timestamp,
-          },
-        ],
-      },
-      {
-        version: 3 as const,
-        ...emptyTables,
         studySessions: [
           {
             id: 'dup-session',
@@ -1157,21 +1116,6 @@ describe('studyDb', () => {
           startAt: timestamp,
           endAt: timestamp,
           location: '',
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        }],
-      },
-      {
-        version: 3 as const,
-        subjects: [presentSubject],
-        ...emptyTables,
-        flashcards: [{
-          id: 'card-orphan',
-          front: 'Q',
-          back: 'A',
-          subjectId: 'missing-subject',
-          status: 'new' as const,
-          lastReviewedAt: '',
           createdAt: timestamp,
           updatedAt: timestamp,
         }],
@@ -1474,22 +1418,6 @@ describe('studyDb', () => {
           progress: -1,
           period: 'daily' as const,
           metric: 'manual' as const,
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        }],
-      },
-      {
-        version: 3 as const,
-        ...emptyTables,
-        subjects: [validSubject],
-        flashcards: [{
-          id: 'card-interval',
-          front: 'Q',
-          back: 'A',
-          subjectId: '',
-          status: 'new' as const,
-          lastReviewedAt: '',
-          intervalDays: -1,
           createdAt: timestamp,
           updatedAt: timestamp,
         }],
@@ -1888,7 +1816,6 @@ describe('studyDb', () => {
       subjects: await studyDb.subjects.toArray(),
       notes: await studyDb.notes.toArray(),
       events: await studyDb.events.toArray(),
-      flashcards: await studyDb.flashcards.toArray(),
       studySessions: await studyDb.studySessions.toArray(),
       goals: await studyDb.goals.toArray(),
       settings: await studyDb.settings.toArray(),
@@ -2659,7 +2586,7 @@ describe('goal metric Dexie version 2 upgrade', () => {
     ])
 
     await studyDb.open()
-    expect(studyDb.verno).toBe(3)
+    expect(studyDb.verno).toBe(4)
 
     const goals = await studyDb.goals.toArray()
     const byId = new Map(goals.map((goal) => [goal.id, goal]))
@@ -2789,7 +2716,7 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
     )
 
     await studyDb.open()
-    expect(studyDb.verno).toBe(3)
+    expect(studyDb.verno).toBe(4)
 
     const subjects = await studyDb.subjects.toArray()
     const byId = new Map(subjects.map((subject) => [subject.id, subject]))
@@ -2862,7 +2789,7 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       await studyDb.open()
     })
 
-    it('P2-S3: preserves all 8 tables, subject references, and settings across full v3 round trip with explicit production ordering', async () => {
+    it('P2-S3: preserves all 7 tables, subject references, and settings across full v4 round trip with explicit production ordering', async () => {
       const t1 = '2026-07-28T10:00:00.000Z'
       const t2 = '2026-07-28T11:00:00.000Z'
 
@@ -2963,36 +2890,6 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
         },
       ])
 
-      // Flashcards: orderBy('createdAt') -> card-a (t1) should precede card-b (t2)
-      await studyDb.flashcards.bulkAdd([
-        {
-          id: 'card-b',
-          front: 'Kinematics Formula',
-          back: 'v = u + at',
-          subjectId: 'subj-b',
-          status: 'new',
-          lastReviewedAt: '',
-          dueAt: t2,
-          intervalDays: 0,
-          reviewCount: 0,
-          createdAt: t2,
-          updatedAt: t2,
-        },
-        {
-          id: 'card-a',
-          front: 'Newton Second Law',
-          back: 'F = ma',
-          subjectId: 'subj-a',
-          status: 'remembered',
-          lastReviewedAt: t1,
-          dueAt: '2026-07-29T10:00:00.000Z',
-          intervalDays: 1,
-          reviewCount: 3,
-          createdAt: t1,
-          updatedAt: t1,
-        },
-      ])
-
       // StudySessions: orderBy('startedAt').reverse() -> session-b (09:00) should precede session-a (08:00)
       await studyDb.studySessions.bulkAdd([
         {
@@ -3062,7 +2959,7 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       const parsedJson = JSON.parse(JSON.stringify(exportPayload))
       const normalizedPayload = parseAndNormalizeStudyExport(parsedJson)
 
-      expect(normalizedPayload.version).toBe(3)
+      expect(normalizedPayload.version).toBe(4)
       expect(typeof normalizedPayload.exportedAt).toBe('string')
       expect(normalizedPayload.exportedAt.length).toBeGreaterThan(0)
 
@@ -3071,7 +2968,6 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       expect(normalizedPayload.tasks.map((t) => t.id)).toEqual(['task-a', 'task-b'])
       expect(normalizedPayload.notes.map((n) => n.id)).toEqual(['note-b', 'note-a'])
       expect(normalizedPayload.events.map((e) => e.id)).toEqual(['event-a', 'event-b'])
-      expect(normalizedPayload.flashcards.map((c) => c.id)).toEqual(['card-a', 'card-b'])
       expect(normalizedPayload.studySessions.map((s) => s.id)).toEqual(['session-b', 'session-a'])
       expect(normalizedPayload.goals.map((g) => g.id)).toEqual(['goal-a', 'goal-b'])
 
@@ -3131,34 +3027,6 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
 
       expect(restored.notes.map((n) => n.id)).toEqual(['note-b', 'note-a'])
       expect(restored.events.map((e) => e.id)).toEqual(['event-a', 'event-b'])
-      expect(restored.flashcards).toEqual([
-        {
-          id: 'card-a',
-          front: 'Newton Second Law',
-          back: 'F = ma',
-          subjectId: 'subj-a',
-          status: 'remembered',
-          lastReviewedAt: t1,
-          dueAt: '2026-07-29T10:00:00.000Z',
-          intervalDays: 1,
-          reviewCount: 3,
-          createdAt: t1,
-          updatedAt: t1,
-        },
-        {
-          id: 'card-b',
-          front: 'Kinematics Formula',
-          back: 'v = u + at',
-          subjectId: 'subj-b',
-          status: 'new',
-          lastReviewedAt: '',
-          dueAt: t2,
-          intervalDays: 0,
-          reviewCount: 0,
-          createdAt: t2,
-          updatedAt: t2,
-        },
-      ])
       expect(restored.studySessions.map((s) => s.id)).toEqual(['session-b', 'session-a'])
       expect(restored.goals.map((g) => g.id)).toEqual(['goal-a', 'goal-b'])
 
@@ -3185,13 +3053,12 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       const emptyExport = await exportStudyData()
       const normalizedEmpty = parseAndNormalizeStudyExport(JSON.parse(JSON.stringify(emptyExport)))
 
-      expect(normalizedEmpty.version).toBe(3)
+      expect(normalizedEmpty.version).toBe(4)
       expect(typeof normalizedEmpty.exportedAt).toBe('string')
       expect(normalizedEmpty.tasks).toEqual([])
       expect(normalizedEmpty.subjects).toEqual([])
       expect(normalizedEmpty.notes).toEqual([])
       expect(normalizedEmpty.events).toEqual([])
-      expect(normalizedEmpty.flashcards).toEqual([])
       expect(normalizedEmpty.studySessions).toEqual([])
       expect(normalizedEmpty.goals).toEqual([])
       expect(normalizedEmpty.settings).toEqual([])
@@ -3216,7 +3083,6 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       expect(restored.subjects).toEqual([])
       expect(restored.notes).toEqual([])
       expect(restored.events).toEqual([])
-      expect(restored.flashcards).toEqual([])
       expect(restored.studySessions).toEqual([])
       expect(restored.goals).toEqual([])
     })
@@ -3748,5 +3614,60 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       await importStudyData(exported)
       expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
     })
+  })
+})
+
+describe('flashcard removal Dexie version 4 upgrade', () => {
+  class StudyDatabaseV3Only extends Dexie {
+    constructor() {
+      super(STUDY_DB_NAME)
+      this.version(1).stores(V1_STORES)
+      this.version(2).stores(V1_STORES)
+      this.version(3).stores(V1_STORES)
+    }
+  }
+
+  afterEach(async () => {
+    if (studyDb.isOpen()) studyDb.close()
+    await studyDb.delete()
+  })
+
+  it('upgrades from version 3 by dropping the flashcards table while preserving all other tables', async () => {
+    if (studyDb.isOpen()) studyDb.close()
+    await studyDb.delete()
+
+    const v3 = new StudyDatabaseV3Only()
+    await v3.open()
+    expect(v3.verno).toBe(3)
+
+    const timestamp = '2026-07-24T00:00:00.000Z'
+    await v3.table('tasks').add({
+      id: 'task-v3',
+      title: 'Task V3',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 30,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await v3.table('flashcards').add({
+      id: 'card-v3',
+      front: 'Q',
+      back: 'A',
+      subjectId: '',
+      status: 'new',
+      lastReviewedAt: '',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    v3.close()
+
+    await studyDb.open()
+    expect(studyDb.verno).toBe(4)
+    expect(studyDb.tables.map((t) => t.name)).not.toContain('flashcards')
+    expect(await studyDb.tasks.count()).toBe(1)
+    expect((await studyDb.tasks.get('task-v3'))?.title).toBe('Task V3')
   })
 })

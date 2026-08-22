@@ -1,6 +1,6 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
-import { buildSearchResults, calculateSubjectProgress, isFlashcardDue, type SearchResult } from '../appUtils'
-import type { CalendarEvent, Flashcard, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
+import { buildSearchResults, calculateSubjectProgress, type SearchResult } from '../appUtils'
+import type { CalendarEvent, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
 
 export type TaskSearchFilter = 'all' | 'open' | 'done'
 
@@ -8,7 +8,6 @@ export type UseAppSearchOptions = {
   subjects: StudySubject[]
   notes: StudyNote[]
   events: CalendarEvent[]
-  flashcards: Flashcard[]
   tasks: StudyTask[]
   studySessions: StudySession[]
   subjectMap: Map<string, StudySubject>
@@ -25,7 +24,6 @@ export type UseAppSearchResult = {
   filteredNotes: StudyNote[]
   filteredSubjects: StudySubject[]
   filteredEvents: CalendarEvent[]
-  filteredFlashcards: Flashcard[]
 }
 
 /**
@@ -36,7 +34,6 @@ export function useAppSearch({
   subjects,
   notes,
   events,
-  flashcards,
   tasks,
   studySessions,
   subjectMap,
@@ -47,8 +44,8 @@ export function useAppSearch({
   const normalizedSearch = deferredSearch.trim().toLowerCase()
 
   const homeSearchResults = useMemo(
-    () => buildSearchResults(subjects, notes, events, flashcards, tasks, studySessions, subjectMap, deferredSearch),
-    [deferredSearch, events, flashcards, notes, subjectMap, studySessions, subjects, tasks],
+    () => buildSearchResults(subjects, notes, events, tasks, studySessions, subjectMap, deferredSearch),
+    [deferredSearch, events, notes, subjectMap, studySessions, subjects, tasks],
   )
 
   const filteredTasks = useMemo(() => tasks.filter((task) => {
@@ -76,11 +73,6 @@ export function useAppSearch({
     return `${event.title} ${event.location} ${subject}`.toLowerCase().includes(normalizedSearch)
   }), [events, normalizedSearch, subjectMap])
 
-  const filteredFlashcards = useMemo(() => flashcards.filter((card) => {
-    const subject = subjectMap.get(card.subjectId)?.name ?? 'General'
-    return `${card.front} ${card.back} ${subject} ${card.status}`.toLowerCase().includes(normalizedSearch)
-  }).sort((a, b) => Number(isFlashcardDue(b)) - Number(isFlashcardDue(a))), [flashcards, normalizedSearch, subjectMap])
-
   const clearSearch = useCallback(() => setSearch(''), [])
 
   return {
@@ -93,6 +85,5 @@ export function useAppSearch({
     filteredNotes,
     filteredSubjects,
     filteredEvents,
-    filteredFlashcards,
   }
 }

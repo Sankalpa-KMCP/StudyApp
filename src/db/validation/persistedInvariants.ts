@@ -44,13 +44,6 @@ export function isPersistedGoalProgress(progress: number): boolean {
 }
 
 /**
- * Optional flashcard schedule counters: absent is valid; when present must be non-negative.
- */
-export function isPersistedOptionalNonNegativeCounter(value: number | undefined): boolean {
-  return value === undefined || value >= 0
-}
-
-/**
  * Subject reference for imported rows and valid active-focus payloads.
  * Empty string is General; non-empty IDs must exist in the imported subject id set.
  */
