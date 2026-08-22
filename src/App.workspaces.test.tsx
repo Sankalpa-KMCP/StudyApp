@@ -2,11 +2,12 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import { studyDb } from './db/studyDb'
-import * as notesService from './db/notesService'
-import * as taskService from './db/taskService'
+import { ACTIVE_FOCUS_SESSION_KEY } from './db/activeFocusSession'
 import * as calendarEventService from './db/calendarEventService'
+import * as notesService from './db/notesService'
+import { studyDb } from './db/studyDb'
 import * as subjectService from './db/subjectService'
+import * as taskService from './db/taskService'
 import { confirmOpenDeletion, flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
 describe('App workspaces', () => {
@@ -417,6 +418,91 @@ describe('App workspaces', () => {
     expect(deleteSpy).not.toHaveBeenCalled()
     expect(await studyDb.subjects.get('subject-linked')).toBeDefined()
     expect(screen.getByLabelText('Delete Chemistry')).toBeEnabled()
+  })
+
+  it('blocks deletion of a subject linked to an active focus session in the UI', async () => {
+    const user = userEvent.setup()
+    const deleteSpy = vi.spyOn(subjectService, 'deleteSubject')
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.subjects.add({
+      id: 'subject-focus-linked',
+      name: 'Biology',
+      color: '#10b981',
+      targetHours: 5,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+    await studyDb.settings.put({
+      key: ACTIVE_FOCUS_SESSION_KEY,
+      value: {
+        id: 'focus-active-ui-1',
+        subjectId: 'subject-focus-linked',
+        startedAt: timestamp,
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      },
+    })
+
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Subjects' }))
+    await user.click(screen.getByLabelText('Delete Biology'))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Cannot delete Biology/)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/1 active focus session/)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(deleteSpy).not.toHaveBeenCalled()
+    expect(await studyDb.subjects.get('subject-focus-linked')).toBeDefined()
+    expect(screen.getByLabelText('Delete Biology')).toBeEnabled()
+  })
+
+  it('rejects deletion if a subject becomes linked to active focus while confirm dialog is open (TOCTOU)', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    await studyDb.subjects.add({
+      id: 'subject-toctou-ui',
+      name: 'Economics',
+      color: '#ec4899',
+      targetHours: 3,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Subjects' }))
+    // Click delete when unlinked -> dialog opens
+    await user.click(screen.getByLabelText('Delete Economics'))
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+
+    // Concurrently start an active focus session referencing this subject
+    await studyDb.settings.put({
+      key: ACTIVE_FOCUS_SESSION_KEY,
+      value: {
+        id: 'focus-toctou-active',
+        subjectId: 'subject-toctou-ui',
+        startedAt: timestamp,
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      },
+    })
+
+    // Confirm deletion in dialog
+    await confirmOpenDeletion(user)
+
+    // Transaction blocks deletion and surfaces error
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Cannot delete Economics/)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/1 active focus session/)
+    expect(await studyDb.subjects.get('subject-toctou-ui')).toBeDefined()
   })
 
   it('creates and opens a note', async () => {

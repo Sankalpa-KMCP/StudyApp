@@ -1,3 +1,4 @@
+import { ACTIVE_FOCUS_SESSION_KEY, isActiveFocusSession } from './activeFocusSession'
 import { createId, nowIso, studyDb } from './studyDb'
 import type { StudySubject, SubjectProgressMode } from './types'
 
@@ -16,7 +17,12 @@ export type SubjectLinkedUsage = {
   notes: number
   events: number
   sessions: number
+  activeFocus: number
 }
+
+export type DeleteSubjectResult =
+  | { ok: true }
+  | { ok: false; reason: 'linked'; usage: SubjectLinkedUsage }
 
 /**
  * Persist a new subject. Owns id and created/updated timestamps.
@@ -54,22 +60,64 @@ export async function updateSubject(id: string, fields: SubjectWriteFields): Pro
 }
 
 /**
- * Count study records linked to a subject across the tables protected by the delete policy.
+ * Count study records linked to a subject across the tables protected by the delete policy,
+ * including any active unfinished focus session.
  */
 export async function getSubjectLinkedUsage(subjectId: string): Promise<SubjectLinkedUsage> {
-  const [tasks, notes, events, sessions] = await Promise.all([
+  const [tasks, notes, events, sessions, focusRecord] = await Promise.all([
     studyDb.tasks.where('subjectId').equals(subjectId).count(),
     studyDb.notes.where('subjectId').equals(subjectId).count(),
     studyDb.events.where('subjectId').equals(subjectId).count(),
     studyDb.studySessions.where('subjectId').equals(subjectId).count(),
+    studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY),
   ])
-  return { tasks, notes, events, sessions }
+  const activeFocus =
+    focusRecord &&
+    isActiveFocusSession(focusRecord.value) &&
+    focusRecord.value.subjectId === subjectId
+      ? 1
+      : 0
+  return { tasks, notes, events, sessions, activeFocus }
 }
 
 /**
- * Delete a subject by id. Missing rows are not treated as errors (Dexie delete is idempotent).
- * Callers must enforce the linked-usage policy before invoking this.
+ * Authoritatively and atomically deletes a subject by id.
+ * Rechecks all dependent entity tables and the active focus session in one Dexie rw transaction.
+ * If any reference exists, deletion is blocked and returns `{ ok: false, reason: 'linked', usage }`.
+ * If no references exist, deletes the subject (idempotent for missing ids) and returns `{ ok: true }`.
  */
-export async function deleteSubject(id: string): Promise<void> {
-  await studyDb.subjects.delete(id)
+export async function deleteSubject(id: string): Promise<DeleteSubjectResult> {
+  return studyDb.transaction(
+    'rw',
+    [
+      studyDb.subjects,
+      studyDb.tasks,
+      studyDb.notes,
+      studyDb.events,
+      studyDb.studySessions,
+      studyDb.settings,
+    ],
+    async () => {
+      const [tasks, notes, events, sessions, focusRecord] = await Promise.all([
+        studyDb.tasks.where('subjectId').equals(id).count(),
+        studyDb.notes.where('subjectId').equals(id).count(),
+        studyDb.events.where('subjectId').equals(id).count(),
+        studyDb.studySessions.where('subjectId').equals(id).count(),
+        studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY),
+      ])
+      const activeFocus =
+        focusRecord &&
+        isActiveFocusSession(focusRecord.value) &&
+        focusRecord.value.subjectId === id
+          ? 1
+          : 0
+      const usage: SubjectLinkedUsage = { tasks, notes, events, sessions, activeFocus }
+      const linkedTotal = tasks + notes + events + sessions + activeFocus
+      if (linkedTotal > 0) {
+        return { ok: false, reason: 'linked', usage }
+      }
+      await studyDb.subjects.delete(id)
+      return { ok: true }
+    },
+  )
 }
