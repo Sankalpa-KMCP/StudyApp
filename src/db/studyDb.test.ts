@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { clearAllStudyData, createStudyExportPayload, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, parseAndNormalizeStudyExport, readStudyDataSnapshot, studyDb } from './studyDb'
+import { clearAllStudyData, createStudyExportPayload, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, parseAndNormalizeStudyExport, readStudyDataSnapshot, studyDb, StudyDatabase } from './studyDb'
 import { MAX_STUDY_EXPORT_IMPORT_BYTES, MAX_STUDY_EXPORT_IMPORT_CHARS } from './studyExportLimits'
 import type { ActiveFocusSession, StudyGoal } from './types'
 
@@ -2903,6 +2903,138 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       expect(restoredSubjectIds.has('subj-linked')).toBe(true)
       expect(restored.tasks[0]?.subjectId).toBe('subj-linked')
       expect(restored.notes[0]?.subjectId).toBe('subj-linked')
+    })
+
+    it('P2-S4: captures a coherent snapshot under concurrent write from a second connection', async () => {
+      const studyDb2 = new StudyDatabase()
+      await studyDb2.open()
+
+      let snapshotGateResolver!: () => void
+      const snapshotGatePromise = new Promise<void>((r) => {
+        snapshotGateResolver = r
+      })
+
+      let writerIssuedResolver!: () => void
+      const writerIssuedPromise = new Promise<void>((r) => {
+        writerIssuedResolver = r
+      })
+
+      let snapshotStarted = false
+      let writerResolved = false
+
+      try {
+        const timestamp = nowIso()
+
+        // Seed coherent State A (Subject A + Task A referencing Subject A)
+        await studyDb.subjects.add({
+          id: 'subj-a',
+          name: 'Mathematics',
+          color: '#2563eb',
+          targetHours: 10,
+          progress: 0,
+          progressMode: 'manual',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        })
+        await studyDb.tasks.add({
+          id: 'task-a',
+          title: 'Math exercises',
+          subjectId: 'subj-a',
+          dueDate: '',
+          priority: 'normal',
+          status: 'open',
+          minutes: 60,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        })
+
+        // Verify initial state A passes validation
+        const initialData = await getStudyData()
+        expect(initialData.subjects.map((s) => s.id)).toEqual(['subj-a'])
+        expect(initialData.tasks.map((t) => t.id)).toEqual(['task-a'])
+
+        // Spy on Connection A transaction to hold it open via Dexie.waitFor after reads execute
+        const origAppTransaction = studyDb.transaction.bind(studyDb)
+        vi.spyOn(studyDb, 'transaction').mockImplementation((mode: unknown, ...args: unknown[]) => {
+          const callback = args[args.length - 1] as () => Promise<unknown>
+          args[args.length - 1] = async () => {
+            snapshotStarted = true
+            const result = await callback()
+            await Dexie.waitFor(snapshotGatePromise)
+            return result
+          }
+          return (origAppTransaction as (...a: unknown[]) => unknown)(mode, ...args) as Promise<unknown>
+        })
+
+        // Spy on Connection B transaction to signal when write request is issued
+        const origWriterTransaction = studyDb2.transaction.bind(studyDb2)
+        vi.spyOn(studyDb2, 'transaction').mockImplementation((mode: unknown, ...args: unknown[]) => {
+          writerIssuedResolver()
+          return (origWriterTransaction as (...a: unknown[]) => unknown)(mode, ...args) as Promise<unknown>
+        })
+
+        // 1. Start snapshot transaction on Connection A
+        const snapshotPromise = readStudyDataSnapshot()
+        await vi.waitFor(() => expect(snapshotStarted).toBe(true))
+
+        // 2. Start concurrent atomic State B write on Connection B (replace Subject A/Task A with Subject B/Task B)
+        const writePromise = studyDb2
+          .transaction('rw', [studyDb2.subjects, studyDb2.tasks], async () => {
+            await studyDb2.subjects.delete('subj-a')
+            await studyDb2.tasks.delete('task-a')
+            await studyDb2.subjects.add({
+              id: 'subj-b',
+              name: 'Physics',
+              color: '#16a34a',
+              targetHours: 8,
+              progress: 0,
+              progressMode: 'manual',
+              createdAt: timestamp,
+              updatedAt: timestamp,
+            })
+            await studyDb2.tasks.add({
+              id: 'task-b',
+              title: 'Physics reading',
+              subjectId: 'subj-b',
+              dueDate: '',
+              priority: 'normal',
+              status: 'open',
+              minutes: 45,
+              createdAt: timestamp,
+              updatedAt: timestamp,
+            })
+          })
+          .then(() => {
+            writerResolved = true
+          })
+
+        // 3. Directly prove Connection B's transaction request was issued
+        await writerIssuedPromise
+
+        // 4. Assert writer is still pending while snapshot gate is held
+        expect(writerResolved).toBe(false)
+
+        // 5. Release snapshot gate and await both promises
+        snapshotGateResolver()
+        const snapshot = await snapshotPromise
+        await writePromise
+
+        // 6. Assert snapshot returned 100% untorn State A
+        expect(snapshot.subjects.map((s) => s.id)).toEqual(['subj-a'])
+        expect(snapshot.tasks.map((t) => t.id)).toEqual(['task-a'])
+        expect(snapshot.tasks[0]?.subjectId).toBe('subj-a')
+
+        // 7. Assert writer completed after release and live DB reflects 100% untorn State B
+        expect(writerResolved).toBe(true)
+        const liveData = await getStudyData()
+        expect(liveData.subjects.map((s) => s.id)).toEqual(['subj-b'])
+        expect(liveData.tasks.map((t) => t.id)).toEqual(['task-b'])
+        expect(liveData.tasks[0]?.subjectId).toBe('subj-b')
+      } finally {
+        snapshotGateResolver()
+        studyDb2.close()
+        vi.restoreAllMocks()
+      }
     })
   })
 })
