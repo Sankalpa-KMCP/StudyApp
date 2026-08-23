@@ -75,7 +75,7 @@ describe('editorLimits Calendar duration and Progress session minutes', () => {
 })
 
 describe('editorLimits Goal target and manual progress', () => {
-  it('exposes Goal editor target range 1–10000 distinct from dailyGoalMinutes 30–720', () => {
+  it('exposes Goal editor target range 1–10000', () => {
     expect(GOAL_EDITOR_TARGET_MIN).toBe(1)
     expect(GOAL_EDITOR_TARGET_MAX).toBe(10_000)
   })

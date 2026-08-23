@@ -62,7 +62,7 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
   5. Duplicate entity IDs and duplicate settings keys
   6. Subject references (non-empty `subjectId` must exist; `''` = General)
   7. Semantic integrity (subject progress 0–100 and `targetHours > 0`; task minutes ≥ 0; session minutes > 0; event/session end not before start; goal `target > 0` and `progress ≥ 0`)
-  8. Known settings values (`dailyGoalMinutes` 30–720; `quickNotes` string[] max 8; `legacy-localstorage-migrated-v1` exactly `true`; `activeFocusSession` via `isActiveFocusSession`). **Unknown settings keys are accepted and preserved.**
+  8. Known settings values (`dailyGoalMinutes > 0`; `quickNotes` string[] max 8; `legacy-localstorage-migrated-v1` exactly `true`; `activeFocusSession` via `isActiveFocusSession`). **Unknown settings keys are accepted and preserved.**
   9. Record counts (total **25,000**; subjects **500**; tasks/notes/events **5,000**; study sessions **10,000**; goals **500**; settings **64**)
   10. Dexie clear + `bulkPut` (only after steps 1–9 succeed); then reload focus from IndexedDB on success
 - Import integrity does **not** enforce stricter UI-only editor maximums (e.g. Tasks minutes 5–720 clamp, Progress “end not in the future”). Do not silently repair duplicate, orphaned, or semantically invalid records — reject the whole import.

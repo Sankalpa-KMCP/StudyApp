@@ -6,6 +6,7 @@ import {
 } from './studyExportLimits'
 import type { StudyExport } from './types'
 import {
+  isPersistedDailyGoalMinutes,
   isPersistedGoalProgress,
   isPersistedGoalTarget,
   isPersistedStudySessionMinutes,
@@ -160,8 +161,6 @@ export function assertStudyExportSemantics(
 const LEGACY_MIGRATION_SETTING_KEY = 'legacy-localstorage-migrated-v1'
 const DAILY_GOAL_MINUTES_KEY = 'dailyGoalMinutes'
 const QUICK_NOTES_KEY = 'quickNotes'
-const DAILY_GOAL_MINUTES_MIN = 30
-const DAILY_GOAL_MINUTES_MAX = 720
 const QUICK_NOTES_MAX = 8
 
 /**
@@ -174,9 +173,7 @@ export function assertStudyExportSettingsValues(
   for (const setting of snapshot.settings) {
     switch (setting.key) {
       case DAILY_GOAL_MINUTES_KEY: {
-        const value = setting.value
-        if (typeof value !== 'number' || !Number.isFinite(value)) failValidation()
-        if (value < DAILY_GOAL_MINUTES_MIN || value > DAILY_GOAL_MINUTES_MAX) failValidation()
+        if (!isPersistedDailyGoalMinutes(setting.value)) failValidation()
         break
       }
       case QUICK_NOTES_KEY: {

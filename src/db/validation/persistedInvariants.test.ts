@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  isPersistedDailyGoalMinutes,
   isPersistedGoalProgress,
   isPersistedGoalTarget,
   isPersistedStudySessionMinutes,
@@ -90,6 +91,28 @@ describe('persistedInvariants', () => {
       expect(isPersistedSubjectReference('', subjectIds)).toBe(true)
       expect(isPersistedSubjectReference('subject-math', subjectIds)).toBe(true)
       expect(isPersistedSubjectReference('missing', subjectIds)).toBe(false)
+    })
+  })
+
+  describe('isPersistedDailyGoalMinutes', () => {
+    it('accepts positive finite numbers including boundaries and above 720', () => {
+      expect(isPersistedDailyGoalMinutes(1)).toBe(true)
+      expect(isPersistedDailyGoalMinutes(25)).toBe(true)
+      expect(isPersistedDailyGoalMinutes(29)).toBe(true)
+      expect(isPersistedDailyGoalMinutes(30)).toBe(true)
+      expect(isPersistedDailyGoalMinutes(720)).toBe(true)
+      expect(isPersistedDailyGoalMinutes(721)).toBe(true)
+      expect(isPersistedDailyGoalMinutes(10_000)).toBe(true)
+    })
+
+    it('rejects non-positive, non-finite, or non-numeric values', () => {
+      expect(isPersistedDailyGoalMinutes(0)).toBe(false)
+      expect(isPersistedDailyGoalMinutes(-1)).toBe(false)
+      expect(isPersistedDailyGoalMinutes(Number.NaN)).toBe(false)
+      expect(isPersistedDailyGoalMinutes(Number.POSITIVE_INFINITY)).toBe(false)
+      expect(isPersistedDailyGoalMinutes('240')).toBe(false)
+      expect(isPersistedDailyGoalMinutes(null)).toBe(false)
+      expect(isPersistedDailyGoalMinutes(undefined)).toBe(false)
     })
   })
 })

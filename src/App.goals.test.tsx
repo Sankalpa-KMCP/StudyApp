@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import { studyDb } from './db/studyDb'
+import { exportStudyData, importStudyData, studyDb } from './db/studyDb'
 import * as goalService from './db/goalService'
 import { confirmOpenDeletion, flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 
@@ -495,5 +495,35 @@ describe('App goals', () => {
     await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky goal')).not.toBeInTheDocument())
     expect(await screen.findByRole('status')).toHaveTextContent('Goal deleted.')
+  })
+
+  it('round-trips a 25-minute daily study goal through export and import', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Goals' }))
+    await user.click(screen.getByRole('button', { name: 'New goal' }))
+    await user.type(screen.getByLabelText('Goal title'), 'Pomodoro 25')
+    await user.selectOptions(screen.getByLabelText('Metric'), 'study_time')
+    await user.selectOptions(screen.getByLabelText('Period'), 'daily')
+    fireEvent.change(screen.getByLabelText(/Target \(minutes\)/), { target: { value: '25' } })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Pomodoro 25')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Goal created.')
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(25)
+
+    const exported = await exportStudyData()
+    expect(exported.settings.find((s) => s.key === 'dailyGoalMinutes')?.value).toBe(25)
+
+    await resetAppTestEnvironment()
+    expect(await studyDb.goals.count()).toBe(0)
+
+    await importStudyData(exported)
+    const restored = await studyDb.goals.toArray()
+    expect(restored).toHaveLength(1)
+    expect(restored[0].title).toBe('Pomodoro 25')
+    expect(restored[0].target).toBe(25)
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(25)
   })
 })

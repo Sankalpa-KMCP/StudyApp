@@ -1562,12 +1562,12 @@ describe('studyDb', () => {
       {
         version: 3 as const,
         ...emptyTables,
-        settings: [{ key: 'dailyGoalMinutes', value: 29 }],
+        settings: [{ key: 'dailyGoalMinutes', value: 0 }],
       },
       {
         version: 3 as const,
         ...emptyTables,
-        settings: [{ key: 'dailyGoalMinutes', value: 721 }],
+        settings: [{ key: 'dailyGoalMinutes', value: -1 }],
       },
       {
         version: 3 as const,
@@ -3841,6 +3841,35 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       await clearAllStudyData()
       await importStudyData(exported)
       expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    })
+
+    it('22. round-trips daily study_time goals and dailyGoalMinutes across all boundary ranges (1, 25, 29, 30, 720, 721, 10000)', async () => {
+      const boundaryTargets = [1, 25, 29, 30, 720, 721, 10_000]
+      for (const target of boundaryTargets) {
+        await clearAllStudyData()
+        await studyDb.goals.put({
+          id: `goal-boundary-${target}`,
+          title: `Target ${target}`,
+          target,
+          progress: 0,
+          period: 'daily',
+          metric: 'study_time',
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        })
+        await studyDb.settings.put({ key: 'dailyGoalMinutes', value: target })
+
+        const exported = await exportStudyData()
+        expect(exported.settings.find((s) => s.key === 'dailyGoalMinutes')?.value).toBe(target)
+
+        await clearAllStudyData()
+        await importStudyData(exported)
+
+        const restoredGoal = await studyDb.goals.get(`goal-boundary-${target}`)
+        expect(restoredGoal?.target).toBe(target)
+        const restoredSetting = await studyDb.settings.get('dailyGoalMinutes')
+        expect(restoredSetting?.value).toBe(target)
+      }
     })
   })
 })

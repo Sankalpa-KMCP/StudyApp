@@ -64,7 +64,7 @@ export const GOAL_EDITOR_TARGET_MIN = 1
 
 /**
  * Goal editor target ceiling (inclusive).
- * Import continues to accept targets above this (e.g. 10001); `dailyGoalMinutes` stays 30–720.
+ * Import continues to accept targets above this (e.g. 10001); `dailyGoalMinutes` requires positive finite minutes.
  */
 export const GOAL_EDITOR_TARGET_MAX = 10_000
 
