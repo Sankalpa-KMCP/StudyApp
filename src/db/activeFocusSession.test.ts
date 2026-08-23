@@ -163,6 +163,16 @@ describe('activeFocusSession persistence', () => {
   beforeEach(async () => {
     await studyDb.delete()
     await studyDb.open()
+    await studyDb.subjects.add({
+      id: 'subject-math',
+      name: 'Mathematics',
+      color: '#2563eb',
+      targetHours: 10,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: '2026-07-20T00:00:00.000Z',
+      updatedAt: '2026-07-20T00:00:00.000Z',
+    })
   })
 
   it('persists and reads a valid unfinished session', async () => {
@@ -413,5 +423,96 @@ describe('activeFocusSession persistence', () => {
     expect(await getActiveFocusSession()).toBeNull()
     expect(await studyDb.studySessions.count()).toBe(0)
     expect(await discardActiveFocusSession(session.id)).toEqual({ ok: false, reason: 'missing' })
+  })
+
+  describe('referential integrity and race prevention', () => {
+    it('createActiveFocusSession rejects missing subject and writes nothing to settings', async () => {
+      const session = makeSession({ subjectId: 'subject-nonexistent' })
+      const result = await createActiveFocusSession(session)
+      expect(result).toEqual({ ok: false, reason: 'missing_subject' })
+      expect(await getActiveFocusSession()).toBeNull()
+      expect(await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)).toBeUndefined()
+    })
+
+    it('updateActiveFocusSession rejects missing subject and preserves the current settings record', async () => {
+      const session = makeSession({ subjectId: 'subject-math' })
+      await createActiveFocusSession(session)
+
+      const updateAttempt = { ...session, subjectId: 'subject-nonexistent' }
+      const result = await updateActiveFocusSession(updateAttempt)
+      expect(result).toEqual({ ok: false, reason: 'missing_subject' })
+      expect(await getActiveFocusSession()).toEqual(session)
+    })
+
+    it('finalizeActiveFocusSession rejects missing subject, logs no study time, and preserves active record', async () => {
+      const session = makeSession({ subjectId: 'subject-math' })
+      await createActiveFocusSession(session)
+
+      // Delete subject directly under the active session
+      await studyDb.subjects.delete('subject-math')
+
+      const result = await finalizeActiveFocusSession(session.id, {
+        subjectId: 'subject-math',
+        startedAt: session.startedAt,
+        endedAt: '2026-07-20T10:25:00.000Z',
+        minutes: 25,
+        note: 'Focus session',
+      })
+
+      expect(result).toEqual({ ok: false, reason: 'missing_subject' })
+      expect(await studyDb.studySessions.count()).toBe(0)
+      expect(await getActiveFocusSession()).toEqual(session)
+    })
+
+    it('create, update, and finalize all succeed with General focus (empty subjectId)', async () => {
+      const session = makeSession({ id: 'focus-general', subjectId: '' })
+      expect(await createActiveFocusSession(session)).toEqual({ ok: true, session })
+
+      const updated = { ...session, plannedMinutes: 50 }
+      expect(await updateActiveFocusSession(updated)).toEqual({ ok: true, session: updated })
+
+      const finalized = await finalizeActiveFocusSession(session.id, {
+        subjectId: '',
+        startedAt: session.startedAt,
+        endedAt: '2026-07-20T10:50:00.000Z',
+        minutes: 50,
+        note: 'General focus session',
+      })
+      expect(finalized.ok).toBe(true)
+      expect(await studyDb.studySessions.get(session.id)).toMatchObject({ subjectId: '', minutes: 50 })
+      expect(await getActiveFocusSession()).toBeNull()
+    })
+
+    it('writer-first: active focus session blocks deleteSubject', async () => {
+      const { deleteSubject } = await import('./subjectService')
+      const session = makeSession({ subjectId: 'subject-math' })
+      await createActiveFocusSession(session)
+
+      const deleteResult = await deleteSubject('subject-math')
+      expect(deleteResult).toEqual({
+        ok: false,
+        reason: 'linked',
+        usage: {
+          tasks: 0,
+          notes: 0,
+          events: 0,
+          sessions: 0,
+          activeFocus: 1,
+        },
+      })
+      expect(await studyDb.subjects.get('subject-math')).toBeDefined()
+      expect(await getActiveFocusSession()).toEqual(session)
+    })
+
+    it('delete-first: deleted subject blocks subsequent createActiveFocusSession', async () => {
+      const { deleteSubject } = await import('./subjectService')
+      await deleteSubject('subject-math')
+      expect(await studyDb.subjects.get('subject-math')).toBeUndefined()
+
+      const session = makeSession({ subjectId: 'subject-math' })
+      const result = await createActiveFocusSession(session)
+      expect(result).toEqual({ ok: false, reason: 'missing_subject' })
+      expect(await getActiveFocusSession()).toBeNull()
+    })
   })
 })

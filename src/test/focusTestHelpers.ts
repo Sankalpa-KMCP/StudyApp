@@ -11,7 +11,7 @@ export async function waitForFocusStartEnabled() {
 export function makeDurableFocusSession(overrides: Partial<ActiveFocusSession> = {}): ActiveFocusSession {
   return {
     id: 'focus-restored',
-    subjectId: 'subject-focus',
+    subjectId: '',
     startedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
     plannedMinutes: 25,
     status: 'running',

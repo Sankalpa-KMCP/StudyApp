@@ -150,6 +150,13 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
             return
           }
           hydrateActiveSession(result.existing, 'An unfinished focus session was restored.')
+          return
+        }
+
+        if (result.reason === 'missing_subject') {
+          deferredAutoCompleteSessionIdRef.current = null
+          setSessionNotice('The selected subject is no longer available.')
+          return
         }
       } catch {
         setSessionNotice('Could not start the focus session. Try again.')
@@ -266,6 +273,11 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
         deferredAutoCompleteSessionIdRef.current = null
         if (result.reason === 'conflict') {
           hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+          return
+        }
+
+        if (result.reason === 'missing_subject') {
+          setSessionNotice('The selected subject is no longer available. Study time was not logged.')
           return
         }
 
@@ -467,6 +479,19 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
 
           if (result.reason === 'conflict') {
             hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+            return
+          }
+
+          if (result.reason === 'missing_subject') {
+            const durable = await getActiveFocusSession()
+            if (writeSeq !== focusSubjectWriteSeqRef.current) return
+            if (durable) {
+              hydrateActiveSession(durable, 'The selected subject is no longer available.')
+              return
+            }
+            setActiveSession(baseline)
+            setFocusSubjectId(baseline.subjectId)
+            setSessionNotice('The selected subject is no longer available.')
             return
           }
 

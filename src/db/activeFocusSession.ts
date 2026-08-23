@@ -1,5 +1,6 @@
 import type { ActiveFocusSession, ActiveFocusSessionStatus, StudySession } from './types'
 import { nowIso, studyDb } from './studyDb'
+import { assertSubjectExists, isSubjectNotFoundError } from './subjectValidation'
 
 export const ACTIVE_FOCUS_SESSION_KEY = 'activeFocusSession'
 
@@ -10,17 +11,20 @@ export type CreateActiveFocusSessionResult =
   | { ok: true; session: ActiveFocusSession }
   | { ok: false; reason: 'conflict'; existing: ActiveFocusSession }
   | { ok: false; reason: 'invalid' }
+  | { ok: false; reason: 'missing_subject' }
 
 export type UpdateActiveFocusSessionResult =
   | { ok: true; session: ActiveFocusSession }
   | { ok: false; reason: 'missing' }
   | { ok: false; reason: 'conflict'; existing: ActiveFocusSession }
   | { ok: false; reason: 'invalid' }
+  | { ok: false; reason: 'missing_subject' }
 
 export type FinalizeActiveFocusSessionResult =
   | { ok: true; history: StudySession }
   | { ok: false; reason: 'missing' }
   | { ok: false; reason: 'conflict'; existing: ActiveFocusSession }
+  | { ok: false; reason: 'missing_subject' }
 
 export type TransitionActiveFocusSessionResult =
   | { ok: true; session: ActiveFocusSession }
@@ -115,11 +119,21 @@ export async function getActiveFocusSession(): Promise<ActiveFocusSession | null
 /**
  * Atomically creates the singleton unfinished session.
  * Does not overwrite an existing valid session (observable conflict).
+ * Enforces transactional subject referential integrity.
  */
 export async function createActiveFocusSession(session: ActiveFocusSession): Promise<CreateActiveFocusSessionResult> {
   if (!isActiveFocusSession(session)) return { ok: false, reason: 'invalid' }
 
-  return studyDb.transaction('rw', studyDb.settings, async () => {
+  return studyDb.transaction('rw', studyDb.subjects, studyDb.settings, async () => {
+    try {
+      await assertSubjectExists(session.subjectId)
+    } catch (err) {
+      if (isSubjectNotFoundError(err)) {
+        return { ok: false, reason: 'missing_subject' }
+      }
+      throw err
+    }
+
     const existingRecord = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
     if (existingRecord && isActiveFocusSession(existingRecord.value)) {
       return { ok: false, reason: 'conflict', existing: existingRecord.value }
@@ -137,11 +151,12 @@ export async function createActiveFocusSession(session: ActiveFocusSession): Pro
 /**
  * Replaces the singleton unfinished session when the id matches the existing record.
  * Affects only the reserved settings key.
+ * Enforces transactional subject referential integrity.
  */
 export async function updateActiveFocusSession(session: ActiveFocusSession): Promise<UpdateActiveFocusSessionResult> {
   if (!isActiveFocusSession(session)) return { ok: false, reason: 'invalid' }
 
-  return studyDb.transaction('rw', studyDb.settings, async () => {
+  return studyDb.transaction('rw', studyDb.subjects, studyDb.settings, async () => {
     const existingRecord = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
     if (!existingRecord) return { ok: false, reason: 'missing' }
 
@@ -152,6 +167,15 @@ export async function updateActiveFocusSession(session: ActiveFocusSession): Pro
 
     if (existingRecord.value.id !== session.id) {
       return { ok: false, reason: 'conflict', existing: existingRecord.value }
+    }
+
+    try {
+      await assertSubjectExists(session.subjectId)
+    } catch (err) {
+      if (isSubjectNotFoundError(err)) {
+        return { ok: false, reason: 'missing_subject' }
+      }
+      throw err
     }
 
     await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: session })
@@ -268,6 +292,7 @@ export async function resumeActiveFocusSession(
  * Atomically writes one study-history row (id = focus session id) and clears the
  * unfinished singleton when the persisted active session id matches.
  * Safe to call repeatedly for the same session id.
+ * Enforces transactional subject referential integrity.
  */
 export async function finalizeActiveFocusSession(
   sessionId: string,
@@ -275,7 +300,7 @@ export async function finalizeActiveFocusSession(
 ): Promise<FinalizeActiveFocusSessionResult> {
   if (!sessionId) return { ok: false, reason: 'missing' }
 
-  return studyDb.transaction('rw', studyDb.settings, studyDb.studySessions, async () => {
+  return studyDb.transaction('rw', studyDb.subjects, studyDb.settings, studyDb.studySessions, async () => {
     const existingHistory = await studyDb.studySessions.get(sessionId)
     const activeRecord = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
     const activeSession = activeRecord && isActiveFocusSession(activeRecord.value) ? activeRecord.value : null
@@ -285,6 +310,18 @@ export async function finalizeActiveFocusSession(
     }
 
     if (activeSession && activeSession.id === sessionId) {
+      try {
+        await assertSubjectExists(history.subjectId)
+        if (activeSession.subjectId !== history.subjectId) {
+          await assertSubjectExists(activeSession.subjectId)
+        }
+      } catch (err) {
+        if (isSubjectNotFoundError(err)) {
+          return { ok: false, reason: 'missing_subject' }
+        }
+        throw err
+      }
+
       const historyRow: StudySession = existingHistory ?? { id: sessionId, ...history }
       if (!existingHistory) {
         await studyDb.studySessions.add(historyRow)

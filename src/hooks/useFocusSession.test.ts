@@ -62,6 +62,7 @@ describe('useFocusSession', () => {
     vi.restoreAllMocks()
     await studyDb.delete()
     await studyDb.open()
+    await studyDb.subjects.bulkAdd(Array.from(subjectMap.values()))
   })
 
   it('restores a running session and blocks Start until restore completes', async () => {
@@ -369,6 +370,58 @@ describe('useFocusSession', () => {
 
     releaseExport()
     await exportTask
+  })
+
+  it('notifies and prevents start when selected subject does not exist', async () => {
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.canStartFocus).toBe(true))
+
+    act(() => {
+      result.current.updateFocusSubject('non-existent-subject')
+    })
+
+    await act(async () => {
+      await result.current.startSession()
+    })
+
+    expect(result.current.activeSession).toBeNull()
+    expect(result.current.sessionNotice).toBe('The selected subject is no longer available.')
+    expect(await getActiveFocusSession()).toBeNull()
+  })
+
+  it('reverts and notifies when updating active focus to a non-existent subject', async () => {
+    await createActiveFocusSession(makeSession())
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
+
+    act(() => {
+      result.current.updateFocusSubject('non-existent-subject')
+    })
+
+    await waitFor(() => {
+      expect(result.current.sessionNotice).toBe('The selected subject is no longer available.')
+    })
+    expect(result.current.focusSubjectId).toBe('subject-a')
+    expect(result.current.activeSession?.subjectId).toBe('subject-a')
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-hook', subjectId: 'subject-a' })
+  })
+
+  it('preserves active focus state and notifies when stopping a session whose subject was deleted', async () => {
+    await createActiveFocusSession(makeSession())
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
+
+    // Delete subject directly under the active session
+    await studyDb.subjects.delete('subject-a')
+
+    await act(async () => {
+      await result.current.stopSession()
+    })
+
+    expect(result.current.sessionNotice).toBe('The selected subject is no longer available. Study time was not logged.')
+    expect(result.current.activeSession?.id).toBe('focus-hook')
+    expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-hook', subjectId: 'subject-a' })
+    expect(await studyDb.studySessions.count()).toBe(0)
   })
 })
 
