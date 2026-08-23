@@ -8,6 +8,7 @@ import {
 
 describe('sidebar preference helpers', () => {
   beforeEach(() => {
+    vi.restoreAllMocks()
     localStorage.clear()
   })
 
@@ -20,10 +21,19 @@ describe('sidebar preference helpers', () => {
     localStorage.setItem(SIDEBAR_STORAGE_KEY, 'collapsed')
     expect(readStoredSidebarCollapsed()).toBe(true)
   })
+
+  it('falls back to false when localStorage.getItem throws', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
+      if (key === SIDEBAR_STORAGE_KEY) throw new Error('SecurityError: storage access denied')
+      return null
+    })
+    expect(readStoredSidebarCollapsed()).toBe(false)
+  })
 })
 
 describe('useSidebarPreference', () => {
   beforeEach(() => {
+    vi.restoreAllMocks()
     localStorage.clear()
   })
 
@@ -74,5 +84,19 @@ describe('useSidebarPreference', () => {
     expect(result.current.sidebarCollapsed).toBe(true)
     expect(onPreferenceError).toHaveBeenCalledWith('Sidebar preference could not be saved.')
     expect(clearPreferenceNotice).toHaveBeenCalledTimes(1)
+  })
+
+  it('initializes cleanly to expanded when localStorage.getItem throws during hook mount', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
+      if (key === SIDEBAR_STORAGE_KEY) throw new Error('SecurityError: storage access denied')
+      return null
+    })
+    const onPreferenceError = vi.fn()
+    const clearPreferenceNotice = vi.fn()
+
+    const { result } = renderHook(() => useSidebarPreference({ onPreferenceError, clearPreferenceNotice }))
+
+    expect(result.current.sidebarCollapsed).toBe(false)
+    expect(onPreferenceError).not.toHaveBeenCalled()
   })
 })
