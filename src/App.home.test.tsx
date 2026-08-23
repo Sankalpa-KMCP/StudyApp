@@ -458,6 +458,113 @@ describe('App home', () => {
     expect(textarea).toHaveValue('echo me once')
   })
 
+  it('persists unsaved quick-note draft when navigating away before debounce timeout', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const textarea = await screen.findByLabelText('Quick notes')
+    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes')
+
+    fireEvent.change(textarea, { target: { value: 'Fast typed note before navigation' } })
+
+    // Immediately navigate away before the 250ms debounce fires
+    await user.click(screen.getByRole('button', { name: /^Tasks\b/i }))
+    expect(await screen.findByRole('heading', { name: 'Tasks', level: 1 })).toBeInTheDocument()
+
+    // Verify save occurred on unmount
+    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('Fast typed note before navigation'))
+    expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Fast typed note before navigation'])
+
+    // Navigate back to Dashboard/Home and verify the draft is restored
+    await user.click(screen.getByRole('button', { name: /^Home\b/i }))
+    const restoredTextarea = await screen.findByLabelText('Quick notes')
+    expect(restoredTextarea).toHaveValue('Fast typed note before navigation')
+  })
+
+  it('persists quick-note draft when clicking Open Notes button before debounce timeout', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const textarea = await screen.findByLabelText('Quick notes')
+    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes')
+
+    fireEvent.change(textarea, { target: { value: 'Idea to expand in notes' } })
+
+    // Click Open Notes inside the card immediately
+    await user.click(screen.getByRole('button', { name: 'Open Notes' }))
+    expect(await screen.findByRole('heading', { name: 'Notes', level: 1 })).toBeInTheDocument()
+
+    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('Idea to expand in notes'))
+    expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Idea to expand in notes'])
+  })
+
+  it('persists latest draft when an older save is in flight during unmount', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const textarea = await screen.findByLabelText('Quick notes')
+
+    let releaseFirstSave!: () => void
+    const firstSaveGate = new Promise<void>((resolve) => {
+      releaseFirstSave = resolve
+    })
+    const originalSave = quickNotesService.saveQuickNotes
+    const writes: string[] = []
+    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes').mockImplementation(async (value) => {
+      if (value.includes('First draft')) {
+        await firstSaveGate
+      }
+      writes.push(value)
+      return originalSave(value)
+    })
+
+    // Start first save (which enters in-flight)
+    fireEvent.change(textarea, { target: { value: 'First draft' } })
+    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('First draft'))
+
+    // User types second draft while first save is still in flight
+    fireEvent.change(textarea, { target: { value: 'Second newer draft' } })
+
+    // User navigates away before debounce or first save finishes
+    await user.click(screen.getByRole('button', { name: /^Tasks\b/i }))
+    expect(await screen.findByRole('heading', { name: 'Tasks', level: 1 })).toBeInTheDocument()
+
+    // Release first save
+    releaseFirstSave()
+
+    // Verify queue processed the second write after the first
+    await waitFor(() => expect(writes).toContain('Second newer draft'))
+    expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Second newer draft'])
+  })
+
+  it('does not trigger redundant write on unmount if draft was already persisted', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    const textarea = await screen.findByLabelText('Quick notes')
+    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes')
+
+    fireEvent.change(textarea, { target: { value: 'Already persisted note' } })
+    await waitFor(() => expect(screen.getByText('Saved locally')).toBeInTheDocument())
+    expect(saveSpy).toHaveBeenCalledTimes(1)
+
+    // Navigate away when text is already saved
+    await user.click(screen.getByRole('button', { name: /^Tasks\b/i }))
+    expect(await screen.findByRole('heading', { name: 'Tasks', level: 1 })).toBeInTheDocument()
+
+    // No extra save call occurred
+    expect(saveSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('flushes unsaved draft immediately on textarea blur', async () => {
+    render(<App />)
+    const textarea = await screen.findByLabelText('Quick notes')
+    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes')
+
+    fireEvent.change(textarea, { target: { value: 'Blurred note' } })
+    expect(saveSpy).not.toHaveBeenCalled()
+
+    fireEvent.blur(textarea)
+    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('Blurred note'))
+    expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Blurred note'])
+  })
+
   it('clears search when no results are found', async () => {
     const user = userEvent.setup()
     render(<App />)
