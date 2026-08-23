@@ -2513,12 +2513,26 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
         },
       ])
 
+      // Flashcards: orderBy('createdAt') -> card-a (t1) should precede card-b (t2)
       await studyDb.flashcards.bulkAdd([
+        {
+          id: 'card-b',
+          front: 'Kinematics Formula',
+          back: 'v = u + at',
+          subjectId: 'subj-b',
+          status: 'new',
+          lastReviewedAt: '',
+          dueAt: t2,
+          intervalDays: 0,
+          reviewCount: 0,
+          createdAt: t2,
+          updatedAt: t2,
+        },
         {
           id: 'card-a',
           front: 'Newton Second Law',
           back: 'F = ma',
-          subjectId: 'subj-b',
+          subjectId: 'subj-a',
           status: 'remembered',
           lastReviewedAt: t1,
           dueAt: '2026-07-29T10:00:00.000Z',
@@ -2607,6 +2621,7 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       expect(normalizedPayload.tasks.map((t) => t.id)).toEqual(['task-a', 'task-b'])
       expect(normalizedPayload.notes.map((n) => n.id)).toEqual(['note-b', 'note-a'])
       expect(normalizedPayload.events.map((e) => e.id)).toEqual(['event-a', 'event-b'])
+      expect(normalizedPayload.flashcards.map((c) => c.id)).toEqual(['card-a', 'card-b'])
       expect(normalizedPayload.studySessions.map((s) => s.id)).toEqual(['session-b', 'session-a'])
       expect(normalizedPayload.goals.map((g) => g.id)).toEqual(['goal-a', 'goal-b'])
 
@@ -2666,6 +2681,34 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
 
       expect(restored.notes.map((n) => n.id)).toEqual(['note-b', 'note-a'])
       expect(restored.events.map((e) => e.id)).toEqual(['event-a', 'event-b'])
+      expect(restored.flashcards).toEqual([
+        {
+          id: 'card-a',
+          front: 'Newton Second Law',
+          back: 'F = ma',
+          subjectId: 'subj-a',
+          status: 'remembered',
+          lastReviewedAt: t1,
+          dueAt: '2026-07-29T10:00:00.000Z',
+          intervalDays: 1,
+          reviewCount: 3,
+          createdAt: t1,
+          updatedAt: t1,
+        },
+        {
+          id: 'card-b',
+          front: 'Kinematics Formula',
+          back: 'v = u + at',
+          subjectId: 'subj-b',
+          status: 'new',
+          lastReviewedAt: '',
+          dueAt: t2,
+          intervalDays: 0,
+          reviewCount: 0,
+          createdAt: t2,
+          updatedAt: t2,
+        },
+      ])
       expect(restored.studySessions.map((s) => s.id)).toEqual(['session-b', 'session-a'])
       expect(restored.goals.map((g) => g.id)).toEqual(['goal-a', 'goal-b'])
 
