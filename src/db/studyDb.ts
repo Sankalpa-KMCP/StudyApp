@@ -208,7 +208,7 @@ export async function migrateLegacyLocalStorage() {
  * Validates a version-1, version-2, or version-3 backup and normalizes it to the current export shape.
  * Throws before any database mutation when the payload is unsupported or invalid.
  */
-function parseAndNormalizeStudyExport(value: unknown): StudyExport {
+export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
   if (!isRecord(value)) {
     throw new Error('Import file is not a Study Dashboard export.')
   }

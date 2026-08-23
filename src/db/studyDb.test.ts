@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { clearAllStudyData, createStudyExportPayload, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, readStudyDataSnapshot, studyDb } from './studyDb'
+import { clearAllStudyData, createStudyExportPayload, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, parseAndNormalizeStudyExport, readStudyDataSnapshot, studyDb } from './studyDb'
+import { MAX_STUDY_EXPORT_IMPORT_BYTES, MAX_STUDY_EXPORT_IMPORT_CHARS } from './studyExportLimits'
 import type { ActiveFocusSession, StudyGoal } from './types'
 
 const STUDY_DB_NAME = 'study-dashboard-db'
@@ -2411,138 +2412,164 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       await studyDb.open()
     })
 
-    it('P2-S3: preserves all 8 tables, subject references, and supported settings across full v3 round trip', async () => {
-      const timestamp = '2026-07-28T10:00:00.000Z'
+    it('P2-S3: preserves all 8 tables, subject references, and settings across full v3 round trip with explicit production ordering', async () => {
+      const t1 = '2026-07-28T10:00:00.000Z'
+      const t2 = '2026-07-28T11:00:00.000Z'
 
+      // Intentionally insert out-of-order to test production query ordering
+      // Subjects: orderBy('createdAt') -> subj-a (t1) should precede subj-b (t2)
       await studyDb.subjects.bulkAdd([
         {
-          id: 'subj-math',
-          name: 'Mathematics',
-          color: '#2563eb',
-          targetHours: 10,
-          progress: 45,
-          progressMode: 'manual',
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        },
-        {
-          id: 'subj-physics',
+          id: 'subj-b',
           name: 'Physics',
           color: '#16a34a',
           targetHours: 8,
           progress: 0,
           progressMode: 'study_time',
-          createdAt: timestamp,
-          updatedAt: timestamp,
+          createdAt: t2,
+          updatedAt: t2,
+        },
+        {
+          id: 'subj-a',
+          name: 'Mathematics',
+          color: '#2563eb',
+          targetHours: 10,
+          progress: 45,
+          progressMode: 'manual',
+          createdAt: t1,
+          updatedAt: t1,
         },
       ])
 
+      // Tasks: orderBy('createdAt') -> task-a (t1) should precede task-b (t2)
       await studyDb.tasks.bulkAdd([
         {
-          id: 'task-1',
-          title: 'Math exercises',
-          subjectId: 'subj-math',
-          dueDate: '2026-07-30',
-          priority: 'high',
-          status: 'open',
-          minutes: 60,
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        },
-        {
-          id: 'task-2',
+          id: 'task-b',
           title: 'Physics reading',
-          subjectId: 'subj-physics',
+          subjectId: 'subj-b',
           dueDate: '',
           priority: 'normal',
           status: 'done',
           minutes: 45,
-          createdAt: timestamp,
-          updatedAt: timestamp,
+          createdAt: t2,
+          updatedAt: t2,
+        },
+        {
+          id: 'task-a',
+          title: 'Math exercises',
+          subjectId: 'subj-a',
+          dueDate: '2026-07-30',
+          priority: 'high',
+          status: 'open',
+          minutes: 60,
+          createdAt: t1,
+          updatedAt: t1,
         },
       ])
 
+      // Notes: orderBy('updatedAt').reverse() -> note-b (t2) should precede note-a (t1)
       await studyDb.notes.bulkAdd([
         {
-          id: 'note-1',
+          id: 'note-a',
           title: 'Calculus formulas',
           body: 'Integral rules and derivatives.',
-          subjectId: 'subj-math',
-          tags: ['math', 'calculus'],
-          createdAt: timestamp,
-          updatedAt: timestamp,
+          subjectId: 'subj-a',
+          tags: ['math'],
+          createdAt: t1,
+          updatedAt: t1,
         },
         {
-          id: 'note-2',
+          id: 'note-b',
           title: 'General study tips',
           body: 'Spaced repetition schedule.',
           subjectId: '',
           tags: ['tips'],
-          createdAt: timestamp,
-          updatedAt: timestamp,
+          createdAt: t2,
+          updatedAt: t2,
         },
       ])
 
+      // Events: orderBy('startAt') -> event-a (Aug 1) should precede event-b (Aug 2)
       await studyDb.events.bulkAdd([
         {
-          id: 'event-1',
+          id: 'event-b',
+          title: 'Physics lab',
+          subjectId: 'subj-b',
+          startAt: '2026-08-02T09:00:00.000Z',
+          endAt: '2026-08-02T11:00:00.000Z',
+          location: 'Lab B',
+          createdAt: t2,
+          updatedAt: t2,
+        },
+        {
+          id: 'event-a',
           title: 'Math exam',
-          subjectId: 'subj-math',
+          subjectId: 'subj-a',
           startAt: '2026-08-01T09:00:00.000Z',
           endAt: '2026-08-01T11:00:00.000Z',
           location: 'Hall A',
-          createdAt: timestamp,
-          updatedAt: timestamp,
+          createdAt: t1,
+          updatedAt: t1,
         },
       ])
 
       await studyDb.flashcards.bulkAdd([
         {
-          id: 'card-1',
+          id: 'card-a',
           front: 'Newton Second Law',
           back: 'F = ma',
-          subjectId: 'subj-physics',
+          subjectId: 'subj-b',
           status: 'remembered',
-          lastReviewedAt: timestamp,
+          lastReviewedAt: t1,
           dueAt: '2026-07-29T10:00:00.000Z',
           intervalDays: 1,
           reviewCount: 3,
-          createdAt: timestamp,
-          updatedAt: timestamp,
+          createdAt: t1,
+          updatedAt: t1,
         },
       ])
 
+      // StudySessions: orderBy('startedAt').reverse() -> session-b (09:00) should precede session-a (08:00)
       await studyDb.studySessions.bulkAdd([
         {
-          id: 'session-1',
-          subjectId: 'subj-physics',
+          id: 'session-a',
+          subjectId: 'subj-b',
           startedAt: '2026-07-28T08:00:00.000Z',
           endedAt: '2026-07-28T09:00:00.000Z',
           minutes: 60,
           note: 'Kinematics practice',
         },
+        {
+          id: 'session-b',
+          subjectId: 'subj-a',
+          startedAt: '2026-07-28T09:00:00.000Z',
+          endedAt: '2026-07-28T10:00:00.000Z',
+          minutes: 60,
+          note: 'Calculus practice',
+        },
       ])
 
+      // Goals: orderBy('createdAt') -> goal-a (t1) should precede goal-b (t2)
       await studyDb.goals.bulkAdd([
         {
-          id: 'goal-1',
-          title: 'Weekly Math Practice',
-          target: 300,
-          progress: 120,
-          period: 'weekly',
-          metric: 'manual',
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        },
-        {
-          id: 'goal-2',
+          id: 'goal-b',
           title: 'Daily Physics Study',
           target: 60,
           progress: 60,
           period: 'daily',
           metric: 'study_time',
-          createdAt: timestamp,
-          updatedAt: timestamp,
+          createdAt: t2,
+          updatedAt: t2,
+        },
+        {
+          id: 'goal-a',
+          title: 'Weekly Math Practice',
+          target: 300,
+          progress: 120,
+          period: 'weekly',
+          metric: 'manual',
+          createdAt: t1,
+          updatedAt: t1,
         },
       ])
 
@@ -2555,8 +2582,8 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
           key: 'activeFocusSession',
           value: {
             id: 'focus-running-1',
-            subjectId: 'subj-math',
-            startedAt: timestamp,
+            subjectId: 'subj-a',
+            startedAt: t1,
             plannedMinutes: 25,
             status: 'running',
             pausedAt: null,
@@ -2567,56 +2594,80 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
 
       const exportPayload = await exportStudyData()
 
-      expect(exportPayload.version).toBe(3)
-      expect(typeof exportPayload.exportedAt).toBe('string')
-      expect(exportPayload.exportedAt.length).toBeGreaterThan(0)
+      // Explicitly pass through public parser / normalizer
+      const parsedJson = JSON.parse(JSON.stringify(exportPayload))
+      const normalizedPayload = parseAndNormalizeStudyExport(parsedJson)
+
+      expect(normalizedPayload.version).toBe(3)
+      expect(typeof normalizedPayload.exportedAt).toBe('string')
+      expect(normalizedPayload.exportedAt.length).toBeGreaterThan(0)
+
+      // Direct ordering assertions on exported payload
+      expect(normalizedPayload.subjects.map((s) => s.id)).toEqual(['subj-a', 'subj-b'])
+      expect(normalizedPayload.tasks.map((t) => t.id)).toEqual(['task-a', 'task-b'])
+      expect(normalizedPayload.notes.map((n) => n.id)).toEqual(['note-b', 'note-a'])
+      expect(normalizedPayload.events.map((e) => e.id)).toEqual(['event-a', 'event-b'])
+      expect(normalizedPayload.studySessions.map((s) => s.id)).toEqual(['session-b', 'session-a'])
+      expect(normalizedPayload.goals.map((g) => g.id)).toEqual(['goal-a', 'goal-b'])
 
       await clearAllStudyData()
-      await importStudyData(exportPayload)
+      await importStudyData(normalizedPayload)
 
       const restored = await getStudyData()
 
+      // Assert independent expected restored states
       expect(restored.subjects).toEqual([
         {
-          id: 'subj-math',
+          id: 'subj-a',
           name: 'Mathematics',
           color: '#2563eb',
           targetHours: 10,
           progress: 45,
           progressMode: 'manual',
-          createdAt: timestamp,
-          updatedAt: timestamp,
+          createdAt: t1,
+          updatedAt: t1,
         },
         {
-          id: 'subj-physics',
+          id: 'subj-b',
           name: 'Physics',
           color: '#16a34a',
           targetHours: 8,
           progress: 0,
           progressMode: 'study_time',
-          createdAt: timestamp,
-          updatedAt: timestamp,
+          createdAt: t2,
+          updatedAt: t2,
         },
       ])
 
-      expect(restored.tasks).toHaveLength(2)
-      expect(restored.tasks[0]).toEqual({
-        id: 'task-1',
-        title: 'Math exercises',
-        subjectId: 'subj-math',
-        dueDate: '2026-07-30',
-        priority: 'high',
-        status: 'open',
-        minutes: 60,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      })
+      expect(restored.tasks).toEqual([
+        {
+          id: 'task-a',
+          title: 'Math exercises',
+          subjectId: 'subj-a',
+          dueDate: '2026-07-30',
+          priority: 'high',
+          status: 'open',
+          minutes: 60,
+          createdAt: t1,
+          updatedAt: t1,
+        },
+        {
+          id: 'task-b',
+          title: 'Physics reading',
+          subjectId: 'subj-b',
+          dueDate: '',
+          priority: 'normal',
+          status: 'done',
+          minutes: 45,
+          createdAt: t2,
+          updatedAt: t2,
+        },
+      ])
 
-      expect(restored.notes).toHaveLength(2)
-      expect(restored.events).toHaveLength(1)
-      expect(restored.flashcards).toHaveLength(1)
-      expect(restored.studySessions).toHaveLength(1)
-      expect(restored.goals).toHaveLength(2)
+      expect(restored.notes.map((n) => n.id)).toEqual(['note-b', 'note-a'])
+      expect(restored.events.map((e) => e.id)).toEqual(['event-a', 'event-b'])
+      expect(restored.studySessions.map((s) => s.id)).toEqual(['session-b', 'session-a'])
+      expect(restored.goals.map((g) => g.id)).toEqual(['goal-a', 'goal-b'])
 
       const settingsMap = new Map(restored.settings.map((s) => [s.key, s.value]))
       expect(settingsMap.get('legacy-localstorage-migrated-v1')).toBe(true)
@@ -2625,8 +2676,8 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       expect(settingsMap.get('onboardingChecklistDismissed')).toBe(true)
       expect(settingsMap.get('activeFocusSession')).toEqual({
         id: 'focus-running-1',
-        subjectId: 'subj-math',
-        startedAt: timestamp,
+        subjectId: 'subj-a',
+        startedAt: t1,
         plannedMinutes: 25,
         status: 'running',
         pausedAt: null,
@@ -2639,17 +2690,18 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       await studyDb.settings.clear()
 
       const emptyExport = await exportStudyData()
+      const normalizedEmpty = parseAndNormalizeStudyExport(JSON.parse(JSON.stringify(emptyExport)))
 
-      expect(emptyExport.version).toBe(3)
-      expect(typeof emptyExport.exportedAt).toBe('string')
-      expect(emptyExport.tasks).toEqual([])
-      expect(emptyExport.subjects).toEqual([])
-      expect(emptyExport.notes).toEqual([])
-      expect(emptyExport.events).toEqual([])
-      expect(emptyExport.flashcards).toEqual([])
-      expect(emptyExport.studySessions).toEqual([])
-      expect(emptyExport.goals).toEqual([])
-      expect(emptyExport.settings).toEqual([])
+      expect(normalizedEmpty.version).toBe(3)
+      expect(typeof normalizedEmpty.exportedAt).toBe('string')
+      expect(normalizedEmpty.tasks).toEqual([])
+      expect(normalizedEmpty.subjects).toEqual([])
+      expect(normalizedEmpty.notes).toEqual([])
+      expect(normalizedEmpty.events).toEqual([])
+      expect(normalizedEmpty.flashcards).toEqual([])
+      expect(normalizedEmpty.studySessions).toEqual([])
+      expect(normalizedEmpty.goals).toEqual([])
+      expect(normalizedEmpty.settings).toEqual([])
 
       const timestamp = nowIso()
       await studyDb.tasks.add({
@@ -2664,7 +2716,7 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
         updatedAt: timestamp,
       })
 
-      await importStudyData(emptyExport)
+      await importStudyData(normalizedEmpty)
 
       const restored = await getStudyData()
       expect(restored.tasks).toEqual([])
@@ -2676,7 +2728,7 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       expect(restored.goals).toEqual([])
     })
 
-    it('P2-S3: exports and imports large valid multiline and Unicode text fixtures below 5 MiB ceiling', async () => {
+    it('P2-S3: exports and imports large valid multiline and Unicode text fixtures using production byte and character limits', async () => {
       const timestamp = nowIso()
       const multilineUnicodeSegment = '## Section Header 🎓\nStudy notes with code snippets: `const x = 42;` and emojis: ⚡ 📚 🔬\n'
       const largeNoteBody = multilineUnicodeSegment.repeat(600)
@@ -2694,11 +2746,19 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       const exportPayload = await exportStudyData()
       const serializedJson = JSON.stringify(exportPayload, null, 2)
 
-      expect(serializedJson.length).toBeLessThan(5 * 1024 * 1024)
-      expect(serializedJson.length).toBeGreaterThan(50_000)
+      const normalized = parseAndNormalizeStudyExport(JSON.parse(serializedJson))
+      expect(normalized.notes[0]?.body).toBe(largeNoteBody)
+
+      // Use production TextEncoder UTF-8 byte length and string char length against production constants
+      const byteLength = new TextEncoder().encode(serializedJson).byteLength
+      const charLength = serializedJson.length
+
+      expect(byteLength).toBeLessThan(MAX_STUDY_EXPORT_IMPORT_BYTES)
+      expect(charLength).toBeLessThan(MAX_STUDY_EXPORT_IMPORT_CHARS)
+      expect(byteLength).toBeGreaterThan(50_000)
 
       await clearAllStudyData()
-      await importStudyData(exportPayload)
+      await importStudyData(normalized)
 
       const restored = await getStudyData()
       expect(restored.notes).toHaveLength(1)
@@ -2706,11 +2766,11 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       expect(restored.notes[0]?.body).toBe(largeNoteBody)
     })
 
-    it('P2-S3: preserves deep structure of all coexisting supported settings including activeFocusSession', async () => {
+    it('P2-S3: preserves paused activeFocusSession variant across export and import', async () => {
       const timestamp = nowIso()
-      const activeFocus: ActiveFocusSession = {
+      const activeFocusPaused: ActiveFocusSession = {
         id: 'focus-paused-123',
-        subjectId: 'subj-focus',
+        subjectId: 'subj-focus-paused',
         startedAt: timestamp,
         plannedMinutes: 60,
         status: 'paused',
@@ -2719,8 +2779,8 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       }
 
       await studyDb.subjects.add({
-        id: 'subj-focus',
-        name: 'Focus Subject',
+        id: 'subj-focus-paused',
+        name: 'Focus Subject Paused',
         color: '#3b82f6',
         targetHours: 5,
         progress: 10,
@@ -2734,12 +2794,14 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
         { key: 'quickNotes', value: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8'] },
         { key: 'onboardingChecklistDismissed', value: true },
         { key: 'legacy-localstorage-migrated-v1', value: true },
-        { key: 'activeFocusSession', value: activeFocus },
+        { key: 'activeFocusSession', value: activeFocusPaused },
       ])
 
       const exportPayload = await exportStudyData()
+      const normalized = parseAndNormalizeStudyExport(JSON.parse(JSON.stringify(exportPayload)))
+
       await clearAllStudyData()
-      await importStudyData(exportPayload)
+      await importStudyData(normalized)
 
       const restored = await getStudyData()
       const settingsMap = new Map(restored.settings.map((s) => [s.key, s.value]))
@@ -2748,7 +2810,7 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       expect(settingsMap.get('quickNotes')).toEqual(['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8'])
       expect(settingsMap.get('onboardingChecklistDismissed')).toBe(true)
       expect(settingsMap.get('legacy-localstorage-migrated-v1')).toBe(true)
-      expect(settingsMap.get('activeFocusSession')).toEqual(activeFocus)
+      expect(settingsMap.get('activeFocusSession')).toEqual(activeFocusPaused)
     })
 
     it('P2-S3: retains subject references across exported entities and verifies link integrity', async () => {
@@ -2787,8 +2849,10 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       })
 
       const exportPayload = await exportStudyData()
+      const normalized = parseAndNormalizeStudyExport(JSON.parse(JSON.stringify(exportPayload)))
+
       await clearAllStudyData()
-      await importStudyData(exportPayload)
+      await importStudyData(normalized)
 
       const restored = await getStudyData()
       const restoredSubjectIds = new Set(restored.subjects.map((s) => s.id))
