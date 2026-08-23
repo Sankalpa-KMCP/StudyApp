@@ -2914,13 +2914,21 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
         snapshotGateResolver = r
       })
 
-      let writerIssuedResolver!: () => void
-      const writerIssuedPromise = new Promise<void>((r) => {
-        writerIssuedResolver = r
+      let writerNativeIssuedResolver!: () => void
+      const writerNativeIssuedPromise = new Promise<void>((r) => {
+        writerNativeIssuedResolver = r
       })
 
       let snapshotStarted = false
-      let writerResolved = false
+      let writerStatus: 'pending' | 'fulfilled' | 'rejected' = 'pending'
+      let writerError: unknown = null
+      let observedNativeMode: string | null = null
+      let observedNativeStores: string[] = []
+
+      let snapshotPromise: Promise<unknown> | null = null
+      let writePromise: Promise<void> | null = null
+      let origAppTransactionSpy: ReturnType<typeof vi.spyOn> | null = null
+      let origCreateTxSpy: ReturnType<typeof vi.spyOn> | null = null
 
       try {
         const timestamp = nowIso()
@@ -2955,7 +2963,7 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
 
         // Spy on Connection A transaction to hold it open via Dexie.waitFor after reads execute
         const origAppTransaction = studyDb.transaction.bind(studyDb)
-        vi.spyOn(studyDb, 'transaction').mockImplementation((mode: unknown, ...args: unknown[]) => {
+        origAppTransactionSpy = vi.spyOn(studyDb, 'transaction').mockImplementation((mode: unknown, ...args: unknown[]) => {
           const callback = args[args.length - 1] as () => Promise<unknown>
           args[args.length - 1] = async () => {
             snapshotStarted = true
@@ -2966,19 +2974,21 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
           return (origAppTransaction as (...a: unknown[]) => unknown)(mode, ...args) as Promise<unknown>
         })
 
-        // Spy on Connection B transaction to signal when write request is issued
-        const origWriterTransaction = studyDb2.transaction.bind(studyDb2)
-        vi.spyOn(studyDb2, 'transaction').mockImplementation((mode: unknown, ...args: unknown[]) => {
-          writerIssuedResolver()
-          return (origWriterTransaction as (...a: unknown[]) => unknown)(mode, ...args) as Promise<unknown>
+        // Spy on Connection B transaction creation to capture scheduling parameters
+        const origCreateTx = studyDb2._createTransaction.bind(studyDb2)
+        origCreateTxSpy = vi.spyOn(studyDb2, '_createTransaction').mockImplementation((mode, storeNames, dbschema, parentTx) => {
+          observedNativeMode = mode
+          observedNativeStores = Array.from(storeNames)
+          writerNativeIssuedResolver()
+          return origCreateTx(mode, storeNames, dbschema, parentTx)
         })
 
         // 1. Start snapshot transaction on Connection A
-        const snapshotPromise = readStudyDataSnapshot()
+        snapshotPromise = readStudyDataSnapshot()
         await vi.waitFor(() => expect(snapshotStarted).toBe(true))
 
         // 2. Start concurrent atomic State B write on Connection B (replace Subject A/Task A with Subject B/Task B)
-        const writePromise = studyDb2
+        writePromise = studyDb2
           .transaction('rw', [studyDb2.subjects, studyDb2.tasks], async () => {
             await studyDb2.subjects.delete('subj-a')
             await studyDb2.tasks.delete('task-a')
@@ -3005,14 +3015,21 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
             })
           })
           .then(() => {
-            writerResolved = true
+            writerStatus = 'fulfilled'
+          })
+          .catch((err) => {
+            writerStatus = 'rejected'
+            writerError = err
           })
 
-        // 3. Directly prove Connection B's transaction request was issued
-        await writerIssuedPromise
+        // 3. Directly prove Connection B's transaction request entered transaction scheduling
+        await writerNativeIssuedPromise
+        expect(observedNativeMode).toBe('readwrite')
+        expect(observedNativeStores).toEqual(expect.arrayContaining(['subjects', 'tasks']))
 
-        // 4. Assert writer is still pending while snapshot gate is held
-        expect(writerResolved).toBe(false)
+        // 4. Assert writer is explicitly pending (not fulfilled or rejected) while snapshot gate is held
+        expect(writerStatus).toBe('pending')
+        expect(writerError).toBeNull()
 
         // 5. Release snapshot gate and await both promises
         snapshotGateResolver()
@@ -3023,17 +3040,26 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
         expect(snapshot.subjects.map((s) => s.id)).toEqual(['subj-a'])
         expect(snapshot.tasks.map((t) => t.id)).toEqual(['task-a'])
         expect(snapshot.tasks[0]?.subjectId).toBe('subj-a')
+        expect(snapshot.subjects.some((s) => s.id === 'subj-b')).toBe(false)
+        expect(snapshot.tasks.some((t) => t.id === 'task-b')).toBe(false)
 
         // 7. Assert writer completed after release and live DB reflects 100% untorn State B
-        expect(writerResolved).toBe(true)
+        expect(writerStatus).toBe('fulfilled')
+        expect(writerError).toBeNull()
         const liveData = await getStudyData()
         expect(liveData.subjects.map((s) => s.id)).toEqual(['subj-b'])
         expect(liveData.tasks.map((t) => t.id)).toEqual(['task-b'])
         expect(liveData.tasks[0]?.subjectId).toBe('subj-b')
+        expect(liveData.subjects.some((s) => s.id === 'subj-a')).toBe(false)
+        expect(liveData.tasks.some((t) => t.id === 'task-a')).toBe(false)
       } finally {
         snapshotGateResolver()
+        if (snapshotPromise || writePromise) {
+          await Promise.allSettled([snapshotPromise, writePromise].filter(Boolean))
+        }
+        origAppTransactionSpy?.mockRestore()
+        origCreateTxSpy?.mockRestore()
         studyDb2.close()
-        vi.restoreAllMocks()
       }
     })
   })
