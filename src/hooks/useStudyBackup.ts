@@ -10,6 +10,7 @@ import {
   assertStudyExportImportFileSize,
   assertStudyExportImportTextLength,
 } from '../db/studyExportLimits'
+import { assertStudyExportRecordCounts } from '../db/studyExportValidation'
 import type { ActiveFocusSession } from '../db/types'
 
 export class DataOperationBusyError extends Error {
@@ -58,6 +59,7 @@ export function useStudyBackup({
     const result = await coordinator.runExport(async () => {
       try {
         const payload = await exportStudyData()
+        assertStudyExportRecordCounts(payload)
         const serialized = JSON.stringify(payload, null, 2)
         assertStudyExportImportTextLength(serialized)
         const blob = new Blob([serialized], { type: 'application/json' })
