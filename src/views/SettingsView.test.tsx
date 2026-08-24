@@ -139,4 +139,20 @@ describe('SettingsView concurrency and coordinator integration', () => {
     expect(onExport).not.toHaveBeenCalled()
     releaseImport()
   })
+
+  it('documents unencrypted JSON format, point-in-time snapshot, included data, and excluded preferences', () => {
+    const coordinator = new DataOperationCoordinator()
+    render(<TestSettingsViewWrapper coordinator={coordinator} />)
+
+    expect(screen.getAllByText(/unencrypted JSON backup/i).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(/one consistent snapshot/i)).toBeInTheDocument()
+    expect(screen.getByText(/Changes committed after the snapshot begins may not appear/i)).toBeInTheDocument()
+    expect(screen.getByText(/subjects, tasks, notes, calendar events, flashcards, study sessions, goals, and supported settings/i)).toBeInTheDocument()
+    expect(screen.getByText(/Active focus-session data is included when present/i)).toBeInTheDocument()
+    expect(screen.getByText(/Device-local appearance and sidebar preferences are excluded/i)).toBeInTheDocument()
+
+    expect(screen.getByRole('button', { name: /Export data/ })).toBeInTheDocument()
+    expect(screen.getByLabelText(/Import data/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Reset all study data/ })).toBeInTheDocument()
+  })
 })

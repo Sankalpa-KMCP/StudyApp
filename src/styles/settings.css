@@ -4,6 +4,14 @@
   outline-offset: 3px;
 }
 
+.settings-section-description {
+  margin: 0 0 16px 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+
 
 .theme-card {
   grid-column: span 2;

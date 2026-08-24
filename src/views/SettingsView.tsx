@@ -191,6 +191,9 @@ export function SettingsView({
         </div>
       ) : null}
       <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
+      <p className="settings-section-description">
+        Download an unencrypted JSON backup containing one consistent snapshot of your subjects, tasks, notes, calendar events, flashcards, study sessions, goals, and supported settings. Active focus-session data is included when present. Changes committed after the snapshot begins may not appear. Device-local appearance and sidebar preferences are excluded.
+      </p>
       <div className="card-grid">
         <button
           className="action-card"
@@ -201,7 +204,7 @@ export function SettingsView({
         >
           <Download size={24} aria-hidden="true" />
           <strong>{isExporting || coordinatorState?.activeDataOperation === 'export' ? 'Creating backup…' : 'Export data'}</strong>
-          <span>{isExporting || coordinatorState?.activeDataOperation === 'export' ? 'Preparing your JSON backup.' : 'Download a complete JSON backup.'}</span>
+          <span>{isExporting || coordinatorState?.activeDataOperation === 'export' ? 'Preparing your JSON backup.' : 'Download an unencrypted JSON backup snapshot.'}</span>
         </button>
         <label
           className={importPending || coordinatorState?.activeDataOperation === 'import' ? 'action-card import-card is-pending' : isImportDisabled ? 'action-card import-card is-disabled' : 'action-card import-card'}
@@ -209,7 +212,7 @@ export function SettingsView({
         >
           <Upload size={24} aria-hidden="true" />
           <strong>{importPending || coordinatorState?.activeDataOperation === 'import' ? 'Importing backup…' : 'Import data'}</strong>
-          <span>{importPending || coordinatorState?.activeDataOperation === 'import' ? 'Importing and syncing focus state…' : 'Replace local data from a Study Dashboard backup.'}</span>
+          <span>{importPending || coordinatorState?.activeDataOperation === 'import' ? 'Importing and syncing focus state…' : 'Replace local data from an unencrypted JSON backup.'}</span>
           <input
             ref={fileInputRef}
             className="sr-only"

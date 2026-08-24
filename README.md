@@ -144,8 +144,13 @@ First launch starts empty with create-first actions. Existing customized data fr
 
 ### Backups
 
-- New exports use JSON format **version 3** with an explicit `metric` on every goal and an explicit `progressMode` on every subject (`manual` or `study_time`).
-- Valid **version 1** and **version 2** backups remain importable. Goals without metrics (v1) and subjects without modes (v1/v2) are normalized from the **complete imported study-session set** **before** any local data is replaced.
+- New exports use plain, unencrypted JSON format **version 3** (`version: 3`) with an explicit `metric` on every goal and an explicit `progressMode` on every subject (`manual` or `study_time`).
+- **Snapshot boundaries:** Snapshot acquisition occurs inside one readonly Dexie transaction covering all eight database tables (`subjects`, `tasks`, `notes`, `events`, `flashcards`, `studySessions`, `goals`, `settings`). Version and timestamp metadata, JSON stringification, Blob creation, object URL generation, and browser download initiation occur after transaction settlement.
+- **Data included:** Export captures one point-in-time snapshot of all subjects, tasks, notes, calendar events, flashcards, study sessions, goals, and supported settings (including `activeFocusSession` when present).
+- **Data excluded:** Device-local appearance (`localStorage` theme selection) and sidebar collapse state are excluded from backups.
+- **Snapshot timing:** Writes committed after snapshot acquisition begins may not appear in that export.
+- **Security guidance:** Backup files are unencrypted JSON and should be stored and shared according to the sensitivity of the user's study data.
+- **Import validation:** Valid **version 1** and **version 2** backups remain importable. Goals without metrics (v1) and subjects without modes (v1/v2) are normalized from the **complete imported study-session set** **before** any local data is replaced. Current exports are always version 3.
 - Version 3 backups that omit or use an invalid subject `progressMode` (or goal `metric`) fail validation **before** table replacement; existing data stays intact.
 - **Imports validate fully before replacing local data.** Size, shape/version, uniqueness, subject references, semantic integrity, known settings values, and record-count limits are checked first. Only then does IndexedDB clear and rewrite. Invalid imports leave existing data and the visible focus session unchanged.
 - Integrity checks reject duplicate entity IDs and duplicate settings keys; orphan non-empty `subjectId` values (empty string remains General / unassigned); out-of-range subject progress or non-positive target hours; negative task minutes; non-positive session minutes; event or session end before start; non-positive goal targets or negative goal progress; and negative flashcard scheduling counters when present.
