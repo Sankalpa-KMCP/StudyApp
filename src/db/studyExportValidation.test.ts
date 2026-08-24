@@ -1206,9 +1206,13 @@ describe('parseAndNormalizeStudyExport classified validation errors & appVersion
 
     it('rejects impossible or non-canonical timestamps in exportedAt and entities', () => {
       for (const badTimestamp of [
+        '2026-01-02T10:00:00Z',
+        '2026-01-02T10:00:00.00Z',
+        '2026-01-02T10:00:00.0000Z',
         '2026-02-30T10:00:00.000Z',
         '2026-01-02 10:00:00',
         '2026-01-02T10:00:00+02:00',
+        '2026-01-02T10:00:00.000+00:00',
         'January 2, 2026 10:00:00 UTC',
         'not-a-date',
       ]) {

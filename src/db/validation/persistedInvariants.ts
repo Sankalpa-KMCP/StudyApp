@@ -73,12 +73,11 @@ export function isPersistedDueDate(value: unknown): value is string {
   return value === '' || isPersistedLocalDateKey(value)
 }
 
-/** Persisted instant: strict UTC ISO-8601 string matching a real calendar timestamp. */
+/** Persisted instant: strict canonical 3-millisecond UTC ISO-8601 string matching a real calendar timestamp. */
 export function isPersistedIsoTimestamp(value: unknown): value is string {
   if (typeof value !== 'string') return false
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(value)) return false
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) return false
   const parsed = Date.parse(value)
   if (Number.isNaN(parsed)) return false
-  const canonical = new Date(parsed).toISOString()
-  return canonical === value || canonical.replace(/\.000Z$/, 'Z') === value
+  return new Date(parsed).toISOString() === value
 }

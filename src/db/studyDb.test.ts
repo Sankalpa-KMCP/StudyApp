@@ -3918,6 +3918,69 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       expect(task?.title).toBe('Existing Task')
       expect(await studyDb.tasks.count()).toBe(1)
     })
+
+    it('24. guarantees chronological order in Dexie text indexes for canonical millisecond timestamps and rejects no-ms timestamps on import', async () => {
+      await clearAllStudyData()
+      const t0 = '2026-01-02T10:00:00.000Z'
+      const t1 = '2026-01-02T10:00:00.001Z'
+      const t2 = '2026-01-02T10:00:00.500Z'
+      const t3 = '2026-01-02T10:00:01.000Z'
+
+      await studyDb.notes.bulkPut([
+        { id: 'note-3', title: 'Note 3', body: '', subjectId: '', tags: [], createdAt: t3, updatedAt: t3 },
+        { id: 'note-0', title: 'Note 0', body: '', subjectId: '', tags: [], createdAt: t0, updatedAt: t0 },
+        { id: 'note-2', title: 'Note 2', body: '', subjectId: '', tags: [], createdAt: t2, updatedAt: t2 },
+        { id: 'note-1', title: 'Note 1', body: '', subjectId: '', tags: [], createdAt: t1, updatedAt: t1 },
+      ])
+
+      const orderedAsc = await studyDb.notes.orderBy('createdAt').toArray()
+      expect(orderedAsc.map((n) => n.id)).toEqual(['note-0', 'note-1', 'note-2', 'note-3'])
+
+      const orderedDesc = await studyDb.notes.orderBy('createdAt').reverse().toArray()
+      expect(orderedDesc.map((n) => n.id)).toEqual(['note-3', 'note-2', 'note-1', 'note-0'])
+
+      // Attempt to import a backup containing a no-millisecond timestamp
+      const payloadNoMs = {
+        version: 4,
+        exportedAt: '2026-01-02T10:00:00Z',
+        tasks: [],
+        subjects: [],
+        notes: [],
+        events: [],
+        studySessions: [],
+        goals: [],
+        settings: [],
+      }
+
+      await expect(importStudyData(payloadNoMs)).rejects.toThrow()
+      expect(await studyDb.notes.count()).toBe(4)
+
+      // Attempt to import a backup containing an impossible timestamp in notes
+      const payloadImpossibleTs = {
+        version: 4,
+        exportedAt: '2026-01-02T10:00:00.000Z',
+        tasks: [],
+        subjects: [],
+        notes: [
+          {
+            id: 'note-bad-ts',
+            title: 'Bad TS',
+            body: '',
+            subjectId: '',
+            tags: [],
+            createdAt: '2026-02-30T10:00:00.000Z',
+            updatedAt: '2026-02-30T10:00:00.000Z',
+          },
+        ],
+        events: [],
+        studySessions: [],
+        goals: [],
+        settings: [],
+      }
+
+      await expect(importStudyData(payloadImpossibleTs)).rejects.toThrow()
+      expect(await studyDb.notes.count()).toBe(4)
+    })
   })
 })
 
