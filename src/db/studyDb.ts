@@ -11,6 +11,7 @@ import {
   STUDY_EXPORT_IMPORT_VALIDATION_ERROR,
   StudyExportValidationError,
 } from './studyExportValidation'
+import { isPersistedDueDate, isPersistedIsoTimestamp } from './validation/persistedInvariants'
 import type {
   CalendarEvent,
   GoalPeriod,
@@ -766,11 +767,11 @@ function isNumber(value: unknown): value is number {
 }
 
 function isDate(value: unknown): value is string {
-  return isString(value) && value.length > 0 && !Number.isNaN(Date.parse(value))
+  return isPersistedIsoTimestamp(value)
 }
 
 function isDateOrEmpty(value: unknown): value is string {
-  return value === '' || isDate(value)
+  return value === '' || isPersistedIsoTimestamp(value)
 }
 
 function hasRecordIdentity(record: Record<string, unknown>) {
@@ -787,7 +788,7 @@ function isStudyTask(value: unknown): value is StudyTask {
     hasRecordIdentity(value) &&
     isString(value.title) &&
     isString(value.subjectId) &&
-    isDateOrEmpty(value.dueDate) &&
+    isPersistedDueDate(value.dueDate) &&
     (value.priority === 'low' || value.priority === 'normal' || value.priority === 'high') &&
     (value.status === 'open' || value.status === 'done') &&
     isNumber(value.minutes) &&

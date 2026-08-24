@@ -3871,6 +3871,53 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
         expect(restoredSetting?.value).toBe(target)
       }
     })
+
+    it('23. rejects non-canonical or impossible dates and preserves existing database state atomically', async () => {
+      await clearAllStudyData()
+      await studyDb.tasks.put({
+        id: 'existing-task',
+        title: 'Existing Task',
+        subjectId: '',
+        dueDate: '2026-01-02',
+        priority: 'normal',
+        status: 'open',
+        minutes: 30,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      })
+
+      // Attempt to import payload with impossible task due date
+      const payloadBadDate = {
+        version: 4,
+        exportedAt: '2026-01-01T00:00:00.000Z',
+        tasks: [
+          {
+            id: 'bad-task',
+            title: 'Bad Task',
+            subjectId: '',
+            dueDate: '2026-02-30',
+            priority: 'normal',
+            status: 'open',
+            minutes: 30,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        subjects: [],
+        notes: [],
+        events: [],
+        studySessions: [],
+        goals: [],
+        settings: [],
+      }
+
+      await expect(importStudyData(payloadBadDate)).rejects.toThrow()
+
+      // Existing task must remain unchanged
+      const task = await studyDb.tasks.get('existing-task')
+      expect(task?.title).toBe('Existing Task')
+      expect(await studyDb.tasks.count()).toBe(1)
+    })
   })
 })
 
