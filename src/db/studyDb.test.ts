@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearAllStudyData, createStudyExportPayload, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, parseAndNormalizeStudyExport, readStudyDataSnapshot, studyDb, StudyDatabase } from './studyDb'
 import { assertStudyExportImportFileSize, assertStudyExportImportTextLength, MAX_STUDY_EXPORT_IMPORT_BYTES, MAX_STUDY_EXPORT_IMPORT_CHARS } from './studyExportLimits'
+import { isPersistedIsoTimestamp } from './validation/persistedInvariants'
 import type { ActiveFocusSession, StudyGoal } from './types'
 
 const STUDY_DB_NAME = 'study-dashboard-db'
@@ -2087,7 +2088,8 @@ describe('studyDb', () => {
       title: 'Office hours',
       location: 'Room 12',
     })
-    expect(events[0]?.startAt).toMatch(/T09:00:00\.000$/)
+    expect(isPersistedIsoTimestamp(events[0]?.startAt)).toBe(true)
+    expect(isPersistedIsoTimestamp(events[0]?.endAt)).toBe(true)
     expect(new Date(events[0]!.endAt).getTime() - new Date(events[0]!.startAt).getTime()).toBe(60 * 60_000)
     expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
   })
@@ -2104,8 +2106,8 @@ describe('studyDb', () => {
     const event = await studyDb.events.get('legacy-timed')
 
     expect(event?.title).toBe('Lab session')
-    expect(event?.startAt).toMatch(/^\d{4}-\d{2}-\d{2}T/)
-    expect(event?.startAt.endsWith('T09:00:00.000')).toBe(false)
+    expect(isPersistedIsoTimestamp(event?.startAt)).toBe(true)
+    expect(isPersistedIsoTimestamp(event?.endAt)).toBe(true)
     expect(Number.isNaN(new Date(event!.startAt).getTime())).toBe(false)
     expect(new Date(event!.endAt).getTime() - new Date(event!.startAt).getTime()).toBe(60 * 60_000)
   })
@@ -2122,7 +2124,8 @@ describe('studyDb', () => {
     const event = await studyDb.events.get('legacy-bad-time')
 
     expect(event?.title).toBe('Broken clock event')
-    expect(event?.startAt).toMatch(/T09:00:00\.000$/)
+    expect(isPersistedIsoTimestamp(event?.startAt)).toBe(true)
+    expect(isPersistedIsoTimestamp(event?.endAt)).toBe(true)
   })
 
   it('skips localStorage import when the migration flag is already set', async () => {
@@ -2814,7 +2817,7 @@ describe('goal metric Dexie version 2 upgrade', () => {
     ])
 
     await studyDb.open()
-    expect(studyDb.verno).toBe(4)
+    expect(studyDb.verno).toBe(5)
 
     const goals = await studyDb.goals.toArray()
     const byId = new Map(goals.map((goal) => [goal.id, goal]))
@@ -2944,7 +2947,7 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
     )
 
     await studyDb.open()
-    expect(studyDb.verno).toBe(4)
+    expect(studyDb.verno).toBe(5)
 
     const subjects = await studyDb.subjects.toArray()
     const byId = new Map(subjects.map((subject) => [subject.id, subject]))
@@ -4032,9 +4035,198 @@ describe('flashcard removal Dexie version 4 upgrade', () => {
     v3.close()
 
     await studyDb.open()
-    expect(studyDb.verno).toBe(4)
+    expect(studyDb.verno).toBe(5)
     expect(studyDb.tables.map((t) => t.name)).not.toContain('flashcards')
     expect(await studyDb.tasks.count()).toBe(1)
     expect((await studyDb.tasks.get('task-v3'))?.title).toBe('Task V3')
+  })
+})
+
+describe('legacy event start timestamp Dexie version 5 upgrade', () => {
+  class StudyDatabaseV4Only extends Dexie {
+    constructor() {
+      super(STUDY_DB_NAME)
+      this.version(1).stores(V1_STORES)
+      this.version(2).stores(V1_STORES)
+      this.version(3).stores(V1_STORES)
+      this.version(4).stores({
+        flashcards: null,
+      })
+    }
+  }
+
+  beforeEach(async () => {
+    localStorage.clear()
+    if (studyDb.isOpen()) {
+      studyDb.close()
+    }
+    await studyDb.delete()
+    await studyDb.open()
+  })
+
+  afterEach(async () => {
+    if (studyDb.isOpen()) studyDb.close()
+    await studyDb.delete()
+  })
+
+  it('upgrades from version 4 by canonicalizing legacy non-canonical event start timestamps', async () => {
+    if (studyDb.isOpen()) studyDb.close()
+    await studyDb.delete()
+
+    const v4 = new StudyDatabaseV4Only()
+    await v4.open()
+    expect(v4.verno).toBe(4)
+
+    const createdAt = '2026-08-24T12:00:00.000Z'
+    await v4.table('events').bulkAdd([
+      {
+        id: 'event-legacy-fallback',
+        title: 'Office hours',
+        subjectId: '',
+        startAt: '2026-08-24T09:00:00.000',
+        endAt: '2026-08-24T04:30:00.000Z',
+        location: 'Room 12',
+        createdAt,
+        updatedAt: createdAt,
+      },
+      {
+        id: 'event-already-canonical',
+        title: 'Lab session',
+        subjectId: '',
+        startAt: '2026-08-24T03:30:00.000Z',
+        endAt: '2026-08-24T04:30:00.000Z',
+        location: '',
+        createdAt,
+        updatedAt: createdAt,
+      },
+    ])
+    v4.close()
+
+    await studyDb.open()
+    expect(studyDb.verno).toBe(5)
+
+    const repaired = await studyDb.events.get('event-legacy-fallback')
+    expect(repaired?.startAt).toBe('2026-08-24T03:30:00.000Z')
+    expect(repaired?.endAt).toBe('2026-08-24T04:30:00.000Z')
+    expect(isPersistedIsoTimestamp(repaired?.startAt)).toBe(true)
+
+    const untouched = await studyDb.events.get('event-already-canonical')
+    expect(untouched?.startAt).toBe('2026-08-24T03:30:00.000Z')
+    expect(untouched?.endAt).toBe('2026-08-24T04:30:00.000Z')
+    expect(isPersistedIsoTimestamp(untouched?.startAt)).toBe(true)
+  })
+
+  it('reconstructs legacy event startAt deterministically across original migration timezones (e.g. UTC-04:00)', async () => {
+    if (studyDb.isOpen()) studyDb.close()
+    await studyDb.delete()
+
+    const v4 = new StudyDatabaseV4Only()
+    await v4.open()
+
+    const createdAt = '2026-08-24T12:00:00.000Z'
+    // Event migrated in UTC-04:00: local 09:00 EDT = 13:00 UTC, endAt = 14:00 UTC
+    await v4.table('events').bulkAdd([
+      {
+        id: 'event-edt-migrated',
+        title: 'Morning review in EDT',
+        subjectId: '',
+        startAt: '2026-08-24T09:00:00.000',
+        endAt: '2026-08-24T14:00:00.000Z',
+        location: '',
+        createdAt,
+        updatedAt: createdAt,
+      },
+    ])
+    v4.close()
+
+    await studyDb.open()
+    expect(studyDb.verno).toBe(5)
+
+    const repaired = await studyDb.events.get('event-edt-migrated')
+    expect(repaired?.startAt).toBe('2026-08-24T13:00:00.000Z')
+    expect(repaired?.endAt).toBe('2026-08-24T14:00:00.000Z')
+    expect(isPersistedIsoTimestamp(repaired?.startAt)).toBe(true)
+  })
+
+  it('imports and normalizes historical V4 backups with legacy event start timestamps', async () => {
+    const historicalPayload = {
+      version: 4,
+      exportedAt: '2026-08-24T12:00:00.000Z',
+      appVersion: '1.4.0',
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [
+        {
+          id: 'event-hist-1',
+          title: 'Legacy date-only event',
+          subjectId: '',
+          startAt: '2026-08-24T09:00:00.000',
+          endAt: '2026-08-24T04:30:00.000Z',
+          location: '',
+          createdAt: '2026-08-24T12:00:00.000Z',
+          updatedAt: '2026-08-24T12:00:00.000Z',
+        },
+      ],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+
+    const normalized = parseAndNormalizeStudyExport(historicalPayload)
+    expect(normalized.events[0]?.startAt).toBe('2026-08-24T03:30:00.000Z')
+    expect(isPersistedIsoTimestamp(normalized.events[0]?.startAt)).toBe(true)
+
+    await importStudyData(JSON.stringify(historicalPayload))
+    const importedEvents = await studyDb.events.toArray()
+    expect(importedEvents).toHaveLength(1)
+    expect(importedEvents[0]?.startAt).toBe('2026-08-24T03:30:00.000Z')
+    expect(isPersistedIsoTimestamp(importedEvents[0]?.startAt)).toBe(true)
+
+    const reExported = await exportStudyData()
+    expect(reExported.events[0]?.startAt).toBe('2026-08-24T03:30:00.000Z')
+    expect(isPersistedIsoTimestamp(reExported.events[0]?.startAt)).toBe(true)
+
+    // Re-import of canonical export succeeds
+    expect(() => parseAndNormalizeStudyExport(reExported)).not.toThrow()
+  })
+
+  it('rejects arbitrary malformed event timestamps during import', async () => {
+    const makePayloadWithEvent = (startAt: string, endAt: string) => ({
+      version: 4,
+      exportedAt: '2026-08-24T12:00:00.000Z',
+      appVersion: '1.4.0',
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [
+        {
+          id: 'event-crafted-lookalike',
+          title: 'Crafted lookalike event',
+          subjectId: '',
+          startAt,
+          endAt,
+          location: '',
+          createdAt: '2026-08-24T12:00:00.000Z',
+          updatedAt: '2026-08-24T12:00:00.000Z',
+        },
+      ],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    })
+
+    // Random non-timestamp string
+    expect(() => parseAndNormalizeStudyExport(makePayloadWithEvent('not-a-timestamp', '2026-08-24T04:30:00.000Z'))).toThrow()
+    // Non-09:00 timezone-less timestamp (08:00)
+    expect(() => parseAndNormalizeStudyExport(makePayloadWithEvent('2026-08-24T08:00:00.000', '2026-08-24T04:30:00.000Z'))).toThrow()
+    // Non-09:00 timezone-less timestamp (10:00)
+    expect(() => parseAndNormalizeStudyExport(makePayloadWithEvent('2026-08-24T10:00:00.000', '2026-08-24T04:30:00.000Z'))).toThrow()
+    // Impossible calendar date (Feb 30)
+    expect(() => parseAndNormalizeStudyExport(makePayloadWithEvent('2026-02-30T09:00:00.000', '2026-08-24T04:30:00.000Z'))).toThrow()
+    // Legacy 09:00 start with non-canonical endAt
+    expect(() => parseAndNormalizeStudyExport(makePayloadWithEvent('2026-08-24T09:00:00.000', '2026-08-24T04:30:00.000'))).toThrow()
+    // Arbitrary timezone offset string on startAt
+    expect(() => parseAndNormalizeStudyExport(makePayloadWithEvent('2026-08-24T09:00:00.000+02:00', '2026-08-24T04:30:00.000Z'))).toThrow()
   })
 })
