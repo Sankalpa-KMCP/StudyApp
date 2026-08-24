@@ -19,6 +19,7 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 ## Project summary
 
 - **Study Dashboard v1.4.0** — local-first study workspace (tasks, notes, subjects, calendar, flashcards, focus sessions, goals).
+- **Feature freeze active:** See [docs/release-v1.5.0-contract.md](docs/release-v1.5.0-contract.md) for the v1.5.0 Public Beta release contract.
 - **Web app:** React 19 + Vite 8 + Dexie/IndexedDB PWA at the repo root.
 - **`App.tsx` is the composition root** — live Dexie data, sole `useCurrentDate()`, derived Home metrics, URL-synced navigation/layout (`src/navigation/viewRoutes.ts` + History API), shared preference notices, and view wiring. Pure helpers stay in `src/appUtils.ts`.
 - **Extracted React orchestration (do not re-inline into App):**
@@ -232,6 +233,7 @@ CI (`.github/workflows/ci.yml`): lint → unit tests with coverage (`npm run tes
 
 - [README.md](README.md) — product surface and quick start
 - [CONTRIBUTING.md](CONTRIBUTING.md) — tests and data safety
+- [docs/release-v1.5.0-contract.md](docs/release-v1.5.0-contract.md) — v1.5.0 release contract
 - [CHANGELOG.md](CHANGELOG.md) — release notes
 
 ## Documentation maintenance

@@ -161,6 +161,7 @@ First launch starts empty with create-first actions. Existing customized data fr
 ## Documentation
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — migrations, E2E, coverage gates
+- [docs/release-v1.5.0-contract.md](docs/release-v1.5.0-contract.md) — v1.5.0 Public Beta release contract and feature freeze
 - [docs/phase-0-baseline.md](docs/phase-0-baseline.md) — Phase 0 install/validation/performance baseline
 - [docs/technical-debt.md](docs/technical-debt.md) — active technical debt, accepted constraints, evidence gaps
 - [CHANGELOG.md](CHANGELOG.md) — release notes
