@@ -2906,9 +2906,6 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
     })
 
     it('P2-S4: captures a coherent snapshot under concurrent write from a second connection', async () => {
-      const studyDb2 = new StudyDatabase()
-      await studyDb2.open()
-
       let snapshotGateResolver!: () => void
       const snapshotGatePromise = new Promise<void>((r) => {
         snapshotGateResolver = r
@@ -2928,7 +2925,8 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       let snapshotPromise: Promise<unknown> | null = null
       let writePromise: Promise<void> | null = null
       let origAppTransactionSpy: ReturnType<typeof vi.spyOn> | null = null
-      let origCreateTxSpy: ReturnType<typeof vi.spyOn> | null = null
+      let origNativeTransactionSpy: ReturnType<typeof vi.spyOn> | null = null
+      let studyDb2: StudyDatabase | null = null
 
       try {
         const timestamp = nowIso()
@@ -2974,25 +2972,41 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
           return (origAppTransaction as (...a: unknown[]) => unknown)(mode, ...args) as Promise<unknown>
         })
 
-        // Spy on Connection B transaction creation to capture scheduling parameters
-        const origCreateTx = studyDb2._createTransaction.bind(studyDb2)
-        origCreateTxSpy = vi.spyOn(studyDb2, '_createTransaction').mockImplementation((mode, storeNames, dbschema, parentTx) => {
-          observedNativeMode = mode
-          observedNativeStores = Array.from(storeNames)
-          writerNativeIssuedResolver()
-          return origCreateTx(mode, storeNames, dbschema, parentTx)
-        })
+        // 1. Install native IDBDatabase.prototype.transaction spy BEFORE constructing/opening Connection B
+        const origNativeTransaction = globalThis.IDBDatabase.prototype.transaction
+        origNativeTransactionSpy = vi
+          .spyOn(globalThis.IDBDatabase.prototype, 'transaction')
+          .mockImplementation(function (this: IDBDatabase, storeNames: string | string[], mode?: IDBTransactionMode) {
+            const storeArray = Array.isArray(storeNames) ? storeNames : Array.from(storeNames)
+            if (
+              studyDb2 &&
+              this === (studyDb2 as unknown as { idbdb: IDBDatabase }).idbdb &&
+              mode === 'readwrite' &&
+              storeArray.includes('subjects') &&
+              storeArray.includes('tasks')
+            ) {
+              observedNativeMode = mode
+              observedNativeStores = storeArray
+              writerNativeIssuedResolver()
+            }
+            return origNativeTransaction.call(this, storeNames, mode)
+          })
 
-        // 1. Start snapshot transaction on Connection A
+        // Construct and open Connection B while native spy is active
+        studyDb2 = new StudyDatabase()
+        await studyDb2.open()
+
+        // 2. Start snapshot transaction on Connection A
         snapshotPromise = readStudyDataSnapshot()
         await vi.waitFor(() => expect(snapshotStarted).toBe(true))
 
-        // 2. Start concurrent atomic State B write on Connection B (replace Subject A/Task A with Subject B/Task B)
-        writePromise = studyDb2
-          .transaction('rw', [studyDb2.subjects, studyDb2.tasks], async () => {
-            await studyDb2.subjects.delete('subj-a')
-            await studyDb2.tasks.delete('task-a')
-            await studyDb2.subjects.add({
+        // 3. Start concurrent atomic State B write on Connection B (replace Subject A/Task A with Subject B/Task B)
+        const targetDb2 = studyDb2
+        writePromise = targetDb2
+          .transaction('rw', [targetDb2.subjects, targetDb2.tasks], async () => {
+            await targetDb2.subjects.delete('subj-a')
+            await targetDb2.tasks.delete('task-a')
+            await targetDb2.subjects.add({
               id: 'subj-b',
               name: 'Physics',
               color: '#16a34a',
@@ -3002,7 +3016,7 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
               createdAt: timestamp,
               updatedAt: timestamp,
             })
-            await studyDb2.tasks.add({
+            await targetDb2.tasks.add({
               id: 'task-b',
               title: 'Physics reading',
               subjectId: 'subj-b',
@@ -3022,28 +3036,28 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
             writerError = err
           })
 
-        // 3. Directly prove Connection B's transaction request entered transaction scheduling
+        // 4. Directly prove Connection B's native IDBDatabase.transaction() request was issued
         await writerNativeIssuedPromise
         expect(observedNativeMode).toBe('readwrite')
         expect(observedNativeStores).toEqual(expect.arrayContaining(['subjects', 'tasks']))
 
-        // 4. Assert writer is explicitly pending (not fulfilled or rejected) while snapshot gate is held
+        // 5. Assert writer is explicitly pending (not fulfilled or rejected) while snapshot gate is held
         expect(writerStatus).toBe('pending')
         expect(writerError).toBeNull()
 
-        // 5. Release snapshot gate and await both promises
+        // 6. Release snapshot gate and await both promises
         snapshotGateResolver()
         const snapshot = await snapshotPromise
         await writePromise
 
-        // 6. Assert snapshot returned 100% untorn State A
+        // 7. Assert snapshot returned 100% untorn State A
         expect(snapshot.subjects.map((s) => s.id)).toEqual(['subj-a'])
         expect(snapshot.tasks.map((t) => t.id)).toEqual(['task-a'])
         expect(snapshot.tasks[0]?.subjectId).toBe('subj-a')
         expect(snapshot.subjects.some((s) => s.id === 'subj-b')).toBe(false)
         expect(snapshot.tasks.some((t) => t.id === 'task-b')).toBe(false)
 
-        // 7. Assert writer completed after release and live DB reflects 100% untorn State B
+        // 8. Assert writer completed after release and live DB reflects 100% untorn State B
         expect(writerStatus).toBe('fulfilled')
         expect(writerError).toBeNull()
         const liveData = await getStudyData()
@@ -3058,8 +3072,8 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
           await Promise.allSettled([snapshotPromise, writePromise].filter(Boolean))
         }
         origAppTransactionSpy?.mockRestore()
-        origCreateTxSpy?.mockRestore()
-        studyDb2.close()
+        origNativeTransactionSpy?.mockRestore()
+        studyDb2?.close()
       }
     })
   })
