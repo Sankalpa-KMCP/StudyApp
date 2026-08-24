@@ -56,7 +56,7 @@ jobs:
       - name: Upload checked dist artifact
         if: >-
           (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-          (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/V2')
+          github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
           name: github-pages-dist
@@ -67,7 +67,7 @@ jobs:
     needs: check
     if: >-
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/V2')
+      github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
       contents: read
