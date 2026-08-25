@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearAllStudyData, createStudyExportPayload, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, parseAndNormalizeStudyExport, readStudyDataSnapshot, studyDb, StudyDatabase } from './studyDb'
+import { DATABASE_GENERATION_KEY, getDatabaseGeneration } from './databaseGeneration'
 import { assertStudyExportImportFileSize, assertStudyExportImportTextLength, MAX_STUDY_EXPORT_IMPORT_BYTES, MAX_STUDY_EXPORT_IMPORT_CHARS } from './studyExportLimits'
 import { isPersistedIsoTimestamp } from './validation/persistedInvariants'
 import type { ActiveFocusSession, StudyGoal } from './types'
@@ -4228,5 +4229,147 @@ describe('legacy event start timestamp Dexie version 5 upgrade', () => {
     expect(() => parseAndNormalizeStudyExport(makePayloadWithEvent('2026-08-24T09:00:00.000', '2026-08-24T04:30:00.000'))).toThrow()
     // Arbitrary timezone offset string on startAt
     expect(() => parseAndNormalizeStudyExport(makePayloadWithEvent('2026-08-24T09:00:00.000+02:00', '2026-08-24T04:30:00.000Z'))).toThrow()
+  })
+
+  describe('cross-tab lock and database generation integration', () => {
+    const samplePayload = {
+      version: 4,
+      exportedAt: '2026-08-25T12:00:00.000Z',
+      appVersion: '1.4.0',
+      tasks: [],
+      subjects: [
+        {
+          id: 'subject-1',
+          name: 'Math',
+          color: '#111827',
+          targetHours: 5,
+          progress: 50,
+          progressMode: 'manual' as const,
+          createdAt: '2026-08-25T12:00:00.000Z',
+          updatedAt: '2026-08-25T12:00:00.000Z',
+        },
+      ],
+      notes: [],
+      events: [],
+      studySessions: [],
+      goals: [],
+      settings: [
+        { key: 'dailyGoalMinutes', value: 120 },
+      ],
+    }
+
+    it('advances database generation atomically on import from missing baseline (1 -> 2)', async () => {
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(1)
+      await importStudyData(samplePayload)
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(2)
+    })
+
+    it('repeated imports produce distinct successive generations (2 -> 3 -> 4)', async () => {
+      await importStudyData(samplePayload)
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(2)
+
+      await importStudyData(samplePayload)
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(3)
+
+      await importStudyData(samplePayload)
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(4)
+    })
+
+    it('incoming databaseGeneration in backup payload cannot overwrite local generation', async () => {
+      const craftedPayload = {
+        ...samplePayload,
+        settings: [
+          { key: 'dailyGoalMinutes', value: 120 },
+          { key: DATABASE_GENERATION_KEY, value: 9999 },
+        ],
+      }
+      await importStudyData(craftedPayload)
+      // Must advance locally (1 -> 2), NOT take 9999
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(2)
+    })
+
+    it('failed/aborted import leaves both data and generation unchanged', async () => {
+      await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 5 })
+      await studyDb.tasks.add({
+        id: 'task-preserved',
+        title: 'Preserved task',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 30,
+        createdAt: '2026-08-25T12:00:00.000Z',
+        updatedAt: '2026-08-25T12:00:00.000Z',
+      })
+
+      await expect(
+        importStudyData(samplePayload, { abortTransaction: true }),
+      ).rejects.toThrow()
+
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(5)
+      const tasks = await studyDb.tasks.toArray()
+      expect(tasks).toHaveLength(1)
+      expect(tasks[0].id).toBe('task-preserved')
+    })
+
+    it('clearAllStudyData advances generation atomically and preserves generation setting', async () => {
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(1)
+      await clearAllStudyData()
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(2)
+    })
+
+    it('consecutive destructive operations remain monotonic (clear -> import -> clear)', async () => {
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(1)
+      await clearAllStudyData()
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(2)
+
+      await importStudyData(samplePayload)
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(3)
+
+      await clearAllStudyData()
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(4)
+    })
+
+    it('exportStudyData excludes databaseGeneration and produces Version 4 export', async () => {
+      await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 15 })
+      await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 180 })
+
+      const exported = await exportStudyData()
+      expect(exported.version).toBe(4)
+      expect(exported.settings.some((s) => s.key === DATABASE_GENERATION_KEY)).toBe(false)
+      expect(exported.settings.some((s) => s.key === 'dailyGoalMinutes')).toBe(true)
+    })
+
+    it('legacy migration under exclusive lock advances generation when committing records', async () => {
+      const legacyData = {
+        tasks: [{ id: 'task-leg', title: 'Legacy task', done: false, minutes: 20 }],
+        subjects: [{ id: 'sub-leg', name: 'Legacy subject', topicsLeft: 3, progress: 10 }],
+      }
+      localStorage.setItem('study-dashboard-v2', JSON.stringify(legacyData))
+
+      const result = await migrateLegacyLocalStorage()
+      expect(result.status).toBe('success')
+      expect(await getDatabaseGeneration(studyDb.settings)).toBe(2)
+      expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+    })
+
+    it('legacy migration failure preserves source localStorage data', async () => {
+      const legacyData = {
+        tasks: [{ id: 'task-leg', title: 'Legacy task', done: false, minutes: 20 }],
+      }
+      localStorage.setItem('study-dashboard-v2', JSON.stringify(legacyData))
+
+      const result = await migrateLegacyLocalStorage({ abortTransaction: true })
+      expect(result.status).toBe('transaction_failed')
+      expect(localStorage.getItem('study-dashboard-v2')).not.toBeNull()
+    })
+
+    it('export snapshot reads occur inside a single isolated multi-store transaction', async () => {
+      const txSpy = vi.spyOn(studyDb, 'transaction')
+      const snapshot = await readStudyDataSnapshot()
+      expect(snapshot).toBeDefined()
+      expect(txSpy).toHaveBeenCalledWith('r', expect.any(Array), expect.any(Function))
+      txSpy.mockRestore()
+    })
   })
 })

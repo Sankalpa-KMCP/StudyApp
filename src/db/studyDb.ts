@@ -3,6 +3,17 @@ import { inferSubjectProgressMode } from '../appUtils'
 import { getAppVersion } from '../appVersion'
 import { inferLegacyGoalMetric } from './goalMetricInference'
 import {
+  withExclusiveDatabaseLock,
+  withSharedDatabaseLock,
+  WebLocksUnavailableError,
+} from './crossTabLock'
+import {
+  advanceDatabaseGeneration,
+  DATABASE_GENERATION_KEY,
+  DatabaseGenerationOverflowError,
+  parseDatabaseGeneration,
+} from './databaseGeneration'
+import {
   assertUniqueStudyExportIdentifiers,
   assertStudyExportSubjectReferences,
   assertStudyExportSemantics,
@@ -157,7 +168,7 @@ export function createStudyExportPayload(
   appVersion = getAppVersion()
 ): StudyExport {
   const portableSettings = snapshot.settings.filter(
-    (setting) => setting.key !== LEGACY_MIGRATION_KEY
+    (setting) => setting.key !== LEGACY_MIGRATION_KEY && setting.key !== DATABASE_GENERATION_KEY
   )
   return {
     version: EXPORT_SCHEMA_VERSION,
@@ -169,8 +180,10 @@ export function createStudyExportPayload(
 }
 
 export async function exportStudyData(): Promise<StudyExport> {
-  const snapshot = await readStudyDataSnapshot()
-  return createStudyExportPayload(snapshot)
+  return withSharedDatabaseLock(async () => {
+    const snapshot = await readStudyDataSnapshot()
+    return createStudyExportPayload(snapshot)
+  })
 }
 
 export type ImportStudyDataResult = {
@@ -191,36 +204,47 @@ export async function importStudyData(
   const normalized = parseAndNormalizeStudyExport(payload)
 
   const portableSettings = normalized.settings.filter(
-    (setting) => setting.key !== LEGACY_MIGRATION_KEY
+    (setting) => setting.key !== LEGACY_MIGRATION_KEY && setting.key !== DATABASE_GENERATION_KEY
   )
-  const settingsToPut: StudySetting[] = [
-    ...portableSettings,
-    { key: LEGACY_MIGRATION_KEY, value: true },
-  ]
 
   try {
-    await studyDb.transaction('rw', studyTables, async () => {
-      await Promise.all(studyTables.map((table) => table.clear()))
+    await withExclusiveDatabaseLock(async () => {
+      await studyDb.transaction('rw', studyTables, async () => {
+        const currentRecord = await studyDb.settings.get(DATABASE_GENERATION_KEY)
+        const currentGen = parseDatabaseGeneration(currentRecord?.value)
+        if (currentGen >= Number.MAX_SAFE_INTEGER) {
+          throw new DatabaseGenerationOverflowError()
+        }
+        const nextGeneration = currentGen + 1
 
-      if (_testHooks?.forceQuotaError) {
-        throw new DOMException('QuotaExceededError', 'QuotaExceededError')
-      }
-      if (_testHooks?.abortTransaction) {
-        throw new Error('Explicit transaction abort')
-      }
-      if (_testHooks?.forceSettingsPutError) {
-        throw new Error('Forced settings put error')
-      }
+        await Promise.all(studyTables.map((table) => table.clear()))
 
-      await Promise.all([
-        studyDb.tasks.bulkPut(normalized.tasks),
-        studyDb.subjects.bulkPut(normalized.subjects),
-        studyDb.notes.bulkPut(normalized.notes),
-        studyDb.events.bulkPut(normalized.events),
-        studyDb.studySessions.bulkPut(normalized.studySessions),
-        studyDb.goals.bulkPut(normalized.goals),
-        studyDb.settings.bulkPut(settingsToPut),
-      ])
+        if (_testHooks?.forceQuotaError) {
+          throw new DOMException('QuotaExceededError', 'QuotaExceededError')
+        }
+        if (_testHooks?.abortTransaction) {
+          throw new Error('Explicit transaction abort')
+        }
+        if (_testHooks?.forceSettingsPutError) {
+          throw new Error('Forced settings put error')
+        }
+
+        const settingsToPut: StudySetting[] = [
+          ...portableSettings,
+          { key: LEGACY_MIGRATION_KEY, value: true },
+          { key: DATABASE_GENERATION_KEY, value: nextGeneration },
+        ]
+
+        await Promise.all([
+          studyDb.tasks.bulkPut(normalized.tasks),
+          studyDb.subjects.bulkPut(normalized.subjects),
+          studyDb.notes.bulkPut(normalized.notes),
+          studyDb.events.bulkPut(normalized.events),
+          studyDb.studySessions.bulkPut(normalized.studySessions),
+          studyDb.goals.bulkPut(normalized.goals),
+          studyDb.settings.bulkPut(settingsToPut),
+        ])
+      })
     })
   } catch (err) {
     if (err instanceof StudyExportValidationError) {
@@ -250,24 +274,34 @@ export async function importStudyData(
 }
 
 export async function clearAllStudyData() {
-  await studyDb.transaction('rw', studyTables, async () => {
-    await Promise.all([
-      studyDb.tasks.clear(),
-      studyDb.subjects.clear(),
-      studyDb.notes.clear(),
-      studyDb.events.clear(),
-      studyDb.studySessions.clear(),
-      studyDb.goals.clear(),
-    ])
+  await withExclusiveDatabaseLock(async () => {
+    await studyDb.transaction('rw', studyTables, async () => {
+      const currentRecord = await studyDb.settings.get(DATABASE_GENERATION_KEY)
+      const currentGen = parseDatabaseGeneration(currentRecord?.value)
+      if (currentGen >= Number.MAX_SAFE_INTEGER) {
+        throw new DatabaseGenerationOverflowError()
+      }
+      const nextGeneration = currentGen + 1
 
-    // Clean up study-related settings but preserve preference and migration keys
-    // (`dailyGoalMinutes`, `legacy-localstorage-migrated-v1`). Theme lives in localStorage.
-    // Key must match ACTIVE_FOCUS_SESSION_KEY in activeFocusSession.ts.
-    await Promise.all([
-      studyDb.settings.delete('quickNotes'),
-      studyDb.settings.delete('activeFocusSession'),
-      studyDb.settings.delete('onboardingChecklistDismissed'),
-    ])
+      await Promise.all([
+        studyDb.tasks.clear(),
+        studyDb.subjects.clear(),
+        studyDb.notes.clear(),
+        studyDb.events.clear(),
+        studyDb.studySessions.clear(),
+        studyDb.goals.clear(),
+      ])
+
+      // Clean up study-related settings but preserve preference, migration, and generation keys
+      // (`dailyGoalMinutes`, `legacy-localstorage-migrated-v1`, `databaseGeneration`). Theme lives in localStorage.
+      // Key must match ACTIVE_FOCUS_SESSION_KEY in activeFocusSession.ts.
+      await Promise.all([
+        studyDb.settings.delete('quickNotes'),
+        studyDb.settings.delete('activeFocusSession'),
+        studyDb.settings.delete('onboardingChecklistDismissed'),
+        studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: nextGeneration }),
+      ])
+    })
   })
 }
 
@@ -370,49 +404,197 @@ export async function migrateLegacyLocalStorage(
   }
 
   try {
-    const migration = await studyDb.settings.get(LEGACY_MIGRATION_KEY)
-    if (migration?.value === true) {
+    return await withExclusiveDatabaseLock(async () => {
+      const migration = await studyDb.settings.get(LEGACY_MIGRATION_KEY)
+      if (migration?.value === true) {
+        const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY)
+        if (raw !== null) {
+          try {
+            window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+          } catch {
+            return { status: 'cleanup_failed' }
+          }
+        }
+        return { status: 'already_migrated' }
+      }
+
       const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY)
-      if (raw !== null) {
+      if (!raw) {
+        return { status: 'no_legacy_data' }
+      }
+
+      let parsed: LegacyData
+      try {
+        parsed = JSON.parse(raw) as LegacyData
+      } catch {
+        return { status: 'invalid_data', reason: 'Invalid JSON format in legacy storage' }
+      }
+
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return { status: 'invalid_data', reason: 'Legacy storage payload is not a valid object' }
+      }
+
+      if (isLegacyDemoData(parsed)) {
+        try {
+          await studyDb.transaction('rw', studyTables, async () => {
+            if (_testHooks?.beforeMarkerWrite) _testHooks.beforeMarkerWrite()
+            if (_testHooks?.forceQuotaError) {
+              throw new DOMException('QuotaExceededError', 'QuotaExceededError')
+            }
+            await studyDb.settings.put({ key: LEGACY_MIGRATION_KEY, value: true })
+          })
+        } catch (err) {
+          return {
+            status: 'transaction_failed',
+            error: err instanceof Error ? err.message : String(err),
+          }
+        }
+
         try {
           window.localStorage.removeItem(LEGACY_STORAGE_KEY)
         } catch {
           return { status: 'cleanup_failed' }
         }
+        return { status: 'demo_data_skipped' }
       }
-      return { status: 'already_migrated' }
-    }
 
-    const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY)
-    if (!raw) {
-      return { status: 'no_legacy_data' }
-    }
-
-    let parsed: LegacyData
-    try {
-      parsed = JSON.parse(raw) as LegacyData
-    } catch {
-      return { status: 'invalid_data', reason: 'Invalid JSON format in legacy storage' }
-    }
-
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return { status: 'invalid_data', reason: 'Legacy storage payload is not a valid object' }
-    }
-
-    if (isLegacyDemoData(parsed)) {
+      let migrated: StudyData
       try {
-        await studyDb.transaction('rw', studyTables, async () => {
-          if (_testHooks?.beforeMarkerWrite) _testHooks.beforeMarkerWrite()
-          if (_testHooks?.forceQuotaError) {
-            throw new DOMException('QuotaExceededError', 'QuotaExceededError')
-          }
-          await studyDb.settings.put({ key: LEGACY_MIGRATION_KEY, value: true })
-        })
+        migrated = migrateLegacyData(parsed)
       } catch (err) {
         return {
-          status: 'transaction_failed',
-          error: err instanceof Error ? err.message : String(err),
+          status: 'invalid_data',
+          reason: err instanceof Error ? err.message : 'Failed to normalize legacy data',
         }
+      }
+
+      let deduplicatedTasks: StudyTask[]
+      let deduplicatedSubjects: StudySubject[]
+      let deduplicatedNotes: StudyNote[]
+      let deduplicatedEvents: CalendarEvent[]
+      let deduplicatedSessions: StudySession[]
+      let deduplicatedGoals: StudyGoal[]
+
+      try {
+        deduplicatedTasks = processIncomingTable('tasks', migrated.tasks)
+        deduplicatedSubjects = processIncomingTable('subjects', migrated.subjects)
+        deduplicatedNotes = processIncomingTable('notes', migrated.notes)
+        deduplicatedEvents = processIncomingTable('events', migrated.events)
+        deduplicatedSessions = processIncomingTable('studySessions', migrated.studySessions)
+        deduplicatedGoals = processIncomingTable('goals', migrated.goals)
+      } catch (err) {
+        if (err instanceof LegacyMigrationCollisionError) {
+          return { status: 'collision', entity: err.entity, id: err.id }
+        }
+        return {
+          status: 'invalid_data',
+          reason: err instanceof Error ? err.message : 'Failed to validate incoming duplicates',
+        }
+      }
+
+      const recordCount =
+        deduplicatedTasks.length +
+        deduplicatedSubjects.length +
+        deduplicatedNotes.length +
+        deduplicatedEvents.length +
+        deduplicatedSessions.length +
+        deduplicatedGoals.length
+
+      if (recordCount === 0) {
+        try {
+          await studyDb.transaction('rw', studyTables, async () => {
+            if (_testHooks?.beforeMarkerWrite) _testHooks.beforeMarkerWrite()
+            if (_testHooks?.forceQuotaError) {
+              throw new DOMException('QuotaExceededError', 'QuotaExceededError')
+            }
+            await studyDb.settings.put({ key: LEGACY_MIGRATION_KEY, value: true })
+          })
+        } catch (err) {
+          return {
+            status: 'transaction_failed',
+            error: err instanceof Error ? err.message : String(err),
+          }
+        }
+
+        try {
+          window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+        } catch {
+          return { status: 'cleanup_failed' }
+        }
+        return { status: 'empty_data_skipped' }
+      }
+
+      if (_testHooks?.beforeTransactionAcquisition) {
+        await _testHooks.beforeTransactionAcquisition()
+      }
+
+      let alreadyMigratedInTx = false
+
+      await studyDb.transaction('rw', studyTables, async () => {
+        const inTxMigration = await studyDb.settings.get(LEGACY_MIGRATION_KEY)
+        if (inTxMigration?.value === true) {
+          alreadyMigratedInTx = true
+          return
+        }
+
+        const tasksToAdd = await checkAndFilterExistingRows('tasks', studyDb.tasks, deduplicatedTasks)
+        const subjectsToAdd = await checkAndFilterExistingRows(
+          'subjects',
+          studyDb.subjects,
+          deduplicatedSubjects
+        )
+        const notesToAdd = await checkAndFilterExistingRows('notes', studyDb.notes, deduplicatedNotes)
+        const eventsToAdd = await checkAndFilterExistingRows('events', studyDb.events, deduplicatedEvents)
+        const sessionsToAdd = await checkAndFilterExistingRows(
+          'studySessions',
+          studyDb.studySessions,
+          deduplicatedSessions
+        )
+        const goalsToAdd = await checkAndFilterExistingRows('goals', studyDb.goals, deduplicatedGoals)
+
+        if (_testHooks?.beforeEntityWrite) {
+          await _testHooks.beforeEntityWrite()
+        }
+        if (_testHooks?.forceEntityWriteError) {
+          throw new Error('Forced entity write error')
+        }
+
+        await Promise.all([
+          studyDb.subjects.bulkAdd(subjectsToAdd),
+          studyDb.tasks.bulkAdd(tasksToAdd),
+          studyDb.notes.bulkAdd(notesToAdd),
+          studyDb.events.bulkAdd(eventsToAdd),
+          studyDb.studySessions.bulkAdd(sessionsToAdd),
+          studyDb.goals.bulkAdd(goalsToAdd),
+        ])
+
+        const settingsToPut = migrated.settings.filter(
+          (s) => s.key !== LEGACY_MIGRATION_KEY && s.key !== DATABASE_GENERATION_KEY
+        )
+        if (settingsToPut.length > 0) {
+          await studyDb.settings.bulkPut(settingsToPut)
+        }
+
+        await advanceDatabaseGeneration(studyDb.settings)
+
+        if (_testHooks?.beforeMarkerWrite) {
+          await _testHooks.beforeMarkerWrite()
+        }
+        if (_testHooks?.forceMarkerWriteError) {
+          throw new Error('Forced marker write error')
+        }
+        if (_testHooks?.forceQuotaError) {
+          throw new DOMException('QuotaExceededError', 'QuotaExceededError')
+        }
+        if (_testHooks?.abortTransaction) {
+          throw new Error('Explicit transaction abort')
+        }
+
+        await studyDb.settings.put({ key: LEGACY_MIGRATION_KEY, value: true })
+      })
+
+      if (alreadyMigratedInTx) {
+        return { status: 'already_migrated' }
       }
 
       try {
@@ -420,154 +602,18 @@ export async function migrateLegacyLocalStorage(
       } catch {
         return { status: 'cleanup_failed' }
       }
-      return { status: 'demo_data_skipped' }
-    }
 
-    let migrated: StudyData
-    try {
-      migrated = migrateLegacyData(parsed)
-    } catch (err) {
-      return {
-        status: 'invalid_data',
-        reason: err instanceof Error ? err.message : 'Failed to normalize legacy data',
-      }
-    }
-
-    let deduplicatedTasks: StudyTask[]
-    let deduplicatedSubjects: StudySubject[]
-    let deduplicatedNotes: StudyNote[]
-    let deduplicatedEvents: CalendarEvent[]
-    let deduplicatedSessions: StudySession[]
-    let deduplicatedGoals: StudyGoal[]
-
-    try {
-      deduplicatedTasks = processIncomingTable('tasks', migrated.tasks)
-      deduplicatedSubjects = processIncomingTable('subjects', migrated.subjects)
-      deduplicatedNotes = processIncomingTable('notes', migrated.notes)
-      deduplicatedEvents = processIncomingTable('events', migrated.events)
-      deduplicatedSessions = processIncomingTable('studySessions', migrated.studySessions)
-      deduplicatedGoals = processIncomingTable('goals', migrated.goals)
-    } catch (err) {
-      if (err instanceof LegacyMigrationCollisionError) {
-        return { status: 'collision', entity: err.entity, id: err.id }
-      }
-      return {
-        status: 'invalid_data',
-        reason: err instanceof Error ? err.message : 'Failed to validate incoming duplicates',
-      }
-    }
-
-    const recordCount =
-      deduplicatedTasks.length +
-      deduplicatedSubjects.length +
-      deduplicatedNotes.length +
-      deduplicatedEvents.length +
-      deduplicatedSessions.length +
-      deduplicatedGoals.length
-
-    if (recordCount === 0) {
-      try {
-        await studyDb.transaction('rw', studyTables, async () => {
-          if (_testHooks?.beforeMarkerWrite) _testHooks.beforeMarkerWrite()
-          if (_testHooks?.forceQuotaError) {
-            throw new DOMException('QuotaExceededError', 'QuotaExceededError')
-          }
-          await studyDb.settings.put({ key: LEGACY_MIGRATION_KEY, value: true })
-        })
-      } catch (err) {
-        return {
-          status: 'transaction_failed',
-          error: err instanceof Error ? err.message : String(err),
-        }
-      }
-
-      try {
-        window.localStorage.removeItem(LEGACY_STORAGE_KEY)
-      } catch {
-        return { status: 'cleanup_failed' }
-      }
-      return { status: 'empty_data_skipped' }
-    }
-
-    if (_testHooks?.beforeTransactionAcquisition) {
-      await _testHooks.beforeTransactionAcquisition()
-    }
-
-    let alreadyMigratedInTx = false
-
-    await studyDb.transaction('rw', studyTables, async () => {
-      const inTxMigration = await studyDb.settings.get(LEGACY_MIGRATION_KEY)
-      if (inTxMigration?.value === true) {
-        alreadyMigratedInTx = true
-        return
-      }
-
-      const tasksToAdd = await checkAndFilterExistingRows('tasks', studyDb.tasks, deduplicatedTasks)
-      const subjectsToAdd = await checkAndFilterExistingRows(
-        'subjects',
-        studyDb.subjects,
-        deduplicatedSubjects
-      )
-      const notesToAdd = await checkAndFilterExistingRows('notes', studyDb.notes, deduplicatedNotes)
-      const eventsToAdd = await checkAndFilterExistingRows('events', studyDb.events, deduplicatedEvents)
-      const sessionsToAdd = await checkAndFilterExistingRows(
-        'studySessions',
-        studyDb.studySessions,
-        deduplicatedSessions
-      )
-      const goalsToAdd = await checkAndFilterExistingRows('goals', studyDb.goals, deduplicatedGoals)
-
-      if (_testHooks?.beforeEntityWrite) {
-        await _testHooks.beforeEntityWrite()
-      }
-      if (_testHooks?.forceEntityWriteError) {
-        throw new Error('Forced entity write error')
-      }
-
-      await Promise.all([
-        studyDb.subjects.bulkAdd(subjectsToAdd),
-        studyDb.tasks.bulkAdd(tasksToAdd),
-        studyDb.notes.bulkAdd(notesToAdd),
-        studyDb.events.bulkAdd(eventsToAdd),
-        studyDb.studySessions.bulkAdd(sessionsToAdd),
-        studyDb.goals.bulkAdd(goalsToAdd),
-      ])
-
-      const settingsToPut = migrated.settings.filter((s) => s.key !== LEGACY_MIGRATION_KEY)
-      if (settingsToPut.length > 0) {
-        await studyDb.settings.bulkPut(settingsToPut)
-      }
-
-      if (_testHooks?.beforeMarkerWrite) {
-        await _testHooks.beforeMarkerWrite()
-      }
-      if (_testHooks?.forceMarkerWriteError) {
-        throw new Error('Forced marker write error')
-      }
-      if (_testHooks?.forceQuotaError) {
-        throw new DOMException('QuotaExceededError', 'QuotaExceededError')
-      }
-      if (_testHooks?.abortTransaction) {
-        throw new Error('Explicit transaction abort')
-      }
-
-      await studyDb.settings.put({ key: LEGACY_MIGRATION_KEY, value: true })
+      return { status: 'success', recordCount }
     })
-
-    if (alreadyMigratedInTx) {
-      return { status: 'already_migrated' }
-    }
-
-    try {
-      window.localStorage.removeItem(LEGACY_STORAGE_KEY)
-    } catch {
-      return { status: 'cleanup_failed' }
-    }
-
-    return { status: 'success', recordCount }
   } catch (err) {
     if (err instanceof LegacyMigrationCollisionError) {
       return { status: 'collision', entity: err.entity, id: err.id }
+    }
+    if (err instanceof WebLocksUnavailableError) {
+      return {
+        status: 'transaction_failed',
+        error: 'Web Locks API is unavailable',
+      }
     }
     return {
       status: 'transaction_failed',
