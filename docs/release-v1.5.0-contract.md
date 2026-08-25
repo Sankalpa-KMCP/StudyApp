@@ -67,4 +67,4 @@ The following browser targets define the support scope for the v1.5.0 release:
 
 - **Parent Tracking Issue:** The master release issue will be named exactly `Public Release v1.5.0`.
 - **Task Linkage:** Every remaining release task, PR, and validation check must be linked under or referenced by the `Public Release v1.5.0` parent tracking issue.
-- **Phase 0 Exit Requirements:** Production and staging deployment pipeline correction remains a required prerequisite before the Phase 0 exit gate passes.
+- **Phase 0 Exit Requirements:** Production and staging deployment pipeline correction remains a required prerequisite before the Phase 0 exit gate passes. See the [Staging Architecture & Recovery Guide](staging-architecture.md).
