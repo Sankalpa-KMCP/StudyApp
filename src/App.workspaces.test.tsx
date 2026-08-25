@@ -103,9 +103,9 @@ describe('App workspaces', () => {
       releaseAdd = resolve
     })
     const originalCreate = taskService.createTask
-    const addSpy = vi.spyOn(taskService, 'createTask').mockImplementation(async (fields) => {
+    const addSpy = vi.spyOn(taskService, 'createTask').mockImplementation(async (...args) => {
       await gate
-      return originalCreate(fields)
+      return originalCreate(...args)
     })
 
     render(<App />)
@@ -137,7 +137,7 @@ describe('App workspaces', () => {
     const originalCreate = taskService.createTask
     const addSpy = vi.spyOn(taskService, 'createTask')
       .mockRejectedValueOnce(new Error('IndexedDB write failed: constraint detail'))
-      .mockImplementation(async (fields) => originalCreate(fields))
+      .mockImplementation(async (...args) => originalCreate(...args))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Tasks' }))
@@ -216,7 +216,10 @@ describe('App workspaces', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Boundary minutes task')).toBeInTheDocument()
-    expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({ minutes: 5 }))
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ minutes: 5 }),
+      { expectedGeneration: 1 },
+    )
     expect(await studyDb.tasks.toArray()).toEqual([
       expect.objectContaining({ title: 'Boundary minutes task', minutes: 5 }),
     ])
@@ -227,7 +230,10 @@ describe('App workspaces', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Upper minutes task')).toBeInTheDocument()
-    expect(createSpy).toHaveBeenLastCalledWith(expect.objectContaining({ minutes: 720 }))
+    expect(createSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ minutes: 720 }),
+      { expectedGeneration: 1 },
+    )
     expect((await studyDb.tasks.toArray()).find((task) => task.title === 'Upper minutes task')?.minutes).toBe(720)
   })
 
@@ -256,7 +262,11 @@ describe('App workspaces', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('Task updated.')
-    expect(updateSpy).toHaveBeenCalledWith('task-minutes-edit', expect.objectContaining({ minutes: 720 }))
+    expect(updateSpy).toHaveBeenCalledWith(
+      'task-minutes-edit',
+      expect.objectContaining({ minutes: 720 }),
+      { expectedGeneration: 1 },
+    )
     expect((await studyDb.tasks.get('task-minutes-edit'))?.minutes).toBe(720)
 
     await user.click(await screen.findByLabelText('Edit Editable minutes task'))
@@ -325,9 +335,9 @@ describe('App workspaces', () => {
       releaseUpdate = resolve
     })
     const originalSetStatus = taskService.setTaskStatus
-    const updateSpy = vi.spyOn(taskService, 'setTaskStatus').mockImplementation(async (id, status) => {
+    const updateSpy = vi.spyOn(taskService, 'setTaskStatus').mockImplementation(async (...args) => {
       await gate
-      return originalSetStatus(id, status)
+      return originalSetStatus(...args)
     })
 
     render(<App />)
@@ -554,7 +564,7 @@ describe('App workspaces', () => {
       title: 'Trimmed note',
       body: '',
       tags: ['exam', 'formulas'],
-    }))
+    }), { expectedGeneration: 1 })
     expect((await studyDb.notes.toArray())[0]).toMatchObject({
       title: 'Trimmed note',
       body: '',
@@ -597,9 +607,9 @@ describe('App workspaces', () => {
       releaseAdd = resolve
     })
     const originalCreate = notesService.createNote
-    const addSpy = vi.spyOn(notesService, 'createNote').mockImplementation(async (fields) => {
+    const addSpy = vi.spyOn(notesService, 'createNote').mockImplementation(async (...args) => {
       await gate
-      return originalCreate(fields)
+      return originalCreate(...args)
     })
 
     render(<App />)
@@ -626,7 +636,7 @@ describe('App workspaces', () => {
     const originalCreate = notesService.createNote
     const addSpy = vi.spyOn(notesService, 'createNote')
       .mockRejectedValueOnce(new Error('IndexedDB note write failed'))
-      .mockImplementation(async (fields) => originalCreate(fields))
+      .mockImplementation(async (...args) => originalCreate(...args))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Notes' }))
@@ -727,7 +737,7 @@ describe('App workspaces', () => {
     expect(screen.getByText('Sticky note')).toBeInTheDocument()
     expect(await studyDb.notes.get('note-delete-fail')).toBeDefined()
 
-    deleteSpy.mockImplementation(async (id) => originalDelete(id))
+    deleteSpy.mockImplementation(async (...args) => originalDelete(...args))
     await user.click(screen.getByLabelText('Delete Sticky note'))
     await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky note')).not.toBeInTheDocument())
@@ -752,9 +762,9 @@ describe('App workspaces', () => {
       releaseDelete = resolve
     })
     const originalDelete = notesService.deleteNote
-    const deleteSpy = vi.spyOn(notesService, 'deleteNote').mockImplementation(async (id) => {
+    const deleteSpy = vi.spyOn(notesService, 'deleteNote').mockImplementation(async (...args) => {
       await gate
-      return originalDelete(id)
+      return originalDelete(...args)
     })
 
     render(<App />)
@@ -935,7 +945,7 @@ describe('App workspaces', () => {
       location: 'Room A',
       startAt: startedAt.toISOString(),
       endAt: new Date(startedAt.getTime() + 15 * 60_000).toISOString(),
-    }))
+    }), { expectedGeneration: 1 })
   })
 
   it('applies the same calendar title validation on edit without calling the service', async () => {
@@ -973,7 +983,7 @@ describe('App workspaces', () => {
     const originalCreate = calendarEventService.createCalendarEvent
     const addSpy = vi.spyOn(calendarEventService, 'createCalendarEvent')
       .mockRejectedValueOnce(new Error('IndexedDB event write failed'))
-      .mockImplementation(async (fields) => originalCreate(fields))
+      .mockImplementation(async (...args) => originalCreate(...args))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Calendar' }))
@@ -1078,7 +1088,7 @@ describe('App workspaces', () => {
     expect(screen.getByLabelText('Seven day calendar')).toBeInTheDocument()
     expect(await studyDb.events.get('event-delete-fail')).toBeDefined()
 
-    deleteSpy.mockImplementation(async (id) => originalDelete(id))
+    deleteSpy.mockImplementation(async (...args) => originalDelete(...args))
     await user.click(screen.getByLabelText('Delete Sticky event'))
     await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky event')).not.toBeInTheDocument())
@@ -1104,9 +1114,9 @@ describe('App workspaces', () => {
       releaseDelete = resolve
     })
     const originalDelete = calendarEventService.deleteCalendarEvent
-    const deleteSpy = vi.spyOn(calendarEventService, 'deleteCalendarEvent').mockImplementation(async (id) => {
+    const deleteSpy = vi.spyOn(calendarEventService, 'deleteCalendarEvent').mockImplementation(async (...args) => {
       await gate
-      return originalDelete(id)
+      return originalDelete(...args)
     })
 
     render(<App />)
@@ -1275,7 +1285,7 @@ describe('App workspaces', () => {
       targetHours: 100,
       progress: 0,
       progressMode: 'manual',
-    }))
+    }), { expectedGeneration: 1 })
   })
 
   it('applies the same subject name validation on edit without calling the service', async () => {
@@ -1391,9 +1401,9 @@ describe('App workspaces', () => {
       releaseAdd = resolve
     })
     const originalCreate = subjectService.createSubject
-    const addSpy = vi.spyOn(subjectService, 'createSubject').mockImplementation(async (fields) => {
+    const addSpy = vi.spyOn(subjectService, 'createSubject').mockImplementation(async (...args) => {
       await gate
-      return originalCreate(fields)
+      return originalCreate(...args)
     })
 
     render(<App />)
@@ -1421,7 +1431,7 @@ describe('App workspaces', () => {
     const originalCreate = subjectService.createSubject
     const addSpy = vi.spyOn(subjectService, 'createSubject')
       .mockRejectedValueOnce(new Error('IndexedDB subject write failed'))
-      .mockImplementation(async (fields) => originalCreate(fields))
+      .mockImplementation(async (...args) => originalCreate(...args))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Subjects' }))
@@ -1516,7 +1526,7 @@ describe('App workspaces', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Subject could not be deleted. Please try again.')
     expect(screen.getByText('Sticky subject')).toBeInTheDocument()
 
-    deleteSpy.mockImplementation(async (id) => originalDelete(id))
+    deleteSpy.mockImplementation(async (...args) => originalDelete(...args))
     await user.click(screen.getByLabelText('Delete Sticky subject'))
     await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky subject')).not.toBeInTheDocument())

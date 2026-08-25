@@ -210,9 +210,9 @@ describe('App progress', () => {
       releaseAdd = resolve
     })
     const originalCreate = studySessionService.createStudySession
-    const addSpy = vi.spyOn(studySessionService, 'createStudySession').mockImplementation(async (fields) => {
+    const addSpy = vi.spyOn(studySessionService, 'createStudySession').mockImplementation(async (...args) => {
       await gate
-      return originalCreate(fields)
+      return originalCreate(...args)
     })
 
     render(<App />)
@@ -244,7 +244,7 @@ describe('App progress', () => {
     const originalCreate = studySessionService.createStudySession
     const addSpy = vi.spyOn(studySessionService, 'createStudySession')
       .mockRejectedValueOnce(new Error('IndexedDB session write failed'))
-      .mockImplementation(async (fields) => originalCreate(fields))
+      .mockImplementation(async (...args) => originalCreate(...args))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Progress' }))
@@ -357,7 +357,7 @@ describe('App progress', () => {
     expect(await screen.findByText('30/60 minutes')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Progress' }))
-    deleteSpy.mockImplementation(async (id) => originalDelete(id))
+    deleteSpy.mockImplementation(async (...args) => originalDelete(...args))
     await user.click(screen.getByLabelText(/Delete General session at/))
     await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky session')).not.toBeInTheDocument())

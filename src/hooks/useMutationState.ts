@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { StaleDatabaseGenerationError } from '../db/databaseGeneration'
 
 export type MutationPhase = 'idle' | 'pending' | 'success' | 'error'
 
@@ -16,9 +17,13 @@ export type UseMutationStateResult = {
   clearFeedback: () => void
 }
 
+export const STALE_GENERATION_MESSAGE =
+  'The data changed in another window or during a database replacement; refresh or reopen this workflow before saving.'
+
 /**
  * Local async mutation helper for pending state, duplicate prevention, and
  * friendly success/error feedback. Does not reset forms or close editors.
+ * Automatically catches and maps StaleDatabaseGenerationError to a friendly user notice.
  */
 export function useMutationState(): UseMutationStateResult {
   const [phase, setPhase] = useState<MutationPhase>('idle')
@@ -60,7 +65,11 @@ export function useMutationState(): UseMutationStateResult {
       console.error(error)
       if (mountedRef.current) {
         setPhase('error')
-        setMessage(options.errorMessage)
+        if (error instanceof StaleDatabaseGenerationError) {
+          setMessage(STALE_GENERATION_MESSAGE)
+        } else {
+          setMessage(options.errorMessage)
+        }
       }
       return false
     } finally {

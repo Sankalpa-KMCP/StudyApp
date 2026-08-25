@@ -57,6 +57,7 @@ export function CalendarView({
   openEditorRequest = 0,
   search = '',
   onClearSearch = () => {},
+  databaseGeneration = 1,
 }: {
   events: CalendarEvent[]
   subjects: StudySubject[]
@@ -64,6 +65,7 @@ export function CalendarView({
   openEditorRequest?: number
   search?: string
   onClearSearch?: () => void
+  databaseGeneration?: number
 }) {
   const [editingEventId, setEditingEventId] = useState<string | null>(null)
   const [draft, setDraft] = useState<EventDraft>(() => emptyDraft())
@@ -74,6 +76,7 @@ export function CalendarView({
   const dateFieldRef = useRef<HTMLInputElement | null>(null)
   const durationFieldRef = useRef<HTMLInputElement | null>(null)
   const handledEditorRequest = useRef(0)
+  const editorGenerationRef = useRef(databaseGeneration)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
@@ -95,6 +98,7 @@ export function CalendarView({
   const openEditor = useCallback((event?: CalendarEvent) => {
     clearValidation()
     clearSaveFeedback()
+    editorGenerationRef.current = databaseGeneration
     if (event) {
       const start = new Date(event.startAt)
       const end = new Date(event.endAt)
@@ -116,7 +120,7 @@ export function CalendarView({
 
     setEditingEventId('new')
     setDraft(emptyDraft(subjects[0]?.id ?? ''))
-  }, [clearSaveFeedback, clearValidation, subjects])
+  }, [clearSaveFeedback, clearValidation, databaseGeneration, subjects])
 
   useEffect(() => {
     if (openEditorRequest > handledEditorRequest.current) {
@@ -168,11 +172,15 @@ export function CalendarView({
 
     await runSave(async () => {
       if (isEdit && editingEventId) {
-        await updateCalendarEvent(editingEventId, fields)
+        await updateCalendarEvent(editingEventId, fields, {
+          expectedGeneration: editorGenerationRef.current,
+        })
         return
       }
 
-      await createCalendarEvent(fields)
+      await createCalendarEvent(fields, {
+        expectedGeneration: editorGenerationRef.current,
+      })
     }, {
       successMessage: isEdit ? 'Event updated.' : 'Event created.',
       errorMessage: 'Event could not be saved. Check the details and try again.',
@@ -194,7 +202,9 @@ export function CalendarView({
 
     try {
       await runRow(async () => {
-        await deleteCalendarEvent(event.id)
+        await deleteCalendarEvent(event.id, {
+          expectedGeneration: databaseGeneration,
+        })
       }, {
         successMessage: 'Event deleted.',
         errorMessage: 'Event could not be deleted. Please try again.',

@@ -1,10 +1,12 @@
 import { act, screen, within } from '@testing-library/react'
 import type { UserEvent } from '@testing-library/user-event'
 import { vi } from 'vitest'
+import { installInMemoryLockAdapter } from '../db/crossTabLock'
 import { studyDb } from '../db/studyDb'
 
 /** Reset timers, mocks, preference storage, theme meta, URL, and IndexedDB for App suites. */
 export async function resetAppTestEnvironment(): Promise<void> {
+  installInMemoryLockAdapter()
   vi.useRealTimers()
   vi.restoreAllMocks()
   localStorage.clear()

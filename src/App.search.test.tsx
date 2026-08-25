@@ -27,20 +27,20 @@ async function seedSearchCorpus() {
     dueDate: '',
     priority: 'high',
     minutes: 30,
-  })
+  }, { expectedGeneration: 1 })
   await createNote({
     title: 'Mitosis summary',
     body: 'Phases of mitosis',
     subjectId: 'subject-search',
     tags: ['exam'],
-  })
+  }, { expectedGeneration: 1 })
   await createCalendarEvent({
     title: 'Lab block',
     subjectId: 'subject-search',
     startAt: new Date(Date.now() + 3_600_000).toISOString(),
     endAt: new Date(Date.now() + 7_200_000).toISOString(),
     location: 'Room 12',
-  })
+  }, { expectedGeneration: 1 })
 }
 
 describe('App global search', () => {
@@ -159,7 +159,7 @@ describe('App global search', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 20,
-    })
+    }, { expectedGeneration: 1 })
     render(<App />)
 
     await user.click(await screen.findByRole('button', { name: 'Tasks' }))

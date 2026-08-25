@@ -36,6 +36,7 @@ export function NotesView({
   openEditorRequest = 0,
   search = '',
   onClearSearch = () => {},
+  databaseGeneration = 1,
 }: {
   notes: StudyNote[]
   subjects: StudySubject[]
@@ -43,6 +44,7 @@ export function NotesView({
   openEditorRequest?: number
   search?: string
   onClearSearch?: () => void
+  databaseGeneration?: number
 }) {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [draft, setDraft] = useState<NoteDraft>(() => emptyDraft())
@@ -50,6 +52,7 @@ export function NotesView({
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const handledEditorRequest = useRef(0)
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const editorGenerationRef = useRef(databaseGeneration)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
@@ -69,6 +72,7 @@ export function NotesView({
   const openEditor = useCallback((note?: StudyNote) => {
     setValidationError({ reason: null, message: null })
     clearSaveFeedback()
+    editorGenerationRef.current = databaseGeneration
     setEditingNoteId(note?.id ?? 'new')
     setDraft({
       title: note?.title ?? '',
@@ -76,7 +80,7 @@ export function NotesView({
       subjectId: note?.subjectId ?? subjects[0]?.id ?? '',
       tags: note?.tags.join(', ') ?? '',
     })
-  }, [clearSaveFeedback, subjects])
+  }, [clearSaveFeedback, databaseGeneration, subjects])
 
   useEffect(() => {
     if (openEditorRequest > handledEditorRequest.current) {
@@ -117,11 +121,15 @@ export function NotesView({
 
     await runSave(async () => {
       if (isEdit && editingNoteId) {
-        await updateNote(editingNoteId, fields)
+        await updateNote(editingNoteId, fields, {
+          expectedGeneration: editorGenerationRef.current,
+        })
         return
       }
 
-      await createNote(fields)
+      await createNote(fields, {
+        expectedGeneration: editorGenerationRef.current,
+      })
     }, {
       successMessage: isEdit ? 'Note updated.' : 'Note created.',
       errorMessage: 'Note could not be saved. Your text is still available.',
@@ -143,7 +151,9 @@ export function NotesView({
 
     try {
       await runRow(async () => {
-        await deleteNoteRecord(note.id)
+        await deleteNoteRecord(note.id, {
+          expectedGeneration: databaseGeneration,
+        })
       }, {
         successMessage: 'Note deleted.',
         errorMessage: 'Note could not be deleted.',

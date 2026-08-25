@@ -83,7 +83,7 @@ describe('App goals live query isolation', () => {
       progress: 0,
       period: 'daily',
       metric: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
     const goalsSpy = vi.spyOn(goalRead, 'listGoals')
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
@@ -105,7 +105,7 @@ describe('App goals live query isolation', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 25,
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(tasksSpy.mock.calls.length).toBeGreaterThan(tasksBefore))
     expect(goalsSpy.mock.calls.length).toBe(goalsBefore)
     expect(shellSpy.mock.calls.length).toBe(shellBefore)
@@ -115,7 +115,7 @@ describe('App goals live query isolation', () => {
       body: 'body',
       subjectId: '',
       tags: [],
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(notesSpy.mock.calls.length).toBeGreaterThan(notesBefore))
     expect(goalsSpy.mock.calls.length).toBe(goalsBefore)
@@ -133,7 +133,7 @@ describe('App goals live query isolation', () => {
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
 
     const goalsSpy = vi.spyOn(goalRead, 'listGoals')
     await openGoalsWorkspace(user)
@@ -147,7 +147,7 @@ describe('App goals live query isolation', () => {
       endedAt: new Date(2026, 6, 13, 10, 30).toISOString(),
       minutes: 30,
       note: '',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(screen.getByText('30/60 minutes')).toBeInTheDocument())
     expect(goalsSpy.mock.calls.length).toBe(goalsBefore)
@@ -163,7 +163,7 @@ describe('App goals live query isolation', () => {
       progress: 5,
       period: 'weekly',
       metric: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Goals' }))
@@ -186,7 +186,7 @@ describe('App goals live query isolation', () => {
       progress: 0,
       period: 'daily',
       metric: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     const full = await getStudyData()
     const exported = await exportStudyData()
     expect(full.goals).toHaveLength(1)

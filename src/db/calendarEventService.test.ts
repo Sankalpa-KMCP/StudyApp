@@ -5,10 +5,13 @@ import {
   updateCalendarEvent,
 } from './calendarEventService'
 import { SubjectNotFoundError } from './subjectValidation'
+import { DATABASE_GENERATION_KEY, StaleDatabaseGenerationError } from './databaseGeneration'
+import { installInMemoryLockAdapter } from './crossTabLock'
 import { studyDb } from './studyDb'
 
 describe('calendarEventService', () => {
   beforeEach(async () => {
+    installInMemoryLockAdapter()
     await studyDb.delete()
     await studyDb.open()
   })
@@ -36,7 +39,7 @@ describe('calendarEventService', () => {
       startAt: '2026-08-01T14:00:00.000Z',
       endAt: '2026-08-01T15:30:00.000Z',
       location: 'Library room 3',
-    })
+    }, { expectedGeneration: 1 })
 
     expect(created.id).toMatch(/^event-/)
     expect(created).toMatchObject({
@@ -58,7 +61,7 @@ describe('calendarEventService', () => {
       startAt: '2026-08-01T14:00:00.000Z',
       endAt: '2026-08-01T15:30:00.000Z',
       location: 'Room 1',
-    })
+    }, { expectedGeneration: 1 })
 
     expect(created.subjectId).toBe('')
     expect(await studyDb.events.get(created.id)).toEqual(created)
@@ -73,7 +76,7 @@ describe('calendarEventService', () => {
         startAt: '2026-08-01T14:00:00.000Z',
         endAt: '2026-08-01T15:30:00.000Z',
         location: '',
-      })
+      }, { expectedGeneration: 1 })
     } catch (err) {
       thrownError = err
     }
@@ -81,6 +84,20 @@ describe('calendarEventService', () => {
     expect(thrownError).toBeInstanceOf(SubjectNotFoundError)
     expect((thrownError as SubjectNotFoundError).code).toBe('subject_not_found')
     expect((thrownError as SubjectNotFoundError).subjectId).toBe('subject-nonexistent')
+    expect(await studyDb.events.count()).toBe(0)
+  })
+
+  it('rejects createCalendarEvent when generation is stale', async () => {
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 3 })
+
+    await expect(createCalendarEvent({
+      title: 'Stale event',
+      subjectId: '',
+      startAt: '2026-08-01T14:00:00.000Z',
+      endAt: '2026-08-01T15:30:00.000Z',
+      location: '',
+    }, { expectedGeneration: 2 })).rejects.toThrow(StaleDatabaseGenerationError)
+
     expect(await studyDb.events.count()).toBe(0)
   })
 
@@ -102,7 +119,7 @@ describe('calendarEventService', () => {
       startAt: '2026-08-02T10:00:00.000Z',
       endAt: '2026-08-02T11:00:00.000Z',
       location: 'Hall A',
-    })
+    }, { expectedGeneration: 1 })
 
     await updateCalendarEvent(original.id, {
       title: 'Renamed',
@@ -110,7 +127,7 @@ describe('calendarEventService', () => {
       startAt: '2026-08-03T16:15:00.000Z',
       endAt: '2026-08-03T17:00:00.000Z',
       location: 'Hall B',
-    })
+    }, { expectedGeneration: 1 })
 
     const stored = await studyDb.events.get(original.id)
     expect(stored).toMatchObject({
@@ -132,7 +149,7 @@ describe('calendarEventService', () => {
       startAt: '2026-08-02T10:00:00.000Z',
       endAt: '2026-08-02T11:00:00.000Z',
       location: 'Hall A',
-    })
+    }, { expectedGeneration: 1 })
 
     let thrownError: unknown = null
     try {
@@ -142,7 +159,7 @@ describe('calendarEventService', () => {
         startAt: '2026-08-03T16:15:00.000Z',
         endAt: '2026-08-03T17:00:00.000Z',
         location: 'Hall B',
-      })
+      }, { expectedGeneration: 1 })
     } catch (err) {
       thrownError = err
     }
@@ -161,7 +178,27 @@ describe('calendarEventService', () => {
       startAt: '2026-08-01T09:00:00.000Z',
       endAt: '2026-08-01T10:00:00.000Z',
       location: '',
-    })).rejects.toThrow('Event no longer exists.')
+    }, { expectedGeneration: 1 })).rejects.toThrow('Event no longer exists.')
+  })
+
+  it('rejects updateCalendarEvent when generation is stale', async () => {
+    const original = await createCalendarEvent({
+      title: 'Preserve event',
+      subjectId: '',
+      startAt: '2026-08-02T10:00:00.000Z',
+      endAt: '2026-08-02T11:00:00.000Z',
+      location: 'Hall A',
+    }, { expectedGeneration: 1 })
+
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(updateCalendarEvent(original.id, {
+      title: 'Stale rename',
+      subjectId: '',
+      startAt: '2026-08-03T16:15:00.000Z',
+      endAt: '2026-08-03T17:00:00.000Z',
+      location: 'Hall B',
+    }, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
   })
 
   it('deletes an existing event', async () => {
@@ -171,14 +208,29 @@ describe('calendarEventService', () => {
       startAt: '2026-08-04T09:00:00.000Z',
       endAt: '2026-08-04T10:00:00.000Z',
       location: 'Lab',
-    })
+    }, { expectedGeneration: 1 })
 
-    await deleteCalendarEvent(created.id)
+    await deleteCalendarEvent(created.id, { expectedGeneration: 1 })
     expect(await studyDb.events.get(created.id)).toBeUndefined()
   })
 
   it('treats deleting a missing event as success', async () => {
-    await expect(deleteCalendarEvent('event-already-gone')).resolves.toBeUndefined()
+    await expect(deleteCalendarEvent('event-already-gone', { expectedGeneration: 1 })).resolves.toBeUndefined()
     expect(await studyDb.events.count()).toBe(0)
+  })
+
+  it('rejects deleteCalendarEvent when generation is stale', async () => {
+    const created = await createCalendarEvent({
+      title: 'Temporary',
+      subjectId: '',
+      startAt: '2026-08-04T09:00:00.000Z',
+      endAt: '2026-08-04T10:00:00.000Z',
+      location: 'Lab',
+    }, { expectedGeneration: 1 })
+
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(deleteCalendarEvent(created.id, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
+    expect(await studyDb.events.get(created.id)).toBeDefined()
   })
 })

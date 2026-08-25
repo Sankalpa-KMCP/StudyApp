@@ -132,7 +132,7 @@ describe('App UI settings live query isolation', () => {
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 60 })
 
     const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
@@ -154,7 +154,7 @@ describe('App UI settings live query isolation', () => {
       progress: 0,
       period: 'weekly',
       metric: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(goalsSpy.mock.calls.length).toBeGreaterThan(goalsBefore))
     expect(uiSpy.mock.calls.length).toBe(uiBefore)
     expect(shellSpy.mock.calls.length).toBe(shellBefore)
@@ -166,13 +166,13 @@ describe('App UI settings live query isolation', () => {
       progress: 0,
       period: 'weekly',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(goalsSpy.mock.calls.length).toBeGreaterThan(goalsAfterManual))
     expect(uiSpy.mock.calls.length).toBe(uiBefore)
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(60)
 
     const goalsAfterTransition = goalsSpy.mock.calls.length
-    await deleteGoal(goal.id)
+    await deleteGoal(goal.id, { expectedGeneration: 1 })
     await waitFor(() => expect(goalsSpy.mock.calls.length).toBeGreaterThan(goalsAfterTransition))
     expect(uiSpy.mock.calls.length).toBe(uiBefore)
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(60)
@@ -293,7 +293,7 @@ describe('App UI settings live query isolation', () => {
       targetHours: 2,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
     expect(uiSpy.mock.calls.length).toBe(uiBefore)
@@ -322,7 +322,7 @@ describe('App UI settings live query isolation', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 20,
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(tasksSpy.mock.calls.length).toBeGreaterThan(tasksBefore))
     expect(uiSpy.mock.calls.length).toBe(uiBaseline)
 
@@ -331,7 +331,7 @@ describe('App UI settings live query isolation', () => {
       body: 'body',
       subjectId: '',
       tags: [],
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(notesSpy.mock.calls.length).toBeGreaterThan(notesBefore))
     expect(uiSpy.mock.calls.length).toBe(uiBaseline)
 
@@ -341,7 +341,7 @@ describe('App UI settings live query isolation', () => {
       startAt: '2026-07-10T10:00:00.000Z',
       endAt: '2026-07-10T11:00:00.000Z',
       location: '',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(eventsSpy.mock.calls.length).toBeGreaterThan(eventsBefore))
     expect(uiSpy.mock.calls.length).toBe(uiBaseline)
 
@@ -351,7 +351,7 @@ describe('App UI settings live query isolation', () => {
       endedAt: '2026-07-02T09:30:00.000Z',
       minutes: 30,
       note: '',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(sessionsSpy.mock.calls.length).toBeGreaterThan(sessionsBefore))
     expect(uiSpy.mock.calls.length).toBe(uiBaseline)
   })

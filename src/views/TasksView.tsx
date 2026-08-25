@@ -49,6 +49,7 @@ export function TasksView({
   onClearSearch = () => {},
   openEditorRequest,
   onFilterChange,
+  databaseGeneration = 1,
 }: {
   tasks: StudyTask[]
   subjects: StudySubject[]
@@ -57,6 +58,7 @@ export function TasksView({
   onClearSearch: () => void
   openEditorRequest: number
   onFilterChange: (filter: 'all' | 'open' | 'done') => void
+  databaseGeneration?: number
 }) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft>(() => emptyDraft())
@@ -65,6 +67,7 @@ export function TasksView({
   const [pendingRowKind, setPendingRowKind] = useState<'status' | 'delete' | null>(null)
   const handledEditorRequest = useRef(0)
   const titleFieldRef = useRef<HTMLInputElement | null>(null)
+  const editorGenerationRef = useRef(databaseGeneration)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
@@ -83,6 +86,7 @@ export function TasksView({
   const openEditor = useCallback((task?: StudyTask) => {
     setValidationError(null)
     clearSaveFeedback()
+    editorGenerationRef.current = databaseGeneration
     setEditingTaskId(task?.id ?? 'new')
     setDraft({
       title: task?.title ?? '',
@@ -91,7 +95,7 @@ export function TasksView({
       priority: task?.priority ?? 'normal',
       minutes: task?.minutes ?? 30,
     })
-  }, [clearSaveFeedback, subjects])
+  }, [clearSaveFeedback, databaseGeneration, subjects])
 
   useEffect(() => {
     if (openEditorRequest > handledEditorRequest.current) {
@@ -141,11 +145,15 @@ export function TasksView({
 
     await runSave(async () => {
       if (isEdit && editingTaskId) {
-        await updateTask(editingTaskId, fields)
+        await updateTask(editingTaskId, fields, {
+          expectedGeneration: editorGenerationRef.current,
+        })
         return
       }
 
-      await createTask(fields)
+      await createTask(fields, {
+        expectedGeneration: editorGenerationRef.current,
+      })
     }, {
       successMessage: isEdit ? 'Task updated.' : 'Task created.',
       errorMessage: 'Task could not be saved. Your details are still in the form.',
@@ -174,7 +182,9 @@ export function TasksView({
 
     try {
       await runRow(async () => {
-        await setTaskStatus(task.id, nextStatus)
+        await setTaskStatus(task.id, nextStatus, {
+          expectedGeneration: databaseGeneration,
+        })
       }, {
         successMessage,
         errorMessage,
@@ -196,7 +206,9 @@ export function TasksView({
 
     try {
       await runRow(async () => {
-        await deleteTaskRecord(task.id)
+        await deleteTaskRecord(task.id, {
+          expectedGeneration: databaseGeneration,
+        })
       }, {
         successMessage: 'Task deleted.',
         errorMessage: 'Task could not be deleted. Please try again.',

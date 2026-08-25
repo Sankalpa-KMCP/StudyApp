@@ -8,6 +8,7 @@ import {
   finalizeActiveFocusSession,
   getActiveFocusElapsedMs,
   getActiveFocusSession,
+  getActiveFocusSessionWithGeneration,
   isActiveFocusSession,
   isActiveFocusSessionStale,
   pauseActiveFocusSession,
@@ -15,6 +16,8 @@ import {
   shouldAutoCompleteFocusSession,
   updateActiveFocusSession,
 } from './activeFocusSession'
+import { DATABASE_GENERATION_KEY, StaleDatabaseGenerationError } from './databaseGeneration'
+import { installInMemoryLockAdapter } from './crossTabLock'
 import { clearAllStudyData, exportStudyData, importStudyData, studyDb } from './studyDb'
 import type { ActiveFocusSession } from './types'
 
@@ -35,6 +38,10 @@ function makeSession(overrides: Partial<ActiveFocusSession> = {}): ActiveFocusSe
 }
 
 describe('activeFocusSession domain', () => {
+  beforeEach(async () => {
+    installInMemoryLockAdapter()
+  })
+
   describe('isActiveFocusSession', () => {
     it('accepts a valid running session', () => {
       expect(isActiveFocusSession(makeSession())).toBe(true)
@@ -161,6 +168,7 @@ describe('activeFocusSession domain', () => {
 
 describe('activeFocusSession persistence', () => {
   beforeEach(async () => {
+    installInMemoryLockAdapter()
     await studyDb.delete()
     await studyDb.open()
     await studyDb.subjects.add({
@@ -175,11 +183,14 @@ describe('activeFocusSession persistence', () => {
     })
   })
 
-  it('persists and reads a valid unfinished session', async () => {
+  it('persists and reads a valid unfinished session with generation', async () => {
     const session = makeSession()
     const created = await createActiveFocusSession(session)
-    expect(created).toEqual({ ok: true, session })
+    expect(created).toEqual({ ok: true, session, generation: 1 })
     expect(await getActiveFocusSession()).toEqual(session)
+
+    const withGen = await getActiveFocusSessionWithGeneration()
+    expect(withGen).toEqual({ session, generation: 1 })
   })
 
   it('ignores and removes malformed persisted values without throwing', async () => {
@@ -200,7 +211,7 @@ describe('activeFocusSession persistence', () => {
   it('replaces a corrupt settings value when creating a valid session', async () => {
     await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: 'corrupt' })
     const session = makeSession()
-    expect(await createActiveFocusSession(session)).toEqual({ ok: true, session })
+    expect(await createActiveFocusSession(session)).toEqual({ ok: true, session, generation: 1 })
     expect(await getActiveFocusSession()).toEqual(session)
   })
 
@@ -213,15 +224,23 @@ describe('activeFocusSession persistence', () => {
       pausedAt: '2026-07-20T10:10:00.000Z',
       accumulatedPausedMs: 0,
     })
-    expect(await updateActiveFocusSession(paused)).toEqual({ ok: true, session: paused })
+    expect(await updateActiveFocusSession(paused, { expectedGeneration: 1 })).toEqual({ ok: true, session: paused })
     expect(await getActiveFocusSession()).toEqual(paused)
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(240)
 
-    expect(await updateActiveFocusSession(makeSession({ id: 'focus-other' }))).toEqual({
+    expect(await updateActiveFocusSession(makeSession({ id: 'focus-other' }), { expectedGeneration: 1 })).toEqual({
       ok: false,
       reason: 'conflict',
       existing: paused,
     })
+  })
+
+  it('rejects updateActiveFocusSession when generation is stale', async () => {
+    const session = makeSession()
+    await createActiveFocusSession(session)
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(updateActiveFocusSession(session, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
   })
 
   it('clears only the unfinished session settings record', async () => {
@@ -267,7 +286,7 @@ describe('activeFocusSession persistence', () => {
 
   it('rejects invalid create/update payloads', async () => {
     expect(await createActiveFocusSession(makeSession({ id: '' }))).toEqual({ ok: false, reason: 'invalid' })
-    expect(await updateActiveFocusSession(makeSession())).toEqual({ ok: false, reason: 'missing' })
+    expect(await updateActiveFocusSession(makeSession(), { expectedGeneration: 1 })).toEqual({ ok: false, reason: 'missing' })
   })
 
   it('finalizes a matching session into one history row and clears the unfinished record', async () => {
@@ -280,7 +299,7 @@ describe('activeFocusSession persistence', () => {
       endedAt: '2026-07-20T10:25:00.000Z',
       minutes: 25,
       note: 'Completed focus session',
-    })
+    }, { expectedGeneration: 1 })
     expect(first).toEqual({
       ok: true,
       history: {
@@ -301,10 +320,27 @@ describe('activeFocusSession persistence', () => {
       endedAt: '2026-07-20T11:00:00.000Z',
       minutes: 99,
       note: 'Duplicate attempt',
-    })
+    }, { expectedGeneration: 1 })
     expect(second).toEqual(first)
     expect(await studyDb.studySessions.toArray()).toHaveLength(1)
     expect((await studyDb.studySessions.get(session.id))?.minutes).toBe(25)
+  })
+
+  it('rejects finalizeActiveFocusSession when generation is stale and does not write history', async () => {
+    const session = makeSession()
+    await createActiveFocusSession(session)
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(finalizeActiveFocusSession(session.id, {
+      subjectId: session.subjectId,
+      startedAt: session.startedAt,
+      endedAt: '2026-07-20T10:25:00.000Z',
+      minutes: 25,
+      note: 'Completed focus session',
+    }, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
+
+    expect(await studyDb.studySessions.count()).toBe(0)
+    expect(await getActiveFocusSession()).toEqual(session)
   })
 
   it('does not create duplicate history rows for repeated finalization', async () => {
@@ -322,14 +358,14 @@ describe('activeFocusSession persistence', () => {
       endedAt: new Date().toISOString(),
       minutes: 3,
       note: 'Focus session',
-    })
+    }, { expectedGeneration: 1 })
     const second = await finalizeActiveFocusSession(session.id, {
       subjectId: '',
       startedAt: session.startedAt,
       endedAt: new Date().toISOString(),
       minutes: 99,
       note: 'Duplicate',
-    })
+    }, { expectedGeneration: 1 })
 
     expect(first.ok).toBe(true)
     expect(second).toEqual(first)
@@ -347,7 +383,7 @@ describe('activeFocusSession persistence', () => {
       endedAt: '2026-07-20T10:25:00.000Z',
       minutes: 25,
       note: 'Wrong session',
-    })
+    }, { expectedGeneration: 1 })
     expect(result).toEqual({ ok: false, reason: 'conflict', existing })
     expect(await getActiveFocusSession()).toEqual(existing)
     expect(await studyDb.studySessions.count()).toBe(0)
@@ -358,7 +394,7 @@ describe('activeFocusSession persistence', () => {
     await createActiveFocusSession(session)
 
     const pausedAt = '2026-07-20T10:10:00.000Z'
-    const paused = await pauseActiveFocusSession(session.id, pausedAt)
+    const paused = await pauseActiveFocusSession(session.id, pausedAt, { expectedGeneration: 1 })
     expect(paused).toEqual({
       ok: true,
       session: {
@@ -370,7 +406,7 @@ describe('activeFocusSession persistence', () => {
     expect(await getActiveFocusSession()).toMatchObject({ status: 'paused', pausedAt })
 
     const resumedAtMs = Date.parse(pausedAt) + 5 * 60_000
-    const resumed = await resumeActiveFocusSession(session.id, resumedAtMs)
+    const resumed = await resumeActiveFocusSession(session.id, resumedAtMs, { expectedGeneration: 1 })
     expect(resumed).toEqual({
       ok: true,
       session: {
@@ -387,42 +423,60 @@ describe('activeFocusSession persistence', () => {
     const session = makeSession({ id: 'focus-guard' })
     await createActiveFocusSession(session)
 
-    expect(await pauseActiveFocusSession('focus-other')).toEqual({
+    expect(await pauseActiveFocusSession('focus-other', undefined, { expectedGeneration: 1 })).toEqual({
       ok: false,
       reason: 'conflict',
       existing: session,
     })
 
-    await pauseActiveFocusSession(session.id, '2026-07-20T10:05:00.000Z')
+    await pauseActiveFocusSession(session.id, '2026-07-20T10:05:00.000Z', { expectedGeneration: 1 })
     const paused = await getActiveFocusSession()
-    expect(await pauseActiveFocusSession(session.id)).toEqual({
+    expect(await pauseActiveFocusSession(session.id, undefined, { expectedGeneration: 1 })).toEqual({
       ok: false,
       reason: 'invalid_state',
       existing: paused,
     })
 
-    expect(await resumeActiveFocusSession('focus-other')).toEqual({
+    expect(await resumeActiveFocusSession('focus-other', undefined, { expectedGeneration: 1 })).toEqual({
       ok: false,
       reason: 'conflict',
       existing: paused,
     })
   })
 
+  it('rejects pause/resume when generation is stale', async () => {
+    const session = makeSession({ id: 'focus-stale-pause' })
+    await createActiveFocusSession(session)
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(pauseActiveFocusSession(session.id, undefined, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
+    await expect(resumeActiveFocusSession(session.id, undefined, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
+  })
+
   it('discards only a matching unfinished session without writing history', async () => {
     const session = makeSession({ id: 'focus-discard' })
     await createActiveFocusSession(session)
 
-    expect(await discardActiveFocusSession('focus-other')).toEqual({
+    expect(await discardActiveFocusSession('focus-other', { expectedGeneration: 1 })).toEqual({
       ok: false,
       reason: 'conflict',
       existing: session,
     })
     expect(await getActiveFocusSession()).toEqual(session)
 
-    expect(await discardActiveFocusSession(session.id)).toEqual({ ok: true })
+    expect(await discardActiveFocusSession(session.id, { expectedGeneration: 1 })).toEqual({ ok: true })
     expect(await getActiveFocusSession()).toBeNull()
     expect(await studyDb.studySessions.count()).toBe(0)
-    expect(await discardActiveFocusSession(session.id)).toEqual({ ok: false, reason: 'missing' })
+    expect(await discardActiveFocusSession(session.id, { expectedGeneration: 1 })).toEqual({ ok: false, reason: 'missing' })
+  })
+
+  it('rejects discardActiveFocusSession when generation is stale', async () => {
+    const session = makeSession({ id: 'focus-discard' })
+    await createActiveFocusSession(session)
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(discardActiveFocusSession(session.id, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
+    expect(await getActiveFocusSession()).toEqual(session)
   })
 
   describe('referential integrity and race prevention', () => {
@@ -439,7 +493,7 @@ describe('activeFocusSession persistence', () => {
       await createActiveFocusSession(session)
 
       const updateAttempt = { ...session, subjectId: 'subject-nonexistent' }
-      const result = await updateActiveFocusSession(updateAttempt)
+      const result = await updateActiveFocusSession(updateAttempt, { expectedGeneration: 1 })
       expect(result).toEqual({ ok: false, reason: 'missing_subject' })
       expect(await getActiveFocusSession()).toEqual(session)
     })
@@ -457,7 +511,7 @@ describe('activeFocusSession persistence', () => {
         endedAt: '2026-07-20T10:25:00.000Z',
         minutes: 25,
         note: 'Focus session',
-      })
+      }, { expectedGeneration: 1 })
 
       expect(result).toEqual({ ok: false, reason: 'missing_subject' })
       expect(await studyDb.studySessions.count()).toBe(0)
@@ -466,10 +520,10 @@ describe('activeFocusSession persistence', () => {
 
     it('create, update, and finalize all succeed with General focus (empty subjectId)', async () => {
       const session = makeSession({ id: 'focus-general', subjectId: '' })
-      expect(await createActiveFocusSession(session)).toEqual({ ok: true, session })
+      expect(await createActiveFocusSession(session)).toEqual({ ok: true, session, generation: 1 })
 
       const updated = { ...session, plannedMinutes: 50 }
-      expect(await updateActiveFocusSession(updated)).toEqual({ ok: true, session: updated })
+      expect(await updateActiveFocusSession(updated, { expectedGeneration: 1 })).toEqual({ ok: true, session: updated })
 
       const finalized = await finalizeActiveFocusSession(session.id, {
         subjectId: '',
@@ -477,7 +531,7 @@ describe('activeFocusSession persistence', () => {
         endedAt: '2026-07-20T10:50:00.000Z',
         minutes: 50,
         note: 'General focus session',
-      })
+      }, { expectedGeneration: 1 })
       expect(finalized.ok).toBe(true)
       expect(await studyDb.studySessions.get(session.id)).toMatchObject({ subjectId: '', minutes: 50 })
       expect(await getActiveFocusSession()).toBeNull()
@@ -488,7 +542,7 @@ describe('activeFocusSession persistence', () => {
       const session = makeSession({ subjectId: 'subject-math' })
       await createActiveFocusSession(session)
 
-      const deleteResult = await deleteSubject('subject-math')
+      const deleteResult = await deleteSubject('subject-math', { expectedGeneration: 1 })
       expect(deleteResult).toEqual({
         ok: false,
         reason: 'linked',
@@ -506,7 +560,7 @@ describe('activeFocusSession persistence', () => {
 
     it('delete-first: deleted subject blocks subsequent createActiveFocusSession', async () => {
       const { deleteSubject } = await import('./subjectService')
-      await deleteSubject('subject-math')
+      await deleteSubject('subject-math', { expectedGeneration: 1 })
       expect(await studyDb.subjects.get('subject-math')).toBeUndefined()
 
       const session = makeSession({ subjectId: 'subject-math' })

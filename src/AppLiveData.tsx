@@ -13,6 +13,9 @@ import { listNotes } from './db/noteRead'
 import { listTasks } from './db/taskRead'
 import { listStudySessions } from './db/studySessionRead'
 import { EMPTY_UI_SETTINGS, getUiSettings } from './db/uiSettingsRead'
+import { getDatabaseGeneration } from './db/databaseGeneration'
+import type { DatabaseMutationContext } from './db/databaseMutationGuard'
+import { studyDb } from './db/studyDb'
 import { listSubjects } from './db/subjectRead'
 import { saveQuickNotes } from './db/quickNotesService'
 import type { ActiveFocusSession, CalendarEvent, StudySession, StudySubject, StudyTask } from './db/types'
@@ -152,14 +155,16 @@ export function AppLiveData({
   const liveTasks = useLiveQuery(() => listTasks(), [])
   const liveStudySessions = useLiveQuery(() => listStudySessions(), [])
   const liveUiSettings = useLiveQuery(() => getUiSettings(), [])
+  const liveGeneration = useLiveQuery(() => getDatabaseGeneration(studyDb.settings), [])
   const subjects = liveSubjects ?? EMPTY_SUBJECTS
   const notes = liveNotes ?? []
   const events = liveEvents ?? EMPTY_EVENTS
   const tasks = liveTasks ?? EMPTY_TASKS
   const studySessions = liveStudySessions ?? EMPTY_STUDY_SESSIONS
   const uiSettings = liveUiSettings ?? EMPTY_UI_SETTINGS
+  const databaseGeneration = liveGeneration ?? 1
   // Wait for all App-owned live reads so consumers never paint an empty flash after partial readiness.
-  const isLoading = liveSubjects === undefined || liveNotes === undefined || liveEvents === undefined || liveTasks === undefined || liveStudySessions === undefined || liveUiSettings === undefined
+  const isLoading = liveSubjects === undefined || liveNotes === undefined || liveEvents === undefined || liveTasks === undefined || liveStudySessions === undefined || liveUiSettings === undefined || liveGeneration === undefined
 
   const currentDate = useCurrentDate()
   const dailyGoalMinutes = uiSettings.dailyGoalMinutes
@@ -197,8 +202,8 @@ export function AppLiveData({
     [currentDate, events],
   )
 
-  const addQuickNote = useCallback(async (value: string) => {
-    await saveQuickNotes(value)
+  const addQuickNote = useCallback(async (value: string, context: DatabaseMutationContext) => {
+    await saveQuickNotes(value, context)
   }, [])
 
   return (
@@ -255,6 +260,7 @@ export function AppLiveData({
                   weeklyStudyDays={weeklyStudyDays}
                   quickNotes={quickNotes}
                   dailyGoalMinutes={dailyGoalMinutes}
+                  databaseGeneration={databaseGeneration}
                   onboardingChecklistDismissed={onboardingChecklistDismissed}
                   todayFocusMinutes={todayFocusMinutes}
                   currentDate={currentDate}
@@ -294,6 +300,7 @@ export function AppLiveData({
                   onFilterChange={onTaskFilterChange}
                   search={deferredSearch}
                   onClearSearch={clearSearch}
+                  databaseGeneration={databaseGeneration}
                 />
               ) : null}
               {activeView === 'Notes' ? (
@@ -304,6 +311,7 @@ export function AppLiveData({
                   openEditorRequest={noteEditorRequest}
                   search={deferredSearch}
                   onClearSearch={clearSearch}
+                  databaseGeneration={databaseGeneration}
                 />
               ) : null}
               {activeView === 'Subjects' ? (
@@ -314,6 +322,7 @@ export function AppLiveData({
                   events={events}
                   sessions={studySessions}
                   openEditorRequest={subjectEditorRequest}
+                  databaseGeneration={databaseGeneration}
                 />
               ) : null}
               {activeView === 'Calendar' ? (
@@ -324,6 +333,7 @@ export function AppLiveData({
                   openEditorRequest={eventEditorRequest}
                   search={deferredSearch}
                   onClearSearch={clearSearch}
+                  databaseGeneration={databaseGeneration}
                 />
               ) : null}
               {activeView === 'Progress' ? (
@@ -336,12 +346,14 @@ export function AppLiveData({
                   todayFocusMinutes={todayFocusMinutes}
                   subjectMap={subjectMap}
                   openEditorOnMount={progressEditorRequested}
+                  databaseGeneration={databaseGeneration}
                 />
               ) : null}
               {activeView === 'Goals' ? (
                 <GoalsView
                   dailyGoalMinutes={dailyGoalMinutes}
                   studySessions={studySessions}
+                  databaseGeneration={databaseGeneration}
                 />
               ) : null}
               {activeView === 'Settings' ? (

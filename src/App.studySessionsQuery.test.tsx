@@ -144,7 +144,7 @@ describe('App study sessions live query isolation', () => {
     const shellBefore = shellSpy.mock.calls.length
     const sessionsBefore = sessionsSpy.mock.calls.length
 
-    await saveQuickNotes('Quick line one')
+    await saveQuickNotes('Quick line one', { expectedGeneration: 1 })
 
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 40))
@@ -170,7 +170,7 @@ describe('App study sessions live query isolation', () => {
       targetHours: 2,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(shellSpy.mock.calls.length).toBeGreaterThan(shellBefore))
     expect(sessionsSpy.mock.calls.length).toBe(sessionsBefore)
@@ -199,7 +199,7 @@ describe('App study sessions live query isolation', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 20,
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(tasksSpy.mock.calls.length).toBeGreaterThan(tasksBefore))
     expect(sessionsSpy.mock.calls.length).toBe(sessionsBaseline)
 
@@ -208,7 +208,7 @@ describe('App study sessions live query isolation', () => {
       body: 'body',
       subjectId: '',
       tags: [],
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(notesSpy.mock.calls.length).toBeGreaterThan(notesBefore))
     expect(sessionsSpy.mock.calls.length).toBe(sessionsBaseline)
 
@@ -218,7 +218,7 @@ describe('App study sessions live query isolation', () => {
       startAt: '2026-07-10T10:00:00.000Z',
       endAt: '2026-07-10T11:00:00.000Z',
       location: '',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(eventsSpy.mock.calls.length).toBeGreaterThan(eventsBefore))
     expect(sessionsSpy.mock.calls.length).toBe(sessionsBaseline)
 
@@ -234,7 +234,7 @@ describe('App study sessions live query isolation', () => {
       progress: 0,
       period: 'weekly',
       metric: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(goalsSpy.mock.calls.length).toBeGreaterThan(goalsBefore))
     expect(sessionsSpy.mock.calls.length).toBe(sessionsBeforeGoal)
   })
@@ -247,7 +247,7 @@ describe('App study sessions live query isolation', () => {
       endedAt: '2026-07-02T09:30:00.000Z',
       minutes: 30,
       note: 'Restore me',
-    })
+    }, { expectedGeneration: 1 })
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Progress' }))
@@ -271,7 +271,7 @@ describe('App study sessions live query isolation', () => {
       endedAt: '2026-07-02T09:40:00.000Z',
       minutes: 40,
       note: 'Export session',
-    })
+    }, { expectedGeneration: 1 })
     const full = await getStudyData()
     const exported = await exportStudyData()
     expect(full.studySessions).toHaveLength(1)
@@ -287,7 +287,7 @@ describe('App study sessions live query isolation', () => {
       endedAt: '2026-07-02T09:20:00.000Z',
       minutes: 20,
       note: 'Mutate me',
-    })
+    }, { expectedGeneration: 1 })
 
     const user = userEvent.setup()
     const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
@@ -305,13 +305,13 @@ describe('App study sessions live query isolation', () => {
       endedAt: '2026-07-02T09:45:00.000Z',
       minutes: 45,
       note: 'Mutate me updated',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(sessionsSpy.mock.calls.length).toBeGreaterThan(sessionsBefore))
     expect(shellSpy.mock.calls.length).toBe(shellBefore)
     expect(await screen.findByText(/1 session logged/i)).toBeInTheDocument()
 
-    await deleteStudySession(created.id)
+    await deleteStudySession(created.id, { expectedGeneration: 1 })
     await waitFor(() => expect(screen.getByText(/0 sessions logged/i)).toBeInTheDocument())
   })
 
@@ -343,7 +343,7 @@ describe('App study sessions live query isolation', () => {
       endedAt: new Date(2026, 6, 13, 10, 30).toISOString(),
       minutes: 30,
       note: 'today before midnight',
-    })
+    }, { expectedGeneration: 1 })
 
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 
@@ -397,14 +397,14 @@ describe('App study sessions live query isolation', () => {
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
     await createStudySession({
       subjectId: '',
       startedAt: new Date(2026, 6, 13, 10, 0).toISOString(),
       endedAt: new Date(2026, 6, 13, 10, 30).toISOString(),
       minutes: 30,
       note: '',
-    })
+    }, { expectedGeneration: 1 })
 
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
 

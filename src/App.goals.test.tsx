@@ -171,9 +171,9 @@ describe('App goals', () => {
       releaseAdd = resolve
     })
     const originalCreate = goalService.createGoal
-    const addSpy = vi.spyOn(goalService, 'createGoal').mockImplementation(async (fields) => {
+    const addSpy = vi.spyOn(goalService, 'createGoal').mockImplementation(async (...args) => {
       await gate
-      return originalCreate(fields)
+      return originalCreate(...args)
     })
 
     render(<App />)
@@ -202,7 +202,7 @@ describe('App goals', () => {
     const originalCreate = goalService.createGoal
     const addSpy = vi.spyOn(goalService, 'createGoal')
       .mockRejectedValueOnce(new Error('IndexedDB goal write failed'))
-      .mockImplementation(async (fields) => originalCreate(fields))
+      .mockImplementation(async (...args) => originalCreate(...args))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Goals' }))
@@ -402,7 +402,7 @@ describe('App goals', () => {
       title: 'Ceiling goal',
       target: 10_000,
       progress: 10_000,
-    }))
+    }), { expectedGeneration: 1 })
 
     await user.click(screen.getByRole('button', { name: 'New goal' }))
     await user.type(screen.getByLabelText('Goal title'), 'Clamped above max')
@@ -415,7 +415,7 @@ describe('App goals', () => {
       title: 'Clamped above max',
       target: 10_000,
       progress: 10_000,
-    }))
+    }), { expectedGeneration: 1 })
     expect((await studyDb.goals.toArray()).find((goal) => goal.title === 'Clamped above max')).toMatchObject({
       target: 10_000,
       progress: 10_000,
@@ -490,7 +490,7 @@ describe('App goals', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Goal could not be deleted. Please try again.')
     expect(screen.getByText('Sticky goal')).toBeInTheDocument()
 
-    deleteSpy.mockImplementation(async (id) => originalDelete(id))
+    deleteSpy.mockImplementation(async (...args) => originalDelete(...args))
     await user.click(screen.getByLabelText('Delete Sticky goal'))
     await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky goal')).not.toBeInTheDocument())

@@ -69,7 +69,7 @@ describe('App subjects live query isolation', () => {
       targetHours: 2,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(subjectsSpy.mock.calls.length).toBeGreaterThan(subjectsBeforeCreate))
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
@@ -89,14 +89,14 @@ describe('App subjects live query isolation', () => {
       targetHours: 3,
       progress: 10,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(subjectsSpy.mock.calls.length).toBeGreaterThan(subjectsBeforeUpdate))
     expect(await screen.findByText('Isolation subject renamed')).toBeInTheDocument()
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
     expect(uiSpy.mock.calls.length).toBe(uiBefore)
 
     const subjectsBeforeDelete = subjectsSpy.mock.calls.length
-    await deleteSubject(created.id)
+    await deleteSubject(created.id, { expectedGeneration: 1 })
     await waitFor(() => expect(subjectsSpy.mock.calls.length).toBeGreaterThan(subjectsBeforeDelete))
     await waitFor(() => expect(screen.queryByText('Isolation subject renamed')).not.toBeInTheDocument())
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
@@ -121,13 +121,13 @@ describe('App subjects live query isolation', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 20,
-    })
+    }, { expectedGeneration: 1 })
     await createNote({
       title: 'Join note',
       body: 'body',
       subjectId: 'subject-join',
       tags: [],
-    })
+    }, { expectedGeneration: 1 })
     const upcomingStart = new Date(Date.now() + 2 * 60 * 60_000).toISOString()
     const upcomingEnd = new Date(Date.now() + 3 * 60 * 60_000).toISOString()
     await createCalendarEvent({
@@ -136,14 +136,14 @@ describe('App subjects live query isolation', () => {
       startAt: upcomingStart,
       endAt: upcomingEnd,
       location: '',
-    })
+    }, { expectedGeneration: 1 })
     await createStudySession({
       subjectId: 'subject-join',
       startedAt: '2026-07-02T09:00:00.000Z',
       endedAt: '2026-07-02T09:30:00.000Z',
       minutes: 30,
       note: 'Join session',
-    })
+    }, { expectedGeneration: 1 })
 
     const subjectsSpy = vi.spyOn(subjectRead, 'listSubjects')
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
@@ -171,7 +171,7 @@ describe('App subjects live query isolation', () => {
       targetHours: 2,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(subjectsSpy.mock.calls.length).toBeGreaterThan(subjectsBefore))
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
@@ -224,7 +224,7 @@ describe('App subjects live query isolation', () => {
       body: 'body',
       subjectId: 'subject-linked',
       tags: [],
-    })
+    }, { expectedGeneration: 1 })
 
     const subjectsSpy = vi.spyOn(subjectRead, 'listSubjects')
     render(<App />)
@@ -248,7 +248,7 @@ describe('App subjects live query isolation', () => {
       targetHours: 1,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     const subjectsSpy = vi.spyOn(subjectRead, 'listSubjects')
     render(<App />)
@@ -257,7 +257,7 @@ describe('App subjects live query isolation', () => {
     expect(await screen.findByLabelText('Subject')).toContainHTML(created.id)
 
     const subjectsBefore = subjectsSpy.mock.calls.length
-    await deleteSubject(created.id)
+    await deleteSubject(created.id, { expectedGeneration: 1 })
     await waitFor(() => expect(subjectsSpy.mock.calls.length).toBeGreaterThan(subjectsBefore))
     await waitFor(() => {
       expect(screen.getByLabelText('Subject')).not.toContainHTML(created.id)
@@ -285,7 +285,7 @@ describe('App subjects live query isolation', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 20,
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(tasksSpy.mock.calls.length).toBeGreaterThan(0))
     expect(subjectsSpy.mock.calls.length).toBe(subjectsBaseline)
 
@@ -294,7 +294,7 @@ describe('App subjects live query isolation', () => {
       body: 'body',
       subjectId: '',
       tags: [],
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(notesSpy.mock.calls.length).toBeGreaterThan(0))
     expect(subjectsSpy.mock.calls.length).toBe(subjectsBaseline)
 
@@ -304,7 +304,7 @@ describe('App subjects live query isolation', () => {
       startAt: '2026-07-10T10:00:00.000Z',
       endAt: '2026-07-10T11:00:00.000Z',
       location: '',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(eventsSpy.mock.calls.length).toBeGreaterThan(0))
     expect(subjectsSpy.mock.calls.length).toBe(subjectsBaseline)
 
@@ -314,7 +314,7 @@ describe('App subjects live query isolation', () => {
       endedAt: '2026-07-02T09:30:00.000Z',
       minutes: 30,
       note: '',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(sessionsSpy.mock.calls.length).toBeGreaterThan(0))
     expect(subjectsSpy.mock.calls.length).toBe(subjectsBaseline)
 
@@ -329,7 +329,7 @@ describe('App subjects live query isolation', () => {
       progress: 0,
       period: 'weekly',
       metric: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(goalsSpy.mock.calls.length).toBeGreaterThan(goalsBefore))
     expect(subjectsSpy.mock.calls.length).toBe(subjectsBeforeGoal)
 
@@ -370,14 +370,14 @@ describe('App subjects live query isolation', () => {
 
     const active = await getActiveFocusSession()
     expect(active).not.toBeNull()
-    await pauseActiveFocusSession(active!.id, new Date().toISOString())
+    await pauseActiveFocusSession(active!.id, new Date().toISOString(), { expectedGeneration: 1 })
     await waitFor(async () => {
       expect((await getActiveFocusSession())?.status).toBe('paused')
     })
     expect(subjectsSpy.mock.calls.length).toBe(subjectsBefore)
 
     const paused = await getActiveFocusSession()
-    await resumeActiveFocusSession(paused!.id, Date.now())
+    await resumeActiveFocusSession(paused!.id, Date.now(), { expectedGeneration: 1 })
     await waitFor(async () => {
       expect((await getActiveFocusSession())?.status).toBe('running')
     })
@@ -389,7 +389,7 @@ describe('App subjects live query isolation', () => {
       targetHours: 2,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(subjectsSpy.mock.calls.length).toBeGreaterThan(subjectsBefore))
     const afterRename = subjectsSpy.mock.calls.length
     expect(await screen.findByLabelText('Focus subject')).toHaveDisplayValue('Renamed Focus')
@@ -401,7 +401,7 @@ describe('App subjects live query isolation', () => {
       endedAt: new Date().toISOString(),
       minutes: 5,
       note: 'Focus session',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(async () => {
       expect(await getActiveFocusSession()).toBeNull()
     })
@@ -632,7 +632,7 @@ describe('App subjects live query isolation', () => {
       progress: 0,
       period: 'weekly',
       metric: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(goalsSpy.mock.calls.length).toBeGreaterThan(goalsBefore))
     expect(subjectsSpy.mock.calls.length).toBe(subjectsBefore)
     expect(await screen.findByText('Independent goal')).toBeInTheDocument()
@@ -643,7 +643,7 @@ describe('App subjects live query isolation', () => {
       targetHours: 1,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     await waitFor(() => expect(subjectsSpy.mock.calls.length).toBeGreaterThan(subjectsBefore))
     expect(screen.getByText('Independent goal')).toBeInTheDocument()
   })
