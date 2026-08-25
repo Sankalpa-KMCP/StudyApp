@@ -82,14 +82,21 @@ export function assertExpectedDatabaseGeneration(expectedGeneration: number, cur
 
 /**
  * Reads the current logical database generation from a supplied Settings table.
- * Returns 1 if missing; throws `CorruptDatabaseGenerationError` if corrupt.
+ * Returns INITIAL_DATABASE_GENERATION (1) if no record exists.
+ * Throws CorruptDatabaseGenerationError if a record is present but invalid (including value: undefined).
  * Does not open a nested Dexie transaction.
  */
 export async function getDatabaseGeneration(
   settingsTable: Table<StudySetting, string>,
 ): Promise<number> {
   const record = await settingsTable.get(DATABASE_GENERATION_KEY)
-  return parseDatabaseGeneration(record?.value)
+  if (record === undefined) {
+    return INITIAL_DATABASE_GENERATION
+  }
+  if (!isDatabaseGeneration(record.value)) {
+    throw new CorruptDatabaseGenerationError(record.value)
+  }
+  return record.value
 }
 
 /**
@@ -110,13 +117,13 @@ export async function assertCurrentDatabaseGeneration(
  * Atomically computes and persists the next database generation in the supplied Settings table.
  * Operates inside the caller's existing Dexie transaction without opening a nested transaction.
  * Throws `DatabaseGenerationOverflowError` if current reaches Number.MAX_SAFE_INTEGER.
+ * Throws `CorruptDatabaseGenerationError` if existing record is corrupt.
  * Never wraps or reuses prior generation values.
  */
 export async function advanceDatabaseGeneration(
   settingsTable: Table<StudySetting, string>,
 ): Promise<number> {
-  const record = await settingsTable.get(DATABASE_GENERATION_KEY)
-  const current = parseDatabaseGeneration(record?.value)
+  const current = await getDatabaseGeneration(settingsTable)
   if (current >= Number.MAX_SAFE_INTEGER) {
     throw new DatabaseGenerationOverflowError()
   }
