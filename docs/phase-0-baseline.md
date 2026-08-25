@@ -90,7 +90,7 @@ Run from the repository root with Node 22 and npm 10.9.2.
 | Production path checks | After build: confirm `dist/index.html` contains `/StudyApp/assets/` and does **not** contain `main.tsx`; confirm no `dist/src` source tree | Matches CI "Verify dist output" |
 | E2E | PowerShell: `$env:CI="true"; npm run test:e2e` / POSIX: `CI=true npm run test:e2e` | Forces a fresh Playwright webServer (`reuseExistingServer` is false when `CI` is set) |
 
-**CI relationship:** [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs lint -> **`npm run test:coverage`** (not a second plain `npm test`) -> build -> `check:bundle` -> dist path checks -> Playwright E2E. Pull requests never deploy; `master`/`V2` may deploy after a green `check`.
+**CI relationship:** [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs lint -> **`npm run test:coverage`** (not a second plain `npm test`) -> build -> `check:bundle` -> dist path checks -> Playwright E2E. Pull requests never deploy. *(Note: When this baseline was created, `master`/`V2` could deploy after a green `check`. Under the current paused release state, GitHub Pages deployment is strictly master-only preview/testing).*
 
 Optional local preview of the production build:
 
