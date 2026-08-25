@@ -444,4 +444,41 @@ describe('useFocusSession', () => {
       'The database was updated elsewhere.',
     )
   })
+
+  it('rejects Start from retained workflow after database generation advances and succeeds on fresh workflow', async () => {
+    // 1. Establish Focus setup under generation 1
+    const { result, unmount } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.canStartFocus).toBe(true))
+    expect(result.current.activeSession).toBeNull()
+
+    // 2. Advance generation to 2 via external destructive operation
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    // 3. Invoke Start from the retained workflow instance (which captured expectedGeneration: 1)
+    await act(async () => {
+      await result.current.startSession()
+    })
+
+    // 4. Verify stale rejection: sessionNotice shown, no active session in hook, no active session record in IndexedDB
+    expect(result.current.sessionNotice).toBe('Data was modified in another tab or import. Refresh to continue.')
+    expect(result.current.activeSession).toBeNull()
+    expect(await getActiveFocusSession()).toBeNull()
+    expect(await studyDb.studySessions.count()).toBe(0)
+
+    unmount()
+
+    // 5. Reinitialize a genuinely fresh workflow under generation 2
+    const freshHook = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(freshHook.result.current.canStartFocus).toBe(true))
+
+    // 6. Invoke Start on fresh workflow
+    await act(async () => {
+      await freshHook.result.current.startSession()
+    })
+
+    // Verify Start succeeds under fresh generation
+    await waitFor(() => expect(freshHook.result.current.activeSession?.status).toBe('running'))
+    expect(freshHook.result.current.sessionNotice).toBeFalsy()
+    expect(await getActiveFocusSession()).toMatchObject({ status: 'running' })
+  })
 })

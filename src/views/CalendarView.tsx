@@ -58,7 +58,7 @@ export function CalendarView({
   openEditorRequest = 0,
   search = '',
   onClearSearch = () => {},
-  databaseGeneration = 1,
+  databaseGeneration,
 }: {
   events: CalendarEvent[]
   subjects: StudySubject[]
@@ -66,7 +66,7 @@ export function CalendarView({
   openEditorRequest?: number
   search?: string
   onClearSearch?: () => void
-  databaseGeneration?: number
+  databaseGeneration: number
 }) {
   const [editingEventId, setEditingEventId] = useState<string | null>(null)
   const [draft, setDraft] = useState<EventDraft>(() => emptyDraft())
@@ -193,7 +193,7 @@ export function CalendarView({
     })
   }
 
-  const deleteEvent = async (event: CalendarEvent, context?: DatabaseMutationContext) => {
+  const deleteEvent = async (event: CalendarEvent, context: DatabaseMutationContext) => {
     if (pendingDeleteId || isSaving || isRowPending) return
 
     clearValidation()
@@ -203,9 +203,7 @@ export function CalendarView({
 
     try {
       await runRow(async () => {
-        await deleteCalendarEvent(event.id, {
-          expectedGeneration: context?.expectedGeneration ?? databaseGeneration,
-        })
+        await deleteCalendarEvent(event.id, context)
       }, {
         successMessage: 'Event deleted.',
         errorMessage: 'Event could not be deleted. Please try again.',

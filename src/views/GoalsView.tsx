@@ -77,11 +77,11 @@ function GoalsLiveReadFallback({ onRetry }: { onRetry: () => void }) {
 function GoalsLiveQuery({
   dailyGoalMinutes,
   studySessions,
-  databaseGeneration = 1,
+  databaseGeneration,
 }: {
   dailyGoalMinutes: number
   studySessions: StudySession[]
-  databaseGeneration?: number
+  databaseGeneration: number
 }) {
   const liveGoals = useLiveQuery(() => listGoals(), [])
   const goalsReady = liveGoals !== undefined
@@ -185,7 +185,7 @@ function GoalsLiveQuery({
     })
   }
 
-  const deleteGoal = async (goal: StudyGoal, context?: DatabaseMutationContext) => {
+  const deleteGoal = async (goal: StudyGoal, context: DatabaseMutationContext) => {
     if (pendingDeleteId || isSaving || isRowPending) return
 
     clearValidation()
@@ -195,9 +195,7 @@ function GoalsLiveQuery({
 
     try {
       await runRow(async () => {
-        await deleteGoalRecord(goal.id, {
-          expectedGeneration: context?.expectedGeneration ?? databaseGeneration,
-        })
+        await deleteGoalRecord(goal.id, context)
       }, {
         successMessage: 'Goal deleted.',
         errorMessage: 'Goal could not be deleted. Please try again.',
@@ -366,11 +364,11 @@ function GoalsLiveQuery({
 export function GoalsView({
   dailyGoalMinutes,
   studySessions,
-  databaseGeneration = 1,
+  databaseGeneration,
 }: {
   dailyGoalMinutes: number
   studySessions: StudySession[]
-  databaseGeneration?: number
+  databaseGeneration: number
 }) {
   const [liveReadEpoch, setLiveReadEpoch] = useState(0)
 

@@ -17,10 +17,9 @@ import {
 } from './calendarEventService'
 import {
   installInMemoryLockAdapter,
-  withSharedDatabaseLock,
 } from './crossTabLock'
 import { StaleDatabaseGenerationError } from './databaseGeneration'
-import { captureDatabaseGeneration } from './databaseMutationGuard'
+import { captureDatabaseGeneration, withGuardedMutation } from './databaseMutationGuard'
 import { createGoal, deleteGoal, updateGoal } from './goalService'
 import { createNote, deleteNote, updateNote } from './notesService'
 import { saveQuickNotes } from './quickNotesService'
@@ -501,45 +500,100 @@ describe('Stale writer protection across all domain entities', () => {
     })
   })
 
-  describe('S2-04: Shared writer vs exclusive destructive lock barrier', () => {
-    it('holds shared mutation lock so exclusive destructive operation must wait until shared writer releases', async () => {
-      let releaseSharedWriter!: () => void
-      let markSharedStarted!: () => void
-      const sharedStartedPromise = new Promise<void>((resolve) => {
-        markSharedStarted = resolve
+  describe('S2-04: Guarded writer vs exclusive destructive operation sequence', () => {
+    it('executes full sequence: guarded writer blocks exclusive clear, clear advances generation, stale write rejects, fresh write succeeds', async () => {
+      const initialGen = await captureDatabaseGeneration()
+      expect(initialGen).toBe(1)
+
+      let releaseWriter!: () => void
+      let markWriterAtBarrier!: () => void
+
+      const writerAtBarrierPromise = new Promise<void>((resolve) => {
+        markWriterAtBarrier = resolve
+      })
+      const writerGatePromise = new Promise<void>((resolve) => {
+        releaseWriter = resolve
       })
 
-      const sharedGate = new Promise<void>((resolve) => {
-        releaseSharedWriter = resolve
+      let exclusiveCompleted = false
+
+      // 1. Guarded writer with expected generation G=1 starts and acquires shared lock
+      const guardedWriterPromise = withGuardedMutation({ expectedGeneration: initialGen }, async () => {
+        // 2. Writer reaches controlled barrier before committing Dexie write
+        markWriterAtBarrier()
+        await writerGatePromise
+
+        // Real Dexie write under guarded shared lock
+        return studyDb.tasks.add({
+          id: 'task-guarded-writer',
+          title: 'Guarded task',
+          subjectId: '',
+          dueDate: '',
+          priority: 'normal',
+          status: 'open',
+          minutes: 25,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
       })
 
-      let exclusiveExecuted = false
+      // Wait until writer is inside the shared lock at the barrier
+      await writerAtBarrierPromise
 
-      // Start long-running shared writer
-      const sharedWriterPromise = withSharedDatabaseLock(async () => {
-        markSharedStarted()
-        await sharedGate
-        return 'shared_done'
+      // 3. Exclusive destructive operation (clearAllStudyData) starts and is queued behind the shared lock
+      const exclusiveClearPromise = clearAllStudyData().then(() => {
+        exclusiveCompleted = true
       })
 
-      await sharedStartedPromise
+      // Yield event loop turns
+      await Promise.resolve()
+      expect(exclusiveCompleted).toBe(false)
 
-      // Concurrently launch exclusive destructive clear
-      const exclusivePromise = clearAllStudyData().then(() => {
-        exclusiveExecuted = true
-      })
+      // 4. Release writer to commit Dexie write and release shared lock
+      releaseWriter()
+      await guardedWriterPromise
 
-      // Give event loop turns to verify exclusive lock is blocked
-      await new Promise((resolve) => setTimeout(resolve, 50))
-      expect(exclusiveExecuted).toBe(false)
+      // 5. Destructive operation now proceeds to completion and advances generation to G=2
+      await exclusiveClearPromise
+      expect(exclusiveCompleted).toBe(true)
 
-      // Release shared writer
-      releaseSharedWriter()
-      await sharedWriterPromise
+      const postClearGen = await captureDatabaseGeneration()
+      expect(postClearGen).toBe(2)
 
-      // Now exclusive lock can execute and finish
-      await exclusivePromise
-      expect(exclusiveExecuted).toBe(true)
+      // 6. Another mutation using stale G=1 rejects
+      await expect(
+        createTask(
+          {
+            title: 'Stale task',
+            subjectId: '',
+            status: 'open',
+            priority: 'normal',
+            minutes: 30,
+            dueDate: '',
+          },
+          { expectedGeneration: initialGen },
+        ),
+      ).rejects.toThrow(StaleDatabaseGenerationError)
+
+      // 7. Fresh mutation using G=2 succeeds
+      const freshTask = await createTask(
+        {
+          title: 'Fresh post-clear task',
+          subjectId: '',
+          status: 'open',
+          priority: 'high',
+          minutes: 40,
+          dueDate: '',
+        },
+        { expectedGeneration: postClearGen },
+      )
+      expect(freshTask.title).toBe('Fresh post-clear task')
+
+      // 8. Final durable state reflects destructive operation plus only the fresh post-destructive write
+      const allTasks = await studyDb.tasks.toArray()
+      expect(allTasks).toHaveLength(1)
+      expect(allTasks[0].id).toBe(freshTask.id)
+      expect(allTasks[0].title).toBe('Fresh post-clear task')
     })
   })
 })
