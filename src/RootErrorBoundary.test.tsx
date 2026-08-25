@@ -131,7 +131,7 @@ describe('Root render-error boundary', () => {
       plannedMinutes: 25,
       status: 'running',
     })
-    expect(await createActiveFocusSession(session)).toMatchObject({ ok: true })
+    expect(await createActiveFocusSession(session, { expectedGeneration: 1 })).toMatchObject({ ok: true })
 
     render(
       <RootErrorBoundary onReload={() => undefined}>

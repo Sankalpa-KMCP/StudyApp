@@ -438,7 +438,7 @@ describe('App subjects live query isolation', () => {
       status: 'running',
       pausedAt: null,
       accumulatedPausedMs: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     const subjectsSpy2 = vi.spyOn(subjectRead, 'listSubjects')
     render(<App />)

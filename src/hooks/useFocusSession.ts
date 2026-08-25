@@ -139,7 +139,9 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
 
     const res = await coordinator.runFocusWrite(async () => {
       try {
-        const result = await createActiveFocusSession(session)
+        const result = await createActiveFocusSession(session, {
+          expectedGeneration: focusGenerationRef.current,
+        })
         if (result.ok) {
           deferredAutoCompleteSessionIdRef.current = null
           focusGenerationRef.current = result.generation
@@ -164,7 +166,11 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
           setSessionNotice('The selected subject is no longer available.')
           return
         }
-      } catch {
+      } catch (err) {
+        if (err instanceof StaleDatabaseGenerationError) {
+          setSessionNotice('Data was modified in another tab or import. Refresh to continue.')
+          return
+        }
         setSessionNotice('Could not start the focus session. Try again.')
       }
     })

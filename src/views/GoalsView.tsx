@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Target } from '../components/icons'
 import { LiveReadErrorBoundary } from '../components/LiveReadErrorBoundary'
 import { LiveReadErrorPanel } from '../components/LiveReadErrorPanel'
+import type { DatabaseMutationContext } from '../db/databaseMutationGuard'
 import type { StudyGoal, StudySession, GoalPeriod, GoalMetric } from '../db/types'
 import { listGoals } from '../db/goalRead'
 import {
@@ -184,7 +185,7 @@ function GoalsLiveQuery({
     })
   }
 
-  const deleteGoal = async (goal: StudyGoal) => {
+  const deleteGoal = async (goal: StudyGoal, context?: DatabaseMutationContext) => {
     if (pendingDeleteId || isSaving || isRowPending) return
 
     clearValidation()
@@ -195,7 +196,7 @@ function GoalsLiveQuery({
     try {
       await runRow(async () => {
         await deleteGoalRecord(goal.id, {
-          expectedGeneration: databaseGeneration,
+          expectedGeneration: context?.expectedGeneration ?? databaseGeneration,
         })
       }, {
         successMessage: 'Goal deleted.',
@@ -343,7 +344,8 @@ function GoalsLiveQuery({
                 <RowActionButtons
                   label={goal.title}
                   onEdit={() => openEditor(goal)}
-                  onDelete={() => void deleteGoal(goal)}
+                  onDelete={(context) => void deleteGoal(goal, context)}
+                  databaseGeneration={databaseGeneration}
                   isDisabled={rowActionsLocked}
                   isDeleting={pendingDeleteId === goal.id}
                 />

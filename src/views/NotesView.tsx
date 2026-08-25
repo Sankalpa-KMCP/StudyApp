@@ -10,6 +10,7 @@ import {
   MutationNotice,
 } from '../components/ui'
 import { createNote, deleteNote as deleteNoteRecord, updateNote } from '../db/notesService'
+import type { DatabaseMutationContext } from '../db/databaseMutationGuard'
 import type { StudyNote, StudySubject } from '../db/types'
 import { formatDate } from '../appUtils'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
@@ -141,7 +142,7 @@ export function NotesView({
     })
   }
 
-  const deleteNote = async (note: StudyNote) => {
+  const deleteNote = async (note: StudyNote, context?: DatabaseMutationContext) => {
     if (pendingDeleteId || isSaving || isRowPending) return
 
     setValidationError({ reason: null, message: null })
@@ -152,7 +153,7 @@ export function NotesView({
     try {
       await runRow(async () => {
         await deleteNoteRecord(note.id, {
-          expectedGeneration: databaseGeneration,
+          expectedGeneration: context?.expectedGeneration ?? databaseGeneration,
         })
       }, {
         successMessage: 'Note deleted.',
@@ -214,7 +215,8 @@ export function NotesView({
               <RowActionButtons
                 label={note.title}
                 onEdit={() => openEditor(note)}
-                onDelete={() => void deleteNote(note)}
+                onDelete={(context) => void deleteNote(note, context)}
+                databaseGeneration={databaseGeneration}
                 isDisabled={rowActionsLocked}
                 isDeleting={pendingDeleteId === note.id}
               />

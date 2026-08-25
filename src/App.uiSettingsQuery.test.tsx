@@ -193,7 +193,7 @@ describe('App UI settings live query isolation', () => {
       id: 'focus-ui-iso',
       subjectId: '',
       plannedMinutes: 25,
-    }))
+    }), { expectedGeneration: 1 })
     expect(created.ok).toBe(true)
     await waitFor(async () => {
       expect(await getActiveFocusSession()).not.toBeNull()

@@ -1,5 +1,6 @@
-import { useState, type Ref } from 'react'
+import { useRef, useState, type Ref } from 'react'
 import { clamp } from '../appUtils'
+import type { DatabaseMutationContext } from '../db/databaseMutationGuard'
 import type { StudySubject } from '../db/types'
 import type { MutationPhase } from '../hooks/useMutationState'
 import { ConfirmDialog } from './ConfirmDialog'
@@ -220,24 +221,32 @@ export function RowActionButtons({
   label,
   onEdit,
   onDelete,
+  databaseGeneration,
   confirmDelete = true,
   isDisabled = false,
   isDeleting = false,
 }: {
   label: string
   onEdit: () => void
-  onDelete: () => void
+  onDelete: (context?: DatabaseMutationContext) => void
+  databaseGeneration?: number
   confirmDelete?: boolean
   isDisabled?: boolean
   isDeleting?: boolean
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const capturedGenerationRef = useRef<number | undefined>(databaseGeneration)
   const busy = isDisabled || isDeleting
 
   const handleDelete = () => {
     if (busy) return
+    capturedGenerationRef.current = databaseGeneration
     if (!confirmDelete) {
-      onDelete()
+      onDelete(
+        capturedGenerationRef.current !== undefined
+          ? { expectedGeneration: capturedGenerationRef.current }
+          : undefined,
+      )
       return
     }
     setConfirmOpen(true)
@@ -268,7 +277,11 @@ export function RowActionButtons({
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {
           setConfirmOpen(false)
-          onDelete()
+          onDelete(
+            capturedGenerationRef.current !== undefined
+              ? { expectedGeneration: capturedGenerationRef.current }
+              : undefined,
+          )
         }}
       />
     </div>

@@ -18,6 +18,7 @@ import {
   type SubjectLinkedUsage,
   updateSubject,
 } from '../db/subjectService'
+import type { DatabaseMutationContext } from '../db/databaseMutationGuard'
 import type { StudySubject, StudyTask, StudyNote, CalendarEvent, StudySession, SubjectProgressMode } from '../db/types'
 import {
   calculateSubjectProgress,
@@ -202,7 +203,9 @@ export function SubjectsView({
     return `Cannot delete ${subjectName}. It is linked to ${linked.tasks} tasks, ${linked.notes} notes, ${linked.events} events, and ${linked.sessions} sessions.`
   }
 
-  const requestDeleteSubject = async (subject: StudySubject) => {
+  const deleteSubjectGenerationRef = useRef<number>(databaseGeneration)
+
+  const requestDeleteSubject = async (subject: StudySubject, context?: DatabaseMutationContext) => {
     if (pendingDeleteId || isSaving || isRowPending || confirmSubject) return
 
     setValidationError(null)
@@ -216,6 +219,7 @@ export function SubjectsView({
       return
     }
 
+    deleteSubjectGenerationRef.current = context?.expectedGeneration ?? databaseGeneration
     setConfirmSubject(subject)
   }
 
@@ -231,7 +235,7 @@ export function SubjectsView({
     try {
       await runRow(async () => {
         const result = await deleteSubjectRecord(subject.id, {
-          expectedGeneration: databaseGeneration,
+          expectedGeneration: deleteSubjectGenerationRef.current,
         })
         if (!result.ok && result.reason === 'linked') {
           setValidationError(formatSubjectLinkedUsage(subject.name, result.usage))
@@ -344,7 +348,8 @@ export function SubjectsView({
                 <RowActionButtons
                   label={subject.name}
                   onEdit={() => openEditor(subject)}
-                  onDelete={() => void requestDeleteSubject(subject)}
+                  onDelete={(context) => void requestDeleteSubject(subject, context)}
+                  databaseGeneration={databaseGeneration}
                   confirmDelete={false}
                   isDisabled={rowActionsLocked}
                   isDeleting={pendingDeleteId === subject.id}

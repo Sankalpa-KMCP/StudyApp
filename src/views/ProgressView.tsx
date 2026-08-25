@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Clock3, Save } from '../components/icons'
+import type { DatabaseMutationContext } from '../db/databaseMutationGuard'
 import type { StudySession, StudySubject, StudyTask } from '../db/types'
 import {
   formatHours,
@@ -191,8 +192,11 @@ export function ProgressView(props: {
     })
   }
 
-  const requestDeleteSession = (session: StudySession) => {
+  const deleteSessionGenerationRef = useRef<number>(props.databaseGeneration ?? 1)
+
+  const requestDeleteSession = (session: StudySession, context?: DatabaseMutationContext) => {
     if (pendingDeleteId || isSaving || isRowPending || confirmSession) return
+    deleteSessionGenerationRef.current = context?.expectedGeneration ?? (props.databaseGeneration ?? 1)
     setConfirmSession(session)
   }
 
@@ -208,7 +212,7 @@ export function ProgressView(props: {
     try {
       await runRow(async () => {
         await deleteStudySession(session.id, {
-          expectedGeneration: props.databaseGeneration ?? 1,
+          expectedGeneration: deleteSessionGenerationRef.current,
         })
       }, {
         successMessage: 'Study session deleted.',
@@ -356,7 +360,8 @@ export function ProgressView(props: {
                       <RowActionButtons
                         label={`${subjectName} session at ${startTime}`}
                         onEdit={() => openEditor(session)}
-                        onDelete={() => requestDeleteSession(session)}
+                        onDelete={(context) => requestDeleteSession(session, context)}
+                        databaseGeneration={props.databaseGeneration ?? 1}
                         confirmDelete={false}
                         isDisabled={rowActionsLocked}
                         isDeleting={pendingDeleteId === session.id}
