@@ -66,7 +66,7 @@ test.describe('Playwright axe accessibility smoke', () => {
 
     await expect(page.getByRole('heading', { level: 1, name: 'Progress' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Study Time' })).toBeVisible()
-    await expect(page.getByRole('img', { name: 'Study time trend' })).toBeVisible()
+    await expect(page.getByRole('img', { name: /Study time trend/i })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Log session' })).toBeEnabled()
     await expect(page.getByRole('button', { name: /Saving|Recording/i })).toHaveCount(0)
 
@@ -96,7 +96,7 @@ test.describe('Playwright axe accessibility smoke', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Progress' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Study Time' })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Study Time' }).getByText('1h 30m')).toBeVisible()
-    await expect(page.getByRole('img', { name: 'Study time trend' })).toBeVisible()
+    await expect(page.getByRole('img', { name: /Study time trend.*1h 30m/i })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Log session' })).toBeEnabled()
     await expect(page.getByText('Confirm data deletion')).toHaveCount(0)
     await expect(page.getByText('1 session logged')).toBeVisible()
