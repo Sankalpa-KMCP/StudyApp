@@ -21,8 +21,8 @@ export function isValidSubjectColor(value: unknown): value is string {
  * Resolves a subject color for UI rendering, falling back to a safe known palette color
  * if the stored value is missing, invalid, or malformed.
  */
-export function resolveSubjectColor(color: unknown, fallback: string = DEFAULT_SUBJECT_COLOR): string {
-  return isValidSubjectColor(color) ? color : fallback
+export function resolveSubjectColor(color: unknown): string {
+  return isValidSubjectColor(color) ? color : DEFAULT_SUBJECT_COLOR
 }
 
 /**

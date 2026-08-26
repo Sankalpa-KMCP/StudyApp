@@ -718,6 +718,142 @@ describe('studyDb', () => {
     expect(await studyDb.subjects.toArray()).toMatchObject([{ id: 'subject-existing', name: 'Existing subject' }])
   })
 
+  it('rejects malicious or invalid subject colors across backup versions 1 to 4 with complete atomic preservation', async () => {
+    const timestamp = nowIso()
+
+    for (const version of [1, 2, 3, 4] as const) {
+      // 1. Seed identifiable existing database data
+      await studyDb.subjects.clear()
+      await studyDb.tasks.clear()
+      await studyDb.notes.clear()
+      await studyDb.events.clear()
+      await studyDb.studySessions.clear()
+      await studyDb.goals.clear()
+      await studyDb.settings.clear()
+
+      await studyDb.subjects.add({
+        id: 'subject-preexisting',
+        name: 'Preexisting Subject',
+        color: '#2563eb',
+        targetHours: 5,
+        progress: 25,
+        progressMode: 'manual',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      await studyDb.tasks.add({
+        id: 'task-preexisting',
+        title: 'Preexisting Task',
+        subjectId: 'subject-preexisting',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 45,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 180 })
+      await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 42 })
+
+      // 2. Capture baseline generation and entity state
+      const genBefore = await getDatabaseGeneration(studyDb.settings)
+      expect(genBefore).toBe(42)
+
+      // 3. Construct otherwise valid backup payload with malicious Subject color
+      const maliciousPayload = {
+        version,
+        exportedAt: timestamp,
+        subjects: [
+          {
+            id: 'subject-malicious',
+            name: 'Malicious Subject',
+            color: "url('https://tracker.invalid/beacon.png')",
+            targetHours: 10,
+            progress: 50,
+            ...(version >= 3 ? { progressMode: 'manual' } : {}),
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        ],
+        tasks: [
+          {
+            id: 'task-incoming',
+            title: 'Incoming Task',
+            subjectId: 'subject-malicious',
+            dueDate: '',
+            priority: 'normal',
+            status: 'open',
+            minutes: 30,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        ],
+        notes: [],
+        events: [],
+        studySessions: [],
+        goals: [
+          {
+            id: 'goal-incoming',
+            title: 'Incoming Goal',
+            target: 10,
+            progress: 0,
+            period: 'daily',
+            ...(version >= 2 ? { metric: 'manual' } : {}),
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        ],
+        settings: [{ key: 'dailyGoalMinutes', value: 300 }],
+        ...(version <= 3 ? { flashcards: [] } : {}),
+      }
+
+      // 4. Call real importStudyData
+      await expect(importStudyData(maliciousPayload)).rejects.toThrow(
+        'Import file is not a Study Dashboard export.'
+      )
+
+      // 5. Assert pre-existing data remains unchanged
+      const subjects = await studyDb.subjects.toArray()
+      expect(subjects).toEqual([
+        {
+          id: 'subject-preexisting',
+          name: 'Preexisting Subject',
+          color: '#2563eb',
+          targetHours: 5,
+          progress: 25,
+          progressMode: 'manual',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ])
+
+      const tasks = await studyDb.tasks.toArray()
+      expect(tasks).toEqual([
+        {
+          id: 'task-preexisting',
+          title: 'Preexisting Task',
+          subjectId: 'subject-preexisting',
+          dueDate: '',
+          priority: 'normal',
+          status: 'open',
+          minutes: 45,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ])
+
+      // 6. Assert generation remains unchanged
+      const genAfter = await getDatabaseGeneration(studyDb.settings)
+      expect(genAfter).toBe(42)
+
+      // 7. Assert no partial incoming records survive
+      expect(await studyDb.subjects.get('subject-malicious')).toBeUndefined()
+      expect(await studyDb.tasks.get('task-incoming')).toBeUndefined()
+      expect(await studyDb.goals.get('goal-incoming')).toBeUndefined()
+      expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(180)
+    }
+  })
+
   it('rejects duplicate entity ids and settings keys without clearing existing data', async () => {
     const timestamp = nowIso()
     await studyDb.subjects.add({

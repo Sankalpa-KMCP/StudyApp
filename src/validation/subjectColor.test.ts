@@ -66,8 +66,11 @@ describe('subjectColor', () => {
       expect(resolveSubjectColor('')).toBe(DEFAULT_SUBJECT_COLOR)
     })
 
-    it('respects a custom fallback if provided', () => {
-      expect(resolveSubjectColor('invalid', '#2563eb')).toBe('#2563eb')
+    it('always returns a valid canonical 6-digit hex color', () => {
+      expect(isValidSubjectColor(DEFAULT_SUBJECT_COLOR)).toBe(true)
+      expect(isValidSubjectColor(resolveSubjectColor('#2563eb'))).toBe(true)
+      expect(isValidSubjectColor(resolveSubjectColor("url('https://tracker.invalid/x')"))).toBe(true)
+      expect(isValidSubjectColor(resolveSubjectColor(null))).toBe(true)
     })
   })
 
