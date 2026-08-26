@@ -8,22 +8,39 @@ import { ProgressView } from './ProgressView'
 function createSampleMultiDaySessions(numDays: number, sessionsPerDay = 2): StudySession[] {
   const sessions: StudySession[] = []
   for (let d = 0; d < numDays; d++) {
-    // Generate dates: day 0 is 2026-08-20, day 1 is 2026-08-19, etc.
     const year = 2026
-    const month = 7 // August (0-indexed 7)
+    const month = 7 // August
     const day = 20 - d
     for (let s = 0; s < sessionsPerDay; s++) {
-      const start = new Date(year, month, day, 10 + s * 2, 0, 0, 0)
-      const end = new Date(year, month, day, 11 + s * 2, 0, 0, 0)
+      const start = new Date(year, month, day, 10 + (s % 10), Math.floor(s / 10), 0, 0)
+      const end = new Date(start.getTime() + 30 * 60_000)
       sessions.push({
         id: `sess-d${d}-s${s}`,
         subjectId: 'sub-math',
         startedAt: start.toISOString(),
         endedAt: end.toISOString(),
-        minutes: 60,
+        minutes: 30,
         note: `Session day ${d} slot ${s}`,
       })
     }
+  }
+  return sessions
+}
+
+function createDenseDaySessions(totalSessions: number, year = 2026, month = 7, day = 20): StudySession[] {
+  const sessions: StudySession[] = []
+  for (let i = 0; i < totalSessions; i++) {
+    const second = i % 86400
+    const start = new Date(year, month, day, 0, 0, second, 0)
+    const end = new Date(start.getTime() + 60_000)
+    sessions.push({
+      id: `dense-sess-${i}`,
+      subjectId: 'sub-math',
+      startedAt: start.toISOString(),
+      endedAt: end.toISOString(),
+      minutes: 1,
+      note: `Dense note ${i}`,
+    })
   }
   return sessions
 }
@@ -67,9 +84,9 @@ const sampleWeeklyDays: WeeklyStudyDay[] = [
   { key: '2026-08-20', label: 'Thu', hours: 5 },
 ]
 
-describe('ProgressView Day-Group Progressive Bounding (S6.2b)', () => {
-  it('renders at most 14 complete day groups initially when dataset exceeds 14 days', () => {
-    const sessions = createSampleMultiDaySessions(30, 2) // 30 days, 60 sessions
+describe('ProgressView Hierarchical Two-Dimensional Progressive Bounding (S6.2c)', () => {
+  it('bounds initial rendering to at most 50 session rows when 10,000 sessions are on 1 single day', () => {
+    const sessions = createDenseDaySessions(10000)
     render(
       <ProgressView
         subjects={sampleSubjects}
@@ -84,40 +101,85 @@ describe('ProgressView Day-Group Progressive Bounding (S6.2b)', () => {
       />,
     )
 
-    // Heading elements for day groups (h3 elements in .session-day-heading)
-    const dayHeadings = screen.getAllByRole('heading', { level: 3 })
-    expect(dayHeadings).toHaveLength(14)
+    // Exactly 1 day group
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(1)
 
-    // Verify all sessions in those 14 days are rendered (14 days * 2 sessions = 28 session articles)
-    expect(screen.getByText('Showing 14 of 30 study days (28 of 60 sessions)')).toBeInTheDocument()
+    // Initially exactly 50 session rows rendered out of 10,000
+    const articles = document.querySelectorAll('.session-row')
+    expect(articles).toHaveLength(50)
+
+    // Intra-day disclosure controls are visible
+    expect(screen.getByText(/Showing 50 of 10000 sessions for/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Show 50 more sessions for/i })).toBeInTheDocument()
+
+    // Day-level footer is NOT shown since totalDays = 1 <= 14
+    expect(screen.queryByRole('button', { name: /Show 14 more days/i })).not.toBeInTheDocument()
+  })
+
+  it('bounds initial rendering to at most 700 session rows when 10,000 sessions are across 14 visible days', () => {
+    const sessions = createSampleMultiDaySessions(14, 714) // 14 days * 714 sessions = 9996 sessions
+    render(
+      <ProgressView
+        subjects={sampleSubjects}
+        tasks={sampleTasks}
+        studySessions={sessions}
+        weeklyStudyDays={sampleWeeklyDays}
+        dailyGoalMinutes={120}
+        todayFocusMinutes={60}
+        subjectMap={sampleSubjectMap}
+        openEditorOnMount={false}
+        databaseGeneration={1}
+      />,
+    )
+
+    // 14 day groups rendered
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(14)
+
+    // Exactly 14 days * 50 sessions/day = 700 session rows rendered initially
+    const articles = document.querySelectorAll('.session-row')
+    expect(articles).toHaveLength(700)
+  })
+
+  it('bounds 15-day adversarial case (9,990 sessions on newest 14 days) to at most 700 initial rows', () => {
+    // 14 days with ~714 sessions each + 1 day with 10 sessions = 15 days total
+    const sessions14 = createSampleMultiDaySessions(14, 714)
+    const sessionsExtra = createSampleMultiDaySessions(1, 10).map((s) => ({
+      ...s,
+      id: `extra-${s.id}`,
+      startedAt: '2026-08-01T10:00:00.000Z',
+      endedAt: '2026-08-01T10:30:00.000Z',
+    }))
+    const allSessions = [...sessions14, ...sessionsExtra]
+
+    render(
+      <ProgressView
+        subjects={sampleSubjects}
+        tasks={sampleTasks}
+        studySessions={allSessions}
+        weeklyStudyDays={sampleWeeklyDays}
+        dailyGoalMinutes={120}
+        todayFocusMinutes={60}
+        subjectMap={sampleSubjectMap}
+        openEditorOnMount={false}
+        databaseGeneration={1}
+      />,
+    )
+
+    // 14 day groups visible out of 15
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(14)
+
+    // Exactly 700 session rows visible
+    const articles = document.querySelectorAll('.session-row')
+    expect(articles).toHaveLength(700)
+
+    // Day-level footer indicates 14 of 15 days
+    expect(screen.getByText(/Showing 14 of 15 study days \(700 of 10006 sessions\)/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Show 14 more days' })).toBeInTheDocument()
   })
 
-  it('renders all day groups without disclosure footer when dataset has <= 14 days', () => {
-    const sessions = createSampleMultiDaySessions(8, 2) // 8 days, 16 sessions
-    render(
-      <ProgressView
-        subjects={sampleSubjects}
-        tasks={sampleTasks}
-        studySessions={sessions}
-        weeklyStudyDays={sampleWeeklyDays}
-        dailyGoalMinutes={120}
-        todayFocusMinutes={60}
-        subjectMap={sampleSubjectMap}
-        openEditorOnMount={false}
-        databaseGeneration={1}
-      />,
-    )
-
-    const dayHeadings = screen.getAllByRole('heading', { level: 3 })
-    expect(dayHeadings).toHaveLength(8)
-    expect(screen.queryByRole('button', { name: /Show .* more days/i })).not.toBeInTheDocument()
-    expect(screen.queryByText(/Showing .* of .* study days/i)).not.toBeInTheDocument()
-  })
-
-  it('reveals next batch (+14 days) on activation and expands progressively through final records', async () => {
+  it('reveals next intra-day batch (+50) on activation for only that day and reaches completion', async () => {
     const user = userEvent.setup()
-    const sessions = createSampleMultiDaySessions(35, 2) // 35 days, 70 sessions
+    const sessions = createDenseDaySessions(120) // 120 sessions on 1 day
     render(
       <ProgressView
         subjects={sampleSubjects}
@@ -132,22 +194,92 @@ describe('ProgressView Day-Group Progressive Bounding (S6.2b)', () => {
       />,
     )
 
-    // Initial: 14 days, 28 sessions
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(14)
+    // Initial: 50 session rows
+    expect(document.querySelectorAll('.session-row')).toHaveLength(50)
+    expect(screen.getByText(/Showing 50 of 120 sessions for/i)).toBeInTheDocument()
 
-    // First click: reveals up to 28 days (56 sessions)
-    await user.click(screen.getByRole('button', { name: 'Show 14 more days' }))
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(28)
-    expect(screen.getByText('Showing 28 of 35 study days (56 of 70 sessions)')).toBeInTheDocument()
+    // First intra-day click: reveals up to 100
+    const intraDayBtn = screen.getByRole('button', { name: /Show 50 more sessions for/i })
+    await user.click(intraDayBtn)
 
-    // Second click (final expansion): reveals all 35 days (70 sessions)
-    await user.click(screen.getByRole('button', { name: 'Show 14 more days' }))
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(35)
-    expect(screen.getByText('Showing all 35 study days (70 sessions)')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Show .* more days/i })).not.toBeInTheDocument()
+    expect(document.querySelectorAll('.session-row')).toHaveLength(100)
+    expect(screen.getByText(/Showing 100 of 120 sessions for/i)).toBeInTheDocument()
+
+    // Second intra-day click (final expansion for day): reveals all 120
+    const finalIntraBtn = screen.getByRole('button', { name: /Show 50 more sessions for/i })
+    await user.click(finalIntraBtn)
+
+    expect(document.querySelectorAll('.session-row')).toHaveLength(120)
+    expect(screen.getByText(/Showing all 120 sessions for/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Show 50 more sessions for/i })).not.toBeInTheDocument()
   })
 
-  it('safely retains focus on list footer during final expansion without losing focus to body', async () => {
+  it('safely retains focus on intra-day footer container during final intra-day expansion', async () => {
+    const user = userEvent.setup()
+    const sessions = createDenseDaySessions(60) // 60 sessions on 1 day
+    render(
+      <ProgressView
+        subjects={sampleSubjects}
+        tasks={sampleTasks}
+        studySessions={sessions}
+        weeklyStudyDays={sampleWeeklyDays}
+        dailyGoalMinutes={120}
+        todayFocusMinutes={60}
+        subjectMap={sampleSubjectMap}
+        openEditorOnMount={false}
+        databaseGeneration={1}
+      />,
+    )
+
+    const showMoreBtn = screen.getByRole('button', { name: /Show 50 more sessions for/i })
+    showMoreBtn.focus()
+    expect(document.activeElement).toBe(showMoreBtn)
+
+    await user.click(showMoreBtn)
+
+    // All 60 are now shown, button is unmounted. Focus must not be on body.
+    expect(document.activeElement).not.toBe(document.body)
+    const dayFooter = screen.getByText(/Showing all 60 sessions for/i).closest('.session-day-disclosure')
+    expect(document.activeElement).toBe(dayFooter)
+  })
+
+  it('maintains independent intra-day expansion state across different days', async () => {
+    const user = userEvent.setup()
+    // 2 days, each with 70 sessions
+    const day1Sessions = createDenseDaySessions(70, 2026, 7, 20)
+    const day2Sessions = createDenseDaySessions(70, 2026, 7, 19).map((s) => ({
+      ...s,
+      id: `day2-${s.id}`,
+    }))
+    const sessions = [...day1Sessions, ...day2Sessions]
+
+    render(
+      <ProgressView
+        subjects={sampleSubjects}
+        tasks={sampleTasks}
+        studySessions={sessions}
+        weeklyStudyDays={sampleWeeklyDays}
+        dailyGoalMinutes={120}
+        todayFocusMinutes={60}
+        subjectMap={sampleSubjectMap}
+        openEditorOnMount={false}
+        databaseGeneration={1}
+      />,
+    )
+
+    // Both days initially show 50 rows each (total 100 rows)
+    expect(document.querySelectorAll('.session-row')).toHaveLength(100)
+
+    // Expand only day 1
+    const day1Buttons = screen.getAllByRole('button', { name: /Show 50 more sessions for/i })
+    expect(day1Buttons).toHaveLength(2)
+    await user.click(day1Buttons[0])
+
+    // Day 1 has 70 rows, Day 2 still has 50 rows (total 120 rows)
+    expect(document.querySelectorAll('.session-row')).toHaveLength(120)
+  })
+
+  it('safely retains focus on macro day footer during final day-level expansion', async () => {
     const user = userEvent.setup()
     const sessions = createSampleMultiDaySessions(18, 2) // 18 days
     render(
@@ -164,20 +296,20 @@ describe('ProgressView Day-Group Progressive Bounding (S6.2b)', () => {
       />,
     )
 
-    const showMoreBtn = screen.getByRole('button', { name: 'Show 14 more days' })
-    showMoreBtn.focus()
-    expect(document.activeElement).toBe(showMoreBtn)
+    const showMoreDaysBtn = screen.getByRole('button', { name: 'Show 14 more days' })
+    showMoreDaysBtn.focus()
+    expect(document.activeElement).toBe(showMoreDaysBtn)
 
-    await user.click(showMoreBtn)
+    await user.click(showMoreDaysBtn)
 
-    // All 18 days are now shown, button is unmounted. Focus shifted to footer container.
+    // All 18 days are now shown, button is unmounted. Focus shifted to day-level footer container.
     expect(document.activeElement).not.toBe(document.body)
     const footer = screen.getByText('Showing all 18 study days (36 sessions)').closest('.list-disclosure-footer')
     expect(document.activeElement).toBe(footer)
   })
 
-  it('preserves aggregate metrics, summary stats and charts using full session dataset', () => {
-    const sessions = createSampleMultiDaySessions(40, 2) // 40 days, 80 hours total
+  it('preserves full-dataset aggregate metrics, summary stats and charts using full session dataset', () => {
+    const sessions = createSampleMultiDaySessions(40, 2) // 40 days, 80 sessions
     render(
       <ProgressView
         subjects={sampleSubjects}
@@ -197,7 +329,7 @@ describe('ProgressView Day-Group Progressive Bounding (S6.2b)', () => {
 
     // Metric cards report full data
     const weeklyStudyCard = screen.getByText('Weekly study').closest('.metric-card')
-    expect(weeklyStudyCard).toHaveTextContent('20h') // sum of sampleWeeklyDays = 2+3+1+4+2+3+5 = 20h
+    expect(weeklyStudyCard).toHaveTextContent('20h')
     expect(screen.getByText('Tasks complete')).toBeInTheDocument()
     expect(screen.getByText('1/1')).toBeInTheDocument()
 
@@ -206,8 +338,14 @@ describe('ProgressView Day-Group Progressive Bounding (S6.2b)', () => {
     expect(screen.getByRole('heading', { name: 'Subject Distribution' })).toBeInTheDocument()
   })
 
-  it('handles deletion of a session and full day cleanly without gaps', () => {
-    const sessions = createSampleMultiDaySessions(20, 1) // 20 days, 1 session each
+  it('handles intra-day deletion and day deletion gracefully without blank gaps', () => {
+    // 1 dense day of 60 sessions + 1 day of 1 session
+    const day1Sessions = createDenseDaySessions(60, 2026, 7, 20)
+    const day2Sessions = createDenseDaySessions(1, 2026, 7, 19).map((s) => ({
+      ...s,
+      id: `day2-${s.id}`,
+    }))
+    const sessions = [...day1Sessions, ...day2Sessions]
 
     const { rerender } = render(
       <ProgressView
@@ -223,17 +361,16 @@ describe('ProgressView Day-Group Progressive Bounding (S6.2b)', () => {
       />,
     )
 
-    // Initially 14 days rendered
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(14)
-    expect(screen.getByText('Showing 14 of 20 study days (14 of 20 sessions)')).toBeInTheDocument()
+    // Day 1 has 50 rows visible, Day 2 has 1 row visible (total 51 rows)
+    expect(document.querySelectorAll('.session-row')).toHaveLength(51)
 
-    // Delete day 0 session (sess-d0-s0)
-    const remainingSessions = sessions.filter((s) => s.id !== 'sess-d0-s0')
+    // Delete session from Day 1
+    const remainingDay1 = day1Sessions.slice(1)
     rerender(
       <ProgressView
         subjects={sampleSubjects}
         tasks={sampleTasks}
-        studySessions={remainingSessions}
+        studySessions={[...remainingDay1, ...day2Sessions]}
         weeklyStudyDays={sampleWeeklyDays}
         dailyGoalMinutes={120}
         todayFocusMinutes={60}
@@ -243,8 +380,27 @@ describe('ProgressView Day-Group Progressive Bounding (S6.2b)', () => {
       />,
     )
 
-    // 14 days still rendered (day 14 has moved into the 14th visible slot)
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(14)
-    expect(screen.getByText('Showing 14 of 19 study days (14 of 19 sessions)')).toBeInTheDocument()
+    // Still 50 rows visible for Day 1 + 1 row for Day 2 = 51 rows total (session 51 moved into view)
+    expect(document.querySelectorAll('.session-row')).toHaveLength(51)
+    expect(screen.getByText(/Showing 50 of 59 sessions for/i)).toBeInTheDocument()
+
+    // Delete the only session in Day 2
+    rerender(
+      <ProgressView
+        subjects={sampleSubjects}
+        tasks={sampleTasks}
+        studySessions={remainingDay1}
+        weeklyStudyDays={sampleWeeklyDays}
+        dailyGoalMinutes={120}
+        todayFocusMinutes={60}
+        subjectMap={sampleSubjectMap}
+        openEditorOnMount={false}
+        databaseGeneration={3}
+      />,
+    )
+
+    // Only 1 day group remains, 50 rows visible
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(1)
+    expect(document.querySelectorAll('.session-row')).toHaveLength(50)
   })
 })
