@@ -46,6 +46,16 @@ export function ConfirmDialog({
   const confirmRef = useRef<HTMLButtonElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const confirmGuardRef = useRef(false)
+  const wasOpenRef = useRef(false)
+
+  // Keep latest callbacks and pending state in refs to decouple from effect cleanup lifecycles.
+  const onCancelRef = useRef(onCancel)
+  const pendingRef = useRef(pending)
+
+  useLayoutEffect(() => {
+    onCancelRef.current = onCancel
+    pendingRef.current = pending
+  })
 
   useLayoutEffect(() => {
     if (!open) {
@@ -53,9 +63,8 @@ export function ConfirmDialog({
       return
     }
 
-    previousFocusRef.current = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
     confirmGuardRef.current = false
 
     // Defer past the triggering pointer/keyboard activation so focus is not stolen back.
@@ -66,6 +75,45 @@ export function ConfirmDialog({
     return () => window.clearTimeout(timeoutId)
   }, [open])
 
+  // Restore focus to opener (or logical fallback if opener was removed) strictly on dialog close/unmount.
+  const restoreFocus = () => {
+    const previous = previousFocusRef.current
+    if (previous && document.contains(previous) && typeof previous.focus === 'function') {
+      previous.focus()
+      return
+    }
+
+    // Fallback if the invoking element was removed from the DOM (e.g. deleted record card)
+    const fallback = document.querySelector<HTMLElement>('main, [role="main"], .dashboard-grid')
+    if (fallback && typeof fallback.focus === 'function') {
+      if (!fallback.hasAttribute('tabindex')) {
+        fallback.setAttribute('tabindex', '-1')
+      }
+      fallback.focus()
+    }
+  }
+
+  useEffect(() => {
+    if (open) {
+      wasOpenRef.current = true
+      return
+    }
+
+    if (wasOpenRef.current) {
+      wasOpenRef.current = false
+      restoreFocus()
+    }
+  }, [open])
+
+  useEffect(() => {
+    return () => {
+      if (wasOpenRef.current) {
+        wasOpenRef.current = false
+        restoreFocus()
+      }
+    }
+  }, [])
+
   useEffect(() => {
     if (!open) return
 
@@ -73,18 +121,17 @@ export function ConfirmDialog({
       const root = dialogRef.current
       if (!root) return [] as HTMLElement[]
       return [...root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)].filter(
-        (element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true',
+        (element) =>
+          !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true',
       )
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!open) return
-
       if (event.key === 'Escape') {
-        if (pending) return
+        if (pendingRef.current) return
         event.preventDefault()
         event.stopPropagation()
-        onCancel()
+        onCancelRef.current()
         return
       }
 
@@ -118,12 +165,8 @@ export function ConfirmDialog({
 
     return () => {
       document.removeEventListener('keydown', onKeyDown, true)
-      const previous = previousFocusRef.current
-      if (previous && document.contains(previous)) {
-        previous.focus()
-      }
     }
-  }, [open, pending, onCancel])
+  }, [open])
 
   if (!open) return null
 

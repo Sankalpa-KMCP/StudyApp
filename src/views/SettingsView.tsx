@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { BookOpen, Download, Layers3, RotateCcw, Upload } from '../components/icons'
 import { MutationNotice, PanelHeader } from '../components/ui'
 import type { DataCoordinatorSnapshot } from '../db/dataCoordinator'
@@ -40,6 +40,8 @@ export function SettingsView({
   theme: ThemeMode
   onThemeChange: (theme: ThemeMode) => void
 }) {
+  const deleteInputId = useId()
+  const deleteHeadingId = useId()
   const [importFeedback, setImportFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
   const [clearError, setClearError] = useState<string | null>(null)
   const [resetState, setResetState] = useState<'idle' | 'confirm' | 'deleting'>('idle')
@@ -287,16 +289,27 @@ export function SettingsView({
             <span>Permanently deletes local study data on this device.</span>
           </button>
         ) : (
-          <div className="action-card danger-card is-confirming" aria-busy={resetState === 'deleting' || coordinatorState?.activeDataOperation === 'deleteAll' || undefined}>
-            <strong>Confirm data deletion</strong>
-            <p>Type DELETE to permanently remove all study data.</p>
+          <div
+            className="action-card danger-card is-confirming"
+            role="region"
+            aria-labelledby={deleteHeadingId}
+            aria-busy={resetState === 'deleting' || coordinatorState?.activeDataOperation === 'deleteAll' || undefined}
+          >
+            <strong id={deleteHeadingId}>Confirm data deletion</strong>
+            <p>
+              <label htmlFor={deleteInputId}>Type DELETE to permanently remove all study data.</label>
+            </p>
             <input
+              id={deleteInputId}
               className="reset-confirm-input"
               type="text"
               value={deleteInput}
               onChange={(e) => setDeleteInput(e.target.value)}
               placeholder="DELETE"
               disabled={resetState === 'deleting' || isClearDisabled}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
             />
             <div className="button-row">
               <button
