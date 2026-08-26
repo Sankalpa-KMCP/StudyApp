@@ -113,3 +113,8 @@ export function resolveViewFromPathname(
   const needsReplace = matched === null || !pathnamesMatch(pathname, canonicalPath)
   return { view, canonicalPath, needsReplace }
 }
+
+export function formatDocumentTitle(view: View): string {
+  if (view === 'Home') return 'Study Dashboard'
+  return `${view} — Study Dashboard`
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatDocumentTitle,
   normalizeAppBase,
   pathForView,
   pathnamesMatch,
@@ -130,6 +131,24 @@ describe('viewRoutes', () => {
       expect(pathnamesMatch('/StudyApp/', '/StudyApp')).toBe(true)
       expect(pathnamesMatch('/', '/')).toBe(true)
       expect(pathnamesMatch('/tasks', '/notes')).toBe(false)
+    })
+  })
+
+  describe('formatDocumentTitle', () => {
+    it('returns "Study Dashboard" for Home', () => {
+      expect(formatDocumentTitle('Home')).toBe('Study Dashboard')
+    })
+
+    it.each([
+      ['Tasks', 'Tasks — Study Dashboard'],
+      ['Notes', 'Notes — Study Dashboard'],
+      ['Subjects', 'Subjects — Study Dashboard'],
+      ['Calendar', 'Calendar — Study Dashboard'],
+      ['Progress', 'Progress — Study Dashboard'],
+      ['Goals', 'Goals — Study Dashboard'],
+      ['Settings', 'Settings — Study Dashboard'],
+    ] as const)('formats %s title as %s', (view, expected) => {
+      expect(formatDocumentTitle(view)).toBe(expected)
     })
   })
 })

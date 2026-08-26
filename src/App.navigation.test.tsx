@@ -247,4 +247,66 @@ describe('App navigation', () => {
     await user.click(screen.getByRole('button', { name: 'Home' }))
     expect(screen.getByRole('button', { name: 'Start focus' })).not.toHaveFocus()
   })
+
+  it('synchronizes document.title on initial load and client-side navigation', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+    expect(document.title).toBe('Study Dashboard')
+
+    await user.click(screen.getByRole('button', { name: 'Tasks' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Tasks' })).toBeInTheDocument()
+    expect(document.title).toBe('Tasks — Study Dashboard')
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
+    expect(document.title).toBe('Settings — Study Dashboard')
+  })
+
+  it('moves programmatic focus to workspace h1 on client navigation without stealing focus on initial load', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const homeHeading = await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
+    // On initial mount, focus is NOT stolen to heading
+    expect(homeHeading).not.toHaveFocus()
+
+    // Navigate to Tasks via keyboard/click
+    await user.click(screen.getByRole('button', { name: 'Tasks' }))
+    const tasksHeading = await screen.findByRole('heading', { level: 1, name: 'Tasks' })
+    expect(tasksHeading).toHaveFocus()
+    expect(tasksHeading).toHaveAttribute('tabindex', '-1')
+
+    // Navigate to Notes
+    await user.click(screen.getByRole('button', { name: 'Notes' }))
+    const notesHeading = await screen.findByRole('heading', { level: 1, name: 'Notes' })
+    expect(notesHeading).toHaveFocus()
+
+    // Browser Back (popstate)
+    act(() => {
+      window.history.back()
+    })
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1, name: 'Tasks' })).toHaveFocus()
+      expect(document.title).toBe('Tasks — Study Dashboard')
+    })
+  })
+
+  it('does not cause focus churn on no-op navigation to already-active view', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+    const tasksHeading = await screen.findByRole('heading', { level: 1, name: 'Tasks' })
+    expect(tasksHeading).toHaveFocus()
+
+    // Click Tasks navigation button again (no-op navigation)
+    const navItem = screen.getByRole('button', { name: 'Tasks' })
+    await user.click(navItem)
+
+    // Focus stays on clicked navigation item rather than being reset back to heading
+    expect(tasksHeading).not.toHaveFocus()
+    expect(navItem).toHaveFocus()
+  })
 })
