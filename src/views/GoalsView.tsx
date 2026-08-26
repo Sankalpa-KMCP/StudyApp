@@ -77,10 +77,12 @@ function GoalsLiveReadFallback({ onRetry }: { onRetry: () => void }) {
 function GoalsLiveQuery({
   dailyGoalMinutes,
   studySessions,
+  currentDate,
   databaseGeneration,
 }: {
   dailyGoalMinutes: number
   studySessions: StudySession[]
+  currentDate?: Date
   databaseGeneration: number
 }) {
   const liveGoals = useLiveQuery(() => listGoals(), [])
@@ -327,7 +329,7 @@ function GoalsLiveQuery({
       ) : goals.length > 0 ? (
         <div className="card-grid">
           {goals.map((goal) => {
-            const progress = calculateGoalProgress(goal, studySessions)
+            const progress = calculateGoalProgress(goal, studySessions, currentDate)
             const progressLabel = `${progress.current}/${progress.target} ${progress.unit}`
             return (
               <article className="detail-card" key={goal.id}>
@@ -364,10 +366,12 @@ function GoalsLiveQuery({
 export function GoalsView({
   dailyGoalMinutes,
   studySessions,
+  currentDate,
   databaseGeneration,
 }: {
   dailyGoalMinutes: number
   studySessions: StudySession[]
+  currentDate?: Date
   databaseGeneration: number
 }) {
   const [liveReadEpoch, setLiveReadEpoch] = useState(0)
@@ -380,6 +384,7 @@ export function GoalsView({
       <GoalsLiveQuery
         dailyGoalMinutes={dailyGoalMinutes}
         studySessions={studySessions}
+        currentDate={currentDate}
         databaseGeneration={databaseGeneration}
       />
     </LiveReadErrorBoundary>

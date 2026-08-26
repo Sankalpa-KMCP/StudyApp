@@ -243,4 +243,28 @@ describe('useAppSearch', () => {
       meta: '50% progress',
     })
   })
+
+  it('excludes future-ended sessions when now timestamp is passed', () => {
+    const { subjects, notes, events, tasks } = makeFixture()
+    subjects[0] = { ...subjects[0], progressMode: 'study_time', targetHours: 2 }
+    const subjectMap = new Map(subjects.map((s) => [s.id, s]))
+    const now = new Date('2026-06-29T12:00:00.000Z')
+
+    // Future session: endedAt is after now
+    const futureSessions: StudySession[] = [
+      { id: 's1', subjectId: 'subject-math', startedAt: '2026-06-29T13:00:00.000Z', endedAt: '2026-06-29T14:00:00.000Z', minutes: 60, note: '' },
+    ]
+    const { result } = renderHook(() =>
+      useAppSearch({ subjects, notes, events, tasks, studySessions: futureSessions, subjectMap, taskFilter: 'all', now }),
+    )
+
+    act(() => {
+      result.current.setSearch('Mathematics')
+    })
+    const subjectResult = result.current.homeSearchResults.find((item) => item.type === 'Subject')
+    expect(subjectResult).toMatchObject({
+      title: 'Mathematics',
+      meta: '0% progress',
+    })
+  })
 })

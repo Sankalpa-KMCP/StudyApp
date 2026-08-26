@@ -12,8 +12,10 @@ import {
   getSubjectProgress,
   getSubjectStudyMinutes,
   getSubjectStudyMinutesMap,
+  getCreditedSubjectStudyMinutesMap,
   getTodayFocusMinutes,
   inferSubjectProgressMode,
+  isCreditedStudySession,
   isDerivedGoal,
   isStudyTimeGoal,
   getWeeklyStudyDays,
@@ -508,6 +510,214 @@ describe('appUtils', () => {
         const fromArray = buildSearchResults(subjects, notes, events, tasks, sessions, subjectMap, q)
         const fromMap = buildSearchResults(subjects, notes, events, tasks, map, subjectMap, q)
         expect(fromMap).toEqual(fromArray)
+      }
+    })
+  })
+
+  describe('F-10: future-ended study session metric consistency', () => {
+    const fixedNow = new Date('2026-08-26T12:00:00.000Z') // Wednesday noon
+
+    const pastSession = {
+      id: 'past-1',
+      subjectId: 'math',
+      startedAt: '2026-08-26T09:00:00.000Z',
+      endedAt: '2026-08-26T10:00:00.000Z',
+      minutes: 60,
+      note: '',
+    }
+    const futureSessionToday = {
+      id: 'future-today-1',
+      subjectId: 'physics',
+      startedAt: '2026-08-26T14:00:00.000Z',
+      endedAt: '2026-08-26T15:00:00.000Z',
+      minutes: 60,
+      note: '',
+    }
+    const futureSessionTomorrow = {
+      id: 'future-tomorrow-1',
+      subjectId: 'math',
+      startedAt: '2026-08-27T09:00:00.000Z',
+      endedAt: '2026-08-27T10:00:00.000Z',
+      minutes: 60,
+      note: '',
+    }
+    const exactNowSession = {
+      id: 'exact-now-1',
+      subjectId: 'bio',
+      startedAt: '2026-08-26T11:00:00.000Z',
+      endedAt: '2026-08-26T12:00:00.000Z',
+      minutes: 60,
+      note: '',
+    }
+
+    it('1. past sessions remain credited exactly as before', () => {
+      expect(isCreditedStudySession(pastSession, fixedNow)).toBe(true)
+      expect(getTodayFocusMinutes([pastSession], fixedNow)).toBe(60)
+      expect(getDailyStudyMinutes([pastSession], fixedNow)).toBe(60)
+      expect(getRollingWeeklyStudyHours([pastSession], fixedNow)).toBe(1)
+      expect(getMonthlyStudyHours([pastSession], fixedNow)).toBe(1)
+      expect(calculateStreak([pastSession], fixedNow)).toBe(1)
+    })
+
+    it('2. future-ended session today is excluded from Hero, goals, charts, streak, subject progress, distribution and search metadata', () => {
+      const allSessions = [pastSession, futureSessionToday]
+
+      // Hero / Today focus: only past session (60m), not 120m
+      expect(getTodayFocusMinutes(allSessions, fixedNow)).toBe(60)
+      expect(getDailyStudyMinutes(allSessions, fixedNow)).toBe(60)
+
+      // Daily goal
+      const dailyGoal = goalFixture({ period: 'daily', metric: 'study_time', target: 120 })
+      expect(calculateGoalProgress(dailyGoal, allSessions, fixedNow).current).toBe(60)
+
+      // Weekly goal & chart: only 1 hour, not 2 hours
+      expect(getRollingWeeklyStudyHours(allSessions, fixedNow)).toBe(1)
+      const weeklyDays = getWeeklyStudyDays(allSessions, fixedNow)
+      const todayDay = weeklyDays.find((d) => d.key === localDateKey(fixedNow))
+      expect(todayDay?.hours).toBe(1)
+
+      // Streak
+      expect(calculateStreak([futureSessionToday], fixedNow)).toBe(0)
+
+      // Subject progress: physics has 0 credited minutes
+      const physicsSubject = subjectFixture({ id: 'physics', name: 'Physics', progressMode: 'study_time', targetHours: 2 })
+      const creditedMap = getCreditedSubjectStudyMinutesMap(allSessions, fixedNow)
+      expect(creditedMap.get('physics')).toBeUndefined()
+      expect(calculateSubjectProgress(physicsSubject, creditedMap, fixedNow)).toMatchObject({
+        percentage: 0,
+        loggedMinutes: 0,
+      })
+      expect(calculateSubjectProgress(physicsSubject, allSessions, fixedNow)).toMatchObject({
+        percentage: 0,
+        loggedMinutes: 0,
+      })
+
+      // Search metadata
+      const subjectMap = new Map([['physics', physicsSubject], ['math', subjectFixture({ id: 'math', name: 'Math' })]])
+      const searchResults = buildSearchResults([physicsSubject], [], [], [], allSessions, subjectMap, 'Physics', fixedNow)
+      expect(searchResults[0]?.meta).toBe('0% progress')
+    })
+
+    it('3. entirely future session is excluded from achievement metrics', () => {
+      const allSessions = [pastSession, futureSessionTomorrow]
+
+      expect(getTodayFocusMinutes(allSessions, fixedNow)).toBe(60)
+      expect(getRollingWeeklyStudyHours(allSessions, fixedNow)).toBe(1)
+      expect(getMonthlyStudyHours(allSessions, fixedNow)).toBe(1)
+
+      const mathSubject = subjectFixture({ id: 'math', name: 'Math', progressMode: 'study_time', targetHours: 2 })
+      const creditedMap = getCreditedSubjectStudyMinutesMap(allSessions, fixedNow)
+      expect(creditedMap.get('math')).toBe(60) // Only pastSession (60m), not tomorrow (60m)
+      expect(calculateSubjectProgress(mathSubject, creditedMap, fixedNow).loggedMinutes).toBe(60)
+    })
+
+    it('4. endedAt === now is credited everywhere', () => {
+      expect(isCreditedStudySession(exactNowSession, fixedNow)).toBe(true)
+      expect(getTodayFocusMinutes([exactNowSession], fixedNow)).toBe(60)
+      expect(getDailyStudyMinutes([exactNowSession], fixedNow)).toBe(60)
+      expect(getRollingWeeklyStudyHours([exactNowSession], fixedNow)).toBe(1)
+
+      const bioSubject = subjectFixture({ id: 'bio', name: 'Biology', progressMode: 'study_time', targetHours: 1 })
+      const creditedMap = getCreditedSubjectStudyMinutesMap([exactNowSession], fixedNow)
+      expect(creditedMap.get('bio')).toBe(60)
+      expect(calculateSubjectProgress(bioSubject, creditedMap, fixedNow).percentage).toBe(100)
+    })
+
+    it('5. Hero today minutes equals daily study minutes', () => {
+      const mixedSessions = [pastSession, futureSessionToday, futureSessionTomorrow, exactNowSession]
+      expect(getTodayFocusMinutes(mixedSessions, fixedNow)).toBe(getDailyStudyMinutes(mixedSessions, fixedNow))
+      expect(getTodayFocusMinutes(mixedSessions, fixedNow)).toBe(120) // pastSession (60m) + exactNowSession (60m)
+    })
+
+    it('6. weekly chart total equals rolling weekly goal hours for the same fixed clock', () => {
+      const mixedSessions = [pastSession, futureSessionToday, futureSessionTomorrow, exactNowSession]
+      const chartTotal = getWeeklyStudyDays(mixedSessions, fixedNow).reduce((sum, d) => sum + d.hours, 0)
+      const goalTotal = getRollingWeeklyStudyHours(mixedSessions, fixedNow)
+      expect(chartTotal).toBe(goalTotal)
+      expect(goalTotal).toBe(2) // 1h (past) + 1h (exact-now)
+    })
+
+    it('7. future-ended session cannot prematurely extend streak', () => {
+      // User only has a session scheduled for later today
+      expect(calculateStreak([futureSessionToday], fixedNow)).toBe(0)
+      // When session ended in past, streak is active
+      expect(calculateStreak([pastSession], fixedNow)).toBe(1)
+    })
+
+    it('8. study-time Subject progress uses credited minutes', () => {
+      const physics = subjectFixture({ id: 'physics', name: 'Physics', progressMode: 'study_time', targetHours: 1 })
+      expect(calculateSubjectProgress(physics, [futureSessionToday], fixedNow).percentage).toBe(0)
+      expect(calculateSubjectProgress(physics, [pastSession], fixedNow).loggedMinutes).toBe(0)
+
+      const math = subjectFixture({ id: 'math', name: 'Math', progressMode: 'study_time', targetHours: 2 })
+      expect(calculateSubjectProgress(math, [pastSession, futureSessionTomorrow], fixedNow).loggedMinutes).toBe(60)
+      expect(calculateSubjectProgress(math, [pastSession, futureSessionTomorrow], fixedNow).percentage).toBe(50)
+    })
+
+    it('9. manual Subject progress remains unchanged', () => {
+      const manualSubject = subjectFixture({ id: 'physics', name: 'Physics', progressMode: 'manual', progress: 75, targetHours: 5 })
+      expect(calculateSubjectProgress(manualSubject, [futureSessionToday], fixedNow).percentage).toBe(75)
+      expect(calculateSubjectProgress(manualSubject, [], fixedNow).percentage).toBe(75)
+    })
+
+    it('10. SubjectDistribution and search match credited Subject progress', () => {
+      const physics = subjectFixture({ id: 'physics', name: 'Physics', progressMode: 'study_time', targetHours: 1 })
+      const math = subjectFixture({ id: 'math', name: 'Math', progressMode: 'study_time', targetHours: 1 })
+      const allSubjects = [physics, math]
+      const allSessions = [pastSession, futureSessionToday] // math past (60m), physics future (60m)
+      const subjectMap = new Map(allSubjects.map((s) => [s.id, s]))
+
+      const creditedMap = getCreditedSubjectStudyMinutesMap(allSessions, fixedNow)
+      expect(creditedMap.get('math')).toBe(60)
+      expect(creditedMap.get('physics')).toBeUndefined()
+
+      // Search results use credited map
+      const physicsSearchResults = buildSearchResults(allSubjects, [], [], [], creditedMap, subjectMap, 'Physics', fixedNow)
+      const mathSearchResults = buildSearchResults(allSubjects, [], [], [], creditedMap, subjectMap, 'Math', fixedNow)
+      expect(physicsSearchResults[0]?.meta).toBe('0% progress')
+      expect(mathSearchResults[0]?.meta).toBe('100% progress')
+    })
+
+    it('11. Progress journal still renders future sessions', () => {
+      const allSessions = [pastSession, futureSessionToday, futureSessionTomorrow]
+      const groups = groupStudySessionsByLocalDate(allSessions, fixedNow)
+
+      // All 3 sessions exist in the journal
+      const allGroupedSessions = groups.flatMap((g) => g.sessions)
+      expect(allGroupedSessions).toHaveLength(3)
+      expect(allGroupedSessions.map((s) => s.id)).toContain('future-today-1')
+      expect(allGroupedSessions.map((s) => s.id)).toContain('future-tomorrow-1')
+      expect(allGroupedSessions.map((s) => s.id)).toContain('past-1')
+    })
+
+    it('12. raw getSubjectStudyMinutesMap and inferSubjectProgressMode remain unfiltered for legacy behavior', () => {
+      const allSessions = [pastSession, futureSessionToday, futureSessionTomorrow]
+
+      // Raw map includes all sessions regardless of timestamp
+      const rawMap = getSubjectStudyMinutesMap(allSessions)
+      expect(rawMap.get('math')).toBe(120) // pastSession (60m) + futureSessionTomorrow (60m)
+      expect(rawMap.get('physics')).toBe(60) // futureSessionToday (60m)
+
+      // Legacy mode inference detects presence of any matching session
+      expect(inferSubjectProgressMode('physics', rawMap)).toBe('study_time')
+      expect(inferSubjectProgressMode('physics', allSessions)).toBe('study_time')
+      expect(inferSubjectProgressMode('biology', rawMap)).toBe('manual')
+    })
+
+    it('13. credited subject indexing remains linear and does not regress to subject × session scans', () => {
+      const manySessions: StudySession[] = Array.from({ length: 500 }, (_, i) => ({
+        id: `sess-${i}`,
+        subjectId: `subj-${Math.floor(i / 50)}`,
+        startedAt: '2026-08-26T08:00:00.000Z',
+        endedAt: i % 2 === 0 ? '2026-08-26T09:00:00.000Z' : '2026-08-26T15:00:00.000Z', // Half past, half future
+        minutes: 30,
+        note: '',
+      }))
+
+      const creditedMap = getCreditedSubjectStudyMinutesMap(manySessions, fixedNow)
+      // 250 credited sessions total across 10 subjects -> 25 per subject * 30 min = 750 min
+      for (let s = 0; s < 10; s++) {
+        expect(creditedMap.get(`subj-${s}`)).toBe(750)
       }
     })
   })

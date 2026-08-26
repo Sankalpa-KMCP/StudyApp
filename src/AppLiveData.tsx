@@ -186,7 +186,7 @@ export function AppLiveData({
     filteredNotes,
     filteredSubjects,
     filteredEvents,
-  } = useAppSearch({ subjects, notes, events, tasks, studySessions, subjectMap, taskFilter })
+  } = useAppSearch({ subjects, notes, events, tasks, studySessions, subjectMap, taskFilter, now: currentDate })
 
   const todayFocusMinutes = useMemo(
     () => getTodayFocusMinutes(studySessions, currentDate),
@@ -321,6 +321,7 @@ export function AppLiveData({
                   notes={notes}
                   events={events}
                   sessions={studySessions}
+                  currentDate={currentDate}
                   openEditorRequest={subjectEditorRequest}
                   databaseGeneration={databaseGeneration}
                 />
@@ -345,6 +346,7 @@ export function AppLiveData({
                   dailyGoalMinutes={dailyGoalMinutes}
                   todayFocusMinutes={todayFocusMinutes}
                   subjectMap={subjectMap}
+                  currentDate={currentDate}
                   openEditorOnMount={progressEditorRequested}
                   databaseGeneration={databaseGeneration}
                 />
@@ -353,6 +355,7 @@ export function AppLiveData({
                 <GoalsView
                   dailyGoalMinutes={dailyGoalMinutes}
                   studySessions={studySessions}
+                  currentDate={currentDate}
                   databaseGeneration={databaseGeneration}
                 />
               ) : null}
