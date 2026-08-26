@@ -5,6 +5,7 @@ import {
 import { createId, nowIso, studyDb } from './studyDb'
 import { assertSubjectExists } from './subjectValidation'
 import type { CalendarEvent } from './types'
+import { assertCalendarEventWriteFields } from './validation/domainValidation'
 
 /** Fields the Calendar editor supplies after title and date/time validation. */
 export type CalendarEventWriteFields = {
@@ -23,8 +24,9 @@ export async function createCalendarEvent(
   fields: CalendarEventWriteFields,
   context: DatabaseMutationContext,
 ): Promise<CalendarEvent> {
-  return withGuardedMutation(context, () =>
-    studyDb.transaction('rw', studyDb.subjects, studyDb.events, async () => {
+  return withGuardedMutation(context, () => {
+    assertCalendarEventWriteFields(fields)
+    return studyDb.transaction('rw', studyDb.subjects, studyDb.events, async () => {
       await assertSubjectExists(fields.subjectId)
       const timestamp = nowIso()
       const event: CalendarEvent = {
@@ -39,8 +41,8 @@ export async function createCalendarEvent(
       }
       await studyDb.events.add(event)
       return event
-    }),
-  )
+    })
+  })
 }
 
 /**
@@ -53,8 +55,9 @@ export async function updateCalendarEvent(
   fields: CalendarEventWriteFields,
   context: DatabaseMutationContext,
 ): Promise<void> {
-  return withGuardedMutation(context, () =>
-    studyDb.transaction('rw', studyDb.subjects, studyDb.events, async () => {
+  return withGuardedMutation(context, () => {
+    assertCalendarEventWriteFields(fields)
+    return studyDb.transaction('rw', studyDb.subjects, studyDb.events, async () => {
       await assertSubjectExists(fields.subjectId)
       const updated = await studyDb.events.update(id, {
         title: fields.title,
@@ -65,8 +68,8 @@ export async function updateCalendarEvent(
         updatedAt: nowIso(),
       })
       if (updated === 0) throw new Error('Event no longer exists.')
-    }),
-  )
+    })
+  })
 }
 
 /**

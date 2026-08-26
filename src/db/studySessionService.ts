@@ -5,6 +5,7 @@ import {
 import { createId, studyDb } from './studyDb'
 import { assertSubjectExists } from './subjectValidation'
 import type { StudySession } from './types'
+import { assertStudySessionWriteFields } from './validation/domainValidation'
 
 /** Fields Progress supplies after subject and date/time validation. */
 export type StudySessionWriteFields = {
@@ -24,8 +25,9 @@ export async function createStudySession(
   fields: StudySessionWriteFields,
   context: DatabaseMutationContext,
 ): Promise<StudySession> {
-  return withGuardedMutation(context, () =>
-    studyDb.transaction('rw', studyDb.subjects, studyDb.studySessions, async () => {
+  return withGuardedMutation(context, () => {
+    assertStudySessionWriteFields(fields)
+    return studyDb.transaction('rw', studyDb.subjects, studyDb.studySessions, async () => {
       await assertSubjectExists(fields.subjectId)
       const session: StudySession = {
         id: createId('session'),
@@ -37,8 +39,8 @@ export async function createStudySession(
       }
       await studyDb.studySessions.add(session)
       return session
-    }),
-  )
+    })
+  })
 }
 
 /**
@@ -51,8 +53,9 @@ export async function updateStudySession(
   fields: StudySessionWriteFields,
   context: DatabaseMutationContext,
 ): Promise<void> {
-  return withGuardedMutation(context, () =>
-    studyDb.transaction('rw', studyDb.subjects, studyDb.studySessions, async () => {
+  return withGuardedMutation(context, () => {
+    assertStudySessionWriteFields(fields)
+    return studyDb.transaction('rw', studyDb.subjects, studyDb.studySessions, async () => {
       await assertSubjectExists(fields.subjectId)
       const updated = await studyDb.studySessions.update(id, {
         subjectId: fields.subjectId,
@@ -62,8 +65,8 @@ export async function updateStudySession(
         note: fields.note,
       })
       if (updated === 0) throw new Error('Session no longer exists.')
-    }),
-  )
+    })
+  })
 }
 
 /**

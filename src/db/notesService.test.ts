@@ -215,4 +215,37 @@ describe('notesService', () => {
     await expect(deleteNote(created.id, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
     expect(await studyDb.notes.get(created.id)).toBeDefined()
   })
+
+  it('rejects createNote with blank title and preserves empty database', async () => {
+    await expect(
+      createNote({
+        title: '   ',
+        body: 'Some text',
+        subjectId: '',
+        tags: [],
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Note title must be a non-blank string.')
+    expect(await studyDb.notes.count()).toBe(0)
+  })
+
+  it('rejects updateNote with blank title and leaves stored record unchanged', async () => {
+    const original = await createNote({
+      title: 'Original Note',
+      body: 'Original body',
+      subjectId: '',
+      tags: [],
+    }, { expectedGeneration: 1 })
+
+    await expect(
+      updateNote(original.id, {
+        title: '',
+        body: 'Modified body',
+        subjectId: '',
+        tags: [],
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Note title must be a non-blank string.')
+
+    const afterFailedUpdate = await studyDb.notes.get(original.id)
+    expect(afterFailedUpdate).toEqual(original)
+  })
 })

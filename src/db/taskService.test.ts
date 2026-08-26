@@ -257,4 +257,95 @@ describe('taskService', () => {
     await expect(deleteTask(created.id, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
     expect(await studyDb.tasks.get(created.id)).toBeDefined()
   })
+
+  it('rejects createTask with domain-invalid fields and preserves empty database', async () => {
+    // Blank title
+    await expect(
+      createTask({
+        title: '   ',
+        subjectId: '',
+        dueDate: '2026-07-22',
+        priority: 'high',
+        minutes: 45,
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Task title must be a non-blank string.')
+    expect(await studyDb.tasks.count()).toBe(0)
+
+    // Negative minutes
+    await expect(
+      createTask({
+        title: 'Negative Minutes Task',
+        subjectId: '',
+        dueDate: '2026-07-22',
+        priority: 'high',
+        minutes: -10,
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Task minutes must be a non-negative finite number.')
+    expect(await studyDb.tasks.count()).toBe(0)
+
+    // Invalid dueDate
+    await expect(
+      createTask({
+        title: 'Invalid Date Task',
+        subjectId: '',
+        dueDate: 'not-a-date',
+        priority: 'high',
+        minutes: 30,
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Task dueDate must be empty or a valid YYYY-MM-DD date key.')
+    expect(await studyDb.tasks.count()).toBe(0)
+  })
+
+  it('permits valid unusual values such as minutes: 0', async () => {
+    const created = await createTask({
+      title: 'Zero minutes task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'low',
+      minutes: 0,
+    }, { expectedGeneration: 1 })
+
+    expect(created.minutes).toBe(0)
+    expect(await studyDb.tasks.count()).toBe(1)
+  })
+
+  it('rejects updateTask with domain-invalid fields and leaves stored record untouched', async () => {
+    const original = await createTask({
+      title: 'Original Task',
+      subjectId: '',
+      dueDate: '2026-07-22',
+      priority: 'normal',
+      minutes: 30,
+    }, { expectedGeneration: 1 })
+
+    await expect(
+      updateTask(original.id, {
+        title: '',
+        subjectId: '',
+        dueDate: '2026-07-22',
+        priority: 'normal',
+        minutes: 30,
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Task title must be a non-blank string.')
+
+    const afterFailedUpdate = await studyDb.tasks.get(original.id)
+    expect(afterFailedUpdate).toEqual(original)
+  })
+
+  it('rejects setTaskStatus with invalid status value', async () => {
+    const original = await createTask({
+      title: 'Original Task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      minutes: 30,
+    }, { expectedGeneration: 1 })
+
+    await expect(
+      setTaskStatus(original.id, 'invalid_status' as unknown as TaskStatus, { expectedGeneration: 1 })
+    ).rejects.toThrow('Invalid task status.')
+
+    const afterFailedUpdate = await studyDb.tasks.get(original.id)
+    expect(afterFailedUpdate).toEqual(original)
+  })
 })

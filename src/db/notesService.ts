@@ -5,6 +5,7 @@ import {
 import { createId, nowIso, studyDb } from './studyDb'
 import { assertSubjectExists } from './subjectValidation'
 import type { StudyNote } from './types'
+import { assertNoteWriteFields } from './validation/domainValidation'
 
 /** Fields the Notes editor supplies after UI validation and tag parsing. */
 export type NoteWriteFields = {
@@ -22,8 +23,9 @@ export async function createNote(
   fields: NoteWriteFields,
   context: DatabaseMutationContext,
 ): Promise<StudyNote> {
-  return withGuardedMutation(context, () =>
-    studyDb.transaction('rw', studyDb.subjects, studyDb.notes, async () => {
+  return withGuardedMutation(context, () => {
+    assertNoteWriteFields(fields)
+    return studyDb.transaction('rw', studyDb.subjects, studyDb.notes, async () => {
       await assertSubjectExists(fields.subjectId)
       const timestamp = nowIso()
       const note: StudyNote = {
@@ -37,8 +39,8 @@ export async function createNote(
       }
       await studyDb.notes.add(note)
       return note
-    }),
-  )
+    })
+  })
 }
 
 /**
@@ -51,8 +53,9 @@ export async function updateNote(
   fields: NoteWriteFields,
   context: DatabaseMutationContext,
 ): Promise<void> {
-  return withGuardedMutation(context, () =>
-    studyDb.transaction('rw', studyDb.subjects, studyDb.notes, async () => {
+  return withGuardedMutation(context, () => {
+    assertNoteWriteFields(fields)
+    return studyDb.transaction('rw', studyDb.subjects, studyDb.notes, async () => {
       await assertSubjectExists(fields.subjectId)
       const updated = await studyDb.notes.update(id, {
         title: fields.title,
@@ -62,8 +65,8 @@ export async function updateNote(
         updatedAt: nowIso(),
       })
       if (updated === 0) throw new Error('Note no longer exists.')
-    }),
-  )
+    })
+  })
 }
 
 /**

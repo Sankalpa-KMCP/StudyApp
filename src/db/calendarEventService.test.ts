@@ -233,4 +233,53 @@ describe('calendarEventService', () => {
     await expect(deleteCalendarEvent(created.id, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
     expect(await studyDb.events.get(created.id)).toBeDefined()
   })
+
+  it('rejects createCalendarEvent with domain-invalid fields and preserves empty database', async () => {
+    // Blank title
+    await expect(
+      createCalendarEvent({
+        title: '   ',
+        subjectId: '',
+        startAt: '2026-08-04T09:00:00.000Z',
+        endAt: '2026-08-04T10:00:00.000Z',
+        location: 'Lab',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Event title must be a non-blank string.')
+    expect(await studyDb.events.count()).toBe(0)
+
+    // Inverted timestamps (endAt < startAt)
+    await expect(
+      createCalendarEvent({
+        title: 'Inverted event',
+        subjectId: '',
+        startAt: '2026-08-04T12:00:00.000Z',
+        endAt: '2026-08-04T10:00:00.000Z',
+        location: 'Lab',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Event endAt must not be earlier than startAt.')
+    expect(await studyDb.events.count()).toBe(0)
+  })
+
+  it('rejects updateCalendarEvent with domain-invalid fields and leaves stored record unchanged', async () => {
+    const original = await createCalendarEvent({
+      title: 'Original Event',
+      subjectId: '',
+      startAt: '2026-08-04T09:00:00.000Z',
+      endAt: '2026-08-04T10:00:00.000Z',
+      location: 'Lab',
+    }, { expectedGeneration: 1 })
+
+    await expect(
+      updateCalendarEvent(original.id, {
+        title: '',
+        subjectId: '',
+        startAt: '2026-08-04T09:00:00.000Z',
+        endAt: '2026-08-04T10:00:00.000Z',
+        location: 'Lab',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Event title must be a non-blank string.')
+
+    const afterFailedUpdate = await studyDb.events.get(original.id)
+    expect(afterFailedUpdate).toEqual(original)
+  })
 })

@@ -5,6 +5,12 @@ import { DATABASE_GENERATION_KEY, getDatabaseGeneration } from './databaseGenera
 import { assertStudyExportImportFileSize, assertStudyExportImportTextLength, MAX_STUDY_EXPORT_IMPORT_BYTES, MAX_STUDY_EXPORT_IMPORT_CHARS } from './studyExportLimits'
 import { isPersistedIsoTimestamp } from './validation/persistedInvariants'
 import type { ActiveFocusSession, StudyGoal } from './types'
+import { createSubject } from './subjectService'
+import { createTask } from './taskService'
+import { createNote } from './notesService'
+import { createCalendarEvent } from './calendarEventService'
+import { createGoal } from './goalService'
+import { createStudySession } from './studySessionService'
 
 const STUDY_DB_NAME = 'study-dashboard-db'
 
@@ -4572,6 +4578,67 @@ describe('legacy event start timestamp Dexie version 5 upgrade', () => {
       const storedGen = await studyDb.settings.get(DATABASE_GENERATION_KEY)
       expect(storedGen).toBeDefined()
       expect(storedGen?.value).toBeUndefined()
+    })
+
+    it('exports and validates data created entirely through domain services with production Version 4 validator', async () => {
+      const subject = await createSubject({
+        name: 'Organic Chemistry',
+        color: '#10b981',
+        targetHours: 12,
+        progress: 25,
+        progressMode: 'study_time',
+      }, { expectedGeneration: 1 })
+
+      await createTask({
+        title: 'Complete lab report',
+        subjectId: subject.id,
+        dueDate: '2026-09-15',
+        priority: 'high',
+        minutes: 60,
+      }, { expectedGeneration: 1 })
+
+      await createNote({
+        title: 'Reaction Mechanisms',
+        body: 'SN1 vs SN2 summary notes',
+        subjectId: subject.id,
+        tags: ['chemistry', 'reactions'],
+      }, { expectedGeneration: 1 })
+
+      await createCalendarEvent({
+        title: 'Lab Session',
+        subjectId: subject.id,
+        startAt: '2026-09-16T14:00:00.000Z',
+        endAt: '2026-09-16T16:00:00.000Z',
+        location: 'Science Building 302',
+      }, { expectedGeneration: 1 })
+
+      await createGoal({
+        title: 'Weekly Study Target',
+        target: 720,
+        progress: 180,
+        period: 'weekly',
+        metric: 'study_time',
+      }, { expectedGeneration: 1 })
+
+      await createStudySession({
+        subjectId: subject.id,
+        startedAt: '2026-09-10T10:00:00.000Z',
+        endedAt: '2026-09-10T11:30:00.000Z',
+        minutes: 90,
+        note: 'Functional groups review',
+      }, { expectedGeneration: 1 })
+
+      const rawExport = await exportStudyData()
+      expect(rawExport.version).toBe(4)
+
+      // Must pass full production Version 4 parse and normalization without throwing
+      const normalized = parseAndNormalizeStudyExport(rawExport)
+      expect(normalized.subjects).toHaveLength(1)
+      expect(normalized.tasks).toHaveLength(1)
+      expect(normalized.notes).toHaveLength(1)
+      expect(normalized.events).toHaveLength(1)
+      expect(normalized.goals).toHaveLength(1)
+      expect(normalized.studySessions).toHaveLength(1)
     })
   })
 })
