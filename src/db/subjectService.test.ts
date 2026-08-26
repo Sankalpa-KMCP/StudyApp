@@ -45,6 +45,30 @@ describe('subjectService', () => {
     expect(await studyDb.subjects.get(created.id)).toEqual(created)
   })
 
+  it('rejects createSubject with invalid or malicious color strings', async () => {
+    await expect(
+      createSubject({
+        name: 'Malicious Subject',
+        color: "url('https://tracker.invalid/beacon.png')",
+        targetHours: 5,
+        progress: 0,
+        progressMode: 'manual',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Invalid subject color')
+
+    await expect(
+      createSubject({
+        name: 'Invalid Hex Subject',
+        color: '#123',
+        targetHours: 5,
+        progress: 0,
+        progressMode: 'manual',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Invalid subject color')
+
+    expect(await studyDb.subjects.count()).toBe(0)
+  })
+
   it('rejects createSubject when generation is stale', async () => {
     await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 3 })
 
@@ -97,6 +121,29 @@ describe('subjectService', () => {
       progress: 0,
       progressMode: 'manual',
     }, { expectedGeneration: 1 })).rejects.toThrow('Subject no longer exists.')
+  })
+
+  it('rejects updateSubject with invalid or malicious color strings', async () => {
+    const original = await createSubject({
+      name: 'Original',
+      color: '#111827',
+      targetHours: 4,
+      progress: 10,
+      progressMode: 'manual',
+    }, { expectedGeneration: 1 })
+
+    await expect(
+      updateSubject(original.id, {
+        name: 'Updated',
+        color: "url('https://tracker.invalid/beacon.png')",
+        targetHours: 4,
+        progress: 10,
+        progressMode: 'manual',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Invalid subject color')
+
+    const stored = await studyDb.subjects.get(original.id)
+    expect(stored?.color).toBe('#111827')
   })
 
   it('rejects updateSubject when generation is stale', async () => {

@@ -131,7 +131,7 @@
   width: 46px;
   height: 46px;
   border-radius: 12px;
-  background: var(--subject-color, var(--accent));
+  background-color: var(--subject-color, var(--accent));
 }
 
 .subject-card h3 {

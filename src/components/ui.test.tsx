@@ -205,6 +205,19 @@ describe('UI Components', () => {
 
       expect(screen.getByRole('progressbar', { name: '72%' })).toHaveAttribute('aria-valuenow', '72.4')
     })
+
+    it('falls back safely to default color when subject color is malformed or crafted', () => {
+      const malformedSubject = {
+        ...subject,
+        color: "url('https://tracker.invalid/beacon.png')",
+      }
+      const { container } = render(<SubjectCard subject={malformedSubject} progressValue={10} />)
+      const card = container.querySelector('.subject-card') as HTMLElement
+      const icon = container.querySelector('.subject-icon') as HTMLElement
+
+      expect(card.style.getPropertyValue('--subject-color')).toBe('#111827')
+      expect(icon).toHaveStyle({ backgroundColor: 'rgb(17, 24, 39)' })
+    })
   })
 
   describe('MutationNotice', () => {

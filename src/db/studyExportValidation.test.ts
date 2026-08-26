@@ -530,6 +530,21 @@ describe('assertStudyExportSemantics', () => {
       ...emptyTables(),
       subjects: [{ ...baseSubject, targetHours: -2 }],
     })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      subjects: [{ ...baseSubject, color: "url('https://tracker.invalid/beacon.png')" }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      subjects: [{ ...baseSubject, color: 'red' }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSemantics({
+      ...emptyTables(),
+      subjects: [{ ...baseSubject, color: '#fff' }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
   })
 
   it('rejects negative task minutes while allowing zero', () => {
@@ -1243,6 +1258,51 @@ describe('parseAndNormalizeStudyExport classified validation errors & appVersion
           })
         ).toThrow(StudyExportValidationError)
       }
+    })
+
+    it('rejects crafted or invalid subject colors in backups across versions 1 to 4', () => {
+      for (const version of [1, 2, 3, 4] as const) {
+        expect(() =>
+          parseAndNormalizeStudyExport({
+            version,
+            exportedAt: timestamp,
+            ...emptyTables(),
+            subjects: [
+              {
+                id: 'subject-malicious',
+                name: 'Crafted Color',
+                color: "url('https://tracker.invalid/beacon.png')",
+                targetHours: 1,
+                progress: 0,
+                progressMode: 'manual',
+                createdAt: timestamp,
+                updatedAt: timestamp,
+              },
+            ],
+          })
+        ).toThrow(StudyExportValidationError)
+      }
+    })
+
+    it('accepts valid 6-digit hex subject colors in backups', () => {
+      const parsed = parseAndNormalizeStudyExport({
+        version: 4,
+        exportedAt: timestamp,
+        ...emptyTables(),
+        subjects: [
+          {
+            id: 'subject-valid',
+            name: 'Valid Color',
+            color: '#047857',
+            targetHours: 1,
+            progress: 0,
+            progressMode: 'manual',
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        ],
+      })
+      expect(parsed.subjects[0]?.color).toBe('#047857')
     })
   })
 })

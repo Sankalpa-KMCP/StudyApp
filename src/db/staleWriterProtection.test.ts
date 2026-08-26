@@ -166,7 +166,17 @@ describe('Stale writer protection across all domain entities', () => {
     await clearAllStudyData()
 
     await expect(
-      updateSubject(subject.id, { name: 'Resurrected Math' }, { expectedGeneration: gen }),
+      updateSubject(
+        subject.id,
+        {
+          name: 'Resurrected Math',
+          color: '#111827',
+          targetHours: 20,
+          progress: 0,
+          progressMode: 'manual',
+        },
+        { expectedGeneration: gen },
+      ),
     ).rejects.toThrow(StaleDatabaseGenerationError)
 
     await expect(

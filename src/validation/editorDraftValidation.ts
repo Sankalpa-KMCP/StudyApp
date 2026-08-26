@@ -14,6 +14,7 @@ import {
   clampSubjectEditorTargetHours,
   STUDY_SESSION_EDITOR_DURATION_MIN,
 } from './editorLimits'
+import { isValidSubjectColor } from './subjectColor'
 
 /**
  * Message-neutral create/edit draft checks for Subjects, Notes,
@@ -39,7 +40,7 @@ export type SubjectEditorFields = {
 
 export type SubjectEditorDraftValidation =
   | { ok: true; fields: SubjectEditorFields }
-  | { ok: false; reason: 'empty_name' | 'invalid_progress_mode' }
+  | { ok: false; reason: 'empty_name' | 'invalid_progress_mode' | 'invalid_color' }
 
 export function validateSubjectEditorDraft(
   draft: SubjectEditorDraftInput,
@@ -51,6 +52,10 @@ export function validateSubjectEditorDraft(
 
   if (!isSubjectProgressMode(draft.progressMode)) {
     return { ok: false, reason: 'invalid_progress_mode' }
+  }
+
+  if (!isValidSubjectColor(draft.color)) {
+    return { ok: false, reason: 'invalid_color' }
   }
 
   return {
