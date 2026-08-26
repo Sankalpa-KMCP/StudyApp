@@ -10,6 +10,8 @@ import {
   getMonthlyStudyHours,
   getRollingWeeklyStudyHours,
   getSubjectProgress,
+  getSubjectStudyMinutes,
+  getSubjectStudyMinutesMap,
   getTodayFocusMinutes,
   inferSubjectProgressMode,
   isDerivedGoal,
@@ -384,6 +386,129 @@ describe('appUtils', () => {
       expect(Number.isFinite(result.percentage)).toBe(true)
       expect(result.percentage).toBe(0)
       expect(result.target).toBe(0)
+    })
+  })
+
+  describe('subject/session aggregation optimization (S6.1)', () => {
+    const sessions = [
+      { id: 's1', subjectId: 'math', startedAt: '2026-06-29T09:00:00.000Z', endedAt: '2026-06-29T09:30:00.000Z', minutes: 30, note: '' },
+      { id: 's2', subjectId: 'math', startedAt: '2026-06-29T10:00:00.000Z', endedAt: '2026-06-29T10:45:00.000Z', minutes: 45, note: '' },
+      { id: 's3', subjectId: 'physics', startedAt: '2026-06-29T11:00:00.000Z', endedAt: '2026-06-29T12:00:00.000Z', minutes: 60, note: '' },
+      { id: 's4', subjectId: 'orphaned-subj', startedAt: '2026-06-29T13:00:00.000Z', endedAt: '2026-06-29T13:20:00.000Z', minutes: 20, note: '' },
+      { id: 's5', subjectId: 'chemistry', startedAt: '2026-06-29T14:00:00.000Z', endedAt: '2026-06-29T14:00:00.000Z', minutes: 0, note: '' },
+    ]
+
+    it('aggregates study session minutes by subject into a single-pass map', () => {
+      const map = getSubjectStudyMinutesMap(sessions)
+      expect(map.get('math')).toBe(75)
+      expect(map.get('physics')).toBe(60)
+      expect(map.get('orphaned-subj')).toBe(20)
+      expect(map.get('chemistry')).toBeUndefined()
+      expect(map.get('biology')).toBeUndefined()
+
+      expect(getSubjectStudyMinutes('math', map)).toBe(75)
+      expect(getSubjectStudyMinutes('physics', map)).toBe(60)
+      expect(getSubjectStudyMinutes('biology', map)).toBe(0)
+      expect(getSubjectStudyMinutes('biology', sessions)).toBe(0)
+
+      expect(getSubjectStudyMinutesMap([])).toEqual(new Map())
+    })
+
+    it('produces strictly identical SubjectProgressResult using array vs pre-indexed Map', () => {
+      const mathStudySubject = subjectFixture({ id: 'math', progressMode: 'study_time', targetHours: 2, progress: 10 })
+      const mathManualSubject = subjectFixture({ id: 'math', progressMode: 'manual', targetHours: 2, progress: 10 })
+      const bioStudySubject = subjectFixture({ id: 'biology', progressMode: 'study_time', targetHours: 3, progress: 0 })
+      const bioManualSubject = subjectFixture({ id: 'biology', progressMode: 'manual', targetHours: 3, progress: 25 })
+      const physicsStudySubject = subjectFixture({ id: 'physics', progressMode: 'study_time', targetHours: 0.5, progress: 0 })
+
+      const map = getSubjectStudyMinutesMap(sessions)
+
+      // 1. Math study_time (75 min logged / 120 min target = 62.5%)
+      const arrayResultMath = calculateSubjectProgress(mathStudySubject, sessions)
+      const mapResultMath = calculateSubjectProgress(mathStudySubject, map)
+      expect(mapResultMath).toEqual(arrayResultMath)
+      expect(mapResultMath).toEqual({
+        percentage: 62.5,
+        mode: 'study_time',
+        loggedMinutes: 75,
+        targetMinutes: 120,
+      })
+
+      // 2. Math manual (retains stored 10%, loggedMinutes: 75)
+      const arrayResultManual = calculateSubjectProgress(mathManualSubject, sessions)
+      const mapResultManual = calculateSubjectProgress(mathManualSubject, map)
+      expect(mapResultManual).toEqual(arrayResultManual)
+      expect(mapResultManual).toEqual({
+        percentage: 10,
+        mode: 'manual',
+        loggedMinutes: 75,
+        targetMinutes: 120,
+      })
+
+      // 3. Zero-session subject study_time (biology)
+      expect(calculateSubjectProgress(bioStudySubject, map)).toEqual(calculateSubjectProgress(bioStudySubject, sessions))
+      expect(calculateSubjectProgress(bioStudySubject, map)).toEqual({
+        percentage: 0,
+        mode: 'study_time',
+        loggedMinutes: 0,
+        targetMinutes: 180,
+      })
+
+      // 4. Zero-session subject manual (biology)
+      expect(calculateSubjectProgress(bioManualSubject, map)).toEqual(calculateSubjectProgress(bioManualSubject, sessions))
+      expect(calculateSubjectProgress(bioManualSubject, map)).toEqual({
+        percentage: 25,
+        mode: 'manual',
+        loggedMinutes: 0,
+        targetMinutes: 180,
+      })
+
+      // 5. Clamping: physics target 0.5h (30 min), logged 60 min -> 100% clamped
+      expect(calculateSubjectProgress(physicsStudySubject, map)).toEqual(calculateSubjectProgress(physicsStudySubject, sessions))
+      expect(calculateSubjectProgress(physicsStudySubject, map)).toEqual({
+        percentage: 100,
+        mode: 'study_time',
+        loggedMinutes: 60,
+        targetMinutes: 30,
+      })
+
+      // 6. getSubjectProgress wrapper equivalence
+      expect(getSubjectProgress(mathStudySubject, map)).toBe(getSubjectProgress(mathStudySubject, sessions))
+      expect(getSubjectProgress(mathManualSubject, map)).toBe(getSubjectProgress(mathManualSubject, sessions))
+
+      // 7. inferSubjectProgressMode equivalence
+      expect(inferSubjectProgressMode('math', map)).toBe(inferSubjectProgressMode('math', sessions))
+      expect(inferSubjectProgressMode('math', map)).toBe('study_time')
+      expect(inferSubjectProgressMode('biology', map)).toBe(inferSubjectProgressMode('biology', sessions))
+      expect(inferSubjectProgressMode('biology', map)).toBe('manual')
+      expect(inferSubjectProgressMode('orphaned-subj', map)).toBe('study_time')
+    })
+
+    it('buildSearchResults produces identical results when using sessions array or pre-indexed Map', () => {
+      const subjects = [
+        subjectFixture({ id: 'math', name: 'Mathematics', progressMode: 'study_time', targetHours: 2 }),
+        subjectFixture({ id: 'physics', name: 'Physics Mechanics', progressMode: 'study_time', targetHours: 1 }),
+        subjectFixture({ id: 'bio', name: 'Biology', progressMode: 'manual', targetHours: 2, progress: 40 }),
+      ]
+      const subjectMap = new Map(subjects.map((s) => [s.id, s]))
+      const notes = [
+        { id: 'n1', title: 'Math calculus', body: 'Integration formulas', subjectId: 'math', tags: ['calc'], createdAt: '', updatedAt: '' },
+      ]
+      const events = [
+        { id: 'e1', title: 'Physics exam', subjectId: 'physics', startAt: '2026-06-29T10:00:00.000Z', endAt: '2026-06-29T12:00:00.000Z', location: 'Hall B', createdAt: '', updatedAt: '' },
+      ]
+      const tasks = [
+        { id: 't1', title: 'Bio chapter 2', subjectId: 'bio', dueDate: '', priority: 'normal' as const, status: 'open' as const, minutes: 30, createdAt: '', updatedAt: '' },
+      ]
+
+      const map = getSubjectStudyMinutesMap(sessions)
+
+      const queries = ['', 'Math', 'physics', 'bio', 'exam', 'calc', '100', '63', '40', 'unknown']
+      for (const q of queries) {
+        const fromArray = buildSearchResults(subjects, notes, events, tasks, sessions, subjectMap, q)
+        const fromMap = buildSearchResults(subjects, notes, events, tasks, map, subjectMap, q)
+        expect(fromMap).toEqual(fromArray)
+      }
     })
   })
 })

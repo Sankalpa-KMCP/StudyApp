@@ -210,4 +210,37 @@ describe('useAppSearch', () => {
       view: 'Tasks',
     })
   })
+
+  it('dynamically recalculates subject search results when studySessions change', () => {
+    const { subjects, notes, events, tasks } = makeFixture()
+    subjects[0] = { ...subjects[0], progressMode: 'study_time', targetHours: 2 }
+    const subjectMap = new Map(subjects.map((s) => [s.id, s]))
+
+    const initialSessions: StudySession[] = []
+    const { result, rerender } = renderHook(
+      ({ studySessions }) => useAppSearch({ subjects, notes, events, tasks, studySessions, subjectMap, taskFilter: 'all' }),
+      { initialProps: { studySessions: initialSessions } },
+    )
+
+    act(() => {
+      result.current.setSearch('Mathematics')
+    })
+    const subjectResultBefore = result.current.homeSearchResults.find((item) => item.type === 'Subject')
+    expect(subjectResultBefore).toMatchObject({
+      title: 'Mathematics',
+      meta: '0% progress',
+    })
+
+    // Add session: 60m / 120m = 50%
+    const updatedSessions: StudySession[] = [
+      { id: 's1', subjectId: 'subject-math', startedAt: '2026-06-29T09:00:00.000Z', endedAt: '2026-06-29T10:00:00.000Z', minutes: 60, note: '' },
+    ]
+    rerender({ studySessions: updatedSessions })
+
+    const subjectResultAfter = result.current.homeSearchResults.find((item) => item.type === 'Subject')
+    expect(subjectResultAfter).toMatchObject({
+      title: 'Mathematics',
+      meta: '50% progress',
+    })
+  })
 })

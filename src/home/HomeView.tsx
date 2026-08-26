@@ -7,6 +7,7 @@ import {
   formatElapsed,
   formatHours,
   formatMinutes,
+  getSubjectStudyMinutesMap,
   percent,
   type WeeklyStudyDay,
 } from '../appUtils'
@@ -14,7 +15,7 @@ import type { ActiveFocusSession, CalendarEvent, StudyNote, StudySession, StudyS
 import { EmptyState, MutationNotice, SubjectCard } from '../components/ui'
 import { StudyTime } from '../components/RightColumn'
 import type { View } from '../navigation/viewRoutes'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { FirstStudyChecklist } from './FirstStudyChecklist'
 import { getActiveFocusElapsedMs } from '../db/activeFocusSession'
 import { useMutationState } from '../hooks/useMutationState'
@@ -790,6 +791,8 @@ function QuickNoteCard({
 }
 
 function SubjectsSection({ subjects, sessions, onViewAll }: { subjects: StudySubject[]; sessions: StudySession[]; onViewAll: () => void }) {
+  const sessionMinutesMap = useMemo(() => getSubjectStudyMinutesMap(sessions), [sessions])
+
   return (
     <section className="subject-section" aria-labelledby="subjects-title">
       <div className="section-heading">
@@ -801,7 +804,7 @@ function SubjectsSection({ subjects, sessions, onViewAll }: { subjects: StudySub
           {subjects.map((subject) => (
             <SubjectCard
               subject={subject}
-              progressValue={calculateSubjectProgress(subject, sessions).percentage}
+              progressValue={calculateSubjectProgress(subject, sessionMinutesMap).percentage}
               key={subject.id}
             />
           ))}

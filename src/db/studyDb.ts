@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import { inferSubjectProgressMode } from '../appUtils'
+import { getSubjectStudyMinutesMap, inferSubjectProgressMode } from '../appUtils'
 import { getAppVersion } from '../appVersion'
 import { inferLegacyGoalMetric } from './goalMetricInference'
 import {
@@ -100,10 +100,11 @@ export class StudyDatabase extends Dexie {
     })
     this.version(3).stores(STUDY_DB_STORES).upgrade(async (transaction) => {
       const sessions = await transaction.table('studySessions').toArray() as StudySession[]
+      const minutesMap = getSubjectStudyMinutesMap(sessions)
       await transaction.table('subjects').toCollection().modify((subject: Record<string, unknown>) => {
         if (isSubjectProgressMode(subject.progressMode)) return
         const subjectId = typeof subject.id === 'string' ? subject.id : ''
-        subject.progressMode = inferSubjectProgressMode(subjectId, sessions)
+        subject.progressMode = inferSubjectProgressMode(subjectId, minutesMap)
       })
     })
     this.version(4).stores({
@@ -830,9 +831,10 @@ function normalizeLegacyEvents(events: CalendarEvent[]): CalendarEvent[] {
 }
 
 function normalizeLegacySubjects(subjects: StudySubjectLegacy[], sessions: StudySession[]): StudySubject[] {
+  const minutesMap = getSubjectStudyMinutesMap(sessions)
   return subjects.map((subject) => ({
     ...subject,
-    progressMode: inferSubjectProgressMode(subject.id, sessions),
+    progressMode: inferSubjectProgressMode(subject.id, minutesMap),
   }))
 }
 
