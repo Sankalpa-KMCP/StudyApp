@@ -441,6 +441,22 @@
   background: var(--surface-subtle);
 }
 
+.list-disclosure-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0;
+  outline: none;
+}
+
+.list-count-summary {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+  text-align: center;
+}
+
 .list-row p,
 .detail-card p {
   margin: 3px 0 0;

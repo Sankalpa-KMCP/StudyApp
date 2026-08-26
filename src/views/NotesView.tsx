@@ -30,6 +30,9 @@ const emptyDraft = (subjectId = ''): NoteDraft => ({
   tags: '',
 })
 
+const NOTES_INITIAL_VISIBLE = 30
+const NOTES_BATCH_SIZE = 30
+
 export function NotesView({
   notes,
   subjects,
@@ -47,6 +50,11 @@ export function NotesView({
   onClearSearch?: () => void
   databaseGeneration: number
 }) {
+  const [visibleCount, setVisibleCount] = useState(NOTES_INITIAL_VISIBLE)
+  const previousSearchRef = useRef(search)
+  const listFooterRef = useRef<HTMLDivElement | null>(null)
+  const wasShowMoreFocusedRef = useRef(false)
+
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [draft, setDraft] = useState<NoteDraft>(() => emptyDraft())
   const [validationError, setValidationError] = useState<{ reason: 'empty_title' | null, message: string | null }>({ reason: null, message: null })
@@ -58,6 +66,30 @@ export function NotesView({
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
   const { clearFeedback: clearRowFeedback, isPending: isRowPending, phase: rowPhase, message: rowMessage, run: runRow } = rowMutation
+
+  useEffect(() => {
+    if (previousSearchRef.current !== search) {
+      previousSearchRef.current = search
+      setVisibleCount(NOTES_INITIAL_VISIBLE)
+      wasShowMoreFocusedRef.current = false
+    }
+  }, [search])
+
+  const totalNotes = notes.length
+  const visibleNotes = notes.slice(0, visibleCount)
+  const hasMore = visibleNotes.length < totalNotes
+
+  const showMoreNotes = () => {
+    wasShowMoreFocusedRef.current = true
+    setVisibleCount((prev) => prev + NOTES_BATCH_SIZE)
+  }
+
+  useEffect(() => {
+    if (!hasMore && wasShowMoreFocusedRef.current) {
+      wasShowMoreFocusedRef.current = false
+      listFooterRef.current?.focus()
+    }
+  }, [hasMore])
 
   const noticePhase: MutationPhase = validationError.message
     ? 'error'
@@ -201,26 +233,46 @@ export function NotesView({
         </div>
       ) : null}
       {notes.length > 0 ? (
-        <div className="card-grid">
-          {notes.map((note) => (
-            <article className="detail-card note-detail" key={note.id}>
-              <div>
-                <span className="pill">{subjectMap.get(note.subjectId)?.name ?? 'General'}</span>
-                <h3>{note.title}</h3>
-                <p>{note.body || 'No body yet.'}</p>
-                <time>{formatDate(note.updatedAt)}</time>
-              </div>
-              <RowActionButtons
-                label={note.title}
-                onEdit={() => openEditor(note)}
-                onDelete={(context) => void deleteNote(note, context)}
-                databaseGeneration={databaseGeneration}
-                isDisabled={rowActionsLocked}
-                isDeleting={pendingDeleteId === note.id}
-              />
-            </article>
-          ))}
-        </div>
+        <>
+          <div className="card-grid">
+            {visibleNotes.map((note) => (
+              <article className="detail-card note-detail" key={note.id}>
+                <div>
+                  <span className="pill">{subjectMap.get(note.subjectId)?.name ?? 'General'}</span>
+                  <h3>{note.title}</h3>
+                  <p>{note.body || 'No body yet.'}</p>
+                  <time>{formatDate(note.updatedAt)}</time>
+                </div>
+                <RowActionButtons
+                  label={note.title}
+                  onEdit={() => openEditor(note)}
+                  onDelete={(context) => void deleteNote(note, context)}
+                  databaseGeneration={databaseGeneration}
+                  isDisabled={rowActionsLocked}
+                  isDeleting={pendingDeleteId === note.id}
+                />
+              </article>
+            ))}
+          </div>
+          {totalNotes > NOTES_INITIAL_VISIBLE ? (
+            <div className="list-disclosure-footer" tabIndex={-1} ref={listFooterRef}>
+              <p className="list-count-summary" aria-live="polite">
+                {hasMore
+                  ? `Showing ${visibleNotes.length} of ${totalNotes} notes`
+                  : `Showing all ${totalNotes} notes`}
+              </p>
+              {hasMore ? (
+                <button
+                  type="button"
+                  className="secondary-command"
+                  onClick={showMoreNotes}
+                >
+                  Show 30 more notes
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </>
       ) : search.trim().length > 0 ? (
         <EmptyState icon={FileText} title="No matches found" body="No notes match that search." actionLabel="Clear search" onAction={onClearSearch} />
       ) : (
