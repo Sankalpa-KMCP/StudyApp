@@ -109,17 +109,14 @@ export function isActiveFocusSessionStale(session: ActiveFocusSession, nowMs = D
 
 /**
  * Reads the singleton unfinished session.
- * Malformed values are treated as absent without mutating the database (never throws).
+ * Malformed values are treated as absent without mutating the database.
+ * Throws on storage/database read failure.
  */
 export async function getActiveFocusSession(): Promise<ActiveFocusSession | null> {
-  try {
-    const record = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
-    if (!record) return null
-    if (isActiveFocusSession(record.value)) return record.value
-    return null
-  } catch {
-    return null
-  }
+  const record = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
+  if (!record) return null
+  if (isActiveFocusSession(record.value)) return record.value
+  return null
 }
 
 /**
