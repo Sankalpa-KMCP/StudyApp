@@ -1,3 +1,5 @@
+import type { ActiveFocusSession, ActiveFocusSessionStatus } from '../types'
+
 /**
  * Message-neutral persisted-record invariants used by backup import semantics.
  * Editor-only ranges (task 5–720, goal 1–10000, event 15–480, future end, etc.)
@@ -85,4 +87,52 @@ export function isPersistedIsoTimestamp(value: unknown): value is string {
 /** Non-empty, non-whitespace string required for user-facing names and titles. */
 export function isNonBlankString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+export const ACTIVE_FOCUS_SESSION_KEY = 'activeFocusSession'
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0
+}
+
+function isStatus(value: unknown): value is ActiveFocusSessionStatus {
+  return value === 'running' || value === 'paused'
+}
+
+/**
+ * Runtime type guard for durable unfinished focus sessions.
+ * Rejects invalid IDs, timestamps, durations, pause combinations, and statuses.
+ */
+export function isActiveFocusSession(value: unknown): value is ActiveFocusSession {
+  if (!isRecord(value)) return false
+  if (!isNonEmptyString(value.id)) return false
+  if (typeof value.subjectId !== 'string') return false
+  if (!isPersistedIsoTimestamp(value.startedAt)) return false
+  if (typeof value.plannedMinutes !== 'number' || !Number.isFinite(value.plannedMinutes) || value.plannedMinutes < 0) {
+    return false
+  }
+  if (!isStatus(value.status)) return false
+  if (typeof value.accumulatedPausedMs !== 'number' || !Number.isFinite(value.accumulatedPausedMs) || value.accumulatedPausedMs < 0) {
+    return false
+  }
+  if (
+    value.checkpointElapsedMs !== undefined &&
+    (typeof value.checkpointElapsedMs !== 'number' || !Number.isFinite(value.checkpointElapsedMs) || value.checkpointElapsedMs < 0)
+  ) {
+    return false
+  }
+
+  const startedAtMs = Date.parse(value.startedAt)
+
+  if (value.status === 'running') {
+    return value.pausedAt === null
+  }
+
+  if (!isPersistedIsoTimestamp(value.pausedAt)) return false
+  const pausedAtMs = Date.parse(value.pausedAt)
+  return pausedAtMs >= startedAtMs
 }
