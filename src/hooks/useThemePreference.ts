@@ -1,35 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  DEFAULT_THEME_MODE,
+  THEME_COLORS,
+  THEME_STORAGE_KEY,
+  type ThemeMode,
+  isThemeMode,
+} from '../styles/themeRegistry'
 
-export type ThemeMode = 'monochrome' | 'light' | 'dark' | 'aurora' | 'ember' | 'blueprint' | 'moss'
-
-export const THEME_STORAGE_KEY = 'study-dashboard-theme'
-
-export const THEME_COLORS: Record<ThemeMode, string> = {
-  monochrome: '#111111',
-  light: '#f4f0e8',
-  dark: '#10141d',
-  aurora: '#111323',
-  ember: '#f3e4d2',
-  blueprint: '#153f73',
-  moss: '#294633',
-}
-
-export function isThemeMode(value: string | null): value is ThemeMode {
-  return value === 'monochrome'
-    || value === 'light'
-    || value === 'dark'
-    || value === 'aurora'
-    || value === 'ember'
-    || value === 'blueprint'
-    || value === 'moss'
-}
+export type { ThemeColorScheme, ThemeConfig, ThemeMode } from '../styles/themeRegistry'
+export {
+  DEFAULT_THEME_MODE,
+  THEME_COLORS,
+  THEME_CONFIGS,
+  THEME_MODES,
+  THEME_STORAGE_KEY,
+  getThemeConfig,
+  isThemeMode,
+} from '../styles/themeRegistry'
 
 export function readStoredThemeMode(): ThemeMode {
   try {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY)
-    return isThemeMode(savedTheme) ? savedTheme : 'monochrome'
+    return isThemeMode(savedTheme) ? savedTheme : DEFAULT_THEME_MODE
   } catch {
-    return 'monochrome'
+    return DEFAULT_THEME_MODE
   }
 }
 
