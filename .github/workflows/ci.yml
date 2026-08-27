@@ -50,8 +50,8 @@ jobs:
           grep -q '/StudyApp/assets/' dist/index.html
           ! grep -q 'main.tsx' dist/index.html
 
-      - name: Install Playwright Chromium
-        run: npx playwright install chromium --with-deps
+      - name: Install Playwright browsers
+        run: npx playwright install chromium firefox webkit --with-deps
 
       - name: Playwright E2E
         run: npm run test:e2e
