@@ -26,25 +26,20 @@ For the recorded Phase 0 clean-install, validation, and preview baseline (includ
 |---------|---------|
 | `npm test` | Vitest unit and component tests (full suite) |
 | `npm run test:coverage` | Main coverage gate (all production `src/**/*.{ts,tsx}`) |
-| `npm run test:e2e` | Playwright user journeys for Chromium desktop and mobile projects |
+| `npm run test:e2e` | Playwright end-to-end suite (full Chromium desktop/mobile regression; Firefox, WebKit, and mobile-WebKit smoke projects) |
 | `npm run lint` | ESLint including jsx-a11y rules |
 | `npm run build` | TypeScript and production Vite build |
 | `npm run check:bundle` | Gzip budget on built JS chunks |
 
 ### App integration suites
 
-| File | Ownership |
-|------|-----------|
-| `src/App.test.tsx` | App shell only (theme, sidebar, notices, global search keyboard) |
-| `src/App.focus.test.tsx` | Focus restore/actions/races, import-focus sync, timer a11y |
-| `src/App.backup.test.tsx` | Export, ordinary import, clear-all |
-| `src/App.goals.test.tsx` | Goals metrics and CRUD |
-| `src/App.home.test.tsx` | Checklist, Home search, quick notes, midnight, Home chart a11y |
-| `src/App.navigation.test.tsx` | Widget and view navigation, URL sync, popstate, unknown-path fallback |
-| `src/App.workspaces.test.tsx` | Tasks / Notes / Subjects / Calendar |
-| `src/App.progress.test.tsx` | Progress study journal |
+App integration tests under `src/` cover user journeys and subsystem interactions without re-mounting full browser sessions. They are organized into:
 
-Shared App suite reset lives in `src/test/appTestSetup.ts` (plus small focus/backup/home helpers). Prefer the matching feature suite when adding App-level coverage.
+- **Feature suites:** Focus restore/actions/races (`App.focus`), backup export/import/clear-all (`App.backup`), goals and metrics (`App.goals`), home dashboard and checklist (`App.home`), workspace views (`App.workspaces`), progress journal (`App.progress`), navigation and URL synchronization (`App.navigation`), app shell and theme preferences (`App.test.tsx`), global search (`App.search`), quick add (`App.quickAdd`), and mobile navigation (`App.mobileNav`).
+- **Live-query isolation suites:** Dedicated suites verifying that row mutations in one entity table do not trigger spurious live-query reruns in unrelated consumers (`App.subjectsQuery`, `App.tasksQuery`, `App.notesQuery`, `App.eventsQuery`, `App.studySessionsQuery`, `App.goalsQuery`, `App.uiSettingsQuery`).
+- **Error and recovery suites:** Error boundary fallbacks and degraded read/recovery paths (`App.readError`, `App.goalsReadError`).
+
+Shared App suite reset lives in `src/test/appTestSetup.ts` (plus small focus/backup/home helpers). Prefer the matching feature, query-isolation, or error suite when adding App-level coverage.
 
 Coverage (`vitest.config.ts`) instruments all production `src/**/*.{ts,tsx}` files and excludes tests, `src/test/**`, and `*.d.ts`. Thresholds stay at 80% lines/functions/statements and 70% branches. Do not lower those thresholds to green a change. CI enforces this gate with `npm run test:coverage` (not a separate plain `npm test` step). GitHub Pages deploys only from that CI workflow after `check` succeeds on `master` (`push` or `workflow_dispatch`). `V2` continues to run CI checks but does not deploy. The hosted Pages site is currently a preview/testing deployment. Pull requests never deploy.
 

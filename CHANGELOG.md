@@ -97,9 +97,9 @@
 
 ## Current storage compatibility
 
-- IndexedDB schema: Dexie **version 3** (upgrade from v2 assigns missing/invalid subject `progressMode` once from matching session presence; upgrade from v1 assigned goal metrics).
-- JSON backup format: **version 3** for new exports; **version 1** and **version 2** imports remain supported with normalization before replacement.
-- Before upgrading, export a Study Dashboard JSON backup from Settings. Imports support backup versions **1**, **2**, and **3**.
+- IndexedDB schema: Dexie **version 5** (upgrade from v4 repairs legacy 9:00 AM start event timestamps; upgrade from v3 dropped the `flashcards` table; upgrade from v2 assigned subject `progressMode`; upgrade from v1 assigned goal metrics).
+- JSON backup format: **version 4** for new exports (without legacy flashcards); **version 1**, **version 2**, and **version 3** imports remain supported with normalization before replacement.
+- Before upgrading, export a Study Dashboard JSON backup from Settings. Imports support backup versions **1**, **2**, **3**, and **4**.
 - First launch remains empty; no bundled sample data is imported.
 - Customized data from the legacy `study-dashboard-v2` localStorage key is migrated once when safe.
 
