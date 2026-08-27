@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { clearAllStudyData, createStudyExportPayload, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, parseAndNormalizeStudyExport, readStudyDataSnapshot, studyDb, StudyDatabase } from './studyDb'
+import { clearAllStudyData, createId, createStudyExportPayload, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, parseAndNormalizeStudyExport, readStudyDataSnapshot, studyDb, StudyDatabase } from './studyDb'
 import { DATABASE_GENERATION_KEY, getDatabaseGeneration } from './databaseGeneration'
 import { assertStudyExportImportFileSize, assertStudyExportImportTextLength, MAX_STUDY_EXPORT_IMPORT_BYTES, MAX_STUDY_EXPORT_IMPORT_CHARS } from './studyExportLimits'
 import { isPersistedIsoTimestamp } from './validation/persistedInvariants'
@@ -4639,6 +4639,35 @@ describe('legacy event start timestamp Dexie version 5 upgrade', () => {
       expect(normalized.events).toHaveLength(1)
       expect(normalized.goals).toHaveLength(1)
       expect(normalized.studySessions).toHaveLength(1)
+    })
+  })
+
+  describe('createId identity generator (F-12)', () => {
+    it('generates prefixed IDs with timestamp and UUID suffix', () => {
+      const id = createId('task')
+      expect(id).toMatch(/^task-\d+-[0-9a-f-]{8,}/)
+    })
+
+    it('generates unique IDs across successive calls with identical timestamp', () => {
+      const fixedTime = 1724750000000
+      const dateSpy = vi.spyOn(Date, 'now').mockReturnValue(fixedTime)
+
+      const ids = new Set<string>()
+      for (let i = 0; i < 1000; i++) {
+        ids.add(createId('focus'))
+      }
+
+      expect(ids.size).toBe(1000)
+      dateSpy.mockRestore()
+    })
+
+    it('falls back gracefully when crypto is unavailable', () => {
+      vi.stubGlobal('crypto', undefined)
+
+      const id = createId('session')
+      expect(id).toMatch(/^session-\d+-[0-9a-z]+/)
+
+      vi.unstubAllGlobals()
     })
   })
 })

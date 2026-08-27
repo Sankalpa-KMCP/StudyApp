@@ -858,5 +858,120 @@ describe('activeFocusSession persistence', () => {
         }
       })
     })
+
+    describe('F-12 ID collision protection and zero-data-loss finalization', () => {
+      it('createActiveFocusSession rejects when candidate ID already exists in studySessions', async () => {
+        const existingHistory: StudySession = {
+          id: 'focus-existing-history',
+          subjectId: 'subject-math',
+          startedAt: '2026-07-15T10:00:00.000Z',
+          endedAt: '2026-07-15T10:30:00.000Z',
+          minutes: 30,
+          note: 'Old session',
+        }
+        await studyDb.studySessions.add(existingHistory)
+
+        const session = makeSession({ id: 'focus-existing-history' })
+        const result = await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+        expect(result).toEqual({
+          ok: false,
+          reason: 'id_collision',
+        })
+        expect(await getActiveFocusSession()).toBeNull()
+      })
+
+      it('finalizeActiveFocusSession re-keys and saves new session when colliding with existing history', async () => {
+        // 1. Existing historical row in studySessions
+        const existingHistory: StudySession = {
+          id: 'focus-colliding-id',
+          subjectId: 'subject-math',
+          startedAt: '2026-07-15T10:00:00.000Z',
+          endedAt: '2026-07-15T10:15:00.000Z',
+          minutes: 15,
+          note: 'Prior Chemistry session',
+        }
+        await studyDb.studySessions.add(existingHistory)
+
+        await studyDb.subjects.add({
+          id: 'subject-physics',
+          name: 'Physics',
+          color: '#0f766e',
+          targetHours: 10,
+          progress: 0,
+          progressMode: 'manual',
+          createdAt: '2026-07-20T00:00:00.000Z',
+          updatedAt: '2026-07-20T00:00:00.000Z',
+        })
+
+        // 2. Active session started with colliding ID (e.g. from imported backup)
+        const activeSession = makeSession({
+          id: 'focus-colliding-id',
+          subjectId: 'subject-physics',
+          startedAt: '2026-07-20T14:00:00.000Z',
+          plannedMinutes: 45,
+          checkpointElapsedMs: 45 * 60_000,
+        })
+        await studyDb.settings.put({
+          key: ACTIVE_FOCUS_SESSION_KEY,
+          value: activeSession,
+        })
+
+        // 3. Finalize the active session
+        const finalizeRes = await finalizeActiveFocusSession('focus-colliding-id', {
+          subjectId: 'subject-physics',
+          startedAt: '2026-07-20T14:00:00.000Z',
+          endedAt: '2026-07-20T14:45:00.000Z',
+          minutes: 45,
+          note: 'Completed 45m Physics',
+        }, { expectedGeneration: 1 })
+
+        expect(finalizeRes.ok).toBe(true)
+        if (finalizeRes.ok) {
+          // Newly generated history row has unique ID and correct minutes/subject
+          expect(finalizeRes.history.id).not.toBe('focus-colliding-id')
+          expect(finalizeRes.history.subjectId).toBe('subject-physics')
+          expect(finalizeRes.history.minutes).toBe(45)
+          expect(finalizeRes.history.note).toBe('Completed 45m Physics')
+        }
+
+        // Active singleton cleared
+        expect(await getActiveFocusSession()).toBeNull()
+
+        // Total 2 study sessions in history: prior row intact + new row saved
+        expect(await studyDb.studySessions.count()).toBe(2)
+        const original = await studyDb.studySessions.get('focus-colliding-id')
+        expect(original?.subjectId).toBe('subject-math')
+        expect(original?.minutes).toBe(15)
+      })
+
+      it('finalizeActiveFocusSession returns existing history idempotently when active session is already cleared', async () => {
+        const existingHistory: StudySession = {
+          id: 'focus-finalized-once',
+          subjectId: 'subject-math',
+          startedAt: '2026-07-20T10:00:00.000Z',
+          endedAt: '2026-07-20T10:25:00.000Z',
+          minutes: 25,
+          note: 'Focus session',
+        }
+        await studyDb.studySessions.add(existingHistory)
+
+        // No active session in settings (already cleared)
+        expect(await getActiveFocusSession()).toBeNull()
+
+        const retryRes = await finalizeActiveFocusSession('focus-finalized-once', {
+          subjectId: 'subject-math',
+          startedAt: '2026-07-20T10:00:00.000Z',
+          endedAt: '2026-07-20T10:25:00.000Z',
+          minutes: 25,
+          note: 'Focus session',
+        }, { expectedGeneration: 1 })
+
+        expect(retryRes).toEqual({
+          ok: true,
+          history: existingHistory,
+        })
+      })
+    })
   })
 })
