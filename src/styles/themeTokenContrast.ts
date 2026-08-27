@@ -74,7 +74,7 @@ function requireTokens(theme: string, declarations: Record<string, string>): The
  * (before any `[data-theme]` override).
  */
 export function parseThemeTokens(css: string): Record<string, ThemeTokenSet> {
-  const monochromeMatch = css.match(/:root\s*\{([\s\S]*?)\n\}/)
+  const monochromeMatch = css.match(/:root[^{]*\{([\s\S]*?)\n\}/)
   if (!monochromeMatch) {
     throw new Error('Could not parse Monochrome :root token block')
   }
@@ -83,7 +83,7 @@ export function parseThemeTokens(css: string): Record<string, ThemeTokenSet> {
     monochrome: requireTokens('monochrome', extractDeclarations(monochromeMatch[1])),
   }
 
-  for (const match of css.matchAll(/:root\[data-theme='([a-z]+)'\]\s*\{([\s\S]*?)\n\}/g)) {
+  for (const match of css.matchAll(/:root\[data-theme='([a-z0-9_-]+)'\][^{]*\{([\s\S]*?)\n\}/g)) {
     const theme = match[1]
     themes[theme] = requireTokens(theme, extractDeclarations(match[2]))
   }
