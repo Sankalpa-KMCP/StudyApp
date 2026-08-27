@@ -372,7 +372,7 @@ export function SubjectsView({
       ) : search.trim().length > 0 ? (
         <EmptyState icon={BookOpen} title="No matches found" body="No subjects match that search." actionLabel="Clear search" onAction={onClearSearch} />
       ) : (
-        <EmptyState icon={BookOpen} title="No subjects yet" body="Create subjects first, then connect tasks, notes, events, and cards." actionLabel="Create first subject" onAction={() => openEditor()} />
+        <EmptyState icon={BookOpen} title="No subjects yet" body="Create subjects first, then connect tasks, notes, events, and study time." actionLabel="Create first subject" onAction={() => openEditor()} />
       )}
       <ConfirmDialog
         open={confirmSubject !== null}
