@@ -4670,4 +4670,61 @@ describe('legacy event start timestamp Dexie version 5 upgrade', () => {
       vi.unstubAllGlobals()
     })
   })
+
+  describe('import activeFocusSession collision normalization (F-12)', () => {
+    it('re-keys activeFocusSession ID when it collides with an imported studySession ID', () => {
+      const collidingId = 'focus-colliding-123'
+      const payload = {
+        version: 4,
+        exportedAt: '2026-07-20T10:00:00.000Z',
+        appVersion: '1.4.0',
+        tasks: [],
+        subjects: [],
+        notes: [],
+        events: [],
+        studySessions: [
+          {
+            id: collidingId,
+            subjectId: '',
+            startedAt: '2026-07-15T10:00:00.000Z',
+            endedAt: '2026-07-15T10:30:00.000Z',
+            minutes: 30,
+            note: 'Historical session',
+          },
+        ],
+        goals: [],
+        settings: [
+          {
+            key: 'activeFocusSession',
+            value: {
+              id: collidingId,
+              subjectId: '',
+              startedAt: '2026-07-20T09:00:00.000Z',
+              plannedMinutes: 25,
+              status: 'running',
+              pausedAt: null,
+              accumulatedPausedMs: 0,
+              checkpointElapsedMs: 15 * 60_000,
+            },
+          },
+        ],
+      }
+
+      const normalized = parseAndNormalizeStudyExport(payload)
+      const normalizedActive = normalized.settings.find((s) => s.key === 'activeFocusSession')
+      expect(normalizedActive).toBeDefined()
+      // @ts-expect-error value is record
+      expect(normalizedActive?.value.id).not.toBe(collidingId)
+      // @ts-expect-error value is record
+      expect(normalizedActive?.value.id).toMatch(/^focus-\d+-[0-9a-f-]{8,}/)
+      // Checkpointed elapsed and other fields survive untouched
+      // @ts-expect-error value is record
+      expect(normalizedActive?.value.checkpointElapsedMs).toBe(15 * 60_000)
+      // @ts-expect-error value is record
+      expect(normalizedActive?.value.plannedMinutes).toBe(25)
+
+      // Historical study session retains original ID
+      expect(normalized.studySessions[0]?.id).toBe(collidingId)
+    })
+  })
 })

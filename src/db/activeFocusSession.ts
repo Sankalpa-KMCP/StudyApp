@@ -34,6 +34,7 @@ export type FinalizeActiveFocusSessionResult =
   | { ok: false; reason: 'missing' }
   | { ok: false; reason: 'conflict'; existing: ActiveFocusSession }
   | { ok: false; reason: 'missing_subject' }
+  | { ok: false; reason: 'id_rekeyed'; session: ActiveFocusSession }
 
 export type TransitionActiveFocusSessionResult =
   | { ok: true; session: ActiveFocusSession }
@@ -566,6 +567,30 @@ export async function finalizeActiveFocusSession(
       }
 
       if (activeSession && activeSession.id === sessionId) {
+        // If sessionId already exists in studySessions, re-key the active singleton
+        // to a fresh canonical ID rather than overwriting foreign history or losing active study time.
+        if (existingHistory) {
+          let freshId = createId('focus')
+          let attempts = 0
+          while (await studyDb.studySessions.get(freshId)) {
+            attempts++
+            if (attempts > 5) {
+              throw new Error('Exhausted unique ID generation attempts')
+            }
+            freshId = createId('focus')
+          }
+
+          const rekeyedSession: ActiveFocusSession = {
+            ...activeSession,
+            id: freshId,
+          }
+          await studyDb.settings.put({
+            key: ACTIVE_FOCUS_SESSION_KEY,
+            value: rekeyedSession,
+          })
+          return { ok: false, reason: 'id_rekeyed', session: rekeyedSession }
+        }
+
         try {
           await assertSubjectExists(history.subjectId)
           if (activeSession.subjectId !== history.subjectId) {
@@ -585,18 +610,8 @@ export async function finalizeActiveFocusSession(
         const safeEndedAt = new Date(safeEndedAtMs).toISOString()
         const safeMinutes = Math.max(1, Math.floor(history.minutes))
 
-        // If sessionId already exists in studySessions, re-key this new session to avoid
-        // dropping active study time or overwriting the pre-existing foreign row.
-        let targetId = sessionId
-        if (existingHistory) {
-          targetId = createId('session')
-          while (await studyDb.studySessions.get(targetId)) {
-            targetId = createId('session')
-          }
-        }
-
         const historyRow: StudySession = {
-          id: targetId,
+          id: sessionId,
           subjectId: history.subjectId,
           startedAt: safeStartedAt,
           endedAt: safeEndedAt,
@@ -611,11 +626,7 @@ export async function finalizeActiveFocusSession(
         return { ok: true, history: historyRow }
       }
 
-      // Unfinished record already cleared — treat matching history as successful finalize.
-      if (existingHistory) {
-        return { ok: true, history: existingHistory }
-      }
-
+      // Active session already cleared / absent
       return { ok: false, reason: 'missing' }
     }),
   )

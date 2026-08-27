@@ -742,5 +742,53 @@ describe('useFocusSession', () => {
 
       createIdSpy.mockRestore()
     })
+
+    it('F-12: stopSession automatically adopts re-keyed ID and finalizes when collision occurs', async () => {
+      // 1. Seed existing historical study session
+      const existingHistory: StudySession = {
+        id: 'focus-legacy-collision',
+        subjectId: 'subject-a',
+        startedAt: '2026-07-15T10:00:00.000Z',
+        endedAt: '2026-07-15T10:30:00.000Z',
+        minutes: 30,
+        note: 'Prior session',
+      }
+      await studyDb.studySessions.add(existingHistory)
+
+      // 2. Seed active focus session with colliding ID (e.g. from imported backup)
+      const activeSession: ActiveFocusSession = {
+        id: 'focus-legacy-collision',
+        subjectId: 'subject-a',
+        startedAt: new Date(Date.now() - 2 * 60_000).toISOString(),
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+        checkpointElapsedMs: 2 * 60_000,
+      }
+      await studyDb.settings.put({
+        key: 'activeFocusSession',
+        value: activeSession,
+      })
+
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-legacy-collision'))
+
+      await act(async () => {
+        await result.current.stopSession()
+      })
+
+      // Active session cleared from local and durable state
+      expect(result.current.activeSession).toBeNull()
+      expect(await getActiveFocusSession()).toBeNull()
+
+      // StudySessions has 2 rows: original untouched + newly created canonical row
+      expect(await studyDb.studySessions.count()).toBe(2)
+      const allSessions = await studyDb.studySessions.toArray()
+      const newSession = allSessions.find((s) => s.id !== 'focus-legacy-collision')
+      expect(newSession).toBeDefined()
+      expect(newSession?.subjectId).toBe('subject-a')
+      expect(newSession?.minutes).toBe(2)
+    })
   })
 })
