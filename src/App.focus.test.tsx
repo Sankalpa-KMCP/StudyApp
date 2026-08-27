@@ -1302,7 +1302,7 @@ describe('App focus', () => {
   })
 
   it('keeps the focus timer accessible without live-region second ticks', async () => {
-    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.useFakeTimers({ toFake: ['Date', 'hrtime', 'performance', 'setInterval', 'clearInterval'] })
     const startedAt = new Date('2026-07-21T12:00:00.000Z')
     vi.setSystemTime(startedAt)
 
@@ -1536,5 +1536,34 @@ describe('App focus', () => {
     expect(history).toBeDefined()
     expect(history?.minutes).toBe(6)
     expect(Date.parse(history!.endedAt)).toBeGreaterThanOrEqual(startedAt.getTime())
+  })
+
+  it('F-11: forward clock jump does not inflate reloaded timer or trigger premature auto-completion', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'hrtime', 'performance', 'setInterval', 'clearInterval'] })
+    const startedAt = new Date('2026-07-21T12:00:00.000Z')
+    vi.setSystemTime(startedAt)
+
+    // Checkpoint at 10 minutes, planned for 25 minutes
+    await createActiveFocusSession({
+      id: 'focus-fwd-jump-app',
+      subjectId: '',
+      startedAt: startedAt.toISOString(),
+      plannedMinutes: 25,
+      status: 'running',
+      pausedAt: null,
+      accumulatedPausedMs: 0,
+      checkpointElapsedMs: 10 * 60_000,
+    }, { expectedGeneration: 1 })
+
+    // Simulate forward jump of wall clock by 30 minutes (to 12:30, where wall elapsed is 30m > 25m plan)
+    vi.setSystemTime(new Date('2026-07-21T12:30:00.000Z'))
+
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Pause' })).toBeInTheDocument()
+
+    // Must NOT auto-complete; timer must show durable 10:00 (not 30:00)
+    expect(screen.getByText('Elapsed').parentElement?.querySelector('strong')?.textContent).toBe('10:00')
+    expect(screen.queryByText('Session complete')).not.toBeInTheDocument()
+    expect(await studyDb.studySessions.count()).toBe(0)
   })
 })

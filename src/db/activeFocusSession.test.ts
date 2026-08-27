@@ -125,12 +125,12 @@ describe('activeFocusSession domain', () => {
   })
 
   describe('getActiveFocusElapsedMs', () => {
-    it('derives running elapsed time from timestamps', () => {
+    it('derives running elapsed time from timestamps for legacy uncheckpointed records', () => {
       const nowMs = STARTED_AT_MS + 10 * 60_000
       expect(getActiveFocusElapsedMs(makeSession({ accumulatedPausedMs: 120_000 }), nowMs)).toBe(8 * 60_000)
     })
 
-    it('derives paused elapsed time from the pause timestamp', () => {
+    it('derives paused elapsed time from the pause timestamp for legacy uncheckpointed records', () => {
       const pausedAt = '2026-07-20T10:20:00.000Z'
       const session = makeSession({
         status: 'paused',
@@ -141,9 +141,46 @@ describe('activeFocusSession domain', () => {
       expect(getActiveFocusElapsedMs(session, laterNow)).toBe(19 * 60_000)
     })
 
-    it('never returns a negative elapsed value when the clock skews', () => {
+    it('never returns a negative elapsed value when the clock skews on legacy uncheckpointed records', () => {
       const session = makeSession({ accumulatedPausedMs: 60 * 60_000 })
       expect(getActiveFocusElapsedMs(session, STARTED_AT_MS + 10_000)).toBe(0)
+    })
+
+    it('returns exactly checkpointElapsedMs for checkpointed running session regardless of wall-clock time', () => {
+      const checkpoint30m = 30 * 60_000
+      const session = makeSession({
+        checkpointElapsedMs: checkpoint30m,
+        status: 'running',
+      })
+
+      // 1. Checkpoint 30m + wall-derived 20m (rollback) -> returns 30m
+      const wall20m = STARTED_AT_MS + 20 * 60_000
+      expect(getActiveFocusElapsedMs(session, wall20m)).toBe(checkpoint30m)
+
+      // 2. Checkpoint 30m + ordinary later wall-derived 35m without new checkpoint -> remains 30m
+      const wall35m = STARTED_AT_MS + 35 * 60_000
+      expect(getActiveFocusElapsedMs(session, wall35m)).toBe(checkpoint30m)
+
+      // 3. Checkpoint 30m + forward wall jump to 45m -> remains 30m (zero wall-time inflation)
+      const wall45m = STARTED_AT_MS + 45 * 60_000
+      expect(getActiveFocusElapsedMs(session, wall45m)).toBe(checkpoint30m)
+
+      // 8. Backward rollback to before start -> still returns 30m
+      const wallBeforeStart = STARTED_AT_MS - 60 * 60_000
+      expect(getActiveFocusElapsedMs(session, wallBeforeStart)).toBe(checkpoint30m)
+    })
+
+    it('returns exactly checkpointElapsedMs for checkpointed paused session', () => {
+      const checkpoint15m = 15 * 60_000
+      const session = makeSession({
+        status: 'paused',
+        pausedAt: '2026-07-20T10:10:00.000Z',
+        checkpointElapsedMs: checkpoint15m,
+      })
+
+      // 9. Paused checkpoint remains frozen at 15m regardless of query nowMs
+      expect(getActiveFocusElapsedMs(session, STARTED_AT_MS + 5 * 60_000)).toBe(checkpoint15m)
+      expect(getActiveFocusElapsedMs(session, STARTED_AT_MS + 60 * 60_000)).toBe(checkpoint15m)
     })
   })
 
@@ -171,6 +208,25 @@ describe('activeFocusSession domain', () => {
       expect(shouldAutoCompleteFocusSession(makeSession(), STARTED_AT_MS + plannedMs - 1)).toBe(false)
     })
 
+    it('does not complete a 40m plan from a 45m forward wall jump when checkpoint is 30m', () => {
+      const session = makeSession({
+        plannedMinutes: 40,
+        checkpointElapsedMs: 30 * 60_000,
+        status: 'running',
+      })
+      const wall45m = STARTED_AT_MS + 45 * 60_000
+      // 4. shouldAutoCompleteFocusSession does not complete a 40m plan from the 45m wall jump
+      expect(shouldAutoCompleteFocusSession(session, wall45m)).toBe(false)
+
+      // Only completes when checkpointed elapsed reaches 40m
+      const sessionCompleted = makeSession({
+        plannedMinutes: 40,
+        checkpointElapsedMs: 40 * 60_000,
+        status: 'running',
+      })
+      expect(shouldAutoCompleteFocusSession(sessionCompleted, wall45m)).toBe(true)
+    })
+
     it('returns false for a paused session even when wall time exceeds the plan', () => {
       const pausedAt = '2026-07-20T10:10:00.000Z'
       const session = makeSession({
@@ -185,7 +241,7 @@ describe('activeFocusSession domain', () => {
       expect(shouldAutoCompleteFocusSession(makeSession({ plannedMinutes: 0 }), STARTED_AT_MS + 60 * 60_000)).toBe(false)
     })
 
-    it('excludes accumulated paused time from eligibility', () => {
+    it('excludes accumulated paused time from eligibility for legacy sessions', () => {
       const session = makeSession({ accumulatedPausedMs: 5 * 60_000 })
       // Wall span equals plan, but active elapsed is 20 minutes.
       expect(shouldAutoCompleteFocusSession(session, STARTED_AT_MS + plannedMs)).toBe(false)
@@ -486,7 +542,7 @@ describe('activeFocusSession persistence', () => {
         checkpointElapsedMs: 10 * 60_000,
       },
     })
-    expect(getActiveFocusElapsedMs((resumed as { ok: true; session: ActiveFocusSession }).session, resumedAtMs + 2 * 60_000)).toBe(12 * 60_000)
+    expect(getActiveFocusElapsedMs((resumed as { ok: true; session: ActiveFocusSession }).session, resumedAtMs + 2 * 60_000)).toBe(10 * 60_000)
   })
 
   it('rejects pause/resume when status or identity does not match', async () => {

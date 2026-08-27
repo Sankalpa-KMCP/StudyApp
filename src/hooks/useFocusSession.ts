@@ -56,7 +56,6 @@ type LiveAnchor = {
   sessionId: string
   baseElapsedMs: number
   perfStartMs: number
-  dateStartMs: number
 }
 
 function getLiveAnchorNowMs(): number {
@@ -68,27 +67,17 @@ function createLiveAnchor(sessionId: string, baseElapsedMs: number): LiveAnchor 
     sessionId,
     baseElapsedMs,
     perfStartMs: getLiveAnchorNowMs(),
-    dateStartMs: Date.now(),
   }
 }
 
 function calculateRunningElapsed(session: ActiveFocusSession, anchor: LiveAnchor | null): number {
-  const wallElapsed = getActiveFocusElapsedMs(session, Date.now())
   if (!anchor || anchor.sessionId !== session.id) {
-    return wallElapsed
+    return getActiveFocusElapsedMs(session, Date.now())
   }
 
   const perfNow = getLiveAnchorNowMs()
   const perfDelta = Math.max(0, perfNow - anchor.perfStartMs)
-  const dateDelta = Math.max(0, Date.now() - anchor.dateStartMs)
-
-  // In real browser where clock jumps forward by > 5 seconds, throttle to monotonic performance delta
-  if (perfDelta > 50 && dateDelta > perfDelta + 5000) {
-    return anchor.baseElapsedMs + perfDelta
-  }
-
-  const perfElapsed = anchor.baseElapsedMs + perfDelta
-  return Math.max(wallElapsed, perfElapsed)
+  return anchor.baseElapsedMs + perfDelta
 }
 
 /**
