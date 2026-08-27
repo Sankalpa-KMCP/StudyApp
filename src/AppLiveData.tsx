@@ -72,6 +72,8 @@ export type AppLiveDataProps = {
   staleFocusSession: ActiveFocusSession | null
   staleFocusSubjectName: string
   sessionLimitSeconds: number
+  elapsedSeconds?: number
+  remainingSeconds?: number
   sessionNotice: string
   canStartFocus: boolean
   focusActionsPending: boolean
@@ -129,6 +131,8 @@ export function AppLiveData({
   staleFocusSession,
   staleFocusSubjectName,
   sessionLimitSeconds,
+  elapsedSeconds,
+  remainingSeconds,
   sessionNotice,
   canStartFocus,
   focusActionsPending,
@@ -268,6 +272,8 @@ export function AppLiveData({
                   staleFocusSession={staleFocusSession}
                   staleFocusSubjectName={staleFocusSubjectName}
                   sessionLimitSeconds={sessionLimitSeconds}
+                  elapsedSeconds={elapsedSeconds}
+                  remainingSeconds={remainingSeconds}
                   sessionNotice={sessionNotice}
                   canStartFocus={canStartFocus}
                   focusTransitionPending={focusActionsPending}

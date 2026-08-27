@@ -52,6 +52,8 @@ export function HomeView(props: {
   staleFocusSession: ActiveFocusSession | null
   staleFocusSubjectName: string
   sessionLimitSeconds: number
+  elapsedSeconds?: number
+  remainingSeconds?: number
   sessionNotice: string
   canStartFocus: boolean
   focusTransitionPending: boolean
@@ -205,6 +207,8 @@ export function HomeView(props: {
           staleFocusSession={props.staleFocusSession}
           staleFocusSubjectName={props.staleFocusSubjectName}
           sessionLimitSeconds={props.sessionLimitSeconds}
+          elapsedSeconds={props.elapsedSeconds}
+          remainingSeconds={props.remainingSeconds}
           sessionNotice={props.sessionNotice}
           canStart={props.canStartFocus}
           transitionPending={props.focusTransitionPending}
@@ -482,6 +486,8 @@ function FocusCard(props: {
   staleFocusSession: ActiveFocusSession | null
   staleFocusSubjectName: string
   sessionLimitSeconds: number
+  elapsedSeconds?: number
+  remainingSeconds?: number
   sessionNotice: string
   canStart: boolean
   transitionPending: boolean
@@ -497,24 +503,14 @@ function FocusCard(props: {
   onAcceptStale: () => void
   onDiscardStale: () => void
 }) {
-  const [nowMs, setNowMs] = useState(() => Date.now())
-  useEffect(() => {
-    if (!props.activeSession || props.activeSession.status === 'paused') return undefined
-    // Sync on the next macrotask when entering `running` so resume does not paint against a stale clock.
-    const syncTimer = window.setTimeout(() => setNowMs(Date.now()), 0)
-    const timer = window.setInterval(() => setNowMs(Date.now()), 1000)
-    return () => {
-      window.clearTimeout(syncTimer)
-      window.clearInterval(timer)
-    }
-  }, [props.activeSession])
-
-  const elapsedSeconds = props.activeSession
-    ? Math.max(0, Math.floor(getActiveFocusElapsedMs(props.activeSession, nowMs) / 1000))
-    : 0
+  const elapsedSeconds = props.elapsedSeconds !== undefined
+    ? props.elapsedSeconds
+    : (props.activeSession ? Math.max(0, Math.floor(getActiveFocusElapsedMs(props.activeSession) / 1000)) : 0)
+  const remainingSeconds = props.remainingSeconds !== undefined
+    ? props.remainingSeconds
+    : (props.sessionLimitSeconds > 0 ? Math.max(0, props.sessionLimitSeconds - elapsedSeconds) : 0)
   const focusPercent = percent(props.focusMinutes, props.goalMinutes)
   const timerPercent = props.sessionLimitSeconds > 0 ? percent(elapsedSeconds, props.sessionLimitSeconds) : focusPercent
-  const remainingSeconds = props.sessionLimitSeconds > 0 ? Math.max(0, props.sessionLimitSeconds - elapsedSeconds) : 0
   const isPaused = props.activeSession?.status === 'paused'
 
   if (props.staleFocusSession && !props.activeSession) {

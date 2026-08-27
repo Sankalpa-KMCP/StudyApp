@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   ACTIVE_FOCUS_SESSION_KEY,
   ACTIVE_FOCUS_SESSION_STALE_AFTER_MS,
+  checkpointActiveFocusSession,
   clearActiveFocusSession,
   createActiveFocusSession,
   discardActiveFocusSession,
@@ -11,6 +12,7 @@ import {
   getActiveFocusSessionWithGeneration,
   isActiveFocusSession,
   isActiveFocusSessionStale,
+  normalizeActiveFocusSession,
   pauseActiveFocusSession,
   resumeActiveFocusSession,
   shouldAutoCompleteFocusSession,
@@ -74,6 +76,51 @@ describe('activeFocusSession domain', () => {
       expect(isActiveFocusSession(makeSession({ accumulatedPausedMs: -1 }))).toBe(false)
       expect(isActiveFocusSession(null)).toBe(false)
       expect(isActiveFocusSession({ ...makeSession(), extra: true })).toBe(true)
+      expect(isActiveFocusSession(makeSession({ checkpointElapsedMs: 300_000 }))).toBe(true)
+      expect(isActiveFocusSession(makeSession({ checkpointElapsedMs: -1 }))).toBe(false)
+      expect(isActiveFocusSession(makeSession({ checkpointElapsedMs: Number.NaN }))).toBe(false)
+      expect(isActiveFocusSession(makeSession({ checkpointElapsedMs: Number.POSITIVE_INFINITY }))).toBe(false)
+    })
+  })
+
+  describe('normalizeActiveFocusSession', () => {
+    it('normalizes a valid running session', () => {
+      const valid = makeSession({ checkpointElapsedMs: 120_000 })
+      expect(normalizeActiveFocusSession(valid)).toEqual(valid)
+    })
+
+    it('normalizes a valid paused session', () => {
+      const valid = makeSession({
+        status: 'paused',
+        pausedAt: '2026-07-20T10:15:00.000Z',
+        accumulatedPausedMs: 0,
+        checkpointElapsedMs: 900_000,
+      })
+      expect(normalizeActiveFocusSession(valid)).toEqual(valid)
+    })
+
+    it('heals the legacy rollback anomaly (pausedAt < startedAt) by clamping pausedAt to startedAt', () => {
+      const anomaly = makeSession({
+        status: 'paused',
+        pausedAt: '2026-07-20T09:45:00.000Z', // 15 mins before startedAt
+        accumulatedPausedMs: 0,
+      })
+      const healed = normalizeActiveFocusSession(anomaly)
+      expect(healed).not.toBeNull()
+      expect(healed?.status).toBe('paused')
+      expect(healed?.pausedAt).toBe(STARTED_AT) // healed to startedAt
+      expect(isActiveFocusSession(healed)).toBe(true)
+    })
+
+    it('rejects genuinely corrupt or invalid shapes', () => {
+      expect(normalizeActiveFocusSession(null)).toBeNull()
+      expect(normalizeActiveFocusSession({})).toBeNull()
+      expect(normalizeActiveFocusSession({ id: '' })).toBeNull()
+      expect(normalizeActiveFocusSession(makeSession({ status: 'invalid' as 'running' }))).toBeNull()
+      expect(normalizeActiveFocusSession(makeSession({ status: 'running', pausedAt: '2026-07-20T10:05:00.000Z' }))).toBeNull()
+      expect(normalizeActiveFocusSession(makeSession({ status: 'paused', pausedAt: 'not-a-date' }))).toBeNull()
+      expect(normalizeActiveFocusSession(makeSession({ accumulatedPausedMs: -5 }))).toBeNull()
+      expect(normalizeActiveFocusSession(makeSession({ plannedMinutes: -1 }))).toBeNull()
     })
   })
 
@@ -422,9 +469,10 @@ describe('activeFocusSession persistence', () => {
         ...session,
         status: 'paused',
         pausedAt,
+        checkpointElapsedMs: 10 * 60_000,
       },
     })
-    expect(await getActiveFocusSession()).toMatchObject({ status: 'paused', pausedAt })
+    expect(await getActiveFocusSession()).toMatchObject({ status: 'paused', pausedAt, checkpointElapsedMs: 10 * 60_000 })
 
     const resumedAtMs = Date.parse(pausedAt) + 5 * 60_000
     const resumed = await resumeActiveFocusSession(session.id, resumedAtMs, { expectedGeneration: 1 })
@@ -435,6 +483,7 @@ describe('activeFocusSession persistence', () => {
         status: 'running',
         pausedAt: null,
         accumulatedPausedMs: 5 * 60_000,
+        checkpointElapsedMs: 10 * 60_000,
       },
     })
     expect(getActiveFocusElapsedMs((resumed as { ok: true; session: ActiveFocusSession }).session, resumedAtMs + 2 * 60_000)).toBe(12 * 60_000)
@@ -588,6 +637,170 @@ describe('activeFocusSession persistence', () => {
       const result = await createActiveFocusSession(session, { expectedGeneration: 1 })
       expect(result).toEqual({ ok: false, reason: 'missing_subject' })
       expect(await getActiveFocusSession()).toBeNull()
+    })
+
+    describe('checkpointActiveFocusSession', () => {
+      it('persists a valid progress checkpoint and enforces monotonic CAS on stale/lower writes', async () => {
+        const session = makeSession({ id: 'focus-cp' })
+        await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+        // Checkpoint 5 mins
+        const res1 = await checkpointActiveFocusSession('focus-cp', 300_000, { expectedGeneration: 1 })
+        expect(res1).toEqual({
+          ok: true,
+          session: { ...session, checkpointElapsedMs: 300_000 },
+        })
+        expect(await getActiveFocusSession()).toMatchObject({ checkpointElapsedMs: 300_000 })
+
+        // Checkpoint 10 mins
+        const res2 = await checkpointActiveFocusSession('focus-cp', 600_000, { expectedGeneration: 1 })
+        expect(res2).toEqual({
+          ok: true,
+          session: { ...session, checkpointElapsedMs: 600_000 },
+        })
+
+        // Stale or lower write (4 mins) is a safe no-op (keeps 10 mins)
+        const res3 = await checkpointActiveFocusSession('focus-cp', 240_000, { expectedGeneration: 1 })
+        expect(res3).toEqual({
+          ok: true,
+          session: { ...session, checkpointElapsedMs: 600_000 },
+        })
+        expect(await getActiveFocusSession()).toMatchObject({ checkpointElapsedMs: 600_000 })
+      })
+
+      it('rejects invalid inputs, missing sessions, or paused sessions', async () => {
+        const session = makeSession({ id: 'focus-cp-err' })
+        await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+        expect(await checkpointActiveFocusSession('focus-cp-err', -100, { expectedGeneration: 1 })).toEqual({ ok: false, reason: 'invalid' })
+        expect(await checkpointActiveFocusSession('focus-cp-err', Number.NaN, { expectedGeneration: 1 })).toEqual({ ok: false, reason: 'invalid' })
+        expect(await checkpointActiveFocusSession('non-existent', 1000, { expectedGeneration: 1 })).toEqual({
+          ok: false,
+          reason: 'conflict',
+          existing: session,
+        })
+
+        // Pause session
+        await pauseActiveFocusSession('focus-cp-err', { expectedGeneration: 1 })
+        const pausedRes = await checkpointActiveFocusSession('focus-cp-err', 5000, { expectedGeneration: 1 })
+        expect(pausedRes.ok).toBe(false)
+        if (!pausedRes.ok) {
+          expect(pausedRes.reason).toBe('invalid_state')
+        }
+      })
+    })
+
+    describe('F-11 clock rollback safety in persistence', () => {
+      it('pauses safely when wall clock rolls backward before pause (pausedAt < startedAt)', async () => {
+        const session = makeSession({ id: 'focus-rollback-pause', startedAt: '2026-07-20T10:00:00.000Z' })
+        await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+        // Wall clock moved backward to 09:45:00.000Z before user clicked Pause, but 10 minutes of active study elapsed
+        const rollbackPausedAt = '2026-07-20T09:45:00.000Z'
+        const pauseResult = await pauseActiveFocusSession('focus-rollback-pause', {
+          pausedAt: rollbackPausedAt,
+          logicalElapsedMs: 600_000, // 10 minutes
+        }, { expectedGeneration: 1 })
+
+        expect(pauseResult.ok).toBe(true)
+        if (pauseResult.ok) {
+          // pausedAt must be clamped to >= startedAt
+          expect(pauseResult.session.pausedAt).toBe('2026-07-20T10:00:00.000Z')
+          expect(pauseResult.session.checkpointElapsedMs).toBe(600_000)
+          // The durable record is valid per isActiveFocusSession
+          expect(isActiveFocusSession(pauseResult.session)).toBe(true)
+        }
+
+        const durable = await getActiveFocusSession()
+        expect(durable).not.toBeNull()
+        expect(durable?.status).toBe('paused')
+        expect(durable?.checkpointElapsedMs).toBe(600_000)
+
+        // Resuming must not treat the record as missing/corrupt
+        const resumeResult = await resumeActiveFocusSession('focus-rollback-pause', Date.parse('2026-07-20T10:05:00.000Z'), { expectedGeneration: 1 })
+        expect(resumeResult.ok).toBe(true)
+        if (resumeResult.ok) {
+          expect(resumeResult.session.status).toBe('running')
+          expect(resumeResult.session.checkpointElapsedMs).toBe(600_000)
+        }
+      })
+
+      it('resumes safely when wall clock rolls backward during pause (resumedAt < pausedAt)', async () => {
+        const session = makeSession({ id: 'focus-rollback-resume' })
+        await createActiveFocusSession(session, { expectedGeneration: 1 })
+        await pauseActiveFocusSession('focus-rollback-resume', {
+          pausedAt: '2026-07-20T10:10:00.000Z',
+          logicalElapsedMs: 600_000,
+        }, { expectedGeneration: 1 })
+
+        // Resumed at a wall clock time BEFORE pausedAt (e.g. clock rolled back 30 mins)
+        const rollbackResumedAt = Date.parse('2026-07-20T09:40:00.000Z')
+        const resumeResult = await resumeActiveFocusSession('focus-rollback-resume', rollbackResumedAt, { expectedGeneration: 1 })
+        expect(resumeResult.ok).toBe(true)
+        if (resumeResult.ok) {
+          // Accumulated paused ms should not decrease or become negative
+          expect(resumeResult.session.accumulatedPausedMs).toBe(0)
+          expect(resumeResult.session.checkpointElapsedMs).toBe(600_000)
+          expect(isActiveFocusSession(resumeResult.session)).toBe(true)
+        }
+      })
+
+      it('finalizes safely when wall clock rolls backward before stop (endedAt < startedAt)', async () => {
+        const session = makeSession({ id: 'focus-rollback-fin', startedAt: '2026-07-20T10:00:00.000Z' })
+        await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+        // Attempt finalizing with endedAt earlier than startedAt (due to wall-clock change)
+        const rollbackEndedAt = '2026-07-20T09:50:00.000Z'
+        const finalizeResult = await finalizeActiveFocusSession('focus-rollback-fin', {
+          subjectId: 'subject-math',
+          startedAt: session.startedAt,
+          endedAt: rollbackEndedAt,
+          minutes: 15,
+          note: 'Rollback focus',
+        }, { expectedGeneration: 1 })
+
+        expect(finalizeResult.ok).toBe(true)
+        if (finalizeResult.ok) {
+          // endedAt must be clamped to >= startedAt to satisfy F-08 domain validation
+          expect(Date.parse(finalizeResult.history.endedAt)).toBeGreaterThanOrEqual(Date.parse(session.startedAt))
+          expect(finalizeResult.history.minutes).toBe(15)
+        }
+
+        const historyRecord = await studyDb.studySessions.get('focus-rollback-fin')
+        expect(historyRecord).toBeDefined()
+        expect(historyRecord?.minutes).toBe(15)
+      })
+
+      it('heals legacy corrupt records (pausedAt < startedAt) and blocks subject deletion', async () => {
+        const { deleteSubject } = await import('./subjectService')
+        // Directly inject an anomaly record into settings table
+        await studyDb.settings.put({
+          key: ACTIVE_FOCUS_SESSION_KEY,
+          value: {
+            id: 'focus-anomaly',
+            subjectId: 'subject-math',
+            startedAt: '2026-07-20T10:00:00.000Z',
+            plannedMinutes: 25,
+            status: 'paused',
+            pausedAt: '2026-07-20T09:30:00.000Z', // anomaly: pausedAt < startedAt
+            accumulatedPausedMs: 0,
+          },
+        })
+
+        // getActiveFocusSession heals in memory without deleting
+        const restored = await getActiveFocusSession()
+        expect(restored).not.toBeNull()
+        expect(restored?.status).toBe('paused')
+        expect(restored?.pausedAt).toBe('2026-07-20T10:00:00.000Z')
+
+        // deleteSubject recognizes the linked active session and is blocked
+        const deleteRes = await deleteSubject('subject-math', { expectedGeneration: 1 })
+        expect(deleteRes.ok).toBe(false)
+        if (!deleteRes.ok) {
+          expect(deleteRes.reason).toBe('linked')
+          expect(deleteRes.usage.activeFocus).toBe(1)
+        }
+      })
     })
   })
 })
