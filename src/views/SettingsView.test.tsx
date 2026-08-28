@@ -215,6 +215,10 @@ describe('SettingsView theme gallery and selection', () => {
     expect(monochromeOption).toHaveAttribute('tabIndex', '0')
     expect(monochromeOption.querySelector('.theme-selected-badge')).toBeInTheDocument()
 
+    // Category headers verification
+    expect(screen.getByText('Light themes')).toBeInTheDocument()
+    expect(screen.getByText('Dark themes')).toBeInTheDocument()
+
     // Non-active theme verification (e.g. sage, nordic, obsidian, espresso)
     const sageOption = screen.getByRole('radio', { name: /Sage Botanical/i })
     expect(sageOption).toHaveAttribute('aria-checked', 'false')
@@ -258,7 +262,7 @@ describe('SettingsView theme gallery and selection', () => {
     expect(onThemeChange).toHaveBeenCalledWith('espresso')
   })
 
-  it('supports full keyboard navigation (ArrowRight, ArrowDown, ArrowLeft, ArrowUp, Home, End) across all 11 themes', async () => {
+  it('supports full keyboard navigation (ArrowRight, ArrowDown, ArrowLeft, ArrowUp, Home, End) across all 11 themes including section boundaries', async () => {
     const user = userEvent.setup()
     const coordinator = new DataOperationCoordinator()
     const onThemeChange = vi.fn()
@@ -295,6 +299,16 @@ describe('SettingsView theme gallery and selection', () => {
     // ArrowUp moves from 1 (light) to 0 (monochrome)
     await user.keyboard('{ArrowUp}')
     expect(onThemeChange).toHaveBeenLastCalledWith('monochrome')
+
+    // Cross-boundary: focus last light theme (index 5: sage), ArrowRight moves to first dark theme (index 6: dark/midnight)
+    radioOptions[5].focus()
+    expect(radioOptions[5]).toHaveFocus()
+    await user.keyboard('{ArrowRight}')
+    expect(onThemeChange).toHaveBeenLastCalledWith('dark')
+
+    // Cross-boundary: from dark (index 6), ArrowLeft moves back to sage (index 5)
+    await user.keyboard('{ArrowLeft}')
+    expect(onThemeChange).toHaveBeenLastCalledWith('sage')
 
     // End moves to the last option (10: obsidian)
     await user.keyboard('{End}')
