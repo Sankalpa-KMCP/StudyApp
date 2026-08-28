@@ -788,6 +788,140 @@ describe('activeFocusSession persistence', () => {
       expect(await getActiveFocusSession()).toEqual(session)
     })
 
+    it('B03: attributes history to durable active subject when caller supplies a stale subject', async () => {
+      await studyDb.subjects.add({
+        id: 'subject-physics',
+        name: 'Physics',
+        color: '#0f766e',
+        targetHours: 10,
+        progress: 0,
+        progressMode: 'manual',
+        createdAt: '2026-07-20T00:00:00.000Z',
+        updatedAt: '2026-07-20T00:00:00.000Z',
+      })
+
+      // 1. Session created for Math
+      const session = makeSession({ id: 'focus-prov-1', subjectId: 'subject-math' })
+      await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+      // 2. Tab B updates subject to Physics
+      const updateResult = await updateActiveFocusSession({
+        ...session,
+        subjectId: 'subject-physics',
+      }, { expectedGeneration: 1 })
+      expect(updateResult.ok).toBe(true)
+
+      // 3. Tab A (stale snapshot with subject-math) finalizes session
+      const finalizeResult = await finalizeActiveFocusSession('focus-prov-1', {
+        subjectId: 'subject-math', // stale caller subject
+        startedAt: session.startedAt,
+        endedAt: '2026-07-20T10:25:00.000Z',
+        minutes: 25,
+        note: 'Focus session',
+      }, { expectedGeneration: 1 })
+
+      expect(finalizeResult.ok).toBe(true)
+      if (finalizeResult.ok) {
+        expect(finalizeResult.history.subjectId).toBe('subject-physics')
+      }
+
+      const saved = await studyDb.studySessions.get('focus-prov-1')
+      expect(saved?.subjectId).toBe('subject-physics')
+    })
+
+    it('B03: rejects finalization when durable active subject is deleted even if caller subject still exists', async () => {
+      await studyDb.subjects.add({
+        id: 'subject-physics-del',
+        name: 'Physics',
+        color: '#0f766e',
+        targetHours: 10,
+        progress: 0,
+        progressMode: 'manual',
+        createdAt: '2026-07-20T00:00:00.000Z',
+        updatedAt: '2026-07-20T00:00:00.000Z',
+      })
+
+      const session = makeSession({ id: 'focus-prov-2', subjectId: 'subject-physics-del' })
+      await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+      // Durable subject is deleted
+      await studyDb.subjects.delete('subject-physics-del')
+
+      // Stale caller passes 'subject-math' which exists in the database
+      const finalizeResult = await finalizeActiveFocusSession('focus-prov-2', {
+        subjectId: 'subject-math',
+        startedAt: session.startedAt,
+        endedAt: '2026-07-20T10:25:00.000Z',
+        minutes: 25,
+        note: 'Focus session',
+      }, { expectedGeneration: 1 })
+
+      // Must reject because the authoritative active session's subject is missing
+      expect(finalizeResult).toEqual({ ok: false, reason: 'missing_subject' })
+      expect(await studyDb.studySessions.count()).toBe(0)
+    })
+
+    it('B03: collision re-key retry persists canonical durable subject even when retry caller is stale', async () => {
+      await studyDb.subjects.add({
+        id: 'subject-physics',
+        name: 'Physics',
+        color: '#0f766e',
+        targetHours: 10,
+        progress: 0,
+        progressMode: 'manual',
+        createdAt: '2026-07-20T00:00:00.000Z',
+        updatedAt: '2026-07-20T00:00:00.000Z',
+      })
+
+      // Foreign history exists
+      await studyDb.studySessions.add({
+        id: 'focus-rekey-prov',
+        subjectId: 'subject-math',
+        startedAt: '2026-07-15T10:00:00.000Z',
+        endedAt: '2026-07-15T10:15:00.000Z',
+        minutes: 15,
+        note: 'Prior Math session',
+      })
+
+      // Active session has subject-physics but colliding id
+      const session = makeSession({ id: 'focus-rekey-prov', subjectId: 'subject-physics' })
+      await studyDb.settings.put({
+        key: ACTIVE_FOCUS_SESSION_KEY,
+        value: session,
+      })
+
+      // First finalization re-keys
+      const firstRes = await finalizeActiveFocusSession('focus-rekey-prov', {
+        subjectId: 'subject-math',
+        startedAt: session.startedAt,
+        endedAt: '2026-07-20T10:25:00.000Z',
+        minutes: 25,
+        note: 'Focus session',
+      }, { expectedGeneration: 1 })
+
+      expect(firstRes.ok).toBe(false)
+      if (!firstRes.ok && firstRes.reason === 'id_rekeyed') {
+        expect(firstRes.session.subjectId).toBe('subject-physics')
+
+        // Finalizing the rekeyed session with a stale caller subject-math still attributes to subject-physics
+        const secondRes = await finalizeActiveFocusSession(firstRes.session.id, {
+          subjectId: 'subject-math',
+          startedAt: session.startedAt,
+          endedAt: '2026-07-20T10:25:00.000Z',
+          minutes: 25,
+          note: 'Focus session',
+        }, { expectedGeneration: 1 })
+
+        expect(secondRes.ok).toBe(true)
+        if (secondRes.ok) {
+          expect(secondRes.history.subjectId).toBe('subject-physics')
+        }
+
+        const saved = await studyDb.studySessions.get(firstRes.session.id)
+        expect(saved?.subjectId).toBe('subject-physics')
+      }
+    })
+
     it('create, update, and finalize all succeed with General focus (empty subjectId)', async () => {
       const session = makeSession({ id: 'focus-general', subjectId: '' })
       expect(await createActiveFocusSession(session, { expectedGeneration: 1 })).toEqual({ ok: true, session, generation: 1 })
