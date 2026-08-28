@@ -6,6 +6,20 @@
     scroll-behavior: auto !important;
     transition-duration: 1ms !important;
   }
+
+  .primary-command:active,
+  .secondary-command:active,
+  .icon-button:active,
+  .avatar-button:active,
+  .clear-button:active,
+  .row-actions button:active,
+  .nav-item:active,
+  .sidebar-toggle:active,
+  .quick-add-trigger:active,
+  .segmented-control button:active,
+  .theme-option:active {
+    transform: none !important;
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {

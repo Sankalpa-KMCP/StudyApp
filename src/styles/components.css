@@ -8,6 +8,14 @@
   border-radius: 50%;
   color: var(--muted);
   background: transparent;
+  transition: color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+}
+
+.clear-button:active:not(:disabled),
+.icon-button:active:not(:disabled),
+.avatar-button:active:not(:disabled),
+.row-actions button:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .clear-button {
@@ -361,6 +369,12 @@
   padding: 0 14px;
   border-radius: var(--radius-sm);
   font-weight: 600;
+  transition: color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), opacity var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+}
+
+.primary-command:active:not(:disabled),
+.secondary-command:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .primary-command {
@@ -399,6 +413,11 @@
   color: var(--muted);
   background: transparent;
   text-transform: capitalize;
+  transition: color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+}
+
+.segmented-control button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .segmented-control button.is-active {
@@ -762,6 +781,11 @@
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
+  transition: color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+}
+
+.quick-add-trigger:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .quick-add-trigger:hover,

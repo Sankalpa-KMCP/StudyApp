@@ -88,6 +88,11 @@
   border-radius: var(--radius-sm);
   color: var(--muted);
   background: var(--surface);
+  transition: color var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+}
+
+.sidebar-toggle:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .sidebar-toggle:hover {
@@ -121,6 +126,11 @@
   font-size: 0.9rem;
   font-weight: 600;
   text-align: left;
+  transition: color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+}
+
+.nav-item:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .nav-item:hover {
