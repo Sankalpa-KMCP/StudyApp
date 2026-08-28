@@ -9,10 +9,9 @@ The full documentation set lives in **`ai/` at the repo root**. That folder is *
 | File | Purpose |
 |------|---------|
 | `ai/PROJECT_CONTEXT.md` | Architecture, features, data model, workflows |
-| `ai/AI_RULES.md` | Operational rules, protected files, testing matrix |
 | `ai/ARCHITECTURE_DECISIONS.md` | ADR log |
 
-If `ai/` is missing (fresh clone), regenerate it with your setup-ai-documentation workflow or copy `ai/` from another machine. Until then, follow the condensed rules below.
+Operational rules, protected files, testing matrix, and repository invariants are defined directly below in `AGENTS.md`. If `ai/` is missing (fresh clone), regenerate it with your setup-ai-documentation workflow or copy `ai/` from another machine. Until then, follow the rules below.
 
 ## Project summary
 
