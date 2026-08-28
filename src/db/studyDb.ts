@@ -1083,38 +1083,61 @@ function isLegacyDemoData(data: LegacyData): boolean {
 
 function migrateLegacyData(data: LegacyData): StudyData {
   const createdAt = nowIso()
-  const subjectMap = new Map<string, StudySubject>()
-  const ensureSubject = (name?: string) => {
-    const cleanName = name?.trim() || 'General'
-    const existing = subjectMap.get(cleanName.toLowerCase())
-    if (existing) return existing
-    const subject: StudySubject = {
-      id: createId('subject'),
-      name: cleanName,
-      color: DEFAULT_SUBJECT_COLORS[subjectMap.size % DEFAULT_SUBJECT_COLORS.length],
-      targetHours: 5,
-      progress: 0,
-      progressMode: 'manual',
-      createdAt,
-      updatedAt: createdAt,
-    }
-    subjectMap.set(cleanName.toLowerCase(), subject)
-    return subject
+  const subjects: StudySubject[] = []
+  const exactNameMap = new Map<string, StudySubject[]>()
+  const lowerNameMap = new Map<string, StudySubject[]>()
+
+  const registerSubject = (subject: StudySubject) => {
+    subjects.push(subject)
+    const exactName = subject.name.trim()
+    const lowerName = exactName.toLowerCase()
+
+    const exactList = exactNameMap.get(exactName) ?? []
+    exactList.push(subject)
+    exactNameMap.set(exactName, exactList)
+
+    const lowerList = lowerNameMap.get(lowerName) ?? []
+    lowerList.push(subject)
+    lowerNameMap.set(lowerName, lowerList)
   }
 
   for (const subject of data.subjects ?? []) {
     const name = subject.name?.trim()
     if (!name) continue
-    subjectMap.set(name.toLowerCase(), {
+    registerSubject({
       id: subject.id?.trim() || createId('subject'),
       name,
-      color: DEFAULT_SUBJECT_COLORS[subjectMap.size % DEFAULT_SUBJECT_COLORS.length],
+      color: DEFAULT_SUBJECT_COLORS[subjects.length % DEFAULT_SUBJECT_COLORS.length],
       targetHours: Math.max(1, Math.round((subject.topicsLeft ?? 2) * 1.5)),
       progress: clamp(subject.progress ?? 0, 0, 100),
       progressMode: 'manual',
       createdAt,
       updatedAt: createdAt,
     })
+  }
+
+  const ensureSubject = (name?: string): StudySubject => {
+    const cleanName = name?.trim() || 'General'
+    const exactMatches = exactNameMap.get(cleanName)
+    if (exactMatches && exactMatches.length > 0) {
+      return exactMatches[0]
+    }
+    const lowerMatches = lowerNameMap.get(cleanName.toLowerCase())
+    if (lowerMatches && lowerMatches.length > 0) {
+      return lowerMatches[0]
+    }
+    const newSubject: StudySubject = {
+      id: createId('subject'),
+      name: cleanName,
+      color: DEFAULT_SUBJECT_COLORS[subjects.length % DEFAULT_SUBJECT_COLORS.length],
+      targetHours: 5,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt,
+      updatedAt: createdAt,
+    }
+    registerSubject(newSubject)
+    return newSubject
   }
 
   const tasks = (data.tasks ?? [])
@@ -1187,7 +1210,7 @@ function migrateLegacyData(data: LegacyData): StudyData {
     ]
     return {
       tasks,
-      subjects: Array.from(subjectMap.values()).map((entry) => ({
+      subjects: subjects.map((entry) => ({
         ...entry,
         progressMode: inferSubjectProgressMode(entry.id, studySessions),
       })),
@@ -1201,7 +1224,7 @@ function migrateLegacyData(data: LegacyData): StudyData {
 
   return {
     tasks,
-    subjects: Array.from(subjectMap.values()),
+    subjects,
     notes,
     events,
     studySessions: [],
