@@ -269,6 +269,8 @@
   color: var(--ink);
   background: var(--surface);
   box-shadow: var(--shadow-popover);
+  transform-origin: top right;
+  animation: popoverDropdownEnter var(--motion-base) var(--ease);
 }
 
 .notice-popover span {
@@ -428,6 +430,8 @@
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow-popover);
+  transform-origin: bottom center;
+  animation: mobileSheetEnter 220ms var(--ease);
 }
 
 .mobile-nav-more-item {

@@ -577,6 +577,7 @@
   border-radius: var(--radius-sm);
   color: var(--success);
   background: var(--success-bg);
+  animation: noticeSlideEnter var(--motion-base) var(--ease);
 }
 
 .settings-feedback.error {
@@ -590,6 +591,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  animation: noticeSlideEnter var(--motion-base) var(--ease);
 }
 
 .mutation-notice p {
@@ -704,6 +706,7 @@
   place-items: center;
   padding: 16px;
   background: rgba(11, 11, 11, 0.42);
+  animation: overlayBackdropEnter 200ms var(--ease);
 }
 
 .confirm-dialog {
@@ -718,6 +721,7 @@
   background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow-popover);
+  animation: dialogEnter var(--motion-slow) var(--ease);
 }
 
 .confirm-dialog-title {
@@ -807,6 +811,8 @@
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow-popover);
+  transform-origin: top right;
+  animation: popoverDropdownEnter var(--motion-base) var(--ease);
 }
 
 .quick-add-item {
@@ -830,4 +836,58 @@
 .quick-add-item:hover,
 .quick-add-item:focus-visible {
   background: var(--surface-muted);
+}
+
+/* Shared Overlay & Popover Keyframe Animations */
+@keyframes overlayBackdropEnter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialogEnter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes popoverDropdownEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes mobileSheetEnter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes noticeSlideEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
