@@ -432,10 +432,6 @@
   grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
 }
 
-.bottom-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .task-card,
 .focus-card,
 .quick-card {

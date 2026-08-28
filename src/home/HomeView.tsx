@@ -1,11 +1,9 @@
-import { BookOpen, CalendarDays, Check, Clock3, FileText, Flame, Pause, Play, Square, StopCircle, Target } from '../components/icons'
+import { BookOpen, CalendarDays, Check, FileText, Pause, Play, Square, StopCircle, Target } from '../components/icons'
 import {
-  calculateStreak,
   calculateSubjectProgress,
   formatDate,
   formatDateTime,
   formatElapsed,
-  formatHours,
   formatMinutes,
   getCreditedSubjectStudyMinutesMap,
   percent,
@@ -13,7 +11,6 @@ import {
 } from '../appUtils'
 import type { ActiveFocusSession, CalendarEvent, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
 import { EmptyState, MutationNotice, SubjectCard } from '../components/ui'
-import { StudyTime } from '../components/RightColumn'
 import type { View } from '../navigation/viewRoutes'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { FirstStudyChecklist } from './FirstStudyChecklist'
@@ -105,8 +102,6 @@ export function HomeView(props: {
   const dueTodayTasks = getOpenTasksDueToday(props.tasks, now)
   const overdueTasks = getOpenOverdueTasks(props.tasks, now)
   const todaysEvents = getTodaysEvents(props.events, now)
-  const streakDays = calculateStreak(props.studySessions, now)
-  const weekHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
   const recommended = getRecommendedNextAction({
     tasks: props.tasks,
     events: props.events,
@@ -180,10 +175,6 @@ export function HomeView(props: {
         dueTodayCount={dueTodayTasks.length}
         overdueCount={overdueTasks.length}
         todayEventCount={todaysEvents.length}
-        streakDays={streakDays}
-        weekHours={weekHours}
-        todayFocusMinutes={props.todayFocusMinutes}
-        dailyGoalMinutes={props.dailyGoalMinutes}
         overduePreview={overdueTasks.slice(0, 2)}
         todayEventPreview={todaysEvents.slice(0, 2)}
         recommended={recommended}
@@ -227,10 +218,7 @@ export function HomeView(props: {
         <QuickNoteCard notes={props.quickNotes} databaseGeneration={props.databaseGeneration ?? 1} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
       </div>
       <SubjectsSection subjects={subjectStats} sessions={props.studySessions} now={now} onViewAll={() => props.onNavigate('Subjects')} />
-      <div className="bottom-grid">
-        <RecentNotes notes={recentNotes} subjectMap={props.subjectMap} onViewAll={() => props.onNavigate('Notes')} />
-        <StudyTime days={props.weeklyStudyDays} />
-      </div>
+      <RecentNotes notes={recentNotes} subjectMap={props.subjectMap} onViewAll={() => props.onNavigate('Notes')} />
     </>
   )
 }
@@ -316,10 +304,6 @@ function HomeTodayDashboard({
   dueTodayCount,
   overdueCount,
   todayEventCount,
-  streakDays,
-  weekHours,
-  todayFocusMinutes,
-  dailyGoalMinutes,
   overduePreview,
   todayEventPreview,
   recommended,
@@ -331,10 +315,6 @@ function HomeTodayDashboard({
   dueTodayCount: number
   overdueCount: number
   todayEventCount: number
-  streakDays: number
-  weekHours: number
-  todayFocusMinutes: number
-  dailyGoalMinutes: number
   overduePreview: StudyTask[]
   todayEventPreview: CalendarEvent[]
   recommended: RecommendedNextAction
@@ -343,15 +323,11 @@ function HomeTodayDashboard({
   onOpenCalendar: () => void
 }) {
   const copy = recommendedActionCopy(recommended)
-  const targetPercent = Math.round(percent(todayFocusMinutes, dailyGoalMinutes))
 
   return (
     <section className="card home-today-card" aria-labelledby="home-today-title">
       <div className="card-heading">
-        <div>
-          <h2 id="home-today-title" ref={headingRef} tabIndex={-1}>Today</h2>
-          <span>{targetPercent}% of today's focus target · {formatMinutes(todayFocusMinutes)} of {formatMinutes(dailyGoalMinutes)}</span>
-        </div>
+        <h2 id="home-today-title" ref={headingRef} tabIndex={-1}>Today</h2>
       </div>
 
       <ul className="home-today-metrics">
@@ -378,22 +354,6 @@ function HomeTodayDashboard({
             <strong>{todayEventCount}</strong>
           </div>
           <button className="text-command home-today-metric-action" type="button" aria-label="View today's calendar" onClick={onOpenCalendar}>View</button>
-        </li>
-        <li className="home-today-metric" aria-label={`${streakDays} day study streak`}>
-          <Flame size={18} aria-hidden="true" />
-          <div>
-            <span className="home-today-metric-label">Study streak</span>
-            <strong>{streakDays}</strong>
-          </div>
-          <span className="home-today-metric-hint">days</span>
-        </li>
-        <li className="home-today-metric" aria-label={`${formatHours(weekHours)} focus in the last seven days`}>
-          <Clock3 size={18} aria-hidden="true" />
-          <div>
-            <span className="home-today-metric-label">Last 7 days</span>
-            <strong>{formatHours(weekHours)}</strong>
-          </div>
-          <span className="home-today-metric-hint">focus</span>
         </li>
       </ul>
 

@@ -736,9 +736,11 @@ describe('App home', () => {
     expect(document.querySelector('.bar-days')).toHaveAttribute('aria-hidden', 'true')
   })
 
-  it('exposes the Study Time line chart as a named non-interactive image', async () => {
+  it('exposes the Study Time line chart as a named non-interactive image on Progress', async () => {
+    const user = userEvent.setup()
     render(<App />)
 
+    await user.click(await screen.findByRole('button', { name: 'Progress' }))
     expect(await screen.findByRole('heading', { name: 'Study Time' })).toBeInTheDocument()
     const chart = screen.getByRole('img', { name: /Study time trend/i })
     expect(chart).toHaveClass('line-chart')
@@ -759,7 +761,7 @@ describe('App home', () => {
     expect(within(today).getByRole('listitem', { name: '0 tasks due today' })).toHaveTextContent('0')
     expect(within(today).getByRole('listitem', { name: '0 overdue tasks' })).toHaveTextContent('0')
     expect(within(today).getByRole('listitem', { name: '0 events today' })).toHaveTextContent('0')
-    expect(within(today).getByRole('listitem', { name: '0 day study streak' })).toHaveTextContent('0')
+    expect(screen.getByRole('heading', { name: 'Streak' })).toBeInTheDocument()
     expect(within(today).getByText('Recommended next')).toBeInTheDocument()
     expect(within(today).getByRole('heading', { name: 'Create a subject' })).toBeInTheDocument()
 
@@ -866,8 +868,10 @@ describe('App home', () => {
     expect(within(today).getByRole('listitem', { name: '1 tasks due today' })).toHaveTextContent('1')
     expect(within(today).getByRole('listitem', { name: '1 overdue tasks' })).toHaveTextContent('1')
     expect(within(today).getByRole('listitem', { name: '1 events today' })).toHaveTextContent('1')
-    expect(within(today).getByRole('listitem', { name: '1 day study streak' })).toHaveTextContent('1')
-    expect(within(today).getByRole('listitem', { name: /focus in the last seven days/i })).toHaveTextContent('0h 45m')
+    const streakSection = screen.getByRole('heading', { name: 'Streak' }).closest('section') as HTMLElement
+    expect(streakSection).toHaveTextContent('1')
+    const weeklySection = screen.getByRole('heading', { name: 'Weekly Progress' }).closest('section') as HTMLElement
+    expect(weeklySection).toHaveTextContent('0h 45m')
     expect(within(today).getByText('Overdue lab writeup')).toBeInTheDocument()
     expect(within(today).getByText('Lab block')).toBeInTheDocument()
     expect(within(today).queryByText('Tomorrow seminar')).not.toBeInTheDocument()
