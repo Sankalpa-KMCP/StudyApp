@@ -191,7 +191,7 @@ describe('SettingsView concurrency and coordinator integration', () => {
 })
 
 describe('SettingsView theme gallery and selection', () => {
-  it('renders all 11 themes from THEME_CONFIGS with miniature previews and accessible radio semantics', () => {
+  it('renders all 16 themes from THEME_CONFIGS with miniature previews and accessible radio semantics', () => {
     const coordinator = new DataOperationCoordinator()
     render(<TestSettingsViewWrapper coordinator={coordinator} theme="monochrome" />)
 
@@ -199,11 +199,11 @@ describe('SettingsView theme gallery and selection', () => {
     expect(radiogroup).toBeInTheDocument()
 
     const radioOptions = screen.getAllByRole('radio')
-    expect(radioOptions).toHaveLength(11)
+    expect(radioOptions).toHaveLength(16)
 
     // Check that every theme has a decorative preview container with data-theme-preview
     const previews = radiogroup.querySelectorAll('.theme-preview')
-    expect(previews).toHaveLength(11)
+    expect(previews).toHaveLength(16)
     previews.forEach((preview) => {
       expect(preview).toHaveAttribute('aria-hidden', 'true')
       expect(preview).toHaveAttribute('data-theme-preview')
@@ -219,14 +219,20 @@ describe('SettingsView theme gallery and selection', () => {
     expect(screen.getByText('Light themes')).toBeInTheDocument()
     expect(screen.getByText('Dark themes')).toBeInTheDocument()
 
-    // Non-active theme verification (e.g. sage, nordic, obsidian, espresso)
+    // Non-active theme verification (e.g. sage, nordic, obsidian, espresso, rose-quartz, plum-noir)
     const sageOption = screen.getByRole('radio', { name: /Sage Botanical/i })
     expect(sageOption).toHaveAttribute('aria-checked', 'false')
     expect(sageOption).toHaveAttribute('tabIndex', '-1')
     expect(sageOption.querySelector('.theme-selected-badge')).toBeNull()
 
+    const roseQuartzOption = screen.getByRole('radio', { name: /Rose Quartz/i })
+    expect(roseQuartzOption).toHaveAttribute('aria-checked', 'false')
+
     const nordicOption = screen.getByRole('radio', { name: /Nordic Slate/i })
     expect(nordicOption).toHaveAttribute('aria-checked', 'false')
+
+    const plumNoirOption = screen.getByRole('radio', { name: /Plum Noir/i })
+    expect(plumNoirOption).toHaveAttribute('aria-checked', 'false')
 
     const obsidianOption = screen.getByRole('radio', { name: /High-Contrast Obsidian/i })
     expect(obsidianOption).toHaveAttribute('aria-checked', 'false')
@@ -262,7 +268,7 @@ describe('SettingsView theme gallery and selection', () => {
     expect(onThemeChange).toHaveBeenCalledWith('espresso')
   })
 
-  it('supports full keyboard navigation (ArrowRight, ArrowDown, ArrowLeft, ArrowUp, Home, End) across all 11 themes including section boundaries', async () => {
+  it('supports full keyboard navigation (ArrowRight, ArrowDown, ArrowLeft, ArrowUp, Home, End) across all 16 themes including section boundaries', async () => {
     const user = userEvent.setup()
     const coordinator = new DataOperationCoordinator()
     const onThemeChange = vi.fn()
@@ -300,19 +306,19 @@ describe('SettingsView theme gallery and selection', () => {
     await user.keyboard('{ArrowUp}')
     expect(onThemeChange).toHaveBeenLastCalledWith('monochrome')
 
-    // Cross-boundary: focus last light theme (index 5: sage), ArrowRight moves to first dark theme (index 6: dark/midnight)
-    radioOptions[5].focus()
-    expect(radioOptions[5]).toHaveFocus()
+    // Cross-boundary: focus last light theme (index 8: sandstone), ArrowRight moves to first dark theme (index 9: dark/midnight)
+    radioOptions[8].focus()
+    expect(radioOptions[8]).toHaveFocus()
     await user.keyboard('{ArrowRight}')
     expect(onThemeChange).toHaveBeenLastCalledWith('dark')
 
-    // Cross-boundary: from dark (index 6), ArrowLeft moves back to sage (index 5)
+    // Cross-boundary: from dark (index 9), ArrowLeft moves back to sandstone (index 8)
     await user.keyboard('{ArrowLeft}')
-    expect(onThemeChange).toHaveBeenLastCalledWith('sage')
+    expect(onThemeChange).toHaveBeenLastCalledWith('sandstone')
 
-    // End moves to the last option (10: obsidian)
+    // End moves to the last option (15: forest-dark)
     await user.keyboard('{End}')
-    expect(onThemeChange).toHaveBeenLastCalledWith('obsidian')
+    expect(onThemeChange).toHaveBeenLastCalledWith('forest-dark')
 
     // Home moves to the first option (0: monochrome)
     await user.keyboard('{Home}')

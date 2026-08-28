@@ -26,9 +26,9 @@ describe('theme preference and registry helpers', () => {
     themeColorMeta.setAttribute('content', THEME_COLORS[DEFAULT_THEME_MODE])
   })
 
-  it('registers all 11 theme modes with valid hex theme-colors and non-empty metadata', () => {
-    expect(THEME_MODES).toHaveLength(11)
-    expect(THEME_CONFIGS).toHaveLength(11)
+  it('registers all 16 theme modes with valid hex theme-colors and non-empty metadata', () => {
+    expect(THEME_MODES).toHaveLength(16)
+    expect(THEME_CONFIGS).toHaveLength(16)
     for (const mode of THEME_MODES) {
       expect(isThemeMode(mode)).toBe(true)
       expect(THEME_COLORS[mode]).toMatch(/^#[0-9a-f]{6}$/i)
@@ -64,7 +64,7 @@ describe('theme preference and registry helpers', () => {
     }
 
     // New theme IDs
-    for (const newTheme of ['nordic', 'espresso', 'sage', 'obsidian'] as const) {
+    for (const newTheme of ['nordic', 'espresso', 'sage', 'obsidian', 'rose-quartz', 'ocean-glass', 'sandstone', 'plum-noir', 'forest-dark'] as const) {
       localStorage.setItem(THEME_STORAGE_KEY, newTheme)
       expect(readStoredThemeMode()).toBe(newTheme)
     }
