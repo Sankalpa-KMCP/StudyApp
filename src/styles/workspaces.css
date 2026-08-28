@@ -57,3 +57,23 @@
 .note-detail {
   justify-content: space-between;
 }
+
+/* Direct Workspace Routes Initial Entry Settled Surface Animation */
+@keyframes workspaceHeadingSettle {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content-grid.is-workspace-view.is-entry-playing .workspace-heading {
+  animation: workspaceHeadingSettle 200ms var(--ease-settle) 100ms both;
+}
+
+.content-grid.is-workspace-view.is-entry-playing .workspace-panel > :not(.workspace-heading):not(.settings-feedback) {
+  animation: workspaceGroupSettle 220ms var(--ease-settle) 160ms both;
+}

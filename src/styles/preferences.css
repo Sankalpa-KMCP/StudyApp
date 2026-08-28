@@ -29,9 +29,16 @@
   .mobile-nav-more-menu,
   .mutation-notice,
   .settings-feedback,
-  .session-complete {
+  .session-complete,
+  .content-grid.is-entry-playing .hero-row::before,
+  .content-grid.is-entry-playing .hero-row,
+  .content-grid.is-entry-playing .primary-column > :not(.hero-row):not(.settings-feedback),
+  .content-grid.is-entry-playing .right-column,
+  .content-grid.is-workspace-view.is-entry-playing .workspace-heading,
+  .content-grid.is-workspace-view.is-entry-playing .workspace-panel > :not(.workspace-heading):not(.settings-feedback) {
     animation: none !important;
     transform: none !important;
+    opacity: 1 !important;
   }
 }
 

@@ -35,6 +35,17 @@
 }
 
 @media (max-width: 760px) {
+  @keyframes workspaceGroupSettle {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   html {
     scroll-padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }

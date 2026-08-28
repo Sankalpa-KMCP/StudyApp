@@ -682,3 +682,52 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Home Initial Entry Settled Surface Animation */
+@keyframes heroLineSettle {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes heroContentSettle {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes workspaceGroupSettle {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content-grid.is-entry-playing .hero-row::before {
+  transform-origin: top;
+  animation: heroLineSettle 220ms var(--ease-settle) 80ms both;
+}
+
+.content-grid.is-entry-playing .hero-row {
+  animation: heroContentSettle 200ms var(--ease-settle) 110ms both;
+}
+
+.content-grid.is-entry-playing .primary-column > :not(.hero-row):not(.settings-feedback) {
+  animation: workspaceGroupSettle 220ms var(--ease-settle) 170ms both;
+}
+
+.content-grid.is-entry-playing .right-column {
+  animation: workspaceGroupSettle 220ms var(--ease-settle) 210ms both;
+}

@@ -37,6 +37,7 @@
   --radius: 14px;
   --radius-sm: 9px;
   --ease: cubic-bezier(0.2, 0.75, 0.25, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.32, 1);
   --motion-fast: 120ms;
   --motion-base: 180ms;
   --motion-slow: 240ms;
