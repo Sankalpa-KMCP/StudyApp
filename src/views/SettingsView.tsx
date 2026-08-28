@@ -230,7 +230,10 @@ export function SettingsView({
               if (groupOptions.length === 0) return null
               return (
                 <div className="theme-group" key={group.scheme}>
-                  <span className="theme-group-label">{group.label}</span>
+                  <div className="theme-group-header">
+                    <span className="theme-group-label">{group.label}</span>
+                    <span className="theme-group-count" aria-label={`${groupOptions.length} ${group.label.toLowerCase()}`}>{groupOptions.length}</span>
+                  </div>
                   <div className="theme-grid">
                     {groupOptions.map((option) => {
                       const globalIndex = THEME_CONFIGS.findIndex((c) => c.id === option.id)

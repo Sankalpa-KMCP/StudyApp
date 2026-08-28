@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { DataOperationCoordinator } from '../db/dataCoordinator'
+import { THEME_CONFIGS } from '../styles/themeRegistry'
 import { SettingsView } from './SettingsView'
 
 function TestSettingsViewWrapper({
@@ -215,9 +216,13 @@ describe('SettingsView theme gallery and selection', () => {
     expect(monochromeOption).toHaveAttribute('tabIndex', '0')
     expect(monochromeOption.querySelector('.theme-selected-badge')).toBeInTheDocument()
 
-    // Category headers verification
+    // Category headers and dynamic counts verification
     expect(screen.getByText('Light themes')).toBeInTheDocument()
     expect(screen.getByText('Dark themes')).toBeInTheDocument()
+    const lightCount = THEME_CONFIGS.filter((c) => c.colorScheme === 'light').length
+    const darkCount = THEME_CONFIGS.filter((c) => c.colorScheme === 'dark').length
+    expect(screen.getByLabelText(`${lightCount} light themes`)).toHaveTextContent(lightCount.toString())
+    expect(screen.getByLabelText(`${darkCount} dark themes`)).toHaveTextContent(darkCount.toString())
 
     // Non-active theme verification (e.g. sage, nordic, obsidian, espresso, rose-quartz, plum-noir)
     const sageOption = screen.getByRole('radio', { name: /Sage Botanical/i })
