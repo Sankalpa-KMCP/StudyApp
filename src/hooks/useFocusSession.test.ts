@@ -133,6 +133,29 @@ describe('useFocusSession', () => {
     expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-hook' })
   })
 
+  it('synchronizes post-clear generation in clearFocusLocalState allowing immediate startSession', async () => {
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.canStartFocus).toBe(true))
+
+    // Advance generation via clearAllStudyData from 1 to 2
+    const nextGen = await clearAllStudyData()
+    expect(nextGen).toBe(2)
+
+    act(() => {
+      result.current.clearFocusLocalState(nextGen)
+    })
+
+    await act(async () => {
+      await result.current.startSession()
+    })
+
+    expect(result.current.sessionNotice).toBe('')
+    expect(result.current.activeSession).not.toBeNull()
+    expect(result.current.activeSession?.status).toBe('running')
+    const active = await getActiveFocusSession()
+    expect(active?.id).toBe(result.current.activeSession?.id)
+  })
+
   it('persists a successful focus subject update into the durable singleton', async () => {
     await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     const { result } = renderHook(() => useFocusSession({ subjectMap }))

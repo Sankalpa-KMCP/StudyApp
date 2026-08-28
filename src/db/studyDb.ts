@@ -277,14 +277,15 @@ export async function importStudyData(
   return {}
 }
 
-export async function clearAllStudyData() {
+export async function clearAllStudyData(): Promise<number> {
+  let nextGeneration = 1
   await withExclusiveDatabaseLock(async () => {
     await studyDb.transaction('rw', studyTables, async () => {
       const currentGen = await getDatabaseGeneration(studyDb.settings)
       if (currentGen >= Number.MAX_SAFE_INTEGER) {
         throw new DatabaseGenerationOverflowError()
       }
-      const nextGeneration = currentGen + 1
+      nextGeneration = currentGen + 1
 
       await Promise.all([
         studyDb.tasks.clear(),
@@ -306,6 +307,7 @@ export async function clearAllStudyData() {
       ])
     })
   })
+  return nextGeneration
 }
 
 export type MigrationResult =

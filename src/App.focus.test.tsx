@@ -1566,4 +1566,32 @@ describe('App focus', () => {
     expect(screen.queryByText('Session complete')).not.toBeInTheDocument()
     expect(await studyDb.studySessions.count()).toBe(0)
   })
+
+  it('allows starting a new focus session immediately after Settings clear-all without reload', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    // Navigate to Settings
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    await screen.findByRole('heading', { name: 'Settings' })
+
+    // Trigger Clear All
+    await user.click(screen.getByRole('button', { name: /Reset all study data/i }))
+    const input = await screen.findByLabelText(/Type DELETE/i)
+    await user.type(input, 'DELETE')
+    await user.click(screen.getByRole('button', { name: 'Delete all data' }))
+
+    // Home is displayed with success notice
+    expect(await screen.findByText('All study data has been permanently deleted.')).toBeInTheDocument()
+
+    // Immediately start a focus session
+    await waitForFocusStartEnabled()
+    await user.click(screen.getByRole('button', { name: 'Start focus' }))
+
+    // Must succeed and display running timer, not error notice
+    expect(await screen.findByText('Elapsed')).toBeInTheDocument()
+    expect(screen.queryByText(/Data was modified in another tab/i)).not.toBeInTheDocument()
+    const active = await getActiveFocusSession()
+    expect(active).not.toBeNull()
+  })
 })
