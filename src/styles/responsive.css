@@ -350,7 +350,7 @@
   }
 
   .theme-option {
-    min-height: 72px;
+    min-height: auto;
   }
 
   .detail-card .row-actions,

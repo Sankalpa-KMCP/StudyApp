@@ -189,3 +189,119 @@ describe('SettingsView concurrency and coordinator integration', () => {
     expect(onClear).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('SettingsView theme gallery and selection', () => {
+  it('renders all 11 themes from THEME_CONFIGS with miniature previews and accessible radio semantics', () => {
+    const coordinator = new DataOperationCoordinator()
+    render(<TestSettingsViewWrapper coordinator={coordinator} theme="monochrome" />)
+
+    const radiogroup = screen.getByRole('radiogroup', { name: 'Theme' })
+    expect(radiogroup).toBeInTheDocument()
+
+    const radioOptions = screen.getAllByRole('radio')
+    expect(radioOptions).toHaveLength(11)
+
+    // Check that every theme has a decorative preview container with data-theme-preview
+    const previews = radiogroup.querySelectorAll('.theme-preview')
+    expect(previews).toHaveLength(11)
+    previews.forEach((preview) => {
+      expect(preview).toHaveAttribute('aria-hidden', 'true')
+      expect(preview).toHaveAttribute('data-theme-preview')
+    })
+
+    // Active theme verification (monochrome)
+    const monochromeOption = screen.getByRole('radio', { name: /Monochrome/i })
+    expect(monochromeOption).toHaveAttribute('aria-checked', 'true')
+    expect(monochromeOption).toHaveAttribute('tabIndex', '0')
+    expect(monochromeOption.querySelector('.theme-selected-badge')).toBeInTheDocument()
+
+    // Non-active theme verification (e.g. sage, nordic, obsidian, espresso)
+    const sageOption = screen.getByRole('radio', { name: /Sage Botanical/i })
+    expect(sageOption).toHaveAttribute('aria-checked', 'false')
+    expect(sageOption).toHaveAttribute('tabIndex', '-1')
+    expect(sageOption.querySelector('.theme-selected-badge')).toBeNull()
+
+    const nordicOption = screen.getByRole('radio', { name: /Nordic Slate/i })
+    expect(nordicOption).toHaveAttribute('aria-checked', 'false')
+
+    const obsidianOption = screen.getByRole('radio', { name: /High-Contrast Obsidian/i })
+    expect(obsidianOption).toHaveAttribute('aria-checked', 'false')
+
+    const espressoOption = screen.getByRole('radio', { name: /Espresso/i })
+    expect(espressoOption).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('calls onThemeChange when a theme option is clicked', async () => {
+    const user = userEvent.setup()
+    const coordinator = new DataOperationCoordinator()
+    const onThemeChange = vi.fn()
+
+    render(
+      <SettingsView
+        coordinatorState={coordinator.getSnapshot()}
+        onExport={vi.fn().mockResolvedValue(undefined)}
+        onImport={vi.fn().mockResolvedValue(undefined)}
+        onClear={vi.fn().mockResolvedValue(undefined)}
+        onShowOnboardingChecklist={vi.fn().mockResolvedValue(undefined)}
+        profileNotice=""
+        theme="monochrome"
+        onThemeChange={onThemeChange}
+      />,
+    )
+
+    const nordicOption = screen.getByRole('radio', { name: /Nordic Slate/i })
+    await user.click(nordicOption)
+    expect(onThemeChange).toHaveBeenCalledWith('nordic')
+
+    const espressoOption = screen.getByRole('radio', { name: /Espresso/i })
+    await user.click(espressoOption)
+    expect(onThemeChange).toHaveBeenCalledWith('espresso')
+  })
+
+  it('supports full keyboard navigation (ArrowRight, ArrowDown, ArrowLeft, ArrowUp, Home, End) across all 11 themes', async () => {
+    const user = userEvent.setup()
+    const coordinator = new DataOperationCoordinator()
+    const onThemeChange = vi.fn()
+
+    render(
+      <SettingsView
+        coordinatorState={coordinator.getSnapshot()}
+        onExport={vi.fn().mockResolvedValue(undefined)}
+        onImport={vi.fn().mockResolvedValue(undefined)}
+        onClear={vi.fn().mockResolvedValue(undefined)}
+        onShowOnboardingChecklist={vi.fn().mockResolvedValue(undefined)}
+        profileNotice=""
+        theme="monochrome"
+        onThemeChange={onThemeChange}
+      />,
+    )
+
+    const radioOptions = screen.getAllByRole('radio')
+    radioOptions[0].focus()
+    expect(radioOptions[0]).toHaveFocus()
+
+    // ArrowRight moves from 0 (monochrome) to 1 (light)
+    await user.keyboard('{ArrowRight}')
+    expect(onThemeChange).toHaveBeenLastCalledWith('light')
+
+    // ArrowDown moves from 1 (light) to 2 (blueprint)
+    await user.keyboard('{ArrowDown}')
+    expect(onThemeChange).toHaveBeenLastCalledWith('blueprint')
+
+    // ArrowLeft moves from 2 (blueprint) to 1 (light)
+    await user.keyboard('{ArrowLeft}')
+    expect(onThemeChange).toHaveBeenLastCalledWith('light')
+
+    // ArrowUp moves from 1 (light) to 0 (monochrome)
+    await user.keyboard('{ArrowUp}')
+    expect(onThemeChange).toHaveBeenLastCalledWith('monochrome')
+
+    // End moves to the last option (10: obsidian)
+    await user.keyboard('{End}')
+    expect(onThemeChange).toHaveBeenLastCalledWith('obsidian')
+
+    // Home moves to the first option (0: monochrome)
+    await user.keyboard('{Home}')
+    expect(onThemeChange).toHaveBeenLastCalledWith('monochrome')
+  })
+})

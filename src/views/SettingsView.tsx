@@ -1,19 +1,9 @@
 import { useId, useRef, useState } from 'react'
-import { BookOpen, Download, Layers3, RotateCcw, Upload } from '../components/icons'
+import { BookOpen, Check, Download, Layers3, RotateCcw, Upload } from '../components/icons'
 import { MutationNotice, PanelHeader } from '../components/ui'
 import type { DataCoordinatorSnapshot } from '../db/dataCoordinator'
 import { type MutationPhase, useMutationState } from '../hooks/useMutationState'
-import type { ThemeMode } from '../hooks/useThemePreference'
-
-const themeOptions: Array<{ id: ThemeMode; label: string; description: string; swatches: string[] }> = [
-  { id: 'monochrome', label: 'Monochrome', description: 'Crisp black ink on quiet neutral paper.', swatches: ['#f3f3f1', '#111111', '#6a6a67'] },
-  { id: 'light', label: 'Canvas', description: 'Warm paper, forest ink, vermilion details.', swatches: ['#f4f0e8', '#24594d', '#d45a43'] },
-  { id: 'blueprint', label: 'Blueprint', description: 'Cool drafting paper with precise navy lines.', swatches: ['#eaf0f5', '#153f73', '#1556c0'] },
-  { id: 'moss', label: 'Moss Library', description: 'Olive green, aged paper, and muted brass.', swatches: ['#eee7d6', '#315b3a', '#805d1f'] },
-  { id: 'dark', label: 'Midnight', description: 'Inky blue with a soft amber reading light.', swatches: ['#10141d', '#f2b56b', '#72c9c0'] },
-  { id: 'aurora', label: 'Aurora', description: 'Deep violet, orchid, and electric mint.', swatches: ['#111323', '#aa8df5', '#55d6c6'] },
-  { id: 'ember', label: 'Ember', description: 'Terracotta, parchment, and library blue.', swatches: ['#f3e4d2', '#b74e32', '#496a7d'] },
-]
+import { THEME_CONFIGS, type ThemeMode } from '../styles/themeRegistry'
 
 export function SettingsView({
   coordinatorState,
@@ -91,14 +81,14 @@ export function SettingsView({
   const handleThemeKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
     let nextIndex: number | null = null
 
-    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (index + 1) % themeOptions.length
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (index - 1 + themeOptions.length) % themeOptions.length
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (index + 1) % THEME_CONFIGS.length
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (index - 1 + THEME_CONFIGS.length) % THEME_CONFIGS.length
     if (event.key === 'Home') nextIndex = 0
-    if (event.key === 'End') nextIndex = themeOptions.length - 1
+    if (event.key === 'End') nextIndex = THEME_CONFIGS.length - 1
     if (nextIndex === null) return
 
     event.preventDefault()
-    onThemeChange(themeOptions[nextIndex].id)
+    onThemeChange(THEME_CONFIGS[nextIndex].id)
     themeOptionRefs.current[nextIndex]?.focus()
   }
 
@@ -230,27 +220,57 @@ export function SettingsView({
           <strong>Appearance</strong>
           <span>Choose a theme for this device.</span>
           <div className="theme-grid" role="radiogroup" aria-label="Theme">
-            {themeOptions.map((option, index) => (
-              <button
-                className={theme === option.id ? 'theme-option is-active' : 'theme-option'}
-                type="button"
-                role="radio"
-                aria-checked={theme === option.id}
-                tabIndex={theme === option.id ? 0 : -1}
-                key={option.id}
-                ref={(element) => { themeOptionRefs.current[index] = element }}
-                onClick={() => onThemeChange(option.id)}
-                onKeyDown={(event) => handleThemeKeyDown(event, index)}
-              >
-                <span className="theme-swatches" aria-hidden="true">
-                  {option.swatches.map((swatch) => <i style={{ backgroundColor: swatch }} key={swatch} />)}
-                </span>
-                <span>
-                  <strong>{option.label}</strong>
-                  <small>{option.description}</small>
-                </span>
-              </button>
-            ))}
+            {THEME_CONFIGS.map((option, index) => {
+              const isSelected = theme === option.id
+              return (
+                <button
+                  className={isSelected ? 'theme-option is-active' : 'theme-option'}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  tabIndex={isSelected ? 0 : -1}
+                  key={option.id}
+                  ref={(element) => { themeOptionRefs.current[index] = element }}
+                  onClick={() => onThemeChange(option.id)}
+                  onKeyDown={(event) => handleThemeKeyDown(event, index)}
+                >
+                  <span className="theme-preview" data-theme-preview={option.id} aria-hidden="true">
+                    <span className="theme-preview-window">
+                      <span className="theme-preview-sidebar">
+                        <span className="theme-preview-nav-item is-active" />
+                        <span className="theme-preview-nav-item" />
+                        <span className="theme-preview-nav-item" />
+                      </span>
+                      <span className="theme-preview-body">
+                        <span className="theme-preview-topbar">
+                          <span className="theme-preview-chip is-accent" />
+                          <span className="theme-preview-chip is-highlight" />
+                        </span>
+                        <span className="theme-preview-card">
+                          <span className="theme-preview-line is-title" />
+                          <span className="theme-preview-line is-muted" />
+                          <span className="theme-preview-bar">
+                            <span className="theme-preview-bar-fill" />
+                          </span>
+                        </span>
+                      </span>
+                    </span>
+                  </span>
+                  <span className="theme-option-info">
+                    <span className="theme-option-header">
+                      <strong>{option.label}</strong>
+                      {isSelected ? (
+                        <span className="theme-selected-badge">
+                          <Check size={12} aria-hidden="true" />
+                          <span>Active</span>
+                        </span>
+                      ) : null}
+                    </span>
+                    <small>{option.description}</small>
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
         <button
