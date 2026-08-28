@@ -4,14 +4,15 @@
 
 ### Added
 
-- Expanded theme palette to 11 accessible options by introducing **Sage Botanical**, **Nordic Slate**, **Espresso**, and **High-Contrast Obsidian** alongside Monochrome, Canvas, Blueprint, Moss Library, Ember, Midnight, and Aurora.
-- Visual Theme Gallery in Settings with interactive theme cards, multi-token preview swatches, and active badges.
-- Centralized theme registry (`src/styles/themeRegistry.ts`) defining theme identifiers, display names, mode classifications (Light, Dark, High Contrast), and preview swatches.
-- Automated theme token contrast contracts (`src/styles/themeTokenContrast.ts` / `.test.ts`) enforcing text (≥ 4.5:1 with a 4.6:1 margin) and control boundary (≥ 3.0:1 with a 3.2:1 margin) minimums across all 11 themes.
-- Playwright E2E integration test coverage across all 11 themes and reload persistence (`e2e/dashboard.spec.ts`).
+- Expanded theme library from 11 to **16 accessible palettes** (9 Light and 7 Dark) by introducing **Rose Quartz**, **Ocean Glass**, and **Sandstone** (Light), alongside **Plum Noir** and **Forest Dark** (Dark), joining Monochrome, Canvas, Blueprint, Moss Library, Ember, Sage Botanical, Midnight, Aurora, Nordic Slate, Espresso, and High-Contrast Obsidian.
+- Visual Theme Gallery in Settings with persistent Light and Dark category grouping, dynamic category count badges (`9` and `7`), clear visual boundary separation, and continuous roving tabindex keyboard navigation across all 16 theme choices.
+- Centralized theme registry (`src/styles/themeRegistry.ts`) and CSS semantic token system (`src/styles/tokens.css`) providing full 28-token semantic palettes and thumbnail preview swatches for all 16 themes.
+- Automated theme token contrast contracts (`src/styles/themeTokenContrast.ts` / `.test.ts`) enforcing text (≥ 4.5:1 with a 4.6:1 margin) and control boundary (≥ 3.0:1 with a 3.2:1 margin) minimums across all 16 themes.
+- Playwright E2E integration test coverage across all 16 themes, dynamic switching, and reload persistence (`e2e/dashboard.spec.ts`).
 
 ### Fixed
 
+- Resolved Settings Appearance card tablet grid layout issue by spanning full available container width (`.theme-card { grid-column: 1 / -1; }`), eliminating orphan tracks at intermediate viewports (768px–1060px).
 - Resynchronized in-memory focus database generation after Settings Clear All (`clearAllStudyData`), ensuring subsequent Focus sessions start immediately without `StaleDatabaseGenerationError` or page reload.
 - Preserved durable Focus checkpoint monotonicity across same-generation updates, ensuring stale writes cannot regress confirmed checkpoint elapsed time and session finalization never records fewer study minutes than confirmed by the durable active singleton.
 - Preserved distinct legacy subjects sharing identical or case-differing names during localStorage migration by maintaining subjects by unique ID with deterministic exact-name-first resolution for associated tasks, notes, and sessions.
