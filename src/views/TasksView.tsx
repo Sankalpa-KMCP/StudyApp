@@ -263,7 +263,7 @@ export function TasksView({
         onAction={() => openEditor()}
       />
       <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
-      <SegmentedControl<'all' | 'open' | 'done'> value={filter} options={['all', 'open', 'done']} onChange={onFilterChange} />
+      <SegmentedControl<'all' | 'open' | 'done'> value={filter} options={['all', 'open', 'done']} onChange={onFilterChange} ariaLabel="Task filter" />
       {editingTaskId ? (
         <div className="editor-card" aria-busy={isSaving || undefined}>
           <TextInput

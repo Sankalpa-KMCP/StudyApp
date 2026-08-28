@@ -31,6 +31,7 @@ import { ProgressView } from './views/ProgressView'
 import { GoalsView } from './views/GoalsView'
 import { SettingsView } from './views/SettingsView'
 import type { ThemeMode } from './hooks/useThemePreference'
+import type { DensityMode } from './hooks/useDensityPreference'
 import type { View } from './navigation/viewRoutes'
 import type { QuickAddItem } from './components/QuickAddMenu'
 
@@ -61,6 +62,8 @@ export type AppLiveDataProps = {
   onDismissPreferenceNotice: () => void
   theme: ThemeMode
   onThemeChange: (theme: ThemeMode) => void
+  density?: DensityMode
+  onDensityChange?: (density: DensityMode) => void
   onNavigate: (view: View) => void
   onOpenProfile: () => void
   onQuickAdd: (item: QuickAddItem) => void
@@ -120,6 +123,8 @@ export function AppLiveData({
   onDismissPreferenceNotice,
   theme,
   onThemeChange,
+  density = 'comfortable',
+  onDensityChange,
   onNavigate,
   onOpenProfile,
   onQuickAdd,
@@ -311,6 +316,7 @@ export function AppLiveData({
                   onCreateTask={onCreateTask}
                   onRevealFocusSession={onRevealFocusSession}
                   onDismissOnboardingChecklist={onDismissOnboardingChecklist}
+                  density={density}
                 />
               ) : null}
               {activeView === 'Tasks' ? (
@@ -393,11 +399,13 @@ export function AppLiveData({
                   onDismissPreferenceNotice={onDismissPreferenceNotice}
                   theme={theme}
                   onThemeChange={onThemeChange}
+                  density={density}
+                  onDensityChange={onDensityChange}
                   onShowOnboardingChecklist={onShowOnboardingChecklist}
                 />
               ) : null}
             </section>
-            {activeView === 'Home' ? (
+            {activeView === 'Home' && density === 'comfortable' ? (
               <aside className="right-column" aria-label="Progress and schedule">
                 <WeeklyProgress days={weeklyStudyDays} />
                 <Upcoming events={upcomingEvents} subjectMap={subjectMap} onViewAll={() => onNavigate('Calendar')} />
