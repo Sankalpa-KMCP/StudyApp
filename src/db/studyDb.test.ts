@@ -557,7 +557,7 @@ describe('studyDb', () => {
     await expect(importStudyData(nonStringMetric)).rejects.toThrow('Import file is not a Study Dashboard export.')
     expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
 
-    await expect(importStudyData({ ...validV2, version: 4 })).rejects.toThrow('Import file is not a Study Dashboard export.')
+    await expect(importStudyData({ ...validV2, version: 4 })).rejects.toThrow('Import file schema version (4) is newer than supported version (3).')
     expect(await studyDb.subjects.get('subject-seeded')).toMatchObject({ name: 'Seeded subject' })
     expect((await studyDb.settings.get('activeFocusSession'))?.value).toMatchObject({ id: 'focus-imported' })
   })

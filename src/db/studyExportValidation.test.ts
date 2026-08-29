@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ACTIVE_FOCUS_SESSION_KEY } from './activeFocusSession'
+import { parseAndNormalizeStudyExport } from './studyDb'
 import {
   assertStudyExportRecordCounts,
   assertStudyExportRecordCountTotals,
@@ -8,6 +9,7 @@ import {
   assertStudyExportSubjectReferences,
   assertUniqueStudyExportIdentifiers,
   STUDY_EXPORT_IMPORT_VALIDATION_ERROR,
+  StudyExportValidationError,
 } from './studyExportValidation'
 import { STUDY_EXPORT_RECORD_LIMITS, type StudyExportRecordLimits } from './studyExportLimits'
 import type { StudyExport } from './types'
@@ -1125,5 +1127,119 @@ describe('assertStudyExportRecordCounts', () => {
         note: '',
       }],
     }, tinyLimits)).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+  })
+})
+
+describe('parseAndNormalizeStudyExport classified validation errors & appVersion metadata (S3)', () => {
+  it('throws invalid_json for malformed JSON strings', () => {
+    try {
+      parseAndNormalizeStudyExport('{ malformed json ')
+      expect.fail('should have thrown')
+    } catch (err) {
+      expect(err).toBeInstanceOf(StudyExportValidationError)
+      const error = err as StudyExportValidationError
+      expect(error.code).toBe('invalid_json')
+    }
+  })
+
+  it('throws invalid_structure for non-record or missing version', () => {
+    try {
+      parseAndNormalizeStudyExport(12345)
+      expect.fail('should have thrown')
+    } catch (err) {
+      expect(err).toBeInstanceOf(StudyExportValidationError)
+      expect((err as StudyExportValidationError).code).toBe('invalid_structure')
+    }
+
+    try {
+      parseAndNormalizeStudyExport({ exportedAt: timestamp })
+      expect.fail('should have thrown')
+    } catch (err) {
+      expect(err).toBeInstanceOf(StudyExportValidationError)
+      expect((err as StudyExportValidationError).code).toBe('invalid_structure')
+    }
+  })
+
+  it('throws future_version with encounteredVersion detail for version > 3', () => {
+    try {
+      parseAndNormalizeStudyExport({ version: 4, exportedAt: timestamp, ...emptyTables() })
+      expect.fail('should have thrown')
+    } catch (err) {
+      expect(err).toBeInstanceOf(StudyExportValidationError)
+      const error = err as StudyExportValidationError
+      expect(error.code).toBe('future_version')
+      expect(error.details?.encounteredVersion).toBe(4)
+    }
+  })
+
+  it('throws unsupported_old_version for version < 1', () => {
+    try {
+      parseAndNormalizeStudyExport({ version: 0, exportedAt: timestamp, ...emptyTables() })
+      expect.fail('should have thrown')
+    } catch (err) {
+      expect(err).toBeInstanceOf(StudyExportValidationError)
+      const error = err as StudyExportValidationError
+      expect(error.code).toBe('unsupported_old_version')
+      expect(error.details?.encounteredVersion).toBe(0)
+    }
+  })
+
+  it('throws invalid_records for invalid appVersion metadata', () => {
+    try {
+      parseAndNormalizeStudyExport({
+        version: 3,
+        exportedAt: timestamp,
+        appVersion: 12345,
+        ...emptyTables(),
+      })
+      expect.fail('should have thrown')
+    } catch (err) {
+      expect(err).toBeInstanceOf(StudyExportValidationError)
+      expect((err as StudyExportValidationError).code).toBe('invalid_records')
+    }
+
+    try {
+      parseAndNormalizeStudyExport({
+        version: 3,
+        exportedAt: timestamp,
+        appVersion: '',
+        ...emptyTables(),
+      })
+      expect.fail('should have thrown')
+    } catch (err) {
+      expect(err).toBeInstanceOf(StudyExportValidationError)
+      expect((err as StudyExportValidationError).code).toBe('invalid_records')
+    }
+  })
+
+  it('preserves valid appVersion metadata when present on v3 backups', () => {
+    const payload = {
+      version: 3,
+      exportedAt: timestamp,
+      appVersion: '1.4.0',
+      ...emptyTables(),
+    }
+    const result = parseAndNormalizeStudyExport(payload)
+    expect(result.appVersion).toBe('1.4.0')
+  })
+
+  it('parses valid v1, v2, and v3 backups without appVersion (backward compatibility)', () => {
+    const v1Payload = {
+      version: 1,
+      exportedAt: timestamp,
+      ...emptyTables(),
+    }
+    const result1 = parseAndNormalizeStudyExport(v1Payload)
+    expect(result1.version).toBe(3)
+    expect(result1.appVersion).toBeUndefined()
+
+    const v3Payload = {
+      version: 3,
+      exportedAt: timestamp,
+      ...emptyTables(),
+    }
+    const result3 = parseAndNormalizeStudyExport(v3Payload)
+    expect(result3.version).toBe(3)
+    expect(result3.appVersion).toBeUndefined()
   })
 })
