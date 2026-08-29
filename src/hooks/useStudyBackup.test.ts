@@ -7,6 +7,7 @@ import {
   MAX_STUDY_EXPORT_IMPORT_CHARS,
   STUDY_EXPORT_IMPORT_SIZE_ERROR,
 } from '../db/studyExportLimits'
+import { StudyExportValidationError } from '../db/studyExportValidation'
 import {
   DataOperationBusyError,
   isDataOperationBusyError,
@@ -297,5 +298,30 @@ describe('useStudyBackup', () => {
     expect(clearFocusLocalState).not.toHaveBeenCalled()
     expect(onClearSuccess).not.toHaveBeenCalled()
     expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
+  })
+
+  it('18, 20. reloads focus state and returns cleanup warning when import succeeds with cleanup warning', async () => {
+    vi.spyOn(studyDb, 'importStudyData').mockResolvedValue({ warning: 'cleanup_failed' })
+    const reloadFocusFromIndexedDb = vi.fn(async () => null)
+    const { result } = renderBackupHook({ reloadFocusFromIndexedDb })
+
+    const file = new File([JSON.stringify({ version: 3 })], 'ok.json', { type: 'application/json' })
+    const res = await result.current.importBackup(file)
+
+    expect(res).toEqual({ warning: 'cleanup_failed' })
+    expect(reloadFocusFromIndexedDb).toHaveBeenCalledTimes(1)
+  })
+
+  it('19. does not reload focus state when import throws validation or transaction error', async () => {
+    vi.spyOn(studyDb, 'importStudyData').mockRejectedValue(
+      new StudyExportValidationError('transaction_failed', 'Failed transaction')
+    )
+    const reloadFocusFromIndexedDb = vi.fn(async () => null)
+    const { result } = renderBackupHook({ reloadFocusFromIndexedDb })
+
+    const file = new File([JSON.stringify({ version: 3 })], 'ok.json', { type: 'application/json' })
+    await expect(result.current.importBackup(file)).rejects.toThrow('Failed transaction')
+
+    expect(reloadFocusFromIndexedDb).not.toHaveBeenCalled()
   })
 })

@@ -413,7 +413,9 @@ describe('App UI settings live query isolation', () => {
       'quickNotes',
     ].sort())
     expect(full.settings.find((row) => row.key === 'plugin.future.setting')?.value).toEqual({ keep: true, n: 2 })
-    expect((await exportStudyData()).settings).toEqual(full.settings)
+    expect((await exportStudyData()).settings).toEqual(
+      full.settings.filter((row) => row.key !== 'legacy-localstorage-migrated-v1')
+    )
   })
 
   it('clear-all deletes Quick Notes, preserves daily goal, refreshes UI settings and Subjects', async () => {

@@ -3223,4 +3223,225 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       }
     })
   })
+
+  describe('S4 complete-replacement settings partition and stale-source protection', () => {
+    beforeEach(async () => {
+      localStorage.clear()
+      if (!studyDb.isOpen()) {
+        await studyDb.open()
+      }
+      await clearAllStudyData()
+    })
+
+    const timestamp = '2026-08-05T12:00:00.000Z'
+    const validV3Payload = {
+      version: 3 as const,
+      exportedAt: timestamp,
+      appVersion: '1.4.0',
+      tasks: [
+        {
+          id: 'task-imported',
+          title: 'Imported task',
+          subjectId: '',
+          dueDate: '',
+          priority: 'normal' as const,
+          status: 'open' as const,
+          minutes: 30,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      ],
+      subjects: [],
+      notes: [],
+      events: [],
+      flashcards: [],
+      studySessions: [],
+      goals: [],
+      settings: [{ key: 'dailyGoalMinutes', value: 300 }],
+    }
+
+    it('1. import succeeds when backup has no migration marker', async () => {
+      const result = await importStudyData(validV3Payload)
+      expect(result).toEqual({})
+      expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+      expect((await studyDb.tasks.toArray())).toHaveLength(1)
+    })
+
+    it('2. successful import always stores marker true', async () => {
+      const payloadWithMarker = {
+        ...validV3Payload,
+        settings: [
+          { key: 'legacy-localstorage-migrated-v1', value: true },
+          { key: 'dailyGoalMinutes', value: 240 },
+        ],
+      }
+      await importStudyData(payloadWithMarker)
+      expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    })
+
+    it('3. imported marker true cannot create a duplicate marker row', async () => {
+      const payloadWithMarker = {
+        ...validV3Payload,
+        settings: [
+          { key: 'legacy-localstorage-migrated-v1', value: true },
+          { key: 'dailyGoalMinutes', value: 240 },
+        ],
+      }
+      await importStudyData(payloadWithMarker)
+      const rows = await studyDb.settings.where('key').equals('legacy-localstorage-migrated-v1').toArray()
+      expect(rows).toHaveLength(1)
+      expect(rows[0]?.value).toBe(true)
+    })
+
+    it('4. imported marker false or malformed value is rejected before mutation', async () => {
+      await studyDb.tasks.add({
+        id: 'task-existing',
+        title: 'Existing task',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 30,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+
+      const invalidPayload = {
+        ...validV3Payload,
+        settings: [{ key: 'legacy-localstorage-migrated-v1', value: false }],
+      }
+
+      await expect(importStudyData(invalidPayload)).rejects.toThrow('Import file is not a Study Dashboard export.')
+      expect(await studyDb.tasks.toArray()).toMatchObject([{ id: 'task-existing' }])
+    })
+
+    it('5. stale study-dashboard-v2 is removed only after successful commit', async () => {
+      localStorage.setItem('study-dashboard-v2', '{"tasks":[]}')
+      await importStudyData(validV3Payload)
+      expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+    })
+
+    it('6. stale source remains after validation failure', async () => {
+      localStorage.setItem('study-dashboard-v2', '{"tasks":[]}')
+      const invalidPayload = { ...validV3Payload, version: 99 }
+      await expect(importStudyData(invalidPayload)).rejects.toThrow()
+      expect(localStorage.getItem('study-dashboard-v2')).toBe('{"tasks":[]}')
+    })
+
+    it('7. stale source remains after transaction rollback', async () => {
+      localStorage.setItem('study-dashboard-v2', '{"tasks":[]}')
+      await expect(importStudyData(validV3Payload, { abortTransaction: true })).rejects.toThrow()
+      expect(localStorage.getItem('study-dashboard-v2')).toBe('{"tasks":[]}')
+    })
+
+    it('8, 9. cleanup failure after commit preserves imported data/marker and returns distinct warning', async () => {
+      localStorage.setItem('study-dashboard-v2', '{"tasks":[]}')
+      const result = await importStudyData(validV3Payload, { forceCleanupError: true })
+      expect(result).toEqual({ warning: 'cleanup_failed' })
+      expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+      expect(await studyDb.tasks.toArray()).toMatchObject([{ id: 'task-imported' }])
+    })
+
+    it('10. startup migration after cleanup failure does not re-import stale legacy data', async () => {
+      localStorage.setItem('study-dashboard-v2', JSON.stringify({
+        tasks: [{ id: 'task-legacy', title: 'Stale task', done: false, minutes: 30 }],
+      }))
+
+      // Force import cleanup failure -> DB has marker true, localStorage has legacy key
+      const result = await importStudyData(validV3Payload, { forceCleanupError: true })
+      expect(result.warning).toBe('cleanup_failed')
+
+      // Now invoke startup migration
+      const migrationResult = await migrateLegacyLocalStorage()
+      expect(migrationResult.status).toBe('already_migrated')
+
+      // DB still contains imported task, not stale legacy task
+      expect(await studyDb.tasks.toArray()).toMatchObject([{ id: 'task-imported' }])
+    })
+
+    it('11. portable settings omitted from backup are deleted', async () => {
+      await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
+      await studyDb.settings.put({ key: 'quickNotes', value: ['old note'] })
+
+      const emptySettingsPayload = {
+        ...validV3Payload,
+        settings: [],
+      }
+
+      await importStudyData(emptySettingsPayload)
+      expect(await studyDb.settings.get('dailyGoalMinutes')).toBeUndefined()
+      expect(await studyDb.settings.get('quickNotes')).toBeUndefined()
+      expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    })
+
+    it('12. portable settings present in backup are restored', async () => {
+      await importStudyData(validV3Payload)
+      expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(300)
+    })
+
+    it('13. old device portable settings are not accidentally retained', async () => {
+      await studyDb.settings.put({ key: 'customDeviceSetting', value: 'oldValue' })
+      await importStudyData(validV3Payload)
+      expect(await studyDb.settings.get('customDeviceSetting')).toBeUndefined()
+    })
+
+    it('14. entity tables are fully replaced, not merged', async () => {
+      await studyDb.tasks.add({
+        id: 'task-old',
+        title: 'Old task',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 30,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+
+      await importStudyData(validV3Payload)
+      const tasks = await studyDb.tasks.toArray()
+      expect(tasks).toHaveLength(1)
+      expect(tasks[0]?.id).toBe('task-imported')
+    })
+
+    it('15, 16, 17. transaction failure rolls back all clears and restores preserving pre-import snapshot', async () => {
+      // Seed pre-import state
+      await studyDb.tasks.add({
+        id: 'task-pre',
+        title: 'Pre task',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 30,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      })
+      await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 180 })
+
+      const snapshotBefore = await getStudyData()
+
+      await expect(importStudyData(validV3Payload, { forceQuotaError: true })).rejects.toThrow()
+      const snapshotAfterQuota = await getStudyData()
+      expect(snapshotAfterQuota).toEqual(snapshotBefore)
+
+      await expect(importStudyData(validV3Payload, { abortTransaction: true })).rejects.toThrow()
+      const snapshotAfterAbort = await getStudyData()
+      expect(snapshotAfterAbort).toEqual(snapshotBefore)
+    })
+
+    it('21. new exports omit legacy migration marker while maintaining v1-v3 import compatibility', async () => {
+      await studyDb.settings.put({ key: 'legacy-localstorage-migrated-v1', value: true })
+      await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 240 })
+
+      const exported = await exportStudyData()
+      expect(exported.settings.find((s) => s.key === 'legacy-localstorage-migrated-v1')).toBeUndefined()
+      expect(exported.settings.find((s) => s.key === 'dailyGoalMinutes')).toBeDefined()
+
+      // Round-trip export into fresh DB
+      await clearAllStudyData()
+      await importStudyData(exported)
+      expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    })
+  })
 })

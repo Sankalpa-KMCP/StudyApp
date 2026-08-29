@@ -30,7 +30,7 @@ export function SettingsView({
 }: {
   coordinatorState?: DataCoordinatorSnapshot
   onExport: () => Promise<void>
-  onImport: (file: File) => Promise<void>
+  onImport: (file: File) => Promise<unknown>
   onClear: () => Promise<void>
   onShowOnboardingChecklist: () => Promise<void>
   importPending?: boolean

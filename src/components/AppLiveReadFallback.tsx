@@ -24,7 +24,7 @@ export type AppLiveReadFallbackProps = {
   theme: ThemeMode
   onThemeChange: (theme: ThemeMode) => void
   onExport: () => Promise<void>
-  onImport: (file: File) => Promise<void>
+  onImport: (file: File) => Promise<unknown>
   onClear: () => Promise<void>
   onShowOnboardingChecklist: () => Promise<void>
   importPending: boolean

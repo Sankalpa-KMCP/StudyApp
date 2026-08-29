@@ -128,11 +128,15 @@ export function createStudyExportPayload(
   exportedAt = nowIso(),
   appVersion = getAppVersion()
 ): StudyExport {
+  const portableSettings = snapshot.settings.filter(
+    (setting) => setting.key !== LEGACY_MIGRATION_KEY
+  )
   return {
     version: EXPORT_SCHEMA_VERSION,
     exportedAt,
     appVersion,
     ...snapshot,
+    settings: portableSettings,
   }
 }
 
@@ -141,12 +145,41 @@ export async function exportStudyData(): Promise<StudyExport> {
   return createStudyExportPayload(snapshot)
 }
 
-export async function importStudyData(payload: unknown): Promise<void> {
+export type ImportStudyDataResult = {
+  warning?: 'cleanup_failed'
+}
+
+export interface TestImportHooks {
+  forceQuotaError?: boolean
+  abortTransaction?: boolean
+  forceCleanupError?: boolean
+}
+
+export async function importStudyData(
+  payload: unknown,
+  _testHooks?: TestImportHooks
+): Promise<ImportStudyDataResult> {
   const normalized = parseAndNormalizeStudyExport(payload)
+
+  const portableSettings = normalized.settings.filter(
+    (setting) => setting.key !== LEGACY_MIGRATION_KEY
+  )
+  const settingsToPut: StudySetting[] = [
+    ...portableSettings,
+    { key: LEGACY_MIGRATION_KEY, value: true },
+  ]
 
   try {
     await studyDb.transaction('rw', studyTables, async () => {
       await Promise.all(studyTables.map((table) => table.clear()))
+
+      if (_testHooks?.forceQuotaError) {
+        throw new DOMException('QuotaExceededError', 'QuotaExceededError')
+      }
+      if (_testHooks?.abortTransaction) {
+        throw new Error('Explicit transaction abort')
+      }
+
       await Promise.all([
         studyDb.tasks.bulkPut(normalized.tasks),
         studyDb.subjects.bulkPut(normalized.subjects),
@@ -155,7 +188,7 @@ export async function importStudyData(payload: unknown): Promise<void> {
         studyDb.flashcards.bulkPut(normalized.flashcards),
         studyDb.studySessions.bulkPut(normalized.studySessions),
         studyDb.goals.bulkPut(normalized.goals),
-        studyDb.settings.bulkPut(normalized.settings),
+        studyDb.settings.bulkPut(settingsToPut),
       ])
     })
   } catch (err) {
@@ -167,6 +200,22 @@ export async function importStudyData(payload: unknown): Promise<void> {
       'Database storage transaction failed during import.'
     )
   }
+
+  if (typeof window !== 'undefined') {
+    try {
+      if (_testHooks?.forceCleanupError) {
+        throw new Error('Forced cleanup error')
+      }
+      const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY)
+      if (raw !== null) {
+        window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+      }
+    } catch {
+      return { warning: 'cleanup_failed' }
+    }
+  }
+
+  return {}
 }
 
 export async function clearAllStudyData() {

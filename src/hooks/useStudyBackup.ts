@@ -4,6 +4,7 @@ import {
   clearAllStudyData,
   exportStudyData,
   importStudyData,
+  type ImportStudyDataResult,
 } from '../db/studyDb'
 import {
   assertStudyExportImportFileSize,
@@ -37,7 +38,7 @@ export type UseStudyBackupOptions = {
 
 export type UseStudyBackupResult = {
   exportBackup: () => Promise<void>
-  importBackup: (file: File) => Promise<void>
+  importBackup: (file: File) => Promise<ImportStudyDataResult>
   clearAllBackup: () => Promise<void>
 }
 
@@ -74,19 +75,21 @@ export function useStudyBackup({
     }
   }, [coordinator])
 
-  const importBackup = useCallback(async (file: File): Promise<void> => {
+  const importBackup = useCallback(async (file: File): Promise<ImportStudyDataResult> => {
+    let importResult: ImportStudyDataResult = {}
     const result = await coordinator.runImport(async () => {
       await runWithFocusImportLock(async () => {
         assertStudyExportImportFileSize(file)
         const text = await file.text()
         assertStudyExportImportTextLength(text)
-        await importStudyData(text)
+        importResult = await importStudyData(text)
         await reloadFocusFromIndexedDb()
       })
     })
     if (!result.ok) {
       throw new DataOperationBusyError('Another operation is in progress. Please wait for it to complete.')
     }
+    return importResult
   }, [coordinator, reloadFocusFromIndexedDb, runWithFocusImportLock])
 
   const clearAllBackup = useCallback(async (): Promise<void> => {
