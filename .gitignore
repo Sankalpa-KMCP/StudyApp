@@ -29,6 +29,9 @@ dist-ssr
 # Local AI documentation at repo root (not published to GitHub)
 /ai/
 
+# Local MCP configuration (untracked)
+/.mcp.json
+
 # OS
 Thumbs.db
 .DS_Store

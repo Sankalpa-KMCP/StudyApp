@@ -71,3 +71,13 @@ The app uses plain CSS, Vite, React, and Dexie. Icons are local React components
 ## Shared UI components
 
 Cover shared primitives with Vitest/Testing Library tests beside the components (for example `src/components/ui.test.tsx`). Do not add Storybook or other optional UI harnesses unless explicitly requested.
+
+## Release Archive Hygiene
+
+Do not create a release package by compressing the working directory. A generic filesystem ZIP could accidentally include ignored logs, `.mcp.json`, and other local files.
+
+Use a committed-tree archive instead:
+```bash
+git archive HEAD --format=zip -o StudyApp-release.zip
+```
+This ensures the archive contains tracked committed files only. Ignored and untracked local files such as `.mcp.json`, development logs, generated output, and local AI/tooling configuration are not release inputs. Note that GitHub Pages deployment remains separately generated from `dist`.
