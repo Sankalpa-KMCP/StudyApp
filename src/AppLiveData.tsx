@@ -32,6 +32,7 @@ import { GoalsView } from './views/GoalsView'
 import { SettingsView } from './views/SettingsView'
 import type { ThemeMode } from './hooks/useThemePreference'
 import type { DensityMode } from './hooks/useDensityPreference'
+import type { CanEnterZenReason } from './hooks/useFocusSession'
 import type { View } from './navigation/viewRoutes'
 import type { QuickAddItem } from './components/QuickAddMenu'
 
@@ -64,6 +65,9 @@ export type AppLiveDataProps = {
   onThemeChange: (theme: ThemeMode) => void
   density?: DensityMode
   onDensityChange?: (density: DensityMode) => void
+  canEnterZen?: boolean
+  canEnterZenReason?: CanEnterZenReason
+  onEnterZen?: () => void
   onNavigate: (view: View) => void
   onOpenProfile: () => void
   onQuickAdd: (item: QuickAddItem) => void
@@ -125,6 +129,9 @@ export function AppLiveData({
   onThemeChange,
   density = 'comfortable',
   onDensityChange,
+  canEnterZen = false,
+  canEnterZenReason = 'no-session',
+  onEnterZen,
   onNavigate,
   onOpenProfile,
   onQuickAdd,
@@ -273,6 +280,11 @@ export function AppLiveData({
                   dailyGoalMinutes={dailyGoalMinutes}
                   onCreateTask={onCreateTask}
                   onCreateSubject={onCreateSubject}
+                  density={density}
+                  onDensityChange={onDensityChange}
+                  canEnterZen={canEnterZen}
+                  canEnterZenReason={canEnterZenReason}
+                  onEnterZen={onEnterZen}
                 />
               ) : null}
               {activeView === 'Home' ? (
@@ -401,6 +413,9 @@ export function AppLiveData({
                   onThemeChange={onThemeChange}
                   density={density}
                   onDensityChange={onDensityChange}
+                  canEnterZen={canEnterZen}
+                  canEnterZenReason={canEnterZenReason}
+                  onEnterZen={onEnterZen}
                   onShowOnboardingChecklist={onShowOnboardingChecklist}
                 />
               ) : null}

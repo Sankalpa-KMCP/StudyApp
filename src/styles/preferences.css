@@ -30,6 +30,7 @@
   .mutation-notice,
   .settings-feedback,
   .session-complete,
+  .zen-overlay,
   .content-grid.is-entry-playing .hero-row::before,
   .content-grid.is-entry-playing .hero-row,
   .content-grid.is-entry-playing .primary-column > :not(.hero-row):not(.settings-feedback),

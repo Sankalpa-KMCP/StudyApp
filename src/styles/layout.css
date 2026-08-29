@@ -274,7 +274,8 @@
 }
 
 .notice-popover span {
-  color: var(--muted);
+  color: var(--ink);
+  font-size: 0.9rem;
 }
 
 .dashboard {

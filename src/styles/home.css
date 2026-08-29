@@ -2,7 +2,7 @@
   position: relative;
   min-height: 164px;
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 18px;
   padding: clamp(24px, 3vw, 34px);
@@ -23,9 +23,22 @@
 
 .hero-copy,
 .hero-metrics,
+.hero-tools,
 .hero-actions {
   position: relative;
   z-index: 1;
+}
+
+.hero-copy {
+  min-width: 0;
+}
+
+.hero-tools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 10px;
 }
 
 .eyebrow {
@@ -52,17 +65,17 @@
 
 .hero-metrics {
   display: grid;
-  grid-template-columns: repeat(2, minmax(112px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(88px, 1fr));
+  gap: 6px;
 }
 
 .hero-metrics span {
   display: grid;
   gap: 2px;
-  padding: 12px 14px;
+  padding: 8px 10px;
   border-left: 1px solid var(--line);
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.82rem;
 }
 
 .hero-metrics strong {

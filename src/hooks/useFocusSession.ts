@@ -18,11 +18,20 @@ import {
 import { DataOperationCoordinator, type IDataOperationCoordinator } from '../db/dataCoordinator'
 import { StaleDatabaseGenerationError } from '../db/databaseGeneration'
 import { createId, nowIso } from '../db/studyDb'
-import type { ActiveFocusSession, StudySubject } from '../db/types'
+import type { ActiveFocusSession, StudySession, StudySubject } from '../db/types'
+
+export type CanEnterZenReason = 'available' | 'no-session' | 'stale' | 'pending'
+
+export type FocusSessionFinalizationOutcome = {
+  sessionId: string
+  outcome: 'completed' | 'stopped'
+  history: StudySession
+}
 
 export type UseFocusSessionOptions = {
   subjectMap: Map<string, StudySubject>
   coordinator?: IDataOperationCoordinator
+  onSessionFinalized?: (finalization: FocusSessionFinalizationOutcome) => void
 }
 
 export type UseFocusSessionResult = {
@@ -34,6 +43,8 @@ export type UseFocusSessionResult = {
   remainingSeconds: number
   sessionNotice: string
   canStartFocus: boolean
+  canEnterZen: boolean
+  canEnterZenReason: CanEnterZenReason
   focusActionsPending: boolean
   focusImportPending: boolean
   focusSubjectId: string
@@ -86,8 +97,16 @@ function calculateRunningElapsed(session: ActiveFocusSession, anchor: LiveAnchor
  * decisions, subject updates, timed auto-complete with sync pending refs, and
  * import/clear coordination helpers. Domain persistence stays in activeFocusSession.
  */
-export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }: UseFocusSessionOptions): UseFocusSessionResult {
+export function useFocusSession({
+  subjectMap,
+  coordinator: optionsCoordinator,
+  onSessionFinalized,
+}: UseFocusSessionOptions): UseFocusSessionResult {
   const coordinator = useMemo(() => optionsCoordinator ?? new DataOperationCoordinator(), [optionsCoordinator])
+  const onSessionFinalizedRef = useRef(onSessionFinalized)
+  useEffect(() => {
+    onSessionFinalizedRef.current = onSessionFinalized
+  }, [onSessionFinalized])
   const [focusSubjectId, setFocusSubjectId] = useState('')
   const [focusDurationMinutes, setFocusDurationMinutes] = useState(25)
   const [sessionNotice, setSessionNotice] = useState('')
@@ -170,6 +189,16 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
   const sessionLimitSeconds = activeSession && activeSession.plannedMinutes > 0 ? activeSession.plannedMinutes * 60 : 0
   const focusActionsPending = focusTransitionPending || focusImportPending
   const canStartFocus = focusRestoreReady && !focusImportPending && !activeSession && !staleFocusSession
+  const canEnterZenReason: CanEnterZenReason = (focusImportPending || focusTransitionPending || !focusRestoreReady)
+    ? 'pending'
+    : staleFocusSession
+      ? 'stale'
+      : !activeSession
+        ? 'no-session'
+        : (activeSession.status === 'running' || activeSession.status === 'paused')
+          ? 'available'
+          : 'no-session'
+  const canEnterZen = canEnterZenReason === 'available'
   const staleFocusSubjectName = staleFocusSession
     ? (subjectMap.get(staleFocusSession.subjectId)?.name ?? (staleFocusSession.subjectId ? 'Unknown subject' : 'General'))
     : ''
@@ -498,6 +527,11 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
         setLiveElapsedMs(0)
         setActiveSession(null)
         setSessionNotice(completed ? `Session complete: ${formatMinutes(result.history.minutes)} logged.` : `Session stopped: ${formatMinutes(result.history.minutes)} logged.`)
+        onSessionFinalizedRef.current?.({
+          sessionId: currentSession.id,
+          outcome: completed ? 'completed' : 'stopped',
+          history: result.history,
+        })
         return
       } catch (err) {
         if (err instanceof StaleDatabaseGenerationError) {
@@ -877,6 +911,8 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     remainingSeconds,
     sessionNotice,
     canStartFocus,
+    canEnterZen,
+    canEnterZenReason,
     focusActionsPending,
     focusImportPending,
     focusSubjectId,

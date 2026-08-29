@@ -3,9 +3,16 @@
     grid-template-columns: minmax(260px, 1fr) auto;
   }
 
-  .hero-actions {
+  .hero-tools {
     grid-column: 2;
     grid-row: 1;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .hero-actions {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .hero-metrics {
@@ -113,10 +120,17 @@
   }
 
   .hero-metrics,
+  .hero-tools,
   .hero-actions {
     grid-column: auto;
     grid-row: auto;
     width: 100%;
+  }
+
+  .hero-tools {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
   }
 
   .hero-actions > * {

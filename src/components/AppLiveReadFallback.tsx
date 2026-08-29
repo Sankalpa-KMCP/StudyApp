@@ -4,6 +4,7 @@ import { SettingsView } from '../views/SettingsView'
 import type { DataCoordinatorSnapshot } from '../db/dataCoordinator'
 import type { ThemeMode } from '../hooks/useThemePreference'
 import type { DensityMode } from '../hooks/useDensityPreference'
+import type { CanEnterZenReason } from '../hooks/useFocusSession'
 import type { View } from '../navigation/viewRoutes'
 import type { QuickAddItem } from './QuickAddMenu'
 
@@ -26,6 +27,9 @@ export type AppLiveReadFallbackProps = {
   onThemeChange: (theme: ThemeMode) => void
   density?: DensityMode
   onDensityChange?: (density: DensityMode) => void
+  canEnterZen?: boolean
+  canEnterZenReason?: CanEnterZenReason
+  onEnterZen?: () => void
   onExport: () => Promise<void>
   onImport: (file: File) => Promise<unknown>
   onClear: () => Promise<void>
@@ -54,6 +58,9 @@ export function AppLiveReadFallback({
   onThemeChange,
   density = 'comfortable',
   onDensityChange,
+  canEnterZen = false,
+  canEnterZenReason = 'pending',
+  onEnterZen,
   onExport,
   onImport,
   onClear,
@@ -97,6 +104,9 @@ export function AppLiveReadFallback({
                 onThemeChange={onThemeChange}
                 density={density}
                 onDensityChange={onDensityChange}
+                canEnterZen={canEnterZen}
+                canEnterZenReason={canEnterZenReason}
+                onEnterZen={onEnterZen}
                 onShowOnboardingChecklist={onShowOnboardingChecklist}
               />
             </section>

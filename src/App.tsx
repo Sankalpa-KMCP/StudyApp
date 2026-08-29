@@ -18,6 +18,8 @@ import { MobileNavigation } from './components/MobileNavigation'
 import { AppLiveReadFallback } from './components/AppLiveReadFallback'
 import { LiveReadErrorBoundary } from './components/LiveReadErrorBoundary'
 import { AppLiveData } from './AppLiveData'
+import { ZenOverlay } from './components/ZenOverlay'
+import type { FocusSessionFinalizationOutcome } from './hooks/useFocusSession'
 import {
   formatDocumentTitle,
   pathForView,
@@ -33,6 +35,17 @@ export type ActiveSession = ActiveFocusSession
 /** Re-exported for existing consumers; prefer `./hooks/useThemePreference`. */
 export type { ThemeMode } from './hooks/useThemePreference'
 export type { DensityMode } from './hooks/useDensityPreference'
+
+export type ZenCompletionOutcome = {
+  outcome: 'completed' | 'stopped'
+  minutes: number
+  subjectName: string
+}
+
+export type ZenState =
+  | { phase: 'closed' }
+  | { phase: 'active'; sessionId: string; entryView: View }
+  | { phase: 'completed'; sessionId: string; outcome: ZenCompletionOutcome; entryView: View }
 
 function App() {
   const [activeView, setActiveView] = useState<View>(() => resolveViewFromPathname(window.location.pathname).view)
@@ -64,6 +77,34 @@ function App() {
     clearPreferenceNotice,
   })
   const isMobileNav = useMobileNavBreakpoint()
+
+  const [zenState, setZenState] = useState<ZenState>({ phase: 'closed' })
+  const zenTriggerElementRef = useRef<HTMLElement | null>(null)
+  const zenEntryViewRef = useRef<View | null>(null)
+
+  const handleFocusSessionFinalized = useCallback(
+    ({ sessionId, outcome, history }: FocusSessionFinalizationOutcome) => {
+      setZenState((current) => {
+        if (current.phase === 'active' && current.sessionId === sessionId) {
+          const subjectName =
+            subjectMap.get(history.subjectId)?.name ??
+            (history.subjectId ? 'Unknown subject' : 'General')
+          return {
+            phase: 'completed',
+            sessionId,
+            outcome: {
+              outcome,
+              minutes: history.minutes,
+              subjectName,
+            },
+            entryView: current.entryView,
+          }
+        }
+        return current
+      })
+    },
+    [subjectMap],
+  )
 
   const syncUrlToView = useCallback((view: View, historyMode: 'push' | 'replace') => {
     const nextPath = pathForView(view)
@@ -108,6 +149,7 @@ function App() {
 
   const navigateToView = useCallback((view: View) => {
     clearEditorRequests()
+    setZenState({ phase: 'closed' })
     if (view === activeView) return
     setActiveView(view)
     syncUrlToView(view, 'push')
@@ -158,6 +200,7 @@ function App() {
         syncUrlToView(resolved.view, 'replace')
       }
       clearEditorRequests()
+      setZenState({ phase: 'closed' })
       setActiveView(resolved.view)
     }
     window.addEventListener('popstate', onPopState)
@@ -173,6 +216,8 @@ function App() {
     remainingSeconds,
     sessionNotice,
     canStartFocus,
+    canEnterZen,
+    canEnterZenReason,
     focusActionsPending,
     focusImportPending,
     focusSubjectId,
@@ -188,7 +233,40 @@ function App() {
     reloadFocusFromIndexedDb,
     runWithFocusImportLock,
     clearFocusLocalState,
-  } = useFocusSession({ subjectMap, coordinator })
+  } = useFocusSession({ subjectMap, coordinator, onSessionFinalized: handleFocusSessionFinalized })
+
+  const enterZen = useCallback(() => {
+    if (!activeSession || !canEnterZen) return
+    zenTriggerElementRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
+    zenEntryViewRef.current = activeView
+    setZenState({
+      phase: 'active',
+      sessionId: activeSession.id,
+      entryView: activeView,
+    })
+  }, [activeSession, canEnterZen, activeView])
+
+  const exitZen = useCallback(() => {
+    setZenState({ phase: 'closed' })
+    const trigger = zenTriggerElementRef.current
+    if (trigger && document.contains(trigger) && typeof trigger.focus === 'function' && !trigger.hasAttribute('disabled')) {
+      trigger.focus()
+    } else {
+      const heading = document.querySelector<HTMLElement>('main h1, [role="main"] h1')
+      heading?.focus()
+    }
+    zenTriggerElementRef.current = null
+    zenEntryViewRef.current = null
+  }, [])
+
+  const completeZenDone = useCallback(() => {
+    setZenState({ phase: 'closed' })
+    const heading = document.querySelector<HTMLElement>('main h1, [role="main"] h1')
+    heading?.focus()
+    zenTriggerElementRef.current = null
+    zenEntryViewRef.current = null
+  }, [])
 
   const onBackupClearSuccess = useCallback(() => {
     setProfileNotice('All study data has been permanently deleted.')
@@ -281,43 +359,82 @@ function App() {
     setLiveReadEpoch((epoch) => epoch + 1)
   }, [])
 
+  const effectiveZenState: ZenState =
+    zenState.phase === 'active' && !activeSession ? { phase: 'closed' } : zenState
+  const isZenOpen = effectiveZenState.phase !== 'closed'
+
   return (
-    <div
-      className={[
-        'app-shell',
-        sidebarCollapsed ? 'is-sidebar-collapsed' : '',
-        isMobileNav ? 'is-mobile-nav' : '',
-      ].filter(Boolean).join(' ')}
-      data-density={density}
-    >
-      <a className="skip-link" href="#dashboard-main">Skip to dashboard</a>
-      {isMobileNav ? (
-        <MobileNavigation activeView={activeView} onNavigate={navigateToView} />
-      ) : (
-        <Sidebar
-          activeView={activeView}
-          collapsed={sidebarCollapsed}
-          onNavigate={navigateToView}
-          onToggleCollapsed={toggleSidebarCollapsed}
-        />
-      )}
-      <div className="workspace">
-        <LiveReadErrorBoundary
-          key={liveReadEpoch}
-          fallback={(
-            <AppLiveReadFallback
+    <>
+      <div
+        className={[
+          'app-shell',
+          sidebarCollapsed ? 'is-sidebar-collapsed' : '',
+          isMobileNav ? 'is-mobile-nav' : '',
+        ].filter(Boolean).join(' ')}
+        data-density={density}
+        inert={isZenOpen ? true : undefined}
+      >
+        <a className="skip-link" href="#dashboard-main">Skip to dashboard</a>
+        {isMobileNav ? (
+          <MobileNavigation activeView={activeView} onNavigate={navigateToView} />
+        ) : (
+          <Sidebar
+            activeView={activeView}
+            collapsed={sidebarCollapsed}
+            onNavigate={navigateToView}
+            onToggleCollapsed={toggleSidebarCollapsed}
+          />
+        )}
+        <div className="workspace">
+          <LiveReadErrorBoundary
+            key={liveReadEpoch}
+            fallback={(
+              <AppLiveReadFallback
+                coordinatorState={coordinatorState}
+                activeView={activeView}
+                noticeOpen={noticeOpen}
+                noticePopoverId="notice-popover"
+                onToggleNotices={toggleNotices}
+                onCloseNotices={closeNotices}
+                onQuickAdd={onQuickAdd}
+                onOpenProfile={() => {
+                  navigateToView('Settings')
+                  setProfileNotice('Profile settings live in this local Settings workspace for now.')
+                }}
+                onRetry={retryLiveReads}
+                profileNotice={profileNotice}
+                preferenceNotice={preferenceNotice}
+                onDismissPreferenceNotice={clearPreferenceNotice}
+                theme={theme}
+                onThemeChange={setTheme}
+                density={density}
+                onDensityChange={setDensity}
+                canEnterZen={canEnterZen}
+                canEnterZenReason={canEnterZenReason}
+                onEnterZen={enterZen}
+                onExport={exportBackup}
+                onImport={importBackup}
+                onClear={clearAllBackup}
+                onShowOnboardingChecklist={showOnboardingChecklist}
+                importPending={focusImportPending}
+              />
+            )}
+          >
+            <AppLiveData
               coordinatorState={coordinatorState}
               activeView={activeView}
+              taskFilter={taskFilter}
+              onTaskFilterChange={setTaskFilter}
+              taskEditorRequest={taskEditorRequest}
+              subjectEditorRequest={subjectEditorRequest}
+              noteEditorRequest={noteEditorRequest}
+              eventEditorRequest={eventEditorRequest}
+              focusAttentionRequest={focusAttentionRequest}
+              progressEditorRequested={progressEditorRequested}
               noticeOpen={noticeOpen}
               noticePopoverId="notice-popover"
               onToggleNotices={toggleNotices}
               onCloseNotices={closeNotices}
-              onQuickAdd={onQuickAdd}
-              onOpenProfile={() => {
-                navigateToView('Settings')
-                setProfileNotice('Profile settings live in this local Settings workspace for now.')
-              }}
-              onRetry={retryLiveReads}
               profileNotice={profileNotice}
               preferenceNotice={preferenceNotice}
               onDismissPreferenceNotice={clearPreferenceNotice}
@@ -325,75 +442,64 @@ function App() {
               onThemeChange={setTheme}
               density={density}
               onDensityChange={setDensity}
+              canEnterZen={canEnterZen}
+              canEnterZenReason={canEnterZenReason}
+              onEnterZen={enterZen}
+              onNavigate={navigateToView}
+              onOpenProfile={() => {
+                navigateToView('Settings')
+                setProfileNotice('Profile settings live in this local Settings workspace for now.')
+              }}
+              onQuickAdd={onQuickAdd}
+              onCreateTask={openNewTask}
+              onCreateSubject={openNewSubject}
+              onRevealFocusSession={openFocusAttention}
+              onSubjectMapChange={onSubjectMapChange}
+              activeSession={activeSession}
+              staleFocusSession={staleFocusSession}
+              staleFocusSubjectName={staleFocusSubjectName}
+              sessionLimitSeconds={sessionLimitSeconds}
+              elapsedSeconds={elapsedSeconds}
+              remainingSeconds={remainingSeconds}
+              sessionNotice={sessionNotice}
+              canStartFocus={canStartFocus}
+              focusActionsPending={focusActionsPending}
+              focusImportPending={focusImportPending}
+              focusSubjectId={focusSubjectId}
+              focusDurationMinutes={focusDurationMinutes}
+              onFocusSubjectChange={updateFocusSubject}
+              onFocusDurationChange={setFocusDurationMinutes}
+              onStartSession={() => void startSession()}
+              onPauseSession={() => void pauseSession()}
+              onResumeSession={() => void resumeSession()}
+              onStopSession={() => stopSession(false)}
+              onAcceptStaleFocusSession={() => void acceptStaleFocusSession()}
+              onDiscardStaleFocusSession={() => void discardStaleFocusSession()}
               onExport={exportBackup}
               onImport={importBackup}
               onClear={clearAllBackup}
+              onDismissOnboardingChecklist={dismissOnboardingChecklist}
               onShowOnboardingChecklist={showOnboardingChecklist}
-              importPending={focusImportPending}
             />
-          )}
-        >
-          <AppLiveData
-            coordinatorState={coordinatorState}
-            activeView={activeView}
-            taskFilter={taskFilter}
-            onTaskFilterChange={setTaskFilter}
-            taskEditorRequest={taskEditorRequest}
-            subjectEditorRequest={subjectEditorRequest}
-            noteEditorRequest={noteEditorRequest}
-            eventEditorRequest={eventEditorRequest}
-            focusAttentionRequest={focusAttentionRequest}
-            progressEditorRequested={progressEditorRequested}
-            noticeOpen={noticeOpen}
-            noticePopoverId="notice-popover"
-            onToggleNotices={toggleNotices}
-            onCloseNotices={closeNotices}
-            profileNotice={profileNotice}
-            preferenceNotice={preferenceNotice}
-            onDismissPreferenceNotice={clearPreferenceNotice}
-            theme={theme}
-            onThemeChange={setTheme}
-            density={density}
-            onDensityChange={setDensity}
-            onNavigate={navigateToView}
-            onOpenProfile={() => {
-              navigateToView('Settings')
-              setProfileNotice('Profile settings live in this local Settings workspace for now.')
-            }}
-            onQuickAdd={onQuickAdd}
-            onCreateTask={openNewTask}
-            onCreateSubject={openNewSubject}
-            onRevealFocusSession={openFocusAttention}
-            onSubjectMapChange={onSubjectMapChange}
-            activeSession={activeSession}
-            staleFocusSession={staleFocusSession}
-            staleFocusSubjectName={staleFocusSubjectName}
-            sessionLimitSeconds={sessionLimitSeconds}
-            elapsedSeconds={elapsedSeconds}
-            remainingSeconds={remainingSeconds}
-            sessionNotice={sessionNotice}
-            canStartFocus={canStartFocus}
-            focusActionsPending={focusActionsPending}
-            focusImportPending={focusImportPending}
-            focusSubjectId={focusSubjectId}
-            focusDurationMinutes={focusDurationMinutes}
-            onFocusSubjectChange={updateFocusSubject}
-            onFocusDurationChange={setFocusDurationMinutes}
-            onStartSession={() => void startSession()}
-            onPauseSession={() => void pauseSession()}
-            onResumeSession={() => void resumeSession()}
-            onStopSession={() => stopSession(false)}
-            onAcceptStaleFocusSession={() => void acceptStaleFocusSession()}
-            onDiscardStaleFocusSession={() => void discardStaleFocusSession()}
-            onExport={exportBackup}
-            onImport={importBackup}
-            onClear={clearAllBackup}
-            onDismissOnboardingChecklist={dismissOnboardingChecklist}
-            onShowOnboardingChecklist={showOnboardingChecklist}
-          />
-        </LiveReadErrorBoundary>
+          </LiveReadErrorBoundary>
+        </div>
       </div>
-    </div>
+      {isZenOpen ? (
+        <ZenOverlay
+          phase={effectiveZenState.phase as 'active' | 'completed'}
+          activeSession={activeSession}
+          completionOutcome={effectiveZenState.phase === 'completed' ? effectiveZenState.outcome : undefined}
+          subjectMap={subjectMap}
+          elapsedSeconds={elapsedSeconds}
+          remainingSeconds={remainingSeconds}
+          onPause={pauseSession}
+          onResume={resumeSession}
+          onStop={() => stopSession(false)}
+          onExit={exitZen}
+          onDone={completeZenDone}
+        />
+      ) : null}
+    </>
   )
 }
 

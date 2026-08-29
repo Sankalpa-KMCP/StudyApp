@@ -813,5 +813,65 @@ describe('useFocusSession', () => {
       expect(newSession?.subjectId).toBe('subject-a')
       expect(newSession?.minutes).toBe(2)
     })
+
+    it('derives canEnterZen and canEnterZenReason across idle, running, paused, and stale states', async () => {
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.canStartFocus).toBe(true))
+
+      // Idle: no session
+      expect(result.current.canEnterZen).toBe(false)
+      expect(result.current.canEnterZenReason).toBe('no-session')
+
+      // Start session -> running: available
+      await act(async () => {
+        await result.current.startSession()
+      })
+      expect(result.current.activeSession?.status).toBe('running')
+      expect(result.current.canEnterZen).toBe(true)
+      expect(result.current.canEnterZenReason).toBe('available')
+
+      // Pause session -> paused: still available
+      await act(async () => {
+        await result.current.pauseSession()
+      })
+      expect(result.current.activeSession?.status).toBe('paused')
+      expect(result.current.canEnterZen).toBe(true)
+      expect(result.current.canEnterZenReason).toBe('available')
+
+      // Stop session -> idle: no-session
+      await act(async () => {
+        await result.current.stopSession()
+      })
+      expect(result.current.activeSession).toBeNull()
+      expect(result.current.canEnterZen).toBe(false)
+      expect(result.current.canEnterZenReason).toBe('no-session')
+    })
+
+    it('invokes onSessionFinalized callback on successful manual stop and timed completion', async () => {
+      const onSessionFinalized = vi.fn()
+      const { result } = renderHook(() => useFocusSession({ subjectMap, onSessionFinalized }))
+      await waitFor(() => expect(result.current.canStartFocus).toBe(true))
+
+      await act(async () => {
+        await result.current.startSession()
+      })
+      const sessionId = result.current.activeSession?.id
+      expect(sessionId).toBeDefined()
+
+      await act(async () => {
+        await result.current.stopSession()
+      })
+
+      expect(onSessionFinalized).toHaveBeenCalledTimes(1)
+      expect(onSessionFinalized).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId,
+          outcome: 'stopped',
+          history: expect.objectContaining({
+            id: sessionId,
+          }),
+        }),
+      )
+    })
   })
 })

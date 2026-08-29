@@ -44,4 +44,24 @@ describe('HeroRow', () => {
     expect(screen.getByRole('button', { name: 'Task' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Subject' })).toBeInTheDocument()
   })
+
+  it('renders DashboardModeControl in hero tools when density and zen props are supplied', () => {
+    render(
+      <HeroRow
+        currentDate={new Date(2026, 6, 13, 15, 30)}
+        todayFocusMinutes={30}
+        dailyGoalMinutes={120}
+        onCreateTask={() => {}}
+        onCreateSubject={() => {}}
+        density="comfortable"
+        onDensityChange={() => {}}
+        canEnterZen={true}
+        onEnterZen={() => {}}
+      />,
+    )
+
+    expect(screen.getByRole('group', { name: 'Dashboard mode' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Comfortable' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Zen' })).not.toBeDisabled()
+  })
 })
