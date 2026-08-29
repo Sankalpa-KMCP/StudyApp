@@ -93,7 +93,7 @@ Use the shared helper for ordinary async IndexedDB mutations:
 | Flow | Why |
 |------|-----|
 | Focus start/pause/resume/stop/stale/subject | Owned by `useFocusSession`; domain result contracts + singleton/idempotency in `activeFocusSession` |
-| Settings import / clear-all | `useStudyBackup` + `runWithFocusImportLock` / `reloadFocusFromIndexedDb` / `clearFocusLocalState`; keep `focusImportPending` gating on focus actions. Clear-all is not serialized with an in-flight import (pre-existing; harden only as a separate product-approved change) |
+| Settings import / clear-all | `useStudyBackup` + `runWithFocusImportLock` / `reloadFocusFromIndexedDb` / `clearFocusLocalState`; keep `focusImportPending` gating on focus actions. Import and clear-all are mutually exclusive through the coordinator; conflicting operations are gated at the applicable UI and coordinator layers; agents must preserve that invariant. |
 | Quick-note autosave | Sequential latest-value write queue so a stale write cannot overwrite newer draft text |
 | Theme / sidebar preferences | Owned by preference hooks; report friendly failures via App’s shared preference notice; do not migrate to IndexedDB |
 
