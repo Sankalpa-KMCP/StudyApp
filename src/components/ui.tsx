@@ -88,11 +88,44 @@ export function TextInput({
   )
 }
 
-export function NumberInput({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (value: number) => void }) {
+export function NumberInput({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+  id,
+  inputRef,
+  invalid = false,
+  describedBy,
+  disabled = false,
+}: {
+  label: string
+  value: number
+  min: number
+  max: number
+  onChange: (value: number) => void
+  id?: string
+  inputRef?: Ref<HTMLInputElement>
+  invalid?: boolean
+  describedBy?: string
+  disabled?: boolean
+}) {
   return (
     <label className="field">
       <span>{label}</span>
-      <input type="number" min={min} max={max} value={value} onChange={(event) => onChange(clamp(Number(event.target.value), min, max))} />
+      <input
+        type="number"
+        id={id}
+        ref={inputRef}
+        min={min}
+        max={max}
+        value={value}
+        disabled={disabled}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
+        onChange={(event) => onChange(clamp(Number(event.target.value), min, max))}
+      />
     </label>
   )
 }
