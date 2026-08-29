@@ -1970,15 +1970,17 @@ describe('studyDb', () => {
     expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
   })
 
-  it('marks migration complete without importing malformed legacy JSON', async () => {
+  it('does not mark migration complete and leaves payload intact when legacy JSON is malformed', async () => {
     localStorage.setItem('study-dashboard-v2', '{not-json')
 
-    await migrateLegacyLocalStorage()
+    const res = await migrateLegacyLocalStorage()
 
+    expect(res.status).toBe('invalid_data')
     expect(await studyDb.tasks.count()).toBe(0)
     expect(await studyDb.subjects.count()).toBe(0)
     expect(await studyDb.events.count()).toBe(0)
-    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBeUndefined()
+    expect(localStorage.getItem('study-dashboard-v2')).toBe('{not-json')
   })
 
   it('marks migration complete without importing empty or title-less legacy payloads', async () => {
@@ -2126,10 +2128,154 @@ describe('studyDb', () => {
       }),
     )
     await migrateLegacyLocalStorage()
-
     expect(await studyDb.studySessions.count()).toBe(1)
     expect(await studyDb.tasks.count()).toBe(1)
     expect(await studyDb.subjects.count()).toBe(subjects.length)
+  })
+
+  it('returns collision status and rolls back without writing when a legacy ID collides with an existing Dexie record', async () => {
+    await studyDb.tasks.add({
+      id: 'existing-task-id',
+      title: 'Existing DB Task',
+      subjectId: '',
+      completed: false,
+      estimatedMinutes: 30,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'existing-task-id', title: 'Colliding Task', subject: 'Math', done: false, minutes: 15 }],
+      }),
+    )
+
+    const result = await migrateLegacyLocalStorage()
+
+    expect(result).toEqual({
+      status: 'collision',
+      entity: 'tasks',
+      id: 'existing-task-id',
+    })
+    expect(await studyDb.tasks.count()).toBe(1)
+    expect((await studyDb.tasks.get('existing-task-id'))?.title).toBe('Existing DB Task')
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBeUndefined()
+    expect(localStorage.getItem('study-dashboard-v2')).not.toBeNull()
+  })
+
+  it('returns explicit MigrationResult statuses for already_migrated, no_legacy_data, demo_data_skipped, and success', async () => {
+    const noDataResult = await migrateLegacyLocalStorage()
+    expect(noDataResult).toEqual({ status: 'no_legacy_data' })
+
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'valid-task-1', title: 'Valid Task 1', subject: 'Math', done: false, minutes: 20 }],
+      }),
+    )
+
+    const successResult = await migrateLegacyLocalStorage()
+    expect(successResult).toEqual({ status: 'success', recordCount: 2 })
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+
+    const alreadyMigratedResult = await migrateLegacyLocalStorage()
+    expect(alreadyMigratedResult).toEqual({ status: 'already_migrated' })
+  })
+
+  it('rolls back database modifications and preserves legacy storage when quota error occurs during transaction', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'quota-task', title: 'Quota Task', subject: 'Physics', done: false, minutes: 25 }],
+      }),
+    )
+
+    const result = await migrateLegacyLocalStorage({ forceQuotaError: true })
+
+    expect(result.status).toBe('transaction_failed')
+    if (result.status === 'transaction_failed') {
+      expect(result.error).toContain('QuotaExceededError')
+    }
+    expect(await studyDb.tasks.count()).toBe(0)
+    expect(await studyDb.subjects.count()).toBe(0)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBeUndefined()
+    expect(localStorage.getItem('study-dashboard-v2')).not.toBeNull()
+  })
+
+  it('rolls back database modifications and preserves legacy storage when transaction is explicitly aborted', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'abort-task', title: 'Abort Task', subject: 'Biology', done: false, minutes: 20 }],
+      }),
+    )
+
+    const result = await migrateLegacyLocalStorage({ abortTransaction: true })
+
+    expect(result).toEqual({
+      status: 'transaction_failed',
+      error: 'Explicit transaction abort',
+    })
+    expect(await studyDb.tasks.count()).toBe(0)
+    expect(await studyDb.subjects.count()).toBe(0)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBeUndefined()
+    expect(localStorage.getItem('study-dashboard-v2')).not.toBeNull()
+  })
+
+  it('verifies write-ordering: entities are written before the migration marker is set', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'order-task', title: 'Order Task', subject: 'History', done: false, minutes: 15 }],
+      }),
+    )
+
+    let entityWriteCalled = false
+    let markerWriteCalled = false
+    let taskCountBeforeMarker = -1
+    let markerValueBeforeMarker: boolean | undefined = undefined
+
+    await migrateLegacyLocalStorage({
+      beforeEntityWrite: () => {
+        entityWriteCalled = true
+      },
+      beforeMarkerWrite: async () => {
+        markerWriteCalled = true
+        taskCountBeforeMarker = await studyDb.tasks.count()
+        const marker = await studyDb.settings.get('legacy-localstorage-migrated-v1')
+        markerValueBeforeMarker = marker?.value
+      },
+    })
+
+    expect(entityWriteCalled).toBe(true)
+    expect(markerWriteCalled).toBe(true)
+    expect(taskCountBeforeMarker).toBe(1)
+    expect(markerValueBeforeMarker).toBeUndefined()
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+  })
+
+  it('returns cleanup_failed when transaction succeeds but legacy storage cleanup fails', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'cleanup-task', title: 'Cleanup Task', subject: 'Art', done: false, minutes: 10 }],
+      }),
+    )
+
+    const removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('Storage write protected')
+    })
+
+    try {
+      const result = await migrateLegacyLocalStorage()
+
+      expect(result).toEqual({ status: 'cleanup_failed' })
+      expect(await studyDb.tasks.count()).toBe(1)
+      expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    } finally {
+      removeItemSpy.mockRestore()
+    }
   })
 })
 

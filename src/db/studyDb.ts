@@ -171,38 +171,307 @@ export async function clearAllStudyData() {
   })
 }
 
-export async function migrateLegacyLocalStorage() {
-  if (typeof window === 'undefined') return
+export type MigrationResult =
+  | { status: 'already_migrated' }
+  | { status: 'no_legacy_data' }
+  | { status: 'demo_data_skipped' }
+  | { status: 'empty_data_skipped' }
+  | { status: 'success'; recordCount: number }
+  | { status: 'invalid_data'; reason: string }
+  | { status: 'collision'; entity: string; id: string }
+  | { status: 'transaction_failed'; error: string }
+  | { status: 'cleanup_failed' }
 
-  const migration = await studyDb.settings.get(LEGACY_MIGRATION_KEY)
-  if (migration?.value === true) return
+export class LegacyMigrationCollisionError extends Error {
+  entity: string
+  id: string
 
-  const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY)
-  await studyDb.settings.put({ key: LEGACY_MIGRATION_KEY, value: true })
-  if (!raw) return
-
-  try {
-    const parsed = JSON.parse(raw) as LegacyData
-    if (!parsed || isLegacyDemoData(parsed)) return
-    const migrated = migrateLegacyData(parsed)
-    if (migrated.tasks.length + migrated.subjects.length + migrated.notes.length + migrated.events.length === 0) return
-
-    await studyDb.transaction('rw', studyTables, async () => {
-      await Promise.all([
-        studyDb.subjects.bulkPut(migrated.subjects),
-        studyDb.tasks.bulkPut(migrated.tasks),
-        studyDb.notes.bulkPut(migrated.notes),
-        studyDb.events.bulkPut(migrated.events),
-        studyDb.flashcards.bulkPut(migrated.flashcards),
-        studyDb.studySessions.bulkPut(migrated.studySessions),
-        studyDb.goals.bulkPut(migrated.goals),
-        studyDb.settings.bulkPut(migrated.settings),
-      ])
-    })
-  } catch {
-    return
+  constructor(entity: string, id: string) {
+    super(`Collision detected for entity '${entity}' with ID '${id}'.`)
+    this.entity = entity
+    this.id = id
+    this.name = 'LegacyMigrationCollisionError'
   }
 }
+
+export interface TestMigrationHooks {
+  beforeEntityWrite?: () => void | Promise<void>
+  beforeMarkerWrite?: () => void | Promise<void>
+  forceQuotaError?: boolean
+  abortTransaction?: boolean
+}
+
+function isStructurallyEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true
+  if (typeof a !== typeof b) return false
+  if (a === null || b === null || typeof a !== 'object') return false
+  if (Array.isArray(a) !== Array.isArray(b)) return false
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false
+    return a.every((item, idx) => isStructurallyEqual(item, b[idx]))
+  }
+  const keysA = Object.keys(a as object)
+    .filter((k) => (a as Record<string, unknown>)[k] !== undefined)
+    .sort()
+  const keysB = Object.keys(b as object)
+    .filter((k) => (b as Record<string, unknown>)[k] !== undefined)
+    .sort()
+  if (keysA.length !== keysB.length) return false
+  if (!keysA.every((k, idx) => k === keysB[idx])) return false
+  return keysA.every((k) =>
+    isStructurallyEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k])
+  )
+}
+
+function processIncomingTable<T extends { id: string }>(entityName: string, records: T[]): T[] {
+  const map = new Map<string, T>()
+  for (const record of records) {
+    const existing = map.get(record.id)
+    if (existing) {
+      if (isStructurallyEqual(existing, record)) {
+        continue
+      } else {
+        throw new LegacyMigrationCollisionError(entityName, record.id)
+      }
+    }
+    map.set(record.id, record)
+  }
+  return Array.from(map.values())
+}
+
+async function checkAndFilterExistingRows<T extends { id: string }>(
+  entityName: string,
+  table: Table<T, string>,
+  incomingRecords: T[]
+): Promise<T[]> {
+  const recordsToAdd: T[] = []
+  for (const record of incomingRecords) {
+    const existing = await table.get(record.id)
+    if (existing) {
+      if (isStructurallyEqual(existing, record)) {
+        continue
+      } else {
+        throw new LegacyMigrationCollisionError(entityName, record.id)
+      }
+    }
+    recordsToAdd.push(record)
+  }
+  return recordsToAdd
+}
+
+export async function migrateLegacyLocalStorage(
+  _testHooks?: TestMigrationHooks
+): Promise<MigrationResult> {
+  if (typeof window === 'undefined') {
+    return { status: 'no_legacy_data' }
+  }
+
+  try {
+    const migration = await studyDb.settings.get(LEGACY_MIGRATION_KEY)
+    if (migration?.value === true) {
+      const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY)
+      if (raw !== null) {
+        try {
+          window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+        } catch {
+          return { status: 'cleanup_failed' }
+        }
+      }
+      return { status: 'already_migrated' }
+    }
+
+    const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY)
+    if (!raw) {
+      return { status: 'no_legacy_data' }
+    }
+
+    let parsed: LegacyData
+    try {
+      parsed = JSON.parse(raw) as LegacyData
+    } catch {
+      return { status: 'invalid_data', reason: 'Invalid JSON format in legacy storage' }
+    }
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { status: 'invalid_data', reason: 'Legacy storage payload is not a valid object' }
+    }
+
+    if (isLegacyDemoData(parsed)) {
+      try {
+        await studyDb.transaction('rw', studyTables, async () => {
+          if (_testHooks?.beforeMarkerWrite) _testHooks.beforeMarkerWrite()
+          if (_testHooks?.forceQuotaError) {
+            throw new DOMException('QuotaExceededError', 'QuotaExceededError')
+          }
+          await studyDb.settings.put({ key: LEGACY_MIGRATION_KEY, value: true })
+        })
+      } catch (err) {
+        return {
+          status: 'transaction_failed',
+          error: err instanceof Error ? err.message : String(err),
+        }
+      }
+
+      try {
+        window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+      } catch {
+        return { status: 'cleanup_failed' }
+      }
+      return { status: 'demo_data_skipped' }
+    }
+
+    let migrated: StudyData
+    try {
+      migrated = migrateLegacyData(parsed)
+    } catch (err) {
+      return {
+        status: 'invalid_data',
+        reason: err instanceof Error ? err.message : 'Failed to normalize legacy data',
+      }
+    }
+
+    let deduplicatedTasks: StudyTask[]
+    let deduplicatedSubjects: StudySubject[]
+    let deduplicatedNotes: StudyNote[]
+    let deduplicatedEvents: CalendarEvent[]
+    let deduplicatedFlashcards: Flashcard[]
+    let deduplicatedSessions: StudySession[]
+    let deduplicatedGoals: StudyGoal[]
+
+    try {
+      deduplicatedTasks = processIncomingTable('tasks', migrated.tasks)
+      deduplicatedSubjects = processIncomingTable('subjects', migrated.subjects)
+      deduplicatedNotes = processIncomingTable('notes', migrated.notes)
+      deduplicatedEvents = processIncomingTable('events', migrated.events)
+      deduplicatedFlashcards = processIncomingTable('flashcards', migrated.flashcards)
+      deduplicatedSessions = processIncomingTable('studySessions', migrated.studySessions)
+      deduplicatedGoals = processIncomingTable('goals', migrated.goals)
+    } catch (err) {
+      if (err instanceof LegacyMigrationCollisionError) {
+        return { status: 'collision', entity: err.entity, id: err.id }
+      }
+      return {
+        status: 'invalid_data',
+        reason: err instanceof Error ? err.message : 'Failed to validate incoming duplicates',
+      }
+    }
+
+    const recordCount =
+      deduplicatedTasks.length +
+      deduplicatedSubjects.length +
+      deduplicatedNotes.length +
+      deduplicatedEvents.length +
+      deduplicatedFlashcards.length +
+      deduplicatedSessions.length +
+      deduplicatedGoals.length
+
+    if (recordCount === 0) {
+      try {
+        await studyDb.transaction('rw', studyTables, async () => {
+          if (_testHooks?.beforeMarkerWrite) _testHooks.beforeMarkerWrite()
+          if (_testHooks?.forceQuotaError) {
+            throw new DOMException('QuotaExceededError', 'QuotaExceededError')
+          }
+          await studyDb.settings.put({ key: LEGACY_MIGRATION_KEY, value: true })
+        })
+      } catch (err) {
+        return {
+          status: 'transaction_failed',
+          error: err instanceof Error ? err.message : String(err),
+        }
+      }
+
+      try {
+        window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+      } catch {
+        return { status: 'cleanup_failed' }
+      }
+      return { status: 'empty_data_skipped' }
+    }
+
+    let alreadyMigratedInTx = false
+
+    await studyDb.transaction('rw', studyTables, async () => {
+      const inTxMigration = await studyDb.settings.get(LEGACY_MIGRATION_KEY)
+      if (inTxMigration?.value === true) {
+        alreadyMigratedInTx = true
+        return
+      }
+
+      const tasksToAdd = await checkAndFilterExistingRows('tasks', studyDb.tasks, deduplicatedTasks)
+      const subjectsToAdd = await checkAndFilterExistingRows(
+        'subjects',
+        studyDb.subjects,
+        deduplicatedSubjects
+      )
+      const notesToAdd = await checkAndFilterExistingRows('notes', studyDb.notes, deduplicatedNotes)
+      const eventsToAdd = await checkAndFilterExistingRows('events', studyDb.events, deduplicatedEvents)
+      const flashcardsToAdd = await checkAndFilterExistingRows(
+        'flashcards',
+        studyDb.flashcards,
+        deduplicatedFlashcards
+      )
+      const sessionsToAdd = await checkAndFilterExistingRows(
+        'studySessions',
+        studyDb.studySessions,
+        deduplicatedSessions
+      )
+      const goalsToAdd = await checkAndFilterExistingRows('goals', studyDb.goals, deduplicatedGoals)
+
+      if (_testHooks?.beforeEntityWrite) {
+        await _testHooks.beforeEntityWrite()
+      }
+
+      await Promise.all([
+        studyDb.subjects.bulkAdd(subjectsToAdd),
+        studyDb.tasks.bulkAdd(tasksToAdd),
+        studyDb.notes.bulkAdd(notesToAdd),
+        studyDb.events.bulkAdd(eventsToAdd),
+        studyDb.flashcards.bulkAdd(flashcardsToAdd),
+        studyDb.studySessions.bulkAdd(sessionsToAdd),
+        studyDb.goals.bulkAdd(goalsToAdd),
+      ])
+
+      const settingsToPut = migrated.settings.filter((s) => s.key !== LEGACY_MIGRATION_KEY)
+      if (settingsToPut.length > 0) {
+        await studyDb.settings.bulkPut(settingsToPut)
+      }
+
+      if (_testHooks?.beforeMarkerWrite) {
+        await _testHooks.beforeMarkerWrite()
+      }
+      if (_testHooks?.forceQuotaError) {
+        throw new DOMException('QuotaExceededError', 'QuotaExceededError')
+      }
+      if (_testHooks?.abortTransaction) {
+        throw new Error('Explicit transaction abort')
+      }
+
+      await studyDb.settings.put({ key: LEGACY_MIGRATION_KEY, value: true })
+    })
+
+    if (alreadyMigratedInTx) {
+      return { status: 'already_migrated' }
+    }
+
+    try {
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY)
+    } catch {
+      return { status: 'cleanup_failed' }
+    }
+
+    return { status: 'success', recordCount }
+  } catch (err) {
+    if (err instanceof LegacyMigrationCollisionError) {
+      return { status: 'collision', entity: err.entity, id: err.id }
+    }
+    return {
+      status: 'transaction_failed',
+      error: err instanceof Error ? err.message : String(err),
+    }
+  }
+}
+
 
 /**
  * Validates a version-1, version-2, or version-3 backup and normalizes it to the current export shape.
