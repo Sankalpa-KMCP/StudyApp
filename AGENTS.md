@@ -52,8 +52,8 @@ Operational rules, protected files, testing matrix, and repository invariants ar
 - Valid **version 1**, **version 2**, and **version 3** backups remain importable: goals (v1) and subjects (v1/v2) are normalized from the **complete imported study-session set** before any table replacement. Legacy flashcards in v1–v3 backups are cleanly discarded on import.
 - Invalid or missing modes/metrics on **version 3** and **version 4** backups fail validation **before** existing data is replaced.
 - **Import validation order** (all rejection paths leave IndexedDB and visible focus ownership unchanged):
-  1. File byte size (`File.size`, 5 MiB) — `useStudyBackup` + `studyExportLimits`
-  2. Text length after `file.text()` (5 MiB characters)
+  1. File byte size (`File.size`, 64 MiB) — `useStudyBackup` + `studyExportLimits`
+  2. Text length after `file.text()` (64 MiB characters)
   3. JSON parsing and shape/version checks (`parseAndNormalizeStudyExport` in `studyDb.ts`)
   4. Legacy normalization (v1 goals; v1/v2 subject `progressMode` from imported sessions; discard legacy flashcards)
   5. Duplicate entity IDs and duplicate settings keys
