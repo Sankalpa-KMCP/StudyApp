@@ -1,3 +1,4 @@
+import { runBackupableMutation } from './backupabilityGuard'
 import {
   type DatabaseMutationContext,
   withGuardedMutation,
@@ -17,7 +18,7 @@ export type NoteWriteFields = {
 
 /**
  * Persist a new note. Owns id and created/updated timestamps.
- * Enforces transactional subject referential integrity and database generation guard.
+ * Enforces transactional subject referential integrity, canonical backupability guard, and database generation guard.
  */
 export async function createNote(
   fields: NoteWriteFields,
@@ -25,7 +26,7 @@ export async function createNote(
 ): Promise<StudyNote> {
   return withGuardedMutation(context, () => {
     assertNoteWriteFields(fields)
-    return studyDb.transaction('rw', studyDb.subjects, studyDb.notes, async () => {
+    return runBackupableMutation(async () => {
       await assertSubjectExists(fields.subjectId)
       const timestamp = nowIso()
       const note: StudyNote = {
@@ -45,7 +46,7 @@ export async function createNote(
 
 /**
  * Update an existing note's editable fields and refresh `updatedAt`.
- * Enforces transactional subject referential integrity and database generation guard.
+ * Enforces transactional subject referential integrity, canonical backupability guard, and database generation guard.
  * Throws when no row matches `id` (Dexie `update` returns 0).
  */
 export async function updateNote(
@@ -55,7 +56,7 @@ export async function updateNote(
 ): Promise<void> {
   return withGuardedMutation(context, () => {
     assertNoteWriteFields(fields)
-    return studyDb.transaction('rw', studyDb.subjects, studyDb.notes, async () => {
+    return runBackupableMutation(async () => {
       await assertSubjectExists(fields.subjectId)
       const updated = await studyDb.notes.update(id, {
         title: fields.title,

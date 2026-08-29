@@ -873,5 +873,33 @@ describe('useFocusSession', () => {
         }),
       )
     })
+
+    it('handles capacity_limit on startSession by setting capacity notice and not starting session', async () => {
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.canStartFocus).toBe(true))
+
+      // Fill storage to 65 MiB (over 64 MiB limit)
+      const oversizedBody = 'Z'.repeat(65 * 1024 * 1024)
+      await studyDb.notes.add({
+        id: 'oversized-note',
+        title: 'Oversized Note',
+        body: oversizedBody,
+        subjectId: '',
+        tags: [],
+        createdAt: '2026-08-30T00:00:00.000Z',
+        updatedAt: '2026-08-30T00:00:00.000Z',
+      })
+
+      await act(async () => {
+        await result.current.startSession()
+      })
+
+      expect(result.current.activeSession).toBeNull()
+      expect(result.current.sessionNotice).toBe(
+        'Study storage is at its backup-safe capacity. Remove or reduce some saved data before adding more content.'
+      )
+
+      await studyDb.notes.delete('oversized-note')
+    })
   })
 })

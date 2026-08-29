@@ -1,5 +1,9 @@
 import type { ActiveFocusSession, ActiveFocusSessionStatus, StudySession } from './types'
 import {
+  isDatabaseBackupabilityLimitError,
+  runBackupableMutation,
+} from './backupabilityGuard'
+import {
   type DatabaseMutationContext,
   withGuardedMutation,
 } from './databaseMutationGuard'
@@ -28,6 +32,7 @@ export type CreateActiveFocusSessionResult =
   | { ok: false; reason: 'id_collision' }
   | { ok: false; reason: 'invalid' }
   | { ok: false; reason: 'missing_subject' }
+  | { ok: false; reason: 'capacity_limit' }
 
 export type UpdateActiveFocusSessionResult =
   | { ok: true; session: ActiveFocusSession }
@@ -42,6 +47,7 @@ export type FinalizeActiveFocusSessionResult =
   | { ok: false; reason: 'conflict'; existing: ActiveFocusSession }
   | { ok: false; reason: 'missing_subject' }
   | { ok: false; reason: 'id_rekeyed'; session: ActiveFocusSession }
+  | { ok: false; reason: 'capacity_limit' }
 
 export type TransitionActiveFocusSessionResult =
   | { ok: true; session: ActiveFocusSession }
@@ -212,36 +218,43 @@ export async function createActiveFocusSession(
 ): Promise<CreateActiveFocusSessionResult> {
   if (!isActiveFocusSession(session)) return { ok: false, reason: 'invalid' }
 
-  return withGuardedMutation(context, () =>
-    studyDb.transaction('rw', studyDb.subjects, studyDb.settings, studyDb.studySessions, async () => {
-      try {
-        await assertSubjectExists(session.subjectId)
-      } catch (err) {
-        if (isSubjectNotFoundError(err)) {
-          return { ok: false, reason: 'missing_subject' }
+  return withGuardedMutation(context, async () => {
+    try {
+      return await runBackupableMutation(async () => {
+        try {
+          await assertSubjectExists(session.subjectId)
+        } catch (err) {
+          if (isSubjectNotFoundError(err)) {
+            return { ok: false, reason: 'missing_subject' as const }
+          }
+          throw err
         }
-        throw err
-      }
 
-      const existingHistory = await studyDb.studySessions.get(session.id)
-      if (existingHistory) {
-        return { ok: false, reason: 'id_collision' }
-      }
+        const existingHistory = await studyDb.studySessions.get(session.id)
+        if (existingHistory) {
+          return { ok: false, reason: 'id_collision' as const }
+        }
 
-      const existingRecord = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
-      const existing = existingRecord ? normalizeActiveFocusSession(existingRecord.value) : null
-      if (existing) {
-        return { ok: false, reason: 'conflict', existing }
-      }
+        const existingRecord = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
+        const existing = existingRecord ? normalizeActiveFocusSession(existingRecord.value) : null
+        if (existing) {
+          return { ok: false, reason: 'conflict' as const, existing }
+        }
 
-      if (existingRecord) {
-        await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
-      }
+        if (existingRecord) {
+          await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
+        }
 
-      await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: session })
-      return { ok: true, session, generation: context.expectedGeneration }
-    }),
-  )
+        await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: session })
+        return { ok: true as const, session, generation: context.expectedGeneration }
+      })
+    } catch (err) {
+      if (isDatabaseBackupabilityLimitError(err)) {
+        return { ok: false, reason: 'capacity_limit' as const }
+      }
+      throw err
+    }
+  })
 }
 
 /**
@@ -535,83 +548,90 @@ export async function finalizeActiveFocusSession(
 ): Promise<FinalizeActiveFocusSessionResult> {
   if (!sessionId) return { ok: false, reason: 'missing' }
 
-  return withGuardedMutation(context, () =>
-    studyDb.transaction('rw', studyDb.subjects, studyDb.settings, studyDb.studySessions, async () => {
-      const existingHistory = await studyDb.studySessions.get(sessionId)
-      const activeRecord = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
-      const activeSession = activeRecord ? normalizeActiveFocusSession(activeRecord.value) : null
+  return withGuardedMutation(context, async () => {
+    try {
+      return await runBackupableMutation(async () => {
+        const existingHistory = await studyDb.studySessions.get(sessionId)
+        const activeRecord = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
+        const activeSession = activeRecord ? normalizeActiveFocusSession(activeRecord.value) : null
 
-      if (activeSession && activeSession.id !== sessionId) {
-        return { ok: false, reason: 'conflict', existing: activeSession }
-      }
+        if (activeSession && activeSession.id !== sessionId) {
+          return { ok: false, reason: 'conflict' as const, existing: activeSession }
+        }
 
-      if (activeSession && activeSession.id === sessionId) {
-        // If sessionId already exists in studySessions, re-key the active singleton
-        // to a fresh canonical ID rather than overwriting foreign history or losing active study time.
-        if (existingHistory) {
-          let freshId = createId('focus')
-          let attempts = 0
-          while (await studyDb.studySessions.get(freshId)) {
-            attempts++
-            if (attempts > 5) {
-              throw new Error('Exhausted unique ID generation attempts')
+        if (activeSession && activeSession.id === sessionId) {
+          // If sessionId already exists in studySessions, re-key the active singleton
+          // to a fresh canonical ID rather than overwriting foreign history or losing active study time.
+          if (existingHistory) {
+            let freshId = createId('focus')
+            let attempts = 0
+            while (await studyDb.studySessions.get(freshId)) {
+              attempts++
+              if (attempts > 5) {
+                throw new Error('Exhausted unique ID generation attempts')
+              }
+              freshId = createId('focus')
             }
-            freshId = createId('focus')
+
+            const rekeyedSession: ActiveFocusSession = {
+              ...activeSession,
+              id: freshId,
+            }
+            await studyDb.settings.put({
+              key: ACTIVE_FOCUS_SESSION_KEY,
+              value: rekeyedSession,
+            })
+            return { ok: false, reason: 'id_rekeyed' as const, session: rekeyedSession }
           }
 
-          const rekeyedSession: ActiveFocusSession = {
-            ...activeSession,
-            id: freshId,
+          try {
+            await assertSubjectExists(activeSession.subjectId)
+          } catch (err) {
+            if (isSubjectNotFoundError(err)) {
+              return { ok: false, reason: 'missing_subject' as const }
+            }
+            throw err
           }
-          await studyDb.settings.put({
-            key: ACTIVE_FOCUS_SESSION_KEY,
-            value: rekeyedSession,
-          })
-          return { ok: false, reason: 'id_rekeyed', session: rekeyedSession }
-        }
 
-        try {
-          await assertSubjectExists(activeSession.subjectId)
-        } catch (err) {
-          if (isSubjectNotFoundError(err)) {
-            return { ok: false, reason: 'missing_subject' }
+          const safeStartedAt = isIsoTimestamp(history.startedAt) ? history.startedAt : activeSession.startedAt
+          const startedAtMs = Date.parse(safeStartedAt)
+          const rawEndedAtMs = isIsoTimestamp(history.endedAt) ? Date.parse(history.endedAt) : Date.now()
+          const safeEndedAtMs = Math.max(startedAtMs, rawEndedAtMs)
+          const safeEndedAt = new Date(safeEndedAtMs).toISOString()
+
+          const callerMinutes = Math.max(1, Math.floor(history.minutes))
+          const cappedCheckpointMs = (typeof activeSession.checkpointElapsedMs === 'number' && activeSession.plannedMinutes > 0)
+            ? Math.min(activeSession.checkpointElapsedMs, activeSession.plannedMinutes * 60_000)
+            : (activeSession.checkpointElapsedMs ?? 0)
+          const durableCheckpointMinutes = typeof activeSession.checkpointElapsedMs === 'number'
+            ? Math.max(1, Math.round(cappedCheckpointMs / 60_000))
+            : 1
+          const safeMinutes = Math.max(callerMinutes, durableCheckpointMinutes)
+
+          const historyRow: StudySession = {
+            id: sessionId,
+            subjectId: activeSession.subjectId,
+            startedAt: safeStartedAt,
+            endedAt: safeEndedAt,
+            minutes: safeMinutes,
+            note: typeof history.note === 'string' ? history.note : 'Focus session',
           }
-          throw err
+
+          assertStudySessionWriteFields(historyRow)
+
+          await studyDb.studySessions.add(historyRow)
+          await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
+          return { ok: true as const, history: historyRow }
         }
 
-        const safeStartedAt = isIsoTimestamp(history.startedAt) ? history.startedAt : activeSession.startedAt
-        const startedAtMs = Date.parse(safeStartedAt)
-        const rawEndedAtMs = isIsoTimestamp(history.endedAt) ? Date.parse(history.endedAt) : Date.now()
-        const safeEndedAtMs = Math.max(startedAtMs, rawEndedAtMs)
-        const safeEndedAt = new Date(safeEndedAtMs).toISOString()
-
-        const callerMinutes = Math.max(1, Math.floor(history.minutes))
-        const cappedCheckpointMs = (typeof activeSession.checkpointElapsedMs === 'number' && activeSession.plannedMinutes > 0)
-          ? Math.min(activeSession.checkpointElapsedMs, activeSession.plannedMinutes * 60_000)
-          : (activeSession.checkpointElapsedMs ?? 0)
-        const durableCheckpointMinutes = typeof activeSession.checkpointElapsedMs === 'number'
-          ? Math.max(1, Math.round(cappedCheckpointMs / 60_000))
-          : 1
-        const safeMinutes = Math.max(callerMinutes, durableCheckpointMinutes)
-
-        const historyRow: StudySession = {
-          id: sessionId,
-          subjectId: activeSession.subjectId,
-          startedAt: safeStartedAt,
-          endedAt: safeEndedAt,
-          minutes: safeMinutes,
-          note: typeof history.note === 'string' ? history.note : 'Focus session',
-        }
-
-        assertStudySessionWriteFields(historyRow)
-
-        await studyDb.studySessions.add(historyRow)
-        await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
-        return { ok: true, history: historyRow }
+        // Active session already cleared / absent
+        return { ok: false, reason: 'missing' as const }
+      })
+    } catch (err) {
+      if (isDatabaseBackupabilityLimitError(err)) {
+        return { ok: false, reason: 'capacity_limit' as const }
       }
-
-      // Active session already cleared / absent
-      return { ok: false, reason: 'missing' }
-    }),
-  )
+      throw err
+    }
+  })
 }

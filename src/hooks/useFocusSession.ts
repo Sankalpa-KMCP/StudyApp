@@ -120,6 +120,7 @@ export function useFocusSession({
   const focusGenerationRef = useRef<number>(1)
   const finalizingSessionIdRef = useRef<string | null>(null)
   const deferredAutoCompleteSessionIdRef = useRef<string | null>(null)
+  const capacityBlockedSessionIdRef = useRef<string | null>(null)
   const focusTransitionPendingRef = useRef(false)
   const focusImportPendingRef = useRef(false)
   const focusSubjectWriteSeqRef = useRef(0)
@@ -128,6 +129,7 @@ export function useFocusSession({
   /** Clears both React focus slots, then applies at most one persisted session (never both). */
   const applyPersistedFocusSession = useCallback((restored: ActiveFocusSession | null) => {
     deferredAutoCompleteSessionIdRef.current = null
+    capacityBlockedSessionIdRef.current = null
     setActiveSession(null)
     setStaleFocusSession(null)
     if (!restored) {
@@ -356,6 +358,12 @@ export function useFocusSession({
           setSessionNotice('Could not start the focus session due to an ID collision. Try again.')
           return
         }
+
+        if (result.reason === 'capacity_limit') {
+          deferredAutoCompleteSessionIdRef.current = null
+          setSessionNotice('Study storage is at its backup-safe capacity. Remove or reduce some saved data before adding more content.')
+          return
+        }
       } catch (err) {
         if (err instanceof StaleDatabaseGenerationError) {
           setSessionNotice('Data was modified in another tab or import. Refresh to continue.')
@@ -514,6 +522,12 @@ export function useFocusSession({
             return
           }
 
+          if (result.reason === 'capacity_limit') {
+            capacityBlockedSessionIdRef.current = currentSession.id
+            setSessionNotice('Study storage is at its backup-safe capacity. Remove or reduce some saved data before logging more study time.')
+            return
+          }
+
           liveAnchorRef.current = null
           setLiveElapsedMs(0)
           setActiveSession(null)
@@ -558,6 +572,11 @@ export function useFocusSession({
       if (deferredAutoCompleteSessionIdRef.current === expectedSessionId) {
         deferredAutoCompleteSessionIdRef.current = null
       }
+    }
+
+    if (capacityBlockedSessionIdRef.current === expectedSessionId) {
+      clearDeferredForExpected()
+      return
     }
 
     if (focusTransitionPendingRef.current || focusImportPendingRef.current || !coordinator.getSnapshot().canMutateFocus) {
@@ -744,6 +763,7 @@ export function useFocusSession({
     if (!activeSession) return
     if (finalizingSessionIdRef.current === activeSession.id || focusActionsPending) return
 
+    capacityBlockedSessionIdRef.current = null
     const res = await coordinator.runFocusWrite(async () => {
       await finalizeFocusSession(activeSession, completed)
     })
@@ -891,6 +911,7 @@ export function useFocusSession({
     setStaleFocusSession(null)
     finalizingSessionIdRef.current = null
     deferredAutoCompleteSessionIdRef.current = null
+    capacityBlockedSessionIdRef.current = null
     focusTransitionPendingRef.current = false
     focusImportPendingRef.current = false
   }, [])
