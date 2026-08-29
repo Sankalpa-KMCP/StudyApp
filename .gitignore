@@ -29,6 +29,9 @@ dist-ssr
 # Local AI documentation at repo root (not published to GitHub)
 /ai/
 
+# Local graphify knowledge graph (generated, machine-specific interpreter path)
+/graphify-out/
+
 # Local MCP configuration (untracked)
 /.mcp.json
 
