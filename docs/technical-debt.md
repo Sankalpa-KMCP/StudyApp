@@ -112,16 +112,16 @@ Every active entry includes:
 
 | Field | Value |
 |-------|-------|
-| Status | OPEN |
+| Status | RESOLVED |
 | Severity | Low |
 | Release criticality | Non-release-critical |
 | Owner role | Application Maintainer |
-| Planned phase | Future Browser and Accessibility Certification |
-| Category | PWA evidence gap |
-| User impact | The app's service worker and manifest behavior are verified, but later regressions in offline navigation could go unnoticed because full offline usability was not directly tested in the baseline. |
-| Verification evidence | [docs/phase-0-baseline.md](phase-0-baseline.md) confirms `/StudyApp/` asset paths, manifest/icon fetches, and service-worker registration/scope, while explicitly stating that offline navigation was **not tested**. Evidence gap for real offline navigation usability. |
-| Resolution / acceptance condition | Add a reliable production offline-navigation check that confirms expected shell behavior after service-worker installation, and document exactly what is and is not guaranteed offline. |
-| Notes / constraints | Do not overstate offline support until a real offline navigation scenario is exercised. |
+| Planned phase | Historical / Obsolete |
+| Category | PWA evidence gap (Obsolete) |
+| User impact | Historical. Previously tracked offline navigation verification for the experimental PWA/service-worker delivery model. |
+| Verification evidence | Resolved / Obsolete. PWA, service workers, web manifest, and `vite-plugin-pwa` tooling were intentionally removed in favor of a standard browser-only React/Vite web application architecture. Offline service worker verification is no longer applicable. |
+| Resolution / acceptance condition | Closed. PWA and service worker functionality removed from application scope; verification debt no longer applies. (Condition met). |
+| Notes / constraints | The application is a local-first web-only application backed by Dexie/IndexedDB with no service worker or PWA layer. |
 
 ### TD-006 - Manual assistive-technology verification has not been performed
 

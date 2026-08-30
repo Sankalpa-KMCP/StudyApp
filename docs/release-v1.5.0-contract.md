@@ -40,7 +40,7 @@ The v1.5.0 production release is explicitly paused. The release-candidate freeze
 - **Account System:** None. No user registration, authentication, or user accounts.
 - **Cloud Synchronization:** None. No cloud database, remote sync services, or backend APIs.
 - **Server-Side Storage:** None. All study data remains strictly in the user's browser IndexedDB.
-- **Data Backups:** Manual export and import via unencrypted JSON files (Version 3 format).
+- **Data Backups:** Manual export and import via unencrypted JSON files (Version 4 format).
 - **Localization:** English-only interface for the v1.5.0 release.
 
 ---
