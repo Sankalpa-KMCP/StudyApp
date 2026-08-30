@@ -20,6 +20,7 @@ import {
 } from './db/subjectService'
 import * as uiSettingsRead from './db/uiSettingsRead'
 import {
+  ACTIVE_FOCUS_SESSION_KEY,
   ACTIVE_FOCUS_SESSION_STALE_AFTER_MS,
   createActiveFocusSession,
   finalizeActiveFocusSession,
@@ -408,15 +409,18 @@ describe('App subjects live query isolation', () => {
   })
 
   it('preserves Unknown subject and General focus display fallbacks without Subjects reruns', async () => {
-    await createActiveFocusSession(makeDurableFocusSession({
-      id: 'focus-unknown',
-      subjectId: 'missing-subject',
-      startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS - 60_000).toISOString(),
-      plannedMinutes: 0,
-      status: 'running',
-      pausedAt: null,
-      accumulatedPausedMs: 0,
-    }))
+    await studyDb.settings.put({
+      key: ACTIVE_FOCUS_SESSION_KEY,
+      value: makeDurableFocusSession({
+        id: 'focus-unknown',
+        subjectId: 'missing-subject',
+        startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS - 60_000).toISOString(),
+        plannedMinutes: 0,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      }),
+    })
 
     const subjectsSpy = vi.spyOn(subjectRead, 'listSubjects')
     const { unmount } = render(<App />)
