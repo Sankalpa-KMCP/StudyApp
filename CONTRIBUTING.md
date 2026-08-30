@@ -41,7 +41,7 @@ For the recorded Phase 0 clean-install, validation, and preview baseline (includ
 | `src/App.goals.test.tsx` | Goals metrics and CRUD |
 | `src/App.home.test.tsx` | Checklist, Home search, quick notes, midnight, Home chart a11y |
 | `src/App.navigation.test.tsx` | Widget and view navigation, URL sync, popstate, unknown-path fallback |
-| `src/App.workspaces.test.tsx` | Tasks / Notes / Subjects / Calendar / Flashcards |
+| `src/App.workspaces.test.tsx` | Tasks / Notes / Subjects / Calendar |
 | `src/App.progress.test.tsx` | Progress study journal |
 
 Shared App suite reset lives in `src/test/appTestSetup.ts` (plus small focus/backup/home helpers). Prefer the matching feature suite when adding App-level coverage.
@@ -56,7 +56,7 @@ Backup import validates size, shape/version, uniqueness, subject references, sem
 
 Settings import and clear-all operations are strictly serialized via `DataOperationCoordinator`. Any changes to this flow must preserve the mutual exclusion invariant and ensure the focused regression tests in `src/db/dataCoordinator.test.ts` and `e2e/dataCoordinator.spec.ts` continue to pass. A dedicated Playwright scenario that rejects an invalid import through Settings remains optional; unit and App suites already cover rejection and focus preservation.
 
-Optional fields on stored records should stay backward-compatible with older IndexedDB rows and JSON exports. For example, flashcard scheduling fields are optional so older cards remain due immediately. Unknown settings keys on import stay accepted for forward compatibility.
+Optional fields on stored records should stay backward-compatible with older IndexedDB rows and JSON exports. Unknown settings keys on import stay accepted for forward compatibility.
 
 ## Dependency Hygiene
 

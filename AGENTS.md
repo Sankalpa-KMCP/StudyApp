@@ -18,7 +18,7 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 
 ## Project summary
 
-- **Study Dashboard v1.4.0** — local-first study workspace (tasks, notes, subjects, calendar, flashcards, focus sessions, goals).
+- **Study Dashboard v1.4.0** — local-first study workspace (tasks, notes, subjects, calendar, focus sessions, goals).
 - **Production release paused:** The v1.5.0 release-candidate freeze is suspended. Ordinary project development may proceed under normal repository controls. Work explicitly designated as resumed v1.5.0 release work must follow the [v1.5.0 Public Beta release contract](docs/release-v1.5.0-contract.md). No current work may claim RC, Public Beta launch, production readiness, browser certification, or Phase 0 completion without new evidence.
 - **Web app:** React 19 + Vite 8 + Dexie/IndexedDB web app at the repo root.
 - **`App.tsx` is the composition root** — live Dexie data, sole `useCurrentDate()`, derived Home metrics, URL-synced navigation/layout (`src/navigation/viewRoutes.ts` + History API), shared preference notices, and view wiring. Pure helpers stay in `src/appUtils.ts`.
@@ -46,24 +46,24 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 - New subjects default to **`manual`**. The Subjects editor exposes the mode selector; Progress % is editable only in manual mode.
 - **`calculateSubjectProgress`** in `src/appUtils.ts` is the authoritative display helper for Subject cards, Home subject cards, and Home/search metadata and progress-number filtering (`SubjectsView`, `HomeView`, `buildSearchResults`, `useAppSearch`).
 - **Subject Distribution** (`SubjectDistribution` in `src/components/RightColumn.tsx`) remains a separate share-of-total logged study-time chart — not subject target progress.
-- **IndexedDB:** current Dexie schema is **version 3**. Upgrade from v2 assigns missing/invalid `progressMode` once via `inferSubjectProgressMode` (positive matching session minutes → `study_time`, else `manual` — session presence only, no title heuristics).
+- **IndexedDB:** current Dexie schema is **version 4** (v4 dropped the `flashcards` table). Upgrade from v2 assigns missing/invalid `progressMode` once via `inferSubjectProgressMode` (positive matching session minutes → `study_time`, else `manual` — session presence only, no title heuristics).
 - **Inspect together when changing subject progress:** `src/db/types.ts`, `src/db/studyDb.ts`, `src/appUtils.ts` (`calculateSubjectProgress` / `inferSubjectProgressMode`), `src/views/SubjectsView.tsx`, `src/home/HomeView.tsx`, `src/hooks/useAppSearch.ts`, `src/components/ui.tsx` (`SubjectCard`).
 
 ## Backups
 
-- New exports use JSON **version 3** with required goal **`metric`** and subject **`progressMode`**.
-- Valid **version 1** and **version 2** backups remain importable: goals (v1) and subjects (v1/v2) are normalized from the **complete imported study-session set** before any table replacement.
-- Invalid or missing modes/metrics on **version 3** backups fail validation **before** existing data is replaced.
+- New exports use JSON **version 4** with required goal **`metric`** and subject **`progressMode`**.
+- Valid **version 1**, **version 2**, and **version 3** backups remain importable: goals (v1) and subjects (v1/v2) are normalized from the **complete imported study-session set** before any table replacement. Legacy flashcards in v1–v3 backups are cleanly discarded on import.
+- Invalid or missing modes/metrics on **version 3** and **version 4** backups fail validation **before** existing data is replaced.
 - **Import validation order** (all rejection paths leave IndexedDB and visible focus ownership unchanged):
   1. File byte size (`File.size`, 5 MiB) — `useStudyBackup` + `studyExportLimits`
   2. Text length after `file.text()` (5 MiB characters)
   3. JSON parsing and shape/version checks (`parseAndNormalizeStudyExport` in `studyDb.ts`)
-  4. Legacy normalization (v1 goals; v1/v2 subject `progressMode` from imported sessions)
+  4. Legacy normalization (v1 goals; v1/v2 subject `progressMode` from imported sessions; discard legacy flashcards)
   5. Duplicate entity IDs and duplicate settings keys
   6. Subject references (non-empty `subjectId` must exist; `''` = General)
-  7. Semantic integrity (subject progress 0–100 and `targetHours > 0`; task minutes ≥ 0; session minutes > 0; event/session end not before start; goal `target > 0` and `progress ≥ 0`; non-negative optional flashcard counters)
+  7. Semantic integrity (subject progress 0–100 and `targetHours > 0`; task minutes ≥ 0; session minutes > 0; event/session end not before start; goal `target > 0` and `progress ≥ 0`)
   8. Known settings values (`dailyGoalMinutes` 30–720; `quickNotes` string[] max 8; `legacy-localstorage-migrated-v1` exactly `true`; `activeFocusSession` via `isActiveFocusSession`). **Unknown settings keys are accepted and preserved.**
-  9. Record counts (total **25,000**; subjects **500**; tasks/notes/events **5,000**; flashcards/study sessions **10,000**; goals **500**; settings **64**)
+  9. Record counts (total **25,000**; subjects **500**; tasks/notes/events **5,000**; study sessions **10,000**; goals **500**; settings **64**)
   10. Dexie clear + `bulkPut` (only after steps 1–9 succeed); then reload focus from IndexedDB on success
 - Import integrity does **not** enforce stricter UI-only editor maximums (e.g. Tasks minutes 5–720 clamp, Progress “end not in the future”). Do not silently repair duplicate, orphaned, or semantically invalid records — reject the whole import.
 - **Inspect together when changing import validation:** `src/hooks/useStudyBackup.ts`, `src/db/studyExportLimits.ts`, `src/db/studyExportValidation.ts`, `src/db/studyDb.ts` (`parseAndNormalizeStudyExport` / `finalizeStudyExport` / `importStudyData`), `src/db/activeFocusSession.ts` (focus settings contract), plus `studyExportValidation.test.ts`, `studyExportLimits.test.ts`, `studyDb.test.ts`, `useStudyBackup.test.ts`, and App backup/focus suites as needed.
@@ -133,7 +133,7 @@ Plain global CSS only. `src/index.css` is an **import barrel**; do not add ordin
 | `layout.css` | App shell, sidebar, topbar, dashboard/page grids |
 | `components.css` | Reusable primitives (cards, fields, commands, notices, charts, calendar-strip, empty states) |
 | `home.css` | Hero, first-study, focus timer, quick notes, Home search/previews |
-| `workspaces.css` | Tasks/Notes/Subjects/Flashcards-owned extras (e.g. swatches, flashcard states) |
+| `workspaces.css` | Tasks/Notes/Subjects-owned extras (e.g. swatches) |
 | `settings.css` | Theme studio, import card, danger/clear-all |
 | `progress.css` | Manual session editor and study journal |
 | `mixed.css` | Cross-owned grouped selectors kept **intact** (do not split to force ownership) |

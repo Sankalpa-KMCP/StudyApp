@@ -68,10 +68,6 @@ describe('App mobile navigation', () => {
     expect(window.location.pathname).toBe(pathForView('Calendar'))
 
     await user.click(screen.getByRole('button', { name: 'More' }))
-    await user.click(screen.getByRole('menuitem', { name: 'Flashcards' }))
-    expect(window.location.pathname).toBe(pathForView('Flashcards'))
-
-    await user.click(screen.getByRole('button', { name: 'More' }))
     await user.click(screen.getByRole('menuitem', { name: 'Goals' }))
     expect(window.location.pathname).toBe(pathForView('Goals'))
 

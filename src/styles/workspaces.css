@@ -57,11 +57,3 @@
 .note-detail {
   justify-content: space-between;
 }
-
-.flashcard {
-  min-height: 250px;
-}
-
-.flashcard .button-row {
-  margin-top: auto;
-}

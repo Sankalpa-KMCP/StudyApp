@@ -15,7 +15,7 @@ test('slash focuses global search and keyboard selects a Task result', async ({ 
   const search = page.getByRole('combobox', { name: 'Search' })
   await expect(search).toBeFocused()
   await search.fill('alpha task')
-  await expect(page.getByRole('listbox')).toBeVisible()
+  await expect(page.getByRole('option', { name: /Task.*alpha task/i })).toBeVisible()
   await page.keyboard.press('ArrowDown')
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/\/tasks$/)

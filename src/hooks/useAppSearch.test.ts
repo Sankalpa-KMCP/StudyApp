@@ -1,40 +1,38 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { CalendarEvent, Flashcard, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
+import type { CalendarEvent, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
 import { useAppSearch } from './useAppSearch'
 
 function makeFixture(): {
   subjects: StudySubject[]
   notes: StudyNote[]
   events: CalendarEvent[]
-  flashcards: Flashcard[]
   tasks: StudyTask[]
   studySessions: StudySession[]
 } {
   return {
     subjects: [
-        {
-          id: 'subject-math',
-          name: 'Mathematics',
-          color: '#2563eb',
-          targetHours: 4,
-          progress: 40,
-          progressMode: 'manual',
-          createdAt: '2026-06-29T00:00:00.000Z',
-          updatedAt: '2026-06-29T00:00:00.000Z',
-        },
-        {
-          id: 'subject-bio',
-          name: 'Biology',
-          color: '#0f766e',
-          targetHours: 3,
-          progress: 10,
-          progressMode: 'manual',
-          createdAt: '2026-06-29T00:00:00.000Z',
-          updatedAt: '2026-06-29T00:00:00.000Z',
-        },
-      ],
-
+      {
+        id: 'subject-math',
+        name: 'Mathematics',
+        color: '#2563eb',
+        targetHours: 4,
+        progress: 40,
+        progressMode: 'manual',
+        createdAt: '2026-06-29T00:00:00.000Z',
+        updatedAt: '2026-06-29T00:00:00.000Z',
+      },
+      {
+        id: 'subject-bio',
+        name: 'Biology',
+        color: '#0f766e',
+        targetHours: 3,
+        progress: 10,
+        progressMode: 'manual',
+        createdAt: '2026-06-29T00:00:00.000Z',
+        updatedAt: '2026-06-29T00:00:00.000Z',
+      },
+    ],
     tasks: [
       {
         id: 'task-open',
@@ -82,39 +80,15 @@ function makeFixture(): {
         updatedAt: '2026-06-29T00:00:00.000Z',
       },
     ],
-    flashcards: [
-      {
-        id: 'card-due',
-        subjectId: 'subject-math',
-        front: 'Derivative of x^2',
-        back: '2x',
-        status: 'learning',
-        dueAt: '2020-01-01T00:00:00.000Z',
-        lastReviewedAt: '',
-        createdAt: '2026-06-29T00:00:00.000Z',
-        updatedAt: '2026-06-29T00:00:00.000Z',
-      },
-      {
-        id: 'card-later',
-        subjectId: 'subject-bio',
-        front: 'Mitochondria',
-        back: 'Powerhouse',
-        status: 'new',
-        dueAt: '2099-01-01T00:00:00.000Z',
-        lastReviewedAt: '',
-        createdAt: '2026-06-29T00:00:00.000Z',
-        updatedAt: '2026-06-29T00:00:00.000Z',
-      },
-    ],
     studySessions: [],
   }
 }
 
 describe('useAppSearch', () => {
   it('exposes deferred search and clears the input state', () => {
-    const { subjects, notes, events, flashcards, tasks, studySessions } = makeFixture()
+    const { subjects, notes, events, tasks, studySessions } = makeFixture()
     const subjectMap = new Map(subjects.map((subject) => [subject.id, subject]))
-    const { result } = renderHook(() => useAppSearch({ subjects, notes, events, flashcards, tasks, studySessions, subjectMap, taskFilter: 'all' }))
+    const { result } = renderHook(() => useAppSearch({ subjects, notes, events, tasks, studySessions, subjectMap, taskFilter: 'all' }))
 
     expect(result.current.search).toBe('')
     expect(result.current.deferredSearch).toBe('')
@@ -135,10 +109,10 @@ describe('useAppSearch', () => {
   })
 
   it('filters workspace collections with current search and task-status semantics', () => {
-    const { subjects, notes, events, flashcards, tasks, studySessions } = makeFixture()
+    const { subjects, notes, events, tasks, studySessions } = makeFixture()
     const subjectMap = new Map(subjects.map((subject) => [subject.id, subject]))
     const { result, rerender } = renderHook(
-      ({ taskFilter }: { taskFilter: 'all' | 'open' | 'done' }) => useAppSearch({ subjects, notes, events, flashcards, tasks, studySessions, subjectMap, taskFilter }),
+      ({ taskFilter }: { taskFilter: 'all' | 'open' | 'done' }) => useAppSearch({ subjects, notes, events, tasks, studySessions, subjectMap, taskFilter }),
       { initialProps: { taskFilter: 'all' as const } },
     )
 
@@ -150,7 +124,6 @@ describe('useAppSearch', () => {
     expect(result.current.filteredNotes.map((note) => note.id)).toEqual(['note-1'])
     expect(result.current.filteredSubjects.map((subject) => subject.id)).toEqual(['subject-math'])
     expect(result.current.filteredEvents.map((event) => event.id)).toEqual(['event-1'])
-    expect(result.current.filteredFlashcards.map((card) => card.id)).toEqual(['card-due'])
 
     rerender({ taskFilter: 'done' })
     expect(result.current.filteredTasks).toEqual([])
@@ -161,17 +134,9 @@ describe('useAppSearch', () => {
     expect(result.current.filteredTasks.map((task) => task.id)).toEqual(['task-done'])
   })
 
-  it('sorts filtered flashcards with due cards first', () => {
-    const { subjects, notes, events, flashcards, tasks, studySessions } = makeFixture()
-    const subjectMap = new Map(subjects.map((subject) => [subject.id, subject]))
-    const { result } = renderHook(() => useAppSearch({ subjects, notes, events, flashcards, tasks, studySessions, subjectMap, taskFilter: 'all' }))
-
-    expect(result.current.filteredFlashcards.map((card) => card.id)).toEqual(['card-due', 'card-later'])
-  })
-
   it('filters and labels subjects using calculated progress instead of stale stored progress', () => {
     const fixture = makeFixture()
-    const { subjects, notes, events, flashcards, tasks } = fixture
+    const { subjects, notes, events, tasks } = fixture
     subjects[0] = {
       ...subjects[0],
       progress: 40,
@@ -189,7 +154,7 @@ describe('useAppSearch', () => {
       },
     ]
     const subjectMap = new Map(subjects.map((subject) => [subject.id, subject]))
-    const { result } = renderHook(() => useAppSearch({ subjects, notes, events, flashcards, tasks, studySessions, subjectMap, taskFilter: 'all' }))
+    const { result } = renderHook(() => useAppSearch({ subjects, notes, events, tasks, studySessions, subjectMap, taskFilter: 'all' }))
 
     act(() => {
       result.current.setSearch('50')
@@ -214,7 +179,7 @@ describe('useAppSearch', () => {
   })
 
   it('derives Home results through buildSearchResults with the existing cap', () => {
-    const { subjects, notes, events, flashcards, tasks, studySessions } = makeFixture()
+    const { subjects, notes, events, tasks, studySessions } = makeFixture()
     for (let index = 0; index < 10; index += 1) {
       tasks.push({
         id: `task-extra-${index}`,
@@ -229,7 +194,7 @@ describe('useAppSearch', () => {
       })
     }
     const subjectMap = new Map(subjects.map((subject) => [subject.id, subject]))
-    const { result } = renderHook(() => useAppSearch({ subjects, notes, events, flashcards, tasks, studySessions, subjectMap, taskFilter: 'all' }))
+    const { result } = renderHook(() => useAppSearch({ subjects, notes, events, tasks, studySessions, subjectMap, taskFilter: 'all' }))
 
     expect(result.current.homeSearchResults).toEqual([])
 

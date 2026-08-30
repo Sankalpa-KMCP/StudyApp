@@ -22,7 +22,6 @@ function emptyTables(): Omit<StudyExport, 'version' | 'exportedAt'> {
     subjects: [],
     notes: [],
     events: [],
-    flashcards: [],
     studySessions: [],
     goals: [],
     settings: [],
@@ -70,7 +69,7 @@ describe('assertUniqueStudyExportIdentifiers', () => {
     })).not.toThrow()
   })
 
-  it('rejects duplicate ids within subjects, tasks, notes, events, flashcards, sessions, and goals', () => {
+  it('rejects duplicate ids within subjects, tasks, notes, events, sessions, and goals', () => {
     const cases: Array<{ label: string; patch: Partial<ReturnType<typeof emptyTables>> }> = [
       {
         label: 'subjects',
@@ -174,33 +173,6 @@ describe('assertUniqueStudyExportIdentifiers', () => {
               startAt: timestamp,
               endAt: timestamp,
               location: '',
-              createdAt: timestamp,
-              updatedAt: timestamp,
-            },
-          ],
-        },
-      },
-      {
-        label: 'flashcards',
-        patch: {
-          flashcards: [
-            {
-              id: 'dup',
-              front: 'A',
-              back: 'A',
-              subjectId: '',
-              status: 'new',
-              lastReviewedAt: '',
-              createdAt: timestamp,
-              updatedAt: timestamp,
-            },
-            {
-              id: 'dup',
-              front: 'B',
-              back: 'B',
-              subjectId: '',
-              status: 'new',
-              lastReviewedAt: '',
               createdAt: timestamp,
               updatedAt: timestamp,
             },
@@ -342,16 +314,6 @@ describe('assertStudyExportSubjectReferences', () => {
         createdAt: timestamp,
         updatedAt: timestamp,
       }],
-      flashcards: [{
-        id: 'card-1',
-        front: 'Q',
-        back: 'A',
-        subjectId: '',
-        status: 'new',
-        lastReviewedAt: '',
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }],
       studySessions: [{
         id: 'session-1',
         subjectId: 'subject-math',
@@ -368,7 +330,7 @@ describe('assertStudyExportSubjectReferences', () => {
     })).not.toThrow()
   })
 
-  it('rejects orphan subjectIds on tasks, notes, events, flashcards, and sessions', () => {
+  it('rejects orphan subjectIds on tasks, notes, events, and sessions', () => {
     const orphan = 'missing-subject'
     const cases: Array<Partial<ReturnType<typeof emptyTables>>> = [
       {
@@ -403,18 +365,6 @@ describe('assertStudyExportSubjectReferences', () => {
           startAt: timestamp,
           endAt: timestamp,
           location: '',
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        }],
-      },
-      {
-        flashcards: [{
-          id: 'card-orphan',
-          front: 'Q',
-          back: 'A',
-          subjectId: orphan,
-          status: 'new',
-          lastReviewedAt: '',
           createdAt: timestamp,
           updatedAt: timestamp,
         }],
@@ -554,27 +504,6 @@ describe('assertStudyExportSemantics', () => {
         progress: 0,
         period: 'monthly',
         metric: 'manual',
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }],
-      flashcards: [{
-        id: 'card-1',
-        front: 'Q',
-        back: 'A',
-        subjectId: '',
-        status: 'new',
-        lastReviewedAt: '',
-        intervalDays: 0,
-        reviewCount: 0,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }, {
-        id: 'card-2',
-        front: 'Q2',
-        back: 'A2',
-        subjectId: '',
-        status: 'new',
-        lastReviewedAt: '',
         createdAt: timestamp,
         updatedAt: timestamp,
       }],
@@ -760,38 +689,6 @@ describe('assertStudyExportSemantics', () => {
       settings: [{ key: 'dailyGoalMinutes', value: 30 }],
     })).not.toThrow()
   })
-
-  it('rejects negative flashcard intervalDays or reviewCount when present', () => {
-    expect(() => assertStudyExportSemantics({
-      ...emptyTables(),
-      flashcards: [{
-        id: 'card-interval',
-        front: 'Q',
-        back: 'A',
-        subjectId: '',
-        status: 'new',
-        lastReviewedAt: '',
-        intervalDays: -1,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }],
-    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
-
-    expect(() => assertStudyExportSemantics({
-      ...emptyTables(),
-      flashcards: [{
-        id: 'card-reviews',
-        front: 'Q',
-        back: 'A',
-        subjectId: '',
-        status: 'new',
-        lastReviewedAt: '',
-        reviewCount: -1,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }],
-    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
-  })
 })
 
 describe('assertStudyExportSettingsValues', () => {
@@ -897,7 +794,6 @@ describe('assertStudyExportRecordCountTotals', () => {
     tasks: 0,
     notes: 0,
     events: 0,
-    flashcards: 0,
     studySessions: 0,
     goals: 0,
     settings: 0,
@@ -922,10 +818,6 @@ describe('assertStudyExportRecordCountTotals', () => {
     })).not.toThrow()
     expect(() => assertStudyExportRecordCountTotals({
       ...zeroCounts,
-      flashcards: STUDY_EXPORT_RECORD_LIMITS.flashcards,
-    })).not.toThrow()
-    expect(() => assertStudyExportRecordCountTotals({
-      ...zeroCounts,
       studySessions: STUDY_EXPORT_RECORD_LIMITS.studySessions,
     })).not.toThrow()
     expect(() => assertStudyExportRecordCountTotals({
@@ -941,8 +833,7 @@ describe('assertStudyExportRecordCountTotals', () => {
       tasks: 5_000,
       notes: 5_000,
       events: 5_000,
-      flashcards: 4_500,
-      studySessions: 4_500,
+      studySessions: 9_000,
       goals: 500,
       settings: 0,
     })).not.toThrow()
@@ -967,10 +858,6 @@ describe('assertStudyExportRecordCountTotals', () => {
     })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
     expect(() => assertStudyExportRecordCountTotals({
       ...zeroCounts,
-      flashcards: STUDY_EXPORT_RECORD_LIMITS.flashcards + 1,
-    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
-    expect(() => assertStudyExportRecordCountTotals({
-      ...zeroCounts,
       studySessions: STUDY_EXPORT_RECORD_LIMITS.studySessions + 1,
     })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
     expect(() => assertStudyExportRecordCountTotals({
@@ -987,8 +874,7 @@ describe('assertStudyExportRecordCountTotals', () => {
       tasks: 5_000,
       notes: 5_000,
       events: 5_000,
-      flashcards: 4_500,
-      studySessions: 4_501,
+      studySessions: 9_001,
       goals: 500,
       settings: 0,
     })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
@@ -997,12 +883,11 @@ describe('assertStudyExportRecordCountTotals', () => {
 
 describe('assertStudyExportRecordCounts', () => {
   const tinyLimits: StudyExportRecordLimits = {
-    total: 5,
+    total: 4,
     subjects: 2,
     tasks: 2,
     notes: 2,
     events: 2,
-    flashcards: 2,
     studySessions: 2,
     goals: 2,
     settings: 2,
@@ -1063,16 +948,6 @@ describe('assertStudyExportRecordCounts', () => {
         createdAt: timestamp,
         updatedAt: timestamp,
       }],
-      flashcards: [{
-        id: 'c1',
-        front: 'Q',
-        back: 'A',
-        subjectId: '',
-        status: 'new',
-        lastReviewedAt: '',
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }],
     }, tinyLimits)).not.toThrow()
 
     expect(() => assertStudyExportRecordCounts({
@@ -1105,16 +980,6 @@ describe('assertStudyExportRecordCounts', () => {
         startAt: timestamp,
         endAt: timestamp,
         location: '',
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      }],
-      flashcards: [{
-        id: 'c1',
-        front: 'Q',
-        back: 'A',
-        subjectId: '',
-        status: 'new',
-        lastReviewedAt: '',
         createdAt: timestamp,
         updatedAt: timestamp,
       }],
@@ -1160,15 +1025,15 @@ describe('parseAndNormalizeStudyExport classified validation errors & appVersion
     }
   })
 
-  it('throws future_version with encounteredVersion detail for version > 3', () => {
+  it('throws future_version with encounteredVersion detail for version > 4', () => {
     try {
-      parseAndNormalizeStudyExport({ version: 4, exportedAt: timestamp, ...emptyTables() })
+      parseAndNormalizeStudyExport({ version: 5, exportedAt: timestamp, ...emptyTables() })
       expect.fail('should have thrown')
     } catch (err) {
       expect(err).toBeInstanceOf(StudyExportValidationError)
       const error = err as StudyExportValidationError
       expect(error.code).toBe('future_version')
-      expect(error.details?.encounteredVersion).toBe(4)
+      expect(error.details?.encounteredVersion).toBe(5)
     }
   })
 
@@ -1187,7 +1052,7 @@ describe('parseAndNormalizeStudyExport classified validation errors & appVersion
   it('throws invalid_records for invalid appVersion metadata', () => {
     try {
       parseAndNormalizeStudyExport({
-        version: 3,
+        version: 4,
         exportedAt: timestamp,
         appVersion: 12345,
         ...emptyTables(),
@@ -1200,7 +1065,7 @@ describe('parseAndNormalizeStudyExport classified validation errors & appVersion
 
     try {
       parseAndNormalizeStudyExport({
-        version: 3,
+        version: 4,
         exportedAt: timestamp,
         appVersion: '',
         ...emptyTables(),
@@ -1212,9 +1077,9 @@ describe('parseAndNormalizeStudyExport classified validation errors & appVersion
     }
   })
 
-  it('preserves valid appVersion metadata when present on v3 backups', () => {
+  it('preserves valid appVersion metadata when present on v4 backups', () => {
     const payload = {
-      version: 3,
+      version: 4,
       exportedAt: timestamp,
       appVersion: '1.4.0',
       ...emptyTables(),
@@ -1230,7 +1095,7 @@ describe('parseAndNormalizeStudyExport classified validation errors & appVersion
       ...emptyTables(),
     }
     const result1 = parseAndNormalizeStudyExport(v1Payload)
-    expect(result1.version).toBe(3)
+    expect(result1.version).toBe(4)
     expect(result1.appVersion).toBeUndefined()
 
     const v3Payload = {
@@ -1239,7 +1104,7 @@ describe('parseAndNormalizeStudyExport classified validation errors & appVersion
       ...emptyTables(),
     }
     const result3 = parseAndNormalizeStudyExport(v3Payload)
-    expect(result3.version).toBe(3)
+    expect(result3.version).toBe(4)
     expect(result3.appVersion).toBeUndefined()
   })
 })

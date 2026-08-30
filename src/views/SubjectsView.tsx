@@ -17,7 +17,7 @@ import {
   getSubjectLinkedUsage,
   updateSubject,
 } from '../db/subjectService'
-import type { StudySubject, StudyTask, StudyNote, CalendarEvent, Flashcard, StudySession, SubjectProgressMode } from '../db/types'
+import type { StudySubject, StudyTask, StudyNote, CalendarEvent, StudySession, SubjectProgressMode } from '../db/types'
 import {
   calculateSubjectProgress,
   formatMinutes,
@@ -66,7 +66,6 @@ export function SubjectsView({
   tasks,
   notes,
   events,
-  flashcards,
   sessions,
   search = '',
   onClearSearch = () => {},
@@ -76,7 +75,6 @@ export function SubjectsView({
   tasks: StudyTask[]
   notes: StudyNote[]
   events: CalendarEvent[]
-  flashcards: Flashcard[]
   sessions: StudySession[]
   openEditorRequest: number
   search?: string
@@ -147,7 +145,6 @@ export function SubjectsView({
     tasks: tasks.filter((task) => task.subjectId === subjectId).length,
     notes: notes.filter((note) => note.subjectId === subjectId).length,
     events: events.filter((event) => event.subjectId === subjectId).length,
-    flashcards: flashcards.filter((card) => card.subjectId === subjectId).length,
     sessions: sessions.filter((session) => session.subjectId === subjectId).length,
   })
 
@@ -200,7 +197,7 @@ export function SubjectsView({
     const linkedTotal = Object.values(linked).reduce((sum, count) => sum + count, 0)
     if (linkedTotal > 0) {
       setValidationError(
-        `Cannot delete ${subject.name}. It is linked to ${linked.tasks} tasks, ${linked.notes} notes, ${linked.events} events, ${linked.flashcards} flashcards, and ${linked.sessions} sessions.`,
+        `Cannot delete ${subject.name}. It is linked to ${linked.tasks} tasks, ${linked.notes} notes, ${linked.events} events, and ${linked.sessions} sessions.`,
       )
       return
     }

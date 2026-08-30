@@ -94,22 +94,6 @@ test('guides the first study loop without overflowing compact layouts', async ({
   expect(layout.page).toBeLessThanOrEqual(layout.viewport)
 })
 
-test('creates and reviews a flashcard', async ({ page }) => {
-  await navigateWorkspace(page, 'Flashcards')
-  await page.getByRole('button', { name: 'New card' }).click()
-  await page.getByLabel('Front').fill('Photosynthesis')
-  await page.getByLabel('Back').fill('Plants convert light into chemical energy.')
-  await page.getByRole('button', { name: 'Save' }).click()
-
-  await expect(page.getByText('Photosynthesis')).toBeVisible()
-  await expect(page.getByText('Answer hidden')).toBeVisible()
-  await page.getByRole('button', { name: 'Reveal' }).click()
-  await expect(page.getByText('Plants convert light into chemical energy.')).toBeVisible()
-  await page.getByRole('button', { name: 'Remembered' }).click()
-  const card = page.locator('article.flashcard').filter({ hasText: 'Photosynthesis' })
-  await expect(card.locator('.status-badge')).toHaveText('remembered')
-})
-
 test('logs, edits, and confirms deletion of a study session', async ({ page }) => {
   await navigateWorkspace(page, 'Subjects')
   await page.getByRole('button', { name: 'New subject' }).click()
@@ -479,7 +463,7 @@ test('explicit goal metrics use persisted metric rather than title text', async 
   expect(goalsAfterReload.find((goal) => goal.title === studyTitle)?.metric).toBe('study_time')
 
   const exported = await exportStudyBackupViaSettings(page)
-  expect(exported.version).toBe(3)
+  expect(exported.version).toBe(4)
   expect(exported.goals.find((goal) => goal.title === manualTitle)?.metric).toBe('manual')
   expect(exported.goals.find((goal) => goal.title === studyTitle)?.metric).toBe('study_time')
   expect(Array.isArray(exported.subjects)).toBe(true)

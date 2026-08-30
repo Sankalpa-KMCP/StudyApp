@@ -2,8 +2,6 @@ export type TaskStatus = 'open' | 'done'
 
 export type TaskPriority = 'low' | 'normal' | 'high'
 
-export type FlashcardStatus = 'new' | 'learning' | 'remembered'
-
 export type GoalPeriod = 'daily' | 'weekly' | 'monthly'
 
 /** How goal progress is measured. `study_time` uses session totals; `manual` uses stored `progress`. */
@@ -68,20 +66,6 @@ export type CalendarEvent = {
   updatedAt: string
 }
 
-export type Flashcard = {
-  id: string
-  front: string
-  back: string
-  subjectId: string
-  status: FlashcardStatus
-  lastReviewedAt: string
-  dueAt?: string
-  intervalDays?: number
-  reviewCount?: number
-  createdAt: string
-  updatedAt: string
-}
-
 export type StudySession = {
   id: string
   subjectId: string
@@ -126,7 +110,7 @@ export type ActiveFocusSession = {
 /** Pre-metric goal shape found in version-1 backups (no `metric` field). */
 export type StudyGoalV1 = Omit<StudyGoal, 'metric'>
 
-export const EXPORT_SCHEMA_VERSION = 3
+export const EXPORT_SCHEMA_VERSION = 4
 export type ExportSchemaVersion = typeof EXPORT_SCHEMA_VERSION
 
 type StudyExportTablesLegacy = {
@@ -134,7 +118,17 @@ type StudyExportTablesLegacy = {
   subjects: StudySubjectLegacy[]
   notes: StudyNote[]
   events: CalendarEvent[]
-  flashcards: Flashcard[]
+  flashcards?: unknown[]
+  studySessions: StudySession[]
+  settings: StudySetting[]
+}
+
+type StudyExportTablesV3 = {
+  tasks: StudyTask[]
+  subjects: StudySubject[]
+  notes: StudyNote[]
+  events: CalendarEvent[]
+  flashcards?: unknown[]
   studySessions: StudySession[]
   settings: StudySetting[]
 }
@@ -144,12 +138,11 @@ type StudyExportTables = {
   subjects: StudySubject[]
   notes: StudyNote[]
   events: CalendarEvent[]
-  flashcards: Flashcard[]
   studySessions: StudySession[]
   settings: StudySetting[]
 }
 
-/** Legacy backup format (goals without required metrics; subjects without progress modes). */
+/** Legacy backup format (goals without required metrics; subjects without progress modes; legacy flashcards). */
 export type StudyExportV1 = StudyExportTablesLegacy & {
   version: 1
   exportedAt: string
@@ -157,7 +150,7 @@ export type StudyExportV1 = StudyExportTablesLegacy & {
   goals: StudyGoalV1[]
 }
 
-/** Backup format with goal metrics; subjects still without required progress modes. */
+/** Legacy backup format (with goal metrics; subjects without progress modes; legacy flashcards). */
 export type StudyExportV2 = StudyExportTablesLegacy & {
   version: 2
   exportedAt: string
@@ -165,15 +158,23 @@ export type StudyExportV2 = StudyExportTablesLegacy & {
   goals: StudyGoal[]
 }
 
-/** Current backup format (goals require metrics; subjects require progress modes). */
-export type StudyExportV3 = StudyExportTables & {
+/** Legacy backup format (goals require metrics; subjects require progress modes; legacy flashcards). */
+export type StudyExportV3 = StudyExportTablesV3 & {
   version: 3
   exportedAt: string
   appVersion?: string
   goals: StudyGoal[]
 }
 
+/** Current backup format (version 4: no flashcards). */
+export type StudyExportV4 = StudyExportTables & {
+  version: 4
+  exportedAt: string
+  appVersion?: string
+  goals: StudyGoal[]
+}
+
 /** Current export/import product shape after normalization. */
-export type StudyExport = StudyExportV3
+export type StudyExport = StudyExportV4
 
 export type StudyData = Omit<StudyExport, 'version' | 'exportedAt' | 'appVersion'>

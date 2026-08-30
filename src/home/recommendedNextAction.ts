@@ -1,8 +1,6 @@
-import { isFlashcardDue } from '../appUtils'
 import type {
   ActiveFocusSession,
   CalendarEvent,
-  Flashcard,
   StudySubject,
   StudyTask,
 } from '../db/types'
@@ -17,7 +15,6 @@ import {
 export type RecommendedActionKind =
   | 'overdue_task'
   | 'due_today_task'
-  | 'due_flashcard'
   | 'today_event'
   | 'continue_focus'
   | 'start_focus'
@@ -38,7 +35,6 @@ export type RecommendedNextAction = {
 
 export type RecommendedNextActionInput = {
   tasks: readonly StudyTask[]
-  flashcards: readonly Flashcard[]
   events: readonly CalendarEvent[]
   subjects: readonly StudySubject[]
   activeSession: ActiveFocusSession | null
@@ -76,17 +72,6 @@ export function getRecommendedNextAction(input: RecommendedNextActionInput): Rec
       view: 'Tasks',
       recordId: task.id,
       title: task.title,
-    }
-  }
-
-  const dueFlashcard = input.flashcards.find((card) => isFlashcardDue(card))
-  if (dueFlashcard) {
-    return {
-      kind: 'due_flashcard',
-      intent: 'navigate',
-      view: 'Flashcards',
-      recordId: dueFlashcard.id,
-      title: dueFlashcard.front,
     }
   }
 

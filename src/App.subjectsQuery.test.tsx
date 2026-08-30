@@ -5,8 +5,6 @@ import App from './App'
 import * as subjectRead from './db/subjectRead'
 import * as calendarEventRead from './db/calendarEventRead'
 import { createCalendarEvent } from './db/calendarEventService'
-import * as flashcardRead from './db/flashcardRead'
-import { createFlashcard } from './db/flashcardService'
 import * as goalRead from './db/goalRead'
 import { createGoal } from './db/goalService'
 import { createNote } from './db/notesService'
@@ -48,7 +46,6 @@ describe('App subjects live query isolation', () => {
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
     const notesSpy = vi.spyOn(noteRead, 'listNotes')
     const eventsSpy = vi.spyOn(calendarEventRead, 'listCalendarEvents')
-    const flashcardsSpy = vi.spyOn(flashcardRead, 'listFlashcards')
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
     const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
 
@@ -62,7 +59,6 @@ describe('App subjects live query isolation', () => {
     const tasksBefore = tasksSpy.mock.calls.length
     const notesBefore = notesSpy.mock.calls.length
     const eventsBefore = eventsSpy.mock.calls.length
-    const flashcardsBefore = flashcardsSpy.mock.calls.length
     const sessionsBefore = sessionsSpy.mock.calls.length
     const uiBefore = uiSpy.mock.calls.length
 
@@ -78,7 +74,6 @@ describe('App subjects live query isolation', () => {
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
     expect(notesSpy.mock.calls.length).toBe(notesBefore)
     expect(eventsSpy.mock.calls.length).toBe(eventsBefore)
-    expect(flashcardsSpy.mock.calls.length).toBe(flashcardsBefore)
     expect(sessionsSpy.mock.calls.length).toBe(sessionsBefore)
     expect(uiSpy.mock.calls.length).toBe(uiBefore)
 
@@ -141,11 +136,6 @@ describe('App subjects live query isolation', () => {
       endAt: upcomingEnd,
       location: '',
     })
-    await createFlashcard({
-      front: 'Join card front',
-      back: 'answer',
-      subjectId: 'subject-join',
-    })
     await createStudySession({
       subjectId: 'subject-join',
       startedAt: '2026-07-02T09:00:00.000Z',
@@ -158,12 +148,10 @@ describe('App subjects live query isolation', () => {
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
     const notesSpy = vi.spyOn(noteRead, 'listNotes')
     const eventsSpy = vi.spyOn(calendarEventRead, 'listCalendarEvents')
-    const flashcardsSpy = vi.spyOn(flashcardRead, 'listFlashcards')
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
     const tasksUpdateSpy = vi.spyOn(studyDb.tasks, 'update')
     const notesUpdateSpy = vi.spyOn(studyDb.notes, 'update')
     const eventsUpdateSpy = vi.spyOn(studyDb.events, 'update')
-    const flashcardsUpdateSpy = vi.spyOn(studyDb.flashcards, 'update')
     const sessionsUpdateSpy = vi.spyOn(studyDb.studySessions, 'update')
 
     render(<App />)
@@ -174,7 +162,6 @@ describe('App subjects live query isolation', () => {
     const tasksBefore = tasksSpy.mock.calls.length
     const notesBefore = notesSpy.mock.calls.length
     const eventsBefore = eventsSpy.mock.calls.length
-    const flashcardsBefore = flashcardsSpy.mock.calls.length
     const sessionsBefore = sessionsSpy.mock.calls.length
 
     await updateSubject('subject-join', {
@@ -189,12 +176,10 @@ describe('App subjects live query isolation', () => {
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
     expect(notesSpy.mock.calls.length).toBe(notesBefore)
     expect(eventsSpy.mock.calls.length).toBe(eventsBefore)
-    expect(flashcardsSpy.mock.calls.length).toBe(flashcardsBefore)
     expect(sessionsSpy.mock.calls.length).toBe(sessionsBefore)
     expect(tasksUpdateSpy).not.toHaveBeenCalled()
     expect(notesUpdateSpy).not.toHaveBeenCalled()
     expect(eventsUpdateSpy).not.toHaveBeenCalled()
-    expect(flashcardsUpdateSpy).not.toHaveBeenCalled()
     expect(sessionsUpdateSpy).not.toHaveBeenCalled()
 
     expect((await screen.findAllByText('Join task')).length).toBeGreaterThan(0)
@@ -208,10 +193,6 @@ describe('App subjects live query isolation', () => {
     await user.click(screen.getByRole('button', { name: 'Calendar' }))
     expect(await screen.findByText('Join event')).toBeInTheDocument()
     expect(screen.getAllByText('New name').length).toBeGreaterThan(0)
-
-    await user.click(screen.getByRole('button', { name: 'Flashcards' }))
-    expect(await screen.findByText('Join card front')).toBeInTheDocument()
-    expect(screen.getByText('New name')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Progress' }))
     expect(await screen.findByText('New name')).toBeInTheDocument()
@@ -282,13 +263,12 @@ describe('App subjects live query isolation', () => {
     })
   })
 
-  it('does not rerun Subjects for Task, Note, Event, Flashcard, Session, Goal, or UI-settings writes', async () => {
+  it('does not rerun Subjects for Task, Note, Event, Session, Goal, or UI-settings writes', async () => {
     const user = userEvent.setup()
     const subjectsSpy = vi.spyOn(subjectRead, 'listSubjects')
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
     const notesSpy = vi.spyOn(noteRead, 'listNotes')
     const eventsSpy = vi.spyOn(calendarEventRead, 'listCalendarEvents')
-    const flashcardsSpy = vi.spyOn(flashcardRead, 'listFlashcards')
     const sessionsSpy = vi.spyOn(studySessionRead, 'listStudySessions')
     const goalsSpy = vi.spyOn(goalRead, 'listGoals')
     const uiSpy = vi.spyOn(uiSettingsRead, 'getUiSettings')
@@ -325,14 +305,6 @@ describe('App subjects live query isolation', () => {
       location: '',
     })
     await waitFor(() => expect(eventsSpy.mock.calls.length).toBeGreaterThan(0))
-    expect(subjectsSpy.mock.calls.length).toBe(subjectsBaseline)
-
-    await createFlashcard({
-      front: 'Unrelated card',
-      back: 'answer',
-      subjectId: '',
-    })
-    await waitFor(() => expect(flashcardsSpy.mock.calls.length).toBeGreaterThan(0))
     expect(subjectsSpy.mock.calls.length).toBe(subjectsBaseline)
 
     await createStudySession({
@@ -634,7 +606,7 @@ describe('App subjects live query isolation', () => {
     const exported = await exportStudyData()
     expect(full.subjects.map((subject) => subject.id)).toEqual(['subject-earlier', 'subject-later'])
     expect(exported.subjects).toEqual(full.subjects)
-    expect(exported.version).toBe(3)
+    expect(exported.version).toBe(4)
   })
 
   it('Goals remain independent of Subject rows', async () => {

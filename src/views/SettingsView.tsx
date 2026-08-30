@@ -192,7 +192,7 @@ export function SettingsView({
       ) : null}
       <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
       <p className="settings-section-description">
-        Download an unencrypted JSON backup containing one consistent snapshot of your subjects, tasks, notes, calendar events, flashcards, study sessions, goals, and supported settings. Active focus-session data is included when present. Changes committed after the snapshot begins may not appear. Device-local appearance and sidebar preferences are excluded.
+        Download an unencrypted JSON backup containing one consistent snapshot of your subjects, tasks, notes, calendar events, study sessions, goals, and supported settings. Active focus-session data is included when present. Changes committed after the snapshot begins may not appear. Device-local appearance and sidebar preferences are excluded.
       </p>
       <div className="card-grid">
         <button

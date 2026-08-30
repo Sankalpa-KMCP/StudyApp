@@ -5,8 +5,6 @@ import App from './App'
 import * as subjectRead from './db/subjectRead'
 import * as calendarEventRead from './db/calendarEventRead'
 import { createCalendarEvent } from './db/calendarEventService'
-import * as flashcardRead from './db/flashcardRead'
-import { createFlashcard } from './db/flashcardService'
 import * as goalRead from './db/goalRead'
 import { createGoal } from './db/goalService'
 import { createNote } from './db/notesService'
@@ -193,27 +191,6 @@ describe('App tasks live query isolation', () => {
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
   })
 
-  it('does not rerun Tasks for Flashcard writes', async () => {
-    const flashcardsSpy = vi.spyOn(flashcardRead, 'listFlashcards')
-    const tasksSpy = vi.spyOn(taskRead, 'listTasks')
-
-    render(<App />)
-    await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
-    await waitFor(() => expect(flashcardsSpy).toHaveBeenCalled())
-    await waitFor(() => expect(tasksSpy).toHaveBeenCalled())
-    const flashcardsBefore = flashcardsSpy.mock.calls.length
-    const tasksBefore = tasksSpy.mock.calls.length
-
-    await createFlashcard({
-      front: 'Unrelated card',
-      back: 'answer',
-      subjectId: '',
-    })
-
-    await waitFor(() => expect(flashcardsSpy.mock.calls.length).toBeGreaterThan(flashcardsBefore))
-    expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
-  })
-
   it('does not rerun Tasks for a Goal-only write', async () => {
     const user = userEvent.setup()
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
@@ -297,7 +274,7 @@ describe('App tasks live query isolation', () => {
     expect(full.tasks).toHaveLength(1)
     expect(full.tasks[0]?.title).toBe('Export task')
     expect(exported.tasks).toEqual(full.tasks)
-    expect(exported.version).toBe(3)
+    expect(exported.version).toBe(4)
   })
 
   it('updates Tasks after toggle, edit, and delete without shell Tasks reads', async () => {

@@ -7,7 +7,6 @@ import * as subjectRead from './db/subjectRead'
 import * as noteRead from './db/noteRead'
 import * as taskRead from './db/taskRead'
 import * as calendarEventRead from './db/calendarEventRead'
-import * as flashcardRead from './db/flashcardRead'
 import * as studySessionRead from './db/studySessionRead'
 import * as uiSettingsRead from './db/uiSettingsRead'
 import {
@@ -29,7 +28,6 @@ const readerModules = [
   { name: 'Notes', spy: () => vi.spyOn(noteRead, 'listNotes') },
   { name: 'Tasks', spy: () => vi.spyOn(taskRead, 'listTasks') },
   { name: 'Events', spy: () => vi.spyOn(calendarEventRead, 'listCalendarEvents') },
-  { name: 'Flashcards', spy: () => vi.spyOn(flashcardRead, 'listFlashcards') },
   { name: 'Study sessions', spy: () => vi.spyOn(studySessionRead, 'listStudySessions') },
   { name: 'UI settings', spy: () => vi.spyOn(uiSettingsRead, 'getUiSettings') },
 ] as const

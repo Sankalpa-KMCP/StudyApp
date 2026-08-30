@@ -34,7 +34,7 @@ export function GlobalSearchResults({
         {results.length === 0 ? (
           <div className="global-search-empty" role="presentation">
             <strong>No matches found</strong>
-            <span>No tasks, notes, subjects, events, or flashcards match that search.</span>
+            <span>No tasks, notes, subjects, or events match that search.</span>
           </div>
         ) : (
           results.map((result, index) => {

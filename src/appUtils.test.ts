@@ -14,8 +14,6 @@ import {
   inferSubjectProgressMode,
   isDerivedGoal,
   isStudyTimeGoal,
-  nextFlashcardSchedule,
-  isFlashcardDue,
   getWeeklyStudyDays,
   groupStudySessionsByLocalDate,
   localDateKey,
@@ -206,20 +204,6 @@ describe('appUtils', () => {
       createdAt: '2026-06-29T00:00:00.000Z',
       updatedAt: '2026-06-29T00:00:00.000Z',
     }]
-    const flashcards = [{
-      id: 'card-1',
-      front: 'Molar mass',
-      back: 'Grams per mole',
-      subjectId: subject.id,
-      status: 'learning' as const,
-      easeFactor: 2.5,
-      intervalDays: 1,
-      repetitions: 0,
-      lapses: 0,
-      dueAt: '2026-06-29T00:00:00.000Z',
-      createdAt: '2026-06-29T00:00:00.000Z',
-      updatedAt: '2026-06-29T00:00:00.000Z',
-    }]
     const tasks = Array.from({ length: 10 }, (_, index) => ({
       id: `task-${index}`,
       title: `Chem task ${index}`,
@@ -233,23 +217,19 @@ describe('appUtils', () => {
     }))
     const originalTasks = tasks.map((task) => ({ ...task }))
 
-    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, '   ')).toEqual([])
-    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, 'TITRATION')[0]).toMatchObject({
+    expect(buildSearchResults(subjects, notes, events, tasks, [], subjectMap, '   ')).toEqual([])
+    expect(buildSearchResults(subjects, notes, events, tasks, [], subjectMap, 'TITRATION')[0]).toMatchObject({
       type: 'Note',
       title: 'Titration lab',
       view: 'Notes',
     })
-    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, 'Hall A')[0]).toMatchObject({
+    expect(buildSearchResults(subjects, notes, events, tasks, [], subjectMap, 'Hall A')[0]).toMatchObject({
       type: 'Event',
       view: 'Calendar',
     })
-    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, 'learning')[0]).toMatchObject({
-      type: 'Flashcard',
-      title: 'Molar mass',
-    })
-    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, 'high')).toEqual([])
-    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, 'open').every((item) => item.type === 'Task')).toBe(true)
-    expect(buildSearchResults(subjects, notes, events, flashcards, tasks, [], subjectMap, 'Chem task')).toHaveLength(8)
+    expect(buildSearchResults(subjects, notes, events, tasks, [], subjectMap, 'high')).toEqual([])
+    expect(buildSearchResults(subjects, notes, events, tasks, [], subjectMap, 'open').every((item) => item.type === 'Task')).toBe(true)
+    expect(buildSearchResults(subjects, notes, events, tasks, [], subjectMap, 'Chem task')).toHaveLength(8)
     expect(tasks).toEqual(originalTasks)
   })
 
@@ -274,7 +254,7 @@ describe('appUtils', () => {
     ]
     const subjectMap = new Map([[subject.id, subject]])
 
-    expect(buildSearchResults(subjects, [], [], [], [], sessions, subjectMap, 'Physics')).toEqual([
+    expect(buildSearchResults(subjects, [], [], [], sessions, subjectMap, 'Physics')).toEqual([
       {
         id: 'subject-search',
         type: 'Subject',
@@ -283,8 +263,8 @@ describe('appUtils', () => {
         view: 'Subjects',
       },
     ])
-    expect(buildSearchResults(subjects, [], [], [], [], sessions, subjectMap, '50')).toHaveLength(1)
-    expect(buildSearchResults(subjects, [], [], [], [], sessions, subjectMap, '15')).toEqual([])
+    expect(buildSearchResults(subjects, [], [], [], sessions, subjectMap, '50')).toHaveLength(1)
+    expect(buildSearchResults(subjects, [], [], [], sessions, subjectMap, '15')).toEqual([])
   })
 
   describe('goal progress by explicit metric', () => {
@@ -405,28 +385,6 @@ describe('appUtils', () => {
       expect(result.percentage).toBe(0)
       expect(result.target).toBe(0)
     })
-  })
-
-  it('schedules flashcard reviews locally', () => {
-    const now = new Date('2026-06-29T00:00:00.000Z')
-    const card = {
-      id: 'card-1',
-      front: 'Term',
-      back: 'Definition',
-      subjectId: '',
-      status: 'new' as const,
-      lastReviewedAt: '',
-      intervalDays: 0,
-      reviewCount: 0,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    }
-
-    const remembered = nextFlashcardSchedule(card, 'remembered', now)
-
-    expect(remembered.intervalDays).toBe(3)
-    expect(remembered.reviewCount).toBe(1)
-    expect(isFlashcardDue({ ...card, ...remembered }, now)).toBe(false)
   })
 })
 

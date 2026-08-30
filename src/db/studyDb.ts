@@ -13,7 +13,6 @@ import {
 } from './studyExportValidation'
 import type {
   CalendarEvent,
-  Flashcard,
   GoalPeriod,
   StudyData,
   StudyExport,
@@ -53,7 +52,6 @@ export class StudyDatabase extends Dexie {
   subjects!: Table<StudySubject, string>
   notes!: Table<StudyNote, string>
   events!: Table<CalendarEvent, string>
-  flashcards!: Table<Flashcard, string>
   studySessions!: Table<StudySession, string>
   goals!: Table<StudyGoal, string>
   settings!: Table<StudySetting, string>
@@ -78,6 +76,9 @@ export class StudyDatabase extends Dexie {
         subject.progressMode = inferSubjectProgressMode(subjectId, sessions)
       })
     })
+    this.version(4).stores({
+      flashcards: null,
+    })
   }
 }
 
@@ -88,7 +89,6 @@ const studyTables = [
   studyDb.subjects,
   studyDb.notes,
   studyDb.events,
-  studyDb.flashcards,
   studyDb.studySessions,
   studyDb.goals,
   studyDb.settings,
@@ -103,18 +103,17 @@ export function nowIso() {
 }
 
 export async function getStudyData(): Promise<StudyData> {
-  const [tasks, subjects, notes, events, flashcards, studySessions, goals, settings] = await Promise.all([
+  const [tasks, subjects, notes, events, studySessions, goals, settings] = await Promise.all([
     studyDb.tasks.orderBy('createdAt').toArray(),
     studyDb.subjects.orderBy('createdAt').toArray(),
     studyDb.notes.orderBy('updatedAt').reverse().toArray(),
     studyDb.events.orderBy('startAt').toArray(),
-    studyDb.flashcards.orderBy('createdAt').toArray(),
     studyDb.studySessions.orderBy('startedAt').reverse().toArray(),
     studyDb.goals.orderBy('createdAt').toArray(),
     studyDb.settings.toArray(),
   ])
 
-  return { tasks, subjects, notes, events, flashcards, studySessions, goals, settings }
+  return { tasks, subjects, notes, events, studySessions, goals, settings }
 }
 
 export async function readStudyDataSnapshot(): Promise<StudyData> {
@@ -189,7 +188,6 @@ export async function importStudyData(
         studyDb.subjects.bulkPut(normalized.subjects),
         studyDb.notes.bulkPut(normalized.notes),
         studyDb.events.bulkPut(normalized.events),
-        studyDb.flashcards.bulkPut(normalized.flashcards),
         studyDb.studySessions.bulkPut(normalized.studySessions),
         studyDb.goals.bulkPut(normalized.goals),
         studyDb.settings.bulkPut(settingsToPut),
@@ -229,7 +227,6 @@ export async function clearAllStudyData() {
       studyDb.subjects.clear(),
       studyDb.notes.clear(),
       studyDb.events.clear(),
-      studyDb.flashcards.clear(),
       studyDb.studySessions.clear(),
       studyDb.goals.clear(),
     ])
@@ -411,7 +408,6 @@ export async function migrateLegacyLocalStorage(
     let deduplicatedSubjects: StudySubject[]
     let deduplicatedNotes: StudyNote[]
     let deduplicatedEvents: CalendarEvent[]
-    let deduplicatedFlashcards: Flashcard[]
     let deduplicatedSessions: StudySession[]
     let deduplicatedGoals: StudyGoal[]
 
@@ -420,7 +416,6 @@ export async function migrateLegacyLocalStorage(
       deduplicatedSubjects = processIncomingTable('subjects', migrated.subjects)
       deduplicatedNotes = processIncomingTable('notes', migrated.notes)
       deduplicatedEvents = processIncomingTable('events', migrated.events)
-      deduplicatedFlashcards = processIncomingTable('flashcards', migrated.flashcards)
       deduplicatedSessions = processIncomingTable('studySessions', migrated.studySessions)
       deduplicatedGoals = processIncomingTable('goals', migrated.goals)
     } catch (err) {
@@ -438,7 +433,6 @@ export async function migrateLegacyLocalStorage(
       deduplicatedSubjects.length +
       deduplicatedNotes.length +
       deduplicatedEvents.length +
-      deduplicatedFlashcards.length +
       deduplicatedSessions.length +
       deduplicatedGoals.length
 
@@ -487,11 +481,6 @@ export async function migrateLegacyLocalStorage(
       )
       const notesToAdd = await checkAndFilterExistingRows('notes', studyDb.notes, deduplicatedNotes)
       const eventsToAdd = await checkAndFilterExistingRows('events', studyDb.events, deduplicatedEvents)
-      const flashcardsToAdd = await checkAndFilterExistingRows(
-        'flashcards',
-        studyDb.flashcards,
-        deduplicatedFlashcards
-      )
       const sessionsToAdd = await checkAndFilterExistingRows(
         'studySessions',
         studyDb.studySessions,
@@ -511,7 +500,6 @@ export async function migrateLegacyLocalStorage(
         studyDb.tasks.bulkAdd(tasksToAdd),
         studyDb.notes.bulkAdd(notesToAdd),
         studyDb.events.bulkAdd(eventsToAdd),
-        studyDb.flashcards.bulkAdd(flashcardsToAdd),
         studyDb.studySessions.bulkAdd(sessionsToAdd),
         studyDb.goals.bulkAdd(goalsToAdd),
       ])
@@ -608,7 +596,7 @@ export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
     )
   }
 
-  if (version !== 1 && version !== 2 && version !== 3) {
+  if (version !== 1 && version !== 2 && version !== 3 && version !== 4) {
     throw new StudyExportValidationError(
       'invalid_structure',
       STUDY_EXPORT_IMPORT_VALIDATION_ERROR
@@ -633,7 +621,6 @@ export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
     || !isArrayOf(parsed.tasks, isStudyTask)
     || !isArrayOf(parsed.notes, isStudyNote)
     || !isArrayOf(parsed.events, isCalendarEvent)
-    || !isArrayOf(parsed.flashcards, isFlashcard)
     || !isArrayOf(parsed.studySessions, isStudySession)
     || !isArrayOf(parsed.settings, isStudySetting)
   ) {
@@ -643,7 +630,37 @@ export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
     )
   }
 
+  if (version <= 3 && parsed.flashcards !== undefined) {
+    if (!isArrayOf(parsed.flashcards, isLegacyFlashcard)) {
+      throw new StudyExportValidationError(
+        'invalid_records',
+        STUDY_EXPORT_IMPORT_VALIDATION_ERROR
+      )
+    }
+  }
+
   const studySessions = parsed.studySessions
+
+  if (version === 4) {
+    if (!isArrayOf(parsed.subjects, isStudySubject) || !isArrayOf(parsed.goals, isCurrentStudyGoal)) {
+      throw new StudyExportValidationError(
+        'invalid_records',
+        STUDY_EXPORT_IMPORT_VALIDATION_ERROR
+      )
+    }
+    return finalizeStudyExport({
+      version: 4,
+      exportedAt: parsed.exportedAt,
+      appVersion: parsed.appVersion,
+      tasks: parsed.tasks,
+      subjects: parsed.subjects,
+      notes: parsed.notes,
+      events: parsed.events,
+      studySessions,
+      goals: parsed.goals,
+      settings: parsed.settings,
+    })
+  }
 
   if (version === 3) {
     if (!isArrayOf(parsed.subjects, isStudySubject) || !isArrayOf(parsed.goals, isCurrentStudyGoal)) {
@@ -653,14 +670,13 @@ export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
       )
     }
     return finalizeStudyExport({
-      version: 3,
+      version: 4,
       exportedAt: parsed.exportedAt,
       appVersion: parsed.appVersion,
       tasks: parsed.tasks,
       subjects: parsed.subjects,
       notes: parsed.notes,
       events: parsed.events,
-      flashcards: parsed.flashcards,
       studySessions,
       goals: parsed.goals,
       settings: parsed.settings,
@@ -682,7 +698,6 @@ export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
     subjects,
     notes: parsed.notes,
     events: parsed.events,
-    flashcards: parsed.flashcards,
     studySessions,
     settings: parsed.settings,
   }
@@ -695,7 +710,7 @@ export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
       )
     }
     return finalizeStudyExport({
-      version: 3,
+      version: 4,
       ...tables,
       goals: parsed.goals.map((goal) => ({
         ...goal,
@@ -712,7 +727,7 @@ export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
   }
 
   return finalizeStudyExport({
-    version: 3,
+    version: 4,
     ...tables,
     goals: parsed.goals,
   })
@@ -822,7 +837,7 @@ function isCalendarEvent(value: unknown): value is CalendarEvent {
   )
 }
 
-function isFlashcard(value: unknown): value is Flashcard {
+function isLegacyFlashcard(value: unknown): value is Record<string, unknown> {
   if (!isRecord(value)) return false
   return (
     hasRecordIdentity(value) &&
@@ -1000,7 +1015,6 @@ function migrateLegacyData(data: LegacyData): StudyData {
       })),
       notes,
       events,
-      flashcards: [],
       studySessions,
       goals: [],
       settings,
@@ -1012,7 +1026,6 @@ function migrateLegacyData(data: LegacyData): StudyData {
     subjects: Array.from(subjectMap.values()),
     notes,
     events,
-    flashcards: [],
     studySessions: [],
     goals: [],
     settings,

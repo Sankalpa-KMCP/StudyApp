@@ -1,24 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   getTodayFocusMinutes,
   getWeeklyStudyDays,
-  isFlashcardDue,
   percent,
   startOfToday,
 } from './appUtils'
 import { useAppSearch } from './hooks/useAppSearch'
 import { useCurrentDate } from './hooks/useCurrentDate'
 import { listCalendarEvents } from './db/calendarEventRead'
-import { listFlashcards } from './db/flashcardRead'
 import { listNotes } from './db/noteRead'
 import { listTasks } from './db/taskRead'
 import { listStudySessions } from './db/studySessionRead'
 import { EMPTY_UI_SETTINGS, getUiSettings } from './db/uiSettingsRead'
 import { listSubjects } from './db/subjectRead'
 import { saveQuickNotes } from './db/quickNotesService'
-import type { ActiveFocusSession, CalendarEvent, Flashcard, StudySession, StudySubject, StudyTask } from './db/types'
-import { ReviewQueue, StreakCard, Upcoming, WeeklyProgress } from './components/RightColumn'
+import type { ActiveFocusSession, CalendarEvent, StudySession, StudySubject, StudyTask } from './db/types'
+import { StreakCard, Upcoming, WeeklyProgress } from './components/RightColumn'
 import { HomeView } from './home/HomeView'
 import { TasksView } from './views/TasksView'
 import { Topbar } from './components/Topbar'
@@ -26,7 +24,6 @@ import { HeroRow } from './components/HeroRow'
 import { NotesView } from './views/NotesView'
 import { SubjectsView } from './views/SubjectsView'
 import { CalendarView } from './views/CalendarView'
-import { FlashcardsView } from './views/FlashcardsView'
 import { ProgressView } from './views/ProgressView'
 import { GoalsView } from './views/GoalsView'
 import { SettingsView } from './views/SettingsView'
@@ -35,7 +32,6 @@ import type { View } from './navigation/viewRoutes'
 import type { QuickAddItem } from './components/QuickAddMenu'
 
 const EMPTY_EVENTS: CalendarEvent[] = []
-const EMPTY_FLASHCARDS: Flashcard[] = []
 const EMPTY_TASKS: StudyTask[] = []
 const EMPTY_STUDY_SESSIONS: StudySession[] = []
 const EMPTY_SUBJECTS: StudySubject[] = []
@@ -51,7 +47,6 @@ export type AppLiveDataProps = {
   subjectEditorRequest: number
   noteEditorRequest: number
   eventEditorRequest: number
-  flashcardEditorRequest: number
   focusAttentionRequest: number
   progressEditorRequested: boolean
   noticeOpen: boolean
@@ -109,7 +104,6 @@ export function AppLiveData({
   subjectEditorRequest,
   noteEditorRequest,
   eventEditorRequest,
-  flashcardEditorRequest,
   focusAttentionRequest,
   progressEditorRequested,
   noticeOpen,
@@ -152,24 +146,20 @@ export function AppLiveData({
   onDismissOnboardingChecklist,
   onShowOnboardingChecklist,
 }: AppLiveDataProps) {
-  const [revealedCards, setRevealedCards] = useState<Set<string>>(() => new Set())
-
   const liveSubjects = useLiveQuery(() => listSubjects(), [])
   const liveNotes = useLiveQuery(() => listNotes(), [])
   const liveEvents = useLiveQuery(() => listCalendarEvents(), [])
-  const liveFlashcards = useLiveQuery(() => listFlashcards(), [])
   const liveTasks = useLiveQuery(() => listTasks(), [])
   const liveStudySessions = useLiveQuery(() => listStudySessions(), [])
   const liveUiSettings = useLiveQuery(() => getUiSettings(), [])
   const subjects = liveSubjects ?? EMPTY_SUBJECTS
   const notes = liveNotes ?? []
   const events = liveEvents ?? EMPTY_EVENTS
-  const flashcards = liveFlashcards ?? EMPTY_FLASHCARDS
   const tasks = liveTasks ?? EMPTY_TASKS
   const studySessions = liveStudySessions ?? EMPTY_STUDY_SESSIONS
   const uiSettings = liveUiSettings ?? EMPTY_UI_SETTINGS
   // Wait for all App-owned live reads so consumers never paint an empty flash after partial readiness.
-  const isLoading = liveSubjects === undefined || liveNotes === undefined || liveEvents === undefined || liveFlashcards === undefined || liveTasks === undefined || liveStudySessions === undefined || liveUiSettings === undefined
+  const isLoading = liveSubjects === undefined || liveNotes === undefined || liveEvents === undefined || liveTasks === undefined || liveStudySessions === undefined || liveUiSettings === undefined
 
   const currentDate = useCurrentDate()
   const dailyGoalMinutes = uiSettings.dailyGoalMinutes
@@ -191,8 +181,7 @@ export function AppLiveData({
     filteredNotes,
     filteredSubjects,
     filteredEvents,
-    filteredFlashcards,
-  } = useAppSearch({ subjects, notes, events, flashcards, tasks, studySessions, subjectMap, taskFilter })
+  } = useAppSearch({ subjects, notes, events, tasks, studySessions, subjectMap, taskFilter })
 
   const todayFocusMinutes = useMemo(
     () => getTodayFocusMinutes(studySessions, currentDate),
@@ -207,7 +196,6 @@ export function AppLiveData({
     () => events.filter((event) => new Date(event.startAt).getTime() >= startOfToday(currentDate)).slice(0, 4),
     [currentDate, events],
   )
-  const dueCards = useMemo(() => flashcards.filter((card) => isFlashcardDue(card)), [flashcards])
 
   const addQuickNote = useCallback(async (value: string) => {
     await saveQuickNotes(value)
@@ -261,7 +249,6 @@ export function AppLiveData({
                 <HomeView
                   notes={notes}
                   events={events}
-                  flashcards={flashcards}
                   tasks={tasks}
                   studySessions={studySessions}
                   subjectMap={subjectMap}
@@ -325,7 +312,6 @@ export function AppLiveData({
                   tasks={tasks}
                   notes={notes}
                   events={events}
-                  flashcards={flashcards}
                   sessions={studySessions}
                   openEditorRequest={subjectEditorRequest}
                 />
@@ -340,29 +326,11 @@ export function AppLiveData({
                   onClearSearch={clearSearch}
                 />
               ) : null}
-              {activeView === 'Flashcards' ? (
-                <FlashcardsView
-                  cards={filteredFlashcards}
-                  subjects={subjects}
-                  subjectMap={subjectMap}
-                  openEditorRequest={flashcardEditorRequest}
-                  revealedCards={revealedCards}
-                  onToggleReveal={(id) =>
-                    setRevealedCards((current) => {
-                      const next = new Set(current)
-                      if (next.has(id)) next.delete(id)
-                      else next.add(id)
-                      return next
-                    })
-                  }
-                />
-              ) : null}
               {activeView === 'Progress' ? (
                 <ProgressView
                   subjects={subjects}
                   tasks={tasks}
                   studySessions={studySessions}
-                  flashcards={flashcards}
                   weeklyStudyDays={weeklyStudyDays}
                   dailyGoalMinutes={dailyGoalMinutes}
                   todayFocusMinutes={todayFocusMinutes}
@@ -397,7 +365,6 @@ export function AppLiveData({
                 <WeeklyProgress days={weeklyStudyDays} />
                 <Upcoming events={upcomingEvents} subjectMap={subjectMap} onViewAll={() => onNavigate('Calendar')} />
                 <StreakCard sessions={studySessions} now={currentDate} />
-                <ReviewQueue count={dueCards.length} onOpen={() => onNavigate('Flashcards')} />
               </aside>
             ) : null}
           </div>

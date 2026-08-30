@@ -37,7 +37,6 @@ test('More menu reaches every secondary route with active state and Back/Forward
   const destinations = [
     { label: 'Subjects', path: /\/subjects$/ },
     { label: 'Calendar', path: /\/calendar$/ },
-    { label: 'Flashcards', path: /\/flashcards$/ },
     { label: 'Goals', path: /\/goals$/ },
     { label: 'Settings', path: /\/settings$/ },
   ] as const

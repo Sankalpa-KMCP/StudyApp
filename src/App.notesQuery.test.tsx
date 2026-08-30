@@ -170,7 +170,7 @@ describe('App notes live query isolation', () => {
     expect(full.notes).toHaveLength(1)
     expect(full.notes[0]?.title).toBe('Export note')
     expect(exported.notes).toEqual(full.notes)
-    expect(exported.version).toBe(3)
+    expect(exported.version).toBe(4)
   })
 
   it('updates Home recent notes ordering after a Note update without shell Notes reads', async () => {

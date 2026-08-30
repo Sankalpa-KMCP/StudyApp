@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { studyDb } from './db/studyDb'
 import { createNote } from './db/notesService'
-import { createFlashcard } from './db/flashcardService'
 import {
   ACTIVE_FOCUS_SESSION_STALE_AFTER_MS,
   createActiveFocusSession,
@@ -18,7 +17,7 @@ import { makeDurableFocusSession, waitForFocusStartEnabled } from './test/focusT
 
 async function openQuickAddItem(
   user: ReturnType<typeof userEvent.setup>,
-  label: 'Task' | 'Note' | 'Event' | 'Flashcard' | 'Focus session',
+  label: 'Task' | 'Note' | 'Event' | 'Focus session',
 ) {
   await user.click(await screen.findByRole('button', { name: 'Quick add' }))
   await user.click(within(screen.getByRole('menu', { name: 'Quick add' })).getByRole('menuitem', { name: label }))
@@ -86,26 +85,6 @@ describe('App quick add', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
     await openQuickAddItem(user, 'Event')
     expect(await screen.findByLabelText('Event title')).toBeInTheDocument()
-  })
-
-  it('opens Flashcard create without changing review reveal state', async () => {
-    const user = userEvent.setup()
-    await createFlashcard({
-      front: 'Capital of France',
-      back: 'Paris',
-      subjectId: '',
-    })
-    render(<App />)
-
-    await user.click(await screen.findByRole('button', { name: 'Flashcards' }))
-    await user.click(await screen.findByRole('button', { name: 'Reveal' }))
-    expect(screen.getByText('Paris')).toBeInTheDocument()
-
-    await openQuickAddItem(user, 'Flashcard')
-    expect(await screen.findByLabelText('Front')).toBeInTheDocument()
-    expect(window.location.pathname).toBe(pathForView('Flashcards'))
-    expect(screen.getByText('Paris')).toBeInTheDocument()
-    expect(await studyDb.flashcards.count()).toBe(1)
   })
 
   it('navigates from Tasks to Home and focuses Start without starting a session', async () => {

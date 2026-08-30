@@ -40,7 +40,6 @@ function App() {
   const [subjectEditorRequest, setSubjectEditorRequest] = useState(0)
   const [noteEditorRequest, setNoteEditorRequest] = useState(0)
   const [eventEditorRequest, setEventEditorRequest] = useState(0)
-  const [flashcardEditorRequest, setFlashcardEditorRequest] = useState(0)
   const [focusAttentionRequest, setFocusAttentionRequest] = useState(0)
   const [progressEditorRequested, setProgressEditorRequested] = useState(false)
   const [profileNotice, setProfileNotice] = useState('')
@@ -75,7 +74,6 @@ function App() {
     setSubjectEditorRequest(0)
     setNoteEditorRequest(0)
     setEventEditorRequest(0)
-    setFlashcardEditorRequest(0)
     setFocusAttentionRequest(0)
   }, [])
 
@@ -185,7 +183,6 @@ function App() {
     setSubjectEditorRequest(0)
     setNoteEditorRequest(0)
     setEventEditorRequest(0)
-    setFlashcardEditorRequest(0)
     setFocusAttentionRequest(0)
     setActiveView('Tasks')
     syncUrlToView('Tasks', 'push')
@@ -197,7 +194,6 @@ function App() {
     setTaskEditorRequest(0)
     setNoteEditorRequest(0)
     setEventEditorRequest(0)
-    setFlashcardEditorRequest(0)
     setFocusAttentionRequest(0)
     setActiveView('Subjects')
     syncUrlToView('Subjects', 'push')
@@ -209,7 +205,6 @@ function App() {
     setTaskEditorRequest(0)
     setSubjectEditorRequest(0)
     setEventEditorRequest(0)
-    setFlashcardEditorRequest(0)
     setFocusAttentionRequest(0)
     setActiveView('Notes')
     syncUrlToView('Notes', 'push')
@@ -221,23 +216,10 @@ function App() {
     setTaskEditorRequest(0)
     setSubjectEditorRequest(0)
     setNoteEditorRequest(0)
-    setFlashcardEditorRequest(0)
     setFocusAttentionRequest(0)
     setActiveView('Calendar')
     syncUrlToView('Calendar', 'push')
     setEventEditorRequest((request) => request + 1)
-  }
-
-  const openNewFlashcard = () => {
-    setProgressEditorRequested(false)
-    setTaskEditorRequest(0)
-    setSubjectEditorRequest(0)
-    setNoteEditorRequest(0)
-    setEventEditorRequest(0)
-    setFocusAttentionRequest(0)
-    setActiveView('Flashcards')
-    syncUrlToView('Flashcards', 'push')
-    setFlashcardEditorRequest((request) => request + 1)
   }
 
   const openFocusAttention = () => {
@@ -246,17 +228,15 @@ function App() {
     setSubjectEditorRequest(0)
     setNoteEditorRequest(0)
     setEventEditorRequest(0)
-    setFlashcardEditorRequest(0)
     setActiveView('Home')
     syncUrlToView('Home', 'push')
     setFocusAttentionRequest((request) => request + 1)
   }
 
-  const onQuickAdd = (item: 'task' | 'note' | 'event' | 'flashcard' | 'focus') => {
+  const onQuickAdd = (item: 'task' | 'note' | 'event' | 'focus') => {
     if (item === 'task') openNewTask()
     else if (item === 'note') openNewNote()
     else if (item === 'event') openNewEvent()
-    else if (item === 'flashcard') openNewFlashcard()
     else openFocusAttention()
   }
 
@@ -325,7 +305,6 @@ function App() {
             subjectEditorRequest={subjectEditorRequest}
             noteEditorRequest={noteEditorRequest}
             eventEditorRequest={eventEditorRequest}
-            flashcardEditorRequest={flashcardEditorRequest}
             focusAttentionRequest={focusAttentionRequest}
             progressEditorRequested={progressEditorRequested}
             noticeOpen={noticeOpen}

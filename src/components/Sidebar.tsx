@@ -1,4 +1,4 @@
-import { Home, Check, FileText, BookOpen, CalendarDays, NotebookText, TrendingUp, Target, PanelLeftOpen, PanelLeftClose, Settings, type AppIcon } from './icons'
+import { Home, Check, FileText, BookOpen, CalendarDays, TrendingUp, Target, PanelLeftOpen, PanelLeftClose, Settings, type AppIcon } from './icons'
 import type { View } from '../App'
 
 const navItems: Array<{ label: View; icon: AppIcon }> = [
@@ -7,7 +7,6 @@ const navItems: Array<{ label: View; icon: AppIcon }> = [
   { label: 'Notes', icon: FileText },
   { label: 'Subjects', icon: BookOpen },
   { label: 'Calendar', icon: CalendarDays },
-  { label: 'Flashcards', icon: NotebookText },
   { label: 'Progress', icon: TrendingUp },
   { label: 'Goals', icon: Target },
 ]

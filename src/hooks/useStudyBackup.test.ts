@@ -46,13 +46,12 @@ describe('useStudyBackup', () => {
 
   it('exports a JSON backup download and revokes the object URL', async () => {
     const payload = {
-      version: 3 as const,
+      version: 4 as const,
       exportedAt: '2026-07-23T00:00:00.000Z',
       tasks: [],
       subjects: [],
       notes: [],
       events: [],
-      flashcards: [],
       studySessions: [],
       goals: [],
       settings: [],
@@ -118,9 +117,9 @@ describe('useStudyBackup', () => {
     const coordinator = new DataOperationCoordinator()
     const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue(undefined)
     const exportStudyData = vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue({
-      version: 3,
+      version: 4,
       exportedAt: '2026-07-28T00:00:00.000Z',
-      tasks: [], subjects: [], notes: [], events: [], flashcards: [], studySessions: [], goals: [], settings: [],
+      tasks: [], subjects: [], notes: [], events: [], studySessions: [], goals: [], settings: [],
     })
     const clearAllStudyData = vi.spyOn(studyDb, 'clearAllStudyData').mockResolvedValue(undefined)
 

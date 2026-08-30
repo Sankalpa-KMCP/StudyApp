@@ -6,7 +6,6 @@ import {
   Ellipsis,
   FileText,
   Home,
-  NotebookText,
   Settings,
   Target,
   TrendingUp,
@@ -29,7 +28,6 @@ const PRIMARY_ITEMS: ReadonlyArray<{ view: (typeof MOBILE_PRIMARY_VIEWS)[number]
 const MORE_ITEMS: ReadonlyArray<{ view: (typeof MOBILE_MORE_VIEWS)[number]; Icon: AppIcon }> = [
   { view: 'Subjects', Icon: BookOpen },
   { view: 'Calendar', Icon: CalendarDays },
-  { view: 'Flashcards', Icon: NotebookText },
   { view: 'Goals', Icon: Target },
   { view: 'Settings', Icon: Settings },
 ]

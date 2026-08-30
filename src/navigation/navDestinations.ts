@@ -7,7 +7,6 @@ export const MOBILE_PRIMARY_VIEWS = ['Home', 'Tasks', 'Notes', 'Progress'] as co
 export const MOBILE_MORE_VIEWS = [
   'Subjects',
   'Calendar',
-  'Flashcards',
   'Goals',
   'Settings',
 ] as const satisfies ReadonlyArray<View>

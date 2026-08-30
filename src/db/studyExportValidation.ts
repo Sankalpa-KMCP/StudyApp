@@ -8,7 +8,6 @@ import type { StudyExport } from './types'
 import {
   isPersistedGoalProgress,
   isPersistedGoalTarget,
-  isPersistedOptionalNonNegativeCounter,
   isPersistedStudySessionMinutes,
   isPersistedSubjectProgress,
   isPersistedSubjectReference,
@@ -70,14 +69,13 @@ function assertUniqueKeys(keys: string[]): void {
 export function assertUniqueStudyExportIdentifiers(
   snapshot: Pick<
     StudyExport,
-    'subjects' | 'tasks' | 'notes' | 'events' | 'flashcards' | 'studySessions' | 'goals' | 'settings'
+    'subjects' | 'tasks' | 'notes' | 'events' | 'studySessions' | 'goals' | 'settings'
   >,
 ): void {
   assertUniqueKeys(snapshot.subjects.map((row) => row.id))
   assertUniqueKeys(snapshot.tasks.map((row) => row.id))
   assertUniqueKeys(snapshot.notes.map((row) => row.id))
   assertUniqueKeys(snapshot.events.map((row) => row.id))
-  assertUniqueKeys(snapshot.flashcards.map((row) => row.id))
   assertUniqueKeys(snapshot.studySessions.map((row) => row.id))
   assertUniqueKeys(snapshot.goals.map((row) => row.id))
   assertUniqueKeys(snapshot.settings.map((row) => row.key))
@@ -99,7 +97,7 @@ function assertSubjectReference(subjectId: string, subjectIds: ReadonlySet<strin
 export function assertStudyExportSubjectReferences(
   snapshot: Pick<
     StudyExport,
-    'subjects' | 'tasks' | 'notes' | 'events' | 'flashcards' | 'studySessions' | 'settings'
+    'subjects' | 'tasks' | 'notes' | 'events' | 'studySessions' | 'settings'
   >,
 ): void {
   const subjectIds = new Set(snapshot.subjects.map((subject) => subject.id))
@@ -111,9 +109,6 @@ export function assertStudyExportSubjectReferences(
     assertSubjectReference(row.subjectId, subjectIds)
   }
   for (const row of snapshot.events) {
-    assertSubjectReference(row.subjectId, subjectIds)
-  }
-  for (const row of snapshot.flashcards) {
     assertSubjectReference(row.subjectId, subjectIds)
   }
   for (const row of snapshot.studySessions) {
@@ -135,7 +130,7 @@ export function assertStudyExportSubjectReferences(
 export function assertStudyExportSemantics(
   snapshot: Pick<
     StudyExport,
-    'subjects' | 'tasks' | 'notes' | 'events' | 'flashcards' | 'studySessions' | 'goals'
+    'subjects' | 'tasks' | 'notes' | 'events' | 'studySessions' | 'goals'
   >,
 ): void {
   for (const subject of snapshot.subjects) {
@@ -159,11 +154,6 @@ export function assertStudyExportSemantics(
   for (const goal of snapshot.goals) {
     if (!isPersistedGoalTarget(goal.target)) failValidation()
     if (!isPersistedGoalProgress(goal.progress)) failValidation()
-  }
-
-  for (const card of snapshot.flashcards) {
-    if (!isPersistedOptionalNonNegativeCounter(card.intervalDays)) failValidation()
-    if (!isPersistedOptionalNonNegativeCounter(card.reviewCount)) failValidation()
   }
 }
 
@@ -217,7 +207,7 @@ export function assertStudyExportSettingsValues(
 export function assertStudyExportRecordCounts(
   snapshot: Pick<
     StudyExport,
-    'subjects' | 'tasks' | 'notes' | 'events' | 'flashcards' | 'studySessions' | 'goals' | 'settings'
+    'subjects' | 'tasks' | 'notes' | 'events' | 'studySessions' | 'goals' | 'settings'
   >,
   limits: StudyExportRecordLimits = STUDY_EXPORT_RECORD_LIMITS,
 ): void {
@@ -226,7 +216,6 @@ export function assertStudyExportRecordCounts(
     tasks: snapshot.tasks.length,
     notes: snapshot.notes.length,
     events: snapshot.events.length,
-    flashcards: snapshot.flashcards.length,
     studySessions: snapshot.studySessions.length,
     goals: snapshot.goals.length,
     settings: snapshot.settings.length,
@@ -245,7 +234,6 @@ export function assertStudyExportRecordCountTotals(
   if (counts.tasks > limits.tasks) failValidation()
   if (counts.notes > limits.notes) failValidation()
   if (counts.events > limits.events) failValidation()
-  if (counts.flashcards > limits.flashcards) failValidation()
   if (counts.studySessions > limits.studySessions) failValidation()
   if (counts.goals > limits.goals) failValidation()
   if (counts.settings > limits.settings) failValidation()
@@ -254,7 +242,6 @@ export function assertStudyExportRecordCountTotals(
     + counts.tasks
     + counts.notes
     + counts.events
-    + counts.flashcards
     + counts.studySessions
     + counts.goals
     + counts.settings

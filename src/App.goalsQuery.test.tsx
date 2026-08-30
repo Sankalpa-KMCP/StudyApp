@@ -192,6 +192,6 @@ describe('App goals live query isolation', () => {
     expect(full.goals).toHaveLength(1)
     expect(full.goals[0]?.title).toBe('Export goal')
     expect(exported.goals).toEqual(full.goals)
-    expect(exported.version).toBe(3)
+    expect(exported.version).toBe(4)
   })
 })

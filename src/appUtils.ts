@@ -1,4 +1,4 @@
-import type { CalendarEvent, Flashcard, GoalMetric, GoalPeriod, StudyGoal, StudyNote, StudySession, StudySubject, StudyTask, SubjectProgressMode } from './db/types'
+import type { CalendarEvent, GoalMetric, GoalPeriod, StudyGoal, StudyNote, StudySession, StudySubject, StudyTask, SubjectProgressMode } from './db/types'
 
 export type WeeklyStudyDay = {
   key: string
@@ -14,10 +14,10 @@ export type StudySessionGroup = {
 
 export type SearchResult = {
   id: string
-  type: 'Task' | 'Note' | 'Subject' | 'Event' | 'Flashcard'
+  type: 'Task' | 'Note' | 'Subject' | 'Event'
   title: string
   meta: string
-  view: 'Tasks' | 'Notes' | 'Subjects' | 'Calendar' | 'Flashcards'
+  view: 'Tasks' | 'Notes' | 'Subjects' | 'Calendar'
 }
 
 export type GoalProgressUnit = 'minutes' | 'hours' | 'points'
@@ -194,29 +194,6 @@ export function getGoalProgress(goal: StudyGoal, sessions: StudySession[], now =
   return calculateGoalProgress(goal, sessions, now).current
 }
 
-export function isFlashcardDue(card: Flashcard, now = new Date()) {
-  if (!card.dueAt) return true
-  return new Date(card.dueAt).getTime() <= now.getTime()
-}
-
-export function nextFlashcardSchedule(card: Flashcard, result: 'learning' | 'remembered', now = new Date()) {
-  const previousInterval = Math.max(0, card.intervalDays ?? 0)
-  const intervalDays = result === 'learning' ? 1 : previousInterval > 0 ? Math.min(previousInterval * 2, 30) : 3
-  const due = new Date(now)
-  due.setDate(due.getDate() + intervalDays)
-  return {
-    intervalDays,
-    dueAt: due.toISOString(),
-    reviewCount: (card.reviewCount ?? 0) + 1,
-  }
-}
-
-export function formatFlashcardDue(card: Flashcard, now = new Date()) {
-  if (isFlashcardDue(card, now)) return 'Due now'
-  if (!card.dueAt) return 'Due now'
-  return `Next review ${formatDate(card.dueAt)}`
-}
-
 export function getWeeklyStudyDays(sessions: StudySession[], now = new Date()): WeeklyStudyDay[] {
   const today = now
   return Array.from({ length: 7 }, (_, index) => {
@@ -253,7 +230,6 @@ export function buildSearchResults(
   subjects: StudySubject[],
   notes: StudyNote[],
   events: CalendarEvent[],
-  flashcards: Flashcard[],
   tasks: StudyTask[],
   studySessions: StudySession[],
   subjectMap: Map<string, StudySubject>,
@@ -284,9 +260,6 @@ export function buildSearchResults(
     ...events
       .filter((event) => matches(event.title, event.location, subjectName(event.subjectId)))
       .map((event): SearchResult => ({ id: event.id, type: 'Event', title: event.title, meta: `${formatDateTime(event.startAt)} - ${subjectName(event.subjectId)}`, view: 'Calendar' })),
-    ...flashcards
-      .filter((card) => matches(card.front, card.back, card.status, subjectName(card.subjectId)))
-      .map((card): SearchResult => ({ id: card.id, type: 'Flashcard', title: card.front, meta: `${subjectName(card.subjectId)} - ${card.status}`, view: 'Flashcards' })),
   ].slice(0, 8)
 }
 

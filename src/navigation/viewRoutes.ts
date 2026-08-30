@@ -4,7 +4,6 @@ export type View =
   | 'Notes'
   | 'Subjects'
   | 'Calendar'
-  | 'Flashcards'
   | 'Progress'
   | 'Goals'
   | 'Settings'
@@ -15,7 +14,6 @@ const SEGMENT_BY_VIEW: Record<View, string> = {
   Notes: 'notes',
   Subjects: 'subjects',
   Calendar: 'calendar',
-  Flashcards: 'flashcards',
   Progress: 'progress',
   Goals: 'goals',
   Settings: 'settings',
@@ -27,7 +25,6 @@ const VIEW_BY_SEGMENT: Record<string, View> = {
   notes: 'Notes',
   subjects: 'Subjects',
   calendar: 'Calendar',
-  flashcards: 'Flashcards',
   progress: 'Progress',
   goals: 'Goals',
   settings: 'Settings',

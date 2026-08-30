@@ -3,13 +3,12 @@ import userEvent from '@testing-library/user-event'
 
 export function makeEmptyExport(overrides: Record<string, unknown> = {}) {
   return {
-    version: 1,
+    version: 4,
     exportedAt: '2026-06-29T00:00:00.000Z',
     tasks: [],
     subjects: [],
     notes: [],
     events: [],
-    flashcards: [],
     studySessions: [],
     goals: [],
     settings: [],

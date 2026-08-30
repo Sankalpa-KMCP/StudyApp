@@ -85,17 +85,6 @@ export function StreakCard({ sessions, now }: { sessions: StudySession[]; now?: 
   )
 }
 
-export function ReviewQueue({ count, onOpen }: { count: number; onOpen: () => void }) {
-  return (
-    <section className="card review-card" aria-labelledby="review-title">
-      <h2 id="review-title">Review Queue</h2>
-      <strong>{count}</strong>
-      <p>cards waiting for another pass</p>
-      <button className="secondary-command" type="button" onClick={onOpen}>Review cards</button>
-    </section>
-  )
-}
-
 export function SubjectDistribution({ subjects, sessions, subjectMap }: { subjects: StudySubject[]; sessions: StudySession[]; subjectMap: Map<string, StudySubject> }) {
   const rows = subjects.map((subject) => ({
     subject,
