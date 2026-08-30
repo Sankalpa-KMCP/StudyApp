@@ -3,7 +3,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 export const SIDEBAR_STORAGE_KEY = 'study-dashboard-sidebar'
 
 export function readStoredSidebarCollapsed(): boolean {
-  return localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'collapsed'
+  try {
+    return localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'collapsed'
+  } catch {
+    return false
+  }
 }
 
 export type UseSidebarPreferenceOptions = {

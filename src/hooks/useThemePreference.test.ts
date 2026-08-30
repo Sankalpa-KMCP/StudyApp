@@ -10,6 +10,7 @@ import {
 
 describe('theme preference helpers', () => {
   beforeEach(() => {
+    vi.restoreAllMocks()
     localStorage.clear()
     document.documentElement.dataset.theme = 'monochrome'
     let themeColorMeta = document.querySelector('meta[name="theme-color"]')
@@ -38,10 +39,19 @@ describe('theme preference helpers', () => {
     localStorage.setItem(THEME_STORAGE_KEY, 'not-a-theme')
     expect(readStoredThemeMode()).toBe('monochrome')
   })
+
+  it('falls back to monochrome when localStorage.getItem throws', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
+      if (key === THEME_STORAGE_KEY) throw new Error('SecurityError: storage access denied')
+      return null
+    })
+    expect(readStoredThemeMode()).toBe('monochrome')
+  })
 })
 
 describe('useThemePreference', () => {
   beforeEach(() => {
+    vi.restoreAllMocks()
     localStorage.clear()
     document.documentElement.dataset.theme = 'monochrome'
     let themeColorMeta = document.querySelector('meta[name="theme-color"]')
@@ -98,5 +108,20 @@ describe('useThemePreference', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(onPreferenceError).toHaveBeenCalledWith('Theme preference could not be saved.')
     expect(clearPreferenceNotice).toHaveBeenCalledTimes(1)
+  })
+
+  it('initializes cleanly to monochrome when localStorage.getItem throws during hook mount', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
+      if (key === THEME_STORAGE_KEY) throw new Error('SecurityError: storage access denied')
+      return null
+    })
+    const onPreferenceError = vi.fn()
+    const clearPreferenceNotice = vi.fn()
+
+    const { result } = renderHook(() => useThemePreference({ onPreferenceError, clearPreferenceNotice }))
+
+    expect(result.current.theme).toBe('monochrome')
+    expect(document.documentElement.dataset.theme).toBe('monochrome')
+    expect(onPreferenceError).not.toHaveBeenCalled()
   })
 })

@@ -225,4 +225,16 @@ describe('App live-read recovery', () => {
     expect(within(screen.getByRole('banner')).getByText('Notes')).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent(LIVE_READ_ERROR_MESSAGE)
   })
+
+  it('initializes normally and renders dashboard when localStorage.getItem throws during preference read', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      const err = new Error('The operation is insecure.')
+      err.name = 'SecurityError'
+      throw err
+    })
+
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+    expect(document.documentElement.dataset.theme).toBe('monochrome')
+  })
 })

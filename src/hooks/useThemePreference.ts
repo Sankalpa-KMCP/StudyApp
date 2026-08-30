@@ -25,8 +25,12 @@ export function isThemeMode(value: string | null): value is ThemeMode {
 }
 
 export function readStoredThemeMode(): ThemeMode {
-  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY)
-  return isThemeMode(savedTheme) ? savedTheme : 'monochrome'
+  try {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY)
+    return isThemeMode(savedTheme) ? savedTheme : 'monochrome'
+  } catch {
+    return 'monochrome'
+  }
 }
 
 export type UseThemePreferenceOptions = {
