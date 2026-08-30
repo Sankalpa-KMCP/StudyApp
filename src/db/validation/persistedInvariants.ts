@@ -53,3 +53,8 @@ export function isPersistedSubjectReference(
 ): boolean {
   return subjectId === '' || subjectIds.has(subjectId)
 }
+
+/** Daily goal focus minutes setting: positive finite number (no import upper maximum). */
+export function isPersistedDailyGoalMinutes(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+}

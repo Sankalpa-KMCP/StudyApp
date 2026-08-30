@@ -659,7 +659,7 @@ describe('assertStudyExportSemantics', () => {
     })).not.toThrow()
   })
 
-  it('keeps Goal editor 1–10000 and settings dailyGoalMinutes 30–720 ranges distinct', () => {
+  it('accepts Goal target above editor max (10001) and validates dailyGoalMinutes > 0', () => {
     expect(() => assertStudyExportSemantics({
       ...emptyTables(),
       goals: [{
@@ -676,13 +676,18 @@ describe('assertStudyExportSemantics', () => {
 
     expect(() => assertStudyExportSettingsValues({
       ...emptyTables(),
-      settings: [{ key: 'dailyGoalMinutes', value: 29 }],
+      settings: [{ key: 'dailyGoalMinutes', value: 0 }],
     })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
 
     expect(() => assertStudyExportSettingsValues({
       ...emptyTables(),
-      settings: [{ key: 'dailyGoalMinutes', value: 721 }],
+      settings: [{ key: 'dailyGoalMinutes', value: -1 }],
     })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      ...emptyTables(),
+      settings: [{ key: 'dailyGoalMinutes', value: 25 }],
+    })).not.toThrow()
 
     expect(() => assertStudyExportSettingsValues({
       ...emptyTables(),
@@ -705,7 +710,7 @@ describe('assertStudyExportSettingsValues', () => {
   it('accepts known-setting boundaries and unknown keys unchanged', () => {
     expect(() => assertStudyExportSettingsValues({
       settings: [
-        { key: 'dailyGoalMinutes', value: 30 },
+        { key: 'dailyGoalMinutes', value: 1 },
         { key: 'quickNotes', value: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] },
         { key: 'legacy-localstorage-migrated-v1', value: true },
         { key: ACTIVE_FOCUS_SESSION_KEY, value: validFocus },
@@ -715,19 +720,53 @@ describe('assertStudyExportSettingsValues', () => {
 
     expect(() => assertStudyExportSettingsValues({
       settings: [
-        { key: 'dailyGoalMinutes', value: 720 },
+        { key: 'dailyGoalMinutes', value: 25 },
         { key: 'quickNotes', value: [] },
+      ],
+    })).not.toThrow()
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [
+        { key: 'dailyGoalMinutes', value: 29 },
+      ],
+    })).not.toThrow()
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [
+        { key: 'dailyGoalMinutes', value: 30 },
+      ],
+    })).not.toThrow()
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [
+        { key: 'dailyGoalMinutes', value: 720 },
+      ],
+    })).not.toThrow()
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [
+        { key: 'dailyGoalMinutes', value: 721 },
+      ],
+    })).not.toThrow()
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [
+        { key: 'dailyGoalMinutes', value: 10_000 },
       ],
     })).not.toThrow()
   })
 
   it('rejects invalid dailyGoalMinutes values', () => {
     expect(() => assertStudyExportSettingsValues({
-      settings: [{ key: 'dailyGoalMinutes', value: 29 }],
+      settings: [{ key: 'dailyGoalMinutes', value: 0 }],
     })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
 
     expect(() => assertStudyExportSettingsValues({
-      settings: [{ key: 'dailyGoalMinutes', value: 721 }],
+      settings: [{ key: 'dailyGoalMinutes', value: -1 }],
+    })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+
+    expect(() => assertStudyExportSettingsValues({
+      settings: [{ key: 'dailyGoalMinutes', value: -100 }],
     })).toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
 
     expect(() => assertStudyExportSettingsValues({
