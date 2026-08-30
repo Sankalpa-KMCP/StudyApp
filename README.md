@@ -1,6 +1,6 @@
 # Study Dashboard
 
-React + Vite PWA for a local-first study workspace. Tasks, subjects, notes, calendar events, flashcards, focus sessions, goals, quick notes, and settings persist offline in the browser with Dexie + IndexedDB.
+React + Vite web application for a local-first study workspace. Tasks, subjects, notes, calendar events, flashcards, focus sessions, goals, quick notes, and settings persist offline in the browser with Dexie + IndexedDB.
 
 There is **no backend**, authentication, or cloud synchronization. The browser IndexedDB database is the source of truth.
 

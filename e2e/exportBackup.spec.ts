@@ -168,6 +168,7 @@ test('exports populated study database and validates version-3 structure and exc
   // 8. Validate exact top-level collections (no unexpected or missing collections)
   const expectedTopLevelKeys = [
     'version',
+    'appVersion',
     'exportedAt',
     'subjects',
     'tasks',
