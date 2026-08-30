@@ -15,6 +15,7 @@ import {
   createSubject,
   deleteSubject as deleteSubjectRecord,
   getSubjectLinkedUsage,
+  type SubjectLinkedUsage,
   updateSubject,
 } from '../db/subjectService'
 import type { StudySubject, StudyTask, StudyNote, CalendarEvent, StudySession, SubjectProgressMode } from '../db/types'
@@ -186,6 +187,13 @@ export function SubjectsView({
     })
   }
 
+  const formatSubjectLinkedUsage = (subjectName: string, linked: SubjectLinkedUsage): string => {
+    if (linked.activeFocus > 0) {
+      return `Cannot delete ${subjectName}. It is linked to ${linked.activeFocus} active focus session, ${linked.tasks} tasks, ${linked.notes} notes, ${linked.events} events, and ${linked.sessions} sessions.`
+    }
+    return `Cannot delete ${subjectName}. It is linked to ${linked.tasks} tasks, ${linked.notes} notes, ${linked.events} events, and ${linked.sessions} sessions.`
+  }
+
   const requestDeleteSubject = async (subject: StudySubject) => {
     if (pendingDeleteId || isSaving || isRowPending || confirmSubject) return
 
@@ -196,9 +204,7 @@ export function SubjectsView({
     const linked = await getSubjectLinkedUsage(subject.id)
     const linkedTotal = Object.values(linked).reduce((sum, count) => sum + count, 0)
     if (linkedTotal > 0) {
-      setValidationError(
-        `Cannot delete ${subject.name}. It is linked to ${linked.tasks} tasks, ${linked.notes} notes, ${linked.events} events, and ${linked.sessions} sessions.`,
-      )
+      setValidationError(formatSubjectLinkedUsage(subject.name, linked))
       return
     }
 
@@ -216,7 +222,11 @@ export function SubjectsView({
     setPendingDeleteId(subject.id)
     try {
       await runRow(async () => {
-        await deleteSubjectRecord(subject.id)
+        const result = await deleteSubjectRecord(subject.id)
+        if (!result.ok && result.reason === 'linked') {
+          setValidationError(formatSubjectLinkedUsage(subject.name, result.usage))
+          throw new Error('Subject is linked to other study records.')
+        }
       }, {
         successMessage: 'Subject deleted.',
         errorMessage: 'Subject could not be deleted. Please try again.',

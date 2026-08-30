@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { ACTIVE_FOCUS_SESSION_KEY } from './activeFocusSession'
 import {
   createSubject,
   deleteSubject,
@@ -6,6 +7,7 @@ import {
   updateSubject,
 } from './subjectService'
 import { studyDb } from './studyDb'
+import type { ActiveFocusSession } from './types'
 
 describe('subjectService', () => {
   beforeEach(async () => {
@@ -94,6 +96,7 @@ describe('subjectService', () => {
       notes: 0,
       events: 0,
       sessions: 0,
+      activeFocus: 0,
     })
   })
 
@@ -192,10 +195,87 @@ describe('subjectService', () => {
       notes: 2,
       events: 1,
       sessions: 3,
+      activeFocus: 0,
     })
   })
 
-  it('deletes an existing subject', async () => {
+  it('reports activeFocus: 1 when active focus session references the subject', async () => {
+    const created = await createSubject({
+      name: 'Active Subject',
+      color: '#10b981',
+      targetHours: 5,
+      progress: 0,
+      progressMode: 'manual',
+    })
+    const focusSession: ActiveFocusSession = {
+      id: 'focus-active-1',
+      subjectId: created.id,
+      startedAt: '2026-08-22T10:00:00.000Z',
+      plannedMinutes: 25,
+      status: 'running',
+      pausedAt: null,
+      accumulatedPausedMs: 0,
+    }
+    await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: focusSession })
+
+    expect(await getSubjectLinkedUsage(created.id)).toEqual({
+      tasks: 0,
+      notes: 0,
+      events: 0,
+      sessions: 0,
+      activeFocus: 1,
+    })
+  })
+
+  it('reports activeFocus: 0 for General focus, other subjects, or invalid settings', async () => {
+    const subjectA = await createSubject({
+      name: 'Subject A',
+      color: '#10b981',
+      targetHours: 5,
+      progress: 0,
+      progressMode: 'manual',
+    })
+    const subjectB = await createSubject({
+      name: 'Subject B',
+      color: '#3b82f6',
+      targetHours: 5,
+      progress: 0,
+      progressMode: 'manual',
+    })
+
+    // General focus
+    await studyDb.settings.put({
+      key: ACTIVE_FOCUS_SESSION_KEY,
+      value: {
+        id: 'focus-gen',
+        subjectId: '',
+        startedAt: '2026-08-22T10:00:00.000Z',
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      },
+    })
+    expect((await getSubjectLinkedUsage(subjectA.id)).activeFocus).toBe(0)
+
+    // Focus on Subject B
+    await studyDb.settings.put({
+      key: ACTIVE_FOCUS_SESSION_KEY,
+      value: {
+        id: 'focus-b',
+        subjectId: subjectB.id,
+        startedAt: '2026-08-22T10:00:00.000Z',
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      },
+    })
+    expect((await getSubjectLinkedUsage(subjectA.id)).activeFocus).toBe(0)
+    expect((await getSubjectLinkedUsage(subjectB.id)).activeFocus).toBe(1)
+  })
+
+  it('deletes an existing unlinked subject and returns ok: true', async () => {
     const created = await createSubject({
       name: 'Temporary',
       color: '#111827',
@@ -204,12 +284,132 @@ describe('subjectService', () => {
       progressMode: 'manual',
     })
 
-    await deleteSubject(created.id)
+    const result = await deleteSubject(created.id)
+    expect(result).toEqual({ ok: true })
     expect(await studyDb.subjects.get(created.id)).toBeUndefined()
   })
 
-  it('treats deleting a missing subject as success', async () => {
-    await expect(deleteSubject('subject-already-gone')).resolves.toBeUndefined()
+  it('treats deleting a missing subject as idempotent success', async () => {
+    const result = await deleteSubject('subject-already-gone')
+    expect(result).toEqual({ ok: true })
     expect(await studyDb.subjects.count()).toBe(0)
+  })
+
+  it('blocks deletion when active focus session references the subject and leaves row intact', async () => {
+    const created = await createSubject({
+      name: 'Focus Protected',
+      color: '#111827',
+      targetHours: 2,
+      progress: 0,
+      progressMode: 'manual',
+    })
+    const focusSession: ActiveFocusSession = {
+      id: 'focus-block-1',
+      subjectId: created.id,
+      startedAt: '2026-08-22T10:00:00.000Z',
+      plannedMinutes: 25,
+      status: 'running',
+      pausedAt: null,
+      accumulatedPausedMs: 0,
+    }
+    await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: focusSession })
+
+    const result = await deleteSubject(created.id)
+    expect(result).toEqual({
+      ok: false,
+      reason: 'linked',
+      usage: {
+        tasks: 0,
+        notes: 0,
+        events: 0,
+        sessions: 0,
+        activeFocus: 1,
+      },
+    })
+    expect(await studyDb.subjects.get(created.id)).toBeDefined()
+  })
+
+  it('blocks deletion when linked tasks, notes, events, or sessions exist', async () => {
+    const created = await createSubject({
+      name: 'Multi-linked',
+      color: '#111827',
+      targetHours: 2,
+      progress: 0,
+      progressMode: 'manual',
+    })
+    await studyDb.tasks.add({
+      id: 'task-test-link',
+      title: 'Task Link',
+      subjectId: created.id,
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 15,
+      createdAt: '2026-08-22T10:00:00.000Z',
+      updatedAt: '2026-08-22T10:00:00.000Z',
+    })
+
+    const result = await deleteSubject(created.id)
+    expect(result).toEqual({
+      ok: false,
+      reason: 'linked',
+      usage: {
+        tasks: 1,
+        notes: 0,
+        events: 0,
+        sessions: 0,
+        activeFocus: 0,
+      },
+    })
+    expect(await studyDb.subjects.get(created.id)).toBeDefined()
+  })
+
+  it('protects against TOCTOU race: blocks deletion if link created after preliminary check', async () => {
+    const created = await createSubject({
+      name: 'Race Subject',
+      color: '#ec4899',
+      targetHours: 3,
+      progress: 0,
+      progressMode: 'manual',
+    })
+
+    // Preliminary check says 0 linked records (dialog would open)
+    const preliminaryCheck = await getSubjectLinkedUsage(created.id)
+    expect(preliminaryCheck).toEqual({
+      tasks: 0,
+      notes: 0,
+      events: 0,
+      sessions: 0,
+      activeFocus: 0,
+    })
+
+    // Concurrently or in another tab, an active focus session is started
+    await studyDb.settings.put({
+      key: ACTIVE_FOCUS_SESSION_KEY,
+      value: {
+        id: 'focus-race-1',
+        subjectId: created.id,
+        startedAt: '2026-08-22T10:00:00.000Z',
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      },
+    })
+
+    // User clicks confirm delete; authoritative deleteSubject transaction catches the link
+    const result = await deleteSubject(created.id)
+    expect(result).toEqual({
+      ok: false,
+      reason: 'linked',
+      usage: {
+        tasks: 0,
+        notes: 0,
+        events: 0,
+        sessions: 0,
+        activeFocus: 1,
+      },
+    })
+    expect(await studyDb.subjects.get(created.id)).toBeDefined()
   })
 })
