@@ -614,6 +614,9 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved')
   const [lastPersisted, setLastPersisted] = useState(savedValue)
   const [prevSavedValue, setPrevSavedValue] = useState(savedValue)
+  const draftRef = useRef(draft)
+  const lastPersistedRef = useRef(lastPersisted)
+  const isMountedRef = useRef(true)
   const pendingRef = useRef<string | null>(null)
   const inFlightRef = useRef(false)
   const awaitingEchoRef = useRef(false)
@@ -622,6 +625,14 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
   useEffect(() => {
     onChangeRef.current = onChange
   }, [onChange])
+
+  useEffect(() => {
+    draftRef.current = draft
+  }, [draft])
+
+  useEffect(() => {
+    lastPersistedRef.current = lastPersisted
+  }, [lastPersisted])
 
   // Apply external live-query updates while rendering when this card has no local dirty work.
   // After a local save, ignore unchanged stale props until the live query echoes the write or delivers a newer value.
@@ -639,17 +650,21 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
         awaitingEchoRef.current = false
         setDraft(savedValue)
         setLastPersisted(savedValue)
+        draftRef.current = savedValue
+        lastPersistedRef.current = savedValue
       }
     } else if (canApplyExternal && savedValue !== lastPersisted) {
       setDraft(savedValue)
       setLastPersisted(savedValue)
+      draftRef.current = savedValue
+      lastPersistedRef.current = savedValue
     }
   }
 
   const flushPending = useCallback(async () => {
     if (inFlightRef.current) return
     inFlightRef.current = true
-    setSaveStatus('saving')
+    if (isMountedRef.current) setSaveStatus('saving')
     let failed = false
 
     try {
@@ -659,13 +674,14 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
         pendingRef.current = null
         await onChangeRef.current(next)
         awaitingEchoRef.current = true
-        setLastPersisted(next)
+        lastPersistedRef.current = next
+        if (isMountedRef.current) setLastPersisted(next)
       }
-      setSaveStatus('saved')
+      if (isMountedRef.current) setSaveStatus('saved')
     } catch {
       failed = true
       awaitingEchoRef.current = false
-      setSaveStatus('error')
+      if (isMountedRef.current) setSaveStatus('error')
     } finally {
       inFlightRef.current = false
     }
@@ -685,6 +701,26 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
     }, 250)
     return () => window.clearTimeout(timer)
   }, [draft, flushPending, lastPersisted, saveStatus])
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      const latestDraft = draftRef.current
+      if (latestDraft !== lastPersistedRef.current) {
+        pendingRef.current = latestDraft
+        void flushPending()
+      }
+    }
+  }, [flushPending])
+
+  const handleBlur = useCallback(() => {
+    const latestDraft = draftRef.current
+    if (latestDraft !== lastPersistedRef.current) {
+      pendingRef.current = latestDraft
+      void flushPending()
+    }
+  }, [flushPending])
 
   const statusLabel = saveStatus === 'error'
     ? 'Quick notes could not be saved. Your text is still available.'
@@ -728,6 +764,7 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
             setDraft(event.target.value)
             if (saveStatus === 'error') setSaveStatus('saving')
           }}
+          onBlur={handleBlur}
         />
       </label>
     </section>
