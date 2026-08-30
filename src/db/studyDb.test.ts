@@ -1808,6 +1808,234 @@ describe('studyDb', () => {
 
     await migrateLegacyLocalStorage()
     expect((await getStudyData()).tasks).toHaveLength(0)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+  })
+
+  it('migrates legacy payload containing demo seed records alongside custom subjects, tasks, and notes', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [
+          { id: 'task-1', title: 'Review Calculus notes', subject: 'Calculus', done: true, minutes: 45 },
+          { id: 'task-custom', title: 'Physics Problem Set', subject: 'Physics', done: false, minutes: 60 },
+        ],
+        subjects: [
+          { id: 'subject-1', name: 'Calculus', topicsLeft: 4, progress: 60 },
+          { id: 'subject-custom', name: 'Physics', topicsLeft: 6, progress: 20 },
+        ],
+        notes: [
+          { id: 'note-custom', title: 'Newtonian Mechanics', tag: 'Physics', body: 'F = ma' },
+        ],
+        quickNotes: ['Review for midterm'],
+        dailyGoalMinutes: 180,
+      }),
+    )
+
+    const res = await migrateLegacyLocalStorage()
+    expect(res.status).toBe('success')
+
+    const data = await getStudyData()
+    expect(data.tasks).toHaveLength(2)
+    expect(data.subjects).toHaveLength(2)
+    expect(data.notes).toHaveLength(1)
+    expect(data.settings.find((s) => s.key === 'quickNotes')?.value).toEqual(['Review for midterm'])
+    expect(data.settings.find((s) => s.key === 'dailyGoalMinutes')?.value).toBe(180)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+  })
+
+  it('migrates legacy payload when the demo task title has been customized by the user', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'task-1', title: 'Calculus Chapter 3 Homework', subject: 'Calculus', done: false, minutes: 90 }],
+        subjects: [{ id: 'subject-1', name: 'Calculus', topicsLeft: 4, progress: 60 }],
+      }),
+    )
+
+    const res = await migrateLegacyLocalStorage()
+    expect(res.status).toBe('success')
+
+    const tasks = await studyDb.tasks.toArray()
+    expect(tasks).toHaveLength(1)
+    expect(tasks[0]?.title).toBe('Calculus Chapter 3 Homework')
+    expect(tasks[0]?.minutes).toBe(90)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+  })
+
+  it('migrates legacy payload when the demo subject name has been customized by the user', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'task-1', title: 'Review Calculus notes', subject: 'Advanced Analysis', done: true, minutes: 45 }],
+        subjects: [{ id: 'subject-1', name: 'Advanced Analysis', topicsLeft: 2, progress: 80 }],
+      }),
+    )
+
+    const res = await migrateLegacyLocalStorage()
+    expect(res.status).toBe('success')
+
+    const subjects = await studyDb.subjects.toArray()
+    expect(subjects).toHaveLength(1)
+    expect(subjects[0]?.name).toBe('Advanced Analysis')
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+  })
+
+  it('migrates legacy payload when demo records are retained alongside custom calendar events and logged focus time', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'task-1', title: 'Review Calculus notes', subject: 'Calculus', done: true, minutes: 45 }],
+        subjects: [{ id: 'subject-1', name: 'Calculus', topicsLeft: 4, progress: 60 }],
+        events: [{ id: 'event-1', title: 'Calculus Recitation', time: '11:00', detail: 'Room 101' }],
+        focusMinutes: 50,
+      }),
+    )
+
+    const res = await migrateLegacyLocalStorage()
+    expect(res.status).toBe('success')
+
+    const events = await studyDb.events.toArray()
+    const sessions = await studyDb.studySessions.toArray()
+    expect(events).toHaveLength(1)
+    expect(events[0]?.title).toBe('Calculus Recitation')
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0]?.minutes).toBe(50)
+  })
+
+  it('migrates legacy payload when the demo task completion status (done) has been customized', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'task-1', title: 'Review Calculus notes', subject: 'Calculus', done: false, minutes: 45 }],
+        subjects: [{ id: 'subject-1', name: 'Calculus', topicsLeft: 4, progress: 60 }],
+      }),
+    )
+
+    const res = await migrateLegacyLocalStorage()
+    expect(res.status).toBe('success')
+
+    const tasks = await studyDb.tasks.toArray()
+    expect(tasks).toHaveLength(1)
+    expect(tasks[0]?.status).toBe('open')
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+  })
+
+  it('migrates legacy payload when the demo task minutes have been customized', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'task-1', title: 'Review Calculus notes', subject: 'Calculus', done: true, minutes: 90 }],
+        subjects: [{ id: 'subject-1', name: 'Calculus', topicsLeft: 4, progress: 60 }],
+      }),
+    )
+
+    const res = await migrateLegacyLocalStorage()
+    expect(res.status).toBe('success')
+
+    const tasks = await studyDb.tasks.toArray()
+    expect(tasks).toHaveLength(1)
+    expect(tasks[0]?.minutes).toBe(90)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+  })
+
+  it('migrates legacy payload when the demo task subject reference has been customized', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'task-1', title: 'Review Calculus notes', subject: 'Physics', done: true, minutes: 45 }],
+        subjects: [{ id: 'subject-1', name: 'Calculus', topicsLeft: 4, progress: 60 }],
+      }),
+    )
+
+    const res = await migrateLegacyLocalStorage()
+    expect(res.status).toBe('success')
+
+    const data = await getStudyData()
+    expect(data.tasks).toHaveLength(1)
+    expect(data.subjects).toHaveLength(2)
+  })
+
+  it('migrates legacy payload when the demo subject progress has been customized', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'task-1', title: 'Review Calculus notes', subject: 'Calculus', done: true, minutes: 45 }],
+        subjects: [{ id: 'subject-1', name: 'Calculus', topicsLeft: 4, progress: 95 }],
+      }),
+    )
+
+    const res = await migrateLegacyLocalStorage()
+    expect(res.status).toBe('success')
+
+    const subjects = await studyDb.subjects.toArray()
+    expect(subjects).toHaveLength(1)
+    expect(subjects[0]?.progress).toBe(95)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+  })
+
+  it('migrates legacy payload when the demo subject topicsLeft has been customized', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'task-1', title: 'Review Calculus notes', subject: 'Calculus', done: true, minutes: 45 }],
+        subjects: [{ id: 'subject-1', name: 'Calculus', topicsLeft: 1, progress: 60 }],
+      }),
+    )
+
+    const res = await migrateLegacyLocalStorage()
+    expect(res.status).toBe('success')
+
+    const subjects = await studyDb.subjects.toArray()
+    expect(subjects).toHaveLength(1)
+    // Math.max(1, Math.round(1 * 1.5)) = 2 targetHours
+    expect(subjects[0]?.targetHours).toBe(2)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+  })
+
+  it('migrates legacy payload when demo records are retained with customized dailyGoalMinutes', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'task-1', title: 'Review Calculus notes', subject: 'Calculus', done: true, minutes: 45 }],
+        subjects: [{ id: 'subject-1', name: 'Calculus', topicsLeft: 4, progress: 60 }],
+        dailyGoalMinutes: 120,
+      }),
+    )
+
+    const res = await migrateLegacyLocalStorage()
+    expect(res.status).toBe('success')
+
+    const setting = await studyDb.settings.get('dailyGoalMinutes')
+    expect(setting?.value).toBe(120)
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
+  })
+
+  it('migrates legacy payload when demo records are retained with custom quick notes', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        tasks: [{ id: 'task-1', title: 'Review Calculus notes', subject: 'Calculus', done: true, minutes: 45 }],
+        subjects: [{ id: 'subject-1', name: 'Calculus', topicsLeft: 4, progress: 60 }],
+        quickNotes: ['Calculus formulas sheet'],
+      }),
+    )
+
+    const res = await migrateLegacyLocalStorage()
+    expect(res.status).toBe('success')
+
+    const setting = await studyDb.settings.get('quickNotes')
+    expect(setting?.value).toEqual(['Calculus formulas sheet'])
+    expect((await studyDb.settings.get('legacy-localstorage-migrated-v1'))?.value).toBe(true)
+    expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
   })
 
   async function readCompleteStudyDbSnapshot() {

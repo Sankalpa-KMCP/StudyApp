@@ -896,11 +896,57 @@ type LegacyData = {
   dailyGoalMinutes?: number
 }
 
-function isLegacyDemoData(data: LegacyData) {
-  return (
-    data.tasks?.some((task) => task.id === 'task-1' && task.title === 'Review Calculus notes') === true &&
-    data.subjects?.some((subject) => subject.id === 'subject-1' && subject.name === 'Calculus') === true
-  )
+function isLegacyDemoData(data: LegacyData): boolean {
+  if (!Array.isArray(data.tasks) || data.tasks.length !== 1) return false
+  if (!Array.isArray(data.subjects) || data.subjects.length !== 1) return false
+
+  const task = data.tasks[0]
+  if (
+    !task ||
+    task.id !== 'task-1' ||
+    task.title?.trim() !== 'Review Calculus notes' ||
+    task.subject?.trim() !== 'Calculus' ||
+    task.done !== true ||
+    task.minutes !== 45
+  ) {
+    return false
+  }
+
+  const subject = data.subjects[0]
+  if (
+    !subject ||
+    subject.id !== 'subject-1' ||
+    subject.name?.trim() !== 'Calculus' ||
+    subject.topicsLeft !== 4 ||
+    subject.progress !== 60
+  ) {
+    return false
+  }
+
+  if (data.notes && data.notes.some((note) => Boolean(note.title?.trim() || note.body?.trim()))) {
+    return false
+  }
+
+  if (data.events && data.events.some((event) => Boolean(event.title?.trim()))) {
+    return false
+  }
+
+  if (data.quickNotes && data.quickNotes.some((qn) => Boolean(qn.trim()))) {
+    return false
+  }
+
+  if (typeof data.focusMinutes === 'number' && data.focusMinutes > 0) {
+    return false
+  }
+
+  if (
+    typeof data.dailyGoalMinutes === 'number' &&
+    data.dailyGoalMinutes !== 240
+  ) {
+    return false
+  }
+
+  return true
 }
 
 function migrateLegacyData(data: LegacyData): StudyData {
