@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createTask, deleteTask, setTaskStatus, updateTask } from './taskService'
+import { SubjectNotFoundError } from './subjectValidation'
 import { studyDb } from './studyDb'
 
 describe('taskService', () => {
@@ -13,7 +14,18 @@ describe('taskService', () => {
     await studyDb.delete()
   })
 
-  it('creates an open task with generated id and matching timestamps', async () => {
+  it('creates an open task with generated id and matching timestamps for existing subject', async () => {
+    await studyDb.subjects.add({
+      id: 'subject-math',
+      name: 'Mathematics',
+      color: '#3b82f6',
+      targetHours: 10,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    })
+
     const created = await createTask({
       title: 'Linear algebra drills',
       subjectId: 'subject-math',
@@ -36,7 +48,51 @@ describe('taskService', () => {
     expect(await studyDb.tasks.get(created.id)).toEqual(created)
   })
 
+  it('creates an open task with general subjectId: ""', async () => {
+    const created = await createTask({
+      title: 'General task',
+      subjectId: '',
+      dueDate: '2026-07-22',
+      priority: 'normal',
+      minutes: 30,
+    })
+
+    expect(created.subjectId).toBe('')
+    expect(await studyDb.tasks.get(created.id)).toEqual(created)
+  })
+
+  it('rejects createTask when subjectId does not exist and leaves tasks store empty', async () => {
+    let thrownError: unknown = null
+    try {
+      await createTask({
+        title: 'Orphan task',
+        subjectId: 'subject-nonexistent',
+        dueDate: '2026-07-22',
+        priority: 'high',
+        minutes: 45,
+      })
+    } catch (err) {
+      thrownError = err
+    }
+
+    expect(thrownError).toBeInstanceOf(SubjectNotFoundError)
+    expect((thrownError as SubjectNotFoundError).code).toBe('subject_not_found')
+    expect((thrownError as SubjectNotFoundError).subjectId).toBe('subject-nonexistent')
+    expect(await studyDb.tasks.count()).toBe(0)
+  })
+
   it('updates editable fields and refreshes updatedAt while preserving status and createdAt', async () => {
+    await studyDb.subjects.add({
+      id: 'subject-chem',
+      name: 'Chemistry',
+      color: '#10b981',
+      targetHours: 8,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    })
+
     const original = await createTask({
       title: 'Original',
       subjectId: '',
@@ -67,7 +123,36 @@ describe('taskService', () => {
     expect(Date.parse(stored!.updatedAt)).toBeGreaterThanOrEqual(Date.parse(original.createdAt))
   })
 
-  it('throws when updating a missing task', async () => {
+  it('rejects updateTask when assigning a nonexistent subjectId and preserves original task', async () => {
+    const original = await createTask({
+      title: 'Preserve me',
+      subjectId: '',
+      dueDate: '2026-07-01',
+      priority: 'normal',
+      minutes: 30,
+    })
+
+    let thrownError: unknown = null
+    try {
+      await updateTask(original.id, {
+        title: 'Attempted rename',
+        subjectId: 'subject-ghost',
+        dueDate: '2026-07-10',
+        priority: 'high',
+        minutes: 60,
+      })
+    } catch (err) {
+      thrownError = err
+    }
+
+    expect(thrownError).toBeInstanceOf(SubjectNotFoundError)
+    expect((thrownError as SubjectNotFoundError).subjectId).toBe('subject-ghost')
+
+    const stored = await studyDb.tasks.get(original.id)
+    expect(stored).toEqual(original)
+  })
+
+  it('throws when updating a missing task with valid subject', async () => {
     await expect(updateTask('task-missing', {
       title: 'Gone',
       subjectId: '',
