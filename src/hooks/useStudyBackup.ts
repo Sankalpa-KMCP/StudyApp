@@ -59,8 +59,10 @@ export function useStudyBackup({
       try {
         const payload = await exportStudyData()
         const serialized = JSON.stringify(payload, null, 2)
-        const filename = `study-dashboard-${new Date().toISOString().slice(0, 10)}.json`
+        assertStudyExportImportTextLength(serialized)
         const blob = new Blob([serialized], { type: 'application/json' })
+        assertStudyExportImportFileSize(blob)
+        const filename = `study-dashboard-${new Date().toISOString().slice(0, 10)}.json`
         objectUrl = URL.createObjectURL(blob)
         const anchor = document.createElement('a')
         anchor.href = objectUrl

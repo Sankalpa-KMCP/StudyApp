@@ -84,6 +84,95 @@ describe('useStudyBackup', () => {
     createElement.mockRestore()
   })
 
+  it('rejects an export that exceeds the character limit before creating download URL and releases coordinator lease', async () => {
+    const payload = {
+      version: 4 as const,
+      exportedAt: '2026-07-23T00:00:00.000Z',
+      tasks: [],
+      subjects: [],
+      notes: [{ id: 'note-1', title: 'Huge', body: 'A'.repeat(MAX_STUDY_EXPORT_IMPORT_CHARS + 10), subjectId: '', tags: [], createdAt: '', updatedAt: '' }],
+      events: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+    vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue(payload)
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL')
+    const createElement = vi.spyOn(document, 'createElement')
+
+    const { result, coordinator } = renderBackupHook()
+
+    await expect(result.current.exportBackup()).rejects.toThrow(STUDY_EXPORT_IMPORT_SIZE_ERROR)
+    expect(createObjectURL).not.toHaveBeenCalled()
+    expect(createElement).not.toHaveBeenCalledWith('a')
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
+  })
+
+  it('rejects an export that exceeds the byte limit (e.g. multi-byte Unicode) before creating download URL and releases coordinator lease', async () => {
+    // Multi-byte Unicode: character count < 5M chars, but UTF-8 byte length > 5M bytes
+    const payload = {
+      version: 4 as const,
+      exportedAt: '2026-07-23T00:00:00.000Z',
+      tasks: [],
+      subjects: [],
+      notes: [{ id: 'note-1', title: 'Unicode', body: '🌟'.repeat(1_500_000), subjectId: '', tags: [], createdAt: '', updatedAt: '' }],
+      events: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+    vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue(payload)
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL')
+    const createElement = vi.spyOn(document, 'createElement')
+
+    const { result, coordinator } = renderBackupHook()
+
+    await expect(result.current.exportBackup()).rejects.toThrow(STUDY_EXPORT_IMPORT_SIZE_ERROR)
+    expect(createObjectURL).not.toHaveBeenCalled()
+    expect(createElement).not.toHaveBeenCalledWith('a')
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
+  })
+
+  it('allows an export at the byte limit boundary to download successfully', async () => {
+    const payload = {
+      version: 4 as const,
+      exportedAt: '2026-07-23T00:00:00.000Z',
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+    vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue(payload)
+    const urlApi = URL as typeof URL & {
+      createObjectURL: (blob: Blob) => string
+      revokeObjectURL: (url: string) => void
+    }
+    urlApi.createObjectURL = vi.fn(() => 'blob:boundary')
+    urlApi.revokeObjectURL = vi.fn()
+    const click = vi.fn()
+    const anchor = { href: '', download: '', click } as unknown as HTMLAnchorElement
+    const createElement = vi.spyOn(document, 'createElement').mockImplementation(((tag: string) => {
+      if (tag === 'a') return anchor
+      return Document.prototype.createElement.call(document, tag)
+    }) as typeof document.createElement)
+
+    // Override JSON.stringify with exact boundary payload
+    const mockStringified = ' '.repeat(MAX_STUDY_EXPORT_IMPORT_BYTES)
+    vi.spyOn(JSON, 'stringify').mockReturnValue(mockStringified)
+
+    const { result, coordinator } = renderBackupHook()
+
+    await result.current.exportBackup()
+
+    expect(click).toHaveBeenCalledTimes(1)
+    expect(urlApi.revokeObjectURL).toHaveBeenCalledWith('blob:boundary')
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
+    createElement.mockRestore()
+  })
+
   it('AC-1, AC-3: imports inside both coordinator and focus-import locks and reloads focus before release', async () => {
     const order: string[] = []
     vi.spyOn(studyDb, 'importStudyData').mockImplementation(async () => {

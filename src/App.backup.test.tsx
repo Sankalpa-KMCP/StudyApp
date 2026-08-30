@@ -283,6 +283,47 @@ describe('App backup', () => {
     expect(screen.queryByText(/serialize failed/i)).not.toBeInTheDocument()
   })
 
+  it('rejects export when database state exceeds the backup size limit and preserves local state', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    // Populate a large note directly in IndexedDB
+    const largeBody = 'A'.repeat(5.5 * 1024 * 1024)
+    await studyDb.notes.add({
+      id: 'huge-note-1',
+      title: 'Huge Note',
+      body: largeBody,
+      subjectId: '',
+      tags: [],
+      createdAt: '2026-07-28T00:00:00.000Z',
+      updatedAt: '2026-07-28T00:00:00.000Z',
+    })
+
+    const clickMock = vi.fn()
+    const originalCreateElement = document.createElement.bind(document)
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = originalCreateElement(tagName)
+      if (tagName === 'a') {
+        el.click = clickMock
+      }
+      return el
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: /Export data/ }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Backup could not be exported.')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(clickMock).not.toHaveBeenCalled()
+
+    // Verify existing database record is intact
+    const noteInDb = await studyDb.notes.get('huge-note-1')
+    expect(noteInDb?.body.length).toBe(largeBody.length)
+
+    createElementSpy.mockRestore()
+  })
+
   it('keeps clear-all confirmation state when clearing fails and blocks duplicate clears', async () => {
     const user = userEvent.setup()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
