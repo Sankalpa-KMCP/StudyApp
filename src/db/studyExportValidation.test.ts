@@ -1146,4 +1146,99 @@ describe('parseAndNormalizeStudyExport classified validation errors & appVersion
     expect(result3.version).toBe(4)
     expect(result3.appVersion).toBeUndefined()
   })
+
+  describe('canonical date and timestamp validation on backup payloads', () => {
+    it('rejects impossible task due dates', () => {
+      for (const badDueDate of ['2026-02-29', '2026-02-30', '2026-04-31', '2026-13-01']) {
+        expect(() =>
+          parseAndNormalizeStudyExport({
+            version: 4,
+            exportedAt: timestamp,
+            ...emptyTables(),
+            tasks: [
+              {
+                id: 'task-bad-date',
+                title: 'Bad Date Task',
+                subjectId: '',
+                dueDate: badDueDate,
+                priority: 'normal',
+                status: 'open',
+                minutes: 30,
+                createdAt: timestamp,
+                updatedAt: timestamp,
+              },
+            ],
+          })
+        ).toThrow(StudyExportValidationError)
+      }
+    })
+
+    it('rejects non-canonical task due dates', () => {
+      for (const nonCanonicalDueDate of [
+        'January 2, 2026',
+        '01/02/2026',
+        '2026-1-2',
+        '2026/01/02',
+        '2026-01-02T00:00:00Z',
+      ]) {
+        expect(() =>
+          parseAndNormalizeStudyExport({
+            version: 4,
+            exportedAt: timestamp,
+            ...emptyTables(),
+            tasks: [
+              {
+                id: 'task-non-canonical-date',
+                title: 'Non Canonical Task',
+                subjectId: '',
+                dueDate: nonCanonicalDueDate,
+                priority: 'normal',
+                status: 'open',
+                minutes: 30,
+                createdAt: timestamp,
+                updatedAt: timestamp,
+              },
+            ],
+          })
+        ).toThrow(StudyExportValidationError)
+      }
+    })
+
+    it('rejects impossible or non-canonical timestamps in exportedAt and entities', () => {
+      for (const badTimestamp of [
+        '2026-02-30T10:00:00.000Z',
+        '2026-01-02 10:00:00',
+        '2026-01-02T10:00:00+02:00',
+        'January 2, 2026 10:00:00 UTC',
+        'not-a-date',
+      ]) {
+        expect(() =>
+          parseAndNormalizeStudyExport({
+            version: 4,
+            exportedAt: badTimestamp,
+            ...emptyTables(),
+          })
+        ).toThrow(StudyExportValidationError)
+
+        expect(() =>
+          parseAndNormalizeStudyExport({
+            version: 4,
+            exportedAt: timestamp,
+            ...emptyTables(),
+            notes: [
+              {
+                id: 'note-bad-ts',
+                title: 'Note',
+                body: '',
+                subjectId: '',
+                tags: [],
+                createdAt: badTimestamp,
+                updatedAt: timestamp,
+              },
+            ],
+          })
+        ).toThrow(StudyExportValidationError)
+      }
+    })
+  })
 })

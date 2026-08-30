@@ -58,3 +58,27 @@ export function isPersistedSubjectReference(
 export function isPersistedDailyGoalMinutes(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
+
+/** Local calendar date key: strict YYYY-MM-DD matching a real Gregorian calendar date. */
+export function isPersistedLocalDateKey(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const parsed = Date.parse(value + 'T00:00:00.000Z')
+  if (Number.isNaN(parsed)) return false
+  return new Date(parsed).toISOString().startsWith(value)
+}
+
+/** Task due date: optional empty string or valid local calendar date key. */
+export function isPersistedDueDate(value: unknown): value is string {
+  return value === '' || isPersistedLocalDateKey(value)
+}
+
+/** Persisted instant: strict UTC ISO-8601 string matching a real calendar timestamp. */
+export function isPersistedIsoTimestamp(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(value)) return false
+  const parsed = Date.parse(value)
+  if (Number.isNaN(parsed)) return false
+  const canonical = new Date(parsed).toISOString()
+  return canonical === value || canonical.replace(/\.000Z$/, 'Z') === value
+}

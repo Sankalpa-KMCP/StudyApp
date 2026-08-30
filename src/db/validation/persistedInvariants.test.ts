@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   isPersistedDailyGoalMinutes,
+  isPersistedDueDate,
   isPersistedGoalProgress,
   isPersistedGoalTarget,
+  isPersistedIsoTimestamp,
+  isPersistedLocalDateKey,
   isPersistedStudySessionMinutes,
   isPersistedSubjectProgress,
   isPersistedSubjectReference,
@@ -113,6 +116,63 @@ describe('persistedInvariants', () => {
       expect(isPersistedDailyGoalMinutes('240')).toBe(false)
       expect(isPersistedDailyGoalMinutes(null)).toBe(false)
       expect(isPersistedDailyGoalMinutes(undefined)).toBe(false)
+    })
+  })
+
+  describe('isPersistedLocalDateKey & isPersistedDueDate', () => {
+    it('accepts valid Gregorian calendar dates', () => {
+      expect(isPersistedLocalDateKey('2026-01-02')).toBe(true)
+      expect(isPersistedLocalDateKey('2028-02-29')).toBe(true)
+      expect(isPersistedLocalDateKey('2026-12-31')).toBe(true)
+    })
+
+    it('rejects impossible calendar dates', () => {
+      expect(isPersistedLocalDateKey('2026-02-29')).toBe(false)
+      expect(isPersistedLocalDateKey('2026-02-30')).toBe(false)
+      expect(isPersistedLocalDateKey('2026-04-31')).toBe(false)
+      expect(isPersistedLocalDateKey('2026-13-01')).toBe(false)
+      expect(isPersistedLocalDateKey('2026-00-10')).toBe(false)
+    })
+
+    it('rejects non-canonical date formats', () => {
+      expect(isPersistedLocalDateKey('January 2, 2026')).toBe(false)
+      expect(isPersistedLocalDateKey('01/02/2026')).toBe(false)
+      expect(isPersistedLocalDateKey('2026/01/02')).toBe(false)
+      expect(isPersistedLocalDateKey('2026-1-2')).toBe(false)
+      expect(isPersistedLocalDateKey('2026-01-02T00:00:00Z')).toBe(false)
+    })
+
+    it('handles isPersistedDueDate with empty string and invalid dates', () => {
+      expect(isPersistedDueDate('')).toBe(true)
+      expect(isPersistedDueDate('2026-01-02')).toBe(true)
+      expect(isPersistedDueDate('2026-02-30')).toBe(false)
+      expect(isPersistedDueDate(null)).toBe(false)
+    })
+  })
+
+  describe('isPersistedIsoTimestamp', () => {
+    it('accepts canonical toISOString() format', () => {
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00.000Z')).toBe(true)
+      expect(isPersistedIsoTimestamp('2028-02-29T23:59:59.999Z')).toBe(true)
+      expect(isPersistedIsoTimestamp('2026-07-21T08:00:00.000Z')).toBe(true)
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00Z')).toBe(true)
+    })
+
+    it('rejects impossible dates in timestamps', () => {
+      expect(isPersistedIsoTimestamp('2026-02-29T10:00:00.000Z')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-02-30T10:00:00.000Z')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-04-31T10:00:00.000Z')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-13-01T10:00:00.000Z')).toBe(false)
+    })
+
+    it('rejects non-canonical timestamp formats and non-UTC timezones', () => {
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00+02:00')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-01-02 10:00:00')).toBe(false)
+      expect(isPersistedIsoTimestamp('January 2, 2026 10:00:00 UTC')).toBe(false)
+      expect(isPersistedIsoTimestamp('01/02/2026 10:00:00')).toBe(false)
+      expect(isPersistedIsoTimestamp('not-a-date')).toBe(false)
+      expect(isPersistedIsoTimestamp(123456789)).toBe(false)
+      expect(isPersistedIsoTimestamp(null)).toBe(false)
     })
   })
 })

@@ -1,6 +1,7 @@
 import type { ActiveFocusSession, ActiveFocusSessionStatus, StudySession } from './types'
 import { nowIso, studyDb } from './studyDb'
 import { assertSubjectExists, isSubjectNotFoundError } from './subjectValidation'
+import { isPersistedIsoTimestamp } from './validation/persistedInvariants'
 
 export const ACTIVE_FOCUS_SESSION_KEY = 'activeFocusSession'
 
@@ -41,7 +42,7 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 function isIsoTimestamp(value: unknown): value is string {
-  return typeof value === 'string' && value.length > 0 && !Number.isNaN(Date.parse(value))
+  return isPersistedIsoTimestamp(value)
 }
 
 function isStatus(value: unknown): value is ActiveFocusSessionStatus {
