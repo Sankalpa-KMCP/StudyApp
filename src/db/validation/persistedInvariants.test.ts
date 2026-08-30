@@ -151,23 +151,40 @@ describe('persistedInvariants', () => {
   })
 
   describe('isPersistedIsoTimestamp', () => {
-    it('accepts canonical toISOString() format', () => {
+    it('accepts canonical toISOString() format with exactly 3 millisecond digits', () => {
       expect(isPersistedIsoTimestamp('2026-01-02T10:00:00.000Z')).toBe(true)
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00.001Z')).toBe(true)
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00.500Z')).toBe(true)
       expect(isPersistedIsoTimestamp('2028-02-29T23:59:59.999Z')).toBe(true)
       expect(isPersistedIsoTimestamp('2026-07-21T08:00:00.000Z')).toBe(true)
-      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00Z')).toBe(true)
     })
 
-    it('rejects impossible dates in timestamps', () => {
+    it('rejects no-millisecond or non-3-digit millisecond timestamps', () => {
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00Z')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00.0Z')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00.00Z')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00.0000Z')).toBe(false)
+    })
+
+    it('rejects impossible dates and times in timestamps', () => {
       expect(isPersistedIsoTimestamp('2026-02-29T10:00:00.000Z')).toBe(false)
       expect(isPersistedIsoTimestamp('2026-02-30T10:00:00.000Z')).toBe(false)
       expect(isPersistedIsoTimestamp('2026-04-31T10:00:00.000Z')).toBe(false)
       expect(isPersistedIsoTimestamp('2026-13-01T10:00:00.000Z')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-01-02T24:00:00.000Z')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-01-02T10:60:00.000Z')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:60.000Z')).toBe(false)
     })
 
-    it('rejects non-canonical timestamp formats and non-UTC timezones', () => {
+    it('rejects non-canonical timestamp formats, non-UTC timezones, and casing/whitespace variants', () => {
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00.000+00:00')).toBe(false)
       expect(isPersistedIsoTimestamp('2026-01-02T10:00:00+02:00')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-01-02T12:00:00.000+02:00')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00.000')).toBe(false)
       expect(isPersistedIsoTimestamp('2026-01-02 10:00:00')).toBe(false)
+      expect(isPersistedIsoTimestamp(' 2026-01-02T10:00:00.000Z')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-01-02T10:00:00.000Z ')).toBe(false)
+      expect(isPersistedIsoTimestamp('2026-01-02t10:00:00.000z')).toBe(false)
       expect(isPersistedIsoTimestamp('January 2, 2026 10:00:00 UTC')).toBe(false)
       expect(isPersistedIsoTimestamp('01/02/2026 10:00:00')).toBe(false)
       expect(isPersistedIsoTimestamp('not-a-date')).toBe(false)
