@@ -6,9 +6,9 @@ import {
   createActiveFocusSession,
   getActiveFocusSession,
 } from '../db/activeFocusSession'
-import { DATABASE_GENERATION_KEY } from '../db/databaseGeneration'
+import { DATABASE_GENERATION_KEY, getDatabaseGeneration } from '../db/databaseGeneration'
 import { installInMemoryLockAdapter } from '../db/crossTabLock'
-import { studyDb } from '../db/studyDb'
+import { clearAllStudyData, studyDb } from '../db/studyDb'
 import type { ActiveFocusSession, StudySubject } from '../db/types'
 import { useFocusSession } from './useFocusSession'
 
@@ -445,21 +445,28 @@ describe('useFocusSession', () => {
     )
   })
 
-  it('rejects Start from retained workflow after database generation advances and succeeds on fresh workflow', async () => {
-    // 1. Establish Focus setup under generation 1
+  it('rejects Start from retained workflow after database generation advances via clearAllStudyData and succeeds on fresh workflow', async () => {
+    // 1. Establish Focus setup under generation G
+    const initialGeneration = await getDatabaseGeneration(studyDb.settings)
+    expect(initialGeneration).toBeGreaterThanOrEqual(1)
+
     const { result, unmount } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.canStartFocus).toBe(true))
     expect(result.current.activeSession).toBeNull()
 
-    // 2. Advance generation to 2 via external destructive operation
-    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+    // 2. Retain the same hook/workflow instance across a real destructive production operation
+    await clearAllStudyData()
 
-    // 3. Invoke Start from the retained workflow instance (which captured expectedGeneration: 1)
+    // 3. Verify the production operation advances durable generation to G+1
+    const postClearGeneration = await getDatabaseGeneration(studyDb.settings)
+    expect(postClearGeneration).toBe(initialGeneration + 1)
+
+    // 4. Without recreating the stale hook first, invoke startSession from the retained G workflow
     await act(async () => {
       await result.current.startSession()
     })
 
-    // 4. Verify stale rejection: sessionNotice shown, no active session in hook, no active session record in IndexedDB
+    // 5. Verify stale rejection: user notice shown, no active session in hook, no active singleton in DB, no history row
     expect(result.current.sessionNotice).toBe('Data was modified in another tab or import. Refresh to continue.')
     expect(result.current.activeSession).toBeNull()
     expect(await getActiveFocusSession()).toBeNull()
@@ -467,16 +474,16 @@ describe('useFocusSession', () => {
 
     unmount()
 
-    // 5. Reinitialize a genuinely fresh workflow under generation 2
+    // 6. Reinitialize a genuinely fresh workflow after the destructive operation (captures G+1)
     const freshHook = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(freshHook.result.current.canStartFocus).toBe(true))
 
-    // 6. Invoke Start on fresh workflow
+    // 7. Invoke Start on fresh workflow and verify success
     await act(async () => {
       await freshHook.result.current.startSession()
     })
 
-    // Verify Start succeeds under fresh generation
+    // Verify Start succeeds under fresh generation and persists active singleton
     await waitFor(() => expect(freshHook.result.current.activeSession?.status).toBe('running'))
     expect(freshHook.result.current.sessionNotice).toBeFalsy()
     expect(await getActiveFocusSession()).toMatchObject({ status: 'running' })
