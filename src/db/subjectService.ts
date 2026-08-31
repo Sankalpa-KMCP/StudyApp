@@ -1,4 +1,8 @@
 import { ACTIVE_FOCUS_SESSION_KEY, isActiveFocusSession } from './activeFocusSession'
+import {
+  type DatabaseMutationContext,
+  withGuardedMutation,
+} from './databaseMutationGuard'
 import { createId, nowIso, studyDb } from './studyDb'
 import type { StudySubject, SubjectProgressMode } from './types'
 
@@ -25,38 +29,50 @@ export type DeleteSubjectResult =
   | { ok: false; reason: 'linked'; usage: SubjectLinkedUsage }
 
 /**
- * Persist a new subject. Owns id and created/updated timestamps.
+ * Persist a new subject under database generation guard. Owns id and created/updated timestamps.
  */
-export async function createSubject(fields: SubjectWriteFields): Promise<StudySubject> {
-  const timestamp = nowIso()
-  const subject: StudySubject = {
-    id: createId('subject'),
-    name: fields.name,
-    color: fields.color,
-    targetHours: fields.targetHours,
-    progress: fields.progress,
-    progressMode: fields.progressMode,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  }
-  await studyDb.subjects.add(subject)
-  return subject
+export async function createSubject(
+  fields: SubjectWriteFields,
+  context: DatabaseMutationContext,
+): Promise<StudySubject> {
+  return withGuardedMutation(context, async () => {
+    const timestamp = nowIso()
+    const subject: StudySubject = {
+      id: createId('subject'),
+      name: fields.name,
+      color: fields.color,
+      targetHours: fields.targetHours,
+      progress: fields.progress,
+      progressMode: fields.progressMode,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+    await studyDb.subjects.add(subject)
+    return subject
+  })
 }
 
 /**
  * Update an existing subject's editable fields and refresh `updatedAt`.
+ * Enforces database generation guard.
  * Throws when no row matches `id`.
  */
-export async function updateSubject(id: string, fields: SubjectWriteFields): Promise<void> {
-  const updated = await studyDb.subjects.update(id, {
-    name: fields.name,
-    color: fields.color,
-    targetHours: fields.targetHours,
-    progress: fields.progress,
-    progressMode: fields.progressMode,
-    updatedAt: nowIso(),
+export async function updateSubject(
+  id: string,
+  fields: SubjectWriteFields,
+  context: DatabaseMutationContext,
+): Promise<void> {
+  return withGuardedMutation(context, async () => {
+    const updated = await studyDb.subjects.update(id, {
+      name: fields.name,
+      color: fields.color,
+      targetHours: fields.targetHours,
+      progress: fields.progress,
+      progressMode: fields.progressMode,
+      updatedAt: nowIso(),
+    })
+    if (updated === 0) throw new Error('Subject no longer exists.')
   })
-  if (updated === 0) throw new Error('Subject no longer exists.')
 }
 
 /**
@@ -81,43 +97,48 @@ export async function getSubjectLinkedUsage(subjectId: string): Promise<SubjectL
 }
 
 /**
- * Authoritatively and atomically deletes a subject by id.
+ * Authoritatively and atomically deletes a subject by id under database generation guard.
  * Rechecks all dependent entity tables and the active focus session in one Dexie rw transaction.
  * If any reference exists, deletion is blocked and returns `{ ok: false, reason: 'linked', usage }`.
  * If no references exist, deletes the subject (idempotent for missing ids) and returns `{ ok: true }`.
  */
-export async function deleteSubject(id: string): Promise<DeleteSubjectResult> {
-  return studyDb.transaction(
-    'rw',
-    [
-      studyDb.subjects,
-      studyDb.tasks,
-      studyDb.notes,
-      studyDb.events,
-      studyDb.studySessions,
-      studyDb.settings,
-    ],
-    async () => {
-      const [tasks, notes, events, sessions, focusRecord] = await Promise.all([
-        studyDb.tasks.where('subjectId').equals(id).count(),
-        studyDb.notes.where('subjectId').equals(id).count(),
-        studyDb.events.where('subjectId').equals(id).count(),
-        studyDb.studySessions.where('subjectId').equals(id).count(),
-        studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY),
-      ])
-      const activeFocus =
-        focusRecord &&
-        isActiveFocusSession(focusRecord.value) &&
-        focusRecord.value.subjectId === id
-          ? 1
-          : 0
-      const usage: SubjectLinkedUsage = { tasks, notes, events, sessions, activeFocus }
-      const linkedTotal = tasks + notes + events + sessions + activeFocus
-      if (linkedTotal > 0) {
-        return { ok: false, reason: 'linked', usage }
-      }
-      await studyDb.subjects.delete(id)
-      return { ok: true }
-    },
+export async function deleteSubject(
+  id: string,
+  context: DatabaseMutationContext,
+): Promise<DeleteSubjectResult> {
+  return withGuardedMutation(context, () =>
+    studyDb.transaction(
+      'rw',
+      [
+        studyDb.subjects,
+        studyDb.tasks,
+        studyDb.notes,
+        studyDb.events,
+        studyDb.studySessions,
+        studyDb.settings,
+      ],
+      async () => {
+        const [tasks, notes, events, sessions, focusRecord] = await Promise.all([
+          studyDb.tasks.where('subjectId').equals(id).count(),
+          studyDb.notes.where('subjectId').equals(id).count(),
+          studyDb.events.where('subjectId').equals(id).count(),
+          studyDb.studySessions.where('subjectId').equals(id).count(),
+          studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY),
+        ])
+        const activeFocus =
+          focusRecord &&
+          isActiveFocusSession(focusRecord.value) &&
+          focusRecord.value.subjectId === id
+            ? 1
+            : 0
+        const usage: SubjectLinkedUsage = { tasks, notes, events, sessions, activeFocus }
+        const linkedTotal = tasks + notes + events + sessions + activeFocus
+        if (linkedTotal > 0) {
+          return { ok: false, reason: 'linked', usage }
+        }
+        await studyDb.subjects.delete(id)
+        return { ok: true }
+      },
+    ),
   )
 }

@@ -83,7 +83,7 @@ describe('App notes live query isolation', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 20,
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(tasksSpy.mock.calls.length).toBeGreaterThan(tasksBefore))
     expect(notesSpy.mock.calls.length).toBe(notesBefore)
@@ -108,7 +108,7 @@ describe('App notes live query isolation', () => {
       progress: 0,
       period: 'weekly',
       metric: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(goalsSpy.mock.calls.length).toBeGreaterThan(goalsBefore))
     expect(notesSpy.mock.calls.length).toBe(notesBefore)
@@ -125,7 +125,7 @@ describe('App notes live query isolation', () => {
     const shellBefore = shellSpy.mock.calls.length
     const notesBefore = notesSpy.mock.calls.length
 
-    await saveQuickNotes('Quick line one')
+    await saveQuickNotes('Quick line one', { expectedGeneration: 1 })
 
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 40))
@@ -141,7 +141,7 @@ describe('App notes live query isolation', () => {
       body: 'persisted',
       subjectId: '',
       tags: [],
-    })
+    }, { expectedGeneration: 1 })
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Notes' }))
@@ -164,7 +164,7 @@ describe('App notes live query isolation', () => {
       body: 'full snapshot',
       subjectId: '',
       tags: ['keep'],
-    })
+    }, { expectedGeneration: 1 })
     const full = await getStudyData()
     const exported = await exportStudyData()
     expect(full.notes).toHaveLength(1)
@@ -215,7 +215,7 @@ describe('App notes live query isolation', () => {
       body: 'a',
       subjectId: '',
       tags: [],
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(notesSpy.mock.calls.length).toBeGreaterThan(notesBefore))
     expect(shellSpy.mock.calls.length).toBe(shellBefore)

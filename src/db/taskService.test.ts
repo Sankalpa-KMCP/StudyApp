@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createTask, deleteTask, setTaskStatus, updateTask } from './taskService'
 import { SubjectNotFoundError } from './subjectValidation'
+import { DATABASE_GENERATION_KEY, StaleDatabaseGenerationError } from './databaseGeneration'
+import { installInMemoryLockAdapter } from './crossTabLock'
 import { studyDb } from './studyDb'
 
 describe('taskService', () => {
   beforeEach(async () => {
+    installInMemoryLockAdapter()
     await studyDb.delete()
     await studyDb.open()
   })
@@ -32,7 +35,7 @@ describe('taskService', () => {
       dueDate: '2026-07-22',
       priority: 'high',
       minutes: 45,
-    })
+    }, { expectedGeneration: 1 })
 
     expect(created.id).toMatch(/^task-/)
     expect(created).toMatchObject({
@@ -55,7 +58,7 @@ describe('taskService', () => {
       dueDate: '2026-07-22',
       priority: 'normal',
       minutes: 30,
-    })
+    }, { expectedGeneration: 1 })
 
     expect(created.subjectId).toBe('')
     expect(await studyDb.tasks.get(created.id)).toEqual(created)
@@ -70,7 +73,7 @@ describe('taskService', () => {
         dueDate: '2026-07-22',
         priority: 'high',
         minutes: 45,
-      })
+      }, { expectedGeneration: 1 })
     } catch (err) {
       thrownError = err
     }
@@ -78,6 +81,20 @@ describe('taskService', () => {
     expect(thrownError).toBeInstanceOf(SubjectNotFoundError)
     expect((thrownError as SubjectNotFoundError).code).toBe('subject_not_found')
     expect((thrownError as SubjectNotFoundError).subjectId).toBe('subject-nonexistent')
+    expect(await studyDb.tasks.count()).toBe(0)
+  })
+
+  it('rejects createTask when generation is stale', async () => {
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 3 })
+
+    await expect(createTask({
+      title: 'Stale task',
+      subjectId: '',
+      dueDate: '2026-07-22',
+      priority: 'high',
+      minutes: 45,
+    }, { expectedGeneration: 2 })).rejects.toThrow(StaleDatabaseGenerationError)
+
     expect(await studyDb.tasks.count()).toBe(0)
   })
 
@@ -99,7 +116,7 @@ describe('taskService', () => {
       dueDate: '2026-07-01',
       priority: 'normal',
       minutes: 30,
-    })
+    }, { expectedGeneration: 1 })
 
     await updateTask(original.id, {
       title: 'Renamed',
@@ -107,7 +124,7 @@ describe('taskService', () => {
       dueDate: '2026-07-10',
       priority: 'low',
       minutes: 70,
-    })
+    }, { expectedGeneration: 1 })
 
     const stored = await studyDb.tasks.get(original.id)
     expect(stored).toMatchObject({
@@ -130,7 +147,7 @@ describe('taskService', () => {
       dueDate: '2026-07-01',
       priority: 'normal',
       minutes: 30,
-    })
+    }, { expectedGeneration: 1 })
 
     let thrownError: unknown = null
     try {
@@ -140,7 +157,7 @@ describe('taskService', () => {
         dueDate: '2026-07-10',
         priority: 'high',
         minutes: 60,
-      })
+      }, { expectedGeneration: 1 })
     } catch (err) {
       thrownError = err
     }
@@ -159,7 +176,27 @@ describe('taskService', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 30,
-    })).rejects.toThrow('Task no longer exists.')
+    }, { expectedGeneration: 1 })).rejects.toThrow('Task no longer exists.')
+  })
+
+  it('rejects updateTask when generation is stale', async () => {
+    const original = await createTask({
+      title: 'Preserve me',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      minutes: 30,
+    }, { expectedGeneration: 1 })
+
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(updateTask(original.id, {
+      title: 'Stale update',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      minutes: 30,
+    }, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
   })
 
   it('changes task status and refreshes updatedAt', async () => {
@@ -169,9 +206,9 @@ describe('taskService', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 20,
-    })
+    }, { expectedGeneration: 1 })
 
-    await setTaskStatus(original.id, 'done')
+    await setTaskStatus(original.id, 'done', { expectedGeneration: 1 })
     const done = await studyDb.tasks.get(original.id)
     expect(done).toMatchObject({
       id: original.id,
@@ -180,12 +217,12 @@ describe('taskService', () => {
     })
     expect(Date.parse(done!.updatedAt)).toBeGreaterThanOrEqual(Date.parse(original.createdAt))
 
-    await setTaskStatus(original.id, 'open')
+    await setTaskStatus(original.id, 'open', { expectedGeneration: 1 })
     expect(await studyDb.tasks.get(original.id)).toMatchObject({ status: 'open' })
   })
 
   it('throws when changing status on a missing task', async () => {
-    await expect(setTaskStatus('task-missing', 'done')).rejects.toThrow('Task no longer exists.')
+    await expect(setTaskStatus('task-missing', 'done', { expectedGeneration: 1 })).rejects.toThrow('Task no longer exists.')
   })
 
   it('deletes an existing task', async () => {
@@ -195,14 +232,29 @@ describe('taskService', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 15,
-    })
+    }, { expectedGeneration: 1 })
 
-    await deleteTask(created.id)
+    await deleteTask(created.id, { expectedGeneration: 1 })
     expect(await studyDb.tasks.get(created.id)).toBeUndefined()
   })
 
   it('treats deleting a missing task as success', async () => {
-    await expect(deleteTask('task-already-gone')).resolves.toBeUndefined()
+    await expect(deleteTask('task-already-gone', { expectedGeneration: 1 })).resolves.toBeUndefined()
     expect(await studyDb.tasks.count()).toBe(0)
+  })
+
+  it('rejects deleteTask when generation is stale', async () => {
+    const created = await createTask({
+      title: 'Temporary',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      minutes: 15,
+    }, { expectedGeneration: 1 })
+
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(deleteTask(created.id, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
+    expect(await studyDb.tasks.get(created.id)).toBeDefined()
   })
 })

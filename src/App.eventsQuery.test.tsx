@@ -98,7 +98,7 @@ describe('App events live query isolation', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 20,
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(tasksSpy.mock.calls.length).toBeGreaterThan(tasksBefore))
     expect(eventsSpy.mock.calls.length).toBe(eventsBefore)
@@ -115,7 +115,7 @@ describe('App events live query isolation', () => {
       endedAt: '2026-07-02T09:30:00.000Z',
       minutes: 30,
       note: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(sessionsSpy.mock.calls.length).toBeGreaterThan(sessionsAfterTask))
     expect(shellSpy.mock.calls.length).toBe(shellAfterTask)
@@ -138,7 +138,7 @@ describe('App events live query isolation', () => {
       body: 'body',
       subjectId: '',
       tags: [],
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(notesSpy.mock.calls.length).toBeGreaterThan(notesBefore))
     expect(eventsSpy.mock.calls.length).toBe(eventsBefore)
@@ -163,7 +163,7 @@ describe('App events live query isolation', () => {
       progress: 0,
       period: 'weekly',
       metric: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(goalsSpy.mock.calls.length).toBeGreaterThan(goalsBefore))
     expect(eventsSpy.mock.calls.length).toBe(eventsBefore)
@@ -180,7 +180,7 @@ describe('App events live query isolation', () => {
     const shellBefore = shellSpy.mock.calls.length
     const eventsBefore = eventsSpy.mock.calls.length
 
-    await saveQuickNotes('Quick line one')
+    await saveQuickNotes('Quick line one', { expectedGeneration: 1 })
 
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 40))
@@ -197,7 +197,7 @@ describe('App events live query isolation', () => {
       startAt: '2026-07-10T10:00:00.000Z',
       endAt: '2026-07-10T11:00:00.000Z',
       location: '',
-    })
+    }, { expectedGeneration: 1 })
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Calendar' }))
@@ -221,7 +221,7 @@ describe('App events live query isolation', () => {
       startAt: '2026-07-11T10:00:00.000Z',
       endAt: '2026-07-11T11:00:00.000Z',
       location: 'Hall',
-    })
+    }, { expectedGeneration: 1 })
     const full = await getStudyData()
     const exported = await exportStudyData()
     expect(full.events).toHaveLength(1)
@@ -237,14 +237,14 @@ describe('App events live query isolation', () => {
       startAt: '2026-07-20T09:00:00.000Z',
       endAt: '2026-07-20T10:00:00.000Z',
       location: '',
-    })
+    }, { expectedGeneration: 1 })
     await createCalendarEvent({
       title: 'Later slot',
       subjectId: '',
       startAt: '2026-07-21T09:00:00.000Z',
       endAt: '2026-07-21T10:00:00.000Z',
       location: '',
-    })
+    }, { expectedGeneration: 1 })
 
     const user = userEvent.setup()
     const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
@@ -262,7 +262,7 @@ describe('App events live query isolation', () => {
       startAt: '2026-07-22T09:00:00.000Z',
       endAt: '2026-07-22T10:00:00.000Z',
       location: '',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(eventsSpy.mock.calls.length).toBeGreaterThan(eventsBefore))
     expect(shellSpy.mock.calls.length).toBe(shellBefore)
@@ -271,7 +271,7 @@ describe('App events live query isolation', () => {
       expect(titles.indexOf('Later slot')).toBeLessThan(titles.indexOf('Earlier slot bumped late'))
     })
 
-    await deleteCalendarEvent(earlier.id)
+    await deleteCalendarEvent(earlier.id, { expectedGeneration: 1 })
     await waitFor(() => expect(screen.queryByText('Earlier slot bumped late')).not.toBeInTheDocument())
   })
 

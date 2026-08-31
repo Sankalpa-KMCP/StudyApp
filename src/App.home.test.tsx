@@ -326,14 +326,15 @@ describe('App home', () => {
       newerRelease = resolve
     })
     const writes: string[] = []
-    saveSpy.mockImplementation(async (value) => {
+    saveSpy.mockImplementation(async (...args) => {
+      const [value] = args
       if (value.includes('Older')) {
         await olderGate
       } else {
         await newerGate
       }
       writes.push(value)
-      return originalSave(value)
+      return originalSave(...args)
     })
 
     fireEvent.change(textarea, { target: { value: 'Older value' } })
@@ -355,9 +356,9 @@ describe('App home', () => {
 
     const originalSave = quickNotesService.saveQuickNotes
     let shouldFail = true
-    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes').mockImplementation(async (value) => {
+    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes').mockImplementation(async (...args) => {
       if (shouldFail) throw new Error('quick notes write failed')
-      return originalSave(value)
+      return originalSave(...args)
     })
 
     fireEvent.change(textarea, { target: { value: 'Initial failed draft' } })
@@ -372,7 +373,7 @@ describe('App home', () => {
     await user.click(screen.getByRole('button', { name: 'Retry save' }))
 
     await waitFor(() => expect(screen.getByText('Saved locally')).toBeInTheDocument())
-    expect(saveSpy).toHaveBeenCalledWith('Updated draft after failure')
+    expect(saveSpy).toHaveBeenCalledWith('Updated draft after failure', { expectedGeneration: 1 })
     expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Updated draft after failure'])
   })
 
@@ -420,13 +421,13 @@ describe('App home', () => {
       releaseSave = resolve
     })
     const originalSave = quickNotesService.saveQuickNotes
-    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes').mockImplementation(async (value) => {
+    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes').mockImplementation(async (...args) => {
       await saveGate
-      return originalSave(value)
+      return originalSave(...args)
     })
 
     fireEvent.change(textarea, { target: { value: 'in flight draft' } })
-    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('in flight draft'))
+    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('in flight draft', { expectedGeneration: 1 }))
     expect(screen.getByText('Saving...')).toBeInTheDocument()
 
     await studyDb.settings.put({ key: 'quickNotes', value: ['stale external'] })
@@ -471,7 +472,7 @@ describe('App home', () => {
     expect(await screen.findByRole('heading', { name: 'Tasks', level: 1 })).toBeInTheDocument()
 
     // Verify save occurred on unmount
-    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('Fast typed note before navigation'))
+    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('Fast typed note before navigation', { expectedGeneration: 1 }))
     expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Fast typed note before navigation'])
 
     // Navigate back to Dashboard/Home and verify the draft is restored
@@ -492,7 +493,7 @@ describe('App home', () => {
     await user.click(screen.getByRole('button', { name: 'Open Notes' }))
     expect(await screen.findByRole('heading', { name: 'Notes', level: 1 })).toBeInTheDocument()
 
-    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('Idea to expand in notes'))
+    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('Idea to expand in notes', { expectedGeneration: 1 }))
     expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Idea to expand in notes'])
   })
 
@@ -507,17 +508,18 @@ describe('App home', () => {
     })
     const originalSave = quickNotesService.saveQuickNotes
     const writes: string[] = []
-    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes').mockImplementation(async (value) => {
+    const saveSpy = vi.spyOn(quickNotesService, 'saveQuickNotes').mockImplementation(async (...args) => {
+      const [value] = args
       if (value.includes('First draft')) {
         await firstSaveGate
       }
       writes.push(value)
-      return originalSave(value)
+      return originalSave(...args)
     })
 
     // Start first save (which enters in-flight)
     fireEvent.change(textarea, { target: { value: 'First draft' } })
-    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('First draft'))
+    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('First draft', { expectedGeneration: 1 }))
 
     // User types second draft while first save is still in flight
     fireEvent.change(textarea, { target: { value: 'Second newer draft' } })
@@ -561,7 +563,7 @@ describe('App home', () => {
     expect(saveSpy).not.toHaveBeenCalled()
 
     fireEvent.blur(textarea)
-    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('Blurred note'))
+    await waitFor(() => expect(saveSpy).toHaveBeenCalledWith('Blurred note', { expectedGeneration: 1 }))
     expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Blurred note'])
   })
 

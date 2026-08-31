@@ -85,15 +85,15 @@ describe('App tasks live query isolation', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 20,
-    })
+    }, { expectedGeneration: 1 })
     await createTask({
       title: 'Done filter task',
       subjectId: '',
       dueDate: '',
       priority: 'normal',
       minutes: 15,
-    }).then(async (task) => {
-      await setTaskStatus(task.id, 'done')
+    }, { expectedGeneration: 1 }).then(async (task) => {
+      await setTaskStatus(task.id, 'done', { expectedGeneration: 1 })
     })
 
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
@@ -139,7 +139,7 @@ describe('App tasks live query isolation', () => {
       endedAt: '2026-07-02T09:30:00.000Z',
       minutes: 30,
       note: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(sessionsSpy.mock.calls.length).toBeGreaterThan(sessionsBefore))
     expect(shellSpy.mock.calls.length).toBe(shellBefore)
@@ -162,7 +162,7 @@ describe('App tasks live query isolation', () => {
       body: 'body',
       subjectId: '',
       tags: [],
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(notesSpy.mock.calls.length).toBeGreaterThan(notesBefore))
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
@@ -185,7 +185,7 @@ describe('App tasks live query isolation', () => {
       startAt: '2026-07-10T10:00:00.000Z',
       endAt: '2026-07-10T11:00:00.000Z',
       location: '',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(eventsSpy.mock.calls.length).toBeGreaterThan(eventsBefore))
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
@@ -210,7 +210,7 @@ describe('App tasks live query isolation', () => {
       progress: 0,
       period: 'weekly',
       metric: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(goalsSpy.mock.calls.length).toBeGreaterThan(goalsBefore))
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
@@ -227,7 +227,7 @@ describe('App tasks live query isolation', () => {
     const shellBefore = shellSpy.mock.calls.length
     const tasksBefore = tasksSpy.mock.calls.length
 
-    await saveQuickNotes('Quick line one')
+    await saveQuickNotes('Quick line one', { expectedGeneration: 1 })
 
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 40))
@@ -244,7 +244,7 @@ describe('App tasks live query isolation', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 25,
-    })
+    }, { expectedGeneration: 1 })
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Tasks' }))
@@ -268,7 +268,7 @@ describe('App tasks live query isolation', () => {
       dueDate: '2026-07-20',
       priority: 'high',
       minutes: 40,
-    })
+    }, { expectedGeneration: 1 })
     const full = await getStudyData()
     const exported = await exportStudyData()
     expect(full.tasks).toHaveLength(1)
@@ -284,7 +284,7 @@ describe('App tasks live query isolation', () => {
       dueDate: '',
       priority: 'normal',
       minutes: 20,
-    })
+    }, { expectedGeneration: 1 })
 
     const user = userEvent.setup()
     const shellSpy = vi.spyOn(subjectRead, 'listSubjects')
@@ -296,7 +296,7 @@ describe('App tasks live query isolation', () => {
 
     const shellBefore = shellSpy.mock.calls.length
     const tasksBefore = tasksSpy.mock.calls.length
-    await setTaskStatus(created.id, 'done')
+    await setTaskStatus(created.id, 'done', { expectedGeneration: 1 })
 
     await waitFor(() => expect(tasksSpy.mock.calls.length).toBeGreaterThan(tasksBefore))
     expect(shellSpy.mock.calls.length).toBe(shellBefore)
@@ -308,10 +308,10 @@ describe('App tasks live query isolation', () => {
       dueDate: '',
       priority: 'high',
       minutes: 25,
-    })
+    }, { expectedGeneration: 1 })
     expect(await screen.findByText('Mutate me updated')).toBeInTheDocument()
 
-    await deleteTask(created.id)
+    await deleteTask(created.id, { expectedGeneration: 1 })
     await waitFor(() => expect(screen.queryByText('Mutate me updated')).not.toBeInTheDocument())
   })
 
@@ -325,7 +325,7 @@ describe('App tasks live query isolation', () => {
       dueDate: '2026-07-10',
       priority: 'normal',
       minutes: 20,
-    })
+    }, { expectedGeneration: 1 })
 
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
 

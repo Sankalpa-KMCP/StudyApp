@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createGoal, deleteGoal, updateGoal } from './goalService'
+import { DATABASE_GENERATION_KEY, StaleDatabaseGenerationError } from './databaseGeneration'
+import { installInMemoryLockAdapter } from './crossTabLock'
 import { studyDb } from './studyDb'
 
 describe('goalService', () => {
   beforeEach(async () => {
+    installInMemoryLockAdapter()
     await studyDb.delete()
     await studyDb.open()
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
@@ -22,7 +25,7 @@ describe('goalService', () => {
       progress: 0,
       period: 'weekly',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
 
     expect(created.id).toMatch(/^goal-/)
     expect(created).toMatchObject({
@@ -36,6 +39,20 @@ describe('goalService', () => {
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(120)
   })
 
+  it('rejects createGoal when generation is stale', async () => {
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 3 })
+
+    await expect(createGoal({
+      title: 'Stale goal',
+      target: 5,
+      progress: 0,
+      period: 'weekly',
+      metric: 'study_time',
+    }, { expectedGeneration: 2 })).rejects.toThrow(StaleDatabaseGenerationError)
+
+    expect(await studyDb.goals.count()).toBe(0)
+  })
+
   it('updates a non-qualifying goal without changing dailyGoalMinutes', async () => {
     const original = await createGoal({
       title: 'Manual daily',
@@ -43,7 +60,7 @@ describe('goalService', () => {
       progress: 5,
       period: 'daily',
       metric: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     await updateGoal(original.id, {
       title: 'Manual weekly',
@@ -51,7 +68,7 @@ describe('goalService', () => {
       progress: 11,
       period: 'weekly',
       metric: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     const stored = await studyDb.goals.get(original.id)
     expect(stored).toMatchObject({
@@ -74,7 +91,7 @@ describe('goalService', () => {
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
 
     expect(await studyDb.goals.get(created.id)).toEqual(created)
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(80)
@@ -87,7 +104,7 @@ describe('goalService', () => {
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
 
     await updateGoal(original.id, {
       title: 'Daily study renamed',
@@ -95,7 +112,7 @@ describe('goalService', () => {
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
 
     expect(await studyDb.goals.get(original.id)).toMatchObject({
       title: 'Daily study renamed',
@@ -113,7 +130,7 @@ describe('goalService', () => {
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })).rejects.toThrow('Goal no longer exists.')
+    }, { expectedGeneration: 1 })).rejects.toThrow('Goal no longer exists.')
     expect(await studyDb.goals.count()).toBe(0)
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(120)
   })
@@ -125,8 +142,28 @@ describe('goalService', () => {
       progress: 0,
       period: 'daily',
       metric: 'manual',
-    })).rejects.toThrow('Goal no longer exists.')
+    }, { expectedGeneration: 1 })).rejects.toThrow('Goal no longer exists.')
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(120)
+  })
+
+  it('rejects updateGoal when generation is stale', async () => {
+    const original = await createGoal({
+      title: 'Original',
+      target: 40,
+      progress: 0,
+      period: 'daily',
+      metric: 'manual',
+    }, { expectedGeneration: 1 })
+
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(updateGoal(original.id, {
+      title: 'Stale update',
+      target: 50,
+      progress: 0,
+      period: 'daily',
+      metric: 'manual',
+    }, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
   })
 
   it('rolls back settings when a qualifying goal write fails', async () => {
@@ -138,7 +175,7 @@ describe('goalService', () => {
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })).rejects.toThrow('goal write failed')
+    }, { expectedGeneration: 1 })).rejects.toThrow('goal write failed')
 
     expect(await studyDb.goals.count()).toBe(0)
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(120)
@@ -159,7 +196,7 @@ describe('goalService', () => {
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })).rejects.toThrow('settings write failed')
+    }, { expectedGeneration: 1 })).rejects.toThrow('settings write failed')
 
     expect(await studyDb.goals.count()).toBe(0)
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(120)
@@ -172,7 +209,7 @@ describe('goalService', () => {
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(75)
 
     await updateGoal(original.id, {
@@ -181,7 +218,7 @@ describe('goalService', () => {
       progress: 0,
       period: 'weekly',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
 
     expect(await studyDb.goals.get(original.id)).toMatchObject({
       period: 'weekly',
@@ -198,14 +235,14 @@ describe('goalService', () => {
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
     await createGoal({
       title: 'Second daily',
       target: 110,
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
 
     expect(await studyDb.goals.count()).toBe(2)
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(110)
@@ -218,17 +255,32 @@ describe('goalService', () => {
       progress: 0,
       period: 'daily',
       metric: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(70)
 
-    await deleteGoal(created.id)
+    await deleteGoal(created.id, { expectedGeneration: 1 })
     expect(await studyDb.goals.get(created.id)).toBeUndefined()
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(70)
   })
 
   it('treats deleting a missing goal as success', async () => {
-    await expect(deleteGoal('goal-already-gone')).resolves.toBeUndefined()
+    await expect(deleteGoal('goal-already-gone', { expectedGeneration: 1 })).resolves.toBeUndefined()
     expect(await studyDb.goals.count()).toBe(0)
     expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(120)
+  })
+
+  it('rejects deleteGoal when generation is stale', async () => {
+    const created = await createGoal({
+      title: 'Delete me',
+      target: 70,
+      progress: 0,
+      period: 'daily',
+      metric: 'study_time',
+    }, { expectedGeneration: 1 })
+
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(deleteGoal(created.id, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
+    expect(await studyDb.goals.get(created.id)).toBeDefined()
   })
 })

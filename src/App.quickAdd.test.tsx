@@ -342,7 +342,7 @@ describe('App quick add', () => {
       body: 'Keep me until New replaces',
       subjectId: '',
       tags: [],
-    })
+    }, { expectedGeneration: 1 })
     render(<App />)
 
     await user.click(await screen.findByRole('button', { name: 'Notes' }))

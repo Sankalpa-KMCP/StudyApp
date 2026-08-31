@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createNote, deleteNote, updateNote } from './notesService'
 import { SubjectNotFoundError } from './subjectValidation'
+import { DATABASE_GENERATION_KEY, StaleDatabaseGenerationError } from './databaseGeneration'
+import { installInMemoryLockAdapter } from './crossTabLock'
 import { studyDb } from './studyDb'
 
 describe('notesService', () => {
   beforeEach(async () => {
+    installInMemoryLockAdapter()
     await studyDb.delete()
     await studyDb.open()
   })
@@ -31,7 +34,7 @@ describe('notesService', () => {
       body: 'Past papers',
       subjectId: 'subject-chem',
       tags: ['exam', 'review'],
-    })
+    }, { expectedGeneration: 1 })
 
     expect(created.id).toMatch(/^note-/)
     expect(created).toMatchObject({
@@ -51,7 +54,7 @@ describe('notesService', () => {
       body: 'General thought',
       subjectId: '',
       tags: ['general'],
-    })
+    }, { expectedGeneration: 1 })
 
     expect(created.subjectId).toBe('')
     expect(await studyDb.notes.get(created.id)).toEqual(created)
@@ -65,7 +68,7 @@ describe('notesService', () => {
         body: 'Orphan body',
         subjectId: 'subject-nonexistent',
         tags: ['orphan'],
-      })
+      }, { expectedGeneration: 1 })
     } catch (err) {
       thrownError = err
     }
@@ -73,6 +76,19 @@ describe('notesService', () => {
     expect(thrownError).toBeInstanceOf(SubjectNotFoundError)
     expect((thrownError as SubjectNotFoundError).code).toBe('subject_not_found')
     expect((thrownError as SubjectNotFoundError).subjectId).toBe('subject-nonexistent')
+    expect(await studyDb.notes.count()).toBe(0)
+  })
+
+  it('rejects createNote when generation is stale', async () => {
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 3 })
+
+    await expect(createNote({
+      title: 'Stale note',
+      body: 'Stale body',
+      subjectId: '',
+      tags: [],
+    }, { expectedGeneration: 2 })).rejects.toThrow(StaleDatabaseGenerationError)
+
     expect(await studyDb.notes.count()).toBe(0)
   })
 
@@ -93,14 +109,14 @@ describe('notesService', () => {
       body: 'Body',
       subjectId: '',
       tags: ['a'],
-    })
+    }, { expectedGeneration: 1 })
 
     await updateNote(original.id, {
       title: 'Renamed',
       body: 'New body',
       subjectId: 'subject-math',
       tags: ['b', 'c'],
-    })
+    }, { expectedGeneration: 1 })
 
     const stored = await studyDb.notes.get(original.id)
     expect(stored).toMatchObject({
@@ -121,7 +137,7 @@ describe('notesService', () => {
       body: 'Original content',
       subjectId: '',
       tags: ['safe'],
-    })
+    }, { expectedGeneration: 1 })
 
     let thrownError: unknown = null
     try {
@@ -130,7 +146,7 @@ describe('notesService', () => {
         body: 'New body',
         subjectId: 'subject-ghost',
         tags: ['ghost'],
-      })
+      }, { expectedGeneration: 1 })
     } catch (err) {
       thrownError = err
     }
@@ -148,7 +164,25 @@ describe('notesService', () => {
       body: '',
       subjectId: '',
       tags: [],
-    })).rejects.toThrow('Note no longer exists.')
+    }, { expectedGeneration: 1 })).rejects.toThrow('Note no longer exists.')
+  })
+
+  it('rejects updateNote when generation is stale', async () => {
+    const original = await createNote({
+      title: 'Preserve note',
+      body: 'Original content',
+      subjectId: '',
+      tags: ['safe'],
+    }, { expectedGeneration: 1 })
+
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(updateNote(original.id, {
+      title: 'Stale rename',
+      body: 'New body',
+      subjectId: '',
+      tags: [],
+    }, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
   })
 
   it('deletes an existing note', async () => {
@@ -157,14 +191,28 @@ describe('notesService', () => {
       body: '',
       subjectId: '',
       tags: [],
-    })
+    }, { expectedGeneration: 1 })
 
-    await deleteNote(created.id)
+    await deleteNote(created.id, { expectedGeneration: 1 })
     expect(await studyDb.notes.get(created.id)).toBeUndefined()
   })
 
   it('treats deleting a missing note as success', async () => {
-    await expect(deleteNote('note-already-gone')).resolves.toBeUndefined()
+    await expect(deleteNote('note-already-gone', { expectedGeneration: 1 })).resolves.toBeUndefined()
     expect(await studyDb.notes.count()).toBe(0)
+  })
+
+  it('rejects deleteNote when generation is stale', async () => {
+    const created = await createNote({
+      title: 'Temporary',
+      body: '',
+      subjectId: '',
+      tags: [],
+    }, { expectedGeneration: 1 })
+
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(deleteNote(created.id, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
+    expect(await studyDb.notes.get(created.id)).toBeDefined()
   })
 })

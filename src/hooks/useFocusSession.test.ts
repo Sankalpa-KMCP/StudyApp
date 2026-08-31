@@ -6,6 +6,8 @@ import {
   createActiveFocusSession,
   getActiveFocusSession,
 } from '../db/activeFocusSession'
+import { DATABASE_GENERATION_KEY } from '../db/databaseGeneration'
+import { installInMemoryLockAdapter } from '../db/crossTabLock'
 import { studyDb } from '../db/studyDb'
 import type { ActiveFocusSession, StudySubject } from '../db/types'
 import { useFocusSession } from './useFocusSession'
@@ -58,6 +60,7 @@ describe('useFocusSession', () => {
   ])
 
   beforeEach(async () => {
+    installInMemoryLockAdapter()
     vi.useRealTimers()
     vi.restoreAllMocks()
     await studyDb.delete()
@@ -288,7 +291,7 @@ describe('useFocusSession', () => {
     const realUpdate = activeFocusSession.updateActiveFocusSession
     const updateSpy = vi.spyOn(activeFocusSession, 'updateActiveFocusSession')
       .mockImplementationOnce(() => firstGate)
-      .mockImplementation((session) => realUpdate(session))
+      .mockImplementation((session, context) => realUpdate(session, context))
 
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
@@ -423,5 +426,22 @@ describe('useFocusSession', () => {
     expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-hook', subjectId: 'subject-a' })
     expect(await studyDb.studySessions.count()).toBe(0)
   })
-})
 
+  it('clears active focus state and notifies when database generation advanced externally', async () => {
+    await createActiveFocusSession(makeSession())
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
+
+    // Advance generation externally (e.g. from clearAll or import in another tab)
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await act(async () => {
+      await result.current.pauseSession()
+    })
+
+    expect(result.current.activeSession).toBeNull()
+    expect(result.current.sessionNotice).toBe(
+      'The database was updated elsewhere.',
+    )
+  })
+})

@@ -71,6 +71,7 @@ export function SubjectsView({
   search = '',
   onClearSearch = () => {},
   openEditorRequest,
+  databaseGeneration = 1,
 }: {
   subjects: StudySubject[]
   tasks: StudyTask[]
@@ -80,6 +81,7 @@ export function SubjectsView({
   openEditorRequest: number
   search?: string
   onClearSearch?: () => void
+  databaseGeneration?: number
 }) {
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null)
   const [draft, setDraft] = useState<SubjectDraft>(() => emptyDraft())
@@ -89,6 +91,7 @@ export function SubjectsView({
   const handledEditorRequest = useRef(0)
   const nameFieldRef = useRef<HTMLInputElement | null>(null)
   const progressModeFieldRef = useRef<HTMLSelectElement | null>(null)
+  const editorGenerationRef = useRef(databaseGeneration)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
@@ -108,6 +111,7 @@ export function SubjectsView({
   const openEditor = useCallback((subject?: StudySubject) => {
     setValidationError(null)
     clearSaveFeedback()
+    editorGenerationRef.current = databaseGeneration
     setEditingSubjectId(subject?.id ?? 'new')
     setDraft({
       name: subject?.name ?? '',
@@ -116,7 +120,7 @@ export function SubjectsView({
       progress: subject?.progress ?? 0,
       progressMode: subject?.progressMode ?? 'manual',
     })
-  }, [clearSaveFeedback])
+  }, [clearSaveFeedback, databaseGeneration])
 
   useEffect(() => {
     if (openEditorRequest > handledEditorRequest.current) {
@@ -171,11 +175,15 @@ export function SubjectsView({
 
     await runSave(async () => {
       if (isEdit && editingSubjectId) {
-        await updateSubject(editingSubjectId, fields)
+        await updateSubject(editingSubjectId, fields, {
+          expectedGeneration: editorGenerationRef.current,
+        })
         return
       }
 
-      await createSubject(fields)
+      await createSubject(fields, {
+        expectedGeneration: editorGenerationRef.current,
+      })
     }, {
       successMessage: isEdit ? 'Subject updated.' : 'Subject created.',
       errorMessage: 'Subject could not be saved. Your details are still in the form.',
@@ -222,7 +230,9 @@ export function SubjectsView({
     setPendingDeleteId(subject.id)
     try {
       await runRow(async () => {
-        const result = await deleteSubjectRecord(subject.id)
+        const result = await deleteSubjectRecord(subject.id, {
+          expectedGeneration: databaseGeneration,
+        })
         if (!result.ok && result.reason === 'linked') {
           setValidationError(formatSubjectLinkedUsage(subject.name, result.usage))
           throw new Error('Subject is linked to other study records.')

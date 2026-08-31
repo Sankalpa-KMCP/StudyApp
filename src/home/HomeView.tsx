@@ -32,6 +32,8 @@ import { HOME_FOCUS_SESSION_ID, revealHomeFocusSession } from './revealHomeFocus
 
 export { HOME_FOCUS_SESSION_ID } from './revealHomeFocusSession'
 
+import type { DatabaseMutationContext } from '../db/databaseMutationGuard'
+
 export function HomeView(props: {
   notes: StudyNote[]
   events: CalendarEvent[]
@@ -41,6 +43,7 @@ export function HomeView(props: {
   weeklyStudyDays: WeeklyStudyDay[]
   quickNotes: string[]
   dailyGoalMinutes: number
+  databaseGeneration?: number
   onboardingChecklistDismissed: boolean
   todayFocusMinutes: number
   currentDate: Date
@@ -57,7 +60,7 @@ export function HomeView(props: {
   focusAttentionRequest?: number
   onFocusSubjectChange: (subjectId: string) => void
   onFocusDurationChange: (minutes: number) => void
-  onQuickNotesChange: (value: string) => Promise<void>
+  onQuickNotesChange: (value: string, context: DatabaseMutationContext) => Promise<void>
   onStartSession: () => void
   onPauseSession: () => void
   onResumeSession: () => void
@@ -216,7 +219,7 @@ export function HomeView(props: {
           onAcceptStale={props.onAcceptStaleFocusSession}
           onDiscardStale={props.onDiscardStaleFocusSession}
         />
-        <QuickNoteCard notes={props.quickNotes} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
+        <QuickNoteCard notes={props.quickNotes} databaseGeneration={props.databaseGeneration ?? 1} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
       </div>
       <SubjectsSection subjects={subjectStats} sessions={props.studySessions} onViewAll={() => props.onNavigate('Subjects')} />
       <div className="bottom-grid">
@@ -608,7 +611,17 @@ function sessionNoticeRole(message: string): 'alert' | 'status' {
   return /^could not\b/i.test(message) ? 'alert' : 'status'
 }
 
-function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onChange: (value: string) => Promise<void>; onOpenNotes: () => void }) {
+function QuickNoteCard({
+  notes,
+  databaseGeneration = 1,
+  onChange,
+  onOpenNotes,
+}: {
+  notes: string[]
+  databaseGeneration?: number
+  onChange: (value: string, context: DatabaseMutationContext) => Promise<void>
+  onOpenNotes: () => void
+}) {
   const savedValue = notes.join('\n')
   const [draft, setDraft] = useState(savedValue)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved')
@@ -616,6 +629,7 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
   const [prevSavedValue, setPrevSavedValue] = useState(savedValue)
   const draftRef = useRef(draft)
   const lastPersistedRef = useRef(lastPersisted)
+  const epochGenerationRef = useRef(databaseGeneration)
   const isMountedRef = useRef(true)
   const pendingRef = useRef<string | null>(null)
   const inFlightRef = useRef(false)
@@ -672,7 +686,7 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
         const next = pendingRef.current
         if (next === null) break
         pendingRef.current = null
-        await onChangeRef.current(next)
+        await onChangeRef.current(next, { expectedGeneration: epochGenerationRef.current })
         awaitingEchoRef.current = true
         lastPersistedRef.current = next
         if (isMountedRef.current) setLastPersisted(next)
@@ -745,6 +759,7 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
               className="text-command"
               type="button"
               onClick={() => {
+                epochGenerationRef.current = databaseGeneration
                 pendingRef.current = draft
                 void flushPending()
               }}
@@ -761,6 +776,9 @@ function QuickNoteCard({ notes, onChange, onOpenNotes }: { notes: string[]; onCh
           value={draft}
           placeholder="Capture fast ideas, formulas, or reminders..."
           onChange={(event) => {
+            if (draft === lastPersisted || saveStatus === 'error') {
+              epochGenerationRef.current = databaseGeneration
+            }
             setDraft(event.target.value)
             if (saveStatus === 'error') setSaveStatus('saving')
           }}

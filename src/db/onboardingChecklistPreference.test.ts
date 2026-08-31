@@ -5,10 +5,12 @@ import {
   ONBOARDING_CHECKLIST_DISMISSED_KEY,
   showOnboardingChecklist,
 } from './onboardingChecklistPreference'
+import { installInMemoryLockAdapter } from './crossTabLock'
 import { studyDb } from './studyDb'
 
 describe('onboardingChecklistPreference', () => {
   beforeEach(async () => {
+    installInMemoryLockAdapter()
     await studyDb.delete()
     await studyDb.open()
   })

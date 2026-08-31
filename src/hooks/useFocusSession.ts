@@ -6,6 +6,7 @@ import {
   finalizeActiveFocusSession,
   getActiveFocusElapsedMs,
   getActiveFocusSession,
+  getActiveFocusSessionWithGeneration,
   isActiveFocusSessionStale,
   pauseActiveFocusSession,
   resumeActiveFocusSession,
@@ -13,6 +14,7 @@ import {
   updateActiveFocusSession,
 } from '../db/activeFocusSession'
 import { DataOperationCoordinator, type IDataOperationCoordinator } from '../db/dataCoordinator'
+import { StaleDatabaseGenerationError } from '../db/databaseGeneration'
 import { createId, nowIso } from '../db/studyDb'
 import type { ActiveFocusSession, StudySubject } from '../db/types'
 
@@ -62,6 +64,7 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
   const [focusRestoreReady, setFocusRestoreReady] = useState(false)
   const [focusTransitionPending, setFocusTransitionPending] = useState(false)
   const [focusImportPending, setFocusImportPending] = useState(false)
+  const focusGenerationRef = useRef<number>(1)
   const finalizingSessionIdRef = useRef<string | null>(null)
   const deferredAutoCompleteSessionIdRef = useRef<string | null>(null)
   const focusTransitionPendingRef = useRef(false)
@@ -84,7 +87,8 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
   }, [])
 
   const reloadFocusFromIndexedDb = useCallback(async () => {
-    const restored = await getActiveFocusSession()
+    const { session: restored, generation } = await getActiveFocusSessionWithGeneration()
+    focusGenerationRef.current = generation
     applyPersistedFocusSession(restored)
     finalizingSessionIdRef.current = null
     setFocusRestoreReady(true)
@@ -94,8 +98,9 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      const restored = await getActiveFocusSession()
+      const { session: restored, generation } = await getActiveFocusSessionWithGeneration()
       if (cancelled) return
+      focusGenerationRef.current = generation
       applyPersistedFocusSession(restored)
       setFocusRestoreReady(true)
     })()
@@ -137,6 +142,7 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
         const result = await createActiveFocusSession(session)
         if (result.ok) {
           deferredAutoCompleteSessionIdRef.current = null
+          focusGenerationRef.current = result.generation
           setActiveSession(result.session)
           setSessionNotice('')
           return
@@ -174,7 +180,8 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     setFocusTransitionPending(true)
     try {
       const res = await coordinator.runFocusWrite(async () => {
-        const current = await getActiveFocusSession()
+        const { session: current, generation } = await getActiveFocusSessionWithGeneration()
+        focusGenerationRef.current = generation
         if (!current) {
           deferredAutoCompleteSessionIdRef.current = null
           setStaleFocusSession(null)
@@ -214,7 +221,9 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     setFocusTransitionPending(true)
     try {
       const res = await coordinator.runFocusWrite(async () => {
-        const result = await discardActiveFocusSession(staleFocusSession.id)
+        const result = await discardActiveFocusSession(staleFocusSession.id, {
+          expectedGeneration: focusGenerationRef.current,
+        })
         if (result.ok) {
           deferredAutoCompleteSessionIdRef.current = null
           setStaleFocusSession(null)
@@ -242,7 +251,13 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
       if (!res.ok) {
         setSessionNotice('A data operation is currently in progress. Please wait.')
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof StaleDatabaseGenerationError) {
+        deferredAutoCompleteSessionIdRef.current = null
+        setStaleFocusSession(null)
+        setSessionNotice('The database was updated elsewhere. Focus session discarded.')
+        return
+      }
       setSessionNotice('Could not discard the unfinished focus session. Try again.')
     } finally {
       setFocusTransitionPending(false)
@@ -267,6 +282,8 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
         endedAt: nowIso(),
         minutes,
         note: completed ? 'Completed focus session' : sessionToFinalize.subjectId ? 'Focus session' : 'General focus session',
+      }, {
+        expectedGeneration: focusGenerationRef.current,
       })
 
       if (!result.ok) {
@@ -290,7 +307,14 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
       deferredAutoCompleteSessionIdRef.current = null
       setActiveSession(null)
       setSessionNotice(completed ? `Session complete: ${formatMinutes(result.history.minutes)} logged.` : `Session stopped: ${formatMinutes(result.history.minutes)} logged.`)
-    } catch {
+    } catch (err) {
+      if (err instanceof StaleDatabaseGenerationError) {
+        deferredAutoCompleteSessionIdRef.current = null
+        setActiveSession(null)
+        setStaleFocusSession(null)
+        setSessionNotice('The database was updated elsewhere. Study time was not logged.')
+        return
+      }
       setSessionNotice('Could not stop the focus session. Try again.')
     } finally {
       if (finalizingSessionIdRef.current === sessionToFinalize.id) {
@@ -373,7 +397,9 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     setFocusTransitionPending(true)
     try {
       const res = await coordinator.runFocusWrite(async () => {
-        const result = await pauseActiveFocusSession(activeSession.id)
+        const result = await pauseActiveFocusSession(activeSession.id, nowIso(), {
+          expectedGeneration: focusGenerationRef.current,
+        })
         if (result.ok) {
           setActiveSession(result.session)
           setSessionNotice('')
@@ -389,7 +415,14 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
       if (!res.ok) {
         setSessionNotice('A data operation is currently in progress. Please wait.')
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof StaleDatabaseGenerationError) {
+        deferredAutoCompleteSessionIdRef.current = null
+        setActiveSession(null)
+        setStaleFocusSession(null)
+        setSessionNotice('The database was updated elsewhere.')
+        return
+      }
       setSessionNotice('Could not pause the focus session. Try again.')
     } finally {
       settleFocusTransition()
@@ -404,7 +437,9 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     setFocusTransitionPending(true)
     try {
       const res = await coordinator.runFocusWrite(async () => {
-        const result = await resumeActiveFocusSession(activeSession.id)
+        const result = await resumeActiveFocusSession(activeSession.id, Date.now(), {
+          expectedGeneration: focusGenerationRef.current,
+        })
         if (result.ok) {
           setActiveSession(result.session)
           setSessionNotice('')
@@ -420,7 +455,14 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
       if (!res.ok) {
         setSessionNotice('A data operation is currently in progress. Please wait.')
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof StaleDatabaseGenerationError) {
+        deferredAutoCompleteSessionIdRef.current = null
+        setActiveSession(null)
+        setStaleFocusSession(null)
+        setSessionNotice('The database was updated elsewhere.')
+        return
+      }
       setSessionNotice('Could not resume the focus session. Try again.')
     } finally {
       settleFocusTransition()
@@ -469,7 +511,9 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     void (async () => {
       const res = await coordinator.runFocusWrite(async () => {
         try {
-          const result = await updateActiveFocusSession(nextSession)
+          const result = await updateActiveFocusSession(nextSession, {
+            expectedGeneration: focusGenerationRef.current,
+          })
           if (writeSeq !== focusSubjectWriteSeqRef.current) return
 
           if (result.ok) {
@@ -505,8 +549,14 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
           setActiveSession(baseline)
           setFocusSubjectId(baseline.subjectId)
           setSessionNotice('Could not update the focus subject. Try again.')
-        } catch {
+        } catch (err) {
           if (writeSeq !== focusSubjectWriteSeqRef.current) return
+          if (err instanceof StaleDatabaseGenerationError) {
+            setActiveSession(null)
+            setStaleFocusSession(null)
+            setSessionNotice('The database was updated elsewhere.')
+            return
+          }
           const durable = await getActiveFocusSession()
           if (writeSeq !== focusSubjectWriteSeqRef.current) return
           if (durable) {
@@ -541,6 +591,7 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
   }, [])
 
   const clearFocusLocalState = useCallback(() => {
+    focusGenerationRef.current = 1
     setActiveSession(null)
     setStaleFocusSession(null)
     finalizingSessionIdRef.current = null

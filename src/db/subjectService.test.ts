@@ -6,11 +6,14 @@ import {
   getSubjectLinkedUsage,
   updateSubject,
 } from './subjectService'
+import { DATABASE_GENERATION_KEY, StaleDatabaseGenerationError } from './databaseGeneration'
+import { installInMemoryLockAdapter } from './crossTabLock'
 import { studyDb } from './studyDb'
 import type { ActiveFocusSession } from './types'
 
 describe('subjectService', () => {
   beforeEach(async () => {
+    installInMemoryLockAdapter()
     await studyDb.delete()
     await studyDb.open()
   })
@@ -27,7 +30,7 @@ describe('subjectService', () => {
       targetHours: 5,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     expect(created.id).toMatch(/^subject-/)
     expect(created).toMatchObject({
@@ -42,6 +45,20 @@ describe('subjectService', () => {
     expect(await studyDb.subjects.get(created.id)).toEqual(created)
   })
 
+  it('rejects createSubject when generation is stale', async () => {
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 3 })
+
+    await expect(createSubject({
+      name: 'Stale Subject',
+      color: '#2563eb',
+      targetHours: 5,
+      progress: 0,
+      progressMode: 'manual',
+    }, { expectedGeneration: 2 })).rejects.toThrow(StaleDatabaseGenerationError)
+
+    expect(await studyDb.subjects.count()).toBe(0)
+  })
+
   it('updates editable fields and refreshes updatedAt while preserving createdAt', async () => {
     const original = await createSubject({
       name: 'Original',
@@ -49,7 +66,7 @@ describe('subjectService', () => {
       targetHours: 4,
       progress: 10,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     await updateSubject(original.id, {
       name: 'Renamed',
@@ -57,7 +74,7 @@ describe('subjectService', () => {
       targetHours: 8,
       progress: 35,
       progressMode: 'study_time',
-    })
+    }, { expectedGeneration: 1 })
 
     const stored = await studyDb.subjects.get(original.id)
     expect(stored).toMatchObject({
@@ -79,7 +96,27 @@ describe('subjectService', () => {
       targetHours: 1,
       progress: 0,
       progressMode: 'manual',
-    })).rejects.toThrow('Subject no longer exists.')
+    }, { expectedGeneration: 1 })).rejects.toThrow('Subject no longer exists.')
+  })
+
+  it('rejects updateSubject when generation is stale', async () => {
+    const original = await createSubject({
+      name: 'Original',
+      color: '#111827',
+      targetHours: 4,
+      progress: 10,
+      progressMode: 'manual',
+    }, { expectedGeneration: 1 })
+
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(updateSubject(original.id, {
+      name: 'Stale Rename',
+      color: '#0f766e',
+      targetHours: 8,
+      progress: 35,
+      progressMode: 'study_time',
+    }, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
   })
 
   it('reports zero linked usage for an unreferenced subject', async () => {
@@ -89,7 +126,7 @@ describe('subjectService', () => {
       targetHours: 3,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     expect(await getSubjectLinkedUsage(created.id)).toEqual({
       tasks: 0,
@@ -107,7 +144,7 @@ describe('subjectService', () => {
       targetHours: 4,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     const timestamp = '2026-06-29T00:00:00.000Z'
     const subjectId = created.id
 
@@ -206,7 +243,7 @@ describe('subjectService', () => {
       targetHours: 5,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     const focusSession: ActiveFocusSession = {
       id: 'focus-active-1',
       subjectId: created.id,
@@ -234,14 +271,14 @@ describe('subjectService', () => {
       targetHours: 5,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     const subjectB = await createSubject({
       name: 'Subject B',
       color: '#3b82f6',
       targetHours: 5,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     // General focus
     await studyDb.settings.put({
@@ -282,17 +319,32 @@ describe('subjectService', () => {
       targetHours: 2,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
-    const result = await deleteSubject(created.id)
+    const result = await deleteSubject(created.id, { expectedGeneration: 1 })
     expect(result).toEqual({ ok: true })
     expect(await studyDb.subjects.get(created.id)).toBeUndefined()
   })
 
   it('treats deleting a missing subject as idempotent success', async () => {
-    const result = await deleteSubject('subject-already-gone')
+    const result = await deleteSubject('subject-already-gone', { expectedGeneration: 1 })
     expect(result).toEqual({ ok: true })
     expect(await studyDb.subjects.count()).toBe(0)
+  })
+
+  it('rejects deleteSubject when generation is stale', async () => {
+    const created = await createSubject({
+      name: 'Temporary',
+      color: '#111827',
+      targetHours: 2,
+      progress: 0,
+      progressMode: 'manual',
+    }, { expectedGeneration: 1 })
+
+    await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 2 })
+
+    await expect(deleteSubject(created.id, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
+    expect(await studyDb.subjects.get(created.id)).toBeDefined()
   })
 
   it('blocks deletion when active focus session references the subject and leaves row intact', async () => {
@@ -302,7 +354,7 @@ describe('subjectService', () => {
       targetHours: 2,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     const focusSession: ActiveFocusSession = {
       id: 'focus-block-1',
       subjectId: created.id,
@@ -314,7 +366,7 @@ describe('subjectService', () => {
     }
     await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: focusSession })
 
-    const result = await deleteSubject(created.id)
+    const result = await deleteSubject(created.id, { expectedGeneration: 1 })
     expect(result).toEqual({
       ok: false,
       reason: 'linked',
@@ -336,7 +388,7 @@ describe('subjectService', () => {
       targetHours: 2,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
     await studyDb.tasks.add({
       id: 'task-test-link',
       title: 'Task Link',
@@ -349,7 +401,7 @@ describe('subjectService', () => {
       updatedAt: '2026-08-22T10:00:00.000Z',
     })
 
-    const result = await deleteSubject(created.id)
+    const result = await deleteSubject(created.id, { expectedGeneration: 1 })
     expect(result).toEqual({
       ok: false,
       reason: 'linked',
@@ -371,7 +423,7 @@ describe('subjectService', () => {
       targetHours: 3,
       progress: 0,
       progressMode: 'manual',
-    })
+    }, { expectedGeneration: 1 })
 
     // Preliminary check says 0 linked records (dialog would open)
     const preliminaryCheck = await getSubjectLinkedUsage(created.id)
@@ -398,7 +450,7 @@ describe('subjectService', () => {
     })
 
     // User clicks confirm delete; authoritative deleteSubject transaction catches the link
-    const result = await deleteSubject(created.id)
+    const result = await deleteSubject(created.id, { expectedGeneration: 1 })
     expect(result).toEqual({
       ok: false,
       reason: 'linked',

@@ -39,6 +39,7 @@ export function ProgressView(props: {
   todayFocusMinutes: number
   subjectMap: Map<string, StudySubject>
   openEditorOnMount: boolean
+  databaseGeneration?: number
 }) {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(() =>
     props.openEditorOnMount ? 'new' : null,
@@ -53,6 +54,7 @@ export function ProgressView(props: {
   const subjectFieldRef = useRef<HTMLSelectElement | null>(null)
   const dateFieldRef = useRef<HTMLInputElement | null>(null)
   const durationFieldRef = useRef<HTMLInputElement | null>(null)
+  const editorGenerationRef = useRef(props.databaseGeneration ?? 1)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
@@ -100,6 +102,7 @@ export function ProgressView(props: {
     restoreEditorFocusRef.current = false
     setValidationError(null)
     clearSaveFeedback()
+    editorGenerationRef.current = props.databaseGeneration ?? 1
     if (session) {
       const startedAt = new Date(session.startedAt)
       const fallbackDraft = defaultSessionDraft()
@@ -167,11 +170,15 @@ export function ProgressView(props: {
 
     await runSave(async () => {
       if (isEdit && editingSessionId) {
-        await updateStudySession(editingSessionId, fields)
+        await updateStudySession(editingSessionId, fields, {
+          expectedGeneration: editorGenerationRef.current,
+        })
         return
       }
 
-      await createStudySession(fields)
+      await createStudySession(fields, {
+        expectedGeneration: editorGenerationRef.current,
+      })
     }, {
       successMessage: isEdit ? 'Study session updated.' : 'Study session recorded.',
       errorMessage: 'Study session could not be saved. Your details are still in the form.',
@@ -200,7 +207,9 @@ export function ProgressView(props: {
 
     try {
       await runRow(async () => {
-        await deleteStudySession(session.id)
+        await deleteStudySession(session.id, {
+          expectedGeneration: props.databaseGeneration ?? 1,
+        })
       }, {
         successMessage: 'Study session deleted.',
         errorMessage: 'Study session could not be deleted. Please try again.',

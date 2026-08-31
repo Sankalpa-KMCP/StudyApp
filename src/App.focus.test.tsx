@@ -330,17 +330,17 @@ describe('App focus', () => {
   })
 
   it('keeps Start disabled until focus restoration finishes', async () => {
-    let releaseRestore: (value: ActiveFocusSession | null) => void = () => {}
-    const restoreGate = new Promise<ActiveFocusSession | null>((resolve) => {
+    let releaseRestore: (value: { session: ActiveFocusSession | null; generation: number }) => void = () => {}
+    const restoreGate = new Promise<{ session: ActiveFocusSession | null; generation: number }>((resolve) => {
       releaseRestore = resolve
     })
-    vi.spyOn(await import('./db/activeFocusSession'), 'getActiveFocusSession').mockImplementation(() => restoreGate)
+    vi.spyOn(await import('./db/activeFocusSession'), 'getActiveFocusSessionWithGeneration').mockImplementation(() => restoreGate)
 
     render(<App />)
     const startButton = await screen.findByRole('button', { name: 'Start focus' })
     expect(startButton).toBeDisabled()
 
-    releaseRestore(null)
+    releaseRestore({ session: null, generation: 1 })
     await waitFor(() => expect(startButton).toBeEnabled())
   })
 
@@ -364,7 +364,7 @@ describe('App focus', () => {
     await createActiveFocusSession(existing)
 
     const activeFocusApi = await import('./db/activeFocusSession')
-    vi.spyOn(activeFocusApi, 'getActiveFocusSession').mockResolvedValueOnce(null)
+    vi.spyOn(activeFocusApi, 'getActiveFocusSessionWithGeneration').mockResolvedValueOnce({ session: null, generation: 1 })
 
     render(<App />)
     await waitForFocusStartEnabled()
@@ -680,9 +680,9 @@ describe('App focus', () => {
     })
     const activeFocusApi = await import('./db/activeFocusSession')
     const originalPause = activeFocusApi.pauseActiveFocusSession.bind(activeFocusApi)
-    vi.spyOn(activeFocusApi, 'pauseActiveFocusSession').mockImplementation(async (id, pausedAt) => {
+    vi.spyOn(activeFocusApi, 'pauseActiveFocusSession').mockImplementation(async (id, pausedAt, context) => {
       await pauseGate
-      return originalPause(id, pausedAt)
+      return originalPause(id, pausedAt, context)
     })
 
     try {
@@ -799,9 +799,9 @@ describe('App focus', () => {
     })
     const activeFocusApi = await import('./db/activeFocusSession')
     const originalResume = activeFocusApi.resumeActiveFocusSession.bind(activeFocusApi)
-    vi.spyOn(activeFocusApi, 'resumeActiveFocusSession').mockImplementation(async (id, resumedAtMs) => {
+    vi.spyOn(activeFocusApi, 'resumeActiveFocusSession').mockImplementation(async (id, resumedAtMs, context) => {
       await resumeGate
-      return originalResume(id, resumedAtMs)
+      return originalResume(id, resumedAtMs, context)
     })
 
     try {
@@ -1128,10 +1128,10 @@ describe('App focus', () => {
       plannedMinutes: 0,
     })
     await createActiveFocusSession(session)
-    const first = await pauseActiveFocusSession(session.id, new Date(Date.now() - 2 * 60_000).toISOString())
+    const first = await pauseActiveFocusSession(session.id, new Date(Date.now() - 2 * 60_000).toISOString(), { expectedGeneration: 1 })
     expect(first.ok).toBe(true)
     if (!first.ok) return
-    const second = await pauseActiveFocusSession(session.id)
+    const second = await pauseActiveFocusSession(session.id, undefined, { expectedGeneration: 1 })
     expect(second).toEqual({ ok: false, reason: 'invalid_state', existing: first.session })
     expect(await getActiveFocusSession()).toEqual(first.session)
   })

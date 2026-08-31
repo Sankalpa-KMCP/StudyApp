@@ -76,9 +76,11 @@ function GoalsLiveReadFallback({ onRetry }: { onRetry: () => void }) {
 function GoalsLiveQuery({
   dailyGoalMinutes,
   studySessions,
+  databaseGeneration = 1,
 }: {
   dailyGoalMinutes: number
   studySessions: StudySession[]
+  databaseGeneration?: number
 }) {
   const liveGoals = useLiveQuery(() => listGoals(), [])
   const goalsReady = liveGoals !== undefined
@@ -91,6 +93,7 @@ function GoalsLiveQuery({
   const titleFieldRef = useRef<HTMLInputElement | null>(null)
   const metricFieldRef = useRef<HTMLSelectElement | null>(null)
   const targetFieldRef = useRef<HTMLInputElement | null>(null)
+  const editorGenerationRef = useRef(databaseGeneration)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
@@ -112,9 +115,10 @@ function GoalsLiveQuery({
   const openEditor = useCallback((goal?: StudyGoal) => {
     clearValidation()
     clearSaveFeedback()
+    editorGenerationRef.current = databaseGeneration
     setEditingGoalId(goal?.id ?? 'new')
     setDraft(createGoalDraft(dailyGoalMinutes, goal))
-  }, [clearSaveFeedback, clearValidation, dailyGoalMinutes])
+  }, [clearSaveFeedback, clearValidation, dailyGoalMinutes, databaseGeneration])
 
   const closeEditor = useCallback(() => {
     if (isSaving) return
@@ -160,11 +164,15 @@ function GoalsLiveQuery({
 
     await runSave(async () => {
       if (isEdit && editingGoalId) {
-        await updateGoal(editingGoalId, fields)
+        await updateGoal(editingGoalId, fields, {
+          expectedGeneration: editorGenerationRef.current,
+        })
         return
       }
 
-      await createGoal(fields)
+      await createGoal(fields, {
+        expectedGeneration: editorGenerationRef.current,
+      })
     }, {
       successMessage: isEdit ? 'Goal updated.' : 'Goal created.',
       errorMessage: 'Goal could not be saved. Your details are still in the form.',
@@ -186,7 +194,9 @@ function GoalsLiveQuery({
 
     try {
       await runRow(async () => {
-        await deleteGoalRecord(goal.id)
+        await deleteGoalRecord(goal.id, {
+          expectedGeneration: databaseGeneration,
+        })
       }, {
         successMessage: 'Goal deleted.',
         errorMessage: 'Goal could not be deleted. Please try again.',
@@ -354,9 +364,11 @@ function GoalsLiveQuery({
 export function GoalsView({
   dailyGoalMinutes,
   studySessions,
+  databaseGeneration = 1,
 }: {
   dailyGoalMinutes: number
   studySessions: StudySession[]
+  databaseGeneration?: number
 }) {
   const [liveReadEpoch, setLiveReadEpoch] = useState(0)
 
@@ -365,7 +377,11 @@ export function GoalsView({
       key={liveReadEpoch}
       fallback={<GoalsLiveReadFallback onRetry={() => setLiveReadEpoch((epoch) => epoch + 1)} />}
     >
-      <GoalsLiveQuery dailyGoalMinutes={dailyGoalMinutes} studySessions={studySessions} />
+      <GoalsLiveQuery
+        dailyGoalMinutes={dailyGoalMinutes}
+        studySessions={studySessions}
+        databaseGeneration={databaseGeneration}
+      />
     </LiveReadErrorBoundary>
   )
 }

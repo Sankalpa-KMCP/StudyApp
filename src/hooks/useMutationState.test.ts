@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { StaleDatabaseGenerationError } from '../db/databaseGeneration'
 import { useMutationState } from './useMutationState'
 
 describe('useMutationState', () => {
@@ -82,6 +83,28 @@ describe('useMutationState', () => {
     expect(result.current.message).not.toContain('constraint failure')
     expect(result.current.isPending).toBe(false)
     expect(consoleError).toHaveBeenCalledWith(rawError)
+  })
+
+  it('maps StaleDatabaseGenerationError to a friendly cross-tab notice message', async () => {
+    const { result } = renderHook(() => useMutationState())
+    const action = vi.fn(async () => {
+      throw new StaleDatabaseGenerationError(1, 2)
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    let succeeded = true
+    await act(async () => {
+      succeeded = await result.current.run(action, {
+        successMessage: 'Saved.',
+        errorMessage: 'Could not save this item.',
+      })
+    })
+
+    expect(succeeded).toBe(false)
+    expect(result.current.phase).toBe('error')
+    expect(result.current.message).toBe(
+      'The data changed in another window or during a database replacement; refresh or reopen this workflow before saving.',
+    )
   })
 
   it('blocks a duplicate run while pending and executes the action only once', async () => {
