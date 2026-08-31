@@ -62,7 +62,7 @@ describe('App focus', () => {
       id: 'focus-pre-import',
       subjectId: '',
       plannedMinutes: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
@@ -85,7 +85,7 @@ describe('App focus', () => {
       id: 'focus-local-before-import',
       subjectId: '',
       plannedMinutes: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     const importedSession = makeDurableFocusSession({
       id: 'focus-imported-running',
@@ -191,7 +191,7 @@ describe('App focus', () => {
       id: 'focus-before-corrupt-import',
       subjectId: '',
       plannedMinutes: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
@@ -213,7 +213,7 @@ describe('App focus', () => {
       subjectId: '',
       plannedMinutes: 0,
     })
-    await createActiveFocusSession(existing)
+    await createActiveFocusSession(existing, { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
@@ -251,7 +251,7 @@ describe('App focus', () => {
       id: 'focus-import-gate',
       subjectId: '',
       plannedMinutes: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Stop session' })).toBeEnabled()
@@ -283,7 +283,7 @@ describe('App focus', () => {
       startedAt: new Date(Date.now() - (25 * 60_000 - 500)).toISOString(),
       plannedMinutes: 25,
     })
-    await createActiveFocusSession(nearlyDone)
+    await createActiveFocusSession(nearlyDone, { expectedGeneration: 1 })
 
     render(<App />)
 
@@ -314,7 +314,7 @@ describe('App focus', () => {
       subjectId: 'subject-focus',
       plannedMinutes: 50,
     })
-    await createActiveFocusSession(session)
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
 
     const first = render(<App />)
     expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
@@ -361,7 +361,7 @@ describe('App focus', () => {
       subjectId: 'subject-focus',
       plannedMinutes: 50,
     })
-    await createActiveFocusSession(existing)
+    await createActiveFocusSession(existing, { expectedGeneration: 1 })
 
     const activeFocusApi = await import('./db/activeFocusSession')
     vi.spyOn(activeFocusApi, 'getActiveFocusSessionWithGeneration').mockResolvedValueOnce({ session: null, generation: 1 })
@@ -392,7 +392,7 @@ describe('App focus', () => {
       subjectId: 'subject-focus',
       startedAt: new Date(Date.now() - 30 * 60_000).toISOString(),
       plannedMinutes: 25,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
 
@@ -416,7 +416,7 @@ describe('App focus', () => {
       startedAt: new Date(Date.now() - 10 * 60_000).toISOString(),
       plannedMinutes: 0,
       accumulatedPausedMs: 4 * 60_000,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
@@ -440,7 +440,7 @@ describe('App focus', () => {
       status: 'paused',
       pausedAt: new Date(Date.now() - 35 * 60_000).toISOString(),
       accumulatedPausedMs: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
@@ -458,7 +458,7 @@ describe('App focus', () => {
       subjectId: '',
       plannedMinutes: 0,
     })
-    await createActiveFocusSession(session)
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(await import('./db/activeFocusSession'), 'finalizeActiveFocusSession').mockRejectedValueOnce(new Error('write failed'))
 
@@ -512,7 +512,7 @@ describe('App focus', () => {
       id: 'focus-subject-fail',
       subjectId: 'subject-focus-a',
       plannedMinutes: 0,
-    }))
+    }), { expectedGeneration: 1 })
     vi.spyOn(await import('./db/activeFocusSession'), 'updateActiveFocusSession').mockRejectedValueOnce(new Error('subject write failed'))
 
     render(<App />)
@@ -530,7 +530,7 @@ describe('App focus', () => {
       id: 'focus-missing-stop',
       subjectId: '',
       plannedMinutes: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
@@ -556,7 +556,7 @@ describe('App focus', () => {
       id: 'focus-stop-local',
       subjectId: '',
       plannedMinutes: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()
@@ -611,7 +611,7 @@ describe('App focus', () => {
       status: 'paused',
       pausedAt: new Date(Date.now() - 4 * 60_000).toISOString(),
       accumulatedPausedMs: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Resume' })).toBeInTheDocument()
@@ -641,7 +641,7 @@ describe('App focus', () => {
       status: 'paused',
       pausedAt: new Date().toISOString(),
       accumulatedPausedMs: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Resume' })).toBeInTheDocument()
@@ -668,7 +668,7 @@ describe('App focus', () => {
       subjectId: '',
       startedAt: new Date(Date.now() - (25 * 60_000 - remainingMs)).toISOString(),
       plannedMinutes: 25,
-    }))
+    }), { expectedGeneration: 1 })
 
     let releasePause!: () => void
     let pauseGateSettled = false
@@ -728,7 +728,7 @@ describe('App focus', () => {
       subjectId: '',
       startedAt: new Date(Date.now() - (25 * 60_000 - remainingMs)).toISOString(),
       plannedMinutes: 25,
-    }))
+    }), { expectedGeneration: 1 })
 
     let rejectPause!: (error?: Error) => void
     let pauseGateSettled = false
@@ -787,7 +787,7 @@ describe('App focus', () => {
       status: 'paused',
       pausedAt: new Date(Date.now() - 10 * 60_000).toISOString(),
       accumulatedPausedMs: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     let releaseResume!: () => void
     let resumeGateSettled = false
@@ -843,7 +843,7 @@ describe('App focus', () => {
       status: 'paused',
       pausedAt: new Date().toISOString(),
       accumulatedPausedMs: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Resume' })).toBeInTheDocument()
@@ -883,7 +883,7 @@ describe('App focus', () => {
       status: 'paused',
       pausedAt: new Date(Date.now() - 10 * 60_000).toISOString(),
       accumulatedPausedMs: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     let rejectResume!: (error?: Error) => void
     let resumeGateSettled = false
@@ -945,7 +945,7 @@ describe('App focus', () => {
       subjectId: '',
       startedAt: new Date(Date.now() - (25 * 60_000 - remainingMs)).toISOString(),
       plannedMinutes: 25,
-    }))
+    }), { expectedGeneration: 1 })
 
     let releasePause!: () => void
     let pauseGateSettled = false
@@ -997,7 +997,7 @@ describe('App focus', () => {
       subjectId: '',
       startedAt: new Date(Date.now() - (25 * 60_000 - remainingMs)).toISOString(),
       plannedMinutes: 25,
-    }))
+    }), { expectedGeneration: 1 })
 
     let releasePause!: () => void
     let pauseGateSettled = false
@@ -1023,7 +1023,7 @@ describe('App focus', () => {
       })
       expect(await studyDb.studySessions.count()).toBe(0)
 
-      await clearActiveFocusSession()
+      await clearActiveFocusSession({ expectedGeneration: 1 })
       releasePause()
       expect(await screen.findByText('Could not pause the focus session. Try again.')).toBeInTheDocument()
       expect(pauseGateSettled).toBe(true)
@@ -1037,7 +1037,7 @@ describe('App focus', () => {
         subjectId: '',
         startedAt: new Date(Date.now() - 60_000).toISOString(),
         plannedMinutes: 50,
-      }))
+      }), { expectedGeneration: 1 })
       await act(async () => {
         await new Promise((resolve) => window.setTimeout(resolve, 200))
       })
@@ -1057,7 +1057,7 @@ describe('App focus', () => {
       subjectId: '',
       startedAt: new Date(Date.now() - (25 * 60_000 - remainingMs)).toISOString(),
       plannedMinutes: 25,
-    }))
+    }), { expectedGeneration: 1 })
 
     let rejectPause!: (error?: Error) => void
     let pauseGateSettled = false
@@ -1127,7 +1127,7 @@ describe('App focus', () => {
       startedAt: new Date(Date.now() - 8 * 60_000).toISOString(),
       plannedMinutes: 0,
     })
-    await createActiveFocusSession(session)
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
     const first = await pauseActiveFocusSession(session.id, new Date(Date.now() - 2 * 60_000).toISOString(), { expectedGeneration: 1 })
     expect(first.ok).toBe(true)
     if (!first.ok) return
@@ -1142,7 +1142,7 @@ describe('App focus', () => {
       subjectId: '',
       startedAt: new Date(Date.now() - (ACTIVE_FOCUS_SESSION_STALE_AFTER_MS - 60_000)).toISOString(),
       plannedMinutes: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Pause' })).toBeInTheDocument()
@@ -1157,7 +1157,7 @@ describe('App focus', () => {
       startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString(),
       plannedMinutes: 25,
       status: 'running',
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'Unfinished focus session' })).toBeInTheDocument()
@@ -1179,7 +1179,7 @@ describe('App focus', () => {
       plannedMinutes: 25,
       status: 'paused',
       pausedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString(),
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByText(/It was paused for General/)).toBeInTheDocument()
@@ -1200,7 +1200,7 @@ describe('App focus', () => {
       status: 'paused',
       pausedAt,
       accumulatedPausedMs: 90_000,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Resume session' }))
@@ -1224,7 +1224,7 @@ describe('App focus', () => {
       startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS - 60_000).toISOString(),
       plannedMinutes: 25,
       status: 'running',
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Resume session' }))
@@ -1244,7 +1244,7 @@ describe('App focus', () => {
       subjectId: '',
       startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString(),
       plannedMinutes: 25,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Discard session' }))
@@ -1262,7 +1262,7 @@ describe('App focus', () => {
       subjectId: '',
       startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString(),
       plannedMinutes: 0,
-    }))
+    }), { expectedGeneration: 1 })
     const activeFocusApi = await import('./db/activeFocusSession')
     vi.spyOn(activeFocusApi, 'discardActiveFocusSession').mockRejectedValueOnce(new Error('write failed'))
 
@@ -1287,7 +1287,7 @@ describe('App focus', () => {
       subjectId: '',
       startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString(),
       plannedMinutes: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     const user = userEvent.setup()
     render(<App />)
@@ -1314,7 +1314,7 @@ describe('App focus', () => {
       status: 'running',
       pausedAt: null,
       accumulatedPausedMs: 0,
-    })
+    }, { expectedGeneration: 1 })
 
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<App />)
@@ -1368,7 +1368,7 @@ describe('App focus', () => {
       status: 'running',
       pausedAt: null,
       accumulatedPausedMs: 0,
-    })
+    }, { expectedGeneration: 1 })
 
     render(<App />)
 
@@ -1399,7 +1399,7 @@ describe('App focus', () => {
       status: 'running',
       pausedAt: null,
       accumulatedPausedMs: 0,
-    })
+    }, { expectedGeneration: 1 })
 
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<App />)

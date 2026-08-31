@@ -1,7 +1,6 @@
 import type { ActiveFocusSession, ActiveFocusSessionStatus, StudySession } from './types'
 import {
   type DatabaseMutationContext,
-  withCurrentGenerationMutation,
   withGuardedMutation,
 } from './databaseMutationGuard'
 import { withSharedDatabaseLock } from './crossTabLock'
@@ -110,14 +109,13 @@ export function isActiveFocusSessionStale(session: ActiveFocusSession, nowMs = D
 
 /**
  * Reads the singleton unfinished session.
- * Malformed values are deleted and treated as absent (never throws).
+ * Malformed values are treated as absent without mutating the database (never throws).
  */
 export async function getActiveFocusSession(): Promise<ActiveFocusSession | null> {
   try {
     const record = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
     if (!record) return null
     if (isActiveFocusSession(record.value)) return record.value
-    await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
     return null
   } catch {
     return null
@@ -142,16 +140,16 @@ export async function getActiveFocusSessionWithGeneration(): Promise<{
 /**
  * Atomically creates the singleton unfinished session under shared Web Lock.
  * Does not overwrite an existing valid session (observable conflict).
- * Enforces transactional subject referential integrity.
+ * Enforces transactional subject referential integrity and generation guard.
  */
 export async function createActiveFocusSession(
   session: ActiveFocusSession,
-  context?: DatabaseMutationContext,
+  context: DatabaseMutationContext,
 ): Promise<CreateActiveFocusSessionResult> {
   if (!isActiveFocusSession(session)) return { ok: false, reason: 'invalid' }
 
-  const execute = async (gen: number): Promise<CreateActiveFocusSessionResult> => {
-    return studyDb.transaction('rw', studyDb.subjects, studyDb.settings, async () => {
+  return withGuardedMutation(context, () =>
+    studyDb.transaction('rw', studyDb.subjects, studyDb.settings, async () => {
       try {
         await assertSubjectExists(session.subjectId)
       } catch (err) {
@@ -171,14 +169,9 @@ export async function createActiveFocusSession(
       }
 
       await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: session })
-      return { ok: true, session, generation: gen }
-    })
-  }
-
-  if (context) {
-    return withGuardedMutation(context, () => execute(context.expectedGeneration))
-  }
-  return withCurrentGenerationMutation((gen) => execute(gen))
+      return { ok: true, session, generation: context.expectedGeneration }
+    }),
+  )
 }
 
 /**
@@ -228,14 +221,8 @@ export type DiscardActiveFocusSessionResult =
   | { ok: false; reason: 'conflict'; existing: ActiveFocusSession }
 
 /** Clears only the reserved unfinished-session settings record under shared Web Lock. */
-export async function clearActiveFocusSession(context?: DatabaseMutationContext): Promise<void> {
-  if (context) {
-    await withGuardedMutation(context, async () => {
-      await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
-    })
-    return
-  }
-  await withCurrentGenerationMutation(async () => {
+export async function clearActiveFocusSession(context: DatabaseMutationContext): Promise<void> {
+  await withGuardedMutation(context, async () => {
     await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
   })
 }

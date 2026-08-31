@@ -430,7 +430,7 @@ describe('App study sessions live query isolation', () => {
       subjectId: '',
       plannedMinutes: 25,
       startedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
-    }))
+    }), { expectedGeneration: 1 })
     expect(created).toMatchObject({ ok: true, session: { id: 'focus-idempotent' } })
 
     const user = userEvent.setup()

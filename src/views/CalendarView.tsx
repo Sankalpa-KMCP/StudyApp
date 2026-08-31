@@ -15,6 +15,7 @@ import {
   deleteCalendarEvent,
   updateCalendarEvent,
 } from '../db/calendarEventService'
+import type { DatabaseMutationContext } from '../db/databaseMutationGuard'
 import type { CalendarEvent, StudySubject } from '../db/types'
 import { formatDateTime, todayInputValue, toInputDate, toInputTime } from '../appUtils'
 import { CalendarStrip } from '../components/CalendarStrip'
@@ -192,7 +193,7 @@ export function CalendarView({
     })
   }
 
-  const deleteEvent = async (event: CalendarEvent) => {
+  const deleteEvent = async (event: CalendarEvent, context?: DatabaseMutationContext) => {
     if (pendingDeleteId || isSaving || isRowPending) return
 
     clearValidation()
@@ -203,7 +204,7 @@ export function CalendarView({
     try {
       await runRow(async () => {
         await deleteCalendarEvent(event.id, {
-          expectedGeneration: databaseGeneration,
+          expectedGeneration: context?.expectedGeneration ?? databaseGeneration,
         })
       }, {
         successMessage: 'Event deleted.',
@@ -309,7 +310,8 @@ export function CalendarView({
               <RowActionButtons
                 label={event.title}
                 onEdit={() => openEditor(event)}
-                onDelete={() => void deleteEvent(event)}
+                onDelete={(context) => void deleteEvent(event, context)}
+                databaseGeneration={databaseGeneration}
                 isDisabled={rowActionsLocked}
                 isDeleting={pendingDeleteId === event.id}
               />

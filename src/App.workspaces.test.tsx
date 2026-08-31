@@ -1336,7 +1336,7 @@ describe('App workspaces', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Subject created.')
     const created = (await studyDb.subjects.toArray())[0]
     expect(created).toMatchObject({ name: 'Chemistry', progressMode: 'study_time', progress: 0, targetHours: 1 })
-    expect(screen.getByRole('progressbar', { name: '0%' })).toBeInTheDocument()
+    expect(await screen.findByRole('progressbar', { name: '0%' })).toBeInTheDocument()
 
     await studyDb.studySessions.add({
       id: 'session-chem',
@@ -1365,7 +1365,7 @@ describe('App workspaces', () => {
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Subjects' }))
-    expect(screen.getByRole('progressbar', { name: '35%' })).toBeInTheDocument()
+    expect(await screen.findByRole('progressbar', { name: '35%' })).toBeInTheDocument()
 
     await user.click(screen.getByLabelText('Edit Mode Switch'))
     expect(screen.getByLabelText('Progress mode')).toHaveValue('manual')

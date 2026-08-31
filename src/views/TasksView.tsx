@@ -11,6 +11,7 @@ import {
   setTaskStatus,
   updateTask,
 } from '../db/taskService'
+import type { DatabaseMutationContext } from '../db/databaseMutationGuard'
 import type { StudyTask, StudySubject, TaskPriority } from '../db/types'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 import {
@@ -195,7 +196,7 @@ export function TasksView({
     }
   }
 
-  const deleteTask = async (task: StudyTask) => {
+  const deleteTask = async (task: StudyTask, context?: DatabaseMutationContext) => {
     if (pendingRowId || isSaving) return
 
     setValidationError(null)
@@ -207,7 +208,7 @@ export function TasksView({
     try {
       await runRow(async () => {
         await deleteTaskRecord(task.id, {
-          expectedGeneration: databaseGeneration,
+          expectedGeneration: context?.expectedGeneration ?? databaseGeneration,
         })
       }, {
         successMessage: 'Task deleted.',
@@ -296,7 +297,8 @@ export function TasksView({
                 <RowActionButtons
                   label={task.title}
                   onEdit={() => openEditor(task)}
-                  onDelete={() => void deleteTask(task)}
+                  onDelete={(context) => void deleteTask(task, context)}
+                  databaseGeneration={databaseGeneration}
                   isDisabled={rowBusy || isSaving}
                   isDeleting={isDeleting}
                 />

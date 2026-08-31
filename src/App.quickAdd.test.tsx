@@ -122,7 +122,7 @@ describe('App quick add', () => {
       subjectId: '',
       plannedMinutes: 0,
       status: 'running',
-    }))
+    }), { expectedGeneration: 1 })
     render(<App />)
 
     await user.click(await screen.findByRole('button', { name: 'Tasks' }))
@@ -141,7 +141,7 @@ describe('App quick add', () => {
       status: 'paused',
       pausedAt: new Date().toISOString(),
       accumulatedPausedMs: 30_000,
-    }))
+    }), { expectedGeneration: 1 })
     render(<App />)
 
     await user.click(await screen.findByRole('button', { name: 'Notes' }))
@@ -162,7 +162,7 @@ describe('App quick add', () => {
       startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString(),
       plannedMinutes: 25,
       status: 'running',
-    }))
+    }), { expectedGeneration: 1 })
     render(<App />)
 
     await user.click(await screen.findByRole('button', { name: 'Tasks' }))
@@ -253,7 +253,7 @@ describe('App quick add', () => {
       subjectId: '',
       plannedMinutes: 0,
       status: 'running',
-    }))
+    }), { expectedGeneration: 1 })
     render(<App />)
 
     const today = (await screen.findByRole('heading', { name: 'Today' })).closest('section') as HTMLElement

@@ -492,7 +492,7 @@ describe('App backup', () => {
       id: 'focus-omitted-test',
       subjectId: '',
       plannedMinutes: 0,
-    }))
+    }), { expectedGeneration: 1 })
 
     render(<App />)
     expect(await screen.findByRole('button', { name: 'Stop session' })).toBeInTheDocument()

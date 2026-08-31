@@ -69,7 +69,7 @@ describe('useFocusSession', () => {
   })
 
   it('restores a running session and blocks Start until restore completes', async () => {
-    await createActiveFocusSession(makeSession({ plannedMinutes: 40 }))
+    await createActiveFocusSession(makeSession({ plannedMinutes: 40 }), { expectedGeneration: 1 })
 
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
 
@@ -84,7 +84,7 @@ describe('useFocusSession', () => {
   it('restores a stale session into the stale slot only', async () => {
     await createActiveFocusSession(makeSession({
       startedAt: new Date(Date.now() - ACTIVE_FOCUS_SESSION_STALE_AFTER_MS).toISOString(),
-    }))
+    }), { expectedGeneration: 1 })
 
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
 
@@ -119,7 +119,7 @@ describe('useFocusSession', () => {
   })
 
   it('clears local focus slots without re-reading IndexedDB', async () => {
-    await createActiveFocusSession(makeSession())
+    await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
 
@@ -133,7 +133,7 @@ describe('useFocusSession', () => {
   })
 
   it('persists a successful focus subject update into the durable singleton', async () => {
-    await createActiveFocusSession(makeSession())
+    await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
 
@@ -151,7 +151,7 @@ describe('useFocusSession', () => {
   })
 
   it('hydrates the authoritative durable session when subject update conflicts', async () => {
-    await createActiveFocusSession(makeSession())
+    await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     const elsewhere = makeSession({
       id: 'focus-elsewhere',
       subjectId: 'subject-c',
@@ -179,7 +179,7 @@ describe('useFocusSession', () => {
   })
 
   it('restores the prior subject when the durable session is missing after an update', async () => {
-    await createActiveFocusSession(makeSession())
+    await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
 
@@ -196,7 +196,7 @@ describe('useFocusSession', () => {
   })
 
   it('rehydrates a durable session when subject update returns missing but one still exists', async () => {
-    await createActiveFocusSession(makeSession())
+    await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     const durable = makeSession({ subjectId: 'subject-a', plannedMinutes: 35 })
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
@@ -217,7 +217,7 @@ describe('useFocusSession', () => {
   })
 
   it('restores the prior subject when subject persistence throws and no durable session remains', async () => {
-    await createActiveFocusSession(makeSession())
+    await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
@@ -235,7 +235,7 @@ describe('useFocusSession', () => {
   })
 
   it('rehydrates durable state when subject persistence throws but IndexedDB still has the session', async () => {
-    await createActiveFocusSession(makeSession())
+    await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(activeFocusSession, 'updateActiveFocusSession').mockRejectedValue(new Error('subject write failed'))
 
@@ -253,7 +253,7 @@ describe('useFocusSession', () => {
   })
 
   it('does not mutate the durable subject while focus actions are pending', async () => {
-    await createActiveFocusSession(makeSession())
+    await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     const updateSpy = vi.spyOn(activeFocusSession, 'updateActiveFocusSession')
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
@@ -283,7 +283,7 @@ describe('useFocusSession', () => {
   })
 
   it('ignores an older subject-update settlement after a newer subject write is queued', async () => {
-    await createActiveFocusSession(makeSession())
+    await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     let releaseFirst!: (result: activeFocusSession.UpdateActiveFocusSessionResult) => void
     const firstGate = new Promise<activeFocusSession.UpdateActiveFocusSessionResult>((resolve) => {
       releaseFirst = resolve
@@ -393,7 +393,7 @@ describe('useFocusSession', () => {
   })
 
   it('reverts and notifies when updating active focus to a non-existent subject', async () => {
-    await createActiveFocusSession(makeSession())
+    await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
 
@@ -410,7 +410,7 @@ describe('useFocusSession', () => {
   })
 
   it('preserves active focus state and notifies when stopping a session whose subject was deleted', async () => {
-    await createActiveFocusSession(makeSession())
+    await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
 
@@ -428,7 +428,7 @@ describe('useFocusSession', () => {
   })
 
   it('clears active focus state and notifies when database generation advanced externally', async () => {
-    await createActiveFocusSession(makeSession())
+    await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
 
