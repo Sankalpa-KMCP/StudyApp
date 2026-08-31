@@ -44,6 +44,24 @@ const STUDY_DB_STORES = {
   settings: '&key',
 } as const
 
+const LEGACY_EVENT_START_REGEX = /^(\d{4})-(\d{2})-(\d{2})T09:00:00(\.000)?$/
+
+export function isLegacyEventStartTimestamp(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  const match = LEGACY_EVENT_START_REGEX.exec(value)
+  if (!match) return false
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+}
+
+export function reconstructLegacyEventStartTimestamp(endAt: string): string {
+  return new Date(new Date(endAt).getTime() - 60 * 60_000).toISOString()
+}
+
 function isGoalPeriod(value: unknown): value is GoalPeriod {
   return value === 'daily' || value === 'weekly' || value === 'monthly'
 }
@@ -79,6 +97,16 @@ export class StudyDatabase extends Dexie {
     })
     this.version(4).stores({
       flashcards: null,
+    })
+    this.version(5).upgrade(async (transaction) => {
+      const events = transaction.table('events')
+      await events.toCollection().modify((event: Record<string, unknown>) => {
+        if (typeof event.startAt === 'string' && !isPersistedIsoTimestamp(event.startAt)) {
+          if (isLegacyEventStartTimestamp(event.startAt) && typeof event.endAt === 'string' && isPersistedIsoTimestamp(event.endAt)) {
+            event.startAt = reconstructLegacyEventStartTimestamp(event.endAt)
+          }
+        }
+      })
     })
   }
 }
@@ -656,7 +684,7 @@ export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
       tasks: parsed.tasks,
       subjects: parsed.subjects,
       notes: parsed.notes,
-      events: parsed.events,
+      events: normalizeLegacyEvents(parsed.events),
       studySessions,
       goals: parsed.goals,
       settings: parsed.settings,
@@ -677,7 +705,7 @@ export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
       tasks: parsed.tasks,
       subjects: parsed.subjects,
       notes: parsed.notes,
-      events: parsed.events,
+      events: normalizeLegacyEvents(parsed.events),
       studySessions,
       goals: parsed.goals,
       settings: parsed.settings,
@@ -698,7 +726,7 @@ export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
     tasks: parsed.tasks,
     subjects,
     notes: parsed.notes,
-    events: parsed.events,
+    events: normalizeLegacyEvents(parsed.events),
     studySessions,
     settings: parsed.settings,
   }
@@ -741,6 +769,20 @@ function finalizeStudyExport(snapshot: StudyExport): StudyExport {
   assertStudyExportSettingsValues(snapshot)
   assertStudyExportRecordCounts(snapshot)
   return snapshot
+}
+
+function normalizeLegacyEvent(event: CalendarEvent): CalendarEvent {
+  if (isLegacyEventStartTimestamp(event.startAt) && isPersistedIsoTimestamp(event.endAt)) {
+    return {
+      ...event,
+      startAt: reconstructLegacyEventStartTimestamp(event.endAt),
+    }
+  }
+  return event
+}
+
+function normalizeLegacyEvents(events: CalendarEvent[]): CalendarEvent[] {
+  return events.map(normalizeLegacyEvent)
 }
 
 function normalizeLegacySubjects(subjects: StudySubjectLegacy[], sessions: StudySession[]): StudySubject[] {
@@ -827,11 +869,12 @@ function isStudyNote(value: unknown): value is StudyNote {
 
 function isCalendarEvent(value: unknown): value is CalendarEvent {
   if (!isRecord(value)) return false
+  const validStart = isDate(value.startAt) || (isLegacyEventStartTimestamp(value.startAt) && isDate(value.endAt))
   return (
     hasRecordIdentity(value) &&
     isString(value.title) &&
     isString(value.subjectId) &&
-    isDate(value.startAt) &&
+    validStart &&
     isDate(value.endAt) &&
     isString(value.location) &&
     hasTimestamps(value)
@@ -1079,10 +1122,30 @@ function migrateLegacyData(data: LegacyData): StudyData {
   }
 }
 
-function legacyTimeToIso(day: string, time?: string) {
-  if (!time) return `${day}T09:00:00.000`
-  const parsed = new Date(`${day} ${time}`)
-  return Number.isNaN(parsed.getTime()) ? `${day}T09:00:00.000` : parsed.toISOString()
+function legacyTimeToIso(day: string, time?: string): string {
+  const cleanTime = time?.trim()
+  if (cleanTime) {
+    const parsed = new Date(`${day} ${cleanTime}`)
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString()
+    }
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day.trim())
+  if (match) {
+    const year = Number(match[1])
+    const month = Number(match[2]) - 1
+    const date = Number(match[3])
+    const localDate = new Date(year, month, date, 9, 0, 0, 0)
+    if (
+      !Number.isNaN(localDate.getTime()) &&
+      localDate.getFullYear() === year &&
+      localDate.getMonth() === month &&
+      localDate.getDate() === date
+    ) {
+      return localDate.toISOString()
+    }
+  }
+  return `${day}T09:00:00.000Z`
 }
 
 function addMinutes(iso: string, minutes: number) {
