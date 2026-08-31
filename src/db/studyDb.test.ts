@@ -4371,5 +4371,71 @@ describe('legacy event start timestamp Dexie version 5 upgrade', () => {
       expect(txSpy).toHaveBeenCalledWith('r', expect.any(Array), expect.any(Function))
       txSpy.mockRestore()
     })
+
+    it('import fails closed when databaseGeneration is present but corrupt (value: undefined) and leaves existing data intact', async () => {
+      await studyDb.tasks.add({
+        id: 'task-keep-on-corrupt-import',
+        title: 'Preserved task',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 30,
+        createdAt: '2026-08-25T12:00:00.000Z',
+        updatedAt: '2026-08-25T12:00:00.000Z',
+      })
+      await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: undefined as unknown })
+
+      await expect(importStudyData(samplePayload)).rejects.toThrow()
+
+      const tasks = await studyDb.tasks.toArray()
+      expect(tasks).toHaveLength(1)
+      expect(tasks[0].id).toBe('task-keep-on-corrupt-import')
+
+      const storedGen = await studyDb.settings.get(DATABASE_GENERATION_KEY)
+      expect(storedGen).toBeDefined()
+      expect(storedGen?.value).toBeUndefined()
+    })
+
+    it('clearAllStudyData fails closed when databaseGeneration is present but corrupt (value: undefined) and leaves existing data intact', async () => {
+      await studyDb.tasks.add({
+        id: 'task-keep-on-corrupt-clear',
+        title: 'Preserved task',
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal',
+        status: 'open',
+        minutes: 30,
+        createdAt: '2026-08-25T12:00:00.000Z',
+        updatedAt: '2026-08-25T12:00:00.000Z',
+      })
+      await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: undefined as unknown })
+
+      await expect(clearAllStudyData()).rejects.toThrow()
+
+      const tasks = await studyDb.tasks.toArray()
+      expect(tasks).toHaveLength(1)
+      expect(tasks[0].id).toBe('task-keep-on-corrupt-clear')
+
+      const storedGen = await studyDb.settings.get(DATABASE_GENERATION_KEY)
+      expect(storedGen).toBeDefined()
+      expect(storedGen?.value).toBeUndefined()
+    })
+
+    it('migrateLegacyLocalStorage fails closed when databaseGeneration is present but corrupt and preserves source localStorage', async () => {
+      const legacyData = {
+        tasks: [{ id: 'task-leg-corrupt', title: 'Legacy task', done: false, minutes: 20 }],
+      }
+      localStorage.setItem('study-dashboard-v2', JSON.stringify(legacyData))
+      await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: undefined as unknown })
+
+      const result = await migrateLegacyLocalStorage()
+      expect(result.status).toBe('transaction_failed')
+      expect(localStorage.getItem('study-dashboard-v2')).not.toBeNull()
+
+      const storedGen = await studyDb.settings.get(DATABASE_GENERATION_KEY)
+      expect(storedGen).toBeDefined()
+      expect(storedGen?.value).toBeUndefined()
+    })
   })
 })

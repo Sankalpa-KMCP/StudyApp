@@ -11,7 +11,7 @@ import {
   advanceDatabaseGeneration,
   DATABASE_GENERATION_KEY,
   DatabaseGenerationOverflowError,
-  parseDatabaseGeneration,
+  getDatabaseGeneration,
 } from './databaseGeneration'
 import {
   assertUniqueStudyExportIdentifiers,
@@ -210,8 +210,7 @@ export async function importStudyData(
   try {
     await withExclusiveDatabaseLock(async () => {
       await studyDb.transaction('rw', studyTables, async () => {
-        const currentRecord = await studyDb.settings.get(DATABASE_GENERATION_KEY)
-        const currentGen = parseDatabaseGeneration(currentRecord?.value)
+        const currentGen = await getDatabaseGeneration(studyDb.settings)
         if (currentGen >= Number.MAX_SAFE_INTEGER) {
           throw new DatabaseGenerationOverflowError()
         }
@@ -276,8 +275,7 @@ export async function importStudyData(
 export async function clearAllStudyData() {
   await withExclusiveDatabaseLock(async () => {
     await studyDb.transaction('rw', studyTables, async () => {
-      const currentRecord = await studyDb.settings.get(DATABASE_GENERATION_KEY)
-      const currentGen = parseDatabaseGeneration(currentRecord?.value)
+      const currentGen = await getDatabaseGeneration(studyDb.settings)
       if (currentGen >= Number.MAX_SAFE_INTEGER) {
         throw new DatabaseGenerationOverflowError()
       }

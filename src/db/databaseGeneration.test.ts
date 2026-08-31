@@ -85,7 +85,8 @@ describe('databaseGeneration', () => {
   })
 
   describe('table-level helpers (Dexie settings)', () => {
-    it('getDatabaseGeneration returns 1 when key is missing', async () => {
+    it('getDatabaseGeneration returns 1 when key is genuinely missing', async () => {
+      expect(await studyDb.settings.get(DATABASE_GENERATION_KEY)).toBeUndefined()
       const gen = await getDatabaseGeneration(studyDb.settings)
       expect(gen).toBe(1)
     })
@@ -96,9 +97,51 @@ describe('databaseGeneration', () => {
       expect(gen).toBe(7)
     })
 
-    it('getDatabaseGeneration throws CorruptDatabaseGenerationError on corrupt value', async () => {
-      await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: 'corrupt' })
+    it('getDatabaseGeneration throws CorruptDatabaseGenerationError when record is present with value: undefined', async () => {
+      await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: undefined as unknown })
+      expect(await studyDb.settings.get(DATABASE_GENERATION_KEY)).toBeDefined()
+
       await expect(getDatabaseGeneration(studyDb.settings)).rejects.toThrow(CorruptDatabaseGenerationError)
+    })
+
+    it('advanceDatabaseGeneration throws CorruptDatabaseGenerationError on present value: undefined and preserves record', async () => {
+      await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: undefined as unknown })
+      await expect(advanceDatabaseGeneration(studyDb.settings)).rejects.toThrow(CorruptDatabaseGenerationError)
+
+      const stored = await studyDb.settings.get(DATABASE_GENERATION_KEY)
+      expect(stored).toBeDefined()
+      expect(stored?.value).toBeUndefined()
+    })
+
+    it('assertCurrentDatabaseGeneration throws CorruptDatabaseGenerationError on present value: undefined', async () => {
+      await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: undefined as unknown })
+      await expect(assertCurrentDatabaseGeneration(studyDb.settings, 1)).rejects.toThrow(CorruptDatabaseGenerationError)
+    })
+
+    it.each([
+      ['null', null],
+      ['string "1"', '1'],
+      ['string "corrupt"', 'corrupt'],
+      ['empty object', {}],
+      ['array', []],
+      ['boolean true', true],
+      ['zero', 0],
+      ['negative', -5],
+      ['fraction', 2.5],
+      ['NaN', NaN],
+      ['Infinity', Infinity],
+      ['-Infinity', -Infinity],
+      ['MAX_SAFE_INTEGER + 1', Number.MAX_SAFE_INTEGER + 1],
+    ])('rejects present corrupt value %s across all table helpers', async (_, corruptVal) => {
+      await studyDb.settings.put({ key: DATABASE_GENERATION_KEY, value: corruptVal as unknown })
+
+      await expect(getDatabaseGeneration(studyDb.settings)).rejects.toThrow(CorruptDatabaseGenerationError)
+      await expect(assertCurrentDatabaseGeneration(studyDb.settings, 1)).rejects.toThrow(CorruptDatabaseGenerationError)
+      await expect(advanceDatabaseGeneration(studyDb.settings)).rejects.toThrow(CorruptDatabaseGenerationError)
+
+      // Stored corrupt value must NOT have been silently overwritten
+      const stored = await studyDb.settings.get(DATABASE_GENERATION_KEY)
+      expect(stored).toBeDefined()
     })
 
     it('assertCurrentDatabaseGeneration passes when matching and throws on mismatch', async () => {
