@@ -395,6 +395,7 @@ describe('App UI settings live query isolation', () => {
     const full = await getStudyData()
     expect(full.settings.map((row) => row.key).sort()).toEqual([
       'dailyGoalMinutes',
+      'databaseGeneration',
       'legacy-localstorage-migrated-v1',
       'onboardingChecklistDismissed',
       'plugin.future.setting',
@@ -402,7 +403,7 @@ describe('App UI settings live query isolation', () => {
     ].sort())
     expect(full.settings.find((row) => row.key === 'plugin.future.setting')?.value).toEqual({ keep: true, n: 2 })
     expect((await exportStudyData()).settings).toEqual(
-      full.settings.filter((row) => row.key !== 'legacy-localstorage-migrated-v1')
+      full.settings.filter((row) => row.key !== 'legacy-localstorage-migrated-v1' && row.key !== 'databaseGeneration')
     )
   })
 
