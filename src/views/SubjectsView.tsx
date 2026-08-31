@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { BookOpen } from '../components/icons'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import {
@@ -24,6 +24,7 @@ import {
   calculateSubjectProgress,
   formatMinutes,
   formatSubjectProgressModeLabel,
+  getSubjectStudyMinutesMap,
 } from '../appUtils'
 import { useMutationState, type MutationPhase } from '../hooks/useMutationState'
 import { validateSubjectEditorDraft } from '../validation/editorDraftValidation'
@@ -265,6 +266,7 @@ export function SubjectsView({
 
   const loadingLabel = editingSubjectId && editingSubjectId !== 'new' ? 'Saving subject...' : 'Creating subject...'
   const rowActionsLocked = isSaving || Boolean(pendingDeleteId)
+  const sessionMinutesMap = useMemo(() => getSubjectStudyMinutesMap(sessions), [sessions])
 
   return (
     <section className="workspace-panel" aria-labelledby="subjects-workspace-title">
@@ -340,7 +342,7 @@ export function SubjectsView({
             const taskCount = tasks.filter((task) => task.subjectId === subject.id).length
             const linked = getLinkedCounts(subject.id)
             const linkedTotal = Object.values(linked).reduce((sum, count) => sum + count, 0)
-            const { percentage: progressValue, loggedMinutes: minutes } = calculateSubjectProgress(subject, sessions)
+            const { percentage: progressValue, loggedMinutes: minutes } = calculateSubjectProgress(subject, sessionMinutesMap)
             const safeColor = resolveSubjectColor(subject.color)
             return (
               <article className="card subject-card editable-subject" style={{ '--subject-color': safeColor } as React.CSSProperties} key={subject.id}>

@@ -1,4 +1,14 @@
-import { clamp, calculateStreak, formatHours, formatMinutes, formatShortTime, linePoints, percent } from '../appUtils'
+import { useMemo } from 'react'
+import {
+  calculateStreak,
+  clamp,
+  formatHours,
+  formatMinutes,
+  formatShortTime,
+  getSubjectStudyMinutesMap,
+  linePoints,
+  percent,
+} from '../appUtils'
 import type { CalendarEvent, StudySession, StudySubject } from '../db/types'
 import type { WeeklyStudyDay } from '../appUtils'
 import { EmptyState, ProgressBar } from './ui'
@@ -90,10 +100,13 @@ export function StreakCard({ sessions, now }: { sessions: StudySession[]; now?: 
 }
 
 export function SubjectDistribution({ subjects, sessions, subjectMap }: { subjects: StudySubject[]; sessions: StudySession[]; subjectMap: Map<string, StudySubject> }) {
-  const rows = subjects.map((subject) => ({
+  const sessionMinutesMap = useMemo(() => getSubjectStudyMinutesMap(sessions), [sessions])
+  const totalLoggedMinutes = useMemo(() => sessions.reduce((sum, session) => sum + session.minutes, 0), [sessions])
+
+  const rows = useMemo(() => subjects.map((subject) => ({
     subject,
-    minutes: sessions.filter((session) => session.subjectId === subject.id).reduce((sum, session) => sum + session.minutes, 0),
-  }))
+    minutes: sessionMinutesMap.get(subject.id) ?? 0,
+  })), [sessionMinutesMap, subjects])
 
   return (
     <section className="card distribution-card" aria-labelledby="distribution-title">
@@ -103,7 +116,7 @@ export function SubjectDistribution({ subjects, sessions, subjectMap }: { subjec
           {rows.map((row) => (
             <ProgressBar
               key={row.subject.id}
-              value={percent(row.minutes, Math.max(1, sessions.reduce((sum, session) => sum + session.minutes, 0)))}
+              value={percent(row.minutes, Math.max(1, totalLoggedMinutes))}
               label={`${subjectMap.get(row.subject.id)?.name ?? row.subject.name} - ${formatMinutes(row.minutes)}`}
             />
           ))}

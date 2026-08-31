@@ -1,5 +1,10 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react'
-import { buildSearchResults, calculateSubjectProgress, type SearchResult } from '../appUtils'
+import {
+  buildSearchResults,
+  calculateSubjectProgress,
+  getSubjectStudyMinutesMap,
+  type SearchResult,
+} from '../appUtils'
 import type { CalendarEvent, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
 
 export type TaskSearchFilter = 'all' | 'open' | 'done'
@@ -43,9 +48,14 @@ export function useAppSearch({
   const deferredSearch = useDeferredValue(search)
   const normalizedSearch = deferredSearch.trim().toLowerCase()
 
+  const sessionMinutesMap = useMemo(
+    () => getSubjectStudyMinutesMap(studySessions),
+    [studySessions],
+  )
+
   const homeSearchResults = useMemo(
-    () => buildSearchResults(subjects, notes, events, tasks, studySessions, subjectMap, deferredSearch),
-    [deferredSearch, events, notes, subjectMap, studySessions, subjects, tasks],
+    () => buildSearchResults(subjects, notes, events, tasks, sessionMinutesMap, subjectMap, deferredSearch),
+    [deferredSearch, events, notes, sessionMinutesMap, subjectMap, subjects, tasks],
   )
 
   const filteredTasks = useMemo(() => tasks.filter((task) => {
@@ -62,10 +72,10 @@ export function useAppSearch({
 
   const filteredSubjects = useMemo(
     () => subjects.filter((subject) => {
-      const percentage = Math.round(calculateSubjectProgress(subject, studySessions).percentage)
+      const percentage = Math.round(calculateSubjectProgress(subject, sessionMinutesMap).percentage)
       return `${subject.name} ${percentage}`.toLowerCase().includes(normalizedSearch)
     }),
-    [normalizedSearch, studySessions, subjects],
+    [normalizedSearch, sessionMinutesMap, subjects],
   )
 
   const filteredEvents = useMemo(() => events.filter((event) => {

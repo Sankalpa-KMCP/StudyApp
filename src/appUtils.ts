@@ -68,8 +68,28 @@ export function getTodayFocusMinutes(sessions: StudySession[], now = new Date())
   return sessions.filter((session) => localDateKey(session.endedAt) === today).reduce((sum, session) => sum + session.minutes, 0)
 }
 
-export function getSubjectStudyMinutes(subjectId: string, sessions: StudySession[]) {
-  return sessions.filter((session) => session.subjectId === subjectId).reduce((sum, session) => sum + session.minutes, 0)
+/**
+ * Single-pass map of subjectId -> total logged study session minutes.
+ * O(S) over study sessions, enabling O(1) lookups for multiple subjects.
+ */
+export function getSubjectStudyMinutesMap(sessions: StudySession[]): Map<string, number> {
+  const map = new Map<string, number>()
+  for (const session of sessions) {
+    if (session.minutes > 0) {
+      map.set(session.subjectId, (map.get(session.subjectId) ?? 0) + session.minutes)
+    }
+  }
+  return map
+}
+
+export function getSubjectStudyMinutes(
+  subjectId: string,
+  sessionsOrMap: StudySession[] | ReadonlyMap<string, number> | Map<string, number>,
+) {
+  if (Array.isArray(sessionsOrMap)) {
+    return sessionsOrMap.filter((session) => session.subjectId === subjectId).reduce((sum, session) => sum + session.minutes, 0)
+  }
+  return sessionsOrMap.get(subjectId) ?? 0
 }
 
 export type SubjectProgressResult = {
@@ -83,9 +103,12 @@ export type SubjectProgressResult = {
  * Authoritative subject progress from the stored `progressMode`.
  * Manual mode uses stored `progress`; study_time uses all matching finalized session minutes vs target hours.
  */
-export function calculateSubjectProgress(subject: StudySubject, sessions: StudySession[]): SubjectProgressResult {
+export function calculateSubjectProgress(
+  subject: StudySubject,
+  sessionsOrMap: StudySession[] | ReadonlyMap<string, number> | Map<string, number>,
+): SubjectProgressResult {
   const targetMinutes = Math.max(1, subject.targetHours * 60)
-  const loggedMinutes = getSubjectStudyMinutes(subject.id, sessions)
+  const loggedMinutes = getSubjectStudyMinutes(subject.id, sessionsOrMap)
 
   if (subject.progressMode === 'study_time') {
     return {
@@ -105,13 +128,19 @@ export function calculateSubjectProgress(subject: StudySubject, sessions: StudyS
 }
 
 /** Percentage-only wrapper around `calculateSubjectProgress` for existing card call sites. */
-export function getSubjectProgress(subject: StudySubject, sessions: StudySession[]) {
-  return calculateSubjectProgress(subject, sessions).percentage
+export function getSubjectProgress(
+  subject: StudySubject,
+  sessionsOrMap: StudySession[] | ReadonlyMap<string, number> | Map<string, number>,
+) {
+  return calculateSubjectProgress(subject, sessionsOrMap).percentage
 }
 
 /** Deterministic mode default for migration/import: positive matching session minutes → study_time. */
-export function inferSubjectProgressMode(subjectId: string, sessions: StudySession[]): SubjectProgressMode {
-  return getSubjectStudyMinutes(subjectId, sessions) > 0 ? 'study_time' : 'manual'
+export function inferSubjectProgressMode(
+  subjectId: string,
+  sessionsOrMap: StudySession[] | ReadonlyMap<string, number> | Map<string, number>,
+): SubjectProgressMode {
+  return getSubjectStudyMinutes(subjectId, sessionsOrMap) > 0 ? 'study_time' : 'manual'
 }
 
 /** True when progress is computed from finalized study sessions rather than stored manual progress. */
@@ -231,7 +260,7 @@ export function buildSearchResults(
   notes: StudyNote[],
   events: CalendarEvent[],
   tasks: StudyTask[],
-  studySessions: StudySession[],
+  studySessions: StudySession[] | ReadonlyMap<string, number> | Map<string, number>,
   subjectMap: Map<string, StudySubject>,
   query: string,
 ): SearchResult[] {
@@ -240,6 +269,9 @@ export function buildSearchResults(
 
   const subjectName = (subjectId: string) => subjectMap.get(subjectId)?.name ?? 'General'
   const matches = (...values: Array<string | number>) => values.join(' ').toLowerCase().includes(normalized)
+  const sessionMinutesMap = Array.isArray(studySessions)
+    ? getSubjectStudyMinutesMap(studySessions)
+    : studySessions
 
   return [
     ...tasks
@@ -249,14 +281,18 @@ export function buildSearchResults(
       .filter((note) => matches(note.title, note.body, note.tags.join(' '), subjectName(note.subjectId)))
       .map((note): SearchResult => ({ id: note.id, type: 'Note', title: note.title, meta: subjectName(note.subjectId), view: 'Notes' })),
     ...subjects
-      .filter((subject) => {
-        const percentage = Math.round(calculateSubjectProgress(subject, studySessions).percentage)
-        return matches(subject.name, percentage, subject.targetHours)
+      .map((subject) => {
+        const percentage = Math.round(calculateSubjectProgress(subject, sessionMinutesMap).percentage)
+        return { subject, percentage }
       })
-      .map((subject): SearchResult => {
-        const percentage = Math.round(calculateSubjectProgress(subject, studySessions).percentage)
-        return { id: subject.id, type: 'Subject', title: subject.name, meta: `${percentage}% progress`, view: 'Subjects' }
-      }),
+      .filter(({ subject, percentage }) => matches(subject.name, percentage, subject.targetHours))
+      .map(({ subject, percentage }): SearchResult => ({
+        id: subject.id,
+        type: 'Subject',
+        title: subject.name,
+        meta: `${percentage}% progress`,
+        view: 'Subjects',
+      })),
     ...events
       .filter((event) => matches(event.title, event.location, subjectName(event.subjectId)))
       .map((event): SearchResult => ({ id: event.id, type: 'Event', title: event.title, meta: `${formatDateTime(event.startAt)} - ${subjectName(event.subjectId)}`, view: 'Calendar' })),

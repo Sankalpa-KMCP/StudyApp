@@ -126,5 +126,42 @@ describe('RightColumn Charts Accessibility (F-16)', () => {
       const progress = screen.getByRole('progressbar', { name: 'Math - 1h' })
       expect(progress).toHaveAttribute('aria-valuenow', '100')
     })
+
+    it('renders SubjectDistribution with multiple subjects and calculates proportions accurately', () => {
+      const subjects: StudySubject[] = [
+        { id: 'sub-1', name: 'Math', color: '#1556c0', progress: 0, targetHours: 10, progressMode: 'study_time' },
+        { id: 'sub-2', name: 'Physics', color: '#334155', progress: 0, targetHours: 10, progressMode: 'study_time' },
+        { id: 'sub-3', name: 'Biology', color: '#047857', progress: 0, targetHours: 10, progressMode: 'manual' },
+      ]
+      const sessions: StudySession[] = [
+        { id: 's1', subjectId: 'sub-1', startedAt: '2026-08-26T10:00:00.000Z', endedAt: '2026-08-26T11:00:00.000Z', minutes: 60 },
+        { id: 's2', subjectId: 'sub-2', startedAt: '2026-08-26T11:00:00.000Z', endedAt: '2026-08-26T13:00:00.000Z', minutes: 120 },
+        { id: 's3', subjectId: 'orphaned', startedAt: '2026-08-26T14:00:00.000Z', endedAt: '2026-08-26T14:20:00.000Z', minutes: 20 },
+      ]
+      const subjectMap = new Map(subjects.map((s) => [s.id, s]))
+      render(<SubjectDistribution subjects={subjects} sessions={sessions} subjectMap={subjectMap} />)
+
+      // Total session minutes = 60 + 120 + 20 = 200 min
+      // Math: 60/200 = 30%
+      // Physics: 120/200 = 60%
+      // Biology: 0/200 = 0%
+      const mathBar = screen.getByRole('progressbar', { name: 'Math - 1h' })
+      expect(mathBar).toHaveAttribute('aria-valuenow', '30')
+
+      const physicsBar = screen.getByRole('progressbar', { name: 'Physics - 2h' })
+      expect(physicsBar).toHaveAttribute('aria-valuenow', '60')
+
+      const bioBar = screen.getByRole('progressbar', { name: 'Biology - 0m' })
+      expect(bioBar).toHaveAttribute('aria-valuenow', '0')
+    })
+
+    it('renders empty prompt when all sessions have zero logged minutes', () => {
+      const subjects: StudySubject[] = [{ id: 'sub-1', name: 'Math', color: '#1556c0', progress: 50, targetHours: 10, progressMode: 'study_time' }]
+      const subjectMap = new Map([['sub-1', subjects[0]]])
+      render(<SubjectDistribution subjects={subjects} sessions={[]} subjectMap={subjectMap} />)
+
+      expect(screen.getByText('Log study sessions to see where your time is going.')).toBeInTheDocument()
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    })
   })
 })
