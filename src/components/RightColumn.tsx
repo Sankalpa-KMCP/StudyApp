@@ -21,6 +21,10 @@ export function WeeklyProgress({ days }: { days: WeeklyStudyDay[] }) {
 
 export function StudyTime({ days }: { days: WeeklyStudyDay[] }) {
   const values = days.map((day) => day.hours)
+  const accessibleLabel = days.length === 0
+    ? 'Study time trend: No days recorded.'
+    : `Study time trend: ${days.map((day) => `${day.label} ${formatHours(day.hours)}`).join(', ')}.`
+
   return (
     <section className="card chart-card" aria-labelledby="study-time-title">
       <div className="card-heading">
@@ -29,7 +33,7 @@ export function StudyTime({ days }: { days: WeeklyStudyDay[] }) {
           <strong>{formatHours(values.reduce((sum, hours) => sum + hours, 0))}</strong>
         </div>
       </div>
-      <div className="line-chart" role="img" aria-label="Study time trend">
+      <div className="line-chart" role="img" aria-label={accessibleLabel}>
         <svg viewBox="0 0 360 160" aria-hidden="true">
           <polyline points={linePoints(values)} />
           {values.map((value, index) => (
@@ -113,9 +117,13 @@ export function SubjectDistribution({ subjects, sessions, subjectMap }: { subjec
 
 export function BarChart({ days }: { days: WeeklyStudyDay[] }) {
   const values = days.map((day) => day.hours)
+  const accessibleLabel = days.length === 0
+    ? 'Weekly progress by day: No days recorded.'
+    : `Weekly progress by day: ${days.map((day) => `${day.label} ${formatHours(day.hours)}`).join(', ')}.`
+
   return (
     <>
-      <div className="bar-chart" role="img" aria-label="Weekly progress by day">
+      <div className="bar-chart" role="img" aria-label={accessibleLabel}>
         {days.map((day) => (
           <span className={day.hours === Math.max(...values) && day.hours > 0 ? 'bar is-peak' : 'bar'} key={`${day.key}-${day.hours}`}>
             <span style={{ height: `${clamp((day.hours / Math.max(1, Math.max(...values))) * 100, 8, 100)}%` }} />

@@ -728,7 +728,7 @@ describe('App home', () => {
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Weekly Progress' })).toBeInTheDocument()
-    const chart = screen.getByRole('img', { name: 'Weekly progress by day' })
+    const chart = screen.getByRole('img', { name: /Weekly progress by day/i })
     expect(chart).toHaveClass('bar-chart')
     expect(chart).not.toHaveAttribute('tabindex')
     expect(chart.tabIndex).toBeLessThan(0)
@@ -740,7 +740,7 @@ describe('App home', () => {
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Study Time' })).toBeInTheDocument()
-    const chart = screen.getByRole('img', { name: 'Study time trend' })
+    const chart = screen.getByRole('img', { name: /Study time trend/i })
     expect(chart).toHaveClass('line-chart')
     expect(chart).not.toHaveAttribute('tabindex')
     expect(chart.tabIndex).toBeLessThan(0)
