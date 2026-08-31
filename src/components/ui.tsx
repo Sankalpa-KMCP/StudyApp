@@ -40,7 +40,7 @@ export function PanelHeader({ title, description, actionLabel, onAction, actionR
   return (
     <div className="workspace-heading">
       <div>
-        <h1 id={headingId}>{title}</h1>
+        <h1 id={headingId} tabIndex={-1}>{title}</h1>
         <p>{description}</p>
       </div>
       {actionLabel && onAction ? (

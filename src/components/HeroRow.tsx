@@ -16,7 +16,7 @@ export function HeroRow(props: {
     <section className="hero-row" aria-label="Today overview">
       <div className="hero-copy">
         <span className="eyebrow">{todayLabel}</span>
-        <h1>{greeting}</h1>
+        <h1 tabIndex={-1}>{greeting}</h1>
         <p>Choose the next useful thing, then give it your full attention.</p>
       </div>
       <div className="hero-metrics" aria-label="Today focus summary">

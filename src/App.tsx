@@ -18,6 +18,7 @@ import { AppLiveReadFallback } from './components/AppLiveReadFallback'
 import { LiveReadErrorBoundary } from './components/LiveReadErrorBoundary'
 import { AppLiveData } from './AppLiveData'
 import {
+  formatDocumentTitle,
   pathForView,
   pathnamesMatch,
   resolveViewFromPathname,
@@ -77,11 +78,34 @@ function App() {
     setFocusAttentionRequest(0)
   }, [])
 
+  const isInitialNavigationRef = useRef(true)
+
+  useEffect(() => {
+    document.title = formatDocumentTitle(activeView)
+    if (isInitialNavigationRef.current) {
+      isInitialNavigationRef.current = false
+      return
+    }
+    const hasEditorOrActionRequest =
+      taskEditorRequest > 0 ||
+      subjectEditorRequest > 0 ||
+      noteEditorRequest > 0 ||
+      eventEditorRequest > 0 ||
+      focusAttentionRequest > 0 ||
+      progressEditorRequested
+
+    if (!hasEditorOrActionRequest) {
+      const heading = document.querySelector<HTMLElement>('main h1, [role="main"] h1')
+      heading?.focus()
+    }
+  }, [activeView, taskEditorRequest, subjectEditorRequest, noteEditorRequest, eventEditorRequest, focusAttentionRequest, progressEditorRequested])
+
   const navigateToView = useCallback((view: View) => {
     clearEditorRequests()
+    if (view === activeView) return
     setActiveView(view)
     syncUrlToView(view, 'push')
-  }, [clearEditorRequests, syncUrlToView])
+  }, [activeView, clearEditorRequests, syncUrlToView])
 
   const migrationStartedRef = useRef(false)
 
