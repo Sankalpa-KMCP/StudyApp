@@ -90,7 +90,7 @@ describe('UI Components', () => {
     it('requires confirmation before a destructive row action', async () => {
       const user = userEvent.setup()
       const handleDelete = vi.fn()
-      render(<RowActionButtons label="Practice set" onEdit={() => {}} onDelete={handleDelete} />)
+      render(<RowActionButtons label="Practice set" databaseGeneration={1} onEdit={() => {}} onDelete={handleDelete} />)
 
       await user.click(screen.getByRole('button', { name: 'Delete Practice set' }))
       expect(handleDelete).not.toHaveBeenCalled()
@@ -102,7 +102,47 @@ describe('UI Components', () => {
 
       await user.click(screen.getByRole('button', { name: 'Delete Practice set' }))
       await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
-      expect(handleDelete).toHaveBeenCalledTimes(1)
+      expect(handleDelete).toHaveBeenCalledWith({ expectedGeneration: 1 })
+    })
+
+    it('captures database generation at dialog-open time even when component rerenders with newer generation', async () => {
+      const user = userEvent.setup()
+      const handleDelete = vi.fn()
+      const { rerender } = render(
+        <RowActionButtons
+          label="Practice set"
+          databaseGeneration={1}
+          onEdit={() => {}}
+          onDelete={handleDelete}
+        />,
+      )
+
+      // 1. Open delete confirmation under generation 1
+      await user.click(screen.getByRole('button', { name: 'Delete Practice set' }))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+      // 2. Rerender with newer database generation 2 while dialog remains open
+      rerender(
+        <RowActionButtons
+          label="Practice set"
+          databaseGeneration={2}
+          onEdit={() => {}}
+          onDelete={handleDelete}
+        />,
+      )
+
+      // 3. Confirm the open dialog
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
+
+      // 4. Verify onDelete received the generation captured at open time (1), NOT the rerendered generation (2)
+      expect(handleDelete).toHaveBeenCalledWith({ expectedGeneration: 1 })
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+      // 5. Newly opened confirmation captures the new generation (2)
+      await user.click(screen.getByRole('button', { name: 'Delete Practice set' }))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
+      expect(handleDelete).toHaveBeenLastCalledWith({ expectedGeneration: 2 })
     })
 
     it('disables edit and delete while deleting', async () => {
@@ -112,6 +152,7 @@ describe('UI Components', () => {
       render(
         <RowActionButtons
           label="Practice set"
+          databaseGeneration={1}
           onEdit={handleEdit}
           onDelete={handleDelete}
           isDeleting

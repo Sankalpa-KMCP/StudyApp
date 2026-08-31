@@ -50,7 +50,7 @@ export function TasksView({
   onClearSearch = () => {},
   openEditorRequest,
   onFilterChange,
-  databaseGeneration = 1,
+  databaseGeneration,
 }: {
   tasks: StudyTask[]
   subjects: StudySubject[]
@@ -59,7 +59,7 @@ export function TasksView({
   onClearSearch: () => void
   openEditorRequest: number
   onFilterChange: (filter: 'all' | 'open' | 'done') => void
-  databaseGeneration?: number
+  databaseGeneration: number
 }) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft>(() => emptyDraft())
@@ -196,7 +196,7 @@ export function TasksView({
     }
   }
 
-  const deleteTask = async (task: StudyTask, context?: DatabaseMutationContext) => {
+  const deleteTask = async (task: StudyTask, context: DatabaseMutationContext) => {
     if (pendingRowId || isSaving) return
 
     setValidationError(null)
@@ -207,9 +207,7 @@ export function TasksView({
 
     try {
       await runRow(async () => {
-        await deleteTaskRecord(task.id, {
-          expectedGeneration: context?.expectedGeneration ?? databaseGeneration,
-        })
+        await deleteTaskRecord(task.id, context)
       }, {
         successMessage: 'Task deleted.',
         errorMessage: 'Task could not be deleted. Please try again.',

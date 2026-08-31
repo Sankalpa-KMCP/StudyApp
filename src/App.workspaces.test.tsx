@@ -4,11 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { ACTIVE_FOCUS_SESSION_KEY } from './db/activeFocusSession'
 import * as calendarEventService from './db/calendarEventService'
+import { getDatabaseGeneration } from './db/databaseGeneration'
 import * as notesService from './db/notesService'
-import { studyDb } from './db/studyDb'
+import { importStudyData, studyDb } from './db/studyDb'
 import * as subjectService from './db/subjectService'
 import * as taskService from './db/taskService'
 import { confirmOpenDeletion, flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
+import { makeEmptyExport } from './test/backupTestHelpers'
 
 describe('App workspaces', () => {
   beforeEach(async () => {
@@ -392,6 +394,70 @@ describe('App workspaces', () => {
     await confirmOpenDeletion(user)
     await waitFor(() => expect(screen.queryByText('Sticky task')).not.toBeInTheDocument())
     expect(await screen.findByRole('status')).toHaveTextContent('Task deleted.')
+  })
+
+  it('rejects stale delete confirmation on same-ID replacement task and allows fresh deletion', async () => {
+    const user = userEvent.setup()
+    const timestamp = '2026-06-29T00:00:00.000Z'
+    const taskId = 'task-same-id'
+    await studyDb.tasks.add({
+      id: taskId,
+      title: 'Original task',
+      subjectId: '',
+      dueDate: '',
+      priority: 'normal',
+      status: 'open',
+      minutes: 15,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Tasks' }))
+    expect(await screen.findByText('Original task')).toBeInTheDocument()
+
+    // 2. Open delete confirmation under generation 1
+    await user.click(screen.getByLabelText('Delete Original task'))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    // 3. Destructive import in background advances generation to 2 while restoring the same ID
+    const replacementExport = makeEmptyExport({
+      tasks: [{
+        id: taskId,
+        title: 'Replaced task with same ID',
+        subjectId: '',
+        status: 'open',
+        priority: 'high',
+        minutes: 45,
+        dueDate: '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }],
+    })
+    await importStudyData(JSON.stringify(replacementExport))
+    expect(await getDatabaseGeneration(studyDb.settings)).toBe(2)
+
+    // 4. Confirm the old dialog (which captured generation 1)
+    await confirmOpenDeletion(user)
+
+    // 5. Verify stale error is surfaced
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The data changed in another window or during a database replacement; refresh or reopen this workflow before saving.',
+    )
+
+    // 6. Verify replacement R remains
+    expect(await studyDb.tasks.get(taskId)).toMatchObject({ title: 'Replaced task with same ID' })
+    expect(await screen.findByText('Replaced task with same ID')).toBeInTheDocument()
+
+    // 7. Verify no false "Task deleted." success
+    expect(screen.queryByText('Task deleted.')).not.toBeInTheDocument()
+
+    // 8. Reopen a fresh delete confirmation (capturing generation 2) and verify deletion succeeds
+    await user.click(screen.getByLabelText('Delete Replaced task with same ID'))
+    await confirmOpenDeletion(user)
+    await waitFor(() => expect(screen.queryByText('Replaced task with same ID')).not.toBeInTheDocument())
+    expect(await screen.findByRole('status')).toHaveTextContent('Task deleted.')
+    expect(await studyDb.tasks.get(taskId)).toBeUndefined()
   })
 
   it('blocks deleting subjects that still have linked records', async () => {
@@ -861,7 +927,7 @@ describe('App workspaces', () => {
     await user.click(screen.getByLabelText('Delete Other note'))
     await confirmOpenDeletion(user)
     expect(await screen.findByRole('status')).toHaveTextContent('Note deleted.')
-    expect(screen.queryByText('Other note')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Other note')).not.toBeInTheDocument())
     expect(screen.getByLabelText('Note title')).toHaveValue('Keep editing draft')
     expect(screen.getByLabelText('Body')).toHaveValue('Still in the editor')
     expect(await studyDb.notes.get('note-keep-editor')).toBeDefined()
@@ -1217,7 +1283,7 @@ describe('App workspaces', () => {
     await user.click(screen.getByLabelText('Delete Other event'))
     await confirmOpenDeletion(user)
     expect(await screen.findByRole('status')).toHaveTextContent('Event deleted.')
-    expect(screen.queryByText('Other event')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Other event')).not.toBeInTheDocument())
     expect(screen.getByLabelText('Event title')).toHaveValue('Keep editing draft event')
     expect(screen.getByLabelText('Location')).toHaveValue('Still open')
     expect(await studyDb.events.get('event-keep-editor')).toBeDefined()

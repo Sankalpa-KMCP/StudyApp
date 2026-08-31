@@ -37,7 +37,7 @@ export function NotesView({
   openEditorRequest = 0,
   search = '',
   onClearSearch = () => {},
-  databaseGeneration = 1,
+  databaseGeneration,
 }: {
   notes: StudyNote[]
   subjects: StudySubject[]
@@ -45,7 +45,7 @@ export function NotesView({
   openEditorRequest?: number
   search?: string
   onClearSearch?: () => void
-  databaseGeneration?: number
+  databaseGeneration: number
 }) {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [draft, setDraft] = useState<NoteDraft>(() => emptyDraft())
@@ -142,7 +142,7 @@ export function NotesView({
     })
   }
 
-  const deleteNote = async (note: StudyNote, context?: DatabaseMutationContext) => {
+  const deleteNote = async (note: StudyNote, context: DatabaseMutationContext) => {
     if (pendingDeleteId || isSaving || isRowPending) return
 
     setValidationError({ reason: null, message: null })
@@ -152,9 +152,7 @@ export function NotesView({
 
     try {
       await runRow(async () => {
-        await deleteNoteRecord(note.id, {
-          expectedGeneration: context?.expectedGeneration ?? databaseGeneration,
-        })
+        await deleteNoteRecord(note.id, context)
       }, {
         successMessage: 'Note deleted.',
         errorMessage: 'Note could not be deleted.',

@@ -72,7 +72,7 @@ export function SubjectsView({
   search = '',
   onClearSearch = () => {},
   openEditorRequest,
-  databaseGeneration = 1,
+  databaseGeneration,
 }: {
   subjects: StudySubject[]
   tasks: StudyTask[]
@@ -82,7 +82,7 @@ export function SubjectsView({
   openEditorRequest: number
   search?: string
   onClearSearch?: () => void
-  databaseGeneration?: number
+  databaseGeneration: number
 }) {
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null)
   const [draft, setDraft] = useState<SubjectDraft>(() => emptyDraft())
@@ -205,7 +205,7 @@ export function SubjectsView({
 
   const deleteSubjectGenerationRef = useRef<number>(databaseGeneration)
 
-  const requestDeleteSubject = async (subject: StudySubject, context?: DatabaseMutationContext) => {
+  const requestDeleteSubject = async (subject: StudySubject, context: DatabaseMutationContext) => {
     if (pendingDeleteId || isSaving || isRowPending || confirmSubject) return
 
     setValidationError(null)
@@ -219,7 +219,7 @@ export function SubjectsView({
       return
     }
 
-    deleteSubjectGenerationRef.current = context?.expectedGeneration ?? databaseGeneration
+    deleteSubjectGenerationRef.current = context.expectedGeneration
     setConfirmSubject(subject)
   }
 

@@ -40,7 +40,7 @@ export function ProgressView(props: {
   todayFocusMinutes: number
   subjectMap: Map<string, StudySubject>
   openEditorOnMount: boolean
-  databaseGeneration?: number
+  databaseGeneration: number
 }) {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(() =>
     props.openEditorOnMount ? 'new' : null,
@@ -55,7 +55,7 @@ export function ProgressView(props: {
   const subjectFieldRef = useRef<HTMLSelectElement | null>(null)
   const dateFieldRef = useRef<HTMLInputElement | null>(null)
   const durationFieldRef = useRef<HTMLInputElement | null>(null)
-  const editorGenerationRef = useRef(props.databaseGeneration ?? 1)
+  const editorGenerationRef = useRef(props.databaseGeneration)
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
@@ -192,11 +192,11 @@ export function ProgressView(props: {
     })
   }
 
-  const deleteSessionGenerationRef = useRef<number>(props.databaseGeneration ?? 1)
+  const deleteSessionGenerationRef = useRef<number>(props.databaseGeneration)
 
-  const requestDeleteSession = (session: StudySession, context?: DatabaseMutationContext) => {
+  const requestDeleteSession = (session: StudySession, context: DatabaseMutationContext) => {
     if (pendingDeleteId || isSaving || isRowPending || confirmSession) return
-    deleteSessionGenerationRef.current = context?.expectedGeneration ?? (props.databaseGeneration ?? 1)
+    deleteSessionGenerationRef.current = context.expectedGeneration
     setConfirmSession(session)
   }
 
@@ -361,7 +361,7 @@ export function ProgressView(props: {
                         label={`${subjectName} session at ${startTime}`}
                         onEdit={() => openEditor(session)}
                         onDelete={(context) => requestDeleteSession(session, context)}
-                        databaseGeneration={props.databaseGeneration ?? 1}
+                        databaseGeneration={props.databaseGeneration}
                         confirmDelete={false}
                         isDisabled={rowActionsLocked}
                         isDeleting={pendingDeleteId === session.id}

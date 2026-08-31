@@ -228,25 +228,21 @@ export function RowActionButtons({
 }: {
   label: string
   onEdit: () => void
-  onDelete: (context?: DatabaseMutationContext) => void
-  databaseGeneration?: number
+  onDelete: (context: DatabaseMutationContext) => void
+  databaseGeneration: number
   confirmDelete?: boolean
   isDisabled?: boolean
   isDeleting?: boolean
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const capturedGenerationRef = useRef<number | undefined>(databaseGeneration)
+  const capturedGenerationRef = useRef<number>(databaseGeneration)
   const busy = isDisabled || isDeleting
 
   const handleDelete = () => {
     if (busy) return
     capturedGenerationRef.current = databaseGeneration
     if (!confirmDelete) {
-      onDelete(
-        capturedGenerationRef.current !== undefined
-          ? { expectedGeneration: capturedGenerationRef.current }
-          : undefined,
-      )
+      onDelete({ expectedGeneration: capturedGenerationRef.current })
       return
     }
     setConfirmOpen(true)
@@ -277,11 +273,7 @@ export function RowActionButtons({
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {
           setConfirmOpen(false)
-          onDelete(
-            capturedGenerationRef.current !== undefined
-              ? { expectedGeneration: capturedGenerationRef.current }
-              : undefined,
-          )
+          onDelete({ expectedGeneration: capturedGenerationRef.current })
         }}
       />
     </div>
