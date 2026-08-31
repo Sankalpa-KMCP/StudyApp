@@ -42,6 +42,9 @@ const emptyDraft = (subjectId = ''): TaskDraft => ({
   minutes: 30,
 })
 
+const TASKS_INITIAL_VISIBLE = 50
+const TASKS_BATCH_SIZE = 50
+
 export function TasksView({
   tasks,
   subjects,
@@ -61,6 +64,12 @@ export function TasksView({
   onFilterChange: (filter: 'all' | 'open' | 'done') => void
   databaseGeneration: number
 }) {
+  const [visibleCount, setVisibleCount] = useState(TASKS_INITIAL_VISIBLE)
+  const previousFilterRef = useRef(filter)
+  const previousSearchRef = useRef(search)
+  const listFooterRef = useRef<HTMLDivElement | null>(null)
+  const wasShowMoreFocusedRef = useRef(false)
+
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft>(() => emptyDraft())
   const [validationError, setValidationError] = useState<string | null>(null)
@@ -73,6 +82,31 @@ export function TasksView({
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
   const { clearFeedback: clearRowFeedback, phase: rowPhase, message: rowMessage, run: runRow } = rowMutation
+
+  useEffect(() => {
+    if (previousFilterRef.current !== filter || previousSearchRef.current !== search) {
+      previousFilterRef.current = filter
+      previousSearchRef.current = search
+      setVisibleCount(TASKS_INITIAL_VISIBLE)
+      wasShowMoreFocusedRef.current = false
+    }
+  }, [filter, search])
+
+  const totalTasks = tasks.length
+  const visibleTasks = tasks.slice(0, visibleCount)
+  const hasMore = visibleTasks.length < totalTasks
+
+  const showMoreTasks = () => {
+    wasShowMoreFocusedRef.current = true
+    setVisibleCount((prev) => prev + TASKS_BATCH_SIZE)
+  }
+
+  useEffect(() => {
+    if (!hasMore && wasShowMoreFocusedRef.current) {
+      wasShowMoreFocusedRef.current = false
+      listFooterRef.current?.focus()
+    }
+  }, [hasMore])
 
   const noticePhase: MutationPhase = savePhase === 'success' || savePhase === 'error'
     ? savePhase
@@ -270,40 +304,60 @@ export function TasksView({
         </div>
       ) : null}
       {tasks.length > 0 ? (
-        <div className="table-list">
-          {tasks.map((task) => {
-            const rowBusy = pendingRowId === task.id
-            const isDeleting = rowBusy && pendingRowKind === 'delete'
-            const isStatusPending = rowBusy && pendingRowKind === 'status'
+        <>
+          <div className="table-list">
+            {visibleTasks.map((task) => {
+              const rowBusy = pendingRowId === task.id
+              const isDeleting = rowBusy && pendingRowKind === 'delete'
+              const isStatusPending = rowBusy && pendingRowKind === 'status'
 
-            return (
-              <article className={task.status === 'done' ? 'list-row is-done' : 'list-row'} key={task.id}>
+              return (
+                <article className={task.status === 'done' ? 'list-row is-done' : 'list-row'} key={task.id}>
+                  <button
+                    type="button"
+                    className="task-check"
+                    onClick={() => void toggleTaskStatus(task)}
+                    aria-label={isStatusPending ? `Updating ${task.title}` : `Toggle ${task.title}`}
+                    aria-busy={isStatusPending || undefined}
+                    disabled={rowBusy || isSaving}
+                  >
+                    {task.status === 'done' ? <Check size={14} aria-hidden="true" /> : <Square size={16} aria-hidden="true" />}
+                  </button>
+                  <div>
+                    <h3>{task.title}</h3>
+                    <p>{task.priority} priority - {task.minutes} min{task.dueDate ? ` - due ${task.dueDate}` : ''}</p>
+                  </div>
+                  <RowActionButtons
+                    label={task.title}
+                    onEdit={() => openEditor(task)}
+                    onDelete={(context) => void deleteTask(task, context)}
+                    databaseGeneration={databaseGeneration}
+                    isDisabled={rowBusy || isSaving}
+                    isDeleting={isDeleting}
+                  />
+                </article>
+              )
+            })}
+          </div>
+          {totalTasks > TASKS_INITIAL_VISIBLE ? (
+            <div className="list-disclosure-footer" tabIndex={-1} ref={listFooterRef}>
+              <p className="list-count-summary" aria-live="polite">
+                {hasMore
+                  ? `Showing ${visibleTasks.length} of ${totalTasks} tasks`
+                  : `Showing all ${totalTasks} tasks`}
+              </p>
+              {hasMore ? (
                 <button
                   type="button"
-                  className="task-check"
-                  onClick={() => void toggleTaskStatus(task)}
-                  aria-label={isStatusPending ? `Updating ${task.title}` : `Toggle ${task.title}`}
-                  aria-busy={isStatusPending || undefined}
-                  disabled={rowBusy || isSaving}
+                  className="secondary-command"
+                  onClick={showMoreTasks}
                 >
-                  {task.status === 'done' ? <Check size={14} aria-hidden="true" /> : <Square size={16} aria-hidden="true" />}
+                  Show 50 more tasks
                 </button>
-                <div>
-                  <h3>{task.title}</h3>
-                  <p>{task.priority} priority - {task.minutes} min{task.dueDate ? ` - due ${task.dueDate}` : ''}</p>
-                </div>
-                <RowActionButtons
-                  label={task.title}
-                  onEdit={() => openEditor(task)}
-                  onDelete={(context) => void deleteTask(task, context)}
-                  databaseGeneration={databaseGeneration}
-                  isDisabled={rowBusy || isSaving}
-                  isDeleting={isDeleting}
-                />
-              </article>
-            )
-          })}
-        </div>
+              ) : null}
+            </div>
+          ) : null}
+        </>
       ) : filter !== 'all' ? (
         <EmptyState
           icon={Check}
