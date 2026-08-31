@@ -49,9 +49,8 @@ test.describe('Playwright axe accessibility smoke', () => {
     await expect(page.getByRole('button', { name: 'Delete all data' })).toBeDisabled()
     await expect(page.getByRole('dialog')).toHaveCount(0)
 
-    const confirmInput = page.getByPlaceholder('DELETE')
+    const confirmInput = page.getByLabel(/Type DELETE to permanently remove all study data/i)
     await expect(confirmInput).toBeVisible()
-    // Accessible name may come from placeholder; keep the control discoverable without clearing data.
     await expect(confirmInput).toHaveAttribute('placeholder', 'DELETE')
 
     await expectNoAxeViolations(page, testInfo, 'settings-clear-confirm')

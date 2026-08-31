@@ -155,4 +155,37 @@ describe('SettingsView concurrency and coordinator integration', () => {
     expect(screen.getByLabelText(/Import data/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Reset all study data/ })).toBeInTheDocument()
   })
+
+  it('provides persistent accessible labeling and instructions for delete-all confirmation input', async () => {
+    const user = userEvent.setup()
+    const coordinator = new DataOperationCoordinator()
+    const onClear = vi.fn().mockResolvedValue(undefined)
+    render(<TestSettingsViewWrapper coordinator={coordinator} onClear={onClear} />)
+
+    // Open delete-all confirmation
+    const resetButton = screen.getByRole('button', { name: /Reset all study data/ })
+    await user.click(resetButton)
+
+    // Verify input is programmatically queryable by its accessible label before typing
+    const confirmInput = screen.getByLabelText('Type DELETE to permanently remove all study data.')
+    expect(confirmInput).toBeInTheDocument()
+    expect(confirmInput).toHaveAttribute('type', 'text')
+
+    const deleteBtn = screen.getByRole('button', { name: 'Delete all data' })
+    expect(deleteBtn).toBeDisabled()
+
+    // Type partial text — label must remain accessible and button stays disabled
+    await user.type(confirmInput, 'DEL')
+    expect(screen.getByLabelText('Type DELETE to permanently remove all study data.')).toHaveValue('DEL')
+    expect(deleteBtn).toBeDisabled()
+
+    // Complete typing 'DELETE'
+    await user.type(confirmInput, 'ETE')
+    expect(confirmInput).toHaveValue('DELETE')
+    expect(deleteBtn).toBeEnabled()
+
+    // Click delete
+    await user.click(deleteBtn)
+    expect(onClear).toHaveBeenCalledTimes(1)
+  })
 })

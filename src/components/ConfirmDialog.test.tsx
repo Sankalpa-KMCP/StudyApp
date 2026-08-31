@@ -164,6 +164,133 @@ describe('ConfirmDialog', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
+  it('does not leak focus to trigger when pending transitions while dialog remains open', async () => {
+    const user = userEvent.setup()
+    function DynamicPendingHarness() {
+      const [open, setOpen] = useState(false)
+      const [pending, setPending] = useState(false)
+      return (
+        <div>
+          <button type="button" onClick={() => setOpen(true)}>
+            Trigger Button
+          </button>
+          <button type="button" onClick={() => setPending((p) => !p)}>
+            Toggle Pending
+          </button>
+          <ConfirmDialog
+            open={open}
+            title="Delete Record"
+            description="Are you sure?"
+            pending={pending}
+            onCancel={() => setOpen(false)}
+            onConfirm={() => setPending(true)}
+          />
+        </div>
+      )
+    }
+
+    render(<DynamicPendingHarness />)
+    const trigger = screen.getByRole('button', { name: 'Trigger Button' })
+    await user.click(trigger)
+
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+    const cancel = within(dialog).getByRole('button', { name: 'Cancel' })
+    await waitFor(() => expect(cancel).toHaveFocus())
+
+    // Click confirm which transitions pending to true while open
+    const confirm = within(dialog).getByRole('button', { name: 'Delete' })
+    await user.click(confirm)
+
+    // Focus MUST NOT have escaped to Trigger Button behind the backdrop
+    expect(trigger).not.toHaveFocus()
+    expect(dialog).toBeInTheDocument()
+  })
+
+  it('does not return focus when parent re-renders with new onCancel identity while open', async () => {
+    const user = userEvent.setup()
+    function RerenderHarness() {
+      const [open, setOpen] = useState(false)
+      const [, setCount] = useState(0)
+      return (
+        <div>
+          <button type="button" onClick={() => setOpen(true)}>
+            Open Dialog
+          </button>
+          <button type="button" onClick={() => setCount((c) => c + 1)}>
+            Force Rerender
+          </button>
+          <ConfirmDialog
+            open={open}
+            title="Delete Item"
+            description="Irreversible action."
+            // inline arrow function gets fresh identity every render
+            onCancel={() => setOpen(false)}
+            onConfirm={() => undefined}
+          />
+        </div>
+      )
+    }
+
+    render(<RerenderHarness />)
+    const trigger = screen.getByRole('button', { name: 'Open Dialog' })
+    await user.click(trigger)
+
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+
+    // Trigger parent state update
+    const forceRerender = screen.getByRole('button', { name: 'Force Rerender' })
+    await user.click(forceRerender)
+
+    // Focus MUST NOT be stolen back to trigger button while dialog is open
+    expect(trigger).not.toHaveFocus()
+    expect(dialog).toBeInTheDocument()
+  })
+
+  it('falls back to main landmark when invoking element is removed upon confirm', async () => {
+    const user = userEvent.setup()
+    function ItemDeleteHarness() {
+      const [hasItem, setHasItem] = useState(true)
+      const [open, setOpen] = useState(false)
+      return (
+        <main>
+          {hasItem ? (
+            <button type="button" onClick={() => setOpen(true)}>
+              Delete Card Item
+            </button>
+          ) : (
+            <p>Item deleted</p>
+          )}
+          <ConfirmDialog
+            open={open}
+            title="Delete Card"
+            description="Delete forever."
+            onCancel={() => setOpen(false)}
+            onConfirm={() => {
+              setHasItem(false) // removes opener from DOM
+              setOpen(false)
+            }}
+          />
+        </main>
+      )
+    }
+
+    render(<ItemDeleteHarness />)
+    const opener = screen.getByRole('button', { name: 'Delete Card Item' })
+    await user.click(opener)
+
+    const dialog = screen.getByRole('dialog')
+    const confirm = within(dialog).getByRole('button', { name: 'Delete' })
+    await user.click(confirm)
+
+    // Opener is now unmounted from DOM; focus should safely land on fallback main landmark
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete Card Item' })).not.toBeInTheDocument()
+    const mainLandmark = screen.getByRole('main')
+    expect(mainLandmark).toHaveFocus()
+  })
+
   it('uses a mobile-friendly action target size class structure', async () => {
     const user = userEvent.setup()
     render(<ConfirmHarness />)
