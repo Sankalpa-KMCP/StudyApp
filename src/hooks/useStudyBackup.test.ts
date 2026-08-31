@@ -5,9 +5,15 @@ import * as studyDb from '../db/studyDb'
 import {
   MAX_STUDY_EXPORT_IMPORT_BYTES,
   MAX_STUDY_EXPORT_IMPORT_CHARS,
+  MAX_STUDY_EXPORT_STUDY_SESSIONS,
+  MAX_STUDY_EXPORT_SUBJECTS,
+  MAX_STUDY_EXPORT_TASKS,
   STUDY_EXPORT_IMPORT_SIZE_ERROR,
 } from '../db/studyExportLimits'
-import { StudyExportValidationError } from '../db/studyExportValidation'
+import {
+  STUDY_EXPORT_IMPORT_VALIDATION_ERROR,
+  StudyExportValidationError,
+} from '../db/studyExportValidation'
 import {
   DataOperationBusyError,
   isDataOperationBusyError,
@@ -169,6 +175,226 @@ describe('useStudyBackup', () => {
 
     expect(click).toHaveBeenCalledTimes(1)
     expect(urlApi.revokeObjectURL).toHaveBeenCalledWith('blob:boundary')
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
+    createElement.mockRestore()
+  })
+
+  it('rejects an export that exceeds per-table subject count limit (501 subjects) before creating download URL and releases coordinator lease', async () => {
+    const payload = {
+      version: 4 as const,
+      exportedAt: '2026-07-23T00:00:00.000Z',
+      tasks: [],
+      subjects: Array.from({ length: MAX_STUDY_EXPORT_SUBJECTS + 1 }, (_, i) => ({
+        id: `subject-${i}`,
+        name: `S${i}`,
+        color: '#111827',
+        targetHours: 1,
+        progress: 0,
+        progressMode: 'manual' as const,
+        createdAt: '2026-07-23T00:00:00.000Z',
+        updatedAt: '2026-07-23T00:00:00.000Z',
+      })),
+      notes: [],
+      events: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+    vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue(payload)
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL')
+    const createElement = vi.spyOn(document, 'createElement')
+
+    const { result, coordinator } = renderBackupHook()
+
+    await expect(result.current.exportBackup()).rejects.toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+    expect(createObjectURL).not.toHaveBeenCalled()
+    expect(createElement).not.toHaveBeenCalledWith('a')
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
+  })
+
+  it('rejects an export that exceeds per-table task count limit (5,001 tasks) before creating download URL and releases coordinator lease', async () => {
+    const payload = {
+      version: 4 as const,
+      exportedAt: '2026-07-23T00:00:00.000Z',
+      tasks: Array.from({ length: MAX_STUDY_EXPORT_TASKS + 1 }, (_, i) => ({
+        id: `task-${i}`,
+        title: `T${i}`,
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal' as const,
+        status: 'open' as const,
+        minutes: 30,
+        createdAt: '2026-07-23T00:00:00.000Z',
+        updatedAt: '2026-07-23T00:00:00.000Z',
+      })),
+      subjects: [],
+      notes: [],
+      events: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+    vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue(payload)
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL')
+    const createElement = vi.spyOn(document, 'createElement')
+
+    const { result, coordinator } = renderBackupHook()
+
+    await expect(result.current.exportBackup()).rejects.toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+    expect(createObjectURL).not.toHaveBeenCalled()
+    expect(createElement).not.toHaveBeenCalledWith('a')
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
+  })
+
+  it('rejects an export that exceeds per-table study session count limit (10,001 sessions) before creating download URL and releases coordinator lease', async () => {
+    const payload = {
+      version: 4 as const,
+      exportedAt: '2026-07-23T00:00:00.000Z',
+      tasks: [],
+      subjects: [],
+      notes: [],
+      events: [],
+      studySessions: Array.from({ length: MAX_STUDY_EXPORT_STUDY_SESSIONS + 1 }, (_, i) => ({
+        id: `session-${i}`,
+        subjectId: '',
+        startedAt: '2026-07-23T00:00:00.000Z',
+        endedAt: '2026-07-23T00:30:00.000Z',
+        minutes: 30,
+        note: '',
+      })),
+      goals: [],
+      settings: [],
+    }
+    vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue(payload)
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL')
+    const createElement = vi.spyOn(document, 'createElement')
+
+    const { result, coordinator } = renderBackupHook()
+
+    await expect(result.current.exportBackup()).rejects.toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+    expect(createObjectURL).not.toHaveBeenCalled()
+    expect(createElement).not.toHaveBeenCalledWith('a')
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
+  })
+
+  it('rejects an export that exceeds the total record count ceiling (25,001 records) before creating download URL and releases coordinator lease', async () => {
+    const payload = {
+      version: 4 as const,
+      exportedAt: '2026-07-23T00:00:00.000Z',
+      subjects: Array.from({ length: 500 }, (_, i) => ({
+        id: `s-${i}`,
+        name: `S${i}`,
+        color: '#111827',
+        targetHours: 1,
+        progress: 0,
+        progressMode: 'manual' as const,
+        createdAt: '2026-07-23T00:00:00.000Z',
+        updatedAt: '2026-07-23T00:00:00.000Z',
+      })),
+      tasks: Array.from({ length: 5000 }, (_, i) => ({
+        id: `t-${i}`,
+        title: `T${i}`,
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal' as const,
+        status: 'open' as const,
+        minutes: 10,
+        createdAt: '2026-07-23T00:00:00.000Z',
+        updatedAt: '2026-07-23T00:00:00.000Z',
+      })),
+      notes: Array.from({ length: 5000 }, (_, i) => ({
+        id: `n-${i}`,
+        title: `N${i}`,
+        body: '',
+        subjectId: '',
+        tags: [],
+        createdAt: '2026-07-23T00:00:00.000Z',
+        updatedAt: '2026-07-23T00:00:00.000Z',
+      })),
+      events: Array.from({ length: 4501 }, (_, i) => ({
+        id: `e-${i}`,
+        title: `E${i}`,
+        subjectId: '',
+        startAt: '2026-07-23T00:00:00.000Z',
+        endAt: '2026-07-23T01:00:00.000Z',
+        location: '',
+        createdAt: '2026-07-23T00:00:00.000Z',
+        updatedAt: '2026-07-23T00:00:00.000Z',
+      })),
+      studySessions: Array.from({ length: 10000 }, (_, i) => ({
+        id: `ss-${i}`,
+        subjectId: '',
+        startedAt: '2026-07-23T00:00:00.000Z',
+        endedAt: '2026-07-23T00:30:00.000Z',
+        minutes: 30,
+        note: '',
+      })),
+      goals: [],
+      settings: [],
+    }
+    vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue(payload)
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL')
+    const createElement = vi.spyOn(document, 'createElement')
+
+    const { result, coordinator } = renderBackupHook()
+
+    await expect(result.current.exportBackup()).rejects.toThrow(STUDY_EXPORT_IMPORT_VALIDATION_ERROR)
+    expect(createObjectURL).not.toHaveBeenCalled()
+    expect(createElement).not.toHaveBeenCalledWith('a')
+    expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
+  })
+
+  it('allows an export at exact production record count limits (500 subjects, 5,000 tasks) to download successfully', async () => {
+    const payload = {
+      version: 4 as const,
+      exportedAt: '2026-07-23T00:00:00.000Z',
+      subjects: Array.from({ length: MAX_STUDY_EXPORT_SUBJECTS }, (_, i) => ({
+        id: `s-${i}`,
+        name: `S${i}`,
+        color: '#111827',
+        targetHours: 1,
+        progress: 0,
+        progressMode: 'manual' as const,
+        createdAt: '2026-07-23T00:00:00.000Z',
+        updatedAt: '2026-07-23T00:00:00.000Z',
+      })),
+      tasks: Array.from({ length: MAX_STUDY_EXPORT_TASKS }, (_, i) => ({
+        id: `t-${i}`,
+        title: `T${i}`,
+        subjectId: '',
+        dueDate: '',
+        priority: 'normal' as const,
+        status: 'open' as const,
+        minutes: 10,
+        createdAt: '2026-07-23T00:00:00.000Z',
+        updatedAt: '2026-07-23T00:00:00.000Z',
+      })),
+      notes: [],
+      events: [],
+      studySessions: [],
+      goals: [],
+      settings: [],
+    }
+    vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue(payload)
+    const urlApi = URL as typeof URL & {
+      createObjectURL: (blob: Blob) => string
+      revokeObjectURL: (url: string) => void
+    }
+    urlApi.createObjectURL = vi.fn(() => 'blob:count-boundary')
+    urlApi.revokeObjectURL = vi.fn()
+    const click = vi.fn()
+    const anchor = { href: '', download: '', click } as unknown as HTMLAnchorElement
+    const createElement = vi.spyOn(document, 'createElement').mockImplementation(((tag: string) => {
+      if (tag === 'a') return anchor
+      return Document.prototype.createElement.call(document, tag)
+    }) as typeof document.createElement)
+
+    const { result, coordinator } = renderBackupHook()
+
+    await result.current.exportBackup()
+
+    expect(click).toHaveBeenCalledTimes(1)
+    expect(urlApi.revokeObjectURL).toHaveBeenCalledWith('blob:count-boundary')
     expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
     createElement.mockRestore()
   })

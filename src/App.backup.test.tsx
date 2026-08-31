@@ -324,6 +324,48 @@ describe('App backup', () => {
     createElementSpy.mockRestore()
   })
 
+  it('rejects export when database state exceeds a record count limit (501 subjects) and preserves local state', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    // Populate 501 subjects directly in IndexedDB
+    const subjectsToAdd = Array.from({ length: 501 }, (_, i) => ({
+      id: `subj-count-${i}`,
+      name: `Subject ${i}`,
+      color: '#111827',
+      targetHours: 1,
+      progress: 0,
+      progressMode: 'manual' as const,
+      createdAt: '2026-07-28T00:00:00.000Z',
+      updatedAt: '2026-07-28T00:00:00.000Z',
+    }))
+    await studyDb.subjects.bulkAdd(subjectsToAdd)
+
+    const clickMock = vi.fn()
+    const originalCreateElement = document.createElement.bind(document)
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = originalCreateElement(tagName)
+      if (tagName === 'a') {
+        el.click = clickMock
+      }
+      return el
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: /Export data/ }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Backup could not be exported.')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(clickMock).not.toHaveBeenCalled()
+
+    // Verify existing database records are intact
+    const countInDb = await studyDb.subjects.count()
+    expect(countInDb).toBe(501)
+
+    createElementSpy.mockRestore()
+  })
+
   it('keeps clear-all confirmation state when clearing fails and blocks duplicate clears', async () => {
     const user = userEvent.setup()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
