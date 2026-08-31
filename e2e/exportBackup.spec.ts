@@ -5,7 +5,9 @@ const STUDY_DB_NAME = 'study-dashboard-db'
 
 async function seedFullDatabase(page: Page): Promise<void> {
   await page.goto('/')
-  await page.waitForLoadState('domcontentloaded')
+  await expect(page.getByRole('heading', { name: 'Focus session', exact: true }).or(page.getByRole('heading', { name: 'Unfinished focus session', exact: true }))).toBeVisible({
+    timeout: 15_000,
+  })
 
   await page.evaluate(async (dbName) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
