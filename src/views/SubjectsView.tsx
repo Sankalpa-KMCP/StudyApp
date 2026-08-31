@@ -33,6 +33,7 @@ import {
   SUBJECT_EDITOR_TARGET_HOURS_MAX,
   SUBJECT_EDITOR_TARGET_HOURS_MIN,
 } from '../validation/editorLimits'
+import { resolveSubjectColor } from '../validation/subjectColor'
 
 const colorSwatches = [
   { value: '#111827', name: 'charcoal' },
@@ -166,8 +167,13 @@ export function SubjectsView({
         return
       }
 
-      setValidationError('Choose a valid progress mode.')
-      progressModeFieldRef.current?.focus()
+      if (validated.reason === 'invalid_progress_mode') {
+        setValidationError('Choose a valid progress mode.')
+        progressModeFieldRef.current?.focus()
+        return
+      }
+
+      setValidationError('Choose a valid subject color.')
       return
     }
 
@@ -335,9 +341,10 @@ export function SubjectsView({
             const linked = getLinkedCounts(subject.id)
             const linkedTotal = Object.values(linked).reduce((sum, count) => sum + count, 0)
             const { percentage: progressValue, loggedMinutes: minutes } = calculateSubjectProgress(subject, sessions)
+            const safeColor = resolveSubjectColor(subject.color)
             return (
-              <article className="card subject-card editable-subject" style={{ '--subject-color': subject.color } as React.CSSProperties} key={subject.id}>
-                <div className="subject-icon" style={{ backgroundColor: subject.color }}>
+              <article className="card subject-card editable-subject" style={{ '--subject-color': safeColor } as React.CSSProperties} key={subject.id}>
+                <div className="subject-icon" style={{ backgroundColor: safeColor }}>
                   <BookOpen size={21} aria-hidden="true" />
                 </div>
                 <h3>{subject.name}</h3>

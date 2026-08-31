@@ -93,6 +93,56 @@ describe('validateSubjectEditorDraft', () => {
       },
     })
   })
+
+  it('rejects invalid or crafted subject color strings', () => {
+    expect(
+      validateSubjectEditorDraft({
+        ...validDraft,
+        color: "url('https://tracker.invalid/beacon.png')",
+      }),
+    ).toEqual({
+      ok: false,
+      reason: 'invalid_color',
+    })
+
+    expect(validateSubjectEditorDraft({ ...validDraft, color: 'red' })).toEqual({
+      ok: false,
+      reason: 'invalid_color',
+    })
+
+    expect(validateSubjectEditorDraft({ ...validDraft, color: '#fff' })).toEqual({
+      ok: false,
+      reason: 'invalid_color',
+    })
+
+    expect(validateSubjectEditorDraft({ ...validDraft, color: '#12GG56' })).toEqual({
+      ok: false,
+      reason: 'invalid_color',
+    })
+
+    expect(validateSubjectEditorDraft({ ...validDraft, color: '' })).toEqual({
+      ok: false,
+      reason: 'invalid_color',
+    })
+  })
+
+  it('accepts valid 6-digit hex colors', () => {
+    expect(
+      validateSubjectEditorDraft({
+        ...validDraft,
+        color: '#047857',
+      }),
+    ).toEqual({
+      ok: true,
+      fields: {
+        name: 'Physics',
+        color: '#047857',
+        targetHours: 5,
+        progress: 20,
+        progressMode: 'manual',
+      },
+    })
+  })
 })
 
 describe('validateNoteEditorDraft', () => {

@@ -3,13 +3,15 @@ import { clamp } from '../appUtils'
 import type { DatabaseMutationContext } from '../db/databaseMutationGuard'
 import type { StudySubject } from '../db/types'
 import type { MutationPhase } from '../hooks/useMutationState'
+import { resolveSubjectColor } from '../validation/subjectColor'
 import { ConfirmDialog } from './ConfirmDialog'
 import { BookOpen, Edit3, Plus, Save, Trash2, X, type AppIcon } from './icons'
 
 export function SubjectCard({ subject, progressValue }: { subject: StudySubject; progressValue: number }) {
+  const safeColor = resolveSubjectColor(subject.color)
   return (
-    <article className="card subject-card" style={{ '--subject-color': subject.color } as React.CSSProperties}>
-      <div className="subject-icon" style={{ backgroundColor: subject.color }}>
+    <article className="card subject-card" style={{ '--subject-color': safeColor } as React.CSSProperties}>
+      <div className="subject-icon" style={{ backgroundColor: safeColor }}>
         <BookOpen size={21} aria-hidden="true" />
       </div>
       <h3>{subject.name}</h3>

@@ -5,6 +5,10 @@ import {
 } from './databaseMutationGuard'
 import { createId, nowIso, studyDb } from './studyDb'
 import type { StudySubject, SubjectProgressMode } from './types'
+import {
+  InvalidSubjectColorError,
+  isValidSubjectColor,
+} from '../validation/subjectColor'
 
 /** Fields the Subjects editor supplies after name/mode validation and clamping. */
 export type SubjectWriteFields = {
@@ -13,6 +17,12 @@ export type SubjectWriteFields = {
   targetHours: number
   progress: number
   progressMode: SubjectProgressMode
+}
+
+function assertSubjectWriteFields(fields: SubjectWriteFields): void {
+  if (!isValidSubjectColor(fields.color)) {
+    throw new InvalidSubjectColorError(fields.color)
+  }
 }
 
 /** Per-table linked counts used by the subject deletion policy and warning copy. */
@@ -36,6 +46,7 @@ export async function createSubject(
   context: DatabaseMutationContext,
 ): Promise<StudySubject> {
   return withGuardedMutation(context, async () => {
+    assertSubjectWriteFields(fields)
     const timestamp = nowIso()
     const subject: StudySubject = {
       id: createId('subject'),
@@ -63,6 +74,7 @@ export async function updateSubject(
   context: DatabaseMutationContext,
 ): Promise<void> {
   return withGuardedMutation(context, async () => {
+    assertSubjectWriteFields(fields)
     const updated = await studyDb.subjects.update(id, {
       name: fields.name,
       color: fields.color,

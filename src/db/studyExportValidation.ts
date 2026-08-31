@@ -16,6 +16,7 @@ import {
   isPersistedTaskMinutes,
   isPersistedTimestampOrder,
 } from './validation/persistedInvariants'
+import { isValidSubjectColor } from '../validation/subjectColor'
 
 /** Stable internal error; Settings maps import failures to a fixed friendly message. */
 export const STUDY_EXPORT_IMPORT_VALIDATION_ERROR = 'Import file is not a Study Dashboard export.'
@@ -137,6 +138,7 @@ export function assertStudyExportSemantics(
   for (const subject of snapshot.subjects) {
     if (!isPersistedSubjectProgress(subject.progress)) failValidation()
     if (!isPersistedSubjectTargetHours(subject.targetHours)) failValidation()
+    if (!isValidSubjectColor(subject.color)) failValidation()
   }
 
   for (const task of snapshot.tasks) {
