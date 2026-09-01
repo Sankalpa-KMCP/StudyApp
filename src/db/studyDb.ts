@@ -811,13 +811,49 @@ export function parseAndNormalizeStudyExport(value: unknown): StudyExport {
   })
 }
 
+function normalizeImportActiveFocusSession(
+  settings: StudySetting[],
+  studySessions: StudySession[],
+): StudySetting[] {
+  const activeFocusIndex = settings.findIndex((s) => s.key === 'activeFocusSession')
+  if (activeFocusIndex === -1) return settings
+
+  const activeFocusSetting = settings[activeFocusIndex]
+  const val = activeFocusSetting.value
+  if (!isRecord(val) || typeof val.id !== 'string' || !val.id) {
+    return settings
+  }
+
+  const sessionIds = new Set(studySessions.map((s) => s.id))
+  if (sessionIds.has(val.id)) {
+    let freshId = createId('focus')
+    while (sessionIds.has(freshId)) {
+      freshId = createId('focus')
+    }
+    const updatedSetting: StudySetting = {
+      ...activeFocusSetting,
+      value: {
+        ...val,
+        id: freshId,
+      },
+    }
+    const updatedSettings = [...settings]
+    updatedSettings[activeFocusIndex] = updatedSetting
+    return updatedSettings
+  }
+
+  return settings
+}
+
 function finalizeStudyExport(snapshot: StudyExport): StudyExport {
-  assertUniqueStudyExportIdentifiers(snapshot)
-  assertStudyExportSubjectReferences(snapshot)
-  assertStudyExportSemantics(snapshot)
-  assertStudyExportSettingsValues(snapshot)
-  assertStudyExportRecordCounts(snapshot)
-  return snapshot
+  const normalizedSettings = normalizeImportActiveFocusSession(snapshot.settings, snapshot.studySessions)
+  const normalizedSnapshot = normalizedSettings === snapshot.settings ? snapshot : { ...snapshot, settings: normalizedSettings }
+  assertUniqueStudyExportIdentifiers(normalizedSnapshot)
+  assertStudyExportSubjectReferences(normalizedSnapshot)
+  assertStudyExportSemantics(normalizedSnapshot)
+  assertStudyExportSettingsValues(normalizedSnapshot)
+  assertStudyExportRecordCounts(normalizedSnapshot)
+  return normalizedSnapshot
 }
 
 function normalizeLegacyEvent(event: CalendarEvent): CalendarEvent {

@@ -445,7 +445,7 @@ describe('activeFocusSession persistence', () => {
       minutes: 99,
       note: 'Duplicate attempt',
     }, { expectedGeneration: 1 })
-    expect(second).toEqual(first)
+    expect(second).toEqual({ ok: false, reason: 'missing' })
     expect(await studyDb.studySessions.toArray()).toHaveLength(1)
     expect((await studyDb.studySessions.get(session.id))?.minutes).toBe(25)
   })
@@ -492,7 +492,7 @@ describe('activeFocusSession persistence', () => {
     }, { expectedGeneration: 1 })
 
     expect(first.ok).toBe(true)
-    expect(second).toEqual(first)
+    expect(second).toEqual({ ok: false, reason: 'missing' })
     expect(await studyDb.studySessions.count()).toBe(1)
     expect(await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)).toBeUndefined()
   })
@@ -881,8 +881,8 @@ describe('activeFocusSession persistence', () => {
         expect(await getActiveFocusSession()).toBeNull()
       })
 
-      it('finalizeActiveFocusSession re-keys and saves new session when colliding with existing history', async () => {
-        // 1. Existing historical row in studySessions
+      it('finalizeActiveFocusSession atomically re-keys active singleton on collision and preserves foreign history and F-11 state', async () => {
+        // 1. Existing foreign historical row in studySessions
         const existingHistory: StudySession = {
           id: 'focus-colliding-id',
           subjectId: 'subject-math',
@@ -904,20 +904,23 @@ describe('activeFocusSession persistence', () => {
           updatedAt: '2026-07-20T00:00:00.000Z',
         })
 
-        // 2. Active session started with colliding ID (e.g. from imported backup)
+        // 2. Active session started with colliding ID (e.g. from legacy state)
         const activeSession = makeSession({
           id: 'focus-colliding-id',
           subjectId: 'subject-physics',
           startedAt: '2026-07-20T14:00:00.000Z',
           plannedMinutes: 45,
           checkpointElapsedMs: 45 * 60_000,
+          status: 'running',
+          pausedAt: null,
+          accumulatedPausedMs: 120_000,
         })
         await studyDb.settings.put({
           key: ACTIVE_FOCUS_SESSION_KEY,
           value: activeSession,
         })
 
-        // 3. Finalize the active session
+        // 3. First finalization attempt detects collision -> returns id_rekeyed and updates active singleton
         const finalizeRes = await finalizeActiveFocusSession('focus-colliding-id', {
           subjectId: 'subject-physics',
           startedAt: '2026-07-20T14:00:00.000Z',
@@ -926,26 +929,87 @@ describe('activeFocusSession persistence', () => {
           note: 'Completed 45m Physics',
         }, { expectedGeneration: 1 })
 
-        expect(finalizeRes.ok).toBe(true)
-        if (finalizeRes.ok) {
-          // Newly generated history row has unique ID and correct minutes/subject
-          expect(finalizeRes.history.id).not.toBe('focus-colliding-id')
-          expect(finalizeRes.history.subjectId).toBe('subject-physics')
-          expect(finalizeRes.history.minutes).toBe(45)
-          expect(finalizeRes.history.note).toBe('Completed 45m Physics')
+        expect(finalizeRes.ok).toBe(false)
+        if (!finalizeRes.ok && finalizeRes.reason === 'id_rekeyed') {
+          expect(finalizeRes.session.id).not.toBe('focus-colliding-id')
+          expect(finalizeRes.session.id).toMatch(/^focus-\d+-[0-9a-f-]{8,}/)
+          // All F-11 and session fields preserved byte-for-byte
+          expect(finalizeRes.session.subjectId).toBe('subject-physics')
+          expect(finalizeRes.session.startedAt).toBe('2026-07-20T14:00:00.000Z')
+          expect(finalizeRes.session.plannedMinutes).toBe(45)
+          expect(finalizeRes.session.checkpointElapsedMs).toBe(45 * 60_000)
+          expect(finalizeRes.session.status).toBe('running')
+          expect(finalizeRes.session.pausedAt).toBeNull()
+          expect(finalizeRes.session.accumulatedPausedMs).toBe(120_000)
+
+          // Active session in settings is updated to the new canonical ID
+          const currentActive = await getActiveFocusSession()
+          expect(currentActive).toEqual(finalizeRes.session)
+
+          // Foreign row in studySessions is completely untouched (not deleted or modified)
+          expect(await studyDb.studySessions.count()).toBe(1)
+          const foreign = await studyDb.studySessions.get('focus-colliding-id')
+          expect(foreign).toEqual(existingHistory)
+
+          // 4. Stale call with old ID while re-keyed session is active returns conflict with new session
+          const staleRes = await finalizeActiveFocusSession('focus-colliding-id', {
+            subjectId: 'subject-physics',
+            startedAt: '2026-07-20T14:00:00.000Z',
+            endedAt: '2026-07-20T14:45:00.000Z',
+            minutes: 45,
+            note: 'Stale attempt',
+          }, { expectedGeneration: 1 })
+          expect(staleRes).toEqual({
+            ok: false,
+            reason: 'conflict',
+            existing: finalizeRes.session,
+          })
+
+          // 5. Finalization with the new canonical ID succeeds and persists history
+          const secondFinalize = await finalizeActiveFocusSession(finalizeRes.session.id, {
+            subjectId: 'subject-physics',
+            startedAt: '2026-07-20T14:00:00.000Z',
+            endedAt: '2026-07-20T14:45:00.000Z',
+            minutes: 45,
+            note: 'Completed 45m Physics',
+          }, { expectedGeneration: 1 })
+
+          expect(secondFinalize.ok).toBe(true)
+          if (secondFinalize.ok) {
+            expect(secondFinalize.history.id).toBe(finalizeRes.session.id)
+            expect(secondFinalize.history.subjectId).toBe('subject-physics')
+            expect(secondFinalize.history.minutes).toBe(45)
+          }
+
+          // Active singleton deleted
+          expect(await getActiveFocusSession()).toBeNull()
+
+          // History now has exactly 2 rows: foreign row + new canonical row
+          expect(await studyDb.studySessions.count()).toBe(2)
+
+          // 6. Post-finalization calls with old or new ID return missing without creating duplicate rows
+          const oldIdPostFinalize = await finalizeActiveFocusSession('focus-colliding-id', {
+            subjectId: 'subject-physics',
+            startedAt: '2026-07-20T14:00:00.000Z',
+            endedAt: '2026-07-20T14:45:00.000Z',
+            minutes: 45,
+            note: 'Retry old',
+          }, { expectedGeneration: 1 })
+          expect(oldIdPostFinalize).toEqual({ ok: false, reason: 'missing' })
+
+          const newIdPostFinalize = await finalizeActiveFocusSession(finalizeRes.session.id, {
+            subjectId: 'subject-physics',
+            startedAt: '2026-07-20T14:00:00.000Z',
+            endedAt: '2026-07-20T14:45:00.000Z',
+            minutes: 45,
+            note: 'Retry new',
+          }, { expectedGeneration: 1 })
+          expect(newIdPostFinalize).toEqual({ ok: false, reason: 'missing' })
+          expect(await studyDb.studySessions.count()).toBe(2)
         }
-
-        // Active singleton cleared
-        expect(await getActiveFocusSession()).toBeNull()
-
-        // Total 2 study sessions in history: prior row intact + new row saved
-        expect(await studyDb.studySessions.count()).toBe(2)
-        const original = await studyDb.studySessions.get('focus-colliding-id')
-        expect(original?.subjectId).toBe('subject-math')
-        expect(original?.minutes).toBe(15)
       })
 
-      it('finalizeActiveFocusSession returns existing history idempotently when active session is already cleared', async () => {
+      it('finalizeActiveFocusSession returns missing when active session is absent regardless of history rows', async () => {
         const existingHistory: StudySession = {
           id: 'focus-finalized-once',
           subjectId: 'subject-math',
@@ -956,7 +1020,7 @@ describe('activeFocusSession persistence', () => {
         }
         await studyDb.studySessions.add(existingHistory)
 
-        // No active session in settings (already cleared)
+        // No active session in settings
         expect(await getActiveFocusSession()).toBeNull()
 
         const retryRes = await finalizeActiveFocusSession('focus-finalized-once', {
@@ -968,9 +1032,10 @@ describe('activeFocusSession persistence', () => {
         }, { expectedGeneration: 1 })
 
         expect(retryRes).toEqual({
-          ok: true,
-          history: existingHistory,
+          ok: false,
+          reason: 'missing',
         })
+        expect(await studyDb.studySessions.count()).toBe(1)
       })
     })
   })

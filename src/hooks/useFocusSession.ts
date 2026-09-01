@@ -432,70 +432,89 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
   }, [coordinator, focusActionsPending, hydrateActiveSession, staleFocusSession])
 
   const finalizeFocusSession = useCallback(async (sessionToFinalize: ActiveFocusSession, completed: boolean) => {
-    if (finalizingSessionIdRef.current === sessionToFinalize.id) return
+    let currentSession = sessionToFinalize
+    if (finalizingSessionIdRef.current === currentSession.id) return
 
-    if (deferredAutoCompleteSessionIdRef.current === sessionToFinalize.id) {
+    if (deferredAutoCompleteSessionIdRef.current === currentSession.id) {
       deferredAutoCompleteSessionIdRef.current = null
     }
-    finalizingSessionIdRef.current = sessionToFinalize.id
+    finalizingSessionIdRef.current = currentSession.id
 
-    const currentElapsed = calculateRunningElapsed(sessionToFinalize, liveAnchorRef.current)
-    const actualMinutes = Math.round(currentElapsed / 60_000)
-    const minutes = Math.max(1, completed && sessionToFinalize.plannedMinutes > 0 ? sessionToFinalize.plannedMinutes : actualMinutes)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const currentElapsed = calculateRunningElapsed(currentSession, liveAnchorRef.current)
+      const actualMinutes = Math.round(currentElapsed / 60_000)
+      const minutes = Math.max(1, completed && currentSession.plannedMinutes > 0 ? currentSession.plannedMinutes : actualMinutes)
 
-    const safeStartedAt = sessionToFinalize.startedAt
-    const safeEndedAt = new Date(Math.max(Date.parse(safeStartedAt), Date.now())).toISOString()
+      const safeStartedAt = currentSession.startedAt
+      const safeEndedAt = new Date(Math.max(Date.parse(safeStartedAt), Date.now())).toISOString()
 
-    try {
-      const result = await finalizeActiveFocusSession(sessionToFinalize.id, {
-        subjectId: sessionToFinalize.subjectId,
-        startedAt: safeStartedAt,
-        endedAt: safeEndedAt,
-        minutes,
-        note: completed ? 'Completed focus session' : sessionToFinalize.subjectId ? 'Focus session' : 'General focus session',
-      }, {
-        expectedGeneration: focusGenerationRef.current,
-      })
+      try {
+        const result = await finalizeActiveFocusSession(currentSession.id, {
+          subjectId: currentSession.subjectId,
+          startedAt: safeStartedAt,
+          endedAt: safeEndedAt,
+          minutes,
+          note: completed ? 'Completed focus session' : currentSession.subjectId ? 'Focus session' : 'General focus session',
+        }, {
+          expectedGeneration: focusGenerationRef.current,
+        })
 
-      if (!result.ok) {
-        deferredAutoCompleteSessionIdRef.current = null
-        if (result.reason === 'conflict') {
-          hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+        if (!result.ok) {
+          deferredAutoCompleteSessionIdRef.current = null
+          if (result.reason === 'id_rekeyed') {
+            const rekeyedSession = result.session
+            setActiveSession(rekeyedSession)
+            if (liveAnchorRef.current && liveAnchorRef.current.sessionId === currentSession.id) {
+              liveAnchorRef.current = {
+                ...liveAnchorRef.current,
+                sessionId: rekeyedSession.id,
+              }
+            }
+            finalizingSessionIdRef.current = rekeyedSession.id
+            currentSession = rekeyedSession
+            continue
+          }
+
+          if (result.reason === 'conflict') {
+            hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+            return
+          }
+
+          if (result.reason === 'missing_subject') {
+            setSessionNotice('The selected subject is no longer available. Study time was not logged.')
+            return
+          }
+
+          liveAnchorRef.current = null
+          setLiveElapsedMs(0)
+          setActiveSession(null)
+          setStaleFocusSession(null)
+          setSessionNotice('That focus session is no longer saved. It was removed from the screen without logging study time.')
           return
         }
 
-        if (result.reason === 'missing_subject') {
-          setSessionNotice('The selected subject is no longer available. Study time was not logged.')
-          return
-        }
-
-        liveAnchorRef.current = null
-        setLiveElapsedMs(0)
-        setActiveSession(null)
-        setStaleFocusSession(null)
-        setSessionNotice('That focus session is no longer saved. It was removed from the screen without logging study time.')
-        return
-      }
-
-      deferredAutoCompleteSessionIdRef.current = null
-      liveAnchorRef.current = null
-      setLiveElapsedMs(0)
-      setActiveSession(null)
-      setSessionNotice(completed ? `Session complete: ${formatMinutes(result.history.minutes)} logged.` : `Session stopped: ${formatMinutes(result.history.minutes)} logged.`)
-    } catch (err) {
-      if (err instanceof StaleDatabaseGenerationError) {
         deferredAutoCompleteSessionIdRef.current = null
         liveAnchorRef.current = null
         setLiveElapsedMs(0)
         setActiveSession(null)
-        setStaleFocusSession(null)
-        setSessionNotice('The database was updated elsewhere. Study time was not logged.')
+        setSessionNotice(completed ? `Session complete: ${formatMinutes(result.history.minutes)} logged.` : `Session stopped: ${formatMinutes(result.history.minutes)} logged.`)
         return
-      }
-      setSessionNotice('Could not stop the focus session. Try again.')
-    } finally {
-      if (finalizingSessionIdRef.current === sessionToFinalize.id) {
-        finalizingSessionIdRef.current = null
+      } catch (err) {
+        if (err instanceof StaleDatabaseGenerationError) {
+          deferredAutoCompleteSessionIdRef.current = null
+          liveAnchorRef.current = null
+          setLiveElapsedMs(0)
+          setActiveSession(null)
+          setStaleFocusSession(null)
+          setSessionNotice('The database was updated elsewhere. Study time was not logged.')
+          return
+        }
+        setSessionNotice('Could not stop the focus session. Try again.')
+        return
+      } finally {
+        if (finalizingSessionIdRef.current === currentSession.id) {
+          finalizingSessionIdRef.current = null
+        }
       }
     }
   }, [hydrateActiveSession])
