@@ -5,7 +5,8 @@ import {
   formatHours,
   formatMinutes,
   formatShortTime,
-  getSubjectStudyMinutesMap,
+  getCreditedSubjectStudyMinutesMap,
+  isCreditedStudySession,
   linePoints,
   percent,
 } from '../appUtils'
@@ -99,9 +100,22 @@ export function StreakCard({ sessions, now }: { sessions: StudySession[]; now?: 
   )
 }
 
-export function SubjectDistribution({ subjects, sessions, subjectMap }: { subjects: StudySubject[]; sessions: StudySession[]; subjectMap: Map<string, StudySubject> }) {
-  const sessionMinutesMap = useMemo(() => getSubjectStudyMinutesMap(sessions), [sessions])
-  const totalLoggedMinutes = useMemo(() => sessions.reduce((sum, session) => sum + session.minutes, 0), [sessions])
+export function SubjectDistribution({
+  subjects,
+  sessions,
+  subjectMap,
+  now,
+}: {
+  subjects: StudySubject[]
+  sessions: StudySession[]
+  subjectMap: Map<string, StudySubject>
+  now?: Date
+}) {
+  const sessionMinutesMap = useMemo(() => getCreditedSubjectStudyMinutesMap(sessions, now), [now, sessions])
+  const totalLoggedMinutes = useMemo(
+    () => sessions.filter((session) => (!now || isCreditedStudySession(session, now))).reduce((sum, session) => sum + session.minutes, 0),
+    [now, sessions],
+  )
 
   const rows = useMemo(() => subjects.map((subject) => ({
     subject,

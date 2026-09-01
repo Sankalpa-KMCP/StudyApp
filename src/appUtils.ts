@@ -63,14 +63,22 @@ export function getGoalTargetUnit(metric: GoalMetric, period: GoalPeriod): GoalP
   return 'hours'
 }
 
+export function isCreditedStudySession(session: StudySession, now = new Date()): boolean {
+  const endedAtMs = new Date(session.endedAt).getTime()
+  return !Number.isNaN(endedAtMs) && endedAtMs <= now.getTime()
+}
+
 export function getTodayFocusMinutes(sessions: StudySession[], now = new Date()) {
   const today = localDateKey(now)
-  return sessions.filter((session) => localDateKey(session.endedAt) === today).reduce((sum, session) => sum + session.minutes, 0)
+  return sessions
+    .filter((session) => isCreditedStudySession(session, now) && localDateKey(session.endedAt) === today)
+    .reduce((sum, session) => sum + session.minutes, 0)
 }
 
 /**
- * Single-pass map of subjectId -> total logged study session minutes.
+ * Single-pass map of subjectId -> total logged study session minutes across ALL sessions.
  * O(S) over study sessions, enabling O(1) lookups for multiple subjects.
+ * Retained for legacy migration/normalization and raw lookups.
  */
 export function getSubjectStudyMinutesMap(sessions: StudySession[]): Map<string, number> {
   const map = new Map<string, number>()
@@ -82,12 +90,29 @@ export function getSubjectStudyMinutesMap(sessions: StudySession[]): Map<string,
   return map
 }
 
+/**
+ * Single-pass map of subjectId -> total credited study session minutes (endedAt <= now).
+ * O(S) over study sessions, enabling O(1) lookups for credited achievement metrics.
+ */
+export function getCreditedSubjectStudyMinutesMap(sessions: StudySession[], now = new Date()): Map<string, number> {
+  const map = new Map<string, number>()
+  for (const session of sessions) {
+    if (session.minutes > 0 && isCreditedStudySession(session, now)) {
+      map.set(session.subjectId, (map.get(session.subjectId) ?? 0) + session.minutes)
+    }
+  }
+  return map
+}
+
 export function getSubjectStudyMinutes(
   subjectId: string,
   sessionsOrMap: StudySession[] | ReadonlyMap<string, number> | Map<string, number>,
+  now?: Date,
 ) {
   if (Array.isArray(sessionsOrMap)) {
-    return sessionsOrMap.filter((session) => session.subjectId === subjectId).reduce((sum, session) => sum + session.minutes, 0)
+    return sessionsOrMap
+      .filter((session) => session.subjectId === subjectId && (!now || isCreditedStudySession(session, now)))
+      .reduce((sum, session) => sum + session.minutes, 0)
   }
   return sessionsOrMap.get(subjectId) ?? 0
 }
@@ -101,14 +126,15 @@ export type SubjectProgressResult = {
 
 /**
  * Authoritative subject progress from the stored `progressMode`.
- * Manual mode uses stored `progress`; study_time uses all matching finalized session minutes vs target hours.
+ * Manual mode uses stored `progress`; study_time uses credited session minutes vs target hours.
  */
 export function calculateSubjectProgress(
   subject: StudySubject,
   sessionsOrMap: StudySession[] | ReadonlyMap<string, number> | Map<string, number>,
+  now?: Date,
 ): SubjectProgressResult {
   const targetMinutes = Math.max(1, subject.targetHours * 60)
-  const loggedMinutes = getSubjectStudyMinutes(subject.id, sessionsOrMap)
+  const loggedMinutes = getSubjectStudyMinutes(subject.id, sessionsOrMap, now)
 
   if (subject.progressMode === 'study_time') {
     return {
@@ -131,8 +157,9 @@ export function calculateSubjectProgress(
 export function getSubjectProgress(
   subject: StudySubject,
   sessionsOrMap: StudySession[] | ReadonlyMap<string, number> | Map<string, number>,
+  now?: Date,
 ) {
-  return calculateSubjectProgress(subject, sessionsOrMap).percentage
+  return calculateSubjectProgress(subject, sessionsOrMap, now).percentage
 }
 
 /** Deterministic mode default for migration/import: positive matching session minutes → study_time. */
@@ -156,24 +183,14 @@ export function getGoalUnit(goal: StudyGoal): GoalProgressUnit {
   return getGoalTargetUnit(goal.metric, goal.period)
 }
 
-function isCreditedStudySession(session: StudySession, now: Date) {
-  const endedAtMs = new Date(session.endedAt).getTime()
-  return !Number.isNaN(endedAtMs) && endedAtMs <= now.getTime()
-}
-
 /** Daily study-time total in minutes for the local calendar day containing `now`. */
 export function getDailyStudyMinutes(sessions: StudySession[], now = new Date()) {
-  const today = localDateKey(now)
-  return sessions
-    .filter((session) => isCreditedStudySession(session, now))
-    .filter((session) => localDateKey(session.endedAt) === today)
-    .reduce((sum, session) => sum + session.minutes, 0)
+  return getTodayFocusMinutes(sessions, now)
 }
 
 /** Rolling seven-local-day study total in hours ending on `now`'s calendar day. */
 export function getRollingWeeklyStudyHours(sessions: StudySession[], now = new Date()) {
-  const credited = sessions.filter((session) => isCreditedStudySession(session, now))
-  return getWeeklyStudyDays(credited, now).reduce((sum, day) => sum + day.hours, 0)
+  return getWeeklyStudyDays(sessions, now).reduce((sum, day) => sum + day.hours, 0)
 }
 
 /** Current local-calendar-month study total in hours. */
@@ -232,7 +249,9 @@ export function getWeeklyStudyDays(sessions: StudySession[], now = new Date()): 
     return {
       key,
       label: new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date),
-      hours: sessions.filter((session) => localDateKey(session.endedAt) === key).reduce((sum, session) => sum + session.minutes, 0) / 60,
+      hours: sessions
+        .filter((session) => isCreditedStudySession(session, now) && localDateKey(session.endedAt) === key)
+        .reduce((sum, session) => sum + session.minutes, 0) / 60,
     }
   })
 }
@@ -263,6 +282,7 @@ export function buildSearchResults(
   studySessions: StudySession[] | ReadonlyMap<string, number> | Map<string, number>,
   subjectMap: Map<string, StudySubject>,
   query: string,
+  now = new Date(),
 ): SearchResult[] {
   const normalized = query.trim().toLowerCase()
   if (!normalized) return []
@@ -270,7 +290,7 @@ export function buildSearchResults(
   const subjectName = (subjectId: string) => subjectMap.get(subjectId)?.name ?? 'General'
   const matches = (...values: Array<string | number>) => values.join(' ').toLowerCase().includes(normalized)
   const sessionMinutesMap = Array.isArray(studySessions)
-    ? getSubjectStudyMinutesMap(studySessions)
+    ? getCreditedSubjectStudyMinutesMap(studySessions, now)
     : studySessions
 
   return [
@@ -282,7 +302,7 @@ export function buildSearchResults(
       .map((note): SearchResult => ({ id: note.id, type: 'Note', title: note.title, meta: subjectName(note.subjectId), view: 'Notes' })),
     ...subjects
       .map((subject) => {
-        const percentage = Math.round(calculateSubjectProgress(subject, sessionMinutesMap).percentage)
+        const percentage = Math.round(calculateSubjectProgress(subject, sessionMinutesMap, now).percentage)
         return { subject, percentage }
       })
       .filter(({ subject, percentage }) => matches(subject.name, percentage, subject.targetHours))
@@ -300,7 +320,12 @@ export function buildSearchResults(
 }
 
 export function calculateStreak(sessions: StudySession[], now = new Date()) {
-  const daysWithSessions = new Set(sessions.map((session) => localDateKey(session.endedAt)).filter(Boolean))
+  const daysWithSessions = new Set(
+    sessions
+      .filter((session) => isCreditedStudySession(session, now))
+      .map((session) => localDateKey(session.endedAt))
+      .filter(Boolean),
+  )
   let streak = 0
   const cursor = new Date(now)
   while (daysWithSessions.has(localDateKey(cursor))) {

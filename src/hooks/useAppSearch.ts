@@ -2,7 +2,7 @@ import { useCallback, useDeferredValue, useMemo, useState } from 'react'
 import {
   buildSearchResults,
   calculateSubjectProgress,
-  getSubjectStudyMinutesMap,
+  getCreditedSubjectStudyMinutesMap,
   type SearchResult,
 } from '../appUtils'
 import type { CalendarEvent, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
@@ -17,6 +17,7 @@ export type UseAppSearchOptions = {
   studySessions: StudySession[]
   subjectMap: Map<string, StudySubject>
   taskFilter: TaskSearchFilter
+  now?: Date
 }
 
 export type UseAppSearchResult = {
@@ -43,19 +44,20 @@ export function useAppSearch({
   studySessions,
   subjectMap,
   taskFilter,
+  now,
 }: UseAppSearchOptions): UseAppSearchResult {
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const normalizedSearch = deferredSearch.trim().toLowerCase()
 
   const sessionMinutesMap = useMemo(
-    () => getSubjectStudyMinutesMap(studySessions),
-    [studySessions],
+    () => getCreditedSubjectStudyMinutesMap(studySessions, now),
+    [now, studySessions],
   )
 
   const homeSearchResults = useMemo(
-    () => buildSearchResults(subjects, notes, events, tasks, sessionMinutesMap, subjectMap, deferredSearch),
-    [deferredSearch, events, notes, sessionMinutesMap, subjectMap, subjects, tasks],
+    () => buildSearchResults(subjects, notes, events, tasks, sessionMinutesMap, subjectMap, deferredSearch, now),
+    [deferredSearch, events, notes, now, sessionMinutesMap, subjectMap, subjects, tasks],
   )
 
   const filteredTasks = useMemo(() => tasks.filter((task) => {

@@ -163,5 +163,26 @@ describe('RightColumn Charts Accessibility (F-16)', () => {
       expect(screen.getByText('Log study sessions to see where your time is going.')).toBeInTheDocument()
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
     })
+
+    it('excludes future-ended sessions when now is passed to SubjectDistribution', () => {
+      const subjects: StudySubject[] = [
+        { id: 'sub-1', name: 'Math', color: '#1556c0', progress: 0, targetHours: 10, progressMode: 'study_time' },
+        { id: 'sub-2', name: 'Physics', color: '#334155', progress: 0, targetHours: 10, progressMode: 'study_time' },
+      ]
+      const now = new Date('2026-08-26T12:00:00.000Z')
+      const sessions: StudySession[] = [
+        { id: 's1', subjectId: 'sub-1', startedAt: '2026-08-26T10:00:00.000Z', endedAt: '2026-08-26T11:00:00.000Z', minutes: 60 },
+        { id: 's2', subjectId: 'sub-2', startedAt: '2026-08-26T13:00:00.000Z', endedAt: '2026-08-26T14:00:00.000Z', minutes: 60 },
+      ]
+      const subjectMap = new Map(subjects.map((s) => [s.id, s]))
+      render(<SubjectDistribution subjects={subjects} sessions={sessions} subjectMap={subjectMap} now={now} />)
+
+      // Only Math (60m) is credited; Physics is future (0m credited)
+      const mathBar = screen.getByRole('progressbar', { name: 'Math - 1h' })
+      expect(mathBar).toHaveAttribute('aria-valuenow', '100')
+
+      const physicsBar = screen.getByRole('progressbar', { name: 'Physics - 0m' })
+      expect(physicsBar).toHaveAttribute('aria-valuenow', '0')
+    })
   })
 })

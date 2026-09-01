@@ -7,7 +7,7 @@ import {
   formatElapsed,
   formatHours,
   formatMinutes,
-  getSubjectStudyMinutesMap,
+  getCreditedSubjectStudyMinutesMap,
   percent,
   type WeeklyStudyDay,
 } from '../appUtils'
@@ -222,7 +222,7 @@ export function HomeView(props: {
         />
         <QuickNoteCard notes={props.quickNotes} databaseGeneration={props.databaseGeneration ?? 1} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
       </div>
-      <SubjectsSection subjects={subjectStats} sessions={props.studySessions} onViewAll={() => props.onNavigate('Subjects')} />
+      <SubjectsSection subjects={subjectStats} sessions={props.studySessions} now={now} onViewAll={() => props.onNavigate('Subjects')} />
       <div className="bottom-grid">
         <RecentNotes notes={recentNotes} subjectMap={props.subjectMap} onViewAll={() => props.onNavigate('Notes')} />
         <StudyTime days={props.weeklyStudyDays} />
@@ -790,8 +790,8 @@ function QuickNoteCard({
   )
 }
 
-function SubjectsSection({ subjects, sessions, onViewAll }: { subjects: StudySubject[]; sessions: StudySession[]; onViewAll: () => void }) {
-  const sessionMinutesMap = useMemo(() => getSubjectStudyMinutesMap(sessions), [sessions])
+function SubjectsSection({ subjects, sessions, now, onViewAll }: { subjects: StudySubject[]; sessions: StudySession[]; now?: Date; onViewAll: () => void }) {
+  const sessionMinutesMap = useMemo(() => getCreditedSubjectStudyMinutesMap(sessions, now), [now, sessions])
 
   return (
     <section className="subject-section" aria-labelledby="subjects-title">
@@ -804,7 +804,7 @@ function SubjectsSection({ subjects, sessions, onViewAll }: { subjects: StudySub
           {subjects.map((subject) => (
             <SubjectCard
               subject={subject}
-              progressValue={calculateSubjectProgress(subject, sessionMinutesMap).percentage}
+              progressValue={calculateSubjectProgress(subject, sessionMinutesMap, now).percentage}
               key={subject.id}
             />
           ))}

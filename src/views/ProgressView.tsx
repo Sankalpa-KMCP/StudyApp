@@ -44,6 +44,7 @@ export function ProgressView(props: {
   dailyGoalMinutes: number
   todayFocusMinutes: number
   subjectMap: Map<string, StudySubject>
+  currentDate?: Date
   openEditorOnMount: boolean
   databaseGeneration: number
 }) {
@@ -490,7 +491,7 @@ export function ProgressView(props: {
         )}
       </section>
       <StudyTime days={props.weeklyStudyDays} />
-      <SubjectDistribution subjects={props.subjects} sessions={props.studySessions} subjectMap={props.subjectMap} />
+      <SubjectDistribution subjects={props.subjects} sessions={props.studySessions} subjectMap={props.subjectMap} now={props.currentDate} />
       <ConfirmDialog
         open={confirmSession !== null}
         title="Confirm deletion"
