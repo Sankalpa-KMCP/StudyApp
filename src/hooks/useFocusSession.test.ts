@@ -547,4 +547,93 @@ describe('useFocusSession', () => {
 
     getSpy.mockRestore()
   })
+
+  describe('F-11 live monotonic clock and rollback safety in useFocusSession', () => {
+    it('tracks elapsedSeconds and remainingSeconds from active study', async () => {
+      const session = makeSession({
+        id: 'focus-monotonic-1',
+        startedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+        plannedMinutes: 25,
+      })
+      await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-monotonic-1'))
+      expect(result.current.elapsedSeconds).toBeGreaterThanOrEqual(300)
+      expect(result.current.remainingSeconds).toBeLessThanOrEqual(25 * 60 - 300)
+    })
+
+    it('pausing during wall-clock rollback durably commits logical elapsed time', async () => {
+      const startedAt = new Date(Date.now() - 10 * 60_000).toISOString()
+      const session = makeSession({
+        id: 'focus-pause-rollback',
+        startedAt,
+        plannedMinutes: 25,
+      })
+      await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-pause-rollback'))
+      expect(result.current.elapsedSeconds).toBeGreaterThanOrEqual(600)
+
+      // Simulate clock rollback: Date.now() returns time before startedAt
+      const rollbackNow = Date.parse(startedAt) - 30 * 60_000
+      const dateSpy = vi.spyOn(Date, 'now').mockReturnValue(rollbackNow)
+
+      // Click pause
+      await act(async () => {
+        await result.current.pauseSession()
+      })
+
+      expect(result.current.activeSession?.status).toBe('paused')
+      expect(result.current.activeSession?.checkpointElapsedMs).toBeGreaterThanOrEqual(600_000)
+      const durable = await getActiveFocusSession()
+      expect(durable?.status).toBe('paused')
+      expect(durable?.checkpointElapsedMs).toBeGreaterThanOrEqual(600_000)
+      expect(Date.parse(durable!.pausedAt!)).toBeGreaterThanOrEqual(Date.parse(startedAt))
+
+      dateSpy.mockRestore()
+    })
+
+    it('resuming and finalizing under rollback preserves study time and passes domain assertions', async () => {
+      const startedAt = new Date(Date.now() - 15 * 60_000).toISOString()
+      const session = makeSession({
+        id: 'focus-res-fin-rollback',
+        startedAt,
+        plannedMinutes: 25,
+        status: 'paused',
+        pausedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+        checkpointElapsedMs: 10 * 60_000,
+      })
+      await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+      // System clock is in the past (before startedAt)
+      const rollbackNow = Date.parse(startedAt) - 10 * 60_000
+      const dateSpy = vi.spyOn(Date, 'now').mockReturnValue(rollbackNow)
+
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-res-fin-rollback'))
+      expect(result.current.elapsedSeconds).toBe(10 * 60)
+
+      // Resume under rollback
+      await act(async () => {
+        await result.current.resumeSession()
+      })
+      expect(result.current.activeSession?.status).toBe('running')
+
+      // Stop session
+      await act(async () => {
+        await result.current.stopSession(false)
+      })
+
+      // Must log at least 10 minutes of study history without throwing assertion
+      const history = await studyDb.studySessions.get('focus-res-fin-rollback')
+      expect(history).toBeDefined()
+      expect(history?.minutes).toBeGreaterThanOrEqual(10)
+      expect(Date.parse(history!.endedAt)).toBeGreaterThanOrEqual(Date.parse(startedAt))
+      expect(result.current.activeSession).toBeNull()
+
+      dateSpy.mockRestore()
+    })
+  })
 })

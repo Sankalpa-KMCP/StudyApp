@@ -1,4 +1,4 @@
-import { ACTIVE_FOCUS_SESSION_KEY, isActiveFocusSession } from './activeFocusSession'
+import { ACTIVE_FOCUS_SESSION_KEY, normalizeActiveFocusSession } from './activeFocusSession'
 import {
   type DatabaseMutationContext,
   withGuardedMutation,
@@ -90,12 +90,8 @@ export async function getSubjectLinkedUsage(subjectId: string): Promise<SubjectL
     studyDb.studySessions.where('subjectId').equals(subjectId).count(),
     studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY),
   ])
-  const activeFocus =
-    focusRecord &&
-    isActiveFocusSession(focusRecord.value) &&
-    focusRecord.value.subjectId === subjectId
-      ? 1
-      : 0
+  const active = focusRecord ? normalizeActiveFocusSession(focusRecord.value) : null
+  const activeFocus = active && active.subjectId === subjectId ? 1 : 0
   return { tasks, notes, events, sessions, activeFocus }
 }
 
@@ -128,12 +124,8 @@ export async function deleteSubject(
           studyDb.studySessions.where('subjectId').equals(id).count(),
           studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY),
         ])
-        const activeFocus =
-          focusRecord &&
-          isActiveFocusSession(focusRecord.value) &&
-          focusRecord.value.subjectId === id
-            ? 1
-            : 0
+        const active = focusRecord ? normalizeActiveFocusSession(focusRecord.value) : null
+        const activeFocus = active && active.subjectId === id ? 1 : 0
         const usage: SubjectLinkedUsage = { tasks, notes, events, sessions, activeFocus }
         const linkedTotal = tasks + notes + events + sessions + activeFocus
         if (linkedTotal > 0) {

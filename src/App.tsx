@@ -163,6 +163,8 @@ function App() {
     staleFocusSession,
     staleFocusSubjectName,
     sessionLimitSeconds,
+    elapsedSeconds,
+    remainingSeconds,
     sessionNotice,
     canStartFocus,
     focusActionsPending,
@@ -354,6 +356,8 @@ function App() {
             staleFocusSession={staleFocusSession}
             staleFocusSubjectName={staleFocusSubjectName}
             sessionLimitSeconds={sessionLimitSeconds}
+            elapsedSeconds={elapsedSeconds}
+            remainingSeconds={remainingSeconds}
             sessionNotice={sessionNotice}
             canStartFocus={canStartFocus}
             focusActionsPending={focusActionsPending}

@@ -97,14 +97,19 @@ export type ActiveFocusSessionStatus = 'running' | 'paused'
 export type ActiveFocusSession = {
   id: string
   subjectId: string
-  /** Canonical start instant (ISO-8601). Elapsed time is derived from this. */
+  /** Canonical start instant (ISO-8601). Immutable across wall-clock changes. */
   startedAt: string
   /** Planned length in minutes; `0` means open-ended. */
   plannedMinutes: number
   status: ActiveFocusSessionStatus
-  /** Set when `status === 'paused'`; otherwise `null`. */
+  /** Set when `status === 'paused'`; otherwise `null`. Guaranteed >= startedAt. */
   pausedAt: string | null
   accumulatedPausedMs: number
+  /**
+   * Total confirmed logical active study milliseconds earned.
+   * Optional for backwards compatibility (defaults to legacy calculation when absent).
+   */
+  checkpointElapsedMs?: number
 }
 
 /** Pre-metric goal shape found in version-1 backups (no `metric` field). */

@@ -1356,7 +1356,7 @@ describe('App focus', () => {
   })
 
   it('keeps open-ended focus elapsed text visible without live announcements', async () => {
-    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.useFakeTimers({ toFake: ['Date', 'hrtime', 'performance', 'setInterval', 'clearInterval'] })
     const startedAt = new Date('2026-07-21T12:00:00.000Z')
     vi.setSystemTime(startedAt)
 
@@ -1387,7 +1387,7 @@ describe('App focus', () => {
   })
 
   it('synchronizes elapsed and remaining display immediately on resume after a long pause', async () => {
-    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.useFakeTimers({ toFake: ['Date', 'hrtime', 'performance', 'setInterval', 'clearInterval'] })
     const startedAt = new Date('2026-07-21T12:00:00.000Z')
     vi.setSystemTime(startedAt)
 
@@ -1441,5 +1441,100 @@ describe('App focus', () => {
       pausedAt: null,
       accumulatedPausedMs: 10 * 60_000,
     })
+  })
+
+  it('F-11: recovers a legacy rollback session (pausedAt < startedAt) on mount without deleting as missing', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'hrtime', 'performance', 'setInterval', 'clearInterval'] })
+    const now = new Date('2026-07-21T12:00:00.000Z')
+    vi.setSystemTime(now)
+
+    // Store legacy anomaly record directly into settings table
+    await studyDb.settings.put({
+      key: ACTIVE_FOCUS_SESSION_KEY,
+      value: {
+        id: 'focus-legacy-anomaly',
+        subjectId: '',
+        startedAt: '2026-07-21T12:00:00.000Z',
+        plannedMinutes: 25,
+        status: 'paused',
+        pausedAt: '2026-07-21T11:30:00.000Z', // 30 minutes before startedAt
+        accumulatedPausedMs: 0,
+      },
+    })
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App />)
+
+    // Session is healed and mounted in paused state with Resume button (not deleted)
+    expect(await screen.findByRole('button', { name: 'Resume' })).toBeInTheDocument()
+    expect(screen.getByText('paused')).toBeInTheDocument()
+
+    // Resume succeeds without treating the session as missing
+    await user.click(screen.getByRole('button', { name: 'Resume' }))
+    expect(await screen.findByRole('button', { name: 'Pause' })).toBeInTheDocument()
+
+    // Stopping records study history
+    await user.click(screen.getByRole('button', { name: 'Stop session' }))
+    expect(await screen.findByRole('button', { name: 'Start focus' })).toBeInTheDocument()
+    expect(await studyDb.studySessions.get('focus-legacy-anomaly')).toBeDefined()
+  })
+
+  it('F-11: preserves monotonic elapsed time and study minutes when wall clock rolls backward during active session', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'hrtime', 'performance', 'setInterval', 'clearInterval'] })
+    const startedAt = new Date('2026-07-21T12:00:00.000Z')
+    vi.setSystemTime(startedAt)
+
+    await createActiveFocusSession({
+      id: 'focus-live-rollback',
+      subjectId: '',
+      startedAt: startedAt.toISOString(),
+      plannedMinutes: 25,
+      status: 'running',
+      pausedAt: null,
+      accumulatedPausedMs: 0,
+    }, { expectedGeneration: 1 })
+
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Pause' })).toBeInTheDocument()
+
+    // Study for 5 minutes
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5 * 60_000)
+    })
+    expect(screen.getByText('Elapsed').parentElement?.querySelector('strong')?.textContent).toBe('05:00')
+
+    // Wall clock moves backward by 20 minutes (to 11:45)
+    vi.setSystemTime(new Date('2026-07-21T11:45:00.000Z'))
+
+    // Advance 1 minute in time
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000)
+    })
+    // Timer must continue advancing monotonically (06:00), not drop to 00:00
+    expect(screen.getByText('Elapsed').parentElement?.querySelector('strong')?.textContent).toBe('06:00')
+
+    // Pause commits durable checkpoint
+    await user.click(screen.getByRole('button', { name: 'Pause' }))
+    expect(await screen.findByRole('button', { name: 'Resume' })).toBeInTheDocument()
+    expect(screen.getByText('Elapsed').parentElement?.querySelector('strong')?.textContent).toBe('06:00')
+
+    const durable = await getActiveFocusSession()
+    expect(durable?.status).toBe('paused')
+    expect(durable?.checkpointElapsedMs).toBeGreaterThanOrEqual(6 * 60_000)
+    expect(Date.parse(durable!.pausedAt!)).toBeGreaterThanOrEqual(startedAt.getTime())
+
+    // Resume resumes cleanly
+    await user.click(screen.getByRole('button', { name: 'Resume' }))
+    expect(await screen.findByRole('button', { name: 'Pause' })).toBeInTheDocument()
+
+    // Stop logs 6 minutes of study time
+    await user.click(screen.getByRole('button', { name: 'Stop session' }))
+    expect(await screen.findByRole('button', { name: 'Start focus' })).toBeInTheDocument()
+
+    const history = await studyDb.studySessions.get('focus-live-rollback')
+    expect(history).toBeDefined()
+    expect(history?.minutes).toBe(6)
+    expect(Date.parse(history!.endedAt)).toBeGreaterThanOrEqual(startedAt.getTime())
   })
 })

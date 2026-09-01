@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { formatMinutes } from '../appUtils'
 import {
+  checkpointActiveFocusSession,
   createActiveFocusSession,
   discardActiveFocusSession,
   finalizeActiveFocusSession,
@@ -28,6 +29,8 @@ export type UseFocusSessionResult = {
   staleFocusSession: ActiveFocusSession | null
   staleFocusSubjectName: string
   sessionLimitSeconds: number
+  elapsedSeconds: number
+  remainingSeconds: number
   sessionNotice: string
   canStartFocus: boolean
   focusActionsPending: boolean
@@ -49,6 +52,45 @@ export type UseFocusSessionResult = {
   clearFocusLocalState: () => void
 }
 
+type LiveAnchor = {
+  sessionId: string
+  baseElapsedMs: number
+  perfStartMs: number
+  dateStartMs: number
+}
+
+function getLiveAnchorNowMs(): number {
+  return typeof performance !== 'undefined' && typeof performance.now === 'function' ? performance.now() : 0
+}
+
+function createLiveAnchor(sessionId: string, baseElapsedMs: number): LiveAnchor {
+  return {
+    sessionId,
+    baseElapsedMs,
+    perfStartMs: getLiveAnchorNowMs(),
+    dateStartMs: Date.now(),
+  }
+}
+
+function calculateRunningElapsed(session: ActiveFocusSession, anchor: LiveAnchor | null): number {
+  const wallElapsed = getActiveFocusElapsedMs(session, Date.now())
+  if (!anchor || anchor.sessionId !== session.id) {
+    return wallElapsed
+  }
+
+  const perfNow = getLiveAnchorNowMs()
+  const perfDelta = Math.max(0, perfNow - anchor.perfStartMs)
+  const dateDelta = Math.max(0, Date.now() - anchor.dateStartMs)
+
+  // In real browser where clock jumps forward by > 5 seconds, throttle to monotonic performance delta
+  if (perfDelta > 50 && dateDelta > perfDelta + 5000) {
+    return anchor.baseElapsedMs + perfDelta
+  }
+
+  const perfElapsed = anchor.baseElapsedMs + perfDelta
+  return Math.max(wallElapsed, perfElapsed)
+}
+
 /**
  * Focus-session React orchestration: restore, start/pause/resume/stop, stale
  * decisions, subject updates, timed auto-complete with sync pending refs, and
@@ -64,23 +106,35 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
   const [focusRestoreReady, setFocusRestoreReady] = useState(false)
   const [focusTransitionPending, setFocusTransitionPending] = useState(false)
   const [focusImportPending, setFocusImportPending] = useState(false)
+  const [liveElapsedMs, setLiveElapsedMs] = useState(0)
+
   const focusGenerationRef = useRef<number>(1)
   const finalizingSessionIdRef = useRef<string | null>(null)
   const deferredAutoCompleteSessionIdRef = useRef<string | null>(null)
   const focusTransitionPendingRef = useRef(false)
   const focusImportPendingRef = useRef(false)
   const focusSubjectWriteSeqRef = useRef(0)
+  const liveAnchorRef = useRef<LiveAnchor | null>(null)
 
   /** Clears both React focus slots, then applies at most one persisted session (never both). */
   const applyPersistedFocusSession = useCallback((restored: ActiveFocusSession | null) => {
     deferredAutoCompleteSessionIdRef.current = null
     setActiveSession(null)
     setStaleFocusSession(null)
-    if (!restored) return
+    if (!restored) {
+      liveAnchorRef.current = null
+      setLiveElapsedMs(0)
+      return
+    }
     if (isActiveFocusSessionStale(restored)) {
+      liveAnchorRef.current = null
+      setLiveElapsedMs(0)
       setStaleFocusSession(restored)
       return
     }
+    const base = getActiveFocusElapsedMs(restored)
+    liveAnchorRef.current = createLiveAnchor(restored.id, base)
+    setLiveElapsedMs(base)
     setActiveSession(restored)
     setFocusSubjectId(restored.subjectId)
     setFocusDurationMinutes(restored.plannedMinutes)
@@ -131,11 +185,92 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     : ''
 
   const hydrateActiveSession = useCallback((session: ActiveFocusSession, notice = '') => {
+    const base = getActiveFocusElapsedMs(session)
+    liveAnchorRef.current = createLiveAnchor(session.id, base)
+    setLiveElapsedMs(base)
     setActiveSession(session)
     setFocusSubjectId(session.subjectId)
     setFocusDurationMinutes(session.plannedMinutes)
     setSessionNotice(notice)
   }, [])
+
+  // Authoritative live timer interval
+  useEffect(() => {
+    if (!activeSession || activeSession.status !== 'running') {
+      return undefined
+    }
+
+    if (!liveAnchorRef.current || liveAnchorRef.current.sessionId !== activeSession.id) {
+      const base = getActiveFocusElapsedMs(activeSession)
+      liveAnchorRef.current = createLiveAnchor(activeSession.id, base)
+    } else if (
+      typeof activeSession.checkpointElapsedMs === 'number' &&
+      activeSession.checkpointElapsedMs > liveAnchorRef.current.baseElapsedMs
+    ) {
+      const currentLive = calculateRunningElapsed(activeSession, liveAnchorRef.current)
+      if (activeSession.checkpointElapsedMs > currentLive) {
+        liveAnchorRef.current = createLiveAnchor(activeSession.id, activeSession.checkpointElapsedMs)
+      }
+    }
+
+    const timer = window.setInterval(() => {
+      const current = calculateRunningElapsed(activeSession, liveAnchorRef.current)
+      setLiveElapsedMs((prev) => Math.max(prev, current))
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [activeSession])
+
+  // Periodic and visibility-based durable running checkpoint
+  useEffect(() => {
+    if (!activeSession || activeSession.status !== 'running') return undefined
+
+    const performCheckpoint = async () => {
+      if (focusTransitionPendingRef.current || focusImportPendingRef.current || !coordinator.getSnapshot().canMutateFocus) {
+        return
+      }
+      if (!liveAnchorRef.current || liveAnchorRef.current.sessionId !== activeSession.id) return
+
+      const currentElapsed = calculateRunningElapsed(activeSession, liveAnchorRef.current)
+      const currentDurable = activeSession.checkpointElapsedMs ?? 0
+      if (currentElapsed <= currentDurable) return
+
+      try {
+        await coordinator.runFocusWrite(async () => {
+          const result = await checkpointActiveFocusSession(activeSession.id, currentElapsed, {
+            expectedGeneration: focusGenerationRef.current,
+          })
+          if (result.ok) {
+            setActiveSession(result.session)
+          }
+        })
+      } catch {
+        // Best-effort checkpoint: failure must not reset live timer or throw unhandled rejection
+      }
+    }
+
+    const intervalTimer = window.setInterval(() => {
+      void performCheckpoint()
+    }, 30_000)
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        void performCheckpoint()
+      }
+    }
+    const onPageHide = () => {
+      void performCheckpoint()
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('pagehide', onPageHide)
+
+    return () => {
+      window.clearInterval(intervalTimer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('pagehide', onPageHide)
+    }
+  }, [activeSession, coordinator])
 
   const startSession = useCallback(async () => {
     if (!focusRestoreReady || activeSession || staleFocusSession || focusActionsPending) return
@@ -148,6 +283,7 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
       status: 'running',
       pausedAt: null,
       accumulatedPausedMs: 0,
+      checkpointElapsedMs: 0,
     }
 
     const res = await coordinator.runFocusWrite(async () => {
@@ -158,6 +294,8 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
         if (result.ok) {
           deferredAutoCompleteSessionIdRef.current = null
           focusGenerationRef.current = result.generation
+          liveAnchorRef.current = createLiveAnchor(result.session.id, 0)
+          setLiveElapsedMs(0)
           setActiveSession(result.session)
           setSessionNotice('')
           return
@@ -290,15 +428,19 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
       deferredAutoCompleteSessionIdRef.current = null
     }
     finalizingSessionIdRef.current = sessionToFinalize.id
-    const elapsedMs = getActiveFocusElapsedMs(sessionToFinalize)
-    const actualMinutes = Math.round(elapsedMs / 60_000)
+
+    const currentElapsed = calculateRunningElapsed(sessionToFinalize, liveAnchorRef.current)
+    const actualMinutes = Math.round(currentElapsed / 60_000)
     const minutes = Math.max(1, completed && sessionToFinalize.plannedMinutes > 0 ? sessionToFinalize.plannedMinutes : actualMinutes)
+
+    const safeStartedAt = sessionToFinalize.startedAt
+    const safeEndedAt = new Date(Math.max(Date.parse(safeStartedAt), Date.now())).toISOString()
 
     try {
       const result = await finalizeActiveFocusSession(sessionToFinalize.id, {
         subjectId: sessionToFinalize.subjectId,
-        startedAt: sessionToFinalize.startedAt,
-        endedAt: nowIso(),
+        startedAt: safeStartedAt,
+        endedAt: safeEndedAt,
         minutes,
         note: completed ? 'Completed focus session' : sessionToFinalize.subjectId ? 'Focus session' : 'General focus session',
       }, {
@@ -317,6 +459,8 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
           return
         }
 
+        liveAnchorRef.current = null
+        setLiveElapsedMs(0)
         setActiveSession(null)
         setStaleFocusSession(null)
         setSessionNotice('That focus session is no longer saved. It was removed from the screen without logging study time.')
@@ -324,11 +468,15 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
       }
 
       deferredAutoCompleteSessionIdRef.current = null
+      liveAnchorRef.current = null
+      setLiveElapsedMs(0)
       setActiveSession(null)
       setSessionNotice(completed ? `Session complete: ${formatMinutes(result.history.minutes)} logged.` : `Session stopped: ${formatMinutes(result.history.minutes)} logged.`)
     } catch (err) {
       if (err instanceof StaleDatabaseGenerationError) {
         deferredAutoCompleteSessionIdRef.current = null
+        liveAnchorRef.current = null
+        setLiveElapsedMs(0)
         setActiveSession(null)
         setStaleFocusSession(null)
         setSessionNotice('The database was updated elsewhere. Study time was not logged.')
@@ -356,8 +504,33 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
 
     try {
       const res = await coordinator.runFocusWrite(async () => {
+        // Attempt best-effort checkpoint of live progress before evaluating
+        if (liveAnchorRef.current && liveAnchorRef.current.sessionId === expectedSessionId) {
+          const currentElapsed = calculateRunningElapsed(activeSession ?? {
+            id: expectedSessionId,
+            subjectId: '',
+            startedAt: nowIso(),
+            plannedMinutes: 25,
+            status: 'running',
+            pausedAt: null,
+            accumulatedPausedMs: 0,
+          }, liveAnchorRef.current)
+          try {
+            await checkpointActiveFocusSession(expectedSessionId, currentElapsed, {
+              expectedGeneration: focusGenerationRef.current,
+            })
+          } catch {
+            // best effort
+          }
+        }
+
         const durable = await getActiveFocusSession()
         if (!durable || durable.id !== expectedSessionId) {
+          clearDeferredForExpected()
+          return
+        }
+
+        if (durable.status !== 'running' || durable.plannedMinutes <= 0) {
           clearDeferredForExpected()
           return
         }
@@ -382,7 +555,7 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     } catch {
       deferredAutoCompleteSessionIdRef.current = expectedSessionId
     }
-  }, [coordinator, finalizeFocusSession])
+  }, [activeSession, coordinator, finalizeFocusSession])
 
   useEffect(() => {
     const unsubscribe = coordinator.subscribe(() => {
@@ -416,11 +589,19 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     focusTransitionPendingRef.current = true
     setFocusTransitionPending(true)
     try {
+      const currentElapsed = calculateRunningElapsed(activeSession, liveAnchorRef.current)
+
       const res = await coordinator.runFocusWrite(async () => {
-        const result = await pauseActiveFocusSession(activeSession.id, nowIso(), {
+        const result = await pauseActiveFocusSession(activeSession.id, {
+          pausedAt: nowIso(),
+          logicalElapsedMs: currentElapsed,
+        }, {
           expectedGeneration: focusGenerationRef.current,
         })
         if (result.ok) {
+          const finalElapsed = result.session.checkpointElapsedMs ?? currentElapsed
+          liveAnchorRef.current = createLiveAnchor(result.session.id, finalElapsed)
+          setLiveElapsedMs(finalElapsed)
           setActiveSession(result.session)
           setSessionNotice('')
           return
@@ -438,6 +619,8 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     } catch (err) {
       if (err instanceof StaleDatabaseGenerationError) {
         deferredAutoCompleteSessionIdRef.current = null
+        liveAnchorRef.current = null
+        setLiveElapsedMs(0)
         setActiveSession(null)
         setStaleFocusSession(null)
         setSessionNotice('The database was updated elsewhere.')
@@ -461,6 +644,9 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
           expectedGeneration: focusGenerationRef.current,
         })
         if (result.ok) {
+          const base = result.session.checkpointElapsedMs ?? getActiveFocusElapsedMs(result.session)
+          liveAnchorRef.current = createLiveAnchor(result.session.id, base)
+          setLiveElapsedMs(base)
           setActiveSession(result.session)
           setSessionNotice('')
           return
@@ -478,6 +664,8 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     } catch (err) {
       if (err instanceof StaleDatabaseGenerationError) {
         deferredAutoCompleteSessionIdRef.current = null
+        liveAnchorRef.current = null
+        setLiveElapsedMs(0)
         setActiveSession(null)
         setStaleFocusSession(null)
         setSessionNotice('The database was updated elsewhere.')
@@ -502,12 +690,14 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     }
   }, [activeSession, coordinator, finalizeFocusSession, focusActionsPending])
 
+  // Timed auto-completion scheduling effect
   useEffect(() => {
     if (!activeSession || activeSession.status !== 'running' || activeSession.plannedMinutes <= 0) return undefined
 
     const sessionId = activeSession.id
     const limitMs = activeSession.plannedMinutes * 60_000
-    const remainingMs = Math.max(0, limitMs - getActiveFocusElapsedMs(activeSession))
+    const currentElapsed = calculateRunningElapsed(activeSession, liveAnchorRef.current)
+    const remainingMs = Math.max(0, limitMs - currentElapsed)
 
     const timer = window.setTimeout(() => {
       if (focusTransitionPendingRef.current || focusImportPendingRef.current || !coordinator.getSnapshot().canMutateFocus) {
@@ -517,7 +707,7 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
       void evaluateTimedCompletion(sessionId)
     }, remainingMs)
     return () => window.clearTimeout(timer)
-  }, [activeSession, coordinator, evaluateTimedCompletion])
+  }, [activeSession, coordinator, evaluateTimedCompletion, liveElapsedMs])
 
   const updateFocusSubject = useCallback((subjectId: string) => {
     setFocusSubjectId(subjectId)
@@ -525,7 +715,13 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
 
     const baseline = activeSession
     const writeSeq = ++focusSubjectWriteSeqRef.current
-    const nextSession: ActiveFocusSession = { ...activeSession, subjectId }
+    const currentElapsed = calculateRunningElapsed(activeSession, liveAnchorRef.current)
+
+    const nextSession: ActiveFocusSession = {
+      ...activeSession,
+      subjectId,
+      checkpointElapsedMs: Math.max(activeSession.checkpointElapsedMs ?? 0, Math.floor(currentElapsed)),
+    }
     setActiveSession(nextSession)
 
     void (async () => {
@@ -626,6 +822,8 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
 
   const clearFocusLocalState = useCallback(() => {
     focusGenerationRef.current = 1
+    liveAnchorRef.current = null
+    setLiveElapsedMs(0)
     setActiveSession(null)
     setStaleFocusSession(null)
     finalizingSessionIdRef.current = null
@@ -634,11 +832,20 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     focusImportPendingRef.current = false
   }, [])
 
+  const elapsedSeconds = activeSession
+    ? Math.max(0, Math.floor(liveElapsedMs / 1000))
+    : 0
+  const remainingSeconds = sessionLimitSeconds > 0
+    ? Math.max(0, sessionLimitSeconds - elapsedSeconds)
+    : 0
+
   return {
     activeSession,
     staleFocusSession,
     staleFocusSubjectName,
     sessionLimitSeconds,
+    elapsedSeconds,
+    remainingSeconds,
     sessionNotice,
     canStartFocus,
     focusActionsPending,
