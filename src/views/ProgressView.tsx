@@ -33,6 +33,8 @@ type SessionDraft = {
 
 const PROGRESS_INITIAL_VISIBLE_DAYS = 14
 const PROGRESS_BATCH_SIZE_DAYS = 14
+const PROGRESS_INITIAL_VISIBLE_SESSIONS_PER_DAY = 50
+const PROGRESS_BATCH_SIZE_SESSIONS_PER_DAY = 50
 
 export function ProgressView(props: {
   subjects: StudySubject[]
@@ -46,8 +48,11 @@ export function ProgressView(props: {
   databaseGeneration: number
 }) {
   const [visibleDays, setVisibleDays] = useState(PROGRESS_INITIAL_VISIBLE_DAYS)
+  const [dayVisibleSessionsMap, setDayVisibleSessionsMap] = useState<Record<string, number>>({})
   const listFooterRef = useRef<HTMLDivElement | null>(null)
   const wasShowMoreFocusedRef = useRef(false)
+  const dayFooterRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
+  const dayShowMoreFocusedRef = useRef<string | null>(null)
 
   const [editingSessionId, setEditingSessionId] = useState<string | null>(() =>
     props.openEditorOnMount ? 'new' : null,
@@ -93,12 +98,23 @@ export function ProgressView(props: {
   const totalDays = sessionGroups.length
   const visibleSessionGroups = sessionGroups.slice(0, visibleDays)
   const hasMoreDays = visibleSessionGroups.length < totalDays
-  const visibleSessionsCount = visibleSessionGroups.reduce((sum, group) => sum + group.sessions.length, 0)
+  const visibleSessionsCount = visibleSessionGroups.reduce((sum, group) => {
+    const dayLimit = dayVisibleSessionsMap[group.key] ?? PROGRESS_INITIAL_VISIBLE_SESSIONS_PER_DAY
+    return sum + Math.min(group.sessions.length, dayLimit)
+  }, 0)
   const totalSessionsCount = props.studySessions.length
 
   const showMoreDays = () => {
     wasShowMoreFocusedRef.current = true
     setVisibleDays((prev) => prev + PROGRESS_BATCH_SIZE_DAYS)
+  }
+
+  const showMoreSessionsForDay = (groupKey: string) => {
+    dayShowMoreFocusedRef.current = groupKey
+    setDayVisibleSessionsMap((prev) => ({
+      ...prev,
+      [groupKey]: (prev[groupKey] ?? PROGRESS_INITIAL_VISIBLE_SESSIONS_PER_DAY) + PROGRESS_BATCH_SIZE_SESSIONS_PER_DAY,
+    }))
   }
 
   useEffect(() => {
@@ -107,6 +123,23 @@ export function ProgressView(props: {
       listFooterRef.current?.focus()
     }
   }, [hasMoreDays])
+
+  useEffect(() => {
+    const focusedKey = dayShowMoreFocusedRef.current
+    if (!focusedKey) return
+    const group = sessionGroups.find((g) => g.key === focusedKey)
+    if (!group) {
+      dayShowMoreFocusedRef.current = null
+      return
+    }
+    const visibleLimit = dayVisibleSessionsMap[focusedKey] ?? PROGRESS_INITIAL_VISIBLE_SESSIONS_PER_DAY
+    const hasMoreInDay = visibleLimit < group.sessions.length
+    if (!hasMoreInDay) {
+      dayShowMoreFocusedRef.current = null
+      const dayFooter = dayFooterRefs.current.get(focusedKey)
+      dayFooter?.focus()
+    }
+  }, [sessionGroups, dayVisibleSessionsMap])
 
   const loadingLabel = editingSessionId && editingSessionId !== 'new' ? 'Saving session...' : 'Recording session...'
   const rowActionsLocked = isSaving || Boolean(pendingDeleteId)
@@ -365,38 +398,73 @@ export function ProgressView(props: {
         {sessionGroups.length > 0 ? (
           <>
             <div className="session-ledger">
-              {visibleSessionGroups.map((group) => (
-                <section className="session-day" aria-labelledby={`session-day-${group.key}`} key={group.key}>
-                  <div className="session-day-heading">
-                    <h3 id={`session-day-${group.key}`}>{group.label}</h3>
-                    <span>{formatMinutes(group.sessions.reduce((sum, session) => sum + session.minutes, 0))}</span>
-                  </div>
-                  {group.sessions.map((session) => {
-                    const subject = session.subjectId ? props.subjectMap.get(session.subjectId) : undefined
-                    const subjectName = session.subjectId ? subject?.name ?? 'Missing subject' : 'General'
-                    const startTime = sessionStartLabel(session)
-                    return (
-                      <article className="session-row" aria-label={`${subjectName}, ${startTime}, ${formatMinutes(session.minutes)}`} key={session.id}>
-                        <time className="session-time" dateTime={session.startedAt}>{startTime}</time>
-                        <div className="session-copy">
-                          <h4 className={session.subjectId && !subject ? 'is-missing' : undefined}>{subjectName}</h4>
-                          {session.note ? <p>{session.note}</p> : null}
-                        </div>
-                        <strong className="session-duration">{formatMinutes(session.minutes)}</strong>
-                        <RowActionButtons
-                          label={`${subjectName} session at ${startTime}`}
-                          onEdit={() => openEditor(session)}
-                          onDelete={(context) => requestDeleteSession(session, context)}
-                          databaseGeneration={props.databaseGeneration}
-                          confirmDelete={false}
-                          isDisabled={rowActionsLocked}
-                          isDeleting={pendingDeleteId === session.id}
-                        />
-                      </article>
-                    )
-                  })}
-                </section>
-              ))}
+              {visibleSessionGroups.map((group) => {
+                const dayLimit = dayVisibleSessionsMap[group.key] ?? PROGRESS_INITIAL_VISIBLE_SESSIONS_PER_DAY
+                const visibleDaySessions = group.sessions.slice(0, dayLimit)
+                const hasMoreInDay = visibleDaySessions.length < group.sessions.length
+                const totalDaySessions = group.sessions.length
+
+                return (
+                  <section className="session-day" aria-labelledby={`session-day-${group.key}`} key={group.key}>
+                    <div className="session-day-heading">
+                      <h3 id={`session-day-${group.key}`}>{group.label}</h3>
+                      <span>{formatMinutes(group.sessions.reduce((sum, session) => sum + session.minutes, 0))}</span>
+                    </div>
+                    {visibleDaySessions.map((session) => {
+                      const subject = session.subjectId ? props.subjectMap.get(session.subjectId) : undefined
+                      const subjectName = session.subjectId ? subject?.name ?? 'Missing subject' : 'General'
+                      const startTime = sessionStartLabel(session)
+                      return (
+                        <article className="session-row" aria-label={`${subjectName}, ${startTime}, ${formatMinutes(session.minutes)}`} key={session.id}>
+                          <time className="session-time" dateTime={session.startedAt}>{startTime}</time>
+                          <div className="session-copy">
+                            <h4 className={session.subjectId && !subject ? 'is-missing' : undefined}>{subjectName}</h4>
+                            {session.note ? <p>{session.note}</p> : null}
+                          </div>
+                          <strong className="session-duration">{formatMinutes(session.minutes)}</strong>
+                          <RowActionButtons
+                            label={`${subjectName} session at ${startTime}`}
+                            onEdit={() => openEditor(session)}
+                            onDelete={(context) => requestDeleteSession(session, context)}
+                            databaseGeneration={props.databaseGeneration}
+                            confirmDelete={false}
+                            isDisabled={rowActionsLocked}
+                            isDeleting={pendingDeleteId === session.id}
+                          />
+                        </article>
+                      )
+                    })}
+                    {totalDaySessions > PROGRESS_INITIAL_VISIBLE_SESSIONS_PER_DAY ? (
+                      <div
+                        className="session-day-disclosure"
+                        tabIndex={-1}
+                        ref={(el) => {
+                          if (el) {
+                            dayFooterRefs.current.set(group.key, el)
+                          } else {
+                            dayFooterRefs.current.delete(group.key)
+                          }
+                        }}
+                      >
+                        <p className="list-count-summary">
+                          {hasMoreInDay
+                            ? `Showing ${visibleDaySessions.length} of ${totalDaySessions} sessions for ${group.label}`
+                            : `Showing all ${totalDaySessions} sessions for ${group.label}`}
+                        </p>
+                        {hasMoreInDay ? (
+                          <button
+                            type="button"
+                            className="secondary-command"
+                            onClick={() => showMoreSessionsForDay(group.key)}
+                          >
+                            {`Show 50 more sessions for ${group.label}`}
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </section>
+                )
+              })}
             </div>
             {totalDays > PROGRESS_INITIAL_VISIBLE_DAYS ? (
               <div className="list-disclosure-footer" tabIndex={-1} ref={listFooterRef}>

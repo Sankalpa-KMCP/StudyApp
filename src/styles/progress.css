@@ -92,6 +92,17 @@
   background: var(--surface-subtle);
 }
 
+.session-day-disclosure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-subtle);
+  outline: none;
+}
+
 .session-day-heading h3 {
   font-size: 0.95rem;
 }
