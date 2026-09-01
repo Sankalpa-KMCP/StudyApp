@@ -73,9 +73,8 @@ test.describe('Playwright axe accessibility smoke', () => {
     await expectNoAxeViolations(page, testInfo, 'progress-baseline')
 
     const subjectId = 'a11y-progress-subject'
-    const startedAt = new Date()
-    startedAt.setHours(10, 0, 0, 0)
-    const endedAt = new Date(startedAt.getTime() + 90 * 60_000)
+    const endedAt = new Date(Date.now() - 30 * 60_000)
+    const startedAt = new Date(endedAt.getTime() - 90 * 60_000)
 
     await importStudyBackupViaSettings(
       page,
