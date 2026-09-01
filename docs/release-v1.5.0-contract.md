@@ -59,7 +59,7 @@ The following browser targets define the support scope for the v1.5.0 release:
   - Safari on iOS (Current version)
 
 > [!IMPORTANT]
-> **Validation Notice:** Inclusion in this supported target matrix represents a **release target and commitment**, not a claim that automated or manual validation has already passed for all listed platforms. Automated CI coverage currently runs Playwright Chromium and mobile Chrome specs, while full Safari, Edge, and mobile device validation remains an active release task.
+> **Validation Notice:** Inclusion in this supported target matrix represents a **release target and commitment**, not a claim that branded OEM or physical device validation has already passed for all listed platforms. Automated CI coverage currently executes full Playwright Chromium specs alongside multi-engine smoke suites on Firefox, WebKit, and mobile WebKit. Full Edge OEM, macOS Safari, and physical iOS device validation remains an active release task.
 
 ---
 

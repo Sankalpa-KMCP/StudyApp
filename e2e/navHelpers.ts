@@ -11,11 +11,16 @@ export async function navigateWorkspace(page: Page, name: string) {
     await navButton(page, name).click()
     return
   }
-  const direct = navButton(page, name)
-  if (await direct.count()) {
-    await direct.click()
+  const sidebar = page.locator('aside.sidebar')
+  if (await sidebar.isVisible().catch(() => false)) {
+    await navButton(page, name).click()
     return
   }
-  await navButton(page, 'More').click()
-  await page.getByRole('menuitem', { name, exact: true }).click()
+  const more = navButton(page, 'More')
+  if (await more.isVisible().catch(() => false)) {
+    await more.click()
+    await page.getByRole('menuitem', { name, exact: true }).click()
+    return
+  }
+  await navButton(page, name).click()
 }
