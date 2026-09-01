@@ -4,15 +4,15 @@
 
 ### Added
 
-- Expanded theme library from 11 to **16 accessible palettes** (9 Light and 7 Dark) by introducing **Rose Quartz**, **Ocean Glass**, and **Sandstone** (Light), alongside **Plum Noir** and **Forest Dark** (Dark), joining Monochrome, Canvas, Blueprint, Moss Library, Ember, Sage Botanical, Midnight, Aurora, Nordic Slate, Espresso, and High-Contrast Obsidian.
-- Visual Theme Gallery in Settings with persistent Light and Dark category grouping, dynamic category count badges (`9` and `7`), clear visual boundary separation, and continuous roving tabindex keyboard navigation across all 16 theme choices.
-- Centralized theme registry (`src/styles/themeRegistry.ts`) and CSS semantic token system (`src/styles/tokens.css`) providing full 28-token semantic palettes and thumbnail preview swatches for all 16 themes.
-- Automated theme token contrast contracts (`src/styles/themeTokenContrast.ts` / `.test.ts`) enforcing text (≥ 4.5:1 with a 4.6:1 margin) and control boundary (≥ 3.0:1 with a 3.2:1 margin) minimums across all 16 themes.
-- Playwright E2E integration test coverage across all 16 themes, dynamic switching, and reload persistence (`e2e/dashboard.spec.ts`).
+- Expanded the theme library to **21 accessible palettes** (11 Light and 10 Dark), adding **Crystal Glass**, **Wisteria Bloom**, **Celestial Drift**, **Velvet Dusk**, and **Abyssal Glow** with distinct CSS-only live wallpapers, static gallery ambience, and opaque Zen treatments.
+- Visual Theme Gallery in Settings with persistent Light and Dark category grouping, dynamic category count badges (`11` and `10`), clear visual boundary separation, and continuous roving tabindex keyboard navigation across all 21 theme choices.
+- Centralized theme registry (`src/styles/themeRegistry.ts`) and CSS semantic token system (`src/styles/tokens.css`) providing full semantic palettes and thumbnail preview swatches for all 21 themes; `src/styles/themes.css` owns premium ambience and selective Crystal Glass surfaces.
+- Automated theme token contrast contracts (`src/styles/themeTokenContrast.ts` / `.test.ts`) enforcing text (≥ 4.5:1 with a 4.6:1 margin) and control boundary (≥ 3.0:1 with a 3.2:1 margin) minimums across all 21 themes, plus reduced-motion and reduced-transparency wallpaper checks.
+- Playwright E2E integration test coverage across all 21 themes, dynamic switching, reload persistence, and unsuppressed axe scans for the five premium themes (`e2e/dashboard.spec.ts`, `e2e/a11y.spec.ts`).
 
 ### Fixed
 
-- Restored WCAG AA text contrast for destructive confirmation buttons (`.confirm-dialog-confirm.is-destructive`) across all 16 themes by pairing semantic `var(--on-accent)` with `var(--danger)` background (6.39:1–10.11:1 normal; 5.24:1–8.37:1 hover), eliminating hardcoded colors and adding automated regression coverage in `themeTokenContrast.test.ts`.
+- Restored WCAG AA text contrast for destructive confirmation buttons (`.confirm-dialog-confirm.is-destructive`) across all themes by pairing semantic `var(--on-accent)` with `var(--danger)` background, eliminating hardcoded colors and adding automated regression coverage in `themeTokenContrast.test.ts`.
 - Resolved Settings Appearance card tablet grid layout issue by spanning full available container width (`.theme-card { grid-column: 1 / -1; }`), eliminating orphan tracks at intermediate viewports (768px–1060px).
 - Resynchronized in-memory focus database generation after Settings Clear All (`clearAllStudyData`), ensuring subsequent Focus sessions start immediately without `StaleDatabaseGenerationError` or page reload.
 - Preserved durable Focus checkpoint monotonicity across same-generation updates, ensuring stale writes cannot regress confirmed checkpoint elapsed time and session finalization never records fewer study minutes than confirmed by the durable active singleton.

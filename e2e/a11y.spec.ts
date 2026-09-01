@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import { expectNoAxeViolations, waitForSettledHome } from './a11yHelpers'
 import { importStudyBackupViaSettings, makeStudyExport, makeSubjectRow } from './focusHelpers'
 import { navigateWorkspace } from './navHelpers'
+import { THEME_CONFIGS } from '../src/styles/themeRegistry'
 
 test.use({
   reducedMotion: 'reduce',
@@ -101,5 +102,27 @@ test.describe('Playwright axe accessibility smoke', () => {
     await expect(page.getByText('1 session logged')).toBeVisible()
 
     await expectNoAxeViolations(page, testInfo, 'progress-study-time-chart')
+  })
+
+  test('all five premium themes pass unsuppressed WCAG A/AA Settings scans', async ({ page }, testInfo) => {
+    test.setTimeout(90_000)
+    await waitForSettledHome(page)
+    await navigateWorkspace(page, 'Settings')
+
+    const premiumIds = new Set(['crystal-glass', 'wisteria', 'celestial', 'velvet-dusk', 'abyss'])
+    const premiumThemes = THEME_CONFIGS.filter((config) => premiumIds.has(config.id))
+    expect(premiumThemes).toHaveLength(5)
+
+    const themeGroup = page.getByRole('radiogroup', { name: 'Theme' })
+    for (const config of premiumThemes) {
+      const option = themeGroup.getByRole('radio', { name: new RegExp(config.label) })
+      await option.click()
+      await expect(option).toHaveAttribute('aria-checked', 'true')
+      await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe(config.id)
+      await page.evaluate(() => new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      }))
+      await expectNoAxeViolations(page, testInfo, `settings-${config.id}`)
+    }
   })
 })

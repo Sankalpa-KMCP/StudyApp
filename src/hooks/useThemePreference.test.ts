@@ -26,9 +26,13 @@ describe('theme preference and registry helpers', () => {
     themeColorMeta.setAttribute('content', THEME_COLORS[DEFAULT_THEME_MODE])
   })
 
-  it('registers all 16 theme modes with valid hex theme-colors and non-empty metadata', () => {
-    expect(THEME_MODES).toHaveLength(16)
-    expect(THEME_CONFIGS).toHaveLength(16)
+  it('registers exactly 21 theme modes with 11 Light and 10 Dark palettes', () => {
+    expect(THEME_MODES).toHaveLength(21)
+    expect(THEME_CONFIGS).toHaveLength(21)
+    expect(THEME_CONFIGS.filter((config) => config.colorScheme === 'light')).toHaveLength(11)
+    expect(THEME_CONFIGS.filter((config) => config.colorScheme === 'dark')).toHaveLength(10)
+    expect(THEME_MODES.slice(9, 11)).toEqual(['crystal-glass', 'wisteria'])
+    expect(THEME_MODES.slice(-3)).toEqual(['celestial', 'velvet-dusk', 'abyss'])
     for (const mode of THEME_MODES) {
       expect(isThemeMode(mode)).toBe(true)
       expect(THEME_COLORS[mode]).toMatch(/^#[0-9a-f]{6}$/i)
@@ -64,7 +68,7 @@ describe('theme preference and registry helpers', () => {
     }
 
     // New theme IDs
-    for (const newTheme of ['nordic', 'espresso', 'sage', 'obsidian', 'rose-quartz', 'ocean-glass', 'sandstone', 'plum-noir', 'forest-dark'] as const) {
+    for (const newTheme of ['nordic', 'espresso', 'sage', 'obsidian', 'rose-quartz', 'ocean-glass', 'sandstone', 'plum-noir', 'forest-dark', 'crystal-glass', 'wisteria', 'celestial', 'velvet-dusk', 'abyss'] as const) {
       localStorage.setItem(THEME_STORAGE_KEY, newTheme)
       expect(readStoredThemeMode()).toBe(newTheme)
     }
@@ -128,6 +132,24 @@ describe('useThemePreference', () => {
     expect(document.documentElement.dataset.theme).toBe('espresso')
     expect(document.querySelector('meta[name="theme-color"]')).toHaveAttribute('content', THEME_COLORS.espresso)
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('espresso')
+  })
+
+  it('persists every premium live-wallpaper theme and updates its document metadata', () => {
+    const onPreferenceError = vi.fn()
+    const clearPreferenceNotice = vi.fn()
+    const { result } = renderHook(() => useThemePreference({ onPreferenceError, clearPreferenceNotice }))
+
+    for (const theme of ['crystal-glass', 'wisteria', 'celestial', 'velvet-dusk', 'abyss'] as const) {
+      act(() => {
+        result.current.setTheme(theme)
+      })
+      expect(document.documentElement.dataset.theme).toBe(theme)
+      expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe(theme)
+      expect(document.querySelector('meta[name="theme-color"]')).toHaveAttribute('content', THEME_COLORS[theme])
+    }
+
+    expect(clearPreferenceNotice).toHaveBeenCalledTimes(5)
+    expect(onPreferenceError).not.toHaveBeenCalled()
   })
 
   it('reports a friendly error only for failed user-initiated persistence', () => {

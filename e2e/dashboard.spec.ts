@@ -265,6 +265,7 @@ test('collapses the sidebar at medium desktop widths and persists the preference
 })
 
 test('switches and persists themes without layout overflow across the full theme registry', async ({ page }, testInfo) => {
+  test.setTimeout(90_000)
   const compact = testInfo.project.name === 'mobile-chrome'
   await page.setViewportSize({ width: compact ? 390 : 1280, height: compact ? 844 : 900 })
   await page.goto('/')
