@@ -14,8 +14,6 @@ The full documentation set lives in **`ai/` at the repo root**. That folder is *
 
 If `ai/` is missing (fresh clone), regenerate it with your setup-ai-documentation workflow or copy `ai/` from another machine. Until then, follow the condensed rules below.
 
-Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-documentation-sync.mdc).
-
 ## Project summary
 
 - **Study Dashboard v1.4.0** — local-first study workspace (tasks, notes, subjects, calendar, focus sessions, goals).
@@ -46,7 +44,7 @@ Committed pointer: [`.cursor/rules/ai-documentation-sync.mdc`](.cursor/rules/ai-
 - New subjects default to **`manual`**. The Subjects editor exposes the mode selector; Progress % is editable only in manual mode.
 - **`calculateSubjectProgress`** in `src/appUtils.ts` is the authoritative display helper for Subject cards, Home subject cards, and Home/search metadata and progress-number filtering (`SubjectsView`, `HomeView`, `buildSearchResults`, `useAppSearch`).
 - **Subject Distribution** (`SubjectDistribution` in `src/components/RightColumn.tsx`) remains a separate share-of-total logged study-time chart — not subject target progress.
-- **IndexedDB:** current Dexie schema is **version 4** (v4 dropped the `flashcards` table). Upgrade from v2 assigns missing/invalid `progressMode` once via `inferSubjectProgressMode` (positive matching session minutes → `study_time`, else `manual` — session presence only, no title heuristics).
+- **IndexedDB:** current Dexie schema is **version 5** (v4 dropped the `flashcards` table; v5 normalized legacy event start timestamps). Upgrade from v2 assigns missing/invalid `progressMode` once via `inferSubjectProgressMode` (positive matching session minutes → `study_time`, else `manual` — session presence only, no title heuristics).
 - **Inspect together when changing subject progress:** `src/db/types.ts`, `src/db/studyDb.ts`, `src/appUtils.ts` (`calculateSubjectProgress` / `inferSubjectProgressMode`), `src/views/SubjectsView.tsx`, `src/home/HomeView.tsx`, `src/hooks/useAppSearch.ts`, `src/components/ui.tsx` (`SubjectCard`).
 
 ## Backups
