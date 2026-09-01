@@ -228,4 +228,53 @@ describe('studySessionService', () => {
     await expect(deleteStudySession(created.id, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
     expect(await studyDb.studySessions.get(created.id)).toBeDefined()
   })
+
+  it('rejects createStudySession with domain-invalid fields and preserves empty database', async () => {
+    // Non-positive minutes (minutes <= 0)
+    await expect(
+      createStudySession({
+        subjectId: '',
+        startedAt: '2026-07-13T09:00:00.000Z',
+        endedAt: '2026-07-13T09:20:00.000Z',
+        minutes: 0,
+        note: '',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Session minutes must be a positive finite number.')
+    expect(await studyDb.studySessions.count()).toBe(0)
+
+    // Inverted timestamps (endedAt < startedAt)
+    await expect(
+      createStudySession({
+        subjectId: '',
+        startedAt: '2026-07-13T10:00:00.000Z',
+        endedAt: '2026-07-13T09:00:00.000Z',
+        minutes: 60,
+        note: '',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Session endedAt must not be earlier than startedAt.')
+    expect(await studyDb.studySessions.count()).toBe(0)
+  })
+
+  it('rejects updateStudySession with domain-invalid fields and leaves stored record unchanged', async () => {
+    const original = await createStudySession({
+      subjectId: '',
+      startedAt: '2026-07-13T09:00:00.000Z',
+      endedAt: '2026-07-13T09:30:00.000Z',
+      minutes: 30,
+      note: 'Original session',
+    }, { expectedGeneration: 1 })
+
+    await expect(
+      updateStudySession(original.id, {
+        subjectId: '',
+        startedAt: '2026-07-13T09:00:00.000Z',
+        endedAt: '2026-07-13T09:30:00.000Z',
+        minutes: -10,
+        note: 'Updated session',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Session minutes must be a positive finite number.')
+
+    const afterFailedUpdate = await studyDb.studySessions.get(original.id)
+    expect(afterFailedUpdate).toEqual(original)
+  })
 })

@@ -5,6 +5,7 @@ import {
 import { createId, nowIso, studyDb } from './studyDb'
 import { assertSubjectExists } from './subjectValidation'
 import type { StudyTask, TaskPriority, TaskStatus } from './types'
+import { assertTaskStatus, assertTaskWriteFields } from './validation/domainValidation'
 
 /** Fields the Tasks editor supplies after UI validation and minutes clamping. */
 export type TaskWriteFields = {
@@ -23,8 +24,9 @@ export async function createTask(
   fields: TaskWriteFields,
   context: DatabaseMutationContext,
 ): Promise<StudyTask> {
-  return withGuardedMutation(context, () =>
-    studyDb.transaction('rw', studyDb.subjects, studyDb.tasks, async () => {
+  return withGuardedMutation(context, () => {
+    assertTaskWriteFields(fields)
+    return studyDb.transaction('rw', studyDb.subjects, studyDb.tasks, async () => {
       await assertSubjectExists(fields.subjectId)
       const timestamp = nowIso()
       const task: StudyTask = {
@@ -40,8 +42,8 @@ export async function createTask(
       }
       await studyDb.tasks.add(task)
       return task
-    }),
-  )
+    })
+  })
 }
 
 /**
@@ -54,8 +56,9 @@ export async function updateTask(
   fields: TaskWriteFields,
   context: DatabaseMutationContext,
 ): Promise<void> {
-  return withGuardedMutation(context, () =>
-    studyDb.transaction('rw', studyDb.subjects, studyDb.tasks, async () => {
+  return withGuardedMutation(context, () => {
+    assertTaskWriteFields(fields)
+    return studyDb.transaction('rw', studyDb.subjects, studyDb.tasks, async () => {
       await assertSubjectExists(fields.subjectId)
       const updated = await studyDb.tasks.update(id, {
         title: fields.title,
@@ -66,8 +69,8 @@ export async function updateTask(
         updatedAt: nowIso(),
       })
       if (updated === 0) throw new Error('Task no longer exists.')
-    }),
-  )
+    })
+  })
 }
 
 /**
@@ -81,6 +84,7 @@ export async function setTaskStatus(
   context: DatabaseMutationContext,
 ): Promise<void> {
   return withGuardedMutation(context, async () => {
+    assertTaskStatus(status)
     const updated = await studyDb.tasks.update(id, {
       status,
       updatedAt: nowIso(),

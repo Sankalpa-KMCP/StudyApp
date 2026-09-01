@@ -81,3 +81,8 @@ export function isPersistedIsoTimestamp(value: unknown): value is string {
   if (Number.isNaN(parsed)) return false
   return new Date(parsed).toISOString() === value
 }
+
+/** Non-empty, non-whitespace string required for user-facing names and titles. */
+export function isNonBlankString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0
+}

@@ -283,4 +283,83 @@ describe('goalService', () => {
     await expect(deleteGoal(created.id, { expectedGeneration: 1 })).rejects.toThrow(StaleDatabaseGenerationError)
     expect(await studyDb.goals.get(created.id)).toBeDefined()
   })
+
+  it('rejects createGoal with domain-invalid fields and preserves goals store and dailyGoalMinutes setting', async () => {
+    // Blank title
+    await expect(
+      createGoal({
+        title: '   ',
+        target: 60,
+        progress: 0,
+        period: 'daily',
+        metric: 'study_time',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Goal title must be a non-blank string.')
+    expect(await studyDb.goals.count()).toBe(0)
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(120)
+
+    // Non-positive target (target <= 0)
+    await expect(
+      createGoal({
+        title: 'Zero Target Goal',
+        target: 0,
+        progress: 0,
+        period: 'daily',
+        metric: 'study_time',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Goal target must be a positive finite number.')
+    expect(await studyDb.goals.count()).toBe(0)
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(120)
+
+    // Negative progress
+    await expect(
+      createGoal({
+        title: 'Negative Progress Goal',
+        target: 60,
+        progress: -10,
+        period: 'weekly',
+        metric: 'manual',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Goal progress must be a non-negative finite number.')
+    expect(await studyDb.goals.count()).toBe(0)
+  })
+
+  it('preserves valid unusual goal configurations such as manual progress > target', async () => {
+    const created = await createGoal({
+      title: 'Exceeded Goal',
+      target: 10,
+      progress: 15,
+      period: 'weekly',
+      metric: 'manual',
+    }, { expectedGeneration: 1 })
+
+    expect(created.progress).toBe(15)
+    expect(await studyDb.goals.count()).toBe(1)
+  })
+
+  it('rejects updateGoal with domain-invalid fields, leaves record untouched, and does not alter settings', async () => {
+    const original = await createGoal({
+      title: 'Original Daily Goal',
+      target: 90,
+      progress: 0,
+      period: 'daily',
+      metric: 'study_time',
+    }, { expectedGeneration: 1 })
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(90)
+
+    // Try to update with invalid target: 0
+    await expect(
+      updateGoal(original.id, {
+        title: 'Updated Daily Goal',
+        target: 0,
+        progress: 0,
+        period: 'daily',
+        metric: 'study_time',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Goal target must be a positive finite number.')
+
+    const afterFailedUpdate = await studyDb.goals.get(original.id)
+    expect(afterFailedUpdate).toEqual(original)
+    expect((await studyDb.settings.get('dailyGoalMinutes'))?.value).toBe(90)
+  })
 })

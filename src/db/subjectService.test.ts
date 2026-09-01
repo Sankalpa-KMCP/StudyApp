@@ -511,4 +511,65 @@ describe('subjectService', () => {
     })
     expect(await studyDb.subjects.get(created.id)).toBeDefined()
   })
+
+  it('rejects createSubject with domain-invalid fields and preserves clean database state', async () => {
+    // Blank name
+    await expect(
+      createSubject({
+        name: '   ',
+        color: '#2563eb',
+        targetHours: 5,
+        progress: 0,
+        progressMode: 'manual',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Subject name must be a non-blank string.')
+    expect(await studyDb.subjects.count()).toBe(0)
+
+    // Non-positive targetHours
+    await expect(
+      createSubject({
+        name: 'Biology',
+        color: '#2563eb',
+        targetHours: -2,
+        progress: 0,
+        progressMode: 'manual',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Subject target hours must be a positive finite number.')
+    expect(await studyDb.subjects.count()).toBe(0)
+
+    // Out-of-bounds progress
+    await expect(
+      createSubject({
+        name: 'Biology',
+        color: '#2563eb',
+        targetHours: 5,
+        progress: 150,
+        progressMode: 'manual',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Subject progress must be a finite number between 0 and 100.')
+    expect(await studyDb.subjects.count()).toBe(0)
+  })
+
+  it('rejects updateSubject with domain-invalid fields and leaves stored record unchanged', async () => {
+    const original = await createSubject({
+      name: 'Original Subject',
+      color: '#2563eb',
+      targetHours: 10,
+      progress: 25,
+      progressMode: 'manual',
+    }, { expectedGeneration: 1 })
+
+    await expect(
+      updateSubject(original.id, {
+        name: '',
+        color: '#2563eb',
+        targetHours: 10,
+        progress: 25,
+        progressMode: 'manual',
+      }, { expectedGeneration: 1 })
+    ).rejects.toThrow('Subject name must be a non-blank string.')
+
+    const afterFailedUpdate = await studyDb.subjects.get(original.id)
+    expect(afterFailedUpdate).toEqual(original)
+  })
 })

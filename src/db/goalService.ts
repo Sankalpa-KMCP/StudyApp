@@ -4,6 +4,7 @@ import {
 } from './databaseMutationGuard'
 import { createId, nowIso, studyDb } from './studyDb'
 import type { GoalMetric, GoalPeriod, StudyGoal } from './types'
+import { assertGoalWriteFields } from './validation/domainValidation'
 
 /** Fields the Goals editor supplies after title/metric/target validation and clamping. */
 export type GoalWriteFields = {
@@ -31,6 +32,7 @@ export async function createGoal(
   context: DatabaseMutationContext,
 ): Promise<StudyGoal> {
   return withGuardedMutation(context, async () => {
+    assertGoalWriteFields(fields)
     const timestamp = nowIso()
     const goal: StudyGoal = {
       id: createId('goal'),
@@ -67,6 +69,7 @@ export async function updateGoal(
   context: DatabaseMutationContext,
 ): Promise<void> {
   return withGuardedMutation(context, async () => {
+    assertGoalWriteFields(fields)
     const changes = {
       title: fields.title,
       target: fields.target,

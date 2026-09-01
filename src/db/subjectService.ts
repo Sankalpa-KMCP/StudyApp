@@ -5,10 +5,7 @@ import {
 } from './databaseMutationGuard'
 import { createId, nowIso, studyDb } from './studyDb'
 import type { StudySubject, SubjectProgressMode } from './types'
-import {
-  InvalidSubjectColorError,
-  isValidSubjectColor,
-} from '../validation/subjectColor'
+import { assertSubjectWriteFields } from './validation/domainValidation'
 
 /** Fields the Subjects editor supplies after name/mode validation and clamping. */
 export type SubjectWriteFields = {
@@ -17,12 +14,6 @@ export type SubjectWriteFields = {
   targetHours: number
   progress: number
   progressMode: SubjectProgressMode
-}
-
-function assertSubjectWriteFields(fields: SubjectWriteFields): void {
-  if (!isValidSubjectColor(fields.color)) {
-    throw new InvalidSubjectColorError(fields.color)
-  }
 }
 
 /** Per-table linked counts used by the subject deletion policy and warning copy. */
