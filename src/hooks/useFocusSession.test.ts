@@ -488,4 +488,63 @@ describe('useFocusSession', () => {
     expect(freshHook.result.current.sessionNotice).toBeFalsy()
     expect(await getActiveFocusSession()).toMatchObject({ status: 'running' })
   })
+
+  it('handles initial restore failure by disabling Start Focus and setting storage error notice without unhandled rejection', async () => {
+    const readError = new Error('IndexedDB storage read error on mount')
+    const spy = vi.spyOn(activeFocusSession, 'getActiveFocusSessionWithGeneration').mockRejectedValueOnce(readError)
+
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+
+    await waitFor(() => expect(result.current.sessionNotice).toBe('Active focus session could not be loaded due to a storage error.'))
+    expect(result.current.canStartFocus).toBe(false)
+    expect(result.current.activeSession).toBeNull()
+
+    // Subsequent reload after recovery restores readiness and clears notice
+    spy.mockRestore()
+    await act(async () => {
+      await result.current.reloadFocusFromIndexedDb()
+    })
+
+    expect(result.current.canStartFocus).toBe(true)
+    expect(result.current.sessionNotice).toBe('')
+  })
+
+  it('preserves deferred auto-completion retry state when getActiveFocusSession rejects transiently', async () => {
+    const { DataOperationCoordinator } = await import('../db/dataCoordinator')
+    const coordinator = new DataOperationCoordinator()
+
+    // Create session started 30 mins ago with 25 min duration (already elapsed)
+    const elapsedSession = makeSession({
+      id: 'focus-timed-retry',
+      plannedMinutes: 25,
+      startedAt: new Date(Date.now() - 30 * 60_000).toISOString(),
+    })
+    await createActiveFocusSession(elapsedSession, { expectedGeneration: 1 })
+
+    // Simulate transient failure on getActiveFocusSession during timed completion read
+    let callCount = 0
+    const getSpy = vi.spyOn(activeFocusSession, 'getActiveFocusSession').mockImplementation(async () => {
+      callCount++
+      if (callCount === 1) {
+        throw new Error('Transient read failure')
+      }
+      return elapsedSession
+    })
+
+    const { result } = renderHook(() => useFocusSession({ subjectMap, coordinator }))
+    await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-timed-retry'))
+
+    // Trigger coordinator event to evaluate timed completion
+    await act(async () => {
+      // Run a focus write to fire coordinator listeners and evaluate completion
+      await coordinator.runFocusWrite(async () => {})
+    })
+
+    // After transient failure and recovery retry, session is finalized
+    await waitFor(async () => {
+      expect(await studyDb.studySessions.count()).toBe(1)
+    }, { timeout: 2000 })
+
+    getSpy.mockRestore()
+  })
 })

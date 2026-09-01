@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   ACTIVE_FOCUS_SESSION_KEY,
   ACTIVE_FOCUS_SESSION_STALE_AFTER_MS,
@@ -183,6 +183,12 @@ describe('activeFocusSession persistence', () => {
     })
   })
 
+  afterEach(async () => {
+    vi.restoreAllMocks()
+    if (studyDb.isOpen()) studyDb.close()
+    await studyDb.delete()
+  })
+
   it('persists and reads a valid unfinished session with generation', async () => {
     const session = makeSession()
     const created = await createActiveFocusSession(session, { expectedGeneration: 1 })
@@ -201,6 +207,17 @@ describe('activeFocusSession persistence', () => {
 
     const withGen = await getActiveFocusSessionWithGeneration()
     expect(withGen).toEqual({ session: null, generation: 1 })
+  })
+
+  it('propagates storage read failures from getActiveFocusSession and getActiveFocusSessionWithGeneration', async () => {
+    const storageError = new Error('IndexedDB storage read error')
+    vi.spyOn(studyDb.settings, 'get').mockImplementation(async (key: string) => {
+      if (key === ACTIVE_FOCUS_SESSION_KEY) throw storageError
+      return { key, value: 1 }
+    })
+
+    await expect(getActiveFocusSession()).rejects.toThrow('IndexedDB storage read error')
+    await expect(getActiveFocusSessionWithGeneration()).rejects.toThrow('IndexedDB storage read error')
   })
 
   it('does not silently overwrite an existing valid singleton session', async () => {

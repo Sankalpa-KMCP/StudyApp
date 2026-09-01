@@ -87,22 +87,35 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
   }, [])
 
   const reloadFocusFromIndexedDb = useCallback(async () => {
-    const { session: restored, generation } = await getActiveFocusSessionWithGeneration()
-    focusGenerationRef.current = generation
-    applyPersistedFocusSession(restored)
-    finalizingSessionIdRef.current = null
-    setFocusRestoreReady(true)
-    return restored
+    try {
+      const { session: restored, generation } = await getActiveFocusSessionWithGeneration()
+      focusGenerationRef.current = generation
+      applyPersistedFocusSession(restored)
+      finalizingSessionIdRef.current = null
+      setFocusRestoreReady(true)
+      setSessionNotice((prev) => (prev === 'Active focus session could not be loaded due to a storage error.' ? '' : prev))
+      return restored
+    } catch (err) {
+      setFocusRestoreReady(false)
+      setSessionNotice('Active focus session could not be loaded due to a storage error.')
+      throw err
+    }
   }, [applyPersistedFocusSession])
 
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      const { session: restored, generation } = await getActiveFocusSessionWithGeneration()
-      if (cancelled) return
-      focusGenerationRef.current = generation
-      applyPersistedFocusSession(restored)
-      setFocusRestoreReady(true)
+      try {
+        const { session: restored, generation } = await getActiveFocusSessionWithGeneration()
+        if (cancelled) return
+        focusGenerationRef.current = generation
+        applyPersistedFocusSession(restored)
+        setFocusRestoreReady(true)
+      } catch {
+        if (cancelled) return
+        setFocusRestoreReady(false)
+        setSessionNotice('Active focus session could not be loaded due to a storage error.')
+      }
     })()
     return () => {
       cancelled = true
@@ -341,8 +354,8 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
       return
     }
 
-    const res = await coordinator.runFocusWrite(async () => {
-      try {
+    try {
+      const res = await coordinator.runFocusWrite(async () => {
         const durable = await getActiveFocusSession()
         if (!durable || durable.id !== expectedSessionId) {
           clearDeferredForExpected()
@@ -359,13 +372,14 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
           return
         }
 
-        await finalizeFocusSession(durable, true)
-      } finally {
         clearDeferredForExpected()
-      }
-    })
+        await finalizeFocusSession(durable, true)
+      })
 
-    if (!res.ok) {
+      if (!res.ok) {
+        deferredAutoCompleteSessionIdRef.current = expectedSessionId
+      }
+    } catch {
       deferredAutoCompleteSessionIdRef.current = expectedSessionId
     }
   }, [coordinator, finalizeFocusSession])
@@ -533,25 +547,34 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
           }
 
           if (result.reason === 'missing_subject') {
-            const durable = await getActiveFocusSession()
-            if (writeSeq !== focusSubjectWriteSeqRef.current) return
-            if (durable) {
-              hydrateActiveSession(durable, 'The selected subject is no longer available.')
-              return
+            try {
+              const durable = await getActiveFocusSession()
+              if (writeSeq !== focusSubjectWriteSeqRef.current) return
+              if (durable) {
+                hydrateActiveSession(durable, 'The selected subject is no longer available.')
+                return
+              }
+            } catch {
+              // Fall back to baseline if durable re-read fails
             }
+            if (writeSeq !== focusSubjectWriteSeqRef.current) return
             setActiveSession(baseline)
             setFocusSubjectId(baseline.subjectId)
             setSessionNotice('The selected subject is no longer available.')
             return
           }
 
-          const durable = await getActiveFocusSession()
-          if (writeSeq !== focusSubjectWriteSeqRef.current) return
-          if (durable) {
-            hydrateActiveSession(durable, 'Could not update the focus subject. Try again.')
-            return
+          try {
+            const durable = await getActiveFocusSession()
+            if (writeSeq !== focusSubjectWriteSeqRef.current) return
+            if (durable) {
+              hydrateActiveSession(durable, 'Could not update the focus subject. Try again.')
+              return
+            }
+          } catch {
+            // Fall back to baseline if durable re-read fails
           }
-
+          if (writeSeq !== focusSubjectWriteSeqRef.current) return
           setActiveSession(baseline)
           setFocusSubjectId(baseline.subjectId)
           setSessionNotice('Could not update the focus subject. Try again.')
@@ -563,12 +586,17 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
             setSessionNotice('The database was updated elsewhere.')
             return
           }
-          const durable = await getActiveFocusSession()
-          if (writeSeq !== focusSubjectWriteSeqRef.current) return
-          if (durable) {
-            hydrateActiveSession(durable, 'Could not update the focus subject. Try again.')
-            return
+          try {
+            const durable = await getActiveFocusSession()
+            if (writeSeq !== focusSubjectWriteSeqRef.current) return
+            if (durable) {
+              hydrateActiveSession(durable, 'Could not update the focus subject. Try again.')
+              return
+            }
+          } catch {
+            // Fall back to baseline if durable re-read fails
           }
+          if (writeSeq !== focusSubjectWriteSeqRef.current) return
           setActiveSession(baseline)
           setFocusSubjectId(baseline.subjectId)
           setSessionNotice('Could not update the focus subject. Try again.')
