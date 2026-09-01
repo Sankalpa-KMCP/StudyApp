@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -94,6 +98,26 @@ jobs:
         with:
           path: dist
 
+      - name: Verify master tip freshness
+        id: freshness
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CURRENT_MASTER_SHA=$(gh api repos/${{ github.repository }}/commits/master --jq .sha)
+          echo "Current remote master SHA: ${CURRENT_MASTER_SHA}"
+          echo "Workflow run commit SHA:  ${{ github.sha }}"
+          if [ -z "${CURRENT_MASTER_SHA}" ]; then
+            echo "::error::Could not resolve remote master SHA."
+            exit 1
+          fi
+          if [ "${CURRENT_MASTER_SHA}" = "${{ github.sha }}" ]; then
+            echo "is_current_tip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_current_tip=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping Pages deployment because workflow SHA ${{ github.sha }} is not the current remote master tip (${CURRENT_MASTER_SHA})."
+          fi
+
       - name: Deploy to GitHub Pages
+        if: steps.freshness.outputs.is_current_tip == 'true'
         id: deployment
         uses: actions/deploy-pages@v4
