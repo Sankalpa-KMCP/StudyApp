@@ -165,26 +165,22 @@ export function normalizeActiveFocusSession(value: unknown): ActiveFocusSession 
 
 /** Elapsed active focus time in milliseconds (never negative). */
 export function getActiveFocusElapsedMs(session: ActiveFocusSession, nowMs = Date.now()): number {
-  const startedAtMs = Date.parse(session.startedAt)
-  const checkpoint = (
+  if (
     typeof session.checkpointElapsedMs === 'number' &&
     Number.isFinite(session.checkpointElapsedMs) &&
     session.checkpointElapsedMs >= 0
-  )
-    ? session.checkpointElapsedMs
-    : 0
+  ) {
+    return session.checkpointElapsedMs
+  }
 
+  const startedAtMs = Date.parse(session.startedAt)
   if (session.status === 'paused') {
-    if (typeof session.checkpointElapsedMs === 'number') {
-      return session.checkpointElapsedMs
-    }
     const frozenEndMs = session.pausedAt ? Date.parse(session.pausedAt) : startedAtMs
     return Math.max(0, frozenEndMs - startedAtMs - session.accumulatedPausedMs)
   }
 
-  // running
-  const wallElapsed = Math.max(0, nowMs - startedAtMs - session.accumulatedPausedMs)
-  return Math.max(checkpoint, wallElapsed)
+  // running (legacy uncheckpointed fallback only)
+  return Math.max(0, nowMs - startedAtMs - session.accumulatedPausedMs)
 }
 
 /**

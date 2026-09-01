@@ -635,5 +635,76 @@ describe('useFocusSession', () => {
 
       dateSpy.mockRestore()
     })
+
+    it('reloads after a forward clock jump restoring the durable checkpoint rather than wall-jumped time', async () => {
+      // Session with durable 30m checkpoint
+      const session = makeSession({
+        id: 'focus-fwd-jump',
+        startedAt: '2026-07-20T10:00:00.000Z',
+        plannedMinutes: 60,
+        checkpointElapsedMs: 30 * 60_000,
+      })
+      await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+      // 6. Wall clock jumps forward to 10:45 (+15m forward jump)
+      const forwardNow = Date.parse('2026-07-20T10:45:00.000Z')
+      const dateSpy = vi.spyOn(Date, 'now').mockReturnValue(forwardNow)
+
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-fwd-jump'))
+
+      // Reload restores base elapsed at exactly 30m (1800s), NOT 45m (2700s)
+      expect(result.current.elapsedSeconds).toBe(30 * 60)
+
+      dateSpy.mockRestore()
+    })
+
+    it('restores updated durable checkpoint after a periodic or explicit checkpoint', async () => {
+      const session = makeSession({
+        id: 'focus-checkpoint-restore',
+        startedAt: new Date(Date.now() - 30 * 60_000).toISOString(),
+        plannedMinutes: 60,
+        checkpointElapsedMs: 30 * 60_000,
+      })
+      await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+      // Advance checkpoint to 35m
+      await activeFocusSession.checkpointActiveFocusSession('focus-checkpoint-restore', 35 * 60_000, { expectedGeneration: 1 })
+
+      // 7. After real checkpoint of 35m, reload restores 35m
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-checkpoint-restore'))
+      expect(result.current.elapsedSeconds).toBe(35 * 60)
+    })
+
+    it('subject update and pause carry live earned elapsed into durable checkpoints', async () => {
+      const session = makeSession({
+        id: 'focus-subject-earned',
+        startedAt: new Date(Date.now() - 10 * 60_000).toISOString(),
+        plannedMinutes: 60,
+        checkpointElapsedMs: 10 * 60_000,
+      })
+      await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-subject-earned'))
+
+      // 12. Update subject: preserves and checkpoints live elapsed
+      await act(async () => {
+        result.current.updateFocusSubject('subject-b')
+      })
+      expect(result.current.focusSubjectId).toBe('subject-b')
+      const durableAfterSubject = await getActiveFocusSession()
+      expect(durableAfterSubject?.subjectId).toBe('subject-b')
+      expect(durableAfterSubject?.checkpointElapsedMs).toBeGreaterThanOrEqual(10 * 60_000)
+
+      // Pause: durably commits live elapsed
+      await act(async () => {
+        await result.current.pauseSession()
+      })
+      const durableAfterPause = await getActiveFocusSession()
+      expect(durableAfterPause?.status).toBe('paused')
+      expect(durableAfterPause?.checkpointElapsedMs).toBeGreaterThanOrEqual(10 * 60_000)
+    })
   })
 })
