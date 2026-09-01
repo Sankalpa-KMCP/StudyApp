@@ -3,6 +3,7 @@ import { formatMinutes } from '../appUtils'
 import {
   checkpointActiveFocusSession,
   createActiveFocusSession,
+  type CreateActiveFocusSessionResult,
   discardActiveFocusSession,
   finalizeActiveFocusSession,
   getActiveFocusElapsedMs,
@@ -277,9 +278,23 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
 
     const res = await coordinator.runFocusWrite(async () => {
       try {
-        const result = await createActiveFocusSession(session, {
-          expectedGeneration: focusGenerationRef.current,
-        })
+        let candidateSession = { ...session }
+        let result: CreateActiveFocusSessionResult = { ok: false, reason: 'id_collision' }
+        for (let attempt = 0; attempt < 3; attempt++) {
+          if (attempt > 0) {
+            candidateSession = {
+              ...candidateSession,
+              id: createId('focus'),
+            }
+          }
+          result = await createActiveFocusSession(candidateSession, {
+            expectedGeneration: focusGenerationRef.current,
+          })
+          if (result.ok || result.reason !== 'id_collision') {
+            break
+          }
+        }
+
         if (result.ok) {
           deferredAutoCompleteSessionIdRef.current = null
           focusGenerationRef.current = result.generation
@@ -304,6 +319,12 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
         if (result.reason === 'missing_subject') {
           deferredAutoCompleteSessionIdRef.current = null
           setSessionNotice('The selected subject is no longer available.')
+          return
+        }
+
+        if (result.reason === 'id_collision') {
+          deferredAutoCompleteSessionIdRef.current = null
+          setSessionNotice('Could not start the focus session due to an ID collision. Try again.')
           return
         }
       } catch (err) {

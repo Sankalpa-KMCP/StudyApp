@@ -5,7 +5,7 @@ import {
 } from './databaseMutationGuard'
 import { withSharedDatabaseLock } from './crossTabLock'
 import { getDatabaseGeneration } from './databaseGeneration'
-import { nowIso, studyDb } from './studyDb'
+import { createId, nowIso, studyDb } from './studyDb'
 import { assertSubjectExists, isSubjectNotFoundError } from './subjectValidation'
 import { isPersistedIsoTimestamp } from './validation/persistedInvariants'
 import { assertStudySessionWriteFields } from './validation/domainValidation'
@@ -18,6 +18,7 @@ export const ACTIVE_FOCUS_SESSION_STALE_AFTER_MS = 12 * 60 * 60 * 1000
 export type CreateActiveFocusSessionResult =
   | { ok: true; session: ActiveFocusSession; generation: number }
   | { ok: false; reason: 'conflict'; existing: ActiveFocusSession }
+  | { ok: false; reason: 'id_collision' }
   | { ok: false; reason: 'invalid' }
   | { ok: false; reason: 'missing_subject' }
 
@@ -238,7 +239,7 @@ export async function createActiveFocusSession(
   if (!isActiveFocusSession(session)) return { ok: false, reason: 'invalid' }
 
   return withGuardedMutation(context, () =>
-    studyDb.transaction('rw', studyDb.subjects, studyDb.settings, async () => {
+    studyDb.transaction('rw', studyDb.subjects, studyDb.settings, studyDb.studySessions, async () => {
       try {
         await assertSubjectExists(session.subjectId)
       } catch (err) {
@@ -246,6 +247,11 @@ export async function createActiveFocusSession(
           return { ok: false, reason: 'missing_subject' }
         }
         throw err
+      }
+
+      const existingHistory = await studyDb.studySessions.get(session.id)
+      if (existingHistory) {
+        return { ok: false, reason: 'id_collision' }
       }
 
       const existingRecord = await studyDb.settings.get(ACTIVE_FOCUS_SESSION_KEY)
@@ -579,8 +585,18 @@ export async function finalizeActiveFocusSession(
         const safeEndedAt = new Date(safeEndedAtMs).toISOString()
         const safeMinutes = Math.max(1, Math.floor(history.minutes))
 
-        const historyRow: StudySession = existingHistory ?? {
-          id: sessionId,
+        // If sessionId already exists in studySessions, re-key this new session to avoid
+        // dropping active study time or overwriting the pre-existing foreign row.
+        let targetId = sessionId
+        if (existingHistory) {
+          targetId = createId('session')
+          while (await studyDb.studySessions.get(targetId)) {
+            targetId = createId('session')
+          }
+        }
+
+        const historyRow: StudySession = {
+          id: targetId,
           subjectId: history.subjectId,
           startedAt: safeStartedAt,
           endedAt: safeEndedAt,
@@ -590,9 +606,7 @@ export async function finalizeActiveFocusSession(
 
         assertStudySessionWriteFields(historyRow)
 
-        if (!existingHistory) {
-          await studyDb.studySessions.add(historyRow)
-        }
+        await studyDb.studySessions.add(historyRow)
         await studyDb.settings.delete(ACTIVE_FOCUS_SESSION_KEY)
         return { ok: true, history: historyRow }
       }

@@ -135,8 +135,12 @@ const studyTables = [
   studyDb.settings,
 ] as const
 
-export function createId(prefix: string) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
+export function createId(prefix: string): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${prefix}-${Date.now()}-${crypto.randomUUID()}`
+  }
+  const rand = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
+  return `${prefix}-${Date.now()}-${rand}`
 }
 
 export function nowIso() {

@@ -8,6 +8,7 @@ import {
 } from '../db/activeFocusSession'
 import { DATABASE_GENERATION_KEY, getDatabaseGeneration } from '../db/databaseGeneration'
 import { installInMemoryLockAdapter } from '../db/crossTabLock'
+import * as studyDbModule from '../db/studyDb'
 import { clearAllStudyData, studyDb } from '../db/studyDb'
 import type { ActiveFocusSession, StudySubject } from '../db/types'
 import { useFocusSession } from './useFocusSession'
@@ -705,6 +706,41 @@ describe('useFocusSession', () => {
       const durableAfterPause = await getActiveFocusSession()
       expect(durableAfterPause?.status).toBe('paused')
       expect(durableAfterPause?.checkpointElapsedMs).toBeGreaterThanOrEqual(10 * 60_000)
+    })
+
+    it('F-12: startSession automatically retries with fresh ID when candidate ID collides with existing studySessions', async () => {
+      // Seed existing historical study session
+      const existingHistory: StudySession = {
+        id: 'focus-colliding-candidate',
+        subjectId: 'subject-a',
+        startedAt: '2026-07-15T10:00:00.000Z',
+        endedAt: '2026-07-15T10:30:00.000Z',
+        minutes: 30,
+        note: 'Prior session',
+      }
+      await studyDb.studySessions.add(existingHistory)
+
+      // Mock createId to return colliding ID on 1st call, then fresh unique ID on 2nd call
+      const originalCreateId = studyDbModule.createId
+      let callCount = 0
+      const createIdSpy = vi.spyOn(studyDbModule, 'createId').mockImplementation((prefix) => {
+        callCount++
+        if (callCount === 1) return 'focus-colliding-candidate'
+        return originalCreateId(prefix)
+      })
+
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.canStartFocus).toBe(true))
+
+      await act(async () => {
+        await result.current.startSession()
+      })
+
+      expect(result.current.activeSession).not.toBeNull()
+      expect(result.current.activeSession?.id).not.toBe('focus-colliding-candidate')
+      expect(await getActiveFocusSession()).not.toBeNull()
+
+      createIdSpy.mockRestore()
     })
   })
 })
