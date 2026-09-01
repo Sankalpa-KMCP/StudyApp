@@ -31,6 +31,9 @@ type SessionDraft = {
   note: string
 }
 
+const PROGRESS_INITIAL_VISIBLE_DAYS = 14
+const PROGRESS_BATCH_SIZE_DAYS = 14
+
 export function ProgressView(props: {
   subjects: StudySubject[]
   tasks: StudyTask[]
@@ -42,6 +45,10 @@ export function ProgressView(props: {
   openEditorOnMount: boolean
   databaseGeneration: number
 }) {
+  const [visibleDays, setVisibleDays] = useState(PROGRESS_INITIAL_VISIBLE_DAYS)
+  const listFooterRef = useRef<HTMLDivElement | null>(null)
+  const wasShowMoreFocusedRef = useRef(false)
+
   const [editingSessionId, setEditingSessionId] = useState<string | null>(() =>
     props.openEditorOnMount ? 'new' : null,
   )
@@ -83,6 +90,24 @@ export function ProgressView(props: {
   const completed = props.tasks.filter((task) => task.status === 'done').length
   const weeklyHours = props.weeklyStudyDays.reduce((sum, day) => sum + day.hours, 0)
   const sessionGroups = groupStudySessionsByLocalDate(props.studySessions)
+  const totalDays = sessionGroups.length
+  const visibleSessionGroups = sessionGroups.slice(0, visibleDays)
+  const hasMoreDays = visibleSessionGroups.length < totalDays
+  const visibleSessionsCount = visibleSessionGroups.reduce((sum, group) => sum + group.sessions.length, 0)
+  const totalSessionsCount = props.studySessions.length
+
+  const showMoreDays = () => {
+    wasShowMoreFocusedRef.current = true
+    setVisibleDays((prev) => prev + PROGRESS_BATCH_SIZE_DAYS)
+  }
+
+  useEffect(() => {
+    if (!hasMoreDays && wasShowMoreFocusedRef.current) {
+      wasShowMoreFocusedRef.current = false
+      listFooterRef.current?.focus()
+    }
+  }, [hasMoreDays])
+
   const loadingLabel = editingSessionId && editingSessionId !== 'new' ? 'Saving session...' : 'Recording session...'
   const rowActionsLocked = isSaving || Boolean(pendingDeleteId)
 
@@ -338,40 +363,60 @@ export function ProgressView(props: {
           </div>
         </div>
         {sessionGroups.length > 0 ? (
-          <div className="session-ledger">
-            {sessionGroups.map((group) => (
-              <section className="session-day" aria-labelledby={`session-day-${group.key}`} key={group.key}>
-                <div className="session-day-heading">
-                  <h3 id={`session-day-${group.key}`}>{group.label}</h3>
-                  <span>{formatMinutes(group.sessions.reduce((sum, session) => sum + session.minutes, 0))}</span>
-                </div>
-                {group.sessions.map((session) => {
-                  const subject = session.subjectId ? props.subjectMap.get(session.subjectId) : undefined
-                  const subjectName = session.subjectId ? subject?.name ?? 'Missing subject' : 'General'
-                  const startTime = sessionStartLabel(session)
-                  return (
-                    <article className="session-row" aria-label={`${subjectName}, ${startTime}, ${formatMinutes(session.minutes)}`} key={session.id}>
-                      <time className="session-time" dateTime={session.startedAt}>{startTime}</time>
-                      <div className="session-copy">
-                        <h4 className={session.subjectId && !subject ? 'is-missing' : undefined}>{subjectName}</h4>
-                        {session.note ? <p>{session.note}</p> : null}
-                      </div>
-                      <strong className="session-duration">{formatMinutes(session.minutes)}</strong>
-                      <RowActionButtons
-                        label={`${subjectName} session at ${startTime}`}
-                        onEdit={() => openEditor(session)}
-                        onDelete={(context) => requestDeleteSession(session, context)}
-                        databaseGeneration={props.databaseGeneration}
-                        confirmDelete={false}
-                        isDisabled={rowActionsLocked}
-                        isDeleting={pendingDeleteId === session.id}
-                      />
-                    </article>
-                  )
-                })}
-              </section>
-            ))}
-          </div>
+          <>
+            <div className="session-ledger">
+              {visibleSessionGroups.map((group) => (
+                <section className="session-day" aria-labelledby={`session-day-${group.key}`} key={group.key}>
+                  <div className="session-day-heading">
+                    <h3 id={`session-day-${group.key}`}>{group.label}</h3>
+                    <span>{formatMinutes(group.sessions.reduce((sum, session) => sum + session.minutes, 0))}</span>
+                  </div>
+                  {group.sessions.map((session) => {
+                    const subject = session.subjectId ? props.subjectMap.get(session.subjectId) : undefined
+                    const subjectName = session.subjectId ? subject?.name ?? 'Missing subject' : 'General'
+                    const startTime = sessionStartLabel(session)
+                    return (
+                      <article className="session-row" aria-label={`${subjectName}, ${startTime}, ${formatMinutes(session.minutes)}`} key={session.id}>
+                        <time className="session-time" dateTime={session.startedAt}>{startTime}</time>
+                        <div className="session-copy">
+                          <h4 className={session.subjectId && !subject ? 'is-missing' : undefined}>{subjectName}</h4>
+                          {session.note ? <p>{session.note}</p> : null}
+                        </div>
+                        <strong className="session-duration">{formatMinutes(session.minutes)}</strong>
+                        <RowActionButtons
+                          label={`${subjectName} session at ${startTime}`}
+                          onEdit={() => openEditor(session)}
+                          onDelete={(context) => requestDeleteSession(session, context)}
+                          databaseGeneration={props.databaseGeneration}
+                          confirmDelete={false}
+                          isDisabled={rowActionsLocked}
+                          isDeleting={pendingDeleteId === session.id}
+                        />
+                      </article>
+                    )
+                  })}
+                </section>
+              ))}
+            </div>
+            {totalDays > PROGRESS_INITIAL_VISIBLE_DAYS ? (
+              <div className="list-disclosure-footer" tabIndex={-1} ref={listFooterRef}>
+                <p className="list-count-summary" aria-live="polite">
+                  {hasMoreDays
+                    ? `Showing ${visibleSessionGroups.length} of ${totalDays} study days (${visibleSessionsCount} of ${totalSessionsCount} sessions)`
+                    : `Showing all ${totalDays} study days (${totalSessionsCount} sessions)`}
+                </p>
+                {hasMoreDays ? (
+                  <button
+                    type="button"
+                    className="secondary-command"
+                    onClick={showMoreDays}
+                  >
+                    Show 14 more days
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </>
         ) : (
           <EmptyState icon={Clock3} title="No sessions logged" body="Log completed study time here or finish a focus session from Home." actionLabel="Log first session" onAction={() => openEditor()} />
         )}
