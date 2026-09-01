@@ -7,10 +7,17 @@ import { withSharedDatabaseLock } from './crossTabLock'
 import { getDatabaseGeneration } from './databaseGeneration'
 import { createId, nowIso, studyDb } from './studyDb'
 import { assertSubjectExists, isSubjectNotFoundError } from './subjectValidation'
-import { isPersistedIsoTimestamp } from './validation/persistedInvariants'
+import {
+  ACTIVE_FOCUS_SESSION_KEY,
+  isActiveFocusSession,
+  isPersistedIsoTimestamp,
+} from './validation/persistedInvariants'
 import { assertStudySessionWriteFields } from './validation/domainValidation'
 
-export const ACTIVE_FOCUS_SESSION_KEY = 'activeFocusSession'
+export {
+  ACTIVE_FOCUS_SESSION_KEY,
+  isActiveFocusSession,
+}
 
 /** A session is unusually old at or beyond 12 hours since start (pause-independent). */
 export const ACTIVE_FOCUS_SESSION_STALE_AFTER_MS = 12 * 60 * 60 * 1000
@@ -68,40 +75,6 @@ function isIsoTimestamp(value: unknown): value is string {
 
 function isStatus(value: unknown): value is ActiveFocusSessionStatus {
   return value === 'running' || value === 'paused'
-}
-
-/**
- * Runtime type guard for durable unfinished focus sessions.
- * Rejects invalid IDs, timestamps, durations, pause combinations, and statuses.
- */
-export function isActiveFocusSession(value: unknown): value is ActiveFocusSession {
-  if (!isRecord(value)) return false
-  if (!isNonEmptyString(value.id)) return false
-  if (typeof value.subjectId !== 'string') return false
-  if (!isIsoTimestamp(value.startedAt)) return false
-  if (typeof value.plannedMinutes !== 'number' || !Number.isFinite(value.plannedMinutes) || value.plannedMinutes < 0) {
-    return false
-  }
-  if (!isStatus(value.status)) return false
-  if (typeof value.accumulatedPausedMs !== 'number' || !Number.isFinite(value.accumulatedPausedMs) || value.accumulatedPausedMs < 0) {
-    return false
-  }
-  if (
-    value.checkpointElapsedMs !== undefined &&
-    (typeof value.checkpointElapsedMs !== 'number' || !Number.isFinite(value.checkpointElapsedMs) || value.checkpointElapsedMs < 0)
-  ) {
-    return false
-  }
-
-  const startedAtMs = Date.parse(value.startedAt)
-
-  if (value.status === 'running') {
-    return value.pausedAt === null
-  }
-
-  if (!isIsoTimestamp(value.pausedAt)) return false
-  const pausedAtMs = Date.parse(value.pausedAt)
-  return pausedAtMs >= startedAtMs
 }
 
 /**

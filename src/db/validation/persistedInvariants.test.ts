@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ACTIVE_FOCUS_SESSION_KEY,
+  isActiveFocusSession,
   isPersistedDailyGoalMinutes,
   isPersistedDueDate,
   isPersistedGoalProgress,
@@ -190,6 +192,70 @@ describe('persistedInvariants', () => {
       expect(isPersistedIsoTimestamp('not-a-date')).toBe(false)
       expect(isPersistedIsoTimestamp(123456789)).toBe(false)
       expect(isPersistedIsoTimestamp(null)).toBe(false)
+    })
+  })
+
+  describe('isActiveFocusSession & ACTIVE_FOCUS_SESSION_KEY', () => {
+    it('defines the canonical ACTIVE_FOCUS_SESSION_KEY constant', () => {
+      expect(ACTIVE_FOCUS_SESSION_KEY).toBe('activeFocusSession')
+    })
+
+    it('accepts valid running and paused ActiveFocusSession records', () => {
+      expect(isActiveFocusSession({
+        id: 'focus-123',
+        subjectId: 'subject-math',
+        startedAt: '2026-07-20T10:00:00.000Z',
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+        checkpointElapsedMs: 60_000,
+      })).toBe(true)
+
+      expect(isActiveFocusSession({
+        id: 'focus-456',
+        subjectId: '',
+        startedAt: '2026-07-20T10:00:00.000Z',
+        plannedMinutes: 0,
+        status: 'paused',
+        pausedAt: '2026-07-20T10:10:00.000Z',
+        accumulatedPausedMs: 30_000,
+      })).toBe(true)
+    })
+
+    it('rejects invalid focus session records', () => {
+      expect(isActiveFocusSession(null)).toBe(false)
+      expect(isActiveFocusSession({})).toBe(false)
+      expect(isActiveFocusSession({ id: '' })).toBe(false)
+      expect(isActiveFocusSession({
+        id: 'focus-1',
+        subjectId: 'math',
+        startedAt: 'invalid-date',
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      })).toBe(false)
+      // Paused with null pausedAt
+      expect(isActiveFocusSession({
+        id: 'focus-1',
+        subjectId: 'math',
+        startedAt: '2026-07-20T10:00:00.000Z',
+        plannedMinutes: 25,
+        status: 'paused',
+        pausedAt: null,
+        accumulatedPausedMs: 0,
+      })).toBe(false)
+      // Running with non-null pausedAt
+      expect(isActiveFocusSession({
+        id: 'focus-1',
+        subjectId: 'math',
+        startedAt: '2026-07-20T10:00:00.000Z',
+        plannedMinutes: 25,
+        status: 'running',
+        pausedAt: '2026-07-20T10:05:00.000Z',
+        accumulatedPausedMs: 0,
+      })).toBe(false)
     })
   })
 })

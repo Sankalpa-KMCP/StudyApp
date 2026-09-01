@@ -1,4 +1,3 @@
-import { ACTIVE_FOCUS_SESSION_KEY, isActiveFocusSession } from './activeFocusSession'
 import {
   STUDY_EXPORT_RECORD_LIMITS,
   type StudyExportRecordCounts,
@@ -6,6 +5,8 @@ import {
 } from './studyExportLimits'
 import type { StudyExport } from './types'
 import {
+  ACTIVE_FOCUS_SESSION_KEY,
+  isActiveFocusSession,
   isPersistedDailyGoalMinutes,
   isPersistedGoalProgress,
   isPersistedGoalTarget,
