@@ -7,11 +7,16 @@ export const THEME_MODES = [
   'moss',
   'ember',
   'sage',
+  'rose-quartz',
+  'ocean-glass',
+  'sandstone',
   'dark',
   'aurora',
   'nordic',
   'espresso',
   'obsidian',
+  'plum-noir',
+  'forest-dark',
 ] as const
 
 export type ThemeMode = (typeof THEME_MODES)[number]
@@ -71,6 +76,27 @@ export const THEME_CONFIGS: readonly ThemeConfig[] = [
     themeColor: '#eaf0eb',
   },
   {
+    id: 'rose-quartz',
+    label: 'Rose Quartz',
+    description: 'Dusty rose paper, slate-plum ink, and deep wine accents.',
+    colorScheme: 'light',
+    themeColor: '#fbf0f2',
+  },
+  {
+    id: 'ocean-glass',
+    label: 'Ocean Glass',
+    description: 'Airy sea-glass paper, marine ink, and coastal cyan accents.',
+    colorScheme: 'light',
+    themeColor: '#eaf2f2',
+  },
+  {
+    id: 'sandstone',
+    label: 'Sandstone',
+    description: 'Warm desert sandstone, dry linen paper, and burnt ochre accents.',
+    colorScheme: 'light',
+    themeColor: '#f5eee4',
+  },
+  {
     id: 'dark',
     label: 'Midnight',
     description: 'Inky blue with a soft amber reading light.',
@@ -104,6 +130,20 @@ export const THEME_CONFIGS: readonly ThemeConfig[] = [
     description: 'Pitch black, vivid amber accents, and ultra-high contrast text.',
     colorScheme: 'dark',
     themeColor: '#0c0d11',
+  },
+  {
+    id: 'plum-noir',
+    label: 'Plum Noir',
+    description: 'Deep velvet plum, radiant raspberry accents, and champagne highlights.',
+    colorScheme: 'dark',
+    themeColor: '#151018',
+  },
+  {
+    id: 'forest-dark',
+    label: 'Forest Dark',
+    description: 'Inky pine black, deep spruce surfaces, and radiant emerald glow.',
+    colorScheme: 'dark',
+    themeColor: '#0e1814',
   },
 ] as const
 
