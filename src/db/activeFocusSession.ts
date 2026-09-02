@@ -571,10 +571,7 @@ export async function finalizeActiveFocusSession(
         }
 
         try {
-          await assertSubjectExists(history.subjectId)
-          if (activeSession.subjectId !== history.subjectId) {
-            await assertSubjectExists(activeSession.subjectId)
-          }
+          await assertSubjectExists(activeSession.subjectId)
         } catch (err) {
           if (isSubjectNotFoundError(err)) {
             return { ok: false, reason: 'missing_subject' }
@@ -599,7 +596,7 @@ export async function finalizeActiveFocusSession(
 
         const historyRow: StudySession = {
           id: sessionId,
-          subjectId: history.subjectId,
+          subjectId: activeSession.subjectId,
           startedAt: safeStartedAt,
           endedAt: safeEndedAt,
           minutes: safeMinutes,
