@@ -7,7 +7,7 @@
 - Expanded theme palette to 11 accessible options by introducing **Sage Botanical**, **Nordic Slate**, **Espresso**, and **High-Contrast Obsidian** alongside Monochrome, Canvas, Blueprint, Moss Library, Ember, Midnight, and Aurora.
 - Visual Theme Gallery in Settings with interactive theme cards, multi-token preview swatches, and active badges.
 - Centralized theme registry (`src/styles/themeRegistry.ts`) defining theme identifiers, display names, mode classifications (Light, Dark, High Contrast), and preview swatches.
-- Automated theme token contrast contracts (`src/styles/themeTokenContrast.ts` / `.test.ts`) enforcing WCAG AA text (≥ 4.5:1) and control boundary (≥ 3.0:1) minimums across all 11 themes, plus enhanced contrast (≥ 7.0:1) verification for High-Contrast Obsidian.
+- Automated theme token contrast contracts (`src/styles/themeTokenContrast.ts` / `.test.ts`) enforcing text (≥ 4.5:1 with a 4.6:1 margin) and control boundary (≥ 3.0:1 with a 3.2:1 margin) minimums across all 11 themes.
 - Playwright E2E integration test coverage across all 11 themes and reload persistence (`e2e/dashboard.spec.ts`).
 
 ### Fixed
