@@ -359,6 +359,150 @@ describe('activeFocusSession persistence', () => {
     })
   })
 
+  it('preserves durable checkpoint when updateActiveFocusSession receives a stale/lower checkpointElapsedMs', async () => {
+    const session = makeSession({
+      id: 'focus-mono-1',
+      checkpointElapsedMs: 10 * 60_000, // 10 minutes durably confirmed
+    })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+    // Same-generation caller performs update with an 8-minute snapshot
+    const staleUpdate = {
+      ...session,
+      checkpointElapsedMs: 8 * 60_000, // 8 minutes
+    }
+    const result = await updateActiveFocusSession(staleUpdate, { expectedGeneration: 1 })
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.session.checkpointElapsedMs).toBe(10 * 60_000)
+    }
+
+    const durable = await getActiveFocusSession()
+    expect(durable?.checkpointElapsedMs).toBe(10 * 60_000)
+  })
+
+  it('preserves durable checkpoint minutes when finalizeActiveFocusSession receives fewer minutes from caller', async () => {
+    const session = makeSession({
+      id: 'focus-mono-2',
+      checkpointElapsedMs: 10 * 60_000, // 10 minutes durably confirmed
+    })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+    // Caller attempts to finalize with only 8 minutes
+    const result = await finalizeActiveFocusSession('focus-mono-2', {
+      subjectId: session.subjectId,
+      startedAt: session.startedAt,
+      endedAt: '2026-07-20T10:10:00.000Z',
+      minutes: 8,
+      note: 'Focus session',
+    }, { expectedGeneration: 1 })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.history.minutes).toBe(10)
+    }
+
+    const history = await studyDb.studySessions.get('focus-mono-2')
+    expect(history?.minutes).toBe(10)
+  })
+
+  it('guarantees two independent same-generation actors cannot reduce confirmed elapsed time or minutes', async () => {
+    await studyDb.subjects.add({
+      id: 'subject-c',
+      name: 'Chemistry',
+      color: '#b45309',
+      targetHours: 4,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: '2026-07-20T00:00:00.000Z',
+      updatedAt: '2026-07-20T00:00:00.000Z',
+    })
+
+    const session = makeSession({
+      id: 'focus-mono-concurrent',
+      checkpointElapsedMs: 5 * 60_000,
+    })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+    // Actor A advances checkpoint to 10 minutes
+    const checkpointRes = await checkpointActiveFocusSession('focus-mono-concurrent', 10 * 60_000, { expectedGeneration: 1 })
+    expect(checkpointRes.ok).toBe(true)
+
+    // Actor B (stale in-memory state with 6 min) updates subject to Chemistry
+    const actorBUpdate = {
+      ...session,
+      subjectId: 'subject-c',
+      checkpointElapsedMs: 6 * 60_000,
+    }
+    const updateRes = await updateActiveFocusSession(actorBUpdate, { expectedGeneration: 1 })
+    expect(updateRes.ok).toBe(true)
+    if (updateRes.ok) {
+      expect(updateRes.session.checkpointElapsedMs).toBe(10 * 60_000)
+      expect(updateRes.session.subjectId).toBe('subject-c')
+    }
+
+    // Actor C (stale in-memory state with 7 min) finalizes session
+    const finalizeRes = await finalizeActiveFocusSession('focus-mono-concurrent', {
+      subjectId: 'subject-c',
+      startedAt: session.startedAt,
+      endedAt: '2026-07-20T10:10:00.000Z',
+      minutes: 7,
+      note: 'Focus session',
+    }, { expectedGeneration: 1 })
+
+    expect(finalizeRes.ok).toBe(true)
+    if (finalizeRes.ok) {
+      expect(finalizeRes.history.minutes).toBe(10)
+    }
+
+    const finalHistory = await studyDb.studySessions.get('focus-mono-concurrent')
+    expect(finalHistory?.minutes).toBe(10)
+  })
+
+  it('preserves planned-minute rule on timed completion and credits higher caller elapsed when valid', async () => {
+    const session = makeSession({
+      id: 'focus-mono-timed',
+      plannedMinutes: 25,
+      checkpointElapsedMs: 25 * 60_000,
+    })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+
+    // Completed timed session with planned 25 min
+    const completedRes = await finalizeActiveFocusSession('focus-mono-timed', {
+      subjectId: session.subjectId,
+      startedAt: session.startedAt,
+      endedAt: '2026-07-20T10:25:00.000Z',
+      minutes: 25,
+      note: 'Completed focus session',
+    }, { expectedGeneration: 1 })
+
+    expect(completedRes.ok).toBe(true)
+    if (completedRes.ok) {
+      expect(completedRes.history.minutes).toBe(25)
+    }
+
+    // New session with 10 min checkpoint where caller ran longer (15 min) and submits 15 min
+    const session2 = makeSession({
+      id: 'focus-mono-longer',
+      plannedMinutes: 0,
+      checkpointElapsedMs: 10 * 60_000,
+    })
+    await createActiveFocusSession(session2, { expectedGeneration: 1 })
+
+    const longerRes = await finalizeActiveFocusSession('focus-mono-longer', {
+      subjectId: session2.subjectId,
+      startedAt: session2.startedAt,
+      endedAt: '2026-07-20T10:15:00.000Z',
+      minutes: 15,
+      note: 'Focus session',
+    }, { expectedGeneration: 1 })
+
+    expect(longerRes.ok).toBe(true)
+    if (longerRes.ok) {
+      expect(longerRes.history.minutes).toBe(15)
+    }
+  })
+
   it('rejects updateActiveFocusSession when generation is stale', async () => {
     const session = makeSession()
     await createActiveFocusSession(session, { expectedGeneration: 1 })

@@ -336,9 +336,15 @@ export async function updateActiveFocusSession(
         throw err
       }
 
+      const durableCheckpoint = existing.checkpointElapsedMs
+      const incomingCheckpoint = session.checkpointElapsedMs
+      const mergedCheckpoint = (durableCheckpoint !== undefined || incomingCheckpoint !== undefined)
+        ? Math.max(durableCheckpoint ?? 0, incomingCheckpoint ?? 0)
+        : undefined
+
       const sessionToPersist: ActiveFocusSession = {
         ...session,
-        checkpointElapsedMs: session.checkpointElapsedMs ?? existing.checkpointElapsedMs,
+        ...(mergedCheckpoint !== undefined ? { checkpointElapsedMs: mergedCheckpoint } : {}),
       }
 
       await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: sessionToPersist })
@@ -581,7 +587,15 @@ export async function finalizeActiveFocusSession(
         const rawEndedAtMs = isIsoTimestamp(history.endedAt) ? Date.parse(history.endedAt) : Date.now()
         const safeEndedAtMs = Math.max(startedAtMs, rawEndedAtMs)
         const safeEndedAt = new Date(safeEndedAtMs).toISOString()
-        const safeMinutes = Math.max(1, Math.floor(history.minutes))
+
+        const callerMinutes = Math.max(1, Math.floor(history.minutes))
+        const cappedCheckpointMs = (typeof activeSession.checkpointElapsedMs === 'number' && activeSession.plannedMinutes > 0)
+          ? Math.min(activeSession.checkpointElapsedMs, activeSession.plannedMinutes * 60_000)
+          : (activeSession.checkpointElapsedMs ?? 0)
+        const durableCheckpointMinutes = typeof activeSession.checkpointElapsedMs === 'number'
+          ? Math.max(1, Math.round(cappedCheckpointMs / 60_000))
+          : 1
+        const safeMinutes = Math.max(callerMinutes, durableCheckpointMinutes)
 
         const historyRow: StudySession = {
           id: sessionId,
