@@ -44,14 +44,36 @@ describe('theme token contrast contracts', () => {
   const css = readFileSync(TOKENS_PATH, 'utf8')
   const themes = parseThemeTokens(css)
 
-  it('exposes all eleven themes including Monochrome base :root tokens', () => {
+  it('exposes all registered themes including Monochrome base :root tokens', () => {
     expect(Object.keys(themes).sort()).toEqual([...EXPECTED_THEMES].sort())
     for (const theme of EXPECTED_THEMES) {
       expect(themes[theme].bg).toMatch(/^#[0-9a-f]{6}$/i)
       expect(themes[theme].muted).toMatch(/^#[0-9a-f]{6}$/i)
       expect(themes[theme].quiet).toMatch(/^#[0-9a-f]{6}$/i)
       expect(themes[theme]['control-border']).toMatch(/^#[0-9a-f]{6}$/i)
+      expect(themes[theme].danger).toMatch(/^#[0-9a-f]{6}$/i)
+      expect(themes[theme]['on-accent']).toMatch(/^#[0-9a-f]{6}$/i)
     }
+  })
+
+  it('keeps destructive action button text (on-accent vs danger) above 4.5:1 with a 4.6:1 regression margin', () => {
+    const failures: string[] = []
+
+    for (const themeName of EXPECTED_THEMES) {
+      const theme = themes[themeName]
+      const ratio = contrastRatio(theme['on-accent'], theme.danger)
+      if (ratio < TEXT_MIN || ratio < TEXT_MARGIN_MIN) {
+        failures.push(formatContrastFailure({
+          theme: themeName,
+          foregroundToken: '--on-accent',
+          backgroundToken: '--danger',
+          ratio,
+          required: ratio < TEXT_MIN ? TEXT_MIN : TEXT_MARGIN_MIN,
+        }))
+      }
+    }
+
+    expect(failures, failures.join('\n')).toEqual([])
   })
 
   it('keeps ordinary muted and quiet text above 4.5:1 with a 4.6:1 regression margin', () => {

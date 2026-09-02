@@ -42,9 +42,20 @@ export type ThemeTokenSet = {
   muted: string
   quiet: string
   'control-border': string
+  danger: string
+  'on-accent': string
 }
 
-const REQUIRED_TOKENS = ['bg', 'surface', 'surface-subtle', 'muted', 'quiet', 'control-border'] as const
+const REQUIRED_TOKENS = [
+  'bg',
+  'surface',
+  'surface-subtle',
+  'muted',
+  'quiet',
+  'control-border',
+  'danger',
+  'on-accent',
+] as const
 
 function extractDeclarations(block: string): Record<string, string> {
   const declarations: Record<string, string> = {}
@@ -66,6 +77,8 @@ function requireTokens(theme: string, declarations: Record<string, string>): The
     muted: declarations.muted,
     quiet: declarations.quiet,
     'control-border': declarations['control-border'],
+    danger: declarations.danger,
+    'on-accent': declarations['on-accent'],
   }
 }
 

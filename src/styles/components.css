@@ -733,12 +733,11 @@
 .confirm-dialog-confirm.is-destructive {
   background: var(--danger);
   border-color: var(--danger);
-  color: #ffffff;
+  color: var(--on-accent);
 }
 
 .confirm-dialog-confirm.is-destructive:hover:not(:disabled) {
-  background: #7a1818;
-  border-color: #7a1818;
+  opacity: 0.9;
 }
 
 .quick-add {
