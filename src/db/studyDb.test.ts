@@ -2797,6 +2797,102 @@ describe('studyDb', () => {
     expect(localStorage.getItem('study-dashboard-v2')).toBeNull()
   })
 
+  it('B02: preserves distinct subjects with case-different duplicate names (Math / math) and routes tasks to matching case', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        subjects: [
+          { id: 'sub-math-upper', name: 'Math', topicsLeft: 4, progress: 50 },
+          { id: 'sub-math-lower', name: 'math', topicsLeft: 2, progress: 80 },
+        ],
+        tasks: [
+          { id: 'task-1', title: 'Upper Math Task', subject: 'Math', done: false, minutes: 30 },
+          { id: 'task-2', title: 'Lower Math Task', subject: 'math', done: true, minutes: 45 },
+        ],
+        notes: [
+          { id: 'note-1', title: 'Upper Note', tag: 'Math', body: 'Upper math note' },
+          { id: 'note-2', title: 'Lower Note', tag: 'math', body: 'Lower math note' },
+        ],
+      }),
+    )
+
+    const result = await migrateLegacyLocalStorage()
+    expect(result.status).toBe('success')
+
+    const subjects = await studyDb.subjects.toArray()
+    expect(subjects).toHaveLength(2)
+
+    const upper = subjects.find((s) => s.id === 'sub-math-upper')
+    const lower = subjects.find((s) => s.id === 'sub-math-lower')
+
+    expect(upper).toBeDefined()
+    expect(upper?.name).toBe('Math')
+    expect(upper?.targetHours).toBe(6) // Math.round(4 * 1.5) = 6
+    expect(upper?.progress).toBe(50)
+
+    expect(lower).toBeDefined()
+    expect(lower?.name).toBe('math')
+    expect(lower?.targetHours).toBe(3) // Math.round(2 * 1.5) = 3
+    expect(lower?.progress).toBe(80)
+
+    const tasks = await studyDb.tasks.toArray()
+    expect(tasks).toHaveLength(2)
+    expect(tasks.find((t) => t.id === 'task-1')?.subjectId).toBe('sub-math-upper')
+    expect(tasks.find((t) => t.id === 'task-2')?.subjectId).toBe('sub-math-lower')
+
+    const notes = await studyDb.notes.toArray()
+    expect(notes).toHaveLength(2)
+    expect(notes.find((n) => n.id === 'note-1')?.subjectId).toBe('sub-math-upper')
+    expect(notes.find((n) => n.id === 'note-2')?.subjectId).toBe('sub-math-lower')
+  })
+
+  it('B02: preserves distinct subjects with identical names and distinct IDs', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        subjects: [
+          { id: 'sub-chem-1', name: 'Chemistry', topicsLeft: 6, progress: 20 },
+          { id: 'sub-chem-2', name: 'Chemistry', topicsLeft: 2, progress: 90 },
+        ],
+        tasks: [
+          { id: 'task-chem', title: 'Chem Task', subject: 'Chemistry', done: false, minutes: 30 },
+        ],
+      }),
+    )
+
+    const result = await migrateLegacyLocalStorage()
+    expect(result.status).toBe('success')
+
+    const subjects = await studyDb.subjects.toArray()
+    expect(subjects).toHaveLength(2)
+    expect(subjects.find((s) => s.id === 'sub-chem-1')?.progress).toBe(20)
+    expect(subjects.find((s) => s.id === 'sub-chem-2')?.progress).toBe(90)
+
+    const task = await studyDb.tasks.get('task-chem')
+    expect(task?.subjectId).toBe('sub-chem-1') // Deterministically resolves to first declared Chemistry
+  })
+
+  it('B02: detects colliding duplicate IDs with same normalized name and aborts via collision error', async () => {
+    localStorage.setItem(
+      'study-dashboard-v2',
+      JSON.stringify({
+        subjects: [
+          { id: 'sub-dup-id', name: 'Math', topicsLeft: 4, progress: 50 },
+          { id: 'sub-dup-id', name: 'math', topicsLeft: 2, progress: 80 },
+        ],
+      }),
+    )
+
+    const result = await migrateLegacyLocalStorage()
+    expect(result).toEqual({
+      status: 'collision',
+      entity: 'subjects',
+      id: 'sub-dup-id',
+    })
+    expect(await studyDb.subjects.count()).toBe(0)
+    expect(localStorage.getItem('study-dashboard-v2')).not.toBeNull()
+  })
+
   it('Scenario 43 & 14: rolls back complete import replacement when forced settings put fails', async () => {
     await studyDb.tasks.add({
       id: 'task-pre-import',
