@@ -5,6 +5,11 @@ import type { DataCoordinatorSnapshot } from '../db/dataCoordinator'
 import { type MutationPhase, useMutationState } from '../hooks/useMutationState'
 import { THEME_CONFIGS, type ThemeMode } from '../styles/themeRegistry'
 
+const THEME_GROUPS = [
+  { scheme: 'light', label: 'Light themes' },
+  { scheme: 'dark', label: 'Dark themes' },
+] as const
+
 export function SettingsView({
   coordinatorState,
   onExport,
@@ -219,56 +224,68 @@ export function SettingsView({
           <Layers3 size={24} aria-hidden="true" />
           <strong>Appearance</strong>
           <span>Choose a theme for this device.</span>
-          <div className="theme-grid" role="radiogroup" aria-label="Theme">
-            {THEME_CONFIGS.map((option, index) => {
-              const isSelected = theme === option.id
+          <div className="theme-gallery-groups" role="radiogroup" aria-label="Theme">
+            {THEME_GROUPS.map((group) => {
+              const groupOptions = THEME_CONFIGS.filter((option) => option.colorScheme === group.scheme)
+              if (groupOptions.length === 0) return null
               return (
-                <button
-                  className={isSelected ? 'theme-option is-active' : 'theme-option'}
-                  type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  tabIndex={isSelected ? 0 : -1}
-                  key={option.id}
-                  ref={(element) => { themeOptionRefs.current[index] = element }}
-                  onClick={() => onThemeChange(option.id)}
-                  onKeyDown={(event) => handleThemeKeyDown(event, index)}
-                >
-                  <span className="theme-preview" data-theme-preview={option.id} aria-hidden="true">
-                    <span className="theme-preview-window">
-                      <span className="theme-preview-sidebar">
-                        <span className="theme-preview-nav-item is-active" />
-                        <span className="theme-preview-nav-item" />
-                        <span className="theme-preview-nav-item" />
-                      </span>
-                      <span className="theme-preview-body">
-                        <span className="theme-preview-topbar">
-                          <span className="theme-preview-chip is-accent" />
-                          <span className="theme-preview-chip is-highlight" />
-                        </span>
-                        <span className="theme-preview-card">
-                          <span className="theme-preview-line is-title" />
-                          <span className="theme-preview-line is-muted" />
-                          <span className="theme-preview-bar">
-                            <span className="theme-preview-bar-fill" />
+                <div className="theme-group" key={group.scheme}>
+                  <span className="theme-group-label">{group.label}</span>
+                  <div className="theme-grid">
+                    {groupOptions.map((option) => {
+                      const globalIndex = THEME_CONFIGS.findIndex((c) => c.id === option.id)
+                      const isSelected = theme === option.id
+                      return (
+                        <button
+                          className={isSelected ? 'theme-option is-active' : 'theme-option'}
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          tabIndex={isSelected ? 0 : -1}
+                          key={option.id}
+                          ref={(element) => { themeOptionRefs.current[globalIndex] = element }}
+                          onClick={() => onThemeChange(option.id)}
+                          onKeyDown={(event) => handleThemeKeyDown(event, globalIndex)}
+                        >
+                          <span className="theme-preview" data-theme-preview={option.id} aria-hidden="true">
+                            <span className="theme-preview-window">
+                              <span className="theme-preview-sidebar">
+                                <span className="theme-preview-nav-item is-active" />
+                                <span className="theme-preview-nav-item" />
+                                <span className="theme-preview-nav-item" />
+                              </span>
+                              <span className="theme-preview-body">
+                                <span className="theme-preview-topbar">
+                                  <span className="theme-preview-chip is-accent" />
+                                  <span className="theme-preview-chip is-highlight" />
+                                </span>
+                                <span className="theme-preview-card">
+                                  <span className="theme-preview-line is-title" />
+                                  <span className="theme-preview-line is-muted" />
+                                  <span className="theme-preview-bar">
+                                    <span className="theme-preview-bar-fill" />
+                                  </span>
+                                </span>
+                              </span>
+                            </span>
                           </span>
-                        </span>
-                      </span>
-                    </span>
-                  </span>
-                  <span className="theme-option-info">
-                    <span className="theme-option-header">
-                      <strong>{option.label}</strong>
-                      {isSelected ? (
-                        <span className="theme-selected-badge">
-                          <Check size={12} aria-hidden="true" />
-                          <span>Active</span>
-                        </span>
-                      ) : null}
-                    </span>
-                    <small>{option.description}</small>
-                  </span>
-                </button>
+                          <span className="theme-option-info">
+                            <span className="theme-option-header">
+                              <strong>{option.label}</strong>
+                              {isSelected ? (
+                                <span className="theme-selected-badge">
+                                  <Check size={12} aria-hidden="true" />
+                                  <span>Active</span>
+                                </span>
+                              ) : null}
+                            </span>
+                            <small>{option.description}</small>
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               )
             })}
           </div>

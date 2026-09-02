@@ -18,6 +18,28 @@
   cursor: default;
 }
 
+.theme-gallery-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.theme-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.theme-group-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  user-select: none;
+}
+
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -41,13 +63,20 @@
 }
 
 .theme-option:hover {
-  border-color: var(--accent);
+  border-color: var(--line-strong);
   background: var(--surface-subtle);
 }
 
 .theme-option.is-active {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: 0 0 0 1.5px var(--accent);
+  background: var(--surface);
+}
+
+.theme-option.is-active:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1.5px var(--accent);
+  background: var(--surface-subtle);
 }
 
 /* Miniature Dashboard Preview */
