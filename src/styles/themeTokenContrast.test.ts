@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { THEME_MODES } from './themeRegistry'
 import {
   contrastRatio,
   formatContrastFailure,
@@ -10,7 +11,7 @@ import {
 } from './themeTokenContrast'
 
 const TOKENS_PATH = join(dirname(fileURLToPath(import.meta.url)), 'tokens.css')
-const EXPECTED_THEMES = ['monochrome', 'light', 'dark', 'aurora', 'ember', 'blueprint', 'moss'] as const
+const EXPECTED_THEMES = THEME_MODES
 
 const TEXT_BACKGROUNDS = ['bg', 'surface', 'surface-subtle'] as const
 const TEXT_MIN = 4.5
@@ -43,7 +44,7 @@ describe('theme token contrast contracts', () => {
   const css = readFileSync(TOKENS_PATH, 'utf8')
   const themes = parseThemeTokens(css)
 
-  it('exposes all seven themes including Monochrome base :root tokens', () => {
+  it('exposes all eleven themes including Monochrome base :root tokens', () => {
     expect(Object.keys(themes).sort()).toEqual([...EXPECTED_THEMES].sort())
     for (const theme of EXPECTED_THEMES) {
       expect(themes[theme].bg).toMatch(/^#[0-9a-f]{6}$/i)
@@ -97,6 +98,41 @@ describe('theme token contrast contracts', () => {
     }
 
     expect(failures, failures.join('\n')).toEqual([])
+  })
+
+  it('declares scoped data-theme-preview selectors for every theme', () => {
+    for (const theme of EXPECTED_THEMES) {
+      if (theme === 'monochrome') {
+        expect(css).toMatch(/\[data-theme-preview='monochrome'\]/)
+      } else {
+        expect(css).toMatch(new RegExp(`\\[data-theme-preview='${theme}'\\]`))
+      }
+    }
+  })
+
+  it('applies scoped preview tokens to elements without mutating root variables', () => {
+    const styleEl = document.createElement('style')
+    styleEl.textContent = css
+    document.head.appendChild(styleEl)
+
+    document.documentElement.dataset.theme = 'monochrome'
+    const rootBg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
+    expect(rootBg).toBe('#f3f3f1')
+
+    const previewEl = document.createElement('div')
+    previewEl.setAttribute('data-theme-preview', 'nordic')
+    document.body.appendChild(previewEl)
+
+    const previewBg = getComputedStyle(previewEl).getPropertyValue('--bg').trim()
+    const previewAccent = getComputedStyle(previewEl).getPropertyValue('--accent').trim()
+    expect(previewBg).toBe('#12161f')
+    expect(previewAccent).toBe('#64b5f6')
+
+    const rootBgAfter = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
+    expect(rootBgAfter).toBe('#f3f3f1')
+
+    previewEl.remove()
+    styleEl.remove()
   })
 
   it('fails clearly when a required theme block is missing', () => {
