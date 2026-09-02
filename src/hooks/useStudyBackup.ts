@@ -32,7 +32,7 @@ export type UseStudyBackupOptions = {
   coordinator: IDataOperationCoordinator
   runWithFocusImportLock: <T>(action: () => Promise<T>) => Promise<T>
   reloadFocusFromIndexedDb: () => Promise<ActiveFocusSession | null>
-  clearFocusLocalState: () => void
+  clearFocusLocalState: (generation?: number) => void
   /** Invoked only after successful persistent clear + local focus reset. */
   onClearSuccess: () => void
 }
@@ -98,8 +98,8 @@ export function useStudyBackup({
 
   const clearAllBackup = useCallback(async (): Promise<void> => {
     const result = await coordinator.runDeleteAll(async () => {
-      await clearAllStudyData()
-      clearFocusLocalState()
+      const newGeneration = await clearAllStudyData()
+      clearFocusLocalState(newGeneration)
       onClearSuccess()
     })
     if (!result.ok) {

@@ -588,14 +588,14 @@ describe('useStudyBackup', () => {
   it('clears local focus and reports success only after persistent clear succeeds', async () => {
     const clearFocusLocalState = vi.fn()
     const onClearSuccess = vi.fn()
-    vi.spyOn(studyDb, 'clearAllStudyData').mockResolvedValue(undefined)
+    vi.spyOn(studyDb, 'clearAllStudyData').mockResolvedValue(2)
 
     const { result, coordinator } = renderBackupHook({ clearFocusLocalState, onClearSuccess })
 
     await result.current.clearAllBackup()
 
     expect(studyDb.clearAllStudyData).toHaveBeenCalledTimes(1)
-    expect(clearFocusLocalState).toHaveBeenCalledTimes(1)
+    expect(clearFocusLocalState).toHaveBeenCalledWith(2)
     expect(onClearSuccess).toHaveBeenCalledTimes(1)
     expect(clearFocusLocalState.mock.invocationCallOrder[0]).toBeLessThan(onClearSuccess.mock.invocationCallOrder[0])
     expect(coordinator.getSnapshot().activeDataOperation).toBe(null)

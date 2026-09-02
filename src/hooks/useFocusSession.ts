@@ -49,8 +49,8 @@ export type UseFocusSessionResult = {
   reloadFocusFromIndexedDb: () => Promise<ActiveFocusSession | null>
   /** Holds sync + React import pending for the full await window (including post-import reload). */
   runWithFocusImportLock: <T>(action: () => Promise<T>) => Promise<T>
-  /** Clears local focus UI/refs after clear-all without re-reading IndexedDB. */
-  clearFocusLocalState: () => void
+  /** Clears local focus UI/refs after clear-all without re-reading IndexedDB. Optional generation updates the local expected generation. */
+  clearFocusLocalState: (generation?: number) => void
 }
 
 type LiveAnchor = {
@@ -849,8 +849,8 @@ export function useFocusSession({ subjectMap, coordinator: optionsCoordinator }:
     }
   }, [])
 
-  const clearFocusLocalState = useCallback(() => {
-    focusGenerationRef.current = 1
+  const clearFocusLocalState = useCallback((newGeneration?: number) => {
+    focusGenerationRef.current = typeof newGeneration === 'number' && newGeneration >= 1 ? newGeneration : 1
     liveAnchorRef.current = null
     setLiveElapsedMs(0)
     setActiveSession(null)

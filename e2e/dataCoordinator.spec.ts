@@ -59,3 +59,18 @@ test('Settings operation coordinator serializes Delete All and Export in one bro
   await expect(page.getByLabel('Import data')).toBeEnabled()
   await expect(page.getByRole('button', { name: 'Reset all study data' })).toBeEnabled()
 })
+
+test('starts a new focus session immediately after Settings clear-all without reload', async ({ page }) => {
+  await navigateWorkspace(page, 'Settings')
+  await page.getByRole('button', { name: 'Reset all study data' }).click()
+  await page.getByPlaceholder('DELETE').fill('DELETE')
+  await page.getByRole('button', { name: 'Delete all data' }).click()
+
+  await expect(page.getByRole('status')).toContainText('All study data has been permanently deleted.', { timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: HOME_GREETING_HEADING })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Start focus' }).click()
+  await expect(page.getByText('Elapsed')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Stop session' })).toBeVisible()
+})
