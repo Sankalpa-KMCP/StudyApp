@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { THEME_CONFIGS } from '../src/styles/themeRegistry'
 import { HOME_GREETING_HEADING } from './a11yHelpers'
 import {
   createManualGoalViaUi,
@@ -263,7 +264,7 @@ test('collapses the sidebar at medium desktop widths and persists the preference
   await expect.poll(() => page.evaluate(() => localStorage.getItem('study-dashboard-sidebar'))).toBe('expanded')
 })
 
-test('switches and persists all seven themes without layout overflow', async ({ page }, testInfo) => {
+test('switches and persists themes without layout overflow across the full theme registry', async ({ page }, testInfo) => {
   const compact = testInfo.project.name === 'mobile-chrome'
   await page.setViewportSize({ width: compact ? 390 : 1280, height: compact ? 844 : 900 })
   await page.goto('/')
@@ -273,26 +274,23 @@ test('switches and persists all seven themes without layout overflow', async ({ 
   await navigateWorkspace(page, 'Settings')
 
   const themeGroup = page.getByRole('radiogroup', { name: 'Theme' })
-  await expect(themeGroup.getByRole('radio')).toHaveCount(7)
-  const themes = [
-    ['Monochrome', 'monochrome', '#111111'],
-    ['Canvas', 'light', '#f4f0e8'],
-    ['Blueprint', 'blueprint', '#153f73'],
-    ['Moss Library', 'moss', '#294633'],
-    ['Midnight', 'dark', '#10141d'],
-    ['Aurora', 'aurora', '#111323'],
-    ['Ember', 'ember', '#f3e4d2'],
-  ] as const
+  await expect(themeGroup.getByRole('radio')).toHaveCount(THEME_CONFIGS.length)
 
-  for (const [label, theme, themeColor] of themes) {
-    const option = themeGroup.getByRole('radio', { name: new RegExp(label) })
+  for (const config of THEME_CONFIGS) {
+    const option = themeGroup.getByRole('radio', { name: new RegExp(config.label) })
+    await expect(option).toBeVisible()
     await option.click()
     await expect(option).toHaveAttribute('aria-checked', 'true')
-    await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe(theme)
-    await expect.poll(() => page.evaluate(() => document.querySelector('meta[name="theme-color"]')?.getAttribute('content'))).toBe(themeColor)
+    await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe(config.id)
+    await expect.poll(() => page.evaluate(() => document.querySelector('meta[name="theme-color"]')?.getAttribute('content'))).toBe(config.themeColor)
     const layout = await page.evaluate(() => ({ viewport: window.innerWidth, page: document.documentElement.scrollWidth }))
     expect(layout.page).toBeLessThanOrEqual(layout.viewport)
   }
+
+  await themeGroup.getByRole('radio', { name: /Nordic Slate/ }).click()
+  await page.reload()
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('nordic')
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('study-dashboard-theme'))).toBe('nordic')
 
   await themeGroup.getByRole('radio', { name: /Moss Library/ }).click()
   await page.reload()
