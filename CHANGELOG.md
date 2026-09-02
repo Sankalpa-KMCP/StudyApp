@@ -13,6 +13,9 @@
 ### Fixed
 
 - Resynchronized in-memory focus database generation after Settings Clear All (`clearAllStudyData`), ensuring subsequent Focus sessions start immediately without `StaleDatabaseGenerationError` or page reload.
+- Preserved durable Focus checkpoint monotonicity across same-generation updates, ensuring stale writes cannot regress confirmed checkpoint elapsed time and session finalization never records fewer study minutes than confirmed by the durable active singleton.
+- Preserved distinct legacy subjects sharing identical or case-differing names during localStorage migration by maintaining subjects by unique ID with deterministic exact-name-first resolution for associated tasks, notes, and sessions.
+- Enforced canonical subject provenance during Focus session finalization by asserting and assigning the authoritative subject ID from the durable active Focus singleton, preventing stale caller inputs from misattributing study history.
 
 ### Removed
 
