@@ -12,11 +12,16 @@
 
 ### Fixed
 
+- Restored WCAG AA text contrast for destructive confirmation buttons (`.confirm-dialog-confirm.is-destructive`) across all 16 themes by pairing semantic `var(--on-accent)` with `var(--danger)` background (6.39:1–10.11:1 normal; 5.24:1–8.37:1 hover), eliminating hardcoded colors and adding automated regression coverage in `themeTokenContrast.test.ts`.
 - Resolved Settings Appearance card tablet grid layout issue by spanning full available container width (`.theme-card { grid-column: 1 / -1; }`), eliminating orphan tracks at intermediate viewports (768px–1060px).
 - Resynchronized in-memory focus database generation after Settings Clear All (`clearAllStudyData`), ensuring subsequent Focus sessions start immediately without `StaleDatabaseGenerationError` or page reload.
 - Preserved durable Focus checkpoint monotonicity across same-generation updates, ensuring stale writes cannot regress confirmed checkpoint elapsed time and session finalization never records fewer study minutes than confirmed by the durable active singleton.
 - Preserved distinct legacy subjects sharing identical or case-differing names during localStorage migration by maintaining subjects by unique ID with deterministic exact-name-first resolution for associated tasks, notes, and sessions.
 - Enforced canonical subject provenance during Focus session finalization by asserting and assigning the authoritative subject ID from the durable active Focus singleton, preventing stale caller inputs from misattributing study history.
+
+### Changed
+
+- Updated Vite configuration (`vite.config.ts`) to use explicit `.ts` extension for the Content Security Policy helper import, resolving the native config-loader deprecation warning while preserving production CSP injection into `dist/index.html`.
 
 ### Removed
 
