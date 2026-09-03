@@ -55,6 +55,26 @@
     animation: none !important;
     transform: none !important;
   }
+
+  :is(
+    :root[data-theme='crystal-glass'],
+    :root[data-theme='wisteria'],
+    :root[data-theme='celestial'],
+    :root[data-theme='velvet-dusk'],
+    :root[data-theme='abyss']
+  ) :is(.nav-item.is-active::before, .progress-track span::after, .focus-ring::before) {
+    animation: none !important;
+  }
+
+  :is(
+    :root[data-theme='crystal-glass'],
+    :root[data-theme='wisteria'],
+    :root[data-theme='celestial'],
+    :root[data-theme='velvet-dusk'],
+    :root[data-theme='abyss']
+  ) :is(.list-row:hover, .action-card:hover, .theme-option:hover) {
+    transform: none !important;
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -70,7 +90,41 @@
     --glass-border: rgba(23, 27, 53, 0.2);
   }
 
-  :root[data-theme='crystal-glass'] :is(
+  :root[data-theme='wisteria'] {
+    --glass-surface: #fffaf5;
+    --glass-surface-strong: #fffaf5;
+    --glass-surface-subtle: #f7f0f7;
+    --glass-border: rgba(43, 24, 50, 0.2);
+  }
+
+  :root[data-theme='celestial'] {
+    --glass-surface: #171d3b;
+    --glass-surface-strong: #171d3b;
+    --glass-surface-subtle: #10162f;
+    --glass-border: rgba(239, 239, 255, 0.2);
+  }
+
+  :root[data-theme='velvet-dusk'] {
+    --glass-surface: #2a1930;
+    --glass-surface-strong: #2a1930;
+    --glass-surface-subtle: #211326;
+    --glass-border: rgba(255, 242, 237, 0.2);
+  }
+
+  :root[data-theme='abyss'] {
+    --glass-surface: #10272b;
+    --glass-surface-strong: #10272b;
+    --glass-surface-subtle: #0b1e22;
+    --glass-border: rgba(224, 255, 253, 0.2);
+  }
+
+  :is(
+    :root[data-theme='crystal-glass'],
+    :root[data-theme='wisteria'],
+    :root[data-theme='celestial'],
+    :root[data-theme='velvet-dusk'],
+    :root[data-theme='abyss']
+  ) :is(
     .card,
     .editor-card,
     .table-list,
