@@ -85,16 +85,16 @@ describe('App', () => {
     expect(document.querySelector('.app-shell')).not.toHaveClass('is-sidebar-collapsed')
   })
 
-  it('supports all 16 theme choices and updates theme metadata', async () => {
+  it('supports all 21 theme choices and updates theme metadata', async () => {
     const user = userEvent.setup()
     render(<App />)
 
     await user.click(await screen.findByRole('button', { name: 'Settings' }))
     const themeGroup = screen.getByRole('radiogroup', { name: 'Theme' })
-    expect(within(themeGroup).getAllByRole('radio')).toHaveLength(16)
+    expect(within(themeGroup).getAllByRole('radio')).toHaveLength(21)
     const monochromeOption = within(themeGroup).getByRole('radio', { name: /Monochrome/ })
     const canvasOption = within(themeGroup).getByRole('radio', { name: /Canvas/ })
-    const forestDarkOption = within(themeGroup).getByRole('radio', { name: /Forest Dark/ })
+    const abyssOption = within(themeGroup).getByRole('radio', { name: /Abyssal Glow/ })
     expect(monochromeOption).toHaveAttribute('aria-checked', 'true')
     expect(monochromeOption).toHaveAttribute('tabindex', '0')
     expect(canvasOption).toHaveAttribute('tabindex', '-1')
@@ -104,8 +104,8 @@ describe('App', () => {
     expect(canvasOption).toHaveFocus()
     expect(canvasOption).toHaveAttribute('aria-checked', 'true')
     await user.keyboard('{End}')
-    expect(forestDarkOption).toHaveFocus()
-    expect(forestDarkOption).toHaveAttribute('aria-checked', 'true')
+    expect(abyssOption).toHaveFocus()
+    expect(abyssOption).toHaveAttribute('aria-checked', 'true')
     await user.keyboard('{Home}')
     expect(monochromeOption).toHaveFocus()
     expect(monochromeOption).toHaveAttribute('aria-checked', 'true')
@@ -117,11 +117,16 @@ describe('App', () => {
       ['Rose Quartz', 'rose-quartz', '#fbf0f2'],
       ['Ocean Glass', 'ocean-glass', '#eaf2f2'],
       ['Sandstone', 'sandstone', '#f5eee4'],
+      ['Crystal Glass', 'crystal-glass', '#e8e9f8'],
+      ['Wisteria Bloom', 'wisteria', '#f4eff7'],
       ['Nordic Slate', 'nordic', '#12161f'],
       ['Espresso', 'espresso', '#181412'],
       ['High-Contrast Obsidian', 'obsidian', '#0c0d11'],
       ['Plum Noir', 'plum-noir', '#151018'],
       ['Forest Dark', 'forest-dark', '#0e1814'],
+      ['Celestial Drift', 'celestial', '#090d22'],
+      ['Velvet Dusk', 'velvet-dusk', '#180e20'],
+      ['Abyssal Glow', 'abyss', '#061518'],
       ['Monochrome', 'monochrome', '#111111'],
     ] as const) {
       const option = within(themeGroup).getByRole('radio', { name: new RegExp(label) })

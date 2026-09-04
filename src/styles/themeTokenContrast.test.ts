@@ -11,7 +11,10 @@ import {
 } from './themeTokenContrast'
 
 const TOKENS_PATH = join(dirname(fileURLToPath(import.meta.url)), 'tokens.css')
+const THEMES_PATH = join(dirname(fileURLToPath(import.meta.url)), 'themes.css')
+const PREFERENCES_PATH = join(dirname(fileURLToPath(import.meta.url)), 'preferences.css')
 const EXPECTED_THEMES = THEME_MODES
+const PREMIUM_THEMES = ['crystal-glass', 'wisteria', 'celestial', 'velvet-dusk', 'abyss'] as const
 
 const TEXT_BACKGROUNDS = ['bg', 'surface', 'surface-subtle'] as const
 const TEXT_MIN = 4.5
@@ -159,5 +162,33 @@ describe('theme token contrast contracts', () => {
 
   it('fails clearly when a required theme block is missing', () => {
     expect(() => parseThemeTokens(':root {\n  --bg: #ffffff;\n}')).toThrow(/missing tokens/i)
+  })
+})
+
+describe('premium theme ambient CSS contracts', () => {
+  const themesCss = readFileSync(THEMES_PATH, 'utf8')
+  const preferencesCss = readFileSync(PREFERENCES_PATH, 'utf8')
+
+  it('provides two live-wallpaper layers and a static preview composition for every premium theme', () => {
+    for (const theme of PREMIUM_THEMES) {
+      expect(themesCss).toContain(`:root[data-theme='${theme}'] body::before`)
+      expect(themesCss).toContain(`:root[data-theme='${theme}'] body::after`)
+      expect(themesCss).toContain(`[data-theme-preview='${theme}'] .theme-preview-window`)
+    }
+  })
+
+  it('explicitly stops every infinite wallpaper under reduced motion', () => {
+    expect(preferencesCss).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation: none !important;/)
+    for (const theme of PREMIUM_THEMES) {
+      expect(preferencesCss).toContain(`:root[data-theme='${theme}'] body::before`)
+      expect(preferencesCss).toContain(`:root[data-theme='${theme}'] body::after`)
+    }
+  })
+
+  it('gives Crystal Glass genuine blur, an opaque feature fallback, and reduced-transparency behavior', () => {
+    expect(themesCss).toMatch(/:root\[data-theme='crystal-glass'\][\s\S]*backdrop-filter: blur\(/)
+    expect(themesCss).toMatch(/@supports not \([\s\S]*backdrop-filter:[\s\S]*--glass-surface: rgba\([^;]+0\.96\)/)
+    expect(preferencesCss).toMatch(/@media \(prefers-reduced-transparency: reduce\)[\s\S]*:root\[data-theme='crystal-glass'\][\s\S]*--glass-surface: #fffaff;/)
+    expect(preferencesCss).toMatch(/@media \(prefers-reduced-transparency: reduce\)[\s\S]*backdrop-filter: none !important;/)
   })
 })

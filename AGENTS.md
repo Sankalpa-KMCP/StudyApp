@@ -120,7 +120,7 @@ $env:CI="true"; npm run test:e2e
 
 Plain global CSS only. `src/index.css` is an **import barrel**; do not add ordinary rules there. Preserve this order:
 
-`fonts` → `tokens` → `base` → `layout` → `components` → `home` → `workspaces` → `settings` → `progress` → `mixed` → `responsive` → `preferences`
+`fonts` → `tokens` → `base` → `layout` → `components` → `home` → `workspaces` → `settings` → `progress` → `mixed` → `themes` → `responsive` → `preferences`
 
 | Module | Ownership |
 |--------|-----------|
@@ -134,6 +134,7 @@ Plain global CSS only. `src/index.css` is an **import barrel**; do not add ordin
 | `settings.css` | Theme studio, import card, danger/clear-all |
 | `progress.css` | Manual session editor and study journal |
 | `mixed.css` | Cross-owned grouped selectors kept **intact** (do not split to force ownership) |
+| `themes.css` | Premium live wallpapers, Crystal Glass rendering/fallback, static theme previews, and theme-specific Zen ambience |
 | `responsive.css` | Width breakpoints only |
 | `preferences.css` | `prefers-reduced-motion`, then `prefers-reduced-transparency` |
 

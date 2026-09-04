@@ -192,7 +192,7 @@ describe('SettingsView concurrency and coordinator integration', () => {
 })
 
 describe('SettingsView theme gallery and selection', () => {
-  it('renders all 16 themes from THEME_CONFIGS with miniature previews and accessible radio semantics', () => {
+  it('renders all 21 themes from THEME_CONFIGS with miniature previews and accessible radio semantics', () => {
     const coordinator = new DataOperationCoordinator()
     render(<TestSettingsViewWrapper coordinator={coordinator} theme="monochrome" />)
 
@@ -200,11 +200,11 @@ describe('SettingsView theme gallery and selection', () => {
     expect(radiogroup).toBeInTheDocument()
 
     const radioOptions = screen.getAllByRole('radio')
-    expect(radioOptions).toHaveLength(16)
+    expect(radioOptions).toHaveLength(21)
 
     // Check that every theme has a decorative preview container with data-theme-preview
     const previews = radiogroup.querySelectorAll('.theme-preview')
-    expect(previews).toHaveLength(16)
+    expect(previews).toHaveLength(21)
     previews.forEach((preview) => {
       expect(preview).toHaveAttribute('aria-hidden', 'true')
       expect(preview).toHaveAttribute('data-theme-preview')
@@ -273,7 +273,7 @@ describe('SettingsView theme gallery and selection', () => {
     expect(onThemeChange).toHaveBeenCalledWith('espresso')
   })
 
-  it('supports full keyboard navigation (ArrowRight, ArrowDown, ArrowLeft, ArrowUp, Home, End) across all 16 themes including section boundaries', async () => {
+  it('supports full keyboard navigation across all 21 themes including Light and Dark section boundaries', async () => {
     const user = userEvent.setup()
     const coordinator = new DataOperationCoordinator()
     const onThemeChange = vi.fn()
@@ -311,19 +311,19 @@ describe('SettingsView theme gallery and selection', () => {
     await user.keyboard('{ArrowUp}')
     expect(onThemeChange).toHaveBeenLastCalledWith('monochrome')
 
-    // Cross-boundary: focus last light theme (index 8: sandstone), ArrowRight moves to first dark theme (index 9: dark/midnight)
-    radioOptions[8].focus()
-    expect(radioOptions[8]).toHaveFocus()
+    // Cross-boundary: last Light theme (index 10: wisteria) → first Dark theme (index 11: midnight)
+    radioOptions[10].focus()
+    expect(radioOptions[10]).toHaveFocus()
     await user.keyboard('{ArrowRight}')
     expect(onThemeChange).toHaveBeenLastCalledWith('dark')
 
-    // Cross-boundary: from dark (index 9), ArrowLeft moves back to sandstone (index 8)
+    // Cross-boundary: from Midnight, ArrowLeft moves back to Wisteria Bloom
     await user.keyboard('{ArrowLeft}')
-    expect(onThemeChange).toHaveBeenLastCalledWith('sandstone')
+    expect(onThemeChange).toHaveBeenLastCalledWith('wisteria')
 
-    // End moves to the last option (15: forest-dark)
+    // End moves to the final option (20: Abyssal Glow)
     await user.keyboard('{End}')
-    expect(onThemeChange).toHaveBeenLastCalledWith('forest-dark')
+    expect(onThemeChange).toHaveBeenLastCalledWith('abyss')
 
     // Home moves to the first option (0: monochrome)
     await user.keyboard('{Home}')

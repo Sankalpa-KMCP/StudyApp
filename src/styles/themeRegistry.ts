@@ -10,6 +10,8 @@ export const THEME_MODES = [
   'rose-quartz',
   'ocean-glass',
   'sandstone',
+  'crystal-glass',
+  'wisteria',
   'dark',
   'aurora',
   'nordic',
@@ -17,6 +19,9 @@ export const THEME_MODES = [
   'obsidian',
   'plum-noir',
   'forest-dark',
+  'celestial',
+  'velvet-dusk',
+  'abyss',
 ] as const
 
 export type ThemeMode = (typeof THEME_MODES)[number]
@@ -97,6 +102,20 @@ export const THEME_CONFIGS: readonly ThemeConfig[] = [
     themeColor: '#f5eee4',
   },
   {
+    id: 'crystal-glass',
+    label: 'Crystal Glass',
+    description: 'Frosted crystal surfaces over a soft pastel aurora.',
+    colorScheme: 'light',
+    themeColor: '#e8e9f8',
+  },
+  {
+    id: 'wisteria',
+    label: 'Wisteria Bloom',
+    description: 'Ivory paper, lavender petals, and elegant plum ink.',
+    colorScheme: 'light',
+    themeColor: '#f4eff7',
+  },
+  {
     id: 'dark',
     label: 'Midnight',
     description: 'Inky blue with a soft amber reading light.',
@@ -144,6 +163,27 @@ export const THEME_CONFIGS: readonly ThemeConfig[] = [
     description: 'Inky pine black, deep spruce surfaces, and radiant emerald glow.',
     colorScheme: 'dark',
     themeColor: '#0e1814',
+  },
+  {
+    id: 'celestial',
+    label: 'Celestial Drift',
+    description: 'Deep indigo starlight with a quiet lunar glow.',
+    colorScheme: 'dark',
+    themeColor: '#090d22',
+  },
+  {
+    id: 'velvet-dusk',
+    label: 'Velvet Dusk',
+    description: 'Plum twilight, a coral horizon, and distant city glow.',
+    colorScheme: 'dark',
+    themeColor: '#180e20',
+  },
+  {
+    id: 'abyss',
+    label: 'Abyssal Glow',
+    description: 'Ocean-black depth illuminated by bioluminescent cyan.',
+    colorScheme: 'dark',
+    themeColor: '#061518',
   },
 ] as const
 

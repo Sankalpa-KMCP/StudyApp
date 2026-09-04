@@ -41,11 +41,69 @@
     transform: none !important;
     opacity: 1 !important;
   }
+
+  :root[data-theme='crystal-glass'] body::before,
+  :root[data-theme='crystal-glass'] body::after,
+  :root[data-theme='wisteria'] body::before,
+  :root[data-theme='wisteria'] body::after,
+  :root[data-theme='celestial'] body::before,
+  :root[data-theme='celestial'] body::after,
+  :root[data-theme='velvet-dusk'] body::before,
+  :root[data-theme='velvet-dusk'] body::after,
+  :root[data-theme='abyss'] body::before,
+  :root[data-theme='abyss'] body::after {
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {
   .topbar {
     background: var(--bg);
     backdrop-filter: none;
+  }
+
+  :root[data-theme='crystal-glass'] {
+    --glass-surface: #fffaff;
+    --glass-surface-strong: #fffaff;
+    --glass-surface-subtle: #f3f1fb;
+    --glass-border: rgba(23, 27, 53, 0.2);
+  }
+
+  :root[data-theme='crystal-glass'] :is(
+    .card,
+    .editor-card,
+    .table-list,
+    .detail-card,
+    .action-card,
+    .metric-card,
+    .hero-row,
+    .first-study-checklist,
+    .calendar-day,
+    .home-today-metric,
+    .theme-option,
+    .loading-panel,
+    .sidebar,
+    .topbar,
+    .mobile-navigation,
+    .notice-popover,
+    .global-search-panel,
+    .quick-add-menu,
+    .mobile-nav-more-menu,
+    .confirm-dialog,
+    .search-field,
+    .sidebar-toggle,
+    .icon-button,
+    .quick-add-trigger,
+    .secondary-command,
+    .field input,
+    .field select,
+    .field textarea,
+    .reset-confirm-input,
+    .segmented-control,
+    .note-paper
+  ) {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 }

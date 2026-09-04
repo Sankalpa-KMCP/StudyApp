@@ -17,7 +17,7 @@ There is **no backend**, authentication, or cloud synchronization. The browser I
 - Subjects support explicit **Manual progress** (stored percentage) and **Study time** (automatic from matching recorded sessions toward target hours); cards and search use the same calculated value
 - Calendar strip days and Home date summaries use the local calendar day and refresh after local midnight without a reload
 - Goals support explicit **Manual progress** (stored points) and **Study time** (automatic from recorded sessions); metric and period are separate choices
-- Settings include JSON import/export, clear-all confirmation, and 16 accessible local theme palettes (9 Light, 7 Dark) with visual gallery previews and persistent category grouping; Monochrome is the default
+- Settings include JSON import/export, clear-all confirmation, and 21 accessible local theme palettes (11 Light, 10 Dark), including five CSS-only live wallpapers; Monochrome is the default
 
 ## Data reliability
 
@@ -32,7 +32,7 @@ Workspace create, edit, delete, and status/review actions use a shared local mut
 
 ## Accessibility
 
-Study Dashboard includes keyboard-accessible navigation and core study workflows, a skip link, and visible focus indicators. The notification popover is non-modal: Escape closes it and returns focus to the Notifications control. Tasks and Goals associate field-level validation errors with the responsible inputs. All 16 themes include verified text and control-boundary contrast. The app respects `prefers-reduced-motion` and `prefers-reduced-transparency`, and keeps focused controls clear of the fixed mobile bottom navigation at common zoom/reflow widths. Focus timer values remain readable on screen without second-by-second live announcements. Automated accessibility smoke checks (axe) cover representative Home, Settings, and Progress states in Playwright.
+Study Dashboard includes keyboard-accessible navigation and core study workflows, a skip link, and visible focus indicators. The notification popover is non-modal: Escape closes it and returns focus to the Notifications control. Tasks and Goals associate field-level validation errors with the responsible inputs. All 21 themes include verified text and control-boundary contrast. The app respects `prefers-reduced-motion` and `prefers-reduced-transparency`, and keeps focused controls clear of the fixed mobile bottom navigation at common zoom/reflow widths. Focus timer values remain readable on screen without second-by-second live announcements. Automated accessibility smoke checks (axe) cover representative Home, Settings, and Progress states in Playwright.
 
 These are accessibility improvements and checks—not a claim of universal WCAG certification across every browser or assistive technology.
 
@@ -90,8 +90,8 @@ Normal local development does not require a `.env` file.
 Styling uses **plain global CSS** (no CSS Modules, CSS-in-JS, or per-component stylesheet imports).
 
 - `src/index.css` is the **single ordered entry** imported by the app (`src/main.tsx`).
-- Modules live under `src/styles/` and load in a fixed cascade: fonts → tokens/themes → base → layout → components → home → workspaces → settings → progress → mixed → responsive → preferences.
-- 16 themes share CSS variables in `tokens.css` (Monochrome uses base `:root` defaults).
+- Modules live under `src/styles/` and load in a fixed cascade: fonts → tokens → base → layout → components → home → workspaces → settings → progress → mixed → premium themes → responsive → preferences.
+- 21 themes share CSS variables in `tokens.css` (Monochrome uses base `:root` defaults); `themes.css` owns the five lightweight ambient wallpapers and Crystal Glass rendering.
 - Width breakpoints and reduced-motion / reduced-transparency rules load **last** so they continue to override earlier declarations.
 
 ```
@@ -106,6 +106,7 @@ src/styles/
   settings.css       # theme studio, import, danger zone
   progress.css       # session editor and journal
   mixed.css          # intentionally cross-owned selector groups
+  themes.css         # premium ambience, Crystal glass, Zen and preview treatments
   responsive.css     # width breakpoints (1220 → 420)
   preferences.css    # reduced-motion, reduced-transparency
 ```
