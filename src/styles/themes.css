@@ -183,8 +183,6 @@
 ) {
   background-color: var(--glass-surface-strong);
   border-color: rgba(255, 255, 255, 0.58);
-  -webkit-backdrop-filter: blur(12px) saturate(132%);
-  backdrop-filter: blur(12px) saturate(132%);
 }
 
 :root[data-theme='crystal-glass'] .list-row:hover,
@@ -281,8 +279,6 @@
 ) {
   background-color: var(--glass-surface-strong);
   border-color: rgba(255, 255, 255, 0.55);
-  -webkit-backdrop-filter: blur(12px) saturate(132%);
-  backdrop-filter: blur(12px) saturate(132%);
 }
 
 :root[data-theme='wisteria'] .list-row:hover,
@@ -509,8 +505,6 @@
 ) {
   background-color: var(--glass-surface-strong);
   border-color: rgba(214, 220, 255, 0.24);
-  -webkit-backdrop-filter: blur(12px) saturate(130%);
-  backdrop-filter: blur(12px) saturate(130%);
 }
 
 :root[data-theme='celestial'] .list-row:hover,
@@ -690,8 +684,6 @@
 ) {
   background-color: var(--glass-surface-strong);
   border-color: rgba(255, 226, 205, 0.24);
-  -webkit-backdrop-filter: blur(12px) saturate(130%);
-  backdrop-filter: blur(12px) saturate(130%);
 }
 
 :root[data-theme='velvet-dusk'] .list-row:hover,
@@ -860,8 +852,6 @@
 ) {
   background-color: var(--glass-surface-strong);
   border-color: rgba(190, 242, 233, 0.22);
-  -webkit-backdrop-filter: blur(12px) saturate(130%);
-  backdrop-filter: blur(12px) saturate(130%);
 }
 
 :root[data-theme='abyss'] .list-row:hover,
@@ -1293,79 +1283,4 @@
 ) :is(.theme-preview-sidebar, .theme-preview-body) {
   position: relative;
   z-index: 1;
-}
-
-/* ── Live ambience for premium preview miniatures ──────────────────────── */
-[data-theme-preview='crystal-glass'] .theme-preview-window::before {
-  animation: previewCrystalPrism 12s ease-in-out infinite;
-}
-
-[data-theme-preview='crystal-glass'] .theme-preview-window::after {
-  animation: previewCrystalGlint 8s ease-in-out infinite;
-}
-
-@keyframes previewCrystalPrism {
-  0%, 100% { transform: translate3d(-8%, 0, 0); opacity: 0.72; }
-  50% { transform: translate3d(8%, -2%, 0); opacity: 1; }
-}
-
-@keyframes previewCrystalGlint {
-  0%, 100% { transform: scale(1); opacity: 0.38; }
-  50% { transform: scale(1.06); opacity: 0.78; }
-}
-
-[data-theme-preview='wisteria'] .theme-preview-window::before {
-  animation: previewWisteriaSway 11s ease-in-out infinite;
-}
-
-[data-theme-preview='wisteria'] .theme-preview-window::after {
-  animation: previewWisteriaBreathe 14s ease-in-out infinite;
-}
-
-@keyframes previewWisteriaSway {
-  0%, 100% { transform: translate3d(-3%, 1.5%, 0) rotate(-1.6deg); }
-  50% { transform: translate3d(3%, -1.5%, 0) rotate(1.6deg); }
-}
-
-@keyframes previewWisteriaBreathe {
-  0%, 100% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.07); opacity: 1; }
-}
-
-[data-theme-preview='celestial'] .theme-preview-window::before {
-  animation: previewCelestialTwinkle 6s ease-in-out infinite;
-}
-
-@keyframes previewCelestialTwinkle {
-  0%, 100% { opacity: 0.68; transform: translate3d(0, 0, 0); }
-  30% { opacity: 1; }
-  50% { opacity: 0.78; transform: translate3d(1.5%, -2%, 0); }
-  72% { opacity: 0.95; }
-}
-
-[data-theme-preview='velvet-dusk'] .theme-preview-window::before {
-  animation: previewVelvetShimmer 10s ease-in-out infinite;
-}
-
-@keyframes previewVelvetShimmer {
-  0%, 100% { transform: translate3d(-3%, 0, 0); opacity: 0.68; }
-  50% { transform: translate3d(3%, -1%, 0); opacity: 1; }
-}
-
-[data-theme-preview='abyss'] .theme-preview-window::before {
-  animation: previewAbyssShaftSway 12s ease-in-out infinite;
-}
-
-[data-theme-preview='abyss'] .theme-preview-window::after {
-  animation: previewAbyssMoteDrift 9s ease-in-out infinite;
-}
-
-@keyframes previewAbyssShaftSway {
-  0%, 100% { transform: translate3d(0, 1.5%, 0); opacity: 0.68; }
-  50% { transform: translate3d(1.5%, -2%, 0); opacity: 1; }
-}
-
-@keyframes previewAbyssMoteDrift {
-  0%, 100% { transform: translate3d(0, 2.5%, 0); opacity: 0.5; }
-  50% { transform: translate3d(-1%, -2.5%, 0); opacity: 0.95; }
 }
