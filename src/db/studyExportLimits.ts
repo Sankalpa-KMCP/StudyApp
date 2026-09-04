@@ -1,11 +1,11 @@
-/** Maximum backup import file size (5 MiB). Checked via `File.size` before reading. */
-export const MAX_STUDY_EXPORT_IMPORT_BYTES = 5 * 1024 * 1024
+/** Maximum backup import file size (64 MiB). Checked via `File.size` before reading. */
+export const MAX_STUDY_EXPORT_IMPORT_BYTES = 64 * 1024 * 1024
 
 /**
  * Maximum backup import text length after `file.text()`.
  * Defense in depth before `JSON.parse` when reported size is wrong or misleading.
  */
-export const MAX_STUDY_EXPORT_IMPORT_CHARS = 5 * 1024 * 1024
+export const MAX_STUDY_EXPORT_IMPORT_CHARS = 64 * 1024 * 1024
 
 /** Stable internal error; Settings maps failures to a fixed friendly message. */
 export const STUDY_EXPORT_IMPORT_SIZE_ERROR = 'Import file exceeds the Study Dashboard size limit.'

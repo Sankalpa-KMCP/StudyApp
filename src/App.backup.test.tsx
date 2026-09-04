@@ -287,7 +287,37 @@ describe('App backup', () => {
     const user = userEvent.setup()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
-    // Populate a large note directly in IndexedDB
+    const originalBlob = globalThis.Blob
+    const mockBlob = new originalBlob([''], { type: 'application/json' })
+    Object.defineProperty(mockBlob, 'size', { value: 65 * 1024 * 1024 })
+    const blobSpy = vi.spyOn(globalThis, 'Blob').mockImplementation(function (this: Blob) {
+      return mockBlob
+    } as unknown as typeof Blob)
+
+    const clickMock = vi.fn()
+    const originalCreateElement = document.createElement.bind(document)
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = originalCreateElement(tagName)
+      if (tagName === 'a') {
+        el.click = clickMock
+      }
+      return el
+    })
+
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: /Export data/ }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Backup could not be exported.')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(clickMock).not.toHaveBeenCalled()
+
+    blobSpy.mockRestore()
+    createElementSpy.mockRestore()
+  })
+
+  it('exports a valid database with >5.5 MiB of data successfully under the 64 MiB limit (F-02 resolution)', async () => {
+    const user = userEvent.setup()
     const largeBody = 'A'.repeat(5.5 * 1024 * 1024)
     await studyDb.notes.add({
       id: 'huge-note-1',
@@ -313,9 +343,9 @@ describe('App backup', () => {
     await user.click(await screen.findByRole('button', { name: 'Settings' }))
     await user.click(screen.getByRole('button', { name: /Export data/ }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Backup could not be exported.')
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    expect(clickMock).not.toHaveBeenCalled()
+    expect(await screen.findByRole('status')).toHaveTextContent('Backup exported.')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(clickMock).toHaveBeenCalledTimes(1)
 
     // Verify existing database record is intact
     const noteInDb = await studyDb.notes.get('huge-note-1')

@@ -114,14 +114,13 @@ describe('useStudyBackup', () => {
     expect(coordinator.getSnapshot().activeDataOperation).toBe(null)
   })
 
-  it('rejects an export that exceeds the byte limit (e.g. multi-byte Unicode) before creating download URL and releases coordinator lease', async () => {
-    // Multi-byte Unicode: character count < 5M chars, but UTF-8 byte length > 5M bytes
+  it('rejects an export that exceeds the byte limit before creating download URL and releases coordinator lease', async () => {
     const payload = {
       version: 4 as const,
       exportedAt: '2026-07-23T00:00:00.000Z',
       tasks: [],
       subjects: [],
-      notes: [{ id: 'note-1', title: 'Unicode', body: '🌟'.repeat(1_500_000), subjectId: '', tags: [], createdAt: '', updatedAt: '' }],
+      notes: [{ id: 'note-1', title: 'Oversized', body: 'x', subjectId: '', tags: [], createdAt: '', updatedAt: '' }],
       events: [],
       studySessions: [],
       goals: [],
@@ -130,6 +129,13 @@ describe('useStudyBackup', () => {
     vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue(payload)
     const createObjectURL = vi.spyOn(URL, 'createObjectURL')
     const createElement = vi.spyOn(document, 'createElement')
+
+    const originalBlob = globalThis.Blob
+    const mockBlob = new originalBlob([''], { type: 'application/json' })
+    Object.defineProperty(mockBlob, 'size', { value: MAX_STUDY_EXPORT_IMPORT_BYTES + 1 })
+    vi.spyOn(globalThis, 'Blob').mockImplementation(function (this: Blob) {
+      return mockBlob
+    } as unknown as typeof Blob)
 
     const { result, coordinator } = renderBackupHook()
 
@@ -165,9 +171,12 @@ describe('useStudyBackup', () => {
       return Document.prototype.createElement.call(document, tag)
     }) as typeof document.createElement)
 
-    // Override JSON.stringify with exact boundary payload
-    const mockStringified = ' '.repeat(MAX_STUDY_EXPORT_IMPORT_BYTES)
-    vi.spyOn(JSON, 'stringify').mockReturnValue(mockStringified)
+    const originalBlob = globalThis.Blob
+    const mockBlob = new originalBlob(['{}'], { type: 'application/json' })
+    Object.defineProperty(mockBlob, 'size', { value: MAX_STUDY_EXPORT_IMPORT_BYTES })
+    vi.spyOn(globalThis, 'Blob').mockImplementation(function (this: Blob) {
+      return mockBlob
+    } as unknown as typeof Blob)
 
     const { result, coordinator } = renderBackupHook()
 

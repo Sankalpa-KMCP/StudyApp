@@ -2945,10 +2945,10 @@ describe('studyDb', () => {
     const snapshotBefore = await readCompleteStudyDbSnapshot()
 
     const hugeFile = new File(['x'], 'huge.json', { type: 'application/json' })
-    Object.defineProperty(hugeFile, 'size', { value: 6 * 1024 * 1024 })
+    Object.defineProperty(hugeFile, 'size', { value: MAX_STUDY_EXPORT_IMPORT_BYTES + 1 })
     expect(() => assertStudyExportImportFileSize(hugeFile)).toThrow('Import file exceeds the Study Dashboard size limit.')
 
-    const hugeText = 'x'.repeat(6 * 1024 * 1024)
+    const hugeText = { length: MAX_STUDY_EXPORT_IMPORT_CHARS + 1 } as unknown as string
     expect(() => assertStudyExportImportTextLength(hugeText)).toThrow('Import file exceeds the Study Dashboard size limit.')
 
     const overLimitPayload = {
