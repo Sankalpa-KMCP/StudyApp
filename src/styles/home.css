@@ -536,6 +536,7 @@
   color: var(--success);
   background: var(--success-bg);
   text-align: center;
+  animation: noticeSlideEnter var(--motion-base) var(--ease);
 }
 
 .quick-card {
@@ -626,6 +627,8 @@
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow-popover);
+  transform-origin: top left;
+  animation: popoverDropdownEnter var(--motion-base) var(--ease);
 }
 
 .global-search-results {

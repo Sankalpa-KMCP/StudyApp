@@ -20,6 +20,19 @@
   .theme-option:active {
     transform: none !important;
   }
+
+  .confirm-dialog-backdrop,
+  .confirm-dialog,
+  .quick-add-menu,
+  .global-search-panel,
+  .notice-popover,
+  .mobile-nav-more-menu,
+  .mutation-notice,
+  .settings-feedback,
+  .session-complete {
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {
