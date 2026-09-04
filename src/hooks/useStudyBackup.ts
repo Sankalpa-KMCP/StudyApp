@@ -87,7 +87,13 @@ export function useStudyBackup({
         const text = await file.text()
         assertStudyExportImportTextLength(text)
         importResult = await importStudyData(text)
-        await reloadFocusFromIndexedDb()
+        try {
+          await reloadFocusFromIndexedDb()
+        } catch {
+          // Import already succeeded; a focus-restore failure must not report
+          // the import as failed. The focus hook surfaces its own notice and
+          // restores on the next successful read.
+        }
       })
     })
     if (!result.ok) {

@@ -205,6 +205,17 @@ export function AppLiveData({
     onSubjectMapChange(subjectMap)
   }, [onSubjectMapChange, subjectMap])
 
+  // Live wall-clock for instant crediting (`endedAt <= now`). `currentDate` only
+  // fires at local midnight; using it for crediting would hide every session
+  // finalized after mount until the next midnight. `creditNow` refreshes on
+  // any data change or midnight rollover, so same-day sessions credit at once.
+  // Day-key grouping (`localDateKey`, `startOfToday`) still derives from this
+  // same instant, keeping calendar-day semantics intact. Deps are intentional:
+  // the callback reads nothing, but the instant must refresh on any data
+  // change or midnight rollover.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const creditNow = useMemo(() => new Date(), [studySessions, tasks, notes, events, subjects, currentDate])
+
   const {
     search,
     setSearch,
@@ -215,20 +226,20 @@ export function AppLiveData({
     filteredNotes,
     filteredSubjects,
     filteredEvents,
-  } = useAppSearch({ subjects, notes, events, tasks, studySessions, subjectMap, taskFilter, now: currentDate })
+  } = useAppSearch({ subjects, notes, events, tasks, studySessions, subjectMap, taskFilter, now: creditNow })
 
   const todayFocusMinutes = useMemo(
-    () => getTodayFocusMinutes(studySessions, currentDate),
-    [currentDate, studySessions],
+    () => getTodayFocusMinutes(studySessions, creditNow),
+    [creditNow, studySessions],
   )
   const weeklyStudyDays = useMemo(
-    () => getWeeklyStudyDays(studySessions, currentDate),
-    [currentDate, studySessions],
+    () => getWeeklyStudyDays(studySessions, creditNow),
+    [creditNow, studySessions],
   )
   const completedTasks = useMemo(() => tasks.filter((task) => task.status === 'done'), [tasks])
   const upcomingEvents = useMemo(
-    () => events.filter((event) => new Date(event.startAt).getTime() >= startOfToday(currentDate)).slice(0, 4),
-    [currentDate, events],
+    () => events.filter((event) => new Date(event.startAt).getTime() >= startOfToday(creditNow)).slice(0, 4),
+    [creditNow, events],
   )
 
   const addQuickNote = useCallback(async (value: string, context: DatabaseMutationContext) => {
@@ -275,7 +286,7 @@ export function AppLiveData({
               ) : null}
               {activeView === 'Home' ? (
                 <HeroRow
-                  currentDate={currentDate}
+                  currentDate={creditNow}
                   todayFocusMinutes={todayFocusMinutes}
                   dailyGoalMinutes={dailyGoalMinutes}
                   onCreateTask={onCreateTask}
@@ -300,7 +311,7 @@ export function AppLiveData({
                   databaseGeneration={databaseGeneration}
                   onboardingChecklistDismissed={onboardingChecklistDismissed}
                   todayFocusMinutes={todayFocusMinutes}
-                  currentDate={currentDate}
+                  currentDate={creditNow}
                   activeSession={activeSession}
                   staleFocusSession={staleFocusSession}
                   staleFocusSubjectName={staleFocusSubjectName}
@@ -361,7 +372,9 @@ export function AppLiveData({
                   notes={notes}
                   events={events}
                   sessions={studySessions}
-                  currentDate={currentDate}
+                  search={deferredSearch}
+                  onClearSearch={clearSearch}
+                  currentDate={creditNow}
                   openEditorRequest={subjectEditorRequest}
                   databaseGeneration={databaseGeneration}
                 />
@@ -386,7 +399,7 @@ export function AppLiveData({
                   dailyGoalMinutes={dailyGoalMinutes}
                   todayFocusMinutes={todayFocusMinutes}
                   subjectMap={subjectMap}
-                  currentDate={currentDate}
+                  currentDate={creditNow}
                   openEditorOnMount={progressEditorRequested}
                   databaseGeneration={databaseGeneration}
                 />
@@ -395,7 +408,7 @@ export function AppLiveData({
                 <GoalsView
                   dailyGoalMinutes={dailyGoalMinutes}
                   studySessions={studySessions}
-                  currentDate={currentDate}
+                  currentDate={creditNow}
                   databaseGeneration={databaseGeneration}
                 />
               ) : null}
@@ -424,7 +437,7 @@ export function AppLiveData({
               <aside className="right-column" aria-label="Progress and schedule">
                 <WeeklyProgress days={weeklyStudyDays} />
                 <Upcoming events={upcomingEvents} subjectMap={subjectMap} onViewAll={() => onNavigate('Calendar')} />
-                <StreakCard sessions={studySessions} now={currentDate} />
+                <StreakCard sessions={studySessions} now={creditNow} />
               </aside>
             ) : null}
           </div>

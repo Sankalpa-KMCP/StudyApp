@@ -1,4 +1,6 @@
 import {
+  MAX_STUDY_EXPORT_IMPORT_BYTES,
+  STUDY_EXPORT_IMPORT_SIZE_ERROR,
   STUDY_EXPORT_RECORD_LIMITS,
   type StudyExportRecordCounts,
   type StudyExportRecordLimits,
@@ -7,6 +9,7 @@ import type { StudyExport } from './types'
 import {
   ACTIVE_FOCUS_SESSION_KEY,
   isActiveFocusSession,
+  isNonBlankString,
   isPersistedDailyGoalMinutes,
   isPersistedGoalProgress,
   isPersistedGoalTarget,
@@ -28,6 +31,7 @@ export type StudyExportValidationCode =
   | 'future_version'
   | 'unsupported_old_version'
   | 'invalid_records'
+  | 'too_large'
   | 'transaction_failed'
 
 export class StudyExportValidationError extends Error {
@@ -137,13 +141,19 @@ export function assertStudyExportSemantics(
   >,
 ): void {
   for (const subject of snapshot.subjects) {
+    if (!isNonBlankString(subject.name)) failValidation()
     if (!isPersistedSubjectProgress(subject.progress)) failValidation()
     if (!isPersistedSubjectTargetHours(subject.targetHours)) failValidation()
     if (!isValidSubjectColor(subject.color)) failValidation()
   }
 
   for (const task of snapshot.tasks) {
+    if (!isNonBlankString(task.title)) failValidation()
     if (!isPersistedTaskMinutes(task.minutes)) failValidation()
+  }
+
+  for (const note of snapshot.notes) {
+    if (!isNonBlankString(note.title)) failValidation()
   }
 
   for (const session of snapshot.studySessions) {
@@ -152,10 +162,12 @@ export function assertStudyExportSemantics(
   }
 
   for (const event of snapshot.events) {
+    if (!isNonBlankString(event.title)) failValidation()
     if (!isPersistedTimestampOrder(event.startAt, event.endAt)) failValidation()
   }
 
   for (const goal of snapshot.goals) {
+    if (!isNonBlankString(goal.title)) failValidation()
     if (!isPersistedGoalTarget(goal.target)) failValidation()
     if (!isPersistedGoalProgress(goal.progress)) failValidation()
   }
@@ -220,6 +232,24 @@ export function assertStudyExportRecordCounts(
     goals: snapshot.goals.length,
     settings: snapshot.settings.length,
   }, limits)
+}
+
+/**
+ * Rejects imports whose canonical backup serialization exceeds the symmetrical
+ * 64 MiB byte ceiling. A compact upload just under the char limit can expand
+ * past the byte limit once pretty-printed, which would otherwise import fine
+ * (counts only) and then fail every export while gating all mutations.
+ * Call last, after counts — it serializes the whole snapshot.
+ */
+export function assertStudyExportCanonicalSize(
+  snapshot: StudyExport,
+  maxBytes: number = MAX_STUDY_EXPORT_IMPORT_BYTES,
+): void {
+  const serialized = JSON.stringify(snapshot, null, 2)
+  const byteLength = new TextEncoder().encode(serialized).byteLength
+  if (byteLength > maxBytes) {
+    throw new StudyExportValidationError('too_large', STUDY_EXPORT_IMPORT_SIZE_ERROR)
+  }
 }
 
 /**
