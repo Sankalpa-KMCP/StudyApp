@@ -7,6 +7,7 @@ import {
   EmptyState,
   PanelHeader,
   MetricCard,
+  NumberInput,
   SubjectCard,
   SegmentedControl,
   RowActionButtons,
@@ -25,6 +26,37 @@ describe('UI Components', () => {
       render(<ProgressBar value={140} label="Complete" />)
 
       expect(screen.getByRole('progressbar', { name: 'Complete' })).toHaveAttribute('aria-valuenow', '100')
+    })
+  })
+
+  describe('NumberInput', () => {
+    it('keeps intermediate keystrokes typeable and commits the clamp on blur', async () => {
+      const user = userEvent.setup()
+      const handleChange = vi.fn()
+      render(<NumberInput label="Minutes" value={15} min={15} max={480} onChange={handleChange} />)
+
+      const input = screen.getByLabelText('Minutes')
+      await user.clear(input)
+      await user.type(input, '20')
+      // Intermediate text stays visible instead of snapping back to the min.
+      expect(input).toHaveValue(20)
+      expect(handleChange).not.toHaveBeenCalled()
+      fireEvent.blur(input)
+      expect(handleChange).toHaveBeenCalledWith(20)
+    })
+
+    it('commits the minimum for a cleared field and clamps out-of-range values on blur', () => {
+      const handleChange = vi.fn()
+      render(<NumberInput label="Minutes" value={30} min={15} max={480} onChange={handleChange} />)
+
+      const input = screen.getByLabelText('Minutes')
+      fireEvent.change(input, { target: { value: '' } })
+      fireEvent.blur(input)
+      expect(handleChange).toHaveBeenCalledWith(15)
+
+      fireEvent.change(input, { target: { value: '481' } })
+      fireEvent.blur(input)
+      expect(handleChange).toHaveBeenCalledWith(480)
     })
   })
 

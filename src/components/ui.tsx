@@ -114,6 +114,21 @@ export function NumberInput({
   describedBy?: string
   disabled?: boolean
 }) {
+  // Raw text while focused so intermediate keystrokes are typeable: clamping
+  // per keystroke makes values like "20" untypeable in a min-15 field (the
+  // cleared field snaps back to 15 and swallows the keystroke). The clamp is
+  // committed on blur instead; saves also clamp via editor limits.
+  const [text, setText] = useState<string | null>(null)
+  const commit = (raw: string) => {
+    setText(null)
+    if (raw.trim() === '') {
+      onChange(min)
+      return
+    }
+    const parsed = Number(raw)
+    if (!Number.isFinite(parsed)) return
+    onChange(clamp(parsed, min, max))
+  }
   return (
     <label className="field">
       <span>{label}</span>
@@ -123,11 +138,17 @@ export function NumberInput({
         ref={inputRef}
         min={min}
         max={max}
-        value={value}
+        value={text ?? value}
         disabled={disabled}
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
-        onChange={(event) => onChange(clamp(Number(event.target.value), min, max))}
+        onChange={(event) => setText(event.target.value)}
+        onBlur={(event) => commit(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && event.currentTarget) {
+            commit(event.currentTarget.value)
+          }
+        }}
       />
     </label>
   )

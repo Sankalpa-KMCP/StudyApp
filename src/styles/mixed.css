@@ -19,7 +19,6 @@
 }
 
 
-.insight-grid,
 .home-today-metrics,
 .summary-grid,
 .subject-grid,
@@ -38,8 +37,7 @@
 
 .focus-subject-field,
 .session-button,
-.session-complete,
-.due-copy {
+.session-complete {
   width: 100%;
 }
 
@@ -48,9 +46,9 @@
 .field > span {
   color: var(--quiet);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65rem;
+  font-size: var(--text-xs);
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
 }
 

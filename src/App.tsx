@@ -81,6 +81,28 @@ function App() {
   const [zenState, setZenState] = useState<ZenState>({ phase: 'closed' })
   const zenTriggerElementRef = useRef<HTMLElement | null>(null)
   const zenEntryViewRef = useRef<View | null>(null)
+  const zenPendingRestoreRef = useRef<{ kind: 'trigger-or-heading' | 'heading' } | null>(null)
+
+  // Restore focus after the Zen overlay unmounts and `inert` is removed from
+  // `.app-shell`. Focusing synchronously inside the exit handler is a no-op
+  // because the DOM still carries `inert` until React commits the re-render.
+  useEffect(() => {
+    if (zenState.phase !== 'closed' || !zenPendingRestoreRef.current) return
+    const mode = zenPendingRestoreRef.current.kind
+    zenPendingRestoreRef.current = null
+    const trigger = zenTriggerElementRef.current
+    zenTriggerElementRef.current = null
+    zenEntryViewRef.current = null
+    // Defer past commit so `inert` is gone before moving focus.
+    const timeoutId = window.setTimeout(() => {
+      if (mode === 'trigger-or-heading' && trigger && document.contains(trigger) && typeof trigger.focus === 'function' && !trigger.hasAttribute('disabled')) {
+        trigger.focus()
+        return
+      }
+      document.querySelector<HTMLElement>('main h1, [role="main"] h1')?.focus()
+    }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [zenState.phase])
 
   const handleFocusSessionFinalized = useCallback(
     ({ sessionId, outcome, history }: FocusSessionFinalizationOutcome) => {
@@ -149,20 +171,27 @@ function App() {
 
   const navigateToView = useCallback((view: View) => {
     clearEditorRequests()
+    zenPendingRestoreRef.current = null
+    zenTriggerElementRef.current = null
+    zenEntryViewRef.current = null
     setZenState({ phase: 'closed' })
     if (view === activeView) return
     setActiveView(view)
     syncUrlToView(view, 'push')
   }, [activeView, clearEditorRequests, syncUrlToView])
 
-  const migrationStartedRef = useRef(false)
+  const migrationPromiseRef = useRef<Promise<Awaited<ReturnType<typeof migrateLegacyLocalStorage>>> | null>(null)
 
   useEffect(() => {
     let isMounted = true
-    if (migrationStartedRef.current) return
-    migrationStartedRef.current = true
+    // Share one in-flight migration across StrictMode double-mounts: bailing
+    // via a started-flag drops the notice from the first run (its cleanup
+    // already marked it unmounted), so attach to the same promise instead.
+    if (!migrationPromiseRef.current) {
+      migrationPromiseRef.current = migrateLegacyLocalStorage()
+    }
 
-    void migrateLegacyLocalStorage()
+    void migrationPromiseRef.current
       .then((result) => {
         if (!isMounted) return
         const notice = formatMigrationNotice(result)
@@ -200,6 +229,9 @@ function App() {
         syncUrlToView(resolved.view, 'replace')
       }
       clearEditorRequests()
+      zenPendingRestoreRef.current = null
+      zenTriggerElementRef.current = null
+      zenEntryViewRef.current = null
       setZenState({ phase: 'closed' })
       setActiveView(resolved.view)
     }
@@ -248,30 +280,34 @@ function App() {
   }, [activeSession, canEnterZen, activeView])
 
   const exitZen = useCallback(() => {
+    zenPendingRestoreRef.current = { kind: 'trigger-or-heading' }
     setZenState({ phase: 'closed' })
-    const trigger = zenTriggerElementRef.current
-    if (trigger && document.contains(trigger) && typeof trigger.focus === 'function' && !trigger.hasAttribute('disabled')) {
-      trigger.focus()
-    } else {
-      const heading = document.querySelector<HTMLElement>('main h1, [role="main"] h1')
-      heading?.focus()
-    }
-    zenTriggerElementRef.current = null
-    zenEntryViewRef.current = null
   }, [])
 
   const completeZenDone = useCallback(() => {
+    zenPendingRestoreRef.current = { kind: 'heading' }
     setZenState({ phase: 'closed' })
-    const heading = document.querySelector<HTMLElement>('main h1, [role="main"] h1')
-    heading?.focus()
-    zenTriggerElementRef.current = null
-    zenEntryViewRef.current = null
+  }, [])
+
+  const profileNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => () => {
+    if (profileNoticeTimerRef.current !== undefined) {
+      clearTimeout(profileNoticeTimerRef.current)
+    }
   }, [])
 
   const onBackupClearSuccess = useCallback(() => {
+    // Reset the dismissal timer so a stale timeout cannot clobber a newer notice.
+    if (profileNoticeTimerRef.current !== undefined) {
+      clearTimeout(profileNoticeTimerRef.current)
+    }
     setProfileNotice('All study data has been permanently deleted.')
     navigateToView('Home')
-    setTimeout(() => setProfileNotice(''), 5000)
+    profileNoticeTimerRef.current = setTimeout(() => {
+      profileNoticeTimerRef.current = undefined
+      // Only clear our own notice; leave newer notices from other flows alone.
+      setProfileNotice((prev) => (prev === 'All study data has been permanently deleted.' ? '' : prev))
+    }, 5000)
   }, [navigateToView])
   const { exportBackup, importBackup, clearAllBackup } = useStudyBackup({
     coordinator,

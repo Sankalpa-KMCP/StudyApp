@@ -38,14 +38,14 @@ export function Sidebar({
       </div>
       <nav>
         {navItems.map(({ label, icon: Icon }) => (
-          <button className={activeView === label ? 'nav-item is-active' : 'nav-item'} type="button" key={label} title={collapsed ? label : undefined} onClick={() => onNavigate(label)}>
+          <button className={activeView === label ? 'nav-item is-active' : 'nav-item'} type="button" key={label} title={collapsed ? label : undefined} aria-current={activeView === label ? 'page' : undefined} onClick={() => onNavigate(label)}>
             <Icon size={21} strokeWidth={1.8} aria-hidden="true" />
             <span>{label}</span>
           </button>
         ))}
       </nav>
       <div className="sidebar-footer">
-        <button className={activeView === 'Settings' ? 'nav-item is-active' : 'nav-item'} type="button" title={collapsed ? 'Settings' : undefined} onClick={() => onNavigate('Settings')}>
+        <button className={activeView === 'Settings' ? 'nav-item is-active' : 'nav-item'} type="button" title={collapsed ? 'Settings' : undefined} aria-current={activeView === 'Settings' ? 'page' : undefined} onClick={() => onNavigate('Settings')}>
           <Settings size={21} strokeWidth={1.8} aria-hidden="true" />
           <span>Settings</span>
         </button>

@@ -921,7 +921,7 @@ describe('App home', () => {
     expect(screen.getByRole('heading', { name: 'Weekly Progress' })).toBeInTheDocument()
   })
 
-  it('renders Home in Compact density with clamped previews, disclosure Quick Notes, and without RightColumn or Recent Notes', async () => {
+  it('renders Home in Compact density with clamped previews, disclosure Quick Notes, restored copy, and without RightColumn', async () => {
     localStorage.setItem('study-dashboard-density', 'compact')
 
     // Create 5 tasks and 5 subjects
@@ -949,6 +949,15 @@ describe('App home', () => {
         updatedAt: new Date(2026, 6, 26, 10, i).toISOString(),
       })
     }
+    await studyDb.notes.put({
+      id: 'note-compact',
+      subjectId: 'subject-1',
+      title: 'Compact note',
+      body: 'Visible in both densities.',
+      tags: [],
+      createdAt: new Date(2026, 6, 26, 10, 0).toISOString(),
+      updatedAt: new Date(2026, 6, 26, 10, 0).toISOString(),
+    })
 
     render(<App />)
 
@@ -956,9 +965,13 @@ describe('App home', () => {
     const appShell = document.querySelector('.app-shell')
     expect(appShell).toHaveAttribute('data-density', 'compact')
 
-    // RightColumn and Recent Notes are absent
+    // RightColumn stays hidden in compact (single-column focus layout)
     expect(screen.queryByLabelText('Progress and schedule')).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Recent Notes' })).not.toBeInTheDocument()
+
+    // Restored in compact: hero tagline, Recent Notes section and note
+    expect(screen.getByText('Choose the next useful thing, then give it your full attention.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Recent Notes' })).toBeInTheDocument()
+    expect(screen.getByText('Compact note')).toBeInTheDocument()
 
     // Tasks are clamped to 3
     const tasksCard = (await screen.findByRole('heading', { name: 'Study Tasks' })).closest('section') as HTMLElement
@@ -992,6 +1005,22 @@ describe('App home', () => {
     // Navigate back to Home
     await user.click(screen.getByRole('button', { name: 'Home' }))
     expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Progress and schedule')).not.toBeInTheDocument()
+  })
+
+  it('keeps compact Home copy visible with the hero present (hero-scale rules are width-scoped in home.css)', async () => {
+    // jsdom does not resolve stylesheets, so this guards DOM structure only:
+    // the hero tagline and Recent Notes must render in compact for the
+    // desktop-scoped hero rules (home.css @media (min-width: 761px)) to have
+    // something to tighten. Mobile geometry is covered by the Playwright
+    // responsive spec.
+    localStorage.setItem('study-dashboard-density', 'compact')
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+    expect(screen.getByText('Choose the next useful thing, then give it your full attention.')).toBeInTheDocument()
+    expect(document.querySelector('.hero-row h1')).toBeInTheDocument()
     expect(screen.queryByLabelText('Progress and schedule')).not.toBeInTheDocument()
   })
 

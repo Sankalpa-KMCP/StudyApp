@@ -192,7 +192,7 @@ describe('App workspaces', () => {
     expect(await studyDb.tasks.count()).toBe(1)
   })
 
-  it('clamps Task minutes to the editor range on input and stores boundary values on create', async () => {
+  it('commits Task minutes clamp on blur and stores boundary values on create', async () => {
     const user = userEvent.setup()
     const createSpy = vi.spyOn(taskService, 'createTask')
 
@@ -206,10 +206,13 @@ describe('App workspaces', () => {
     expect(minutesInput).toHaveAttribute('type', 'number')
 
     fireEvent.change(minutesInput, { target: { value: '4' } })
+    fireEvent.blur(minutesInput)
     expect(minutesInput).toHaveValue(5)
     fireEvent.change(minutesInput, { target: { value: '721' } })
+    fireEvent.blur(minutesInput)
     expect(minutesInput).toHaveValue(720)
     fireEvent.change(minutesInput, { target: { value: '' } })
+    fireEvent.blur(minutesInput)
     expect(minutesInput).toHaveValue(5)
 
     await user.clear(screen.getByLabelText('Task title'))
@@ -229,6 +232,7 @@ describe('App workspaces', () => {
     await user.click(screen.getByRole('button', { name: 'New task' }))
     await user.type(screen.getByLabelText('Task title'), 'Upper minutes task')
     fireEvent.change(screen.getByLabelText('Minutes'), { target: { value: '720' } })
+    fireEvent.blur(screen.getByLabelText('Minutes'))
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Upper minutes task')).toBeInTheDocument()
@@ -260,6 +264,7 @@ describe('App workspaces', () => {
     await user.click(await screen.findByLabelText('Edit Editable minutes task'))
 
     fireEvent.change(screen.getByLabelText('Minutes'), { target: { value: '721' } })
+    fireEvent.blur(screen.getByLabelText('Minutes'))
     expect(screen.getByLabelText('Minutes')).toHaveValue(720)
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -275,6 +280,7 @@ describe('App workspaces', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     updateSpy.mockRejectedValueOnce(new Error('IndexedDB write failed'))
     fireEvent.change(screen.getByLabelText('Minutes'), { target: { value: '55' } })
+    fireEvent.blur(screen.getByLabelText('Minutes'))
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Task could not be saved. Your details are still in the form.')
@@ -610,12 +616,12 @@ describe('App workspaces', () => {
 
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('Enter a note title.')
-    expect(alert).toHaveAttribute('id', 'mutation-notice-message')
+    expect(alert).toHaveAttribute('id', 'note-title-error')
     expect(createSpy).not.toHaveBeenCalled()
     const titleInput = screen.getByLabelText('Note title')
     expect(titleInput).toHaveValue('   ')
     expect(titleInput).toHaveAttribute('aria-invalid', 'true')
-    expect(titleInput).toHaveAttribute('aria-describedby', 'mutation-notice-message')
+    expect(titleInput).toHaveAttribute('aria-describedby', 'note-title-error')
     expect(screen.getByLabelText('Body')).toHaveValue('Body while invalid')
 
     await user.clear(screen.getByLabelText('Note title'))
@@ -971,7 +977,7 @@ describe('App workspaces', () => {
     expect(screen.getByLabelText('Time')).toHaveValue('')
   })
 
-  it('rejects whitespace-only calendar titles and clamps duration on input while persisting trimmed fields', async () => {
+  it('rejects whitespace-only calendar titles and commits duration clamp on blur while persisting trimmed fields', async () => {
     const user = userEvent.setup()
     const createSpy = vi.spyOn(calendarEventService, 'createCalendarEvent')
     render(<App />)
@@ -983,8 +989,10 @@ describe('App workspaces', () => {
     expect(duration).toHaveAttribute('min', '15')
     expect(duration).toHaveAttribute('max', '480')
     fireEvent.change(duration, { target: { value: '14' } })
+    fireEvent.blur(duration)
     expect(duration).toHaveValue(15)
     fireEvent.change(duration, { target: { value: '481' } })
+    fireEvent.blur(duration)
     expect(duration).toHaveValue(480)
 
     await user.type(screen.getByLabelText('Event title'), '   ')
@@ -1001,6 +1009,7 @@ describe('App workspaces', () => {
     await user.clear(screen.getByLabelText('Event title'))
     await user.type(screen.getByLabelText('Event title'), '  Trimmed event  ')
     fireEvent.change(duration, { target: { value: '15' } })
+    fireEvent.blur(duration)
     await user.type(screen.getByLabelText('Location'), '  Room A  ')
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -1308,7 +1317,7 @@ describe('App workspaces', () => {
     expect(subjects[0].progress).toBe(0)
   })
 
-  it('rejects whitespace-only subject names and clamps target hours and progress on input and create', async () => {
+  it('rejects whitespace-only subject names and commits target hours and progress clamp on blur and create', async () => {
     const user = userEvent.setup()
     const createSpy = vi.spyOn(subjectService, 'createSubject')
     render(<App />)
@@ -1324,12 +1333,16 @@ describe('App workspaces', () => {
     expect(progress).toHaveAttribute('max', '100')
 
     fireEvent.change(targetHours, { target: { value: '0' } })
+    fireEvent.blur(targetHours)
     expect(targetHours).toHaveValue(1)
     fireEvent.change(targetHours, { target: { value: '101' } })
+    fireEvent.blur(targetHours)
     expect(targetHours).toHaveValue(100)
     fireEvent.change(progress, { target: { value: '-1' } })
+    fireEvent.blur(progress)
     expect(progress).toHaveValue(0)
     fireEvent.change(progress, { target: { value: '101' } })
+    fireEvent.blur(progress)
     expect(progress).toHaveValue(100)
 
     await user.type(screen.getByLabelText('Subject name'), '   ')
@@ -1341,7 +1354,9 @@ describe('App workspaces', () => {
     await user.clear(screen.getByLabelText('Subject name'))
     await user.type(screen.getByLabelText('Subject name'), '  Trimmed Subject  ')
     fireEvent.change(targetHours, { target: { value: '100' } })
+    fireEvent.blur(targetHours)
     fireEvent.change(progress, { target: { value: '0' } })
+    fireEvent.blur(progress)
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByText('Trimmed Subject')).toBeInTheDocument()
@@ -1397,6 +1412,7 @@ describe('App workspaces', () => {
     await user.selectOptions(screen.getByLabelText('Progress mode'), 'study_time')
     expect(screen.queryByLabelText('Progress %')).not.toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Target hours'), { target: { value: '1' } })
+    fireEvent.blur(screen.getByLabelText('Target hours'))
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('Subject created.')

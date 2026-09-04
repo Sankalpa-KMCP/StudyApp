@@ -46,9 +46,9 @@
   margin-bottom: 8px;
   color: var(--highlight);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
 }
 
@@ -75,7 +75,7 @@
   padding: 8px 10px;
   border-left: 1px solid var(--line);
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
 }
 
 .hero-metrics strong {
@@ -114,7 +114,7 @@
 .first-study-heading h2,
 .first-study-step h3 {
   font-family: Outfit, Inter, sans-serif;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--track-tight);
 }
 
 .first-study-heading h2 {
@@ -138,9 +138,9 @@
   display: grid;
   justify-items: end;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--track-label);
 }
 
 .first-study-progress-copy strong {
@@ -198,7 +198,7 @@
   border-radius: 50%;
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   background: var(--surface-subtle);
 }
@@ -216,7 +216,7 @@
 
 .first-study-step p {
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   line-height: 1.45;
 }
 
@@ -229,7 +229,7 @@
   justify-content: flex-start;
   gap: 6px;
   justify-self: start;
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
@@ -258,10 +258,6 @@
 
 .first-study-step.is-complete .first-study-step-copy {
   opacity: 0.62;
-}
-
-.insight-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .home-today-card {
@@ -310,7 +306,7 @@
 .home-today-metric-label,
 .home-today-metric-hint {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .home-today-metric strong {
@@ -333,7 +329,7 @@
 .home-today-preview-title {
   margin: 0 0 6px;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
@@ -348,7 +344,7 @@
 .home-today-preview-list li {
   min-width: 0;
   overflow: hidden;
-  color: var(--text);
+  color: var(--ink);
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.92rem;
@@ -377,9 +373,9 @@
   margin: 0;
   color: var(--accent);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
 }
 
@@ -475,7 +471,7 @@
 .task small {
   margin-left: auto;
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: var(--text-xs);
 }
 
 .focus-card {
@@ -508,6 +504,7 @@
 .focus-ring strong {
   font-family: Outfit, Inter, sans-serif;
   font-size: 1.8rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .focus-stat-row,
@@ -523,6 +520,10 @@
 .focus-stat-row span,
 .session-elapsed span {
   color: var(--muted);
+}
+
+.session-elapsed strong {
+  font-variant-numeric: tabular-nums;
 }
 
 .session-actions {
@@ -641,7 +642,7 @@
   align-items: center;
   gap: 8px;
   margin-left: auto;
-  font-size: 0.8125rem;
+  font-size: var(--text-sm);
   font-weight: 400;
   color: var(--muted);
 }
@@ -660,20 +661,42 @@
   gap: 8px;
 }
 
-/* Compact Density Mode — Home Only */
+/* Compact Density Mode — Home Only: a genuinely denser single-column focus
+   layout. Content is summarized (list clamps, disclosed quick notes), never
+   deleted — no display:none rules live here. Width-neutral density rules
+   (cards, gaps, column, copy) apply at every breakpoint; the hero-scale rules
+   are desktop-scoped because `responsive.css` owns the mobile (<=760px) hero
+   rhythm and would otherwise lose the specificity race. */
 .app-shell[data-density='compact'] .content-grid:not(.is-workspace-view) {
   grid-template-columns: minmax(0, 1fr);
   max-width: 880px;
   margin-inline: auto;
   width: 100%;
+  gap: 24px;
 }
 
-.app-shell[data-density='compact'] .hero-copy p {
-  display: none;
+.app-shell[data-density='compact'] .card {
+  padding: 16px;
 }
 
+.app-shell[data-density='compact'] .primary-column {
+  gap: 14px;
+}
+
+@media (min-width: 761px) {
+  .app-shell[data-density='compact'] .hero-row {
+    min-height: 0;
+    padding: 20px 22px;
+  }
+
+  .app-shell[data-density='compact'] .hero-row h1 {
+    font-size: clamp(1.6rem, 2.6vw, 2.1rem);
+  }
+}
+
+.app-shell[data-density='compact'] .hero-copy p,
 .app-shell[data-density='compact'] .home-recommended-detail {
-  display: none;
+  font-size: var(--text-sm);
 }
 
 .subject-section {

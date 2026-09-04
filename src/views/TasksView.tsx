@@ -358,14 +358,6 @@ export function TasksView({
             </div>
           ) : null}
         </>
-      ) : filter !== 'all' ? (
-        <EmptyState
-          icon={Check}
-          title="No tasks in this view"
-          body="No tasks match the current filter."
-          actionLabel="Clear filter"
-          onAction={() => onFilterChange('all')}
-        />
       ) : search.trim().length > 0 ? (
         <EmptyState
           icon={Check}
@@ -373,6 +365,14 @@ export function TasksView({
           body="No tasks match that search."
           actionLabel="Clear search"
           onAction={onClearSearch}
+        />
+      ) : filter !== 'all' ? (
+        <EmptyState
+          icon={Check}
+          title="No tasks in this view"
+          body="No tasks match the current filter."
+          actionLabel="Clear filter"
+          onAction={() => onFilterChange('all')}
         />
       ) : (
         <EmptyState

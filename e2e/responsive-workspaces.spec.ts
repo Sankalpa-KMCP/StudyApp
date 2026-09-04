@@ -161,3 +161,30 @@ test('mobile workspace axe smoke without suppressions', async ({ page }, testInf
   await page.getByRole('button', { name: 'New task' }).click()
   await expectNoAxeViolations(page, testInfo)
 })
+
+test('compact density keeps the mobile hero rhythm at 390px and the dense hero at desktop width', async ({ page }) => {
+  const heroFontSize = () =>
+    page.locator('.hero-row h1').evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize))
+
+  // Mobile: compact hero-scale rules are desktop-scoped (min-width: 761px), so
+  // the responsive.css hero rhythm must win even with compact active.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+  await page.evaluate(() => localStorage.setItem('study-dashboard-density', 'compact'))
+  await page.reload()
+  await expect(page.getByRole('heading', { name: HOME_GREETING_HEADING })).toBeVisible()
+  // clamp(2rem, 11vw, 2.75rem) at 390px -> ~42.9px; anything < 40px means the
+  // compact clamp leaked past the desktop scope.
+  expect(await heroFontSize()).toBeGreaterThan(40)
+  // Width-neutral compact density still applies on mobile: cards tighten.
+  const mobileCardPad = await page.locator('.card').first().evaluate((el) => getComputedStyle(el).padding)
+  expect(mobileCardPad).toContain('16px')
+
+  // Desktop: the same compact preference produces the denser hero.
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.reload()
+  await expect(page.getByRole('heading', { name: HOME_GREETING_HEADING })).toBeVisible()
+  // clamp(1.6rem, 2.6vw, 2.1rem) at 1440px -> 33.6px; anything >= 40px means
+  // the desktop scope stopped applying.
+  expect(await heroFontSize()).toBeLessThan(40)
+})
