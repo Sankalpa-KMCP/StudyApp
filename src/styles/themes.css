@@ -37,45 +37,52 @@
   z-index: 1;
 }
 
-/* Crystal Glass — pastel aurora fields beneath selective frosted surfaces. */
+/* ── Crystal Glass — frosted glass over luminous aurora mesh ────────────── */
 :root[data-theme='crystal-glass'] {
-  --glass-surface: rgba(255, 250, 255, 0.72);
-  --glass-surface-strong: rgba(255, 252, 255, 0.88);
-  --glass-surface-subtle: rgba(243, 241, 251, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.68);
+  --glass-surface: rgba(255, 252, 255, 0.68);
+  --glass-surface-strong: rgba(255, 253, 255, 0.84);
+  --glass-surface-subtle: rgba(242, 239, 252, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.74);
+  --glass-highlight: rgba(255, 255, 255, 0.82);
+  --glass-inner: rgba(255, 255, 255, 0.42);
 }
 
 :root[data-theme='crystal-glass'] body {
   background:
-    radial-gradient(circle at 12% 8%, #f8dff0 0, transparent 34%),
-    radial-gradient(circle at 88% 16%, #d8efff 0, transparent 38%),
-    linear-gradient(145deg, #eee9fb 0%, #e6f1f5 52%, #f7e8f1 100%);
+    radial-gradient(ellipse 90% 60% at 8% 6%, rgba(212, 168, 244, 0.42) 0%, transparent 58%),
+    radial-gradient(ellipse 70% 50% at 94% 14%, rgba(148, 210, 248, 0.38) 0%, transparent 54%),
+    radial-gradient(ellipse 60% 50% at 52% 96%, rgba(244, 178, 202, 0.30) 0%, transparent 52%),
+    radial-gradient(ellipse 50% 38% at 36% 48%, rgba(186, 180, 255, 0.18) 0%, transparent 48%),
+    linear-gradient(172deg, #ede8fb 0%, #e6eef8 38%, #eef0fc 62%, #f6e8f0 100%);
 }
 
 :root[data-theme='crystal-glass'] body::before {
   background:
-    radial-gradient(circle at 18% 24%, rgba(201, 154, 238, 0.38) 0 9%, transparent 30%),
-    radial-gradient(circle at 78% 30%, rgba(103, 198, 231, 0.34) 0 10%, transparent 31%),
-    radial-gradient(circle at 60% 82%, rgba(244, 164, 189, 0.3) 0 9%, transparent 29%);
-  animation: crystalAuroraDrift 46s ease-in-out infinite alternate;
+    radial-gradient(ellipse 520px 420px at 16% 22%, rgba(196, 142, 240, 0.46) 0%, rgba(196, 142, 240, 0.18) 32%, transparent 68%),
+    radial-gradient(ellipse 460px 380px at 82% 28%, rgba(110, 190, 238, 0.38) 0%, rgba(110, 190, 238, 0.12) 36%, transparent 70%),
+    radial-gradient(ellipse 380px 320px at 58% 80%, rgba(238, 152, 184, 0.32) 0%, rgba(238, 152, 184, 0.10) 34%, transparent 68%),
+    radial-gradient(ellipse 260px 200px at 38% 52%, rgba(255, 255, 255, 0.22) 0%, transparent 62%);
+  animation: crystalAuroraDrift 52s ease-in-out infinite alternate;
 }
 
 :root[data-theme='crystal-glass'] body::after {
   background:
-    linear-gradient(112deg, transparent 20%, rgba(255, 255, 255, 0.34) 42%, transparent 64%),
-    radial-gradient(circle at 35% 55%, rgba(255, 255, 255, 0.38) 0 1px, transparent 2px) 0 0 / 44px 44px;
-  opacity: 0.72;
-  animation: crystalPrismSweep 58s linear infinite;
+    linear-gradient(108deg, transparent 18%, rgba(255, 255, 255, 0.42) 38%, rgba(255, 255, 255, 0.14) 46%, transparent 62%),
+    linear-gradient(112deg, transparent 68%, rgba(180, 175, 255, 0.09) 76%, transparent 84%),
+    radial-gradient(circle at 30% 48%, rgba(255, 255, 255, 0.45) 0 1px, transparent 1.6px) 0 0 / 52px 52px,
+    radial-gradient(circle at 72% 62%, rgba(255, 255, 255, 0.22) 0 1px, transparent 1.4px) 18px 14px / 48px 48px;
+  opacity: 0.66;
+  animation: crystalPrismSweep 64s linear infinite;
 }
 
 @keyframes crystalAuroraDrift {
-  from { transform: translate3d(-2%, -1%, 0) scale(1); }
-  to { transform: translate3d(3%, 2%, 0) scale(1.08); }
+  from { transform: translate3d(-2.2%, -1%, 0) scale(1); }
+  to { transform: translate3d(2.6%, 1.6%, 0) scale(1.07); }
 }
 
 @keyframes crystalPrismSweep {
-  from { transform: translate3d(-4%, 0, 0) rotate(-2deg); }
-  to { transform: translate3d(4%, -2%, 0) rotate(2deg); }
+  from { transform: translate3d(-4.5%, 0, 0) rotate(-1.5deg); }
+  to { transform: translate3d(4.5%, -1.5%, 0) rotate(1.5deg); }
 }
 
 :root[data-theme='crystal-glass'] :is(
@@ -93,10 +100,16 @@
   .loading-panel
 ) {
   border-color: var(--glass-border);
+  border-top-color: var(--glass-highlight);
   background: var(--glass-surface);
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.58);
-  -webkit-backdrop-filter: blur(14px) saturate(132%);
-  backdrop-filter: blur(14px) saturate(132%);
+  box-shadow:
+    0 1px 0 var(--glass-inner) inset,
+    0 -1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 8px 32px rgba(58, 44, 96, 0.10),
+    0 2px 8px rgba(58, 44, 96, 0.08),
+    var(--shadow);
+  -webkit-backdrop-filter: blur(16px) saturate(138%);
+  backdrop-filter: blur(16px) saturate(138%);
 }
 
 :root[data-theme='crystal-glass'] :is(
@@ -110,9 +123,15 @@
   .confirm-dialog
 ) {
   border-color: var(--glass-border);
+  border-top-color: var(--glass-highlight);
   background: var(--glass-surface-strong);
-  -webkit-backdrop-filter: blur(18px) saturate(138%);
-  backdrop-filter: blur(18px) saturate(138%);
+  box-shadow:
+    0 1px 0 var(--glass-highlight) inset,
+    0 12px 40px rgba(58, 44, 96, 0.14),
+    0 4px 16px rgba(58, 44, 96, 0.10),
+    var(--shadow-popover);
+  -webkit-backdrop-filter: blur(20px) saturate(142%);
+  backdrop-filter: blur(20px) saturate(142%);
 }
 
 :root[data-theme='crystal-glass'] :is(
@@ -129,14 +148,22 @@
   .note-paper
 ) {
   background-color: var(--glass-surface-strong);
-  -webkit-backdrop-filter: blur(10px) saturate(125%);
-  backdrop-filter: blur(10px) saturate(125%);
+  border-color: rgba(255, 255, 255, 0.58);
+  -webkit-backdrop-filter: blur(12px) saturate(132%);
+  backdrop-filter: blur(12px) saturate(132%);
 }
 
 :root[data-theme='crystal-glass'] .list-row:hover,
 :root[data-theme='crystal-glass'] .action-card:not(.danger-card):hover,
 :root[data-theme='crystal-glass'] .theme-option:hover {
   background: var(--glass-surface-subtle);
+  border-color: rgba(255, 255, 255, 0.82);
+}
+
+:root[data-theme='crystal-glass'] .progress-bar-track,
+:root[data-theme='crystal-glass'] .study-journal-track {
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.42);
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
@@ -147,172 +174,212 @@
   }
 }
 
-/* Wisteria Bloom — abstract petals, leaves, and diffuse botanical blooms. */
+/* ── Wisteria Bloom — hanging racemes, botanical depth ─────────────────── */
 :root[data-theme='wisteria'] body {
   background:
-    radial-gradient(ellipse at 10% 12%, rgba(151, 112, 173, 0.2) 0 13%, transparent 36%),
-    radial-gradient(ellipse at 92% 86%, rgba(84, 120, 89, 0.14) 0 12%, transparent 34%),
-    linear-gradient(150deg, #fff9f1 0%, #f3edf6 52%, #eee5f2 100%);
+    radial-gradient(ellipse 62% 44% at 10% 8%, rgba(155, 112, 179, 0.22) 0%, transparent 58%),
+    radial-gradient(ellipse 48% 36% at 94% 88%, rgba(92, 128, 96, 0.13) 0%, transparent 56%),
+    radial-gradient(ellipse 36% 28% at 52% 54%, rgba(167, 128, 190, 0.10) 0%, transparent 52%),
+    linear-gradient(164deg, #fffbf3 0%, #f8f0f7 42%, #ede4f2 68%, #e9e2f0 100%);
 }
 
 :root[data-theme='wisteria'] body::before {
   background:
-    radial-gradient(ellipse at 12% 18%, rgba(114, 66, 143, 0.2) 0 3%, transparent 3.8%),
-    radial-gradient(ellipse at 22% 14%, rgba(150, 104, 175, 0.18) 0 2.5%, transparent 3.3%),
-    radial-gradient(ellipse at 77% 32%, rgba(132, 87, 159, 0.17) 0 2.8%, transparent 3.6%),
-    radial-gradient(ellipse at 86% 58%, rgba(83, 117, 86, 0.14) 0 3%, transparent 3.8%);
-  animation: wisteriaPetalDrift 62s ease-in-out infinite alternate;
+    radial-gradient(ellipse 16px 30px at 12% 16%, rgba(122, 74, 150, 0.26) 0%, transparent 70%),
+    radial-gradient(ellipse 14px 26px at 14% 24%, rgba(108, 62, 138, 0.22) 0%, transparent 72%),
+    radial-gradient(ellipse 15px 28px at 25% 13%, rgba(132, 84, 162, 0.24) 0%, transparent 70%),
+    radial-gradient(ellipse 17px 32px at 79% 14%, rgba(118, 68, 148, 0.24) 0%, transparent 68%),
+    radial-gradient(ellipse 13px 24px at 77% 24%, rgba(104, 60, 136, 0.20) 0%, transparent 72%),
+    radial-gradient(ellipse 10px 16px at 52% 20%, rgba(138, 90, 166, 0.15) 0%, transparent 74%),
+    radial-gradient(ellipse 48% 32% at 90% 78%, rgba(86, 122, 90, 0.09) 0%, transparent 62%);
+  animation: wisteriaPetalDrift 58s ease-in-out infinite alternate;
 }
 
 :root[data-theme='wisteria'] body::after {
   background:
-    radial-gradient(ellipse at 0% 10%, rgba(112, 65, 136, 0.18) 0 12%, transparent 35%),
-    radial-gradient(ellipse at 100% 38%, rgba(133, 91, 156, 0.17) 0 12%, transparent 33%),
-    linear-gradient(122deg, transparent 74%, rgba(67, 103, 76, 0.08) 74.5% 75%, transparent 75.5%);
-  opacity: 0.78;
-  animation: wisteriaBloomBreathe 52s ease-in-out infinite alternate;
+    /* large diffuse washes — petal haze */
+    radial-gradient(ellipse 68% 42% at 4% 6%, rgba(124, 72, 150, 0.13) 0%, transparent 62%),
+    radial-gradient(ellipse 56% 36% at 96% 12%, rgba(88, 124, 94, 0.09) 0%, transparent 58%),
+    radial-gradient(ellipse 50% 34% at 58% 42%, rgba(168, 132, 192, 0.08) 0%, transparent 54%),
+    /* delicate vine / stem hint */
+    linear-gradient(168deg, transparent 12%, rgba(76, 98, 68, 0.055) 12.2% 12.6%, transparent 12.8%),
+    linear-gradient(172deg, transparent 72%, rgba(118, 68, 148, 0.06) 72.2% 72.6%, transparent 72.8%),
+    linear-gradient(180deg, transparent 18%, rgba(118, 68, 148, 0.04) 18.1% 22%, transparent 22.2%);
+  opacity: 0.88;
+  animation: wisteriaBloomBreathe 48s ease-in-out infinite alternate;
 }
 
 @keyframes wisteriaPetalDrift {
-  from { transform: translate3d(-1%, -2%, 0) rotate(-1deg); }
-  to { transform: translate3d(2%, 3%, 0) rotate(2deg); }
+  from { transform: translate3d(-1.2%, -1.4%, 0) rotate(-0.7deg); }
+  to { transform: translate3d(1.6%, 1.8%, 0) rotate(0.8deg); }
 }
 
 @keyframes wisteriaBloomBreathe {
-  from { transform: scale(1); opacity: 0.64; }
-  to { transform: scale(1.06); opacity: 0.84; }
+  from { transform: scale(1); opacity: 0.78; }
+  to { transform: scale(1.04); opacity: 0.96; }
 }
 
-/* Celestial Drift — layered starfield and a restrained moon halo. */
+/* ── Celestial Drift — deep indigo night with layered starfield ────────── */
 :root[data-theme='celestial'] body {
   background:
-    radial-gradient(circle at 76% 14%, rgba(189, 200, 255, 0.16) 0 5%, transparent 19%),
-    radial-gradient(circle at 18% 78%, rgba(94, 92, 188, 0.18) 0 12%, transparent 34%),
-    linear-gradient(165deg, #080b1c 0%, #0c1230 54%, #12153b 100%);
+    radial-gradient(ellipse 72% 48% at 78% 10%, rgba(124, 136, 212, 0.18) 0%, rgba(84, 92, 180, 0.08) 28%, transparent 62%),
+    radial-gradient(ellipse 42% 32% at 14% 82%, rgba(72, 68, 156, 0.16) 0%, transparent 52%),
+    radial-gradient(ellipse 28% 22% at 42% 62%, rgba(58, 52, 132, 0.10) 0%, transparent 48%),
+    linear-gradient(168deg, #070a1e 0%, #0a0e2a 32%, #0e1234 58%, #131740 100%);
 }
 
 :root[data-theme='celestial'] body::before {
   background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.72) 0 1px, transparent 1.5px) 0 0 / 47px 47px,
-    radial-gradient(circle, rgba(181, 193, 255, 0.52) 0 1px, transparent 1.6px) 13px 21px / 73px 73px;
-  opacity: 0.68;
-  animation: celestialStarDrift 90s linear infinite;
+    radial-gradient(circle, rgba(255, 255, 255, 0.82) 0 0.9px, transparent 1.4px) 0 0 / 52px 52px,
+    radial-gradient(circle, rgba(196, 202, 255, 0.58) 0 1.2px, transparent 1.9px) 8px 38px / 88px 88px,
+    radial-gradient(circle, rgba(255, 255, 255, 0.32) 0 1.6px, rgba(255, 255, 255, 0.08) 3px, transparent 5px) 28px 54px / 128px 128px;
+  opacity: 0.74;
+  animation: celestialStarDrift 96s linear infinite;
 }
 
 :root[data-theme='celestial'] body::after {
   background:
-    radial-gradient(circle at 77% 17%, rgba(240, 241, 255, 0.38) 0 2.6%, rgba(168, 182, 255, 0.12) 5%, transparent 16%),
-    radial-gradient(ellipse at 42% 68%, rgba(84, 77, 179, 0.15) 0 14%, transparent 42%);
-  animation: celestialGlowShift 64s ease-in-out infinite alternate;
+    /* moon halo — soft, large */
+    radial-gradient(circle at 78% 14%, rgba(242, 243, 255, 0.32) 0 1.8%, rgba(184, 192, 255, 0.16) 4.2%, rgba(148, 158, 232, 0.06) 9%, transparent 18%),
+    /* nebula — warm faint cloud near center */
+    radial-gradient(ellipse 44% 28% at 46% 58%, rgba(98, 84, 188, 0.13) 0%, rgba(72, 62, 156, 0.06) 38%, transparent 68%),
+    /* subtle horizon glow — low indigo */
+    radial-gradient(ellipse 90% 18% at 50% 100%, rgba(62, 58, 148, 0.14) 0%, transparent 58%);
+  animation: celestialGlowShift 72s ease-in-out infinite alternate;
 }
 
 @keyframes celestialStarDrift {
   from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(3%, -4%, 0); }
+  to { transform: translate3d(1.8%, -2.8%, 0); }
 }
 
 @keyframes celestialGlowShift {
-  from { transform: translate3d(-1%, 1%, 0); opacity: 0.72; }
-  to { transform: translate3d(2%, -1%, 0); opacity: 0.94; }
+  from { transform: translate3d(-1%, 0.6%, 0); opacity: 0.78; }
+  to { transform: translate3d(1.2%, -0.6%, 0); opacity: 0.96; }
 }
 
-/* Velvet Dusk — a coral horizon, slow haze, and distant city bokeh. */
+/* ── Velvet Dusk — cinematic plum → rose → amber horizon ───────────────── */
 :root[data-theme='velvet-dusk'] body {
   background:
-    linear-gradient(180deg, #13091b 0%, #24112f 42%, #51243d 72%, #7c3e42 100%);
+    /* zenith — deep plum */
+    linear-gradient(180deg, #0d0614 0%, #1a0c24 14%, #28132e 28%, #3d1a36 46%, #5a2340 64%, #7a3842 78%, #9e5a42 88%, #b87a48 96%, #c4925a 100%);
 }
 
 :root[data-theme='velvet-dusk'] body::before {
   background:
-    radial-gradient(ellipse at 18% 62%, rgba(120, 67, 126, 0.28) 0 16%, transparent 47%),
-    radial-gradient(ellipse at 80% 68%, rgba(240, 123, 99, 0.2) 0 15%, transparent 44%),
-    linear-gradient(174deg, transparent 58%, rgba(244, 161, 104, 0.13) 73%, transparent 88%);
-  animation: velvetHazeDrift 72s ease-in-out infinite alternate;
+    /* upper haze — soft plum mist */
+    radial-gradient(ellipse 84% 28% at 22% 18%, rgba(92, 42, 98, 0.32) 0%, transparent 62%),
+    radial-gradient(ellipse 62% 24% at 78% 28%, rgba(122, 52, 64, 0.22) 0%, transparent 58%),
+    /* horizon glow band */
+    linear-gradient(180deg, transparent 52%, rgba(244, 164, 104, 0.16) 62%, rgba(244, 164, 104, 0.07) 72%, transparent 82%),
+    /* atmospheric perspective — darkens foreground */
+    linear-gradient(180deg, transparent 64%, rgba(12, 6, 18, 0.32) 82%, rgba(12, 6, 18, 0.62) 100%),
+    /* subtle cloud wisps — horizontal */
+    linear-gradient(90deg, transparent 4%, rgba(68, 28, 62, 0.10) 22%, transparent 48%, rgba(82, 34, 58, 0.08) 72%, transparent 96%);
+  animation: velvetHazeDrift 78s ease-in-out infinite alternate;
 }
 
 :root[data-theme='velvet-dusk'] body::after {
   background:
-    radial-gradient(circle, rgba(255, 198, 123, 0.58) 0 1px, transparent 2.4px) 0 78% / 62px 100%,
-    radial-gradient(circle, rgba(255, 132, 118, 0.42) 0 1.5px, transparent 3px) 24px 86% / 91px 100%;
-  opacity: 0.58;
-  animation: velvetCityDrift 84s linear infinite;
+    radial-gradient(circle, rgba(255, 210, 128, 0.68) 0 1px, rgba(255, 210, 128, 0.16) 2.2px, transparent 4px) 12px 74% / 58px 100%,
+    radial-gradient(circle, rgba(255, 168, 118, 0.48) 0 1.3px, rgba(255, 168, 118, 0.10) 2.8px, transparent 5px) 38px 78% / 84px 100%,
+    radial-gradient(circle, rgba(255, 255, 255, 0.16) 0 0.6px, transparent 1px) 20px 18px / 64px 64px;
+  opacity: 0.62;
+  animation: velvetCityDrift 88s linear infinite;
 }
 
 @keyframes velvetHazeDrift {
-  from { transform: translate3d(-3%, 0, 0) scale(1); }
-  to { transform: translate3d(3%, -1%, 0) scale(1.05); }
+  from { transform: translate3d(-2.4%, 0, 0) scale(1); }
+  to { transform: translate3d(2.4%, -0.8%, 0) scale(1.04); }
 }
 
 @keyframes velvetCityDrift {
-  from { transform: translate3d(0, 0, 0); opacity: 0.45; }
-  to { transform: translate3d(-2%, 1%, 0); opacity: 0.68; }
+  from { transform: translate3d(0, 0, 0); opacity: 0.52; }
+  to { transform: translate3d(-1.6%, 0.6%, 0); opacity: 0.70; }
 }
 
-/* Abyssal Glow — underwater shafts and sparse bioluminescent motes. */
+/* ── Abyssal Glow — deep ocean with caustic shafts and motes ───────────── */
 :root[data-theme='abyss'] body {
   background:
-    radial-gradient(ellipse at 50% -10%, rgba(61, 191, 186, 0.18) 0 13%, transparent 42%),
-    linear-gradient(180deg, #071c20 0%, #061518 52%, #030c0f 100%);
+    /* surface light — faint teal wash at top */
+    radial-gradient(ellipse 68% 22% at 50% -4%, rgba(64, 198, 192, 0.16) 0%, rgba(48, 164, 158, 0.07) 32%, transparent 58%),
+    /* mid-depth teal haze */
+    radial-gradient(ellipse 48% 32% at 72% 42%, rgba(38, 142, 136, 0.08) 0%, transparent 52%),
+    /* depth falloff — darker toward bottom */
+    linear-gradient(180deg, #0a262a 0%, #082026 18%, #06181c 38%, #051418 62%, #031012 82%, #020c0e 100%);
 }
 
 :root[data-theme='abyss'] body::before {
   background:
-    linear-gradient(104deg, transparent 21%, rgba(90, 227, 217, 0.1) 30%, transparent 41%),
-    linear-gradient(78deg, transparent 54%, rgba(91, 179, 214, 0.08) 64%, transparent 74%);
+    /* primary light shafts — angled caustics from surface */
+    linear-gradient(104deg, transparent 18%, rgba(78, 218, 208, 0.095) 26%, rgba(78, 218, 208, 0.042) 30%, transparent 38%),
+    linear-gradient(98deg, transparent 44%, rgba(92, 192, 218, 0.074) 52%, rgba(92, 192, 218, 0.028) 57%, transparent 66%),
+    linear-gradient(108deg, transparent 62%, rgba(72, 204, 196, 0.062) 70%, transparent 78%),
+    /* subtle caustic texture — wavy light on water */
+    radial-gradient(ellipse 44% 14% at 32% 8%, rgba(72, 212, 200, 0.055) 0%, transparent 58%),
+    radial-gradient(ellipse 36% 12% at 68% 14%, rgba(88, 188, 212, 0.042) 0%, transparent 54%);
   transform-origin: 50% 0;
-  animation: abyssLightShafts 68s ease-in-out infinite alternate;
+  animation: abyssLightShafts 74s ease-in-out infinite alternate;
 }
 
 :root[data-theme='abyss'] body::after {
   background:
-    radial-gradient(circle, rgba(93, 238, 219, 0.6) 0 1px, transparent 2.5px) 0 0 / 72px 86px,
-    radial-gradient(circle, rgba(99, 180, 214, 0.42) 0 1.5px, transparent 3px) 29px 43px / 119px 131px;
-  opacity: 0.52;
-  animation: abyssMoteRise 82s linear infinite;
+    radial-gradient(circle, rgba(92, 238, 220, 0.56) 0 1px, rgba(92, 238, 220, 0.13) 2px, transparent 3.2px) 8px 12px / 88px 96px,
+    radial-gradient(circle, rgba(88, 210, 212, 0.38) 0 0.9px, rgba(88, 210, 212, 0.09) 1.8px, transparent 2.8px) 36px 48px / 64px 72px,
+    radial-gradient(ellipse 100% 42% at 50% 100%, rgba(2, 12, 14, 0.38) 0%, transparent 62%);
+  opacity: 0.56;
+  animation: abyssMoteRise 86s linear infinite;
 }
 
 @keyframes abyssLightShafts {
-  from { transform: translate3d(-2%, -2%, 0) skewX(-2deg); opacity: 0.58; }
-  to { transform: translate3d(2%, 1%, 0) skewX(2deg); opacity: 0.82; }
+  from { transform: translate3d(-1.6%, -1.2%, 0) skewX(-1.2deg); opacity: 0.62; }
+  to { transform: translate3d(1.6%, 0.8%, 0) skewX(1.2deg); opacity: 0.88; }
 }
 
 @keyframes abyssMoteRise {
-  from { transform: translate3d(0, 5%, 0); }
-  to { transform: translate3d(2%, -5%, 0); }
+  from { transform: translate3d(0, 4%, 0); }
+  to { transform: translate3d(1.4%, -4%, 0); }
 }
 
-/* Static, opaque Zen canvases keep the dashboard fully hidden. */
+/* ── Static opaque Zen canvases (dashboard fully hidden) ────────────────── */
 :root[data-theme='crystal-glass'] .zen-overlay {
   background:
-    radial-gradient(circle at 18% 18%, #f0d9f2 0, transparent 34%),
-    radial-gradient(circle at 82% 22%, #d6eefa 0, transparent 38%),
-    #ececf8;
+    radial-gradient(ellipse 70% 48% at 14% 12%, rgba(212, 168, 244, 0.22) 0%, transparent 58%),
+    radial-gradient(ellipse 58% 42% at 86% 18%, rgba(148, 210, 248, 0.18) 0%, transparent 56%),
+    radial-gradient(ellipse 52% 38% at 54% 88%, rgba(244, 178, 202, 0.14) 0%, transparent 54%),
+    linear-gradient(172deg, #ede8fb 0%, #eef0fc 52%, #f6e8f0 100%);
 }
 
 :root[data-theme='wisteria'] .zen-overlay {
   background:
-    radial-gradient(ellipse at 8% 12%, #e4d5eb 0, transparent 32%),
-    radial-gradient(ellipse at 92% 88%, #dce5d7 0, transparent 28%),
-    #f7f1f7;
+    radial-gradient(ellipse 44% 32% at 10% 10%, rgba(124, 72, 150, 0.14) 0%, transparent 52%),
+    radial-gradient(ellipse 36% 26% at 92% 86%, rgba(86, 122, 90, 0.10) 0%, transparent 52%),
+    radial-gradient(ellipse 12px 24px at 13% 18%, rgba(132, 84, 162, 0.18) 0%, transparent 72%),
+    radial-gradient(ellipse 14px 26px at 79% 14%, rgba(116, 66, 146, 0.14) 0%, transparent 72%),
+    linear-gradient(164deg, #fffbf3 0%, #f8f0f7 52%, #ede4f2 100%);
 }
 
 :root[data-theme='celestial'] .zen-overlay {
   background:
-    radial-gradient(circle at 78% 16%, rgba(188, 199, 255, 0.2) 0 4%, transparent 18%),
-    linear-gradient(165deg, #080b1c, #12163a);
+    radial-gradient(circle at 78% 14%, rgba(242, 243, 255, 0.30) 0 1.8%, rgba(184, 192, 255, 0.14) 4.2%, transparent 16%),
+    radial-gradient(ellipse 44% 28% at 46% 58%, rgba(98, 84, 188, 0.11) 0%, transparent 62%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.42) 0 0.8px, transparent 1.4px) 0 0 / 48px 48px,
+    linear-gradient(168deg, #070a1e 0%, #0e1234 58%, #131740 100%);
 }
 
 :root[data-theme='velvet-dusk'] .zen-overlay {
-  background: linear-gradient(180deg, #14091c 0%, #2b1535 58%, #5c2b3d 100%);
+  background:
+    linear-gradient(180deg, #0d0614 0%, #1a0c24 14%, #28132e 28%, #3d1a36 46%, #5a2340 64%, #7a3842 78%, #9e5a42 88%, #b87a48 96%, #c4925a 100%);
 }
 
 :root[data-theme='abyss'] .zen-overlay {
   background:
-    radial-gradient(ellipse at 50% -8%, rgba(65, 202, 193, 0.2) 0 12%, transparent 42%),
-    linear-gradient(180deg, #071c20, #030d10);
+    radial-gradient(ellipse 68% 22% at 50% -4%, rgba(64, 198, 192, 0.13) 0%, transparent 52%),
+    linear-gradient(104deg, transparent 22%, rgba(78, 218, 208, 0.06) 28%, transparent 36%),
+    linear-gradient(180deg, #0a262a 0%, #06181c 42%, #031012 100%);
 }
 
-/* Distinct static miniature wallpaper compositions for the Settings gallery. */
+/* ── Settings preview miniatures — static, instantly recognizable ───────── */
 :is(
   [data-theme-preview='crystal-glass'],
   [data-theme-preview='wisteria'],
@@ -346,58 +413,96 @@
 }
 
 [data-theme-preview='crystal-glass'] .theme-preview-window {
-  background: linear-gradient(135deg, #f0d9f1, #d8eef9 55%, #f5e3ef);
+  background:
+    radial-gradient(ellipse 62% 48% at 12% 10%, rgba(212, 168, 244, 0.32) 0%, transparent 52%),
+    radial-gradient(ellipse 52% 42% at 88% 18%, rgba(148, 210, 248, 0.28) 0%, transparent 50%),
+    linear-gradient(148deg, #ede8fb 0%, #eef0fc 55%, #f6e8f0 100%);
 }
 
 [data-theme-preview='crystal-glass'] .theme-preview-window::before {
-  background: radial-gradient(circle at 75% 20%, rgba(255, 255, 255, 0.78), transparent 34%);
+  background:
+    linear-gradient(108deg, transparent 22%, rgba(255, 255, 255, 0.52) 38%, transparent 58%),
+    radial-gradient(circle at 68% 22%, rgba(255, 255, 255, 0.38) 0 2px, transparent 7px);
+  opacity: 0.92;
+}
+
+[data-theme-preview='crystal-glass'] .theme-preview-window::after {
+  background: radial-gradient(circle at 32% 54%, rgba(255, 255, 255, 0.34) 0 1px, transparent 1.5px) 0 0 / 18px 18px;
+  opacity: 0.5;
 }
 
 [data-theme-preview='crystal-glass'] .theme-preview-card,
 [data-theme-preview='crystal-glass'] .theme-preview-sidebar {
-  background: rgba(255, 255, 255, 0.58);
-  border-color: rgba(255, 255, 255, 0.72);
-  -webkit-backdrop-filter: blur(5px);
-  backdrop-filter: blur(5px);
+  background: rgba(255, 255, 255, 0.62);
+  border-color: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.72) inset, 0 4px 16px rgba(58, 44, 96, 0.10);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
 [data-theme-preview='wisteria'] .theme-preview-window {
-  background: linear-gradient(145deg, #fff7ee, #eadcf0);
+  background:
+    radial-gradient(ellipse 44% 32% at 10% 6%, rgba(155, 112, 179, 0.18) 0%, transparent 50%),
+    radial-gradient(ellipse 36% 28% at 92% 88%, rgba(92, 128, 96, 0.09) 0%, transparent 48%),
+    linear-gradient(152deg, #fffbf3 0%, #f2e8f4 52%, #e9e0f0 100%);
 }
 
 [data-theme-preview='wisteria'] .theme-preview-window::before {
   background:
-    radial-gradient(ellipse at 12% 18%, rgba(111, 64, 139, 0.34) 0 5%, transparent 6%),
-    radial-gradient(ellipse at 82% 28%, rgba(141, 92, 165, 0.28) 0 4%, transparent 5%),
-    radial-gradient(ellipse at 88% 80%, rgba(69, 105, 78, 0.22) 0 6%, transparent 7%);
+    radial-gradient(ellipse 9px 18px at 14% 16%, rgba(122, 74, 150, 0.34) 0%, transparent 72%),
+    radial-gradient(ellipse 11px 20px at 18% 24%, rgba(132, 84, 162, 0.28) 0%, transparent 70%),
+    radial-gradient(ellipse 10px 18px at 80% 14%, rgba(116, 66, 146, 0.26) 0%, transparent 72%),
+    radial-gradient(ellipse 8px 14px at 76% 26%, rgba(104, 60, 136, 0.20) 0%, transparent 72%),
+    radial-gradient(ellipse 7px 11px at 52% 30%, rgba(138, 90, 166, 0.16) 0%, transparent 74%);
+}
+
+[data-theme-preview='wisteria'] .theme-preview-window::after {
+  background: radial-gradient(ellipse 48% 22% at 88% 82%, rgba(86, 122, 90, 0.10) 0%, transparent 52%);
 }
 
 [data-theme-preview='celestial'] .theme-preview-window {
-  background: linear-gradient(155deg, #070a1c, #171a45);
+  background:
+    radial-gradient(circle at 76% 12%, rgba(184, 192, 255, 0.14) 0 3%, transparent 14%),
+    radial-gradient(ellipse 36% 24% at 18% 78%, rgba(72, 68, 156, 0.12) 0%, transparent 42%),
+    linear-gradient(158deg, #070a1e 0%, #0e1234 58%, #131740 100%);
 }
 
 [data-theme-preview='celestial'] .theme-preview-window::before {
   background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.72) 0 0.7px, transparent 1px) 0 0 / 12px 12px,
-    radial-gradient(circle at 82% 18%, rgba(216, 221, 255, 0.62) 0 5%, transparent 18%);
+    radial-gradient(circle, rgba(255, 255, 255, 0.82) 0 0.7px, transparent 1.2px) 0 0 / 14px 14px,
+    radial-gradient(circle, rgba(196, 202, 255, 0.52) 0 1px, transparent 1.5px) 6px 10px / 28px 28px,
+    radial-gradient(circle at 76% 14%, rgba(242, 243, 255, 0.22) 0 2%, transparent 9%);
 }
 
 [data-theme-preview='velvet-dusk'] .theme-preview-window {
-  background: linear-gradient(180deg, #160b20 0%, #3a1b3c 58%, #8a493f 100%);
+  background: linear-gradient(180deg, #1a0c24 0%, #3d1a36 42%, #7a3842 76%, #b87a48 100%);
 }
 
 [data-theme-preview='velvet-dusk'] .theme-preview-window::before {
-  background: radial-gradient(circle, rgba(255, 199, 120, 0.7) 0 0.8px, transparent 1.8px) 0 78% / 18px 100%;
+  background:
+    linear-gradient(180deg, transparent 54%, rgba(244, 164, 104, 0.13) 64%, transparent 76%),
+    radial-gradient(circle, rgba(255, 210, 128, 0.62) 0 0.8px, rgba(255, 210, 128, 0.12) 1.6px, transparent 2.8px) 4px 68% / 18px 100%;
+}
+
+[data-theme-preview='velvet-dusk'] .theme-preview-window::after {
+  background: radial-gradient(ellipse 100% 28% at 50% 100%, rgba(12, 6, 18, 0.38) 0%, transparent 52%);
 }
 
 [data-theme-preview='abyss'] .theme-preview-window {
-  background: linear-gradient(180deg, #0a2b2e, #030c0f);
+  background:
+    radial-gradient(ellipse 52% 18% at 50% -2%, rgba(64, 198, 192, 0.14) 0%, transparent 46%),
+    linear-gradient(180deg, #0a262a 0%, #051418 56%, #020c0e 100%);
 }
 
 [data-theme-preview='abyss'] .theme-preview-window::before {
   background:
-    linear-gradient(105deg, transparent 24%, rgba(82, 226, 212, 0.18) 34%, transparent 46%),
-    radial-gradient(circle, rgba(86, 235, 216, 0.62) 0 0.8px, transparent 1.8px) 5px 8px / 20px 22px;
+    linear-gradient(104deg, transparent 24%, rgba(78, 218, 208, 0.10) 32%, transparent 44%),
+    radial-gradient(circle, rgba(92, 238, 220, 0.48) 0 0.8px, transparent 1.6px) 6px 14px / 20px 22px;
+}
+
+[data-theme-preview='abyss'] .theme-preview-window::after {
+  background: radial-gradient(circle, rgba(88, 210, 212, 0.22) 0 0.6px, transparent 1.2px) 14px 32px / 16px 18px;
+  opacity: 0.7;
 }
 
 :is(
