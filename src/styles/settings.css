@@ -97,7 +97,7 @@
   background: var(--surface);
   cursor: pointer;
   min-height: 148px;
-  transition: border-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+  transition: border-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
 }
 
 .theme-option:active:not(:disabled) {

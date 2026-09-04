@@ -62,7 +62,7 @@
     radial-gradient(ellipse 460px 380px at 82% 28%, rgba(110, 190, 238, 0.38) 0%, rgba(110, 190, 238, 0.12) 36%, transparent 70%),
     radial-gradient(ellipse 380px 320px at 58% 80%, rgba(238, 152, 184, 0.32) 0%, rgba(238, 152, 184, 0.10) 34%, transparent 68%),
     radial-gradient(ellipse 260px 200px at 38% 52%, rgba(255, 255, 255, 0.22) 0%, transparent 62%);
-  animation: crystalAuroraDrift 52s ease-in-out infinite alternate;
+  animation: crystalAuroraDrift 38s ease-in-out infinite;
 }
 
 :root[data-theme='crystal-glass'] body::after {
@@ -72,17 +72,51 @@
     radial-gradient(circle at 30% 48%, rgba(255, 255, 255, 0.45) 0 1px, transparent 1.6px) 0 0 / 52px 52px,
     radial-gradient(circle at 72% 62%, rgba(255, 255, 255, 0.22) 0 1px, transparent 1.4px) 18px 14px / 48px 48px;
   opacity: 0.66;
-  animation: crystalPrismSweep 64s linear infinite;
+  animation: crystalPrismSweep 30s ease-in-out infinite;
 }
 
 @keyframes crystalAuroraDrift {
-  from { transform: translate3d(-2.2%, -1%, 0) scale(1); }
-  to { transform: translate3d(2.6%, 1.6%, 0) scale(1.07); }
+  0% {
+    transform: translate3d(-2.4%, -1.2%, 0) scale(1) rotate(-0.4deg);
+    opacity: 0.86;
+  }
+  25% {
+    transform: translate3d(-0.8%, 0.8%, 0) scale(1.045) rotate(0.3deg);
+    opacity: 1;
+  }
+  50% {
+    transform: translate3d(1.6%, -0.2%, 0) scale(1.08) rotate(0.6deg);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translate3d(2.8%, 1.2%, 0) scale(1.035) rotate(-0.2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(-2.4%, -1.2%, 0) scale(1) rotate(-0.4deg);
+    opacity: 0.86;
+  }
 }
 
 @keyframes crystalPrismSweep {
-  from { transform: translate3d(-4.5%, 0, 0) rotate(-1.5deg); }
-  to { transform: translate3d(4.5%, -1.5%, 0) rotate(1.5deg); }
+  0% {
+    transform: translate3d(-6.5%, 0.4%, 0) rotate(-1.6deg);
+    opacity: 0.5;
+  }
+  12% { opacity: 0.85; }
+  42% {
+    transform: translate3d(6.5%, -1.6%, 0) rotate(1.6deg);
+    opacity: 0.95;
+  }
+  55% { opacity: 0.65; }
+  86% {
+    transform: translate3d(-6.5%, 0.4%, 0) rotate(-1.6deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate3d(-6.5%, 0.4%, 0) rotate(-1.6deg);
+    opacity: 0.5;
+  }
 }
 
 :root[data-theme='crystal-glass'] :is(
@@ -174,6 +208,103 @@
   }
 }
 
+/* ── Wisteria Bloom — botanical glass over petal washes ─────────────────── */
+:root[data-theme='wisteria'] {
+  --glass-surface: rgba(255, 250, 246, 0.72);
+  --glass-surface-strong: rgba(255, 251, 247, 0.86);
+  --glass-surface-subtle: rgba(247, 240, 247, 0.66);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-highlight: rgba(255, 255, 255, 0.85);
+  --glass-inner: rgba(255, 255, 255, 0.4);
+}
+
+:root[data-theme='wisteria'] :is(
+  .card,
+  .editor-card,
+  .table-list,
+  .detail-card,
+  .action-card:not(.danger-card),
+  .metric-card,
+  .hero-row,
+  .first-study-checklist,
+  .calendar-day,
+  .home-today-metric:not(.is-overdue),
+  .loading-panel
+) {
+  border-color: var(--glass-border);
+  border-top-color: var(--glass-highlight);
+  background: var(--glass-surface);
+  box-shadow:
+    0 1px 0 var(--glass-inner) inset,
+    0 -1px 0 rgba(255, 255, 255, 0.16) inset,
+    0 8px 32px rgba(84, 52, 96, 0.10),
+    0 2px 8px rgba(84, 52, 96, 0.08),
+    var(--shadow);
+  -webkit-backdrop-filter: blur(16px) saturate(138%);
+  backdrop-filter: blur(16px) saturate(138%);
+}
+
+:root[data-theme='wisteria'] :is(
+  .sidebar,
+  .topbar,
+  .mobile-navigation,
+  .notice-popover,
+  .global-search-panel,
+  .quick-add-menu,
+  .mobile-nav-more-menu,
+  .confirm-dialog
+) {
+  border-color: var(--glass-border);
+  border-top-color: var(--glass-highlight);
+  background: var(--glass-surface-strong);
+  box-shadow:
+    0 1px 0 var(--glass-highlight) inset,
+    0 12px 40px rgba(84, 52, 96, 0.14),
+    0 4px 16px rgba(84, 52, 96, 0.10),
+    var(--shadow-popover);
+  -webkit-backdrop-filter: blur(20px) saturate(142%);
+  backdrop-filter: blur(20px) saturate(142%);
+}
+
+:root[data-theme='wisteria'] :is(
+  .search-field,
+  .sidebar-toggle,
+  .icon-button,
+  .quick-add-trigger,
+  .secondary-command,
+  .field input,
+  .field select,
+  .field textarea,
+  .reset-confirm-input,
+  .segmented-control,
+  .note-paper
+) {
+  background-color: var(--glass-surface-strong);
+  border-color: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(12px) saturate(132%);
+  backdrop-filter: blur(12px) saturate(132%);
+}
+
+:root[data-theme='wisteria'] .list-row:hover,
+:root[data-theme='wisteria'] .action-card:not(.danger-card):hover {
+  background: var(--glass-surface-subtle);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+:root[data-theme='wisteria'] .progress-bar-track,
+:root[data-theme='wisteria'] .study-journal-track {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  :root[data-theme='wisteria'] {
+    --glass-surface: rgba(255, 250, 246, 0.96);
+    --glass-surface-strong: rgba(255, 251, 247, 0.98);
+    --glass-surface-subtle: rgba(247, 240, 247, 0.96);
+  }
+}
+
 /* ── Wisteria Bloom — hanging racemes, botanical depth ─────────────────── */
 :root[data-theme='wisteria'] body {
   background:
@@ -192,7 +323,7 @@
     radial-gradient(ellipse 13px 24px at 77% 24%, rgba(104, 60, 136, 0.20) 0%, transparent 72%),
     radial-gradient(ellipse 10px 16px at 52% 20%, rgba(138, 90, 166, 0.15) 0%, transparent 74%),
     radial-gradient(ellipse 48% 32% at 90% 78%, rgba(86, 122, 90, 0.09) 0%, transparent 62%);
-  animation: wisteriaPetalDrift 58s ease-in-out infinite alternate;
+  animation: wisteriaPetalDrift 34s ease-in-out infinite;
 }
 
 :root[data-theme='wisteria'] body::after {
@@ -206,17 +337,38 @@
     linear-gradient(172deg, transparent 72%, rgba(118, 68, 148, 0.06) 72.2% 72.6%, transparent 72.8%),
     linear-gradient(180deg, transparent 18%, rgba(118, 68, 148, 0.04) 18.1% 22%, transparent 22.2%);
   opacity: 0.88;
-  animation: wisteriaBloomBreathe 48s ease-in-out infinite alternate;
+  animation: wisteriaBloomBreathe 26s ease-in-out infinite;
 }
 
 @keyframes wisteriaPetalDrift {
-  from { transform: translate3d(-1.2%, -1.4%, 0) rotate(-0.7deg); }
-  to { transform: translate3d(1.6%, 1.8%, 0) rotate(0.8deg); }
+  0% {
+    transform: translate3d(-1.6%, -1.8%, 0) rotate(-0.8deg) scale(1);
+    opacity: 0.84;
+  }
+  25% {
+    transform: translate3d(1%, -0.4%, 0) rotate(0.5deg) scale(1.03);
+    opacity: 1;
+  }
+  50% {
+    transform: translate3d(1.8%, 1.2%, 0) rotate(0.9deg) scale(1.05);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translate3d(-0.4%, 1.8%, 0) rotate(-0.3deg) scale(1.02);
+    opacity: 0.98;
+  }
+  100% {
+    transform: translate3d(-1.6%, -1.8%, 0) rotate(-0.8deg) scale(1);
+    opacity: 0.84;
+  }
 }
 
 @keyframes wisteriaBloomBreathe {
-  from { transform: scale(1); opacity: 0.78; }
-  to { transform: scale(1.04); opacity: 0.96; }
+  0% { transform: scale(1) translateY(0); opacity: 0.78; }
+  30% { transform: scale(1.035) translateY(-0.5%); opacity: 0.98; }
+  55% { transform: scale(1.055) translateY(0.3%); opacity: 0.88; }
+  80% { transform: translate3d(0, 0.6%, 0) scale(1.02); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 0.78; }
 }
 
 /* ── Celestial Drift — deep indigo night with layered starfield ────────── */
@@ -234,7 +386,7 @@
     radial-gradient(circle, rgba(196, 202, 255, 0.58) 0 1.2px, transparent 1.9px) 8px 38px / 88px 88px,
     radial-gradient(circle, rgba(255, 255, 255, 0.32) 0 1.6px, rgba(255, 255, 255, 0.08) 3px, transparent 5px) 28px 54px / 128px 128px;
   opacity: 0.74;
-  animation: celestialStarDrift 96s linear infinite;
+  animation: celestialStarDrift 64s ease-in-out infinite;
 }
 
 :root[data-theme='celestial'] body::after {
@@ -245,17 +397,140 @@
     radial-gradient(ellipse 44% 28% at 46% 58%, rgba(98, 84, 188, 0.13) 0%, rgba(72, 62, 156, 0.06) 38%, transparent 68%),
     /* subtle horizon glow — low indigo */
     radial-gradient(ellipse 90% 18% at 50% 100%, rgba(62, 58, 148, 0.14) 0%, transparent 58%);
-  animation: celestialGlowShift 72s ease-in-out infinite alternate;
+  animation: celestialGlowShift 30s ease-in-out infinite;
 }
 
 @keyframes celestialStarDrift {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(1.8%, -2.8%, 0); }
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.68;
+  }
+  28% { opacity: 0.92; }
+  50% {
+    transform: translate3d(1.6%, -2.4%, 0) scale(1.03);
+    opacity: 0.76;
+  }
+  74% { opacity: 0.98; }
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.68;
+  }
 }
 
 @keyframes celestialGlowShift {
-  from { transform: translate3d(-1%, 0.6%, 0); opacity: 0.78; }
-  to { transform: translate3d(1.2%, -0.6%, 0); opacity: 0.96; }
+  0% {
+    transform: translate3d(-1%, 0.6%, 0) scale(1);
+    opacity: 0.78;
+  }
+  33% {
+    transform: translate3d(1.2%, -0.4%, 0) scale(1.05);
+    opacity: 1;
+  }
+  66% {
+    transform: translate3d(0.4%, 0.8%, 0) scale(1.03);
+    opacity: 0.86;
+  }
+  100% {
+    transform: translate3d(-1%, 0.6%, 0) scale(1);
+    opacity: 0.78;
+  }
+}
+
+/* ── Celestial Drift — night glass over the starfield ──────────────────── */
+:root[data-theme='celestial'] {
+  --glass-surface: rgba(23, 29, 59, 0.74);
+  --glass-surface-strong: rgba(19, 25, 52, 0.86);
+  --glass-surface-subtle: rgba(16, 22, 47, 0.68);
+  --glass-border: rgba(214, 220, 255, 0.22);
+  --glass-highlight: rgba(214, 220, 255, 0.38);
+  --glass-inner: rgba(214, 220, 255, 0.12);
+}
+
+:root[data-theme='celestial'] :is(
+  .card,
+  .editor-card,
+  .table-list,
+  .detail-card,
+  .action-card:not(.danger-card),
+  .metric-card,
+  .hero-row,
+  .first-study-checklist,
+  .calendar-day,
+  .home-today-metric:not(.is-overdue),
+  .loading-panel
+) {
+  border-color: var(--glass-border);
+  border-top-color: var(--glass-highlight);
+  background: var(--glass-surface);
+  box-shadow:
+    0 1px 0 var(--glass-inner) inset,
+    0 -1px 0 rgba(2, 4, 18, 0.4) inset,
+    0 8px 32px rgba(2, 4, 18, 0.38),
+    0 2px 8px rgba(2, 4, 18, 0.32),
+    var(--shadow);
+  -webkit-backdrop-filter: blur(16px) saturate(134%);
+  backdrop-filter: blur(16px) saturate(134%);
+}
+
+:root[data-theme='celestial'] :is(
+  .sidebar,
+  .topbar,
+  .mobile-navigation,
+  .notice-popover,
+  .global-search-panel,
+  .quick-add-menu,
+  .mobile-nav-more-menu,
+  .confirm-dialog
+) {
+  border-color: var(--glass-border);
+  border-top-color: var(--glass-highlight);
+  background: var(--glass-surface-strong);
+  box-shadow:
+    0 1px 0 var(--glass-highlight) inset,
+    0 12px 40px rgba(2, 4, 18, 0.44),
+    0 4px 16px rgba(2, 4, 18, 0.36),
+    var(--shadow-popover);
+  -webkit-backdrop-filter: blur(20px) saturate(138%);
+  backdrop-filter: blur(20px) saturate(138%);
+}
+
+:root[data-theme='celestial'] :is(
+  .search-field,
+  .sidebar-toggle,
+  .icon-button,
+  .quick-add-trigger,
+  .secondary-command,
+  .field input,
+  .field select,
+  .field textarea,
+  .reset-confirm-input,
+  .segmented-control,
+  .note-paper
+) {
+  background-color: var(--glass-surface-strong);
+  border-color: rgba(214, 220, 255, 0.24);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  backdrop-filter: blur(12px) saturate(130%);
+}
+
+:root[data-theme='celestial'] .list-row:hover,
+:root[data-theme='celestial'] .action-card:not(.danger-card):hover {
+  background: var(--glass-surface-subtle);
+  border-color: rgba(214, 220, 255, 0.36);
+}
+
+:root[data-theme='celestial'] .progress-bar-track,
+:root[data-theme='celestial'] .study-journal-track {
+  background: rgba(214, 220, 255, 0.12);
+  border: 1px solid rgba(214, 220, 255, 0.2);
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  :root[data-theme='celestial'] {
+    --glass-surface: rgba(23, 29, 59, 0.97);
+    --glass-surface-strong: rgba(19, 25, 52, 0.99);
+    --glass-surface-subtle: rgba(16, 22, 47, 0.96);
+  }
 }
 
 /* ── Velvet Dusk — cinematic plum → rose → amber horizon ───────────────── */
@@ -276,7 +551,7 @@
     linear-gradient(180deg, transparent 64%, rgba(12, 6, 18, 0.32) 82%, rgba(12, 6, 18, 0.62) 100%),
     /* subtle cloud wisps — horizontal */
     linear-gradient(90deg, transparent 4%, rgba(68, 28, 62, 0.10) 22%, transparent 48%, rgba(82, 34, 58, 0.08) 72%, transparent 96%);
-  animation: velvetHazeDrift 78s ease-in-out infinite alternate;
+  animation: velvetHazeDrift 36s ease-in-out infinite;
 }
 
 :root[data-theme='velvet-dusk'] body::after {
@@ -285,17 +560,158 @@
     radial-gradient(circle, rgba(255, 168, 118, 0.48) 0 1.3px, rgba(255, 168, 118, 0.10) 2.8px, transparent 5px) 38px 78% / 84px 100%,
     radial-gradient(circle, rgba(255, 255, 255, 0.16) 0 0.6px, transparent 1px) 20px 18px / 64px 64px;
   opacity: 0.62;
-  animation: velvetCityDrift 88s linear infinite;
+  animation: velvetCityDrift 48s ease-in-out infinite;
 }
 
 @keyframes velvetHazeDrift {
-  from { transform: translate3d(-2.4%, 0, 0) scale(1); }
-  to { transform: translate3d(2.4%, -0.8%, 0) scale(1.04); }
+  0% {
+    transform: translate3d(-2%, 0, 0) scale(1);
+    opacity: 0.9;
+  }
+  28% {
+    transform: translate3d(1.4%, -0.6%, 0) scale(1.03);
+    opacity: 1;
+  }
+  55% {
+    transform: translate3d(2.4%, -0.2%, 0) scale(1.05);
+    opacity: 0.85;
+  }
+  82% {
+    transform: translate3d(-0.6%, 0.4%, 0) scale(1.02);
+    opacity: 0.97;
+  }
+  100% {
+    transform: translate3d(-2%, 0, 0) scale(1);
+    opacity: 0.9;
+  }
 }
 
 @keyframes velvetCityDrift {
-  from { transform: translate3d(0, 0, 0); opacity: 0.52; }
-  to { transform: translate3d(-1.6%, 0.6%, 0); opacity: 0.70; }
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.52;
+  }
+  30% {
+    transform: translate3d(-0.9%, 0.3%, 0) scale(1.02);
+    opacity: 0.66;
+  }
+  38% {
+    transform: translate3d(-1.2%, 0.4%, 0) scale(1.028);
+    opacity: 0.58;
+  }
+  50% {
+    transform: translate3d(-1.8%, 0.6%, 0) scale(1.04);
+    opacity: 0.74;
+  }
+  62% {
+    transform: translate3d(-1.4%, 0.5%, 0) scale(1.032);
+    opacity: 0.66;
+  }
+  80% {
+    transform: translate3d(-0.8%, 0.3%, 0) scale(1.015);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.52;
+  }
+}
+
+/* ── Velvet Dusk — dusk glass with amber rim light ──────────────────────── */
+:root[data-theme='velvet-dusk'] {
+  --glass-surface: rgba(42, 25, 48, 0.74);
+  --glass-surface-strong: rgba(33, 19, 38, 0.86);
+  --glass-surface-subtle: rgba(33, 19, 38, 0.68);
+  --glass-border: rgba(255, 226, 205, 0.22);
+  --glass-highlight: rgba(255, 214, 178, 0.38);
+  --glass-inner: rgba(255, 214, 178, 0.1);
+}
+
+:root[data-theme='velvet-dusk'] :is(
+  .card,
+  .editor-card,
+  .table-list,
+  .detail-card,
+  .action-card:not(.danger-card),
+  .metric-card,
+  .hero-row,
+  .first-study-checklist,
+  .calendar-day,
+  .home-today-metric:not(.is-overdue),
+  .loading-panel
+) {
+  border-color: var(--glass-border);
+  border-top-color: var(--glass-highlight);
+  background: var(--glass-surface);
+  box-shadow:
+    0 1px 0 var(--glass-inner) inset,
+    0 -1px 0 rgba(10, 5, 14, 0.4) inset,
+    0 8px 32px rgba(10, 5, 14, 0.4),
+    0 2px 8px rgba(10, 5, 14, 0.34),
+    var(--shadow);
+  -webkit-backdrop-filter: blur(16px) saturate(134%);
+  backdrop-filter: blur(16px) saturate(134%);
+}
+
+:root[data-theme='velvet-dusk'] :is(
+  .sidebar,
+  .topbar,
+  .mobile-navigation,
+  .notice-popover,
+  .global-search-panel,
+  .quick-add-menu,
+  .mobile-nav-more-menu,
+  .confirm-dialog
+) {
+  border-color: var(--glass-border);
+  border-top-color: var(--glass-highlight);
+  background: var(--glass-surface-strong);
+  box-shadow:
+    0 1px 0 var(--glass-highlight) inset,
+    0 12px 40px rgba(10, 5, 14, 0.46),
+    0 4px 16px rgba(10, 5, 14, 0.38),
+    var(--shadow-popover);
+  -webkit-backdrop-filter: blur(20px) saturate(138%);
+  backdrop-filter: blur(20px) saturate(138%);
+}
+
+:root[data-theme='velvet-dusk'] :is(
+  .search-field,
+  .sidebar-toggle,
+  .icon-button,
+  .quick-add-trigger,
+  .secondary-command,
+  .field input,
+  .field select,
+  .field textarea,
+  .reset-confirm-input,
+  .segmented-control,
+  .note-paper
+) {
+  background-color: var(--glass-surface-strong);
+  border-color: rgba(255, 226, 205, 0.24);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  backdrop-filter: blur(12px) saturate(130%);
+}
+
+:root[data-theme='velvet-dusk'] .list-row:hover,
+:root[data-theme='velvet-dusk'] .action-card:not(.danger-card):hover {
+  background: var(--glass-surface-subtle);
+  border-color: rgba(255, 214, 178, 0.36);
+}
+
+:root[data-theme='velvet-dusk'] .progress-bar-track,
+:root[data-theme='velvet-dusk'] .study-journal-track {
+  background: rgba(255, 214, 178, 0.12);
+  border: 1px solid rgba(255, 214, 178, 0.2);
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  :root[data-theme='velvet-dusk'] {
+    --glass-surface: rgba(42, 25, 48, 0.97);
+    --glass-surface-strong: rgba(33, 19, 38, 0.99);
+    --glass-surface-subtle: rgba(33, 19, 38, 0.96);
+  }
 }
 
 /* ── Abyssal Glow — deep ocean with caustic shafts and motes ───────────── */
@@ -319,7 +735,7 @@
     radial-gradient(ellipse 44% 14% at 32% 8%, rgba(72, 212, 200, 0.055) 0%, transparent 58%),
     radial-gradient(ellipse 36% 12% at 68% 14%, rgba(88, 188, 212, 0.042) 0%, transparent 54%);
   transform-origin: 50% 0;
-  animation: abyssLightShafts 74s ease-in-out infinite alternate;
+  animation: abyssLightShafts 30s ease-in-out infinite;
 }
 
 :root[data-theme='abyss'] body::after {
@@ -328,17 +744,380 @@
     radial-gradient(circle, rgba(88, 210, 212, 0.38) 0 0.9px, rgba(88, 210, 212, 0.09) 1.8px, transparent 2.8px) 36px 48px / 64px 72px,
     radial-gradient(ellipse 100% 42% at 50% 100%, rgba(2, 12, 14, 0.38) 0%, transparent 62%);
   opacity: 0.56;
-  animation: abyssMoteRise 86s linear infinite;
+  animation: abyssMoteRise 26s ease-in-out infinite;
 }
 
 @keyframes abyssLightShafts {
-  from { transform: translate3d(-1.6%, -1.2%, 0) skewX(-1.2deg); opacity: 0.62; }
-  to { transform: translate3d(1.6%, 0.8%, 0) skewX(1.2deg); opacity: 0.88; }
+  0% {
+    transform: translate3d(-1.6%, -1.2%, 0) skewX(-1.2deg);
+    opacity: 0.62;
+  }
+  28% {
+    transform: translate3d(0.8%, -0.4%, 0) skewX(-0.4deg);
+    opacity: 0.88;
+  }
+  50% {
+    transform: translate3d(1.6%, 0.8%, 0) skewX(1.2deg);
+    opacity: 0.68;
+  }
+  74% {
+    transform: translate3d(0.4%, 0.4%, 0) skewX(0.5deg);
+    opacity: 0.92;
+  }
+  100% {
+    transform: translate3d(-1.6%, -1.2%, 0) skewX(-1.2deg);
+    opacity: 0.62;
+  }
 }
 
 @keyframes abyssMoteRise {
-  from { transform: translate3d(0, 4%, 0); }
-  to { transform: translate3d(1.4%, -4%, 0); }
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.54;
+  }
+  24% { opacity: 0.7; }
+  50% {
+    transform: translate3d(1%, -4.5%, 0) rotate(0.3deg);
+    opacity: 0.5;
+  }
+  74% { opacity: 0.72; }
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.54;
+  }
+}
+
+/* ── Abyssal Glow — underwater glass with bioluminescent edge ───────────── */
+:root[data-theme='abyss'] {
+  --glass-surface: rgba(16, 39, 43, 0.74);
+  --glass-surface-strong: rgba(11, 30, 34, 0.86);
+  --glass-surface-subtle: rgba(11, 30, 34, 0.68);
+  --glass-border: rgba(190, 242, 233, 0.2);
+  --glass-highlight: rgba(190, 242, 233, 0.38);
+  --glass-inner: rgba(190, 242, 233, 0.1);
+}
+
+:root[data-theme='abyss'] :is(
+  .card,
+  .editor-card,
+  .table-list,
+  .detail-card,
+  .action-card:not(.danger-card),
+  .metric-card,
+  .hero-row,
+  .first-study-checklist,
+  .calendar-day,
+  .home-today-metric:not(.is-overdue),
+  .loading-panel
+) {
+  border-color: var(--glass-border);
+  border-top-color: var(--glass-highlight);
+  background: var(--glass-surface);
+  box-shadow:
+    0 1px 0 var(--glass-inner) inset,
+    0 -1px 0 rgba(0, 8, 10, 0.4) inset,
+    0 8px 32px rgba(0, 8, 10, 0.42),
+    0 2px 8px rgba(0, 8, 10, 0.36),
+    var(--shadow);
+  -webkit-backdrop-filter: blur(16px) saturate(134%);
+  backdrop-filter: blur(16px) saturate(134%);
+}
+
+:root[data-theme='abyss'] :is(
+  .sidebar,
+  .topbar,
+  .mobile-navigation,
+  .notice-popover,
+  .global-search-panel,
+  .quick-add-menu,
+  .mobile-nav-more-menu,
+  .confirm-dialog
+) {
+  border-color: var(--glass-border);
+  border-top-color: var(--glass-highlight);
+  background: var(--glass-surface-strong);
+  box-shadow:
+    0 1px 0 var(--glass-highlight) inset,
+    0 12px 40px rgba(0, 8, 10, 0.48),
+    0 4px 16px rgba(0, 8, 10, 0.4),
+    var(--shadow-popover);
+  -webkit-backdrop-filter: blur(20px) saturate(138%);
+  backdrop-filter: blur(20px) saturate(138%);
+}
+
+:root[data-theme='abyss'] :is(
+  .search-field,
+  .sidebar-toggle,
+  .icon-button,
+  .quick-add-trigger,
+  .secondary-command,
+  .field input,
+  .field select,
+  .field textarea,
+  .reset-confirm-input,
+  .segmented-control,
+  .note-paper
+) {
+  background-color: var(--glass-surface-strong);
+  border-color: rgba(190, 242, 233, 0.22);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  backdrop-filter: blur(12px) saturate(130%);
+}
+
+:root[data-theme='abyss'] .list-row:hover,
+:root[data-theme='abyss'] .action-card:not(.danger-card):hover {
+  background: var(--glass-surface-subtle);
+  border-color: rgba(190, 242, 233, 0.34);
+}
+
+:root[data-theme='abyss'] .progress-bar-track,
+:root[data-theme='abyss'] .study-journal-track {
+  background: rgba(190, 242, 233, 0.12);
+  border: 1px solid rgba(190, 242, 233, 0.2);
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  :root[data-theme='abyss'] {
+    --glass-surface: rgba(16, 39, 43, 0.97);
+    --glass-surface-strong: rgba(11, 30, 34, 0.99);
+    --glass-surface-subtle: rgba(11, 30, 34, 0.96);
+  }
+}
+
+/* ── Premium interaction layer — glow pulse, hover lift, sheen ─────────── */
+@keyframes premiumNavPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@keyframes premiumFocusAura {
+  0%, 100% { opacity: 0.32; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes premiumProgressSheen {
+  0% { transform: translateX(-130%); }
+  60%, 100% { transform: translateX(130%); }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(
+    :root[data-theme='crystal-glass'],
+    :root[data-theme='wisteria'],
+    :root[data-theme='celestial'],
+    :root[data-theme='velvet-dusk'],
+    :root[data-theme='abyss']
+  ) :is(.list-row, .action-card:not(.danger-card)) {
+    transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease, border-color 180ms ease;
+  }
+
+  :is(
+    :root[data-theme='crystal-glass'],
+    :root[data-theme='wisteria'],
+    :root[data-theme='celestial'],
+    :root[data-theme='velvet-dusk'],
+    :root[data-theme='abyss']
+  ) :is(.theme-option, .nav-item, .segmented-control button) {
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+
+  :is(
+    :root[data-theme='crystal-glass'],
+    :root[data-theme='wisteria'],
+    :root[data-theme='celestial'],
+    :root[data-theme='velvet-dusk'],
+    :root[data-theme='abyss']
+  ) :is(.list-row:hover, .action-card:not(.danger-card):hover, .theme-option:hover) {
+    transform: translateY(-2px);
+  }
+
+  :root[data-theme='crystal-glass'] :is(.list-row:hover, .action-card:not(.danger-card):hover, .theme-option:hover) {
+    box-shadow: 0 10px 28px rgba(58, 44, 96, 0.16), 0 2px 8px rgba(58, 44, 96, 0.12);
+  }
+
+  :root[data-theme='wisteria'] :is(.list-row:hover, .action-card:not(.danger-card):hover, .theme-option:hover) {
+    box-shadow: 0 10px 28px rgba(84, 52, 96, 0.16), 0 2px 8px rgba(84, 52, 96, 0.12);
+  }
+
+  :root[data-theme='celestial'] :is(.list-row:hover, .action-card:not(.danger-card):hover, .theme-option:hover) {
+    box-shadow: 0 10px 28px rgba(2, 4, 18, 0.5), 0 0 18px rgba(167, 179, 255, 0.28);
+  }
+
+  :root[data-theme='velvet-dusk'] :is(.list-row:hover, .action-card:not(.danger-card):hover, .theme-option:hover) {
+    box-shadow: 0 10px 28px rgba(10, 5, 14, 0.5), 0 0 18px rgba(242, 154, 128, 0.3);
+  }
+
+  :root[data-theme='abyss'] :is(.list-row:hover, .action-card:not(.danger-card):hover, .theme-option:hover) {
+    box-shadow: 0 10px 28px rgba(0, 8, 10, 0.5), 0 0 18px rgba(76, 224, 210, 0.3);
+  }
+
+  :root[data-theme='crystal-glass'] .primary-command:hover {
+    box-shadow: 0 0 0 3px rgba(96, 67, 166, 0.22), 0 8px 24px rgba(96, 67, 166, 0.35);
+  }
+
+  :root[data-theme='wisteria'] .primary-command:hover {
+    box-shadow: 0 0 0 3px rgba(113, 65, 143, 0.22), 0 8px 24px rgba(113, 65, 143, 0.35);
+  }
+
+  :root[data-theme='celestial'] .primary-command:hover {
+    box-shadow: 0 0 0 3px rgba(167, 179, 255, 0.25), 0 8px 26px rgba(167, 179, 255, 0.4);
+  }
+
+  :root[data-theme='velvet-dusk'] .primary-command:hover {
+    box-shadow: 0 0 0 3px rgba(242, 154, 128, 0.25), 0 8px 26px rgba(242, 154, 128, 0.4);
+  }
+
+  :root[data-theme='abyss'] .primary-command:hover {
+    box-shadow: 0 0 0 3px rgba(76, 224, 210, 0.22), 0 8px 26px rgba(76, 224, 210, 0.4);
+  }
+}
+
+:is(
+  :root[data-theme='crystal-glass'],
+  :root[data-theme='wisteria'],
+  :root[data-theme='celestial'],
+  :root[data-theme='velvet-dusk'],
+  :root[data-theme='abyss']
+) .nav-item.is-active::before {
+  animation: premiumNavPulse 2.4s ease-in-out infinite;
+}
+
+:is(
+  :root[data-theme='crystal-glass'],
+  :root[data-theme='wisteria'],
+  :root[data-theme='celestial'],
+  :root[data-theme='velvet-dusk'],
+  :root[data-theme='abyss']
+) .progress-track span {
+  position: relative;
+}
+
+:is(
+  :root[data-theme='crystal-glass'],
+  :root[data-theme='wisteria'],
+  :root[data-theme='celestial'],
+  :root[data-theme='velvet-dusk'],
+  :root[data-theme='abyss']
+) .progress-track span::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 25%, rgba(255, 255, 255, 0.38) 50%, transparent 75%);
+  transform: translateX(-130%);
+  animation: premiumProgressSheen 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+:is(
+  :root[data-theme='crystal-glass'],
+  :root[data-theme='wisteria'],
+  :root[data-theme='celestial'],
+  :root[data-theme='velvet-dusk'],
+  :root[data-theme='abyss']
+) .focus-ring {
+  position: relative;
+}
+
+:is(
+  :root[data-theme='crystal-glass'],
+  :root[data-theme='wisteria'],
+  :root[data-theme='celestial'],
+  :root[data-theme='velvet-dusk'],
+  :root[data-theme='abyss']
+) .focus-ring::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  animation: premiumFocusAura 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Crystal Glass — interaction accents ───────────────────────────────── */
+:root[data-theme='crystal-glass'] .nav-item.is-active::before {
+  box-shadow: 0 0 4px rgba(96, 67, 166, 0.3);
+}
+
+:root[data-theme='crystal-glass'] .focus-ring {
+  box-shadow: 0 0 36px 4px rgba(96, 67, 166, 0.28), 0 0 90px 12px rgba(96, 67, 166, 0.14);
+}
+
+:root[data-theme='crystal-glass'] .focus-ring::before {
+  box-shadow: 0 0 26px 3px rgba(96, 67, 166, 0.55);
+}
+
+/* ── Wisteria Bloom — interaction accents ──────────────────────────────── */
+:root[data-theme='wisteria'] .nav-item.is-active::before {
+  box-shadow: 0 0 8px 1px rgba(113, 65, 143, 0.65);
+}
+
+:root[data-theme='wisteria'] .focus-ring {
+  box-shadow: 0 0 36px 4px rgba(113, 65, 143, 0.28), 0 0 90px 12px rgba(113, 65, 143, 0.14);
+}
+
+:root[data-theme='wisteria'] .focus-ring::before {
+  box-shadow: 0 0 26px 3px rgba(113, 65, 143, 0.55);
+}
+
+/* ── Celestial Drift — interaction accents ─────────────────────────────── */
+:root[data-theme='celestial'] .nav-item.is-active::before {
+  box-shadow: 0 0 10px 2px rgba(167, 179, 255, 0.75);
+}
+
+:root[data-theme='celestial'] .focus-ring {
+  box-shadow: 0 0 36px 4px rgba(167, 179, 255, 0.3), 0 0 90px 14px rgba(167, 179, 255, 0.16);
+}
+
+:root[data-theme='celestial'] .focus-ring::before {
+  box-shadow: 0 0 26px 3px rgba(167, 179, 255, 0.6);
+}
+
+/* ── Velvet Dusk — interaction accents ─────────────────────────────────── */
+:root[data-theme='velvet-dusk'] .nav-item.is-active::before {
+  box-shadow: 0 0 10px 2px rgba(242, 154, 128, 0.75);
+}
+
+:root[data-theme='velvet-dusk'] .focus-ring {
+  box-shadow: 0 0 36px 4px rgba(242, 154, 128, 0.3), 0 0 90px 14px rgba(242, 154, 128, 0.16);
+}
+
+:root[data-theme='velvet-dusk'] .focus-ring::before {
+  box-shadow: 0 0 26px 3px rgba(242, 154, 128, 0.6);
+}
+
+/* ── Abyssal Glow — interaction accents ────────────────────────────────── */
+:root[data-theme='abyss'] .nav-item.is-active::before {
+  box-shadow: 0 0 10px 2px rgba(76, 224, 210, 0.75);
+}
+
+:root[data-theme='abyss'] .focus-ring {
+  box-shadow: 0 0 36px 4px rgba(76, 224, 210, 0.3), 0 0 90px 14px rgba(76, 224, 210, 0.16);
+}
+
+:root[data-theme='abyss'] .focus-ring::before {
+  box-shadow: 0 0 26px 3px rgba(76, 224, 210, 0.6);
+}
+
+/* ── Premium selection tints ───────────────────────────────────────────── */
+:root[data-theme='crystal-glass'] ::selection {
+  background: rgba(96, 67, 166, 0.85);
+}
+
+:root[data-theme='wisteria'] ::selection {
+  background: rgba(113, 65, 143, 0.85);
+}
+
+:root[data-theme='celestial'] ::selection {
+  background: rgba(167, 179, 255, 0.9);
+}
+
+:root[data-theme='velvet-dusk'] ::selection {
+  background: rgba(242, 154, 128, 0.9);
+}
+
+:root[data-theme='abyss'] ::selection {
+  background: rgba(76, 224, 210, 0.85);
 }
 
 /* ── Static opaque Zen canvases (dashboard fully hidden) ────────────────── */
@@ -514,4 +1293,79 @@
 ) :is(.theme-preview-sidebar, .theme-preview-body) {
   position: relative;
   z-index: 1;
+}
+
+/* ── Live ambience for premium preview miniatures ──────────────────────── */
+[data-theme-preview='crystal-glass'] .theme-preview-window::before {
+  animation: previewCrystalPrism 12s ease-in-out infinite;
+}
+
+[data-theme-preview='crystal-glass'] .theme-preview-window::after {
+  animation: previewCrystalGlint 8s ease-in-out infinite;
+}
+
+@keyframes previewCrystalPrism {
+  0%, 100% { transform: translate3d(-8%, 0, 0); opacity: 0.72; }
+  50% { transform: translate3d(8%, -2%, 0); opacity: 1; }
+}
+
+@keyframes previewCrystalGlint {
+  0%, 100% { transform: scale(1); opacity: 0.38; }
+  50% { transform: scale(1.06); opacity: 0.78; }
+}
+
+[data-theme-preview='wisteria'] .theme-preview-window::before {
+  animation: previewWisteriaSway 11s ease-in-out infinite;
+}
+
+[data-theme-preview='wisteria'] .theme-preview-window::after {
+  animation: previewWisteriaBreathe 14s ease-in-out infinite;
+}
+
+@keyframes previewWisteriaSway {
+  0%, 100% { transform: translate3d(-3%, 1.5%, 0) rotate(-1.6deg); }
+  50% { transform: translate3d(3%, -1.5%, 0) rotate(1.6deg); }
+}
+
+@keyframes previewWisteriaBreathe {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.07); opacity: 1; }
+}
+
+[data-theme-preview='celestial'] .theme-preview-window::before {
+  animation: previewCelestialTwinkle 6s ease-in-out infinite;
+}
+
+@keyframes previewCelestialTwinkle {
+  0%, 100% { opacity: 0.68; transform: translate3d(0, 0, 0); }
+  30% { opacity: 1; }
+  50% { opacity: 0.78; transform: translate3d(1.5%, -2%, 0); }
+  72% { opacity: 0.95; }
+}
+
+[data-theme-preview='velvet-dusk'] .theme-preview-window::before {
+  animation: previewVelvetShimmer 10s ease-in-out infinite;
+}
+
+@keyframes previewVelvetShimmer {
+  0%, 100% { transform: translate3d(-3%, 0, 0); opacity: 0.68; }
+  50% { transform: translate3d(3%, -1%, 0); opacity: 1; }
+}
+
+[data-theme-preview='abyss'] .theme-preview-window::before {
+  animation: previewAbyssShaftSway 12s ease-in-out infinite;
+}
+
+[data-theme-preview='abyss'] .theme-preview-window::after {
+  animation: previewAbyssMoteDrift 9s ease-in-out infinite;
+}
+
+@keyframes previewAbyssShaftSway {
+  0%, 100% { transform: translate3d(0, 1.5%, 0); opacity: 0.68; }
+  50% { transform: translate3d(1.5%, -2%, 0); opacity: 1; }
+}
+
+@keyframes previewAbyssMoteDrift {
+  0%, 100% { transform: translate3d(0, 2.5%, 0); opacity: 0.5; }
+  50% { transform: translate3d(-1%, -2.5%, 0); opacity: 0.95; }
 }
