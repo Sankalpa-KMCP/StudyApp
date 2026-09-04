@@ -4,6 +4,10 @@
 
 ### Added
 
+- Canonical backupability guard: every local mutation now proves the prospective database stays within the symmetrical **64 MiB** / record-count ceilings (or does not worsen a grandfathered oversized state) before committing, via `runBackupableMutation`.
+- Fullscreen Zen focus mode and persisted Comfortable/Compact dashboard density.
+- Distinctive product brand mark and theme-aware entry/motion treatments.
+- Animated premium theme treatments with reduced-motion zeroing.
 - Expanded the theme library to **21 accessible palettes** (11 Light and 10 Dark), adding **Crystal Glass**, **Wisteria Bloom**, **Celestial Drift**, **Velvet Dusk**, and **Abyssal Glow** with distinct CSS-only live wallpapers, static gallery ambience, and opaque Zen treatments.
 - Visual Theme Gallery in Settings with persistent Light and Dark category grouping, dynamic category count badges (`11` and `10`), clear visual boundary separation, and continuous roving tabindex keyboard navigation across all 21 theme choices.
 - Centralized theme registry (`src/styles/themeRegistry.ts`) and CSS semantic token system (`src/styles/tokens.css`) providing full semantic palettes and thumbnail preview swatches for all 21 themes; `src/styles/themes.css` owns premium ambience and selective Crystal Glass surfaces.
@@ -12,6 +16,21 @@
 
 ### Fixed
 
+- Study-time metrics no longer freeze at page-load time: today focus, weekly chart, streak, study-time goals, and subject progress now credit sessions finalized after mount using a live wall-clock, while the local-midnight signal still drives calendar-day rollover.
+- Zen exit restores keyboard focus after the overlay unmounts (previously a no-op against `inert`); navigation clears any pending restore.
+- Subject-update failures with no durable session now clear local focus instead of reinstalling a ghost session that ticks and can re-fire auto-completion.
+- Exports heal the known `pausedAt < startedAt` focus anomaly (and drop genuinely corrupt singletons) so every export re-imports; imports reject canonical payloads over 64 MiB so a compact upload can no longer import and then fail every export.
+- Clear-all and import repair a corrupt `databaseGeneration` key instead of bricking the designed recovery flow.
+- `NumberInput` commits clamping on blur (intermediate keystrokes stay typeable); save-time clamping already in the editors is unchanged.
+- Subjects receives the global search query, so its “No matches / Clear search” state works; Tasks shows search feedback before filter feedback; subject search matches the same fields in global and workspace search.
+- Legacy `localStorage` migration uses the local calendar day for event timestamps instead of mixing UTC day with local times.
+- Imports reject blank subject names and task/note/event/goal titles, matching domain-write validation (reject, don’t repair).
+- Migration notices survive React StrictMode double-mounts; the clear-all notice timer no longer clobbers newer notices; `startSession` reports `invalid` results; subject updates gate on the synchronous pending refs; a post-import focus-restore failure no longer reports the import as failed.
+- Sidebar marks the current page with `aria-current`; calendar strip uses `role="group"`; undefined `var(--text)` tokens resolve to `var(--ink)`; subject name and note title validation use stable field error associations.
+- Removed dead CSS (`.due-copy`, `.status-badge`, `.insight-grid`, `.review-card`, duplicate mobile `workspaceGroupSettle`) and the dead `db/db` eslint rule; corrected the `viewRoutes` route count and the README 64 MiB limit.
+- Compact density is now a genuinely denser focus layout (tightened cards, gaps, hero scale) instead of hiding copy: hero tagline, recommendation detail, Today previews, and Recent Notes render in both densities; the right rail stays comfortable-only by design.
+- Compact hero-scale rules are desktop-scoped (`min-width: 761px`), so mobile keeps its own hero rhythm while still receiving the width-neutral compact tightening (cards, gaps, copy size).
+- Type ramp: `--text-xs/sm/base` and `--track-tight/label` tokens consolidate 40 ad-hoc font sizes (sub-0.8rem band unified at a 12px floor) and 8 letter-spacings; unshipped 500/700 weights pinned to their rendered 400/600 faces; ticking focus timers use tabular numerals.
 - Restored WCAG AA text contrast for destructive confirmation buttons (`.confirm-dialog-confirm.is-destructive`) across all themes by pairing semantic `var(--on-accent)` with `var(--danger)` background, eliminating hardcoded colors and adding automated regression coverage in `themeTokenContrast.test.ts`.
 - Resolved Settings Appearance card tablet grid layout issue by spanning full available container width (`.theme-card { grid-column: 1 / -1; }`), eliminating orphan tracks at intermediate viewports (768px–1060px).
 - Resynchronized in-memory focus database generation after Settings Clear All (`clearAllStudyData`), ensuring subsequent Focus sessions start immediately without `StaleDatabaseGenerationError` or page reload.
