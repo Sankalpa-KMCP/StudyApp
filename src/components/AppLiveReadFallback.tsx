@@ -3,6 +3,7 @@ import { LiveReadErrorPanel } from './LiveReadErrorPanel'
 import { SettingsView } from '../views/SettingsView'
 import type { DataCoordinatorSnapshot } from '../db/dataCoordinator'
 import type { ThemeMode } from '../hooks/useThemePreference'
+import type { DensityMode } from '../hooks/useDensityPreference'
 import type { View } from '../navigation/viewRoutes'
 import type { QuickAddItem } from './QuickAddMenu'
 
@@ -23,6 +24,8 @@ export type AppLiveReadFallbackProps = {
   onDismissPreferenceNotice: () => void
   theme: ThemeMode
   onThemeChange: (theme: ThemeMode) => void
+  density?: DensityMode
+  onDensityChange?: (density: DensityMode) => void
   onExport: () => Promise<void>
   onImport: (file: File) => Promise<unknown>
   onClear: () => Promise<void>
@@ -49,6 +52,8 @@ export function AppLiveReadFallback({
   onDismissPreferenceNotice,
   theme,
   onThemeChange,
+  density = 'comfortable',
+  onDensityChange,
   onExport,
   onImport,
   onClear,
@@ -90,6 +95,8 @@ export function AppLiveReadFallback({
                 onDismissPreferenceNotice={onDismissPreferenceNotice}
                 theme={theme}
                 onThemeChange={onThemeChange}
+                density={density}
+                onDensityChange={onDensityChange}
                 onShowOnboardingChecklist={onShowOnboardingChecklist}
               />
             </section>

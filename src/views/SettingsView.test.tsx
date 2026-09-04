@@ -329,4 +329,31 @@ describe('SettingsView theme gallery and selection', () => {
     await user.keyboard('{Home}')
     expect(onThemeChange).toHaveBeenLastCalledWith('monochrome')
   })
+
+  it('renders density preference selector and invokes onDensityChange when changed', async () => {
+    const user = userEvent.setup()
+    const onDensityChange = vi.fn()
+
+    render(
+      <SettingsView
+        onExport={vi.fn().mockResolvedValue(undefined)}
+        onImport={vi.fn().mockResolvedValue(undefined)}
+        onClear={vi.fn().mockResolvedValue(undefined)}
+        onShowOnboardingChecklist={vi.fn().mockResolvedValue(undefined)}
+        profileNotice=""
+        theme="monochrome"
+        onThemeChange={() => undefined}
+        density="comfortable"
+        onDensityChange={onDensityChange}
+      />,
+    )
+
+    expect(screen.getByText('Density')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Dashboard density' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Comfortable' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Compact' })).toHaveAttribute('aria-pressed', 'false')
+
+    await user.click(screen.getByRole('button', { name: 'Compact' }))
+    expect(onDensityChange).toHaveBeenCalledWith('compact')
+  })
 })

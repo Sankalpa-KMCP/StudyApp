@@ -10,6 +10,7 @@ import {
   type WeeklyStudyDay,
 } from '../appUtils'
 import type { ActiveFocusSession, CalendarEvent, StudyNote, StudySession, StudySubject, StudyTask } from '../db/types'
+import type { DensityMode } from '../hooks/useDensityPreference'
 import { EmptyState, MutationNotice, SubjectCard } from '../components/ui'
 import type { View } from '../navigation/viewRoutes'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -58,6 +59,7 @@ export function HomeView(props: {
   focusSubjectId: string
   focusDurationMinutes: number
   focusAttentionRequest?: number
+  density?: DensityMode
   onFocusSubjectChange: (subjectId: string) => void
   onFocusDurationChange: (minutes: number) => void
   onQuickNotesChange: (value: string, context: DatabaseMutationContext) => Promise<void>
@@ -112,9 +114,11 @@ export function HomeView(props: {
     now,
   })
 
-  const openTasks = props.tasks.filter((task) => task.status === 'open').slice(0, 5)
+  const density = props.density ?? 'comfortable'
+  const isCompact = density === 'compact'
+  const openTasks = props.tasks.filter((task) => task.status === 'open').slice(0, isCompact ? 3 : 5)
   const recentNotes = props.notes.slice(0, 3)
-  const subjectStats = props.subjects.slice(0, 5)
+  const subjectStats = props.subjects.slice(0, isCompact ? 3 : 5)
   const hasSubject = props.subjects.length > 0
   const hasTask = props.tasks.length > 0
   const hasStartedFocus = hasStartedFocusSession(
@@ -175,8 +179,8 @@ export function HomeView(props: {
         dueTodayCount={dueTodayTasks.length}
         overdueCount={overdueTasks.length}
         todayEventCount={todaysEvents.length}
-        overduePreview={overdueTasks.slice(0, 2)}
-        todayEventPreview={todaysEvents.slice(0, 2)}
+        overduePreview={isCompact ? [] : overdueTasks.slice(0, 2)}
+        todayEventPreview={isCompact ? [] : todaysEvents.slice(0, 2)}
         recommended={recommended}
         onActivateRecommended={activateRecommended}
         onOpenTasks={() => props.onNavigate('Tasks')}
@@ -215,10 +219,18 @@ export function HomeView(props: {
           onAcceptStale={props.onAcceptStaleFocusSession}
           onDiscardStale={props.onDiscardStaleFocusSession}
         />
-        <QuickNoteCard notes={props.quickNotes} databaseGeneration={props.databaseGeneration ?? 1} onChange={props.onQuickNotesChange} onOpenNotes={() => props.onNavigate('Notes')} />
+        <QuickNoteCard
+          notes={props.quickNotes}
+          databaseGeneration={props.databaseGeneration ?? 1}
+          onChange={props.onQuickNotesChange}
+          onOpenNotes={() => props.onNavigate('Notes')}
+          density={density}
+        />
       </div>
       <SubjectsSection subjects={subjectStats} sessions={props.studySessions} now={now} onViewAll={() => props.onNavigate('Subjects')} />
-      <RecentNotes notes={recentNotes} subjectMap={props.subjectMap} onViewAll={() => props.onNavigate('Notes')} />
+      {density === 'comfortable' ? (
+        <RecentNotes notes={recentNotes} subjectMap={props.subjectMap} onViewAll={() => props.onNavigate('Notes')} />
+      ) : null}
     </>
   )
 }
@@ -573,11 +585,13 @@ function QuickNoteCard({
   databaseGeneration = 1,
   onChange,
   onOpenNotes,
+  density = 'comfortable',
 }: {
   notes: string[]
   databaseGeneration?: number
   onChange: (value: string, context: DatabaseMutationContext) => Promise<void>
   onOpenNotes: () => void
+  density?: DensityMode
 }) {
   const savedValue = notes.join('\n')
   const [draft, setDraft] = useState(savedValue)
@@ -698,6 +712,58 @@ function QuickNoteCard({
     : saveStatus === 'saving' || draft !== lastPersisted
       ? 'Saving...'
       : 'Saved locally'
+
+  if (density === 'compact') {
+    return (
+      <details className="card quick-card quick-card-disclosure" aria-label="Quick notes">
+        <summary className="quick-disclosure-summary">
+          <span className="quick-disclosure-title">Quick Notes</span>
+          <span className="quick-disclosure-meta">
+            <span
+              className="save-status"
+              role={saveStatus === 'error' ? 'alert' : undefined}
+              aria-live={saveStatus === 'error' ? undefined : 'polite'}
+            >
+              {statusLabel}
+            </span>
+          </span>
+        </summary>
+        <div className="quick-disclosure-content">
+          <label className="note-paper editable-paper">
+            <span className="sr-only">Quick notes</span>
+            <textarea
+              value={draft}
+              placeholder="Capture fast ideas, formulas, or reminders..."
+              onChange={(event) => {
+                if (draft === lastPersisted || saveStatus === 'error') {
+                  epochGenerationRef.current = databaseGeneration
+                }
+                setDraft(event.target.value)
+                if (saveStatus === 'error') setSaveStatus('saving')
+              }}
+              onBlur={handleBlur}
+            />
+          </label>
+          <div className="quick-disclosure-actions">
+            {saveStatus === 'error' ? (
+              <button
+                className="text-command"
+                type="button"
+                onClick={() => {
+                  epochGenerationRef.current = databaseGeneration
+                  pendingRef.current = draft
+                  void flushPending()
+                }}
+              >
+                Retry save
+              </button>
+            ) : null}
+            <button className="text-command" type="button" onClick={onOpenNotes}>Open Notes</button>
+          </div>
+        </div>
+      </details>
+    )
+  }
 
   return (
     <section className="card quick-card" aria-labelledby="quick-notes-title">

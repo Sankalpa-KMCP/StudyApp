@@ -920,4 +920,78 @@ describe('App home', () => {
     expect(screen.getByRole('heading', { name: 'Quick Notes' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Weekly Progress' })).toBeInTheDocument()
   })
+
+  it('renders Home in Compact density with clamped previews, disclosure Quick Notes, and without RightColumn or Recent Notes', async () => {
+    localStorage.setItem('study-dashboard-density', 'compact')
+
+    // Create 5 tasks and 5 subjects
+    for (let i = 1; i <= 5; i++) {
+      await studyDb.subjects.put({
+        id: `subject-${i}`,
+        name: `Subject ${i}`,
+        color: 'var(--chart-1)',
+        targetHours: 10,
+        progress: 0,
+        progressMode: 'manual',
+        archived: false,
+        createdAt: new Date(2026, 6, 26, 10, i).toISOString(),
+        updatedAt: new Date(2026, 6, 26, 10, i).toISOString(),
+      })
+      await studyDb.tasks.put({
+        id: `task-${i}`,
+        subjectId: `subject-${i}`,
+        title: `Task ${i}`,
+        status: 'open',
+        estimatedMinutes: 30,
+        due: null,
+        priority: 'medium',
+        createdAt: new Date(2026, 6, 26, 10, i).toISOString(),
+        updatedAt: new Date(2026, 6, 26, 10, i).toISOString(),
+      })
+    }
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+    const appShell = document.querySelector('.app-shell')
+    expect(appShell).toHaveAttribute('data-density', 'compact')
+
+    // RightColumn and Recent Notes are absent
+    expect(screen.queryByLabelText('Progress and schedule')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Recent Notes' })).not.toBeInTheDocument()
+
+    // Tasks are clamped to 3
+    const tasksCard = (await screen.findByRole('heading', { name: 'Study Tasks' })).closest('section') as HTMLElement
+    expect(within(tasksCard).getByText('Task 1')).toBeInTheDocument()
+    expect(within(tasksCard).getByText('Task 2')).toBeInTheDocument()
+    expect(within(tasksCard).getByText('Task 3')).toBeInTheDocument()
+    expect(within(tasksCard).queryByText('Task 4')).not.toBeInTheDocument()
+
+    // Quick notes is rendered as a disclosure
+    const quickNotesDetails = document.querySelector('.quick-card-disclosure')
+    expect(quickNotesDetails).toBeInTheDocument()
+    expect(quickNotesDetails).not.toHaveAttribute('open')
+  })
+
+  it('switches density dynamically in Settings and updates Home immediately', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Weekly Progress' })).toBeInTheDocument()
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-density', 'comfortable')
+
+    // Navigate to Settings
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(await screen.findByRole('heading', { name: 'Settings', level: 1 })).toBeInTheDocument()
+
+    // Switch to Compact
+    await user.click(screen.getByRole('button', { name: 'Compact' }))
+    expect(localStorage.getItem('study-dashboard-density')).toBe('compact')
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-density', 'compact')
+
+    // Navigate back to Home
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Progress and schedule')).not.toBeInTheDocument()
+  })
 })

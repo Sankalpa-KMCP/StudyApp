@@ -5,6 +5,7 @@ import { useMobileNavBreakpoint } from './hooks/useMobileNavBreakpoint'
 import { useSidebarPreference } from './hooks/useSidebarPreference'
 import { useStudyBackup } from './hooks/useStudyBackup'
 import { useThemePreference } from './hooks/useThemePreference'
+import { useDensityPreference } from './hooks/useDensityPreference'
 import {
   dismissOnboardingChecklist,
   showOnboardingChecklist,
@@ -31,6 +32,7 @@ export type SettingsFeedback = { tone: 'success' | 'error'; message: string }
 export type ActiveSession = ActiveFocusSession
 /** Re-exported for existing consumers; prefer `./hooks/useThemePreference`. */
 export type { ThemeMode } from './hooks/useThemePreference'
+export type { DensityMode } from './hooks/useDensityPreference'
 
 function App() {
   const [activeView, setActiveView] = useState<View>(() => resolveViewFromPathname(window.location.pathname).view)
@@ -50,6 +52,10 @@ function App() {
   const clearPreferenceNotice = useCallback(() => setPreferenceNotice(null), [])
   const reportPreferenceError = useCallback((message: string) => setPreferenceNotice(message), [])
   const { theme, setTheme } = useThemePreference({
+    onPreferenceError: reportPreferenceError,
+    clearPreferenceNotice,
+  })
+  const { density, setDensity } = useDensityPreference({
     onPreferenceError: reportPreferenceError,
     clearPreferenceNotice,
   })
@@ -276,11 +282,14 @@ function App() {
   }, [])
 
   return (
-    <div className={[
-      'app-shell',
-      sidebarCollapsed ? 'is-sidebar-collapsed' : '',
-      isMobileNav ? 'is-mobile-nav' : '',
-    ].filter(Boolean).join(' ')}>
+    <div
+      className={[
+        'app-shell',
+        sidebarCollapsed ? 'is-sidebar-collapsed' : '',
+        isMobileNav ? 'is-mobile-nav' : '',
+      ].filter(Boolean).join(' ')}
+      data-density={density}
+    >
       <a className="skip-link" href="#dashboard-main">Skip to dashboard</a>
       {isMobileNav ? (
         <MobileNavigation activeView={activeView} onNavigate={navigateToView} />
@@ -314,6 +323,8 @@ function App() {
               onDismissPreferenceNotice={clearPreferenceNotice}
               theme={theme}
               onThemeChange={setTheme}
+              density={density}
+              onDensityChange={setDensity}
               onExport={exportBackup}
               onImport={importBackup}
               onClear={clearAllBackup}
@@ -342,6 +353,8 @@ function App() {
             onDismissPreferenceNotice={clearPreferenceNotice}
             theme={theme}
             onThemeChange={setTheme}
+            density={density}
+            onDensityChange={setDensity}
             onNavigate={navigateToView}
             onOpenProfile={() => {
               navigateToView('Settings')

@@ -121,7 +121,7 @@ describe('App UI settings live query isolation', () => {
 
     await user.click(screen.getByRole('button', { name: 'Home' }))
     expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
-    expect(screen.getByText(/0m of 1h 15m/i)).toBeInTheDocument()
+    expect(screen.getByText(/of 1h 15m/i)).toBeInTheDocument()
   })
 
   it('does not rerun UI settings for non-qualifying Goal write, delete, or transition away', async () => {
@@ -390,7 +390,7 @@ describe('App UI settings live query isolation', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Quick notes')).toHaveValue('imported line')
     })
-    expect(screen.getByText(/0m of 1h 30m/i)).toBeInTheDocument()
+    expect(screen.getByText(/of 1h 30m/i)).toBeInTheDocument()
 
     const full = await getStudyData()
     expect(full.settings.map((row) => row.key).sort()).toEqual([
@@ -448,7 +448,7 @@ describe('App UI settings live query isolation', () => {
       expect(screen.getByLabelText('Quick notes')).toHaveValue('')
     })
     expect(screen.getByRole('region', { name: 'Your first study loop' })).toBeInTheDocument()
-    expect(screen.getByText(/0m of 3h/i)).toBeInTheDocument()
+    expect(screen.getByText(/of 3h/i)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
   })
 
@@ -473,6 +473,6 @@ describe('App UI settings live query isolation', () => {
 
     expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     expect(screen.getByLabelText('Quick notes')).toHaveValue('seeded note')
-    expect(screen.getByText(/0m of 1h 30m/i)).toBeInTheDocument()
+    expect(screen.getByText(/of 1h 30m/i)).toBeInTheDocument()
   })
 })

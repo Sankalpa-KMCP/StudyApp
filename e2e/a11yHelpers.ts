@@ -28,6 +28,8 @@ export function formatAxeViolations(violations: Result[]): string {
 }
 
 export async function expectNoAxeViolations(page: Page, testInfo: TestInfo, label: string): Promise<void> {
+  await page.evaluate(() => document.fonts?.ready)
+  await page.waitForFunction(() => !document.querySelector('.is-entry-playing'))
   const results = await new AxeBuilder({ page })
     .withTags([...WCAG_A_AA_TAGS])
     .analyze()

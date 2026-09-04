@@ -1,9 +1,10 @@
 import { useId, useRef, useState } from 'react'
 import { BookOpen, Check, Download, Layers3, RotateCcw, Upload } from '../components/icons'
-import { MutationNotice, PanelHeader } from '../components/ui'
+import { MutationNotice, PanelHeader, SegmentedControl } from '../components/ui'
 import type { DataCoordinatorSnapshot } from '../db/dataCoordinator'
 import { type MutationPhase, useMutationState } from '../hooks/useMutationState'
 import { THEME_CONFIGS, type ThemeMode } from '../styles/themeRegistry'
+import type { DensityMode } from '../hooks/useDensityPreference'
 
 const THEME_GROUPS = [
   { scheme: 'light', label: 'Light themes' },
@@ -22,6 +23,8 @@ export function SettingsView({
   onDismissPreferenceNotice,
   theme,
   onThemeChange,
+  density = 'comfortable',
+  onDensityChange,
 }: {
   coordinatorState?: DataCoordinatorSnapshot
   onExport: () => Promise<void>
@@ -34,6 +37,8 @@ export function SettingsView({
   onDismissPreferenceNotice?: () => void
   theme: ThemeMode
   onThemeChange: (theme: ThemeMode) => void
+  density?: DensityMode
+  onDensityChange?: (density: DensityMode) => void
 }) {
   const deleteInputId = useId()
   const deleteHeadingId = useId()
@@ -220,6 +225,19 @@ export function SettingsView({
             onChange={(event) => void handleImport(event)}
           />
         </label>
+        <div className="action-card density-card">
+          <strong>Density</strong>
+          <span>Compact hides secondary dashboard information while keeping all study data and tools available. Switch back at any time.</span>
+          {onDensityChange ? (
+            <SegmentedControl<DensityMode>
+              value={density}
+              options={['comfortable', 'compact']}
+              onChange={onDensityChange}
+              ariaLabel="Dashboard density"
+              formatLabel={(opt) => (opt === 'comfortable' ? 'Comfortable' : 'Compact')}
+            />
+          ) : null}
+        </div>
         <div className="action-card theme-card">
           <Layers3 size={24} aria-hidden="true" />
           <strong>Appearance</strong>
