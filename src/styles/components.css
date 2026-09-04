@@ -426,6 +426,17 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
+.segmented-control button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dashboard-mode-control.is-compact button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 0.78rem;
+}
+
 .editor-card {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -890,4 +901,151 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.zen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: var(--bg);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32px 24px;
+  animation: zenFadeIn var(--motion-slow) var(--ease-settle);
+  overflow-y: auto;
+}
+
+@keyframes zenFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.zen-header {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 40px;
+}
+
+.zen-subject-badge {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.zen-exit-btn {
+  font-size: 0.85rem;
+  padding: 6px 14px;
+}
+
+.zen-canvas,
+.zen-completed-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  max-width: 540px;
+  width: 100%;
+  margin: auto 0;
+  padding: 24px 0;
+  gap: 16px;
+}
+
+.zen-subject-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.zen-timer {
+  font-size: clamp(3.5rem, 12vw, 6.5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  margin: 8px 0;
+}
+
+.zen-progress-bar {
+  width: 100%;
+  max-width: 320px;
+  height: 3px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 4px 0;
+}
+
+.zen-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--motion-slow) var(--ease);
+}
+
+.zen-context {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.zen-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 240px;
+}
+
+.zen-primary-btn {
+  width: 100%;
+  justify-content: center;
+  font-size: 1rem;
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+}
+
+.zen-stop-btn {
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 8px 16px;
+}
+
+.zen-stop-btn:hover {
+  color: var(--danger);
+}
+
+.zen-completed-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.zen-summary-text {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+
+.zen-logged-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
 }

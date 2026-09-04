@@ -1,10 +1,12 @@
 import { useId, useRef, useState } from 'react'
 import { BookOpen, Check, Download, Layers3, RotateCcw, Upload } from '../components/icons'
-import { MutationNotice, PanelHeader, SegmentedControl } from '../components/ui'
+import { MutationNotice, PanelHeader } from '../components/ui'
+import { DashboardModeControl } from '../components/DashboardModeControl'
 import type { DataCoordinatorSnapshot } from '../db/dataCoordinator'
 import { type MutationPhase, useMutationState } from '../hooks/useMutationState'
 import { THEME_CONFIGS, type ThemeMode } from '../styles/themeRegistry'
 import type { DensityMode } from '../hooks/useDensityPreference'
+import type { CanEnterZenReason } from '../hooks/useFocusSession'
 
 const THEME_GROUPS = [
   { scheme: 'light', label: 'Light themes' },
@@ -25,6 +27,9 @@ export function SettingsView({
   onThemeChange,
   density = 'comfortable',
   onDensityChange,
+  canEnterZen = false,
+  canEnterZenReason = 'no-session',
+  onEnterZen,
 }: {
   coordinatorState?: DataCoordinatorSnapshot
   onExport: () => Promise<void>
@@ -39,6 +44,9 @@ export function SettingsView({
   onThemeChange: (theme: ThemeMode) => void
   density?: DensityMode
   onDensityChange?: (density: DensityMode) => void
+  canEnterZen?: boolean
+  canEnterZenReason?: CanEnterZenReason
+  onEnterZen?: () => void
 }) {
   const deleteInputId = useId()
   const deleteHeadingId = useId()
@@ -225,17 +233,27 @@ export function SettingsView({
             onChange={(event) => void handleImport(event)}
           />
         </label>
-        <div className="action-card density-card">
-          <strong>Density</strong>
-          <span>Compact hides secondary dashboard information while keeping all study data and tools available. Switch back at any time.</span>
+        <div className="action-card density-card dashboard-mode-card">
+          <strong>Dashboard mode</strong>
+          <span>Comfortable and Compact customize dashboard layout. Zen mode provides an immersive distraction-free focus canvas for active sessions.</span>
           {onDensityChange ? (
-            <SegmentedControl<DensityMode>
-              value={density}
-              options={['comfortable', 'compact']}
-              onChange={onDensityChange}
-              ariaLabel="Dashboard density"
-              formatLabel={(opt) => (opt === 'comfortable' ? 'Comfortable' : 'Compact')}
+            <DashboardModeControl
+              density={density}
+              onDensityChange={onDensityChange}
+              canEnterZen={canEnterZen}
+              canEnterZenReason={canEnterZenReason}
+              onEnterZen={onEnterZen ?? (() => undefined)}
+              idPrefix="settings-mode"
             />
+          ) : null}
+          {!canEnterZen && canEnterZenReason ? (
+            <p className="dashboard-mode-hint field-hint">
+              {canEnterZenReason === 'stale'
+                ? 'Resolve the unfinished Focus session to use Zen.'
+                : canEnterZenReason === 'pending'
+                  ? 'Focus is updating. Zen will be available when it is ready.'
+                  : 'Zen is available during an active Focus session.'}
+            </p>
           ) : null}
         </div>
         <div className="action-card theme-card">

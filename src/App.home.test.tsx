@@ -994,4 +994,82 @@ describe('App home', () => {
     expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     expect(screen.queryByLabelText('Progress and schedule')).not.toBeInTheDocument()
   })
+
+  it('supports entering, pausing, resuming, exiting, and completing Zen mode', async () => {
+    const user = userEvent.setup()
+    await studyDb.subjects.add({
+      id: 'subject-zen',
+      name: 'Neuroscience',
+      color: '#2563eb',
+      targetHours: 10,
+      progress: 0,
+      progressMode: 'manual',
+      createdAt: '2026-08-29T00:00:00.000Z',
+      updatedAt: '2026-08-29T00:00:00.000Z',
+    })
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
+
+    // Zen button in hero is initially disabled when idle
+    const heroZenBtn = screen.getByRole('button', { name: /Zen/ })
+    expect(heroZenBtn).toBeDisabled()
+
+    // Start a focus session
+    await user.selectOptions(await screen.findByLabelText('Focus subject'), 'subject-zen')
+    await user.click(screen.getByRole('button', { name: 'Start focus' }))
+    expect(await screen.findByText('Elapsed')).toBeInTheDocument()
+
+    // Zen button in hero is now enabled
+    expect(heroZenBtn).not.toBeDisabled()
+
+    // Enter Zen
+    await user.click(heroZenBtn)
+
+    // Zen overlay is open and app-shell is inert
+    const zenDialog = await screen.findByRole('dialog', { name: 'Neuroscience' })
+    expect(zenDialog).toBeInTheDocument()
+    expect(document.querySelector('.app-shell')).toHaveAttribute('inert')
+    expect(within(zenDialog).getByRole('heading', { level: 2, name: 'Neuroscience' })).toBeInTheDocument()
+
+    // Pause in Zen
+    await user.click(within(zenDialog).getByRole('button', { name: 'Pause' }))
+    expect(await within(zenDialog).findByRole('button', { name: 'Resume' })).toBeInTheDocument()
+
+    // Resume in Zen
+    await user.click(within(zenDialog).getByRole('button', { name: 'Resume' }))
+    expect(await within(zenDialog).findByRole('button', { name: 'Pause' })).toBeInTheDocument()
+
+    // Exit Zen via Exit Zen button
+    await user.click(within(zenDialog).getByRole('button', { name: 'Exit Zen' }))
+    expect(screen.queryByRole('dialog', { name: 'Neuroscience' })).not.toBeInTheDocument()
+    expect(document.querySelector('.app-shell')).not.toHaveAttribute('inert')
+
+    // Re-enter Zen
+    await user.click(screen.getByRole('button', { name: /Zen/ }))
+    const zenDialog2 = await screen.findByRole('dialog', { name: 'Neuroscience' })
+    expect(zenDialog2).toBeInTheDocument()
+
+    // Stop session from Zen
+    await user.click(within(zenDialog2).getByRole('button', { name: 'Stop session' }))
+    expect(await screen.findByRole('heading', { name: 'End this focus session?' })).toBeInTheDocument()
+
+    // Confirm end
+    await user.click(screen.getByRole('button', { name: 'End session' }))
+
+    // Reaches completed canvas
+    expect(await screen.findByRole('heading', { name: 'Session stopped' })).toBeInTheDocument()
+    expect(screen.getByText(/logged to Neuroscience/)).toBeInTheDocument()
+
+    // Click Done to finish
+    await user.click(screen.getByRole('button', { name: 'Done' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(document.querySelector('.app-shell')).not.toHaveAttribute('inert')
+
+    // Active session is ended and stored in history
+    const sessions = await studyDb.studySessions.toArray()
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0].subjectId).toBe('subject-zen')
+  })
 })

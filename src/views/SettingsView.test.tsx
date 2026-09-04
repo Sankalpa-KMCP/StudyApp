@@ -330,11 +330,12 @@ describe('SettingsView theme gallery and selection', () => {
     expect(onThemeChange).toHaveBeenLastCalledWith('monochrome')
   })
 
-  it('renders density preference selector and invokes onDensityChange when changed', async () => {
+  it('renders Dashboard mode preference selector and handles density change and Zen trigger', async () => {
     const user = userEvent.setup()
     const onDensityChange = vi.fn()
+    const onEnterZen = vi.fn()
 
-    render(
+    const { rerender } = render(
       <SettingsView
         onExport={vi.fn().mockResolvedValue(undefined)}
         onImport={vi.fn().mockResolvedValue(undefined)}
@@ -345,15 +346,43 @@ describe('SettingsView theme gallery and selection', () => {
         onThemeChange={() => undefined}
         density="comfortable"
         onDensityChange={onDensityChange}
+        canEnterZen={false}
+        canEnterZenReason="no-session"
+        onEnterZen={onEnterZen}
       />,
     )
 
-    expect(screen.getByText('Density')).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: 'Dashboard density' })).toBeInTheDocument()
+    expect(screen.getByText('Dashboard mode')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Dashboard mode' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Comfortable' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Compact' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: /Zen/ })).toBeDisabled()
+    expect(screen.getByText('Zen is available during an active Focus session.')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Compact' }))
     expect(onDensityChange).toHaveBeenCalledWith('compact')
+
+    // Rerender with active focus session (canEnterZen = true)
+    rerender(
+      <SettingsView
+        onExport={vi.fn().mockResolvedValue(undefined)}
+        onImport={vi.fn().mockResolvedValue(undefined)}
+        onClear={vi.fn().mockResolvedValue(undefined)}
+        onShowOnboardingChecklist={vi.fn().mockResolvedValue(undefined)}
+        profileNotice=""
+        theme="monochrome"
+        onThemeChange={() => undefined}
+        density="compact"
+        onDensityChange={onDensityChange}
+        canEnterZen={true}
+        canEnterZenReason="available"
+        onEnterZen={onEnterZen}
+      />,
+    )
+
+    const zenBtn = screen.getByRole('button', { name: /Zen/ })
+    expect(zenBtn).not.toBeDisabled()
+    await user.click(zenBtn)
+    expect(onEnterZen).toHaveBeenCalledTimes(1)
   })
 })

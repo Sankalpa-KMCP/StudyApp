@@ -14,13 +14,21 @@
 
 
 .density-card,
+.dashboard-mode-card,
 .theme-card {
   grid-column: 1 / -1;
   cursor: default;
 }
 
-.density-card {
+.density-card,
+.dashboard-mode-card {
   gap: 12px;
+}
+
+.dashboard-mode-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
 }
 
 .theme-gallery-groups {
