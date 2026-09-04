@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   getTodayFocusMinutes,
@@ -171,6 +171,19 @@ export function AppLiveData({
   const isLoading = liveSubjects === undefined || liveNotes === undefined || liveEvents === undefined || liveTasks === undefined || liveStudySessions === undefined || liveUiSettings === undefined || liveGeneration === undefined
 
   const currentDate = useCurrentDate()
+  const [entryPlaying, setEntryPlaying] = useState(false)
+  const hasStartedEntryRef = useRef(false)
+
+  useEffect(() => {
+    if (isLoading || hasStartedEntryRef.current) return
+    hasStartedEntryRef.current = true
+    setEntryPlaying(true)
+    const timer = window.setTimeout(() => {
+      setEntryPlaying(false)
+    }, 450)
+    return () => window.clearTimeout(timer)
+  }, [isLoading])
+
   const dailyGoalMinutes = uiSettings.dailyGoalMinutes
   const quickNotes = uiSettings.quickNotes
   const onboardingChecklistDismissed = uiSettings.onboardingChecklistDismissed
@@ -239,7 +252,10 @@ export function AppLiveData({
         {isLoading ? (
           <section className="loading-panel" aria-live="polite">Loading your study space...</section>
         ) : (
-          <div className={activeView === 'Home' ? 'content-grid' : 'content-grid is-workspace-view'}>
+          <div className={[
+            activeView === 'Home' ? 'content-grid' : 'content-grid is-workspace-view',
+            entryPlaying ? 'is-entry-playing' : '',
+          ].filter(Boolean).join(' ')}>
             <section className="primary-column" aria-label="Primary study summary">
               {profileNotice ? <div className="settings-feedback" role="status">{profileNotice}</div> : null}
               {preferenceNotice && activeView !== 'Settings' ? (
