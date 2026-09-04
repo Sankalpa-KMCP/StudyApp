@@ -75,7 +75,8 @@ export function useAppSearch({
   const filteredSubjects = useMemo(
     () => subjects.filter((subject) => {
       const percentage = Math.round(calculateSubjectProgress(subject, sessionMinutesMap).percentage)
-      return `${subject.name} ${percentage}`.toLowerCase().includes(normalizedSearch)
+      // Match the same subject fields as global search (`buildSearchResults`).
+      return `${subject.name} ${percentage} ${subject.targetHours}`.toLowerCase().includes(normalizedSearch)
     }),
     [normalizedSearch, sessionMinutesMap, subjects],
   )

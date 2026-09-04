@@ -202,7 +202,7 @@ describe('useFocusSession', () => {
     expect(await getActiveFocusSession()).toMatchObject({ id: 'focus-hook', subjectId: 'subject-a' })
   })
 
-  it('restores the prior subject when the durable session is missing after an update', async () => {
+  it('clears local focus instead of a ghost when the durable session is missing after an update', async () => {
     await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
@@ -213,8 +213,8 @@ describe('useFocusSession', () => {
       result.current.updateFocusSubject('subject-b')
     })
 
-    await waitFor(() => expect(result.current.sessionNotice).toBe('Could not update the focus subject. Try again.'))
-    expect(result.current.activeSession).toMatchObject({ id: 'focus-hook', subjectId: 'subject-a' })
+    await waitFor(() => expect(result.current.sessionNotice).toBe('Focus session no longer exists.'))
+    expect(result.current.activeSession).toBeNull()
     expect(result.current.focusSubjectId).toBe('subject-a')
     expect(await getActiveFocusSession()).toBeNull()
   })
@@ -240,7 +240,7 @@ describe('useFocusSession', () => {
     expect(result.current.focusSubjectId).toBe('subject-a')
   })
 
-  it('restores the prior subject when subject persistence throws and no durable session remains', async () => {
+  it('clears local focus instead of a ghost when subject persistence throws and no durable session remains', async () => {
     await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
@@ -253,8 +253,8 @@ describe('useFocusSession', () => {
       result.current.updateFocusSubject('subject-b')
     })
 
-    await waitFor(() => expect(result.current.sessionNotice).toBe('Could not update the focus subject. Try again.'))
-    expect(result.current.activeSession).toMatchObject({ id: 'focus-hook', subjectId: 'subject-a' })
+    await waitFor(() => expect(result.current.sessionNotice).toBe('Focus session no longer exists.'))
+    expect(result.current.activeSession).toBeNull()
     expect(result.current.focusSubjectId).toBe('subject-a')
   })
 

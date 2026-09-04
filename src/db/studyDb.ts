@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import { getSubjectStudyMinutesMap, inferSubjectProgressMode } from '../appUtils'
+import { getSubjectStudyMinutesMap, inferSubjectProgressMode, localDateKey } from '../appUtils'
 import { getAppVersion } from '../appVersion'
 import { inferLegacyGoalMetric } from './goalMetricInference'
 import {
@@ -9,9 +9,11 @@ import {
 } from './crossTabLock'
 import {
   advanceDatabaseGeneration,
+  CorruptDatabaseGenerationError,
   DATABASE_GENERATION_KEY,
   DatabaseGenerationOverflowError,
   getDatabaseGeneration,
+  INITIAL_DATABASE_GENERATION,
 } from './databaseGeneration'
 import {
   assertUniqueStudyExportIdentifiers,
@@ -19,10 +21,11 @@ import {
   assertStudyExportSemantics,
   assertStudyExportSettingsValues,
   assertStudyExportRecordCounts,
+  assertStudyExportCanonicalSize,
   STUDY_EXPORT_IMPORT_VALIDATION_ERROR,
   StudyExportValidationError,
 } from './studyExportValidation'
-import { isPersistedDueDate, isPersistedIsoTimestamp } from './validation/persistedInvariants'
+import { ACTIVE_FOCUS_SESSION_KEY, isActiveFocusSession, isPersistedDueDate, isPersistedIsoTimestamp } from './validation/persistedInvariants'
 import type {
   CalendarEvent,
   GoalPeriod,
@@ -167,6 +170,30 @@ export async function readStudyDataSnapshot(): Promise<StudyData> {
   })
 }
 
+/**
+ * Heal the known legacy rollback anomaly (`pausedAt < startedAt`) so exports
+ * round-trip through the strict import guard. Mirrors
+ * `normalizeActiveFocusSession` without importing the focus module (cycle).
+ * Genuinely corrupt singletons are dropped: the runtime also treats them as
+ * absent, so exporting them would only produce an unimportable backup.
+ */
+function healExportActiveFocusSetting(setting: StudySetting): StudySetting | null {
+  if (setting.key !== ACTIVE_FOCUS_SESSION_KEY) return setting
+  if (isActiveFocusSession(setting.value)) return setting
+  const val = setting.value
+  if (!val || typeof val !== 'object' || Array.isArray(val)) return null
+  const record = val as Record<string, unknown>
+  if (record['status'] !== 'paused') return null
+  const startedAt = record['startedAt']
+  const pausedAt = record['pausedAt']
+  if (typeof startedAt !== 'string' || typeof pausedAt !== 'string') return null
+  if (!isPersistedIsoTimestamp(startedAt) || !isPersistedIsoTimestamp(pausedAt)) return null
+  if (Date.parse(pausedAt) >= Date.parse(startedAt)) return null
+  const healed = { ...record, pausedAt: startedAt }
+  if (!isActiveFocusSession(healed)) return null
+  return { ...setting, value: healed }
+}
+
 export function createStudyExportPayload(
   snapshot: StudyData,
   exportedAt = nowIso(),
@@ -174,7 +201,10 @@ export function createStudyExportPayload(
 ): StudyExport {
   const portableSettings = snapshot.settings.filter(
     (setting) => setting.key !== LEGACY_MIGRATION_KEY && setting.key !== DATABASE_GENERATION_KEY
-  )
+  ).flatMap((setting) => {
+    const healed = healExportActiveFocusSetting(setting)
+    return healed === null ? [] : [healed]
+  })
   return {
     version: EXPORT_SCHEMA_VERSION,
     exportedAt,
@@ -215,7 +245,16 @@ export async function importStudyData(
   try {
     await withExclusiveDatabaseLock(async () => {
       await studyDb.transaction('rw', studyTables, async () => {
-        const currentGen = await getDatabaseGeneration(studyDb.settings)
+        let currentGen: number
+        try {
+          currentGen = await getDatabaseGeneration(studyDb.settings)
+        } catch (err) {
+          // Designed recovery flow: a corrupt generation key must not brick
+          // import. Repair by resetting to the initial generation.
+          if (!(err instanceof CorruptDatabaseGenerationError)) throw err
+          await studyDb.settings.delete(DATABASE_GENERATION_KEY)
+          currentGen = INITIAL_DATABASE_GENERATION
+        }
         if (currentGen >= Number.MAX_SAFE_INTEGER) {
           throw new DatabaseGenerationOverflowError()
         }
@@ -281,7 +320,16 @@ export async function clearAllStudyData(): Promise<number> {
   let nextGeneration = 1
   await withExclusiveDatabaseLock(async () => {
     await studyDb.transaction('rw', studyTables, async () => {
-      const currentGen = await getDatabaseGeneration(studyDb.settings)
+      let currentGen: number
+      try {
+        currentGen = await getDatabaseGeneration(studyDb.settings)
+      } catch (err) {
+        // Designed recovery flow: a corrupt generation key must not brick
+        // clear-all. Repair by resetting to the initial generation.
+        if (!(err instanceof CorruptDatabaseGenerationError)) throw err
+        await studyDb.settings.delete(DATABASE_GENERATION_KEY)
+        currentGen = INITIAL_DATABASE_GENERATION
+      }
       if (currentGen >= Number.MAX_SAFE_INTEGER) {
         throw new DatabaseGenerationOverflowError()
       }
@@ -855,6 +903,7 @@ function finalizeStudyExport(snapshot: StudyExport): StudyExport {
   assertStudyExportSemantics(normalizedSnapshot)
   assertStudyExportSettingsValues(normalizedSnapshot)
   assertStudyExportRecordCounts(normalizedSnapshot)
+  assertStudyExportCanonicalSize(normalizedSnapshot)
   return normalizedSnapshot
 }
 
@@ -1172,7 +1221,9 @@ function migrateLegacyData(data: LegacyData): StudyData {
       }
     })
 
-  const today = new Date().toISOString().slice(0, 10)
+  // Local calendar day (not UTC): legacy times parse as local instants, so a
+  // UTC-derived day would shift events near midnight to the wrong local day.
+  const today = localDateKey(new Date())
   const events = (data.events ?? [])
     .filter((event) => event.title?.trim())
     .map((event): CalendarEvent => {

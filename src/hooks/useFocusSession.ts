@@ -359,6 +359,12 @@ export function useFocusSession({
           return
         }
 
+        if (result.reason === 'invalid') {
+          deferredAutoCompleteSessionIdRef.current = null
+          setSessionNotice('Could not start the focus session with these details. Check the subject and duration, then try again.')
+          return
+        }
+
         if (result.reason === 'capacity_limit') {
           deferredAutoCompleteSessionIdRef.current = null
           setSessionNotice('Study storage is at its backup-safe capacity. Remove or reduce some saved data before adding more content.')
@@ -794,7 +800,9 @@ export function useFocusSession({
 
   const updateFocusSubject = useCallback((subjectId: string) => {
     setFocusSubjectId(subjectId)
-    if (!activeSession || focusActionsPending) return
+    // Gate on the synchronous pending refs: React state lags rapid successive
+    // calls, which could otherwise double-issue subject-update writes.
+    if (!activeSession || focusTransitionPendingRef.current || focusImportPendingRef.current) return
 
     const baseline = activeSession
     const writeSeq = ++focusSubjectWriteSeqRef.current
@@ -834,10 +842,15 @@ export function useFocusSession({
                 return
               }
             } catch {
-              // Fall back to baseline if durable re-read fails
+              // Durable re-read failed; fall through to cleared state below.
             }
             if (writeSeq !== focusSubjectWriteSeqRef.current) return
-            setActiveSession(baseline)
+            // Durable session is gone: reinstalling `baseline` would create a
+            // ghost that ticks (and can re-fire auto-completion) forever.
+            if (deferredAutoCompleteSessionIdRef.current === baseline.id) {
+              deferredAutoCompleteSessionIdRef.current = null
+            }
+            setActiveSession(null)
             setFocusSubjectId(baseline.subjectId)
             setSessionNotice('The selected subject is no longer available.')
             return
@@ -851,12 +864,17 @@ export function useFocusSession({
               return
             }
           } catch {
-            // Fall back to baseline if durable re-read fails
+            // Durable re-read failed; fall through to cleared state below.
           }
           if (writeSeq !== focusSubjectWriteSeqRef.current) return
-          setActiveSession(baseline)
+          // Durable session is gone (`missing` or deleted): do not reinstall
+          // `baseline` as a ghost. Clear so no timer ticks or auto-completes.
+          if (deferredAutoCompleteSessionIdRef.current === baseline.id) {
+            deferredAutoCompleteSessionIdRef.current = null
+          }
+          setActiveSession(null)
           setFocusSubjectId(baseline.subjectId)
-          setSessionNotice('Could not update the focus subject. Try again.')
+          setSessionNotice('Focus session no longer exists.')
         } catch (err) {
           if (writeSeq !== focusSubjectWriteSeqRef.current) return
           if (err instanceof StaleDatabaseGenerationError) {
@@ -873,12 +891,16 @@ export function useFocusSession({
               return
             }
           } catch {
-            // Fall back to baseline if durable re-read fails
+            // Durable re-read failed; fall through to cleared state below.
           }
           if (writeSeq !== focusSubjectWriteSeqRef.current) return
-          setActiveSession(baseline)
+          // Durable session is gone: do not reinstall `baseline` as a ghost.
+          if (deferredAutoCompleteSessionIdRef.current === baseline.id) {
+            deferredAutoCompleteSessionIdRef.current = null
+          }
+          setActiveSession(null)
           setFocusSubjectId(baseline.subjectId)
-          setSessionNotice('Could not update the focus subject. Try again.')
+          setSessionNotice('Focus session no longer exists.')
         }
       })
 
@@ -890,7 +912,7 @@ export function useFocusSession({
         }
       }
     })()
-  }, [activeSession, coordinator, focusActionsPending, hydrateActiveSession])
+  }, [activeSession, coordinator, hydrateActiveSession])
 
   const runWithFocusImportLock = useCallback(async <T,>(action: () => Promise<T>): Promise<T> => {
     focusImportPendingRef.current = true

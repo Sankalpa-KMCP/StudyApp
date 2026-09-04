@@ -46,29 +46,75 @@ export const DEFAULT_BACKUPABILITY_LIMITS: BackupabilityLimits = {
 }
 
 /**
+ * Strict backupability check against absolute ceilings (no grandfathering).
+ * Used as the fast path inside {@link runBackupableMutation}: when the
+ * prospective state is within limits, no pre-mutation snapshot is needed.
+ */
+export function assertStrictBackupability(
+  prospective: StudyData,
+  limits: BackupabilityLimits = DEFAULT_BACKUPABILITY_LIMITS,
+): { prospectiveBytes: number } {
+  assertProspectiveRecordCounts(prospective, undefined, limits.recordLimits)
+  const { byteLength: prospectiveBytes } = serializeCanonicalBackup(prospective, {
+    exportedAt: '2026-08-29T12:00:00.000Z',
+  })
+  if (prospectiveBytes > limits.maxBytes) {
+    throw new DatabaseBackupabilityLimitError(
+      'Database storage limit (64 MiB) reached. Delete or reduce data before adding more content.'
+    )
+  }
+  return { prospectiveBytes }
+}
+
+/** Private sentinel to roll back the fast-path transaction when grandfathering is needed. */
+class FastPathGrandfatherNeeded {
+  readonly prospective: StudyData
+  constructor(prospective: StudyData) {
+    this.prospective = prospective
+  }
+}
+
+/**
  * Executes an encompassing read-write transaction across `studyTables`, validating
  * that the prospective state satisfies canonical prospective backupability
  * (or does not worsen an already oversized database) before committing.
  *
- * Sequence:
- * 1. Reads the current snapshot from transaction-visible state.
- * 2. Executes the caller's tentative mutation.
- * 3. Reads the prospective snapshot from transaction-visible state.
- * 4. Evaluates `assertProspectiveBackupability(prospective, current)`.
- * 5. If validation fails, throws `DatabaseBackupabilityLimitError` which aborts and rolls back Dexie transaction.
- * 6. If validation passes, commits and returns the callback's result.
+ * Fast path (common case): mutate, snapshot once, strict-check against absolute
+ * ceilings. This halves per-write cost (one snapshot + one serialization)
+ * versus snapshotting both sides — the hot quick-note autosave path is O(DB)
+ * once per write instead of twice.
+ *
+ * Slow path (prospective exceeds a ceiling): roll back, re-snapshot the
+ * pre-mutation state, re-apply the mutation, and evaluate full grandfathering
+ * via `assertProspectiveBackupability`. The mutation runs twice only in this
+ * rare edge; service mutations are idempotent puts keyed by stable inputs.
  */
 export async function runBackupableMutation<T>(
   mutate: () => Promise<T>,
   limits: BackupabilityLimits = DEFAULT_BACKUPABILITY_LIMITS,
 ): Promise<T> {
-  return studyDb.transaction('rw', studyTables, async () => {
-    const current = await getStudyData()
-    const result = await mutate()
-    const prospective = await getStudyData()
-    assertProspectiveBackupability(prospective, current, limits)
-    return result
-  })
+  try {
+    return await studyDb.transaction('rw', studyTables, async () => {
+      const result = await mutate()
+      const prospective = await getStudyData()
+      try {
+        assertStrictBackupability(prospective, limits)
+      } catch (err) {
+        if (!isDatabaseBackupabilityLimitError(err)) throw err
+        throw new FastPathGrandfatherNeeded(prospective)
+      }
+      return result
+    })
+  } catch (err) {
+    if (!(err instanceof FastPathGrandfatherNeeded)) throw err
+    return studyDb.transaction('rw', studyTables, async () => {
+      const current = await getStudyData()
+      const result = await mutate()
+      const prospective = await getStudyData()
+      assertProspectiveBackupability(prospective, current, limits)
+      return result
+    })
+  }
 }
 
 /**
