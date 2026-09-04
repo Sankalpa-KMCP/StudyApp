@@ -77,7 +77,7 @@
   margin: 0;
   color: var(--ink);
   font-family: Outfit, Inter, sans-serif;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--track-tight);
 }
 
 .card h2,
@@ -179,24 +179,18 @@
 .progress-row strong {
   min-width: 38px;
   color: var(--ink);
-  font-size: 0.82rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   text-align: right;
 }
 
-.pill,
-.status-badge {
+.pill {
   width: fit-content;
   padding: 3px 8px;
   border-radius: 6px;
   color: var(--accent);
   background: var(--accent-soft);
-  font-size: 0.74rem;
-}
-
-.status-badge {
-  font-weight: 600;
-  text-transform: capitalize;
+  font-size: var(--text-xs);
 }
 
 .line-chart {
@@ -229,13 +223,12 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   color: var(--quiet);
-  font-size: 0.76rem;
+  font-size: var(--text-xs);
   text-align: center;
 }
 
 .large-stat,
 .chart-card .card-heading strong,
-.review-card > strong,
 .metric-card strong,
 .streak-card > strong {
   font-family: Outfit, Inter, sans-serif;
@@ -319,19 +312,12 @@
   background: var(--highlight);
 }
 
-.streak-card > strong,
-.review-card > strong {
+.streak-card > strong {
   font-size: 2rem;
 }
 
-.streak-card p,
-.review-card p {
+.streak-card p {
   margin: 0;
-}
-
-.review-card {
-  display: grid;
-  gap: 8px;
 }
 
 .distribution-list {
@@ -434,7 +420,7 @@
 .dashboard-mode-control.is-compact button {
   min-height: 28px;
   padding: 0 8px;
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
 }
 
 .editor-card {
@@ -482,7 +468,7 @@
 
 .list-count-summary {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: var(--text-sm);
   color: var(--muted);
   text-align: center;
 }
@@ -792,7 +778,7 @@
   color: var(--muted);
   background: var(--surface);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
@@ -839,7 +825,9 @@
   background: transparent;
   font: inherit;
   font-size: 0.9375rem;
-  font-weight: 500;
+  /* Ships as Inter 400: only 400/600 faces are bundled, so 500 would silently
+     resolve to 400. Declare the rendered face explicitly. */
+  font-weight: 400;
   text-align: left;
   cursor: pointer;
 }
@@ -939,15 +927,15 @@
 }
 
 .zen-subject-badge {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--track-label);
   color: var(--muted);
 }
 
 .zen-exit-btn {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   padding: 6px 14px;
 }
 
@@ -968,13 +956,17 @@
 .zen-subject-title {
   margin: 0;
   font-size: 1.25rem;
-  font-weight: 500;
+  /* Ships as Inter 400: only 400/600 faces are bundled, so 500 would silently
+     resolve to 400. Declare the rendered face explicitly. */
+  font-weight: 400;
   color: var(--muted);
 }
 
 .zen-timer {
   font-size: clamp(3.5rem, 12vw, 6.5rem);
-  font-weight: 700;
+  /* Ships as Outfit 600: only the 600 face is bundled, so 700 would silently
+     resolve to 600. Declare the rendered face explicitly. */
+  font-weight: 600;
   line-height: 1;
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
@@ -1023,7 +1015,7 @@
 
 .zen-stop-btn {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   padding: 8px 16px;
 }
 
@@ -1034,7 +1026,9 @@
 .zen-completed-title {
   margin: 0;
   font-size: 2rem;
-  font-weight: 700;
+  /* Ships as Outfit 600: only the 600 face is bundled, so 700 would silently
+     resolve to 600. Declare the rendered face explicitly. */
+  font-weight: 600;
   color: var(--ink);
 }
 
@@ -1046,6 +1040,6 @@
 
 .zen-logged-hint {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--muted);
 }

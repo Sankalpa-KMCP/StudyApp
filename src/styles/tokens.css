@@ -41,6 +41,14 @@
   --motion-fast: 120ms;
   --motion-base: 180ms;
   --motion-slow: 240ms;
+  /* Type ramp floor: smallest sizes across modules consolidate here so body
+     copy never drops below a readable floor. (Body copy inherits the UA 1rem
+     base from `body`; no explicit --text-base token is needed yet.) */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  /* Tracking pair: tight for headings, label for mono micro-labels. */
+  --track-tight: -0.02em;
+  --track-label: 0.06em;
 }
 
 :root[data-theme='light'],

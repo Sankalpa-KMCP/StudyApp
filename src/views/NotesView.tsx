@@ -91,16 +91,15 @@ export function NotesView({
     }
   }, [hasMore])
 
-  const noticePhase: MutationPhase = validationError.message
-    ? 'error'
-    : savePhase === 'success' || savePhase === 'error'
-      ? savePhase
-      : rowPhase === 'success' || rowPhase === 'error'
-        ? rowPhase
-        : 'idle'
-  const noticeMessage = validationError.message
-    ?? (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
+  const noticePhase: MutationPhase = savePhase === 'success' || savePhase === 'error'
+    ? savePhase
+    : rowPhase === 'success' || rowPhase === 'error'
+      ? rowPhase
+      : 'idle'
+  const noticeMessage = (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
     ?? (rowPhase === 'success' || rowPhase === 'error' ? rowMessage : null)
+  const noteTitleErrorId = 'note-title-error'
+  const noteTitleInvalid = validationError.reason === 'empty_title'
 
   const openEditor = useCallback((note?: StudyNote) => {
     setValidationError({ reason: null, message: null })
@@ -215,9 +214,14 @@ export function NotesView({
             value={draft.title}
             onChange={(title) => setDraft({ ...draft, title })}
             inputRef={titleInputRef}
-            invalid={validationError.reason === 'empty_title'}
-            describedBy={validationError.reason === 'empty_title' ? 'mutation-notice-message' : undefined}
+            invalid={noteTitleInvalid}
+            describedBy={noteTitleInvalid ? noteTitleErrorId : undefined}
           />
+          {noteTitleInvalid && validationError.message ? (
+            <p id={noteTitleErrorId} className="settings-feedback error" role="alert">
+              {validationError.message}
+            </p>
+          ) : null}
           <SubjectSelect subjects={subjects} value={draft.subjectId} onChange={(subjectId) => setDraft({ ...draft, subjectId })} />
           <TextInput label="Tags" value={draft.tags} onChange={(tags) => setDraft({ ...draft, tags })} />
           <label className="field field-full">

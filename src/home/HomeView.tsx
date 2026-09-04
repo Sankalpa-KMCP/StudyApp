@@ -179,8 +179,8 @@ export function HomeView(props: {
         dueTodayCount={dueTodayTasks.length}
         overdueCount={overdueTasks.length}
         todayEventCount={todaysEvents.length}
-        overduePreview={isCompact ? [] : overdueTasks.slice(0, 2)}
-        todayEventPreview={isCompact ? [] : todaysEvents.slice(0, 2)}
+        overduePreview={overdueTasks.slice(0, 2)}
+        todayEventPreview={todaysEvents.slice(0, 2)}
         recommended={recommended}
         onActivateRecommended={activateRecommended}
         onOpenTasks={() => props.onNavigate('Tasks')}
@@ -228,9 +228,7 @@ export function HomeView(props: {
         />
       </div>
       <SubjectsSection subjects={subjectStats} sessions={props.studySessions} now={now} onViewAll={() => props.onNavigate('Subjects')} />
-      {density === 'comfortable' ? (
-        <RecentNotes notes={recentNotes} subjectMap={props.subjectMap} onViewAll={() => props.onNavigate('Notes')} />
-      ) : null}
+      <RecentNotes notes={recentNotes} subjectMap={props.subjectMap} onViewAll={() => props.onNavigate('Notes')} />
     </>
   )
 }

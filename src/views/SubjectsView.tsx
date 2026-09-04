@@ -102,16 +102,21 @@ export function SubjectsView({
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
   const { clearFeedback: clearRowFeedback, isPending: isRowPending, phase: rowPhase, message: rowMessage, run: runRow } = rowMutation
 
-  const noticePhase: MutationPhase = validationError
+  const subjectNameErrorId = 'subject-name-error'
+  // Name errors render at the field (see below); other validation errors stay
+  // on the form-level notice so exactly one alert is announced.
+  const subjectNameInvalid = validationError === 'Enter a subject name.'
+  const noticePhase: MutationPhase = validationError && !subjectNameInvalid
     ? 'error'
     : savePhase === 'success' || savePhase === 'error'
       ? savePhase
       : rowPhase === 'success' || rowPhase === 'error'
         ? rowPhase
         : 'idle'
-  const noticeMessage = validationError
-    ?? (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
-    ?? (rowPhase === 'success' || rowPhase === 'error' ? rowMessage : null)
+  const noticeMessage = validationError && !subjectNameInvalid
+    ? validationError
+    : (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
+      ?? (rowPhase === 'success' || rowPhase === 'error' ? rowMessage : null)
 
   const openEditor = useCallback((subject?: StudySubject) => {
     setValidationError(null)
@@ -167,6 +172,9 @@ export function SubjectsView({
     if (!validated.ok) {
       if (validated.reason === 'empty_name') {
         setValidationError('Enter a subject name.')
+        requestAnimationFrame(() => {
+          nameFieldRef.current?.focus()
+        })
         return
       }
 
@@ -276,7 +284,19 @@ export function SubjectsView({
       <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
       {editingSubjectId ? (
         <div className="editor-card" aria-busy={isSaving || undefined}>
-          <TextInput label="Subject name" value={draft.name} inputRef={nameFieldRef} onChange={(name) => setDraft({ ...draft, name })} />
+          <TextInput
+            label="Subject name"
+            value={draft.name}
+            inputRef={nameFieldRef}
+            invalid={subjectNameInvalid}
+            describedBy={subjectNameInvalid ? subjectNameErrorId : undefined}
+            onChange={(name) => setDraft({ ...draft, name })}
+          />
+          {subjectNameInvalid ? (
+            <p id={subjectNameErrorId} className="settings-feedback error" role="alert">
+              {validationError}
+            </p>
+          ) : null}
           <label className="field">
             <span>Color</span>
             <div className="swatch-row">

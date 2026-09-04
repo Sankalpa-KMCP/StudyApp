@@ -29,12 +29,11 @@ export default defineConfig([
   {
     files: ['src/components/**/*.{ts,tsx}', 'src/hooks/**/*.{ts,tsx}', 'src/lib/**/*.{ts,tsx}'],
     rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [{
-          group: ['**/db/db', '**/db/db.ts', '../db/db', '../../db/db'],
-          message: 'Import from db/repositories instead of db/db directly.',
-        }],
-      }],
+      // No repository layer exists by design (AGENTS.md hard rules): domain
+      // persistence lives in `src/db/studyDb.ts`, `src/db/activeFocusSession.ts`,
+      // and `src/db/*Service.ts`. This block intentionally defines no
+      // `no-restricted-imports` patterns; it is kept as the home for future
+      // component/hook-scoped import rules.
     },
   },
   {

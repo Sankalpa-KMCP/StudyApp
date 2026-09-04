@@ -72,8 +72,8 @@
   overflow: hidden;
   color: var(--quiet);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem;
-  letter-spacing: 0.04em;
+  font-size: var(--text-xs);
+  letter-spacing: var(--track-label);
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -252,7 +252,7 @@
   color: var(--quiet);
   background: var(--surface-subtle);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
 }
 
 .notice-popover {
@@ -296,7 +296,7 @@
 }
 
 .live-read-error-panel {
-  color: var(--text);
+  color: var(--ink);
 }
 
 .live-read-error-copy {
@@ -374,7 +374,7 @@
   color: var(--muted);
   background: transparent;
   font: inherit;
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   line-height: 1.15;
   cursor: pointer;

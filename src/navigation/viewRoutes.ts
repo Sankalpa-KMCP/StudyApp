@@ -59,7 +59,7 @@ export function pathForView(view: View, baseUrl: string = import.meta.env.BASE_U
 
 /**
  * Map a browser pathname to a view, or `null` when the path is outside the app
- * base or is not one of the nine workspace routes.
+ * base or is not one of the eight workspace routes.
  */
 export function viewFromPathname(pathname: string, baseUrl: string = import.meta.env.BASE_URL): View | null {
   let decoded = pathname
