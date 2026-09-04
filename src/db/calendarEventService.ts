@@ -1,3 +1,4 @@
+import { runBackupableMutation } from './backupabilityGuard'
 import {
   type DatabaseMutationContext,
   withGuardedMutation,
@@ -18,7 +19,7 @@ export type CalendarEventWriteFields = {
 
 /**
  * Persist a new calendar event. Owns id and created/updated timestamps.
- * Enforces transactional subject referential integrity and database generation guard.
+ * Enforces transactional subject referential integrity, canonical backupability guard, and database generation guard.
  */
 export async function createCalendarEvent(
   fields: CalendarEventWriteFields,
@@ -26,7 +27,7 @@ export async function createCalendarEvent(
 ): Promise<CalendarEvent> {
   return withGuardedMutation(context, () => {
     assertCalendarEventWriteFields(fields)
-    return studyDb.transaction('rw', studyDb.subjects, studyDb.events, async () => {
+    return runBackupableMutation(async () => {
       await assertSubjectExists(fields.subjectId)
       const timestamp = nowIso()
       const event: CalendarEvent = {
@@ -47,7 +48,7 @@ export async function createCalendarEvent(
 
 /**
  * Update an existing calendar event's editable fields and refresh `updatedAt`.
- * Enforces transactional subject referential integrity and database generation guard.
+ * Enforces transactional subject referential integrity, canonical backupability guard, and database generation guard.
  * Throws when no row matches `id`.
  */
 export async function updateCalendarEvent(
@@ -57,7 +58,7 @@ export async function updateCalendarEvent(
 ): Promise<void> {
   return withGuardedMutation(context, () => {
     assertCalendarEventWriteFields(fields)
-    return studyDb.transaction('rw', studyDb.subjects, studyDb.events, async () => {
+    return runBackupableMutation(async () => {
       await assertSubjectExists(fields.subjectId)
       const updated = await studyDb.events.update(id, {
         title: fields.title,

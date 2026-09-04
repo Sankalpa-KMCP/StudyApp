@@ -1,3 +1,4 @@
+import { runBackupableMutation } from './backupabilityGuard'
 import {
   type DatabaseMutationContext,
   withGuardedMutation,
@@ -18,7 +19,7 @@ export type TaskWriteFields = {
 
 /**
  * Persist a new task as `open`. Owns id and created/updated timestamps.
- * Enforces transactional subject referential integrity and database generation guard.
+ * Enforces transactional subject referential integrity, canonical backupability guard, and database generation guard.
  */
 export async function createTask(
   fields: TaskWriteFields,
@@ -26,7 +27,7 @@ export async function createTask(
 ): Promise<StudyTask> {
   return withGuardedMutation(context, () => {
     assertTaskWriteFields(fields)
-    return studyDb.transaction('rw', studyDb.subjects, studyDb.tasks, async () => {
+    return runBackupableMutation(async () => {
       await assertSubjectExists(fields.subjectId)
       const timestamp = nowIso()
       const task: StudyTask = {
@@ -48,7 +49,7 @@ export async function createTask(
 
 /**
  * Update an existing task's editable fields and refresh `updatedAt`.
- * Enforces transactional subject referential integrity and database generation guard.
+ * Enforces transactional subject referential integrity, canonical backupability guard, and database generation guard.
  * Throws when no row matches `id`.
  */
 export async function updateTask(
@@ -58,7 +59,7 @@ export async function updateTask(
 ): Promise<void> {
   return withGuardedMutation(context, () => {
     assertTaskWriteFields(fields)
-    return studyDb.transaction('rw', studyDb.subjects, studyDb.tasks, async () => {
+    return runBackupableMutation(async () => {
       await assertSubjectExists(fields.subjectId)
       const updated = await studyDb.tasks.update(id, {
         title: fields.title,
@@ -75,7 +76,7 @@ export async function updateTask(
 
 /**
  * Set an existing task's open/done status and refresh `updatedAt`.
- * Enforces database generation guard.
+ * Enforces canonical backupability guard and database generation guard.
  * Throws when no row matches `id`.
  */
 export async function setTaskStatus(
@@ -85,11 +86,13 @@ export async function setTaskStatus(
 ): Promise<void> {
   return withGuardedMutation(context, async () => {
     assertTaskStatus(status)
-    const updated = await studyDb.tasks.update(id, {
-      status,
-      updatedAt: nowIso(),
+    return runBackupableMutation(async () => {
+      const updated = await studyDb.tasks.update(id, {
+        status,
+        updatedAt: nowIso(),
+      })
+      if (updated === 0) throw new Error('Task no longer exists.')
     })
-    if (updated === 0) throw new Error('Task no longer exists.')
   })
 }
 

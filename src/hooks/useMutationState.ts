@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { isDatabaseBackupabilityLimitError } from '../db/backupabilityGuard'
 import { StaleDatabaseGenerationError } from '../db/databaseGeneration'
 
 export type MutationPhase = 'idle' | 'pending' | 'success' | 'error'
@@ -20,10 +21,13 @@ export type UseMutationStateResult = {
 export const STALE_GENERATION_MESSAGE =
   'The data changed in another window or during a database replacement; refresh or reopen this workflow before saving.'
 
+export const DATABASE_CAPACITY_LIMIT_MESSAGE =
+  'Study storage is at its backup-safe capacity. Remove or reduce some saved data before adding more.'
+
 /**
  * Local async mutation helper for pending state, duplicate prevention, and
  * friendly success/error feedback. Does not reset forms or close editors.
- * Automatically catches and maps StaleDatabaseGenerationError to a friendly user notice.
+ * Automatically catches and maps StaleDatabaseGenerationError and DatabaseBackupabilityLimitError to friendly user notices.
  */
 export function useMutationState(): UseMutationStateResult {
   const [phase, setPhase] = useState<MutationPhase>('idle')
@@ -67,6 +71,8 @@ export function useMutationState(): UseMutationStateResult {
         setPhase('error')
         if (error instanceof StaleDatabaseGenerationError) {
           setMessage(STALE_GENERATION_MESSAGE)
+        } else if (isDatabaseBackupabilityLimitError(error)) {
+          setMessage(DATABASE_CAPACITY_LIMIT_MESSAGE)
         } else {
           setMessage(options.errorMessage)
         }

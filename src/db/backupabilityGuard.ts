@@ -4,7 +4,12 @@ import {
   type StudyExportRecordCounts,
   type StudyExportRecordLimits,
 } from './studyExportLimits'
-import { createStudyExportPayload } from './studyDb'
+import {
+  createStudyExportPayload,
+  getStudyData,
+  studyDb,
+  studyTables,
+} from './studyDb'
 import type { StudyData, StudyExport } from './types'
 
 export class DatabaseBackupabilityLimitError extends Error {
@@ -18,6 +23,18 @@ export class DatabaseBackupabilityLimitError extends Error {
   }
 }
 
+export function isDatabaseBackupabilityLimitError(
+  error: unknown
+): error is DatabaseBackupabilityLimitError {
+  return (
+    error instanceof DatabaseBackupabilityLimitError ||
+    (Boolean(error) &&
+      typeof error === 'object' &&
+      ((error as { name?: string }).name === 'DatabaseBackupabilityLimitError' ||
+        (error as { code?: string }).code === 'backupability_limit'))
+  )
+}
+
 export type BackupabilityLimits = {
   maxBytes: number
   recordLimits: StudyExportRecordLimits
@@ -26,6 +43,32 @@ export type BackupabilityLimits = {
 export const DEFAULT_BACKUPABILITY_LIMITS: BackupabilityLimits = {
   maxBytes: MAX_STUDY_EXPORT_IMPORT_BYTES,
   recordLimits: STUDY_EXPORT_RECORD_LIMITS,
+}
+
+/**
+ * Executes an encompassing read-write transaction across `studyTables`, validating
+ * that the prospective state satisfies canonical prospective backupability
+ * (or does not worsen an already oversized database) before committing.
+ *
+ * Sequence:
+ * 1. Reads the current snapshot from transaction-visible state.
+ * 2. Executes the caller's tentative mutation.
+ * 3. Reads the prospective snapshot from transaction-visible state.
+ * 4. Evaluates `assertProspectiveBackupability(prospective, current)`.
+ * 5. If validation fails, throws `DatabaseBackupabilityLimitError` which aborts and rolls back Dexie transaction.
+ * 6. If validation passes, commits and returns the callback's result.
+ */
+export async function runBackupableMutation<T>(
+  mutate: () => Promise<T>,
+  limits: BackupabilityLimits = DEFAULT_BACKUPABILITY_LIMITS,
+): Promise<T> {
+  return studyDb.transaction('rw', studyTables, async () => {
+    const current = await getStudyData()
+    const result = await mutate()
+    const prospective = await getStudyData()
+    assertProspectiveBackupability(prospective, current, limits)
+    return result
+  })
 }
 
 /**

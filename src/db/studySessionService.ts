@@ -1,3 +1,4 @@
+import { runBackupableMutation } from './backupabilityGuard'
 import {
   type DatabaseMutationContext,
   withGuardedMutation,
@@ -17,7 +18,7 @@ export type StudySessionWriteFields = {
 }
 
 /**
- * Persist a new manual study session under database generation guard. Owns id generation.
+ * Persist a new manual study session under database generation guard and canonical backupability guard. Owns id generation.
  * Shares the `studySessions` table with focus finalization; does not change record shape.
  * Enforces transactional subject referential integrity.
  */
@@ -27,7 +28,7 @@ export async function createStudySession(
 ): Promise<StudySession> {
   return withGuardedMutation(context, () => {
     assertStudySessionWriteFields(fields)
-    return studyDb.transaction('rw', studyDb.subjects, studyDb.studySessions, async () => {
+    return runBackupableMutation(async () => {
       await assertSubjectExists(fields.subjectId)
       const session: StudySession = {
         id: createId('session'),
@@ -44,7 +45,7 @@ export async function createStudySession(
 }
 
 /**
- * Update an existing study session's editable fields under database generation guard.
+ * Update an existing study session's editable fields under database generation guard and canonical backupability guard.
  * Enforces transactional subject referential integrity.
  * Throws when no row matches `id`.
  */
@@ -55,7 +56,7 @@ export async function updateStudySession(
 ): Promise<void> {
   return withGuardedMutation(context, () => {
     assertStudySessionWriteFields(fields)
-    return studyDb.transaction('rw', studyDb.subjects, studyDb.studySessions, async () => {
+    return runBackupableMutation(async () => {
       await assertSubjectExists(fields.subjectId)
       const updated = await studyDb.studySessions.update(id, {
         subjectId: fields.subjectId,

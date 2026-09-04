@@ -107,6 +107,32 @@ describe('useMutationState', () => {
     )
   })
 
+  it('maps DatabaseBackupabilityLimitError to a friendly database capacity notice message', async () => {
+    const { result } = renderHook(() => useMutationState())
+    const action = vi.fn(async () => {
+      throw new Error('Study storage is at its backup-safe capacity. Remove or reduce some saved data before adding more.')
+    })
+    // Simulate isDatabaseBackupabilityLimitError error structure
+    const capacityError = new Error('Capacity limit')
+    Object.assign(capacityError, { code: 'backupability_limit' })
+    action.mockRejectedValueOnce(capacityError)
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    let succeeded = true
+    await act(async () => {
+      succeeded = await result.current.run(action, {
+        successMessage: 'Saved.',
+        errorMessage: 'Could not save this item.',
+      })
+    })
+
+    expect(succeeded).toBe(false)
+    expect(result.current.phase).toBe('error')
+    expect(result.current.message).toBe(
+      'Study storage is at its backup-safe capacity. Remove or reduce some saved data before adding more.',
+    )
+  })
+
   it('blocks a duplicate run while pending and executes the action only once', async () => {
     const { result } = renderHook(() => useMutationState())
     let resolveAction!: () => void

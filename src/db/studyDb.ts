@@ -125,7 +125,7 @@ export class StudyDatabase extends Dexie {
 
 export const studyDb = new StudyDatabase()
 
-const studyTables = [
+export const studyTables = [
   studyDb.tasks,
   studyDb.subjects,
   studyDb.notes,

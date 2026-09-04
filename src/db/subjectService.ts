@@ -1,4 +1,5 @@
 import { ACTIVE_FOCUS_SESSION_KEY, normalizeActiveFocusSession } from './activeFocusSession'
+import { runBackupableMutation } from './backupabilityGuard'
 import {
   type DatabaseMutationContext,
   withGuardedMutation,
@@ -30,7 +31,7 @@ export type DeleteSubjectResult =
   | { ok: false; reason: 'linked'; usage: SubjectLinkedUsage }
 
 /**
- * Persist a new subject under database generation guard. Owns id and created/updated timestamps.
+ * Persist a new subject under database generation guard and canonical backupability guard. Owns id and created/updated timestamps.
  */
 export async function createSubject(
   fields: SubjectWriteFields,
@@ -38,25 +39,27 @@ export async function createSubject(
 ): Promise<StudySubject> {
   return withGuardedMutation(context, async () => {
     assertSubjectWriteFields(fields)
-    const timestamp = nowIso()
-    const subject: StudySubject = {
-      id: createId('subject'),
-      name: fields.name,
-      color: fields.color,
-      targetHours: fields.targetHours,
-      progress: fields.progress,
-      progressMode: fields.progressMode,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    }
-    await studyDb.subjects.add(subject)
-    return subject
+    return runBackupableMutation(async () => {
+      const timestamp = nowIso()
+      const subject: StudySubject = {
+        id: createId('subject'),
+        name: fields.name,
+        color: fields.color,
+        targetHours: fields.targetHours,
+        progress: fields.progress,
+        progressMode: fields.progressMode,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }
+      await studyDb.subjects.add(subject)
+      return subject
+    })
   })
 }
 
 /**
  * Update an existing subject's editable fields and refresh `updatedAt`.
- * Enforces database generation guard.
+ * Enforces database generation guard and canonical backupability guard.
  * Throws when no row matches `id`.
  */
 export async function updateSubject(
@@ -66,15 +69,17 @@ export async function updateSubject(
 ): Promise<void> {
   return withGuardedMutation(context, async () => {
     assertSubjectWriteFields(fields)
-    const updated = await studyDb.subjects.update(id, {
-      name: fields.name,
-      color: fields.color,
-      targetHours: fields.targetHours,
-      progress: fields.progress,
-      progressMode: fields.progressMode,
-      updatedAt: nowIso(),
+    return runBackupableMutation(async () => {
+      const updated = await studyDb.subjects.update(id, {
+        name: fields.name,
+        color: fields.color,
+        targetHours: fields.targetHours,
+        progress: fields.progress,
+        progressMode: fields.progressMode,
+        updatedAt: nowIso(),
+      })
+      if (updated === 0) throw new Error('Subject no longer exists.')
     })
-    if (updated === 0) throw new Error('Subject no longer exists.')
   })
 }
 
