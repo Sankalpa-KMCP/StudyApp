@@ -10,7 +10,7 @@ export const MAX_STUDY_EXPORT_IMPORT_CHARS = 64 * 1024 * 1024
 /** Stable internal error; Settings maps failures to a fixed friendly message. */
 export const STUDY_EXPORT_IMPORT_SIZE_ERROR = 'Import file exceeds the Study Dashboard size limit.'
 
-/** Maximum combined records across all imported tables (including settings). */
+/** Maximum combined portable records across all tables (including portable settings). */
 export const MAX_STUDY_EXPORT_TOTAL_RECORDS = 25_000
 
 export const MAX_STUDY_EXPORT_SUBJECTS = 500
@@ -19,6 +19,7 @@ export const MAX_STUDY_EXPORT_NOTES = 5_000
 export const MAX_STUDY_EXPORT_EVENTS = 5_000
 export const MAX_STUDY_EXPORT_STUDY_SESSIONS = 10_000
 export const MAX_STUDY_EXPORT_GOALS = 500
+/** Internal generation/migration records are excluded; unknown settings and focus count normally. */
 export const MAX_STUDY_EXPORT_SETTINGS = 64
 
 export type StudyExportRecordLimits = {

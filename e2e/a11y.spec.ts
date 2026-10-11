@@ -4,8 +4,8 @@ import { importStudyBackupViaSettings, makeStudyExport, makeSubjectRow } from '.
 import { navigateWorkspace } from './navHelpers'
 import { THEME_CONFIGS } from '../src/styles/themeRegistry'
 
-test.use({
-  reducedMotion: 'reduce',
+test.beforeEach(async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
 })
 
 test.describe('Playwright axe accessibility smoke', () => {

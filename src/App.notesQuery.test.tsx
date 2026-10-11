@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -7,6 +7,7 @@ import * as goalRead from './db/goalRead'
 import { createGoal } from './db/goalService'
 import { createNote, updateNote } from './db/notesService'
 import * as noteRead from './db/noteRead'
+import * as notesService from './db/notesService'
 import { createTask } from './db/taskService'
 import * as taskRead from './db/taskRead'
 import { saveQuickNotes } from './db/quickNotesService'
@@ -20,6 +21,38 @@ describe('App notes live query isolation', () => {
 
   afterEach(async () => {
     await flushDeferredAppWork()
+  })
+
+  it.each(['success', 'failure'] as const)('preserves draft B when a real pending save of A settles with %s', async (outcome) => {
+    const user = userEvent.setup()
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const originalCreate = notesService.createNote
+    const save = vi.spyOn(notesService, 'createNote').mockImplementationOnce(async (...args) => {
+      await gate
+      if (outcome === 'failure') throw new Error('controlled failure')
+      return originalCreate(...args)
+    })
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Notes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'New note' }))
+    fireEvent.change(screen.getByLabelText('Note title'), { target: { value: 'Note A' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    fireEvent.click(screen.getByRole('button', { name: 'New note' }))
+    fireEvent.change(screen.getByLabelText('Note title'), { target: { value: 'Note B' } })
+    fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'unsaved' } })
+    await act(async () => { release(); await save.mock.results[0].value.catch(() => {}) })
+    expect(screen.getByLabelText('Note title')).toHaveValue('Note B')
+    expect(screen.getByLabelText('Tags')).toHaveValue('unsaved')
+    expect((await studyDb.notes.toArray()).map((note) => note.title)).toEqual(outcome === 'success' ? ['Note A'] : [])
+    expect(screen.queryByText('Note created.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Note could not be saved. Your text is still available.')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: 'Full B body' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(screen.queryByLabelText('Note title')).not.toBeInTheDocument())
+    expect(await screen.findByText('Note created.')).toBeInTheDocument()
+    expect((await studyDb.notes.toArray()).find((note) => note.title === 'Note B')).toMatchObject({ body: 'Full B body', tags: ['unsaved'] })
+    expect(save).toHaveBeenCalledTimes(2)
   })
 
   it('reruns Notes without rerunning the Subjects query for Note writes and updates consumers', async () => {

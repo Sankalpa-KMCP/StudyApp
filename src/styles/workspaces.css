@@ -41,8 +41,8 @@
 /* Direct Workspace Routes Initial Entry Settled Surface Animation */
 @keyframes workspaceHeadingSettle {
   from {
-    opacity: 0;
-    transform: translateY(8px);
+    opacity: 0.15;
+    transform: translateY(18px);
   }
   to {
     opacity: 1;
@@ -51,9 +51,13 @@
 }
 
 .content-grid.is-workspace-view.is-entry-playing .workspace-heading {
-  animation: workspaceHeadingSettle 200ms var(--ease-settle) 100ms both;
+  animation: workspaceHeadingSettle 760ms var(--ease-settle) 100ms both var(--entry-play-state, running);
 }
 
 .content-grid.is-workspace-view.is-entry-playing .workspace-panel > :not(.workspace-heading):not(.settings-feedback) {
-  animation: workspaceGroupSettle 220ms var(--ease-settle) 160ms both;
+  animation: workspaceGroupSettle 780ms var(--ease-settle) 240ms both var(--entry-play-state, running);
+}
+
+.content-grid.is-workspace-view.is-entry-playing .workspace-panel > :nth-child(n + 3):not(.settings-feedback) {
+  animation-delay: 340ms;
 }

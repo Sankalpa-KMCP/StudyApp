@@ -13,7 +13,8 @@ import type { ActiveFocusSession, CalendarEvent, StudyNote, StudySession, StudyS
 import type { DensityMode } from '../hooks/useDensityPreference'
 import { EmptyState, MutationNotice, SubjectCard } from '../components/ui'
 import type { View } from '../navigation/viewRoutes'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { normalizeQuickNotesDraft, QUICK_NOTES_LIMIT_MESSAGE } from '../db/quickNotesService'
 import { FirstStudyChecklist } from './FirstStudyChecklist'
 import { getActiveFocusElapsedMs } from '../db/activeFocusSession'
 import { useMutationState } from '../hooks/useMutationState'
@@ -600,20 +601,26 @@ function QuickNoteCard({
   const lastPersistedRef = useRef(lastPersisted)
   const epochGenerationRef = useRef(databaseGeneration)
   const isMountedRef = useRef(true)
-  const pendingRef = useRef<string | null>(null)
+  const pendingRef = useRef<{ value: string; revision: number; generation: number } | null>(null)
+  const draftRevisionRef = useRef(0)
+  const failedRevisionRef = useRef<number | null>(null)
+  const statusId = useId()
+  const draftError = useMemo(() => {
+    try { normalizeQuickNotesDraft(draft); return null } catch { return QUICK_NOTES_LIMIT_MESSAGE }
+  }, [draft])
   const inFlightRef = useRef(false)
-  const awaitingEchoRef = useRef(false)
+  const [awaitingEcho, setAwaitingEcho] = useState(false)
   const onChangeRef = useRef(onChange)
 
   useEffect(() => {
     onChangeRef.current = onChange
   }, [onChange])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     draftRef.current = draft
   }, [draft])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     lastPersistedRef.current = lastPersisted
   }, [lastPersisted])
 
@@ -621,95 +628,108 @@ function QuickNoteCard({
   // After a local save, ignore unchanged stale props until the live query echoes the write or delivers a newer value.
   if (savedValue !== prevSavedValue) {
     setPrevSavedValue(savedValue)
-    const canApplyExternal = draft === lastPersisted
-      && pendingRef.current === null
-      && !inFlightRef.current
-      && saveStatus === 'saved'
+    const canApplyExternal = draft === lastPersisted && saveStatus === 'saved'
 
-    if (awaitingEchoRef.current) {
+    if (awaitingEcho) {
       if (savedValue === lastPersisted) {
-        awaitingEchoRef.current = false
+        setAwaitingEcho(false)
       } else if (canApplyExternal) {
-        awaitingEchoRef.current = false
+        setAwaitingEcho(false)
         setDraft(savedValue)
         setLastPersisted(savedValue)
-        draftRef.current = savedValue
-        lastPersistedRef.current = savedValue
       }
     } else if (canApplyExternal && savedValue !== lastPersisted) {
       setDraft(savedValue)
       setLastPersisted(savedValue)
-      draftRef.current = savedValue
-      lastPersistedRef.current = savedValue
     }
   }
 
   const flushPending = useCallback(async () => {
-    if (inFlightRef.current) return
+    if (inFlightRef.current || pendingRef.current === null) return
     inFlightRef.current = true
     if (isMountedRef.current) setSaveStatus('saving')
-    let failed = false
-
     try {
       for (;;) {
         const next = pendingRef.current
         if (next === null) break
         pendingRef.current = null
-        await onChangeRef.current(next, { expectedGeneration: epochGenerationRef.current })
-        awaitingEchoRef.current = true
-        lastPersistedRef.current = next
-        if (isMountedRef.current) setLastPersisted(next)
+        if (next.revision !== draftRevisionRef.current || next.revision === failedRevisionRef.current) continue
+        if (next.value === lastPersistedRef.current) {
+          if (isMountedRef.current) setSaveStatus('saved')
+          continue
+        }
+        try {
+          await onChangeRef.current(next.value, { expectedGeneration: next.generation })
+        } catch {
+          failedRevisionRef.current = next.revision
+          if (isMountedRef.current) {
+            setAwaitingEcho(false)
+            if (next.revision === draftRevisionRef.current) setSaveStatus('error')
+            else if (draftRef.current === lastPersistedRef.current) setSaveStatus('saved')
+          }
+          continue
+        }
+        lastPersistedRef.current = next.value
+        if (isMountedRef.current) {
+          setAwaitingEcho(true)
+          setLastPersisted(next.value)
+          if (next.revision === draftRevisionRef.current) setSaveStatus('saved')
+        }
       }
-      if (isMountedRef.current) setSaveStatus('saved')
-    } catch {
-      failed = true
-      awaitingEchoRef.current = false
-      if (isMountedRef.current) setSaveStatus('error')
     } finally {
       inFlightRef.current = false
     }
-
-    if (!failed && pendingRef.current !== null) {
-      window.setTimeout(() => {
-        void flushPending()
-      }, 0)
-    }
   }, [])
 
+  const queueDraft = useCallback(() => {
+    const value = draftRef.current
+    if (failedRevisionRef.current === draftRevisionRef.current) return
+    try { normalizeQuickNotesDraft(value) } catch { return }
+    if (value === lastPersistedRef.current && !inFlightRef.current) return
+    pendingRef.current = { value, revision: draftRevisionRef.current, generation: epochGenerationRef.current }
+    void flushPending()
+  }, [flushPending])
+
   useEffect(() => {
-    if (draft === lastPersisted && saveStatus !== 'error') return undefined
-    const timer = window.setTimeout(() => {
-      pendingRef.current = draft
-      void flushPending()
-    }, 250)
+    if (draftError || failedRevisionRef.current === draftRevisionRef.current) return undefined
+    if (draft === lastPersisted && !inFlightRef.current) return undefined
+    const timer = window.setTimeout(queueDraft, 250)
     return () => window.clearTimeout(timer)
-  }, [draft, flushPending, lastPersisted, saveStatus])
+  }, [draft, draftError, queueDraft, lastPersisted])
 
   useEffect(() => {
     isMountedRef.current = true
     return () => {
       isMountedRef.current = false
-      const latestDraft = draftRef.current
-      if (latestDraft !== lastPersistedRef.current) {
-        pendingRef.current = latestDraft
-        void flushPending()
-      }
+      queueDraft()
     }
-  }, [flushPending])
+  }, [queueDraft])
 
-  const handleBlur = useCallback(() => {
-    const latestDraft = draftRef.current
-    if (latestDraft !== lastPersistedRef.current) {
-      pendingRef.current = latestDraft
-      void flushPending()
+  const handleDraftChange = (value: string) => {
+    if (value === draftRef.current) return
+    if (draftRef.current === lastPersistedRef.current || failedRevisionRef.current === draftRevisionRef.current) {
+      epochGenerationRef.current = databaseGeneration
     }
-  }, [flushPending])
+    draftRevisionRef.current++
+    draftRef.current = value
+    pendingRef.current = null
+    setDraft(value)
+    setSaveStatus(value === lastPersistedRef.current && !inFlightRef.current ? 'saved' : 'saving')
+  }
 
-  const statusLabel = saveStatus === 'error'
+  const retrySave = () => {
+    if (inFlightRef.current || draftError) return
+    failedRevisionRef.current = null
+    epochGenerationRef.current = databaseGeneration
+    queueDraft()
+  }
+
+  const hasError = Boolean(draftError) || saveStatus === 'error'
+  const statusLabel = draftError ?? (saveStatus === 'error'
     ? 'Quick notes could not be saved. Your text is still available.'
     : saveStatus === 'saving' || draft !== lastPersisted
       ? 'Saving...'
-      : 'Saved locally'
+      : 'Saved locally')
 
   if (density === 'compact') {
     return (
@@ -719,8 +739,9 @@ function QuickNoteCard({
           <span className="quick-disclosure-meta">
             <span
               className="save-status"
-              role={saveStatus === 'error' ? 'alert' : undefined}
-              aria-live={saveStatus === 'error' ? undefined : 'polite'}
+              id={statusId}
+              role={hasError ? 'alert' : undefined}
+              aria-live={hasError ? undefined : 'polite'}
             >
               {statusLabel}
             </span>
@@ -731,27 +752,19 @@ function QuickNoteCard({
             <span className="sr-only">Quick notes</span>
             <textarea
               value={draft}
+              aria-invalid={Boolean(draftError)}
+              aria-describedby={statusId}
               placeholder="Capture fast ideas, formulas, or reminders..."
-              onChange={(event) => {
-                if (draft === lastPersisted || saveStatus === 'error') {
-                  epochGenerationRef.current = databaseGeneration
-                }
-                setDraft(event.target.value)
-                if (saveStatus === 'error') setSaveStatus('saving')
-              }}
-              onBlur={handleBlur}
+              onChange={(event) => handleDraftChange(event.target.value)}
+              onBlur={queueDraft}
             />
           </label>
           <div className="quick-disclosure-actions">
-            {saveStatus === 'error' ? (
+            {saveStatus === 'error' && !draftError ? (
               <button
                 className="text-command"
                 type="button"
-                onClick={() => {
-                  epochGenerationRef.current = databaseGeneration
-                  pendingRef.current = draft
-                  void flushPending()
-                }}
+                onClick={retrySave}
               >
                 Retry save
               </button>
@@ -770,20 +783,17 @@ function QuickNoteCard({
         <div className="quick-note-actions">
           <span
             className="save-status"
-            role={saveStatus === 'error' ? 'alert' : undefined}
-            aria-live={saveStatus === 'error' ? undefined : 'polite'}
+            id={statusId}
+            role={hasError ? 'alert' : undefined}
+            aria-live={hasError ? undefined : 'polite'}
           >
             {statusLabel}
           </span>
-          {saveStatus === 'error' ? (
+          {saveStatus === 'error' && !draftError ? (
             <button
               className="text-command"
               type="button"
-              onClick={() => {
-                epochGenerationRef.current = databaseGeneration
-                pendingRef.current = draft
-                void flushPending()
-              }}
+              onClick={retrySave}
             >
               Retry save
             </button>
@@ -795,15 +805,11 @@ function QuickNoteCard({
         <span className="sr-only">Quick notes</span>
         <textarea
           value={draft}
+          aria-invalid={Boolean(draftError)}
+          aria-describedby={statusId}
           placeholder="Capture fast ideas, formulas, or reminders..."
-          onChange={(event) => {
-            if (draft === lastPersisted || saveStatus === 'error') {
-              epochGenerationRef.current = databaseGeneration
-            }
-            setDraft(event.target.value)
-            if (saveStatus === 'error') setSaveStatus('saving')
-          }}
-          onBlur={handleBlur}
+          onChange={(event) => handleDraftChange(event.target.value)}
+          onBlur={queueDraft}
         />
       </label>
     </section>

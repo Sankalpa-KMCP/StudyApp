@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { fileURLToPath } from 'node:url'
 
 const SMOKE_SPECS = [
   '**/navigation.spec.ts',
@@ -10,6 +11,7 @@ const SMOKE_SPECS = [
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: 'productionSmoke.spec.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
@@ -47,6 +49,7 @@ export default defineConfig({
     },
   ],
   webServer: {
+    cwd: fileURLToPath(new URL('.', import.meta.url)),
     command: 'npm run dev -- --host 127.0.0.1 --port 5174',
     url: 'http://127.0.0.1:5174',
     reuseExistingServer: !process.env.CI,

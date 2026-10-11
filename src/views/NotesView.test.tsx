@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { StudyNote, StudySubject } from '../db/types'
 import { NotesView } from './NotesView'
+import * as notesService from '../db/notesService'
 
 function createSampleNotes(count: number, subjectId = 'sub-1'): StudyNote[] {
   const notes: StudyNote[] = []
@@ -34,6 +35,109 @@ const sampleSubjects: StudySubject[] = [
 ]
 
 const subjectMap = new Map(sampleSubjects.map((s) => [s.id, s]))
+
+describe('Notes editor completion ownership', () => {
+  afterEach(() => vi.restoreAllMocks())
+  it.each(['success', 'failure'] as const)('preserves a newer draft after delayed %s', async (outcome) => {
+    let resolve!: () => void
+    let reject!: (error: Error) => void
+    const gate = new Promise<void>((yes, no) => { resolve = yes; reject = no })
+    const save = vi.spyOn(notesService, 'createNote').mockImplementation(async () => {
+      await gate
+      return createSampleNotes(1)[0]
+    })
+    render(<NotesView notes={[]} subjects={sampleSubjects} subjectMap={subjectMap} databaseGeneration={1} />)
+    fireEvent.click(screen.getByRole('button', { name: 'New note' }))
+    fireEvent.change(screen.getByLabelText('Note title'), { target: { value: 'A' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    fireEvent.click(screen.getByRole('button', { name: 'New note' }))
+    fireEvent.change(screen.getByLabelText('Note title'), { target: { value: 'B' } })
+    fireEvent.change(screen.getByLabelText('Tags'), { target: { value: 'keep' } })
+    await act(async () => {
+      if (outcome === 'success') resolve()
+      else reject(new Error('controlled failure'))
+      await gate.catch(() => {})
+    })
+    expect(screen.getByLabelText('Note title')).toHaveValue('B')
+    expect(screen.getByLabelText('Tags')).toHaveValue('keep')
+    expect(screen.queryByText('Note created.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Note could not be saved. Your text is still available.')).not.toBeInTheDocument()
+    expect(save).toHaveBeenCalledTimes(1)
+    save.mockRestore()
+  })
+
+  it('keeps edits made to the submitted draft and blocks duplicate Save/Cancel until settlement', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const save = vi.spyOn(notesService, 'createNote').mockImplementation(async () => {
+      await gate
+      return createSampleNotes(1)[0]
+    })
+    render(<NotesView notes={[]} subjects={sampleSubjects} subjectMap={subjectMap} databaseGeneration={1} />)
+    fireEvent.click(screen.getByRole('button', { name: 'New note' }))
+    fireEvent.change(screen.getByLabelText('Note title'), { target: { value: 'Submitted' } })
+    const button = screen.getByRole('button', { name: 'Save' })
+    act(() => { fireEvent.click(button); fireEvent.click(button) })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    fireEvent.change(screen.getByLabelText('Note title'), { target: { value: 'Unsaved correction' } })
+    await act(async () => { release(); await gate })
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(save.mock.calls[0][0].title).toBe('Submitted')
+    expect(screen.getByLabelText('Note title')).toHaveValue('Unsaved correction')
+    expect(screen.queryByText('Note created.')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByLabelText('Note title')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'New note' }))
+    expect(screen.getByLabelText('Note title')).toHaveValue('')
+  })
+
+  it('invalidates an Edit completion after an external New request, even when the record ID is reused', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    vi.spyOn(notesService, 'updateNote').mockImplementation(() => gate)
+    const props = { notes: createSampleNotes(1), subjects: sampleSubjects, subjectMap, databaseGeneration: 1 }
+    const { rerender } = render(<NotesView {...props} />)
+    fireEvent.click(screen.getByLabelText('Edit Note Title 1'))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    rerender(<NotesView {...props} openEditorRequest={1} />)
+    await act(async () => { release(); await gate })
+    expect(screen.getByLabelText('Note title')).toHaveValue('')
+    expect(screen.queryByText('Note updated.')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    fireEvent.click(screen.getByLabelText('Edit Note Title 1'))
+    expect(screen.getByLabelText('Note title')).toHaveValue('Note Title 1')
+  })
+
+  it('does not reset a replacement editor after a delayed delete', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    vi.spyOn(notesService, 'deleteNote').mockImplementation(() => gate)
+    render(<NotesView notes={createSampleNotes(1)} subjects={sampleSubjects} subjectMap={subjectMap} databaseGeneration={1} />)
+    fireEvent.click(screen.getByLabelText('Edit Note Title 1'))
+    fireEvent.click(screen.getByLabelText('Delete Note Title 1'))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'New note' }))
+    fireEvent.change(screen.getByLabelText('Note title'), { target: { value: 'Replacement' } })
+    await act(async () => { release(); await gate })
+    expect(screen.getByLabelText('Note title')).toHaveValue('Replacement')
+  })
+
+  it('does not affect a remounted editor when an unmounted save settles', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    vi.spyOn(notesService, 'createNote').mockImplementation(async () => { await gate; return createSampleNotes(1)[0] })
+    const props = { notes: [], subjects: sampleSubjects, subjectMap, databaseGeneration: 1 }
+    const first = render(<NotesView {...props} openEditorRequest={1} />)
+    fireEvent.change(screen.getByLabelText('Note title'), { target: { value: 'Before navigation' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    first.unmount()
+    render(<NotesView {...props} openEditorRequest={1} />)
+    fireEvent.change(screen.getByLabelText('Note title'), { target: { value: 'After navigation' } })
+    await act(async () => { release(); await gate })
+    expect(screen.getByLabelText('Note title')).toHaveValue('After navigation')
+    expect(screen.queryByText('Note created.')).not.toBeInTheDocument()
+  })
+})
 
 describe('NotesView Progressive Bounding (S6.2a)', () => {
   it('renders at most 30 notes initially when dataset exceeds 30', () => {

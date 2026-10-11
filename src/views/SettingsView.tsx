@@ -1,4 +1,7 @@
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { ConfirmDialog } from '../components/ConfirmDialog'
+import { prepareStudyBackup, type StudyBackupReview } from '../db/prepareStudyBackup'
+import { isDataOperationBusyError } from '../hooks/useStudyBackup'
 import { BookOpen, Check, Download, Layers3, RotateCcw, Upload } from '../components/icons'
 import { MutationNotice, PanelHeader } from '../components/ui'
 import { DashboardModeControl } from '../components/DashboardModeControl'
@@ -54,6 +57,16 @@ export function SettingsView({
   const [clearError, setClearError] = useState<string | null>(null)
   const [resetState, setResetState] = useState<'idle' | 'confirm' | 'deleting'>('idle')
   const [deleteInput, setDeleteInput] = useState('')
+  const [preparingImport, setPreparingImport] = useState(false)
+  const [replacingData, setReplacingData] = useState(false)
+  const [importReview, setImportReview] = useState<{ file: File; summary: StudyBackupReview } | null>(null)
+  const importRequestRef = useRef(0)
+  const dataWritePendingRef = useRef(false)
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const themeOptionRefs = useRef<Array<HTMLButtonElement | null>>([])
   const exportMutation = useMutationState()
@@ -67,8 +80,8 @@ export function SettingsView({
   } = exportMutation
 
   const isExportDisabled = isExporting || (coordinatorState ? !coordinatorState.canExport : false)
-  const isImportDisabled = importPending || (coordinatorState ? !coordinatorState.canImport : false)
-  const isClearDisabled = resetState === 'deleting' || (coordinatorState ? !coordinatorState.canClear : false)
+  const isImportDisabled = importPending || replacingData || isExporting || resetState === 'deleting' || (coordinatorState ? !coordinatorState.canImport : false)
+  const isClearDisabled = resetState === 'deleting' || replacingData || (coordinatorState ? !coordinatorState.canClear : false)
 
   const noticePhase: MutationPhase = clearError
     ? 'error'
@@ -76,16 +89,16 @@ export function SettingsView({
       ? 'error'
       : onboardingMutation.phase === 'success' || onboardingMutation.phase === 'error'
         ? onboardingMutation.phase
-        : exportPhase === 'success' || exportPhase === 'error'
-          ? exportPhase
-          : importFeedback
-            ? importFeedback.tone
+        : importFeedback
+          ? importFeedback.tone
+          : exportPhase === 'success' || exportPhase === 'error'
+            ? exportPhase
             : 'idle'
   const noticeMessage = clearError
     ?? preferenceNotice
     ?? (onboardingMutation.phase === 'success' || onboardingMutation.phase === 'error' ? onboardingMutation.message : null)
-    ?? (exportPhase === 'success' || exportPhase === 'error' ? exportMessage : null)
     ?? importFeedback?.message
+    ?? (exportPhase === 'success' || exportPhase === 'error' ? exportMessage : null)
     ?? null
 
   const dismissNotice = () => {
@@ -134,31 +147,72 @@ export function SettingsView({
 
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (!file) {
-      if (event.target) event.target.value = ''
-      return
-    }
-    if (isImportDisabled) {
-      if (event.target) event.target.value = ''
+    event.target.value = ''
+    if (!file) return
+    if (isImportDisabled || dataWritePendingRef.current) {
       setImportFeedback({ tone: 'error', message: 'A data operation is currently in progress. Please wait.' })
       return
     }
 
     setClearError(null)
+    setImportFeedback(null)
+    onboardingMutation.clearFeedback()
+    setImportReview(null)
+    setPreparingImport(true)
     clearExportFeedback()
     onDismissPreferenceNotice?.()
+    const request = ++importRequestRef.current
+    const isCurrent = () => mountedRef.current && request === importRequestRef.current
     try {
-      await onImport(file)
-      setImportFeedback({ tone: 'success', message: 'Study data imported.' })
+      const summary = await prepareStudyBackup(file)
+      if (!isCurrent()) return
+      setImportReview({ file, summary })
+      fileInputRef.current?.focus()
     } catch {
-      setImportFeedback({ tone: 'error', message: 'Import failed. Choose a valid Study Dashboard export.' })
+      if (isCurrent()) setImportFeedback({ tone: 'error', message: 'Import failed. Choose a valid Study Dashboard export.' })
     } finally {
-      if (event.target) event.target.value = ''
+      if (isCurrent()) setPreparingImport(false)
+    }
+  }
+
+  const cancelImport = () => {
+    if (dataWritePendingRef.current) return
+    importRequestRef.current++
+    setPreparingImport(false)
+    setImportReview(null)
+    clearExportFeedback()
+    setImportFeedback({ tone: 'success', message: 'Import cancelled. Your study data was not changed.' })
+    fileInputRef.current?.focus()
+  }
+
+  const confirmImport = async () => {
+    if (!importReview || isImportDisabled || dataWritePendingRef.current) return
+    dataWritePendingRef.current = true
+    setReplacingData(true)
+    clearExportFeedback()
+    setImportFeedback(null)
+    const request = importRequestRef.current
+    try {
+      await onImport(importReview.file)
+      if (mountedRef.current && request === importRequestRef.current) {
+        setImportReview(null)
+        setImportFeedback({ tone: 'success', message: 'Study data imported.' })
+      }
+    } catch (error) {
+      if (mountedRef.current && request === importRequestRef.current) {
+        setImportReview(null)
+        setImportFeedback({ tone: 'error', message: isDataOperationBusyError(error)
+          ? 'A data operation is currently in progress. Please wait.'
+          : 'Import failed. Choose a valid Study Dashboard export.' })
+      }
+    } finally {
+      dataWritePendingRef.current = false
+      if (mountedRef.current && request === importRequestRef.current) setReplacingData(false)
     }
   }
 
   const handleClear = async () => {
-    if (deleteInput !== 'DELETE' || isClearDisabled) return
+    if (deleteInput !== 'DELETE' || isClearDisabled || dataWritePendingRef.current) return
     if (coordinatorState && !coordinatorState.canClear) {
       setClearError('A data operation is currently in progress. Please wait.')
       return
@@ -168,17 +222,20 @@ export function SettingsView({
     setImportFeedback(null)
     onDismissPreferenceNotice?.()
     setResetState('deleting')
+    dataWritePendingRef.current = true
     try {
       await onClear()
       // Success is handled by App.tsx navigating away
     } catch {
       setClearError('Study data could not be cleared. Please try again.')
       setResetState('confirm')
+    } finally {
+      dataWritePendingRef.current = false
     }
   }
 
   const handleShowOnboardingChecklist = async () => {
-    if (onboardingMutation.isPending || isImportDisabled || resetState === 'deleting') return
+    if (onboardingMutation.isPending || isImportDisabled) return
     setClearError(null)
     setImportFeedback(null)
     clearExportFeedback()
@@ -200,7 +257,41 @@ export function SettingsView({
           {coordinatorState.statusLabel}
         </div>
       ) : null}
-      <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
+      {!importReview && <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />}
+      {preparingImport && <div aria-busy="true">
+        <p role="status">Validating backup. Your study data has not changed.</p>
+        <button className="secondary-command" type="button" onClick={cancelImport}>Cancel validation</button>
+      </div>}
+      <ConfirmDialog
+        open={!!importReview}
+        title="Review study backup"
+        description="Importing replaces all current local study data on this device. This cannot be undone. Export your current data first if you want to keep it."
+        confirmLabel="Replace my study data"
+        pending={replacingData}
+        confirmDisabled={isImportDisabled}
+        onCancel={cancelImport}
+        onConfirm={() => void confirmImport()}
+      >
+        {importReview && <>
+          <p className="backup-review-file">Selected backup: <strong>{importReview.file.name}</strong></p>
+          <p>Backup format: version {importReview.summary.version}. Validated for import.</p>
+          <ul>
+            <li>Subjects: {importReview.summary.counts.subjects}</li>
+            <li>Tasks: {importReview.summary.counts.tasks}</li>
+            <li>Notes: {importReview.summary.counts.notes}</li>
+            <li>Calendar events: {importReview.summary.counts.events}</li>
+            <li>Study sessions: {importReview.summary.counts.studySessions}</li>
+            <li>Goals: {importReview.summary.counts.goals}</li>
+            <li>Settings: {importReview.summary.counts.settings}</li>
+          </ul>
+          <p>Total records: {importReview.summary.total}. Active focus session: {importReview.summary.hasFocusSession ? 'included' : 'not included'}.</p>
+          <button className="secondary-command" type="button" disabled={isExportDisabled || replacingData} onClick={() => void handleExport()}>
+            {isExporting ? 'Creating backup…' : 'Export current data first'}
+          </button>
+          <MutationNotice phase={noticePhase} message={noticeMessage} onDismiss={dismissNotice} />
+          {replacingData && <p role="status">Replacing study data and restoring focus state…</p>}
+        </>}
+      </ConfirmDialog>
       <p className="settings-section-description">
         Download an unencrypted JSON backup containing one consistent snapshot of your subjects, tasks, notes, calendar events, study sessions, goals, and supported settings. Active focus-session data is included when present. Changes committed after the snapshot begins may not appear. Device-local appearance and sidebar preferences are excluded.
       </p>
@@ -334,7 +425,7 @@ export function SettingsView({
           type="button"
           aria-label="Show onboarding checklist"
           onClick={() => void handleShowOnboardingChecklist()}
-          disabled={onboardingMutation.isPending || isImportDisabled || resetState === 'deleting'}
+          disabled={onboardingMutation.isPending || isImportDisabled}
           aria-busy={onboardingMutation.isPending || undefined}
         >
           <BookOpen size={24} aria-hidden="true" />

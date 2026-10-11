@@ -10,7 +10,7 @@ describe('useMobileNavBreakpoint', () => {
 
   it('tracks matchMedia for the mobile navigation query', () => {
     let matches = false
-    const listeners = new Set<() => void>()
+    const listeners = new Set<EventListenerOrEventListenerObject>()
     vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
       get matches() {
         return query === MOBILE_NAV_MAX_WIDTH_QUERY ? matches : false
@@ -20,10 +20,10 @@ describe('useMobileNavBreakpoint', () => {
       addListener: vi.fn(),
       removeListener: vi.fn(),
       addEventListener: (_event: string, listener: EventListenerOrEventListenerObject) => {
-        listeners.add(typeof listener === 'function' ? listener : () => listener.handleEvent(new Event('change')))
+        listeners.add(listener)
       },
       removeEventListener: (_event: string, listener: EventListenerOrEventListenerObject) => {
-        listeners.delete(typeof listener === 'function' ? listener : () => listener.handleEvent(new Event('change')))
+        listeners.delete(listener)
       },
       dispatchEvent: vi.fn(),
     }))
@@ -33,7 +33,7 @@ describe('useMobileNavBreakpoint', () => {
 
     matches = true
     act(() => {
-      listeners.forEach((listener) => listener())
+      listeners.forEach((listener) => typeof listener === 'function' ? listener(new Event('change')) : listener.handleEvent(new Event('change')))
     })
     expect(result.current).toBe(true)
   })

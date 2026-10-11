@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie'
+import type { MockInstance } from 'vitest'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearAllStudyData, createId, createStudyExportPayload, exportStudyData, getStudyData, importStudyData, migrateLegacyLocalStorage, nowIso, parseAndNormalizeStudyExport, readStudyDataSnapshot, studyDb, StudyDatabase } from './studyDb'
 import { DATABASE_GENERATION_KEY, getDatabaseGeneration } from './databaseGeneration'
@@ -187,7 +188,7 @@ describe('studyDb', () => {
       capturedMode = mode as string
       const tables = args.slice(0, -1).flat() as Array<{ name: string }>
       capturedTables = tables.map((t) => t.name)
-      return (originalTransaction as (...a: unknown[]) => unknown)(mode, ...args) as Promise<unknown>
+      return (originalTransaction as (...a: unknown[]) => unknown)(mode, ...args) as ReturnType<typeof studyDb.transaction>
     })
 
     const snapshot = await exportStudyData()
@@ -216,7 +217,7 @@ describe('studyDb', () => {
       capturedMode = mode as string
       const tables = args.slice(0, -1).flat() as Array<{ name: string }>
       capturedTables = tables.map((t) => t.name)
-      return (originalTransaction as (...a: unknown[]) => unknown)(mode, ...args) as Promise<unknown>
+      return (originalTransaction as (...a: unknown[]) => unknown)(mode, ...args) as ReturnType<typeof studyDb.transaction>
     })
 
     const rawSnapshot = await readStudyDataSnapshot()
@@ -2455,8 +2456,10 @@ describe('studyDb', () => {
       id: 'existing-task-id',
       title: 'Existing DB Task',
       subjectId: '',
-      completed: false,
-      estimatedMinutes: 30,
+      status: 'open',
+      priority: 'normal',
+      dueDate: '',
+      minutes: 30,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -3708,10 +3711,10 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
       let observedNativeMode: string | null = null
       let observedNativeStores: string[] = []
 
-      let snapshotPromise: Promise<unknown> | null = null
+      let snapshotPromise: ReturnType<typeof readStudyDataSnapshot> | null = null
       let writePromise: Promise<void> | null = null
-      let origAppTransactionSpy: ReturnType<typeof vi.spyOn> | null = null
-      let origNativeTransactionSpy: ReturnType<typeof vi.spyOn> | null = null
+      let origAppTransactionSpy: MockInstance<typeof studyDb.transaction> | null = null
+      let origNativeTransactionSpy: MockInstance<typeof IDBDatabase.prototype.transaction> | null = null
       let studyDb2: StudyDatabase | null = null
 
       try {
@@ -3755,14 +3758,14 @@ describe('subject progressMode Dexie version 3 upgrade', () => {
             await Dexie.waitFor(snapshotGatePromise)
             return result
           }
-          return (origAppTransaction as (...a: unknown[]) => unknown)(mode, ...args) as Promise<unknown>
+          return (origAppTransaction as (...a: unknown[]) => unknown)(mode, ...args) as ReturnType<typeof studyDb.transaction>
         })
 
         // 1. Install native IDBDatabase.prototype.transaction spy BEFORE constructing/opening Connection B
         const origNativeTransaction = globalThis.IDBDatabase.prototype.transaction
         origNativeTransactionSpy = vi
           .spyOn(globalThis.IDBDatabase.prototype, 'transaction')
-          .mockImplementation(function (this: IDBDatabase, storeNames: string | string[], mode?: IDBTransactionMode) {
+          .mockImplementation(function (this: IDBDatabase, storeNames: string | Iterable<string>, mode?: IDBTransactionMode) {
             const storeArray = Array.isArray(storeNames) ? storeNames : Array.from(storeNames)
             if (
               studyDb2 &&

@@ -14,9 +14,8 @@ import {
   createStudyExportPayload,
   exportStudyData,
   importStudyData,
-  type StudyData,
 } from './studyDb'
-import type { StudyNote, StudySubject, StudyTask } from './types'
+import type { StudyData, StudyNote, StudySubject, StudyTask } from './types'
 
 function createEmptyStudyData(): StudyData {
   return {

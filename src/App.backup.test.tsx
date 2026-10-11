@@ -1,8 +1,9 @@
+import Dexie from 'dexie'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import { studyDb } from './db/studyDb'
+import { getStudyData, studyDb } from './db/studyDb'
 import { flushDeferredAppWork, resetAppTestEnvironment } from './test/appTestSetup'
 import { importStudyExport, makeEmptyExport } from './test/backupTestHelpers'
 
@@ -100,10 +101,31 @@ describe('App backup', () => {
     const importInput = screen.getByLabelText(/Import data/)
 
     await user.upload(importInput, new File([JSON.stringify(validExport)], 'study-dashboard.json', { type: 'application/json' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Study data imported.')
+    await user.click(await screen.findByRole('button', { name: 'Replace my study data' }))
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Study data imported.'))
 
     await user.upload(importInput, new File(['not valid json'], 'broken.json', { type: 'application/json' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Import failed. Choose a valid Study Dashboard export.')
+  })
+
+  it('preserves the current dataset and focus ownership when a valid selection is cancelled', async () => {
+    const user = userEvent.setup()
+    await studyDb.settings.put({ key: 'quickNotes', value: ['Keep this note'] })
+    await studyDb.settings.put({ key: 'activeFocusSession', value: {
+      id: 'focus-before-review', subjectId: '', startedAt: new Date().toISOString(),
+      plannedMinutes: 0, status: 'paused', pausedAt: new Date().toISOString(), accumulatedPausedMs: 0, checkpointElapsedMs: 600_000,
+    } })
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Resume' })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    const before = await getStudyData()
+    await user.upload(screen.getByLabelText('Import data'), new File([JSON.stringify(makeEmptyExport())], 'empty.json', { type: 'application/json' }))
+    expect(await screen.findByRole('dialog', { name: 'Review study backup' })).toBeInTheDocument()
+    expect(await getStudyData()).toEqual(before)
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(await getStudyData()).toEqual(before)
+    await user.click(screen.getByRole('button', { name: 'Home' }))
+    expect(await screen.findByRole('button', { name: 'Resume' })).toBeEnabled()
   })
 
   it('shows the onboarding control, restores the checklist, and does not clear study data', async () => {
@@ -147,13 +169,13 @@ describe('App backup', () => {
     const gate = new Promise<void>((resolve) => {
       releaseDelete = resolve
     })
-    const deleteSpy = vi.spyOn(studyDb.settings, 'delete').mockImplementation(async (key) => {
+    const deleteSpy = vi.spyOn(studyDb.settings, 'delete').mockImplementation((key) => Dexie.Promise.resolve((async () => {
       if (key === 'onboardingChecklistDismissed') {
         await gate
         throw new Error('restart failed')
       }
       return Promise.resolve(undefined as never)
-    })
+    })()))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Settings' }))
@@ -292,7 +314,7 @@ describe('App backup', () => {
     Object.defineProperty(mockBlob, 'size', { value: 65 * 1024 * 1024 })
     const blobSpy = vi.spyOn(globalThis, 'Blob').mockImplementation(function (this: Blob) {
       return mockBlob
-    } as unknown as typeof Blob)
+    })
 
     const clickMock = vi.fn()
     const originalCreateElement = document.createElement.bind(document)
@@ -416,10 +438,10 @@ describe('App backup', () => {
       releaseClear = resolve
     })
     const originalClear = studyDb.tasks.clear.bind(studyDb.tasks)
-    const clearSpy = vi.spyOn(studyDb.tasks, 'clear').mockImplementation(async () => {
+    const clearSpy = vi.spyOn(studyDb.tasks, 'clear').mockImplementation(() => Dexie.Promise.resolve((async () => {
       await gate
       throw new Error('clear failed')
-    })
+    })()))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Settings' }))
@@ -436,7 +458,7 @@ describe('App backup', () => {
     expect(screen.getByPlaceholderText('DELETE')).toHaveValue('DELETE')
     expect(await studyDb.tasks.count()).toBe(1)
 
-    clearSpy.mockImplementation(async () => originalClear())
+    clearSpy.mockImplementation(() => originalClear())
     await user.click(screen.getByRole('button', { name: 'Delete all data' }))
     expect(await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeInTheDocument()
     expect(await studyDb.tasks.count()).toBe(0)
@@ -484,9 +506,9 @@ describe('App backup', () => {
     let releaseFocusWrite!: () => void
     const focusGate = new Promise<void>((resolve) => { releaseFocusWrite = resolve })
     const realCreate = (await import('./db/activeFocusSession')).createActiveFocusSession
-    vi.spyOn(await import('./db/activeFocusSession'), 'createActiveFocusSession').mockImplementationOnce(async (session) => {
+    vi.spyOn(await import('./db/activeFocusSession'), 'createActiveFocusSession').mockImplementationOnce(async (session, context) => {
       await focusGate
-      return realCreate(session)
+      return realCreate(session, context)
     })
 
     render(<App />)

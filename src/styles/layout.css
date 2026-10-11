@@ -461,3 +461,39 @@
 .mobile-nav-more-item.is-active {
   color: var(--accent);
 }
+
+/* One ready-document entrance. Animate surfaces, never shell geometry or
+   the sticky/fixed containers that own popover positioning. */
+@keyframes siteBrandSettle {
+  from { opacity: 0.45; transform: translateY(-6px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes siteNavigationSettle {
+  from { opacity: 0.5; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.app-shell:has(.content-grid.is-entry-playing) :is(.brand-row, .topbar-title, .topbar-actions) {
+  animation: siteBrandSettle 620ms var(--ease-settle) both var(--entry-play-state, running);
+}
+
+.app-shell:has(.content-grid.is-entry-playing) :is(.sidebar nav, .sidebar-footer, .mobile-navigation > *) {
+  animation: siteNavigationSettle 620ms var(--ease-settle) 80ms both var(--entry-play-state, running);
+}
+
+/* Hold only entrance keyframes through the first ready paint. */
+.app-shell:has(.content-grid.is-entry-preparing) {
+  --entry-play-state: paused;
+}
+
+/* Focused controls remain immediately usable, including during preparation. */
+.app-shell:has(.content-grid.is-entry-playing) :is(.brand-row, .sidebar nav, .sidebar-footer, .topbar-actions, .mobile-navigation > *):focus-within {
+  animation: none;
+}
+
+.content-grid.is-entry-playing .primary-column > :focus-within,
+.content-grid.is-entry-playing .workspace-panel > :focus-within,
+.content-grid.is-entry-playing .right-column > :focus-within {
+  animation: none;
+}

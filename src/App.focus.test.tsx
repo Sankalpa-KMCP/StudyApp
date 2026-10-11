@@ -1,3 +1,4 @@
+import type { ActiveFocusSession } from './db/types'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -27,6 +28,10 @@ describe('App focus', () => {
 
   it('logs focus sessions with the selected subject', async () => {
     const user = userEvent.setup()
+    const domain = await import('./db/activeFocusSession')
+    // Call through to the real transaction, then flush its React continuation.
+    // user.click alone does not await the async persistence handler.
+    const create = vi.spyOn(domain, 'createActiveFocusSession')
     await studyDb.subjects.add({
       id: 'subject-focus',
       name: 'Physics',
@@ -43,8 +48,12 @@ describe('App focus', () => {
     await user.selectOptions(await screen.findByLabelText('Focus subject'), 'subject-focus')
     expect(screen.getByLabelText('Session length')).toHaveValue('25')
     await waitForFocusStartEnabled()
-    await user.click(screen.getByRole('button', { name: 'Start focus' }))
-    expect(await screen.findByText('Elapsed')).toBeInTheDocument()
+    await act(async () => {
+      await user.click(screen.getByRole('button', { name: 'Start focus' }))
+      expect(create).toHaveBeenCalledTimes(1)
+      await create.mock.results[0].value
+    })
+    expect(screen.getByText('Elapsed')).toBeInTheDocument()
     expect(await getActiveFocusSession()).toMatchObject({ subjectId: 'subject-focus', plannedMinutes: 25 })
     await user.click(screen.getByRole('button', { name: 'Stop session' }))
 
@@ -54,6 +63,29 @@ describe('App focus', () => {
       expect(sessions[0].subjectId).toBe('subject-focus')
     })
     expect(await getActiveFocusSession()).toBeNull()
+  })
+
+  it('keeps an external Pause authoritative after automatic completion passes its UI eligibility read', async () => {
+    const domain = await import('./db/activeFocusSession')
+    const session = makeDurableFocusSession({
+      id: 'focus-atomic-pause', subjectId: '', plannedMinutes: 25, checkpointElapsedMs: 25 * 60_000,
+    })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const realFinalize = domain.finalizeActiveFocusSession
+    const finalizeSpy = vi.spyOn(domain, 'finalizeActiveFocusSession').mockImplementationOnce(async (...args) => {
+      await gate
+      return realFinalize(...args)
+    })
+    render(<App />)
+    await waitFor(() => expect(finalizeSpy).toHaveBeenCalledTimes(1))
+    await pauseActiveFocusSession(session.id, { expectedGeneration: 1 })
+    await act(async () => { release(); await finalizeSpy.mock.results[0].value })
+    expect(await studyDb.studySessions.count()).toBe(0)
+    expect(await screen.findByRole('button', { name: 'Resume' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Stop session' })).toBeEnabled()
+    expect(await getActiveFocusSession()).toMatchObject({ id: session.id, status: 'paused' })
   })
 
   it('import without activeFocusSession clears a visible focus session and restores Start', async () => {
@@ -262,6 +294,8 @@ describe('App focus', () => {
     await act(async () => {
       fireEvent.change(importInput, { target: { files: [file] } })
     })
+
+    await user.click(await screen.findByRole('button', { name: 'Replace my study data' }))
 
     await waitFor(() => expect(importInput).toBeDisabled())
     await user.click(screen.getByRole('button', { name: 'Home' }))
@@ -513,7 +547,7 @@ describe('App focus', () => {
       subjectId: 'subject-focus-a',
       plannedMinutes: 0,
     }), { expectedGeneration: 1 })
-    vi.spyOn(await import('./db/activeFocusSession'), 'updateActiveFocusSession').mockRejectedValueOnce(new Error('subject write failed'))
+    vi.spyOn(await import('./db/activeFocusSession'), 'updateActiveFocusSessionSubject').mockRejectedValueOnce(new Error('subject write failed'))
 
     render(<App />)
     expect(await screen.findByLabelText('Focus subject')).toHaveValue('subject-focus-a')

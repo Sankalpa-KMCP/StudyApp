@@ -22,7 +22,7 @@ import {
 
 function renderBackupHook(overrides: {
   coordinator?: DataOperationCoordinator
-  runWithFocusImportLock?: <T>(action: () => Promise<T>) => Promise<T>
+  runWithFocusImportLock?: (action: () => Promise<unknown>) => Promise<unknown>
   reloadFocusFromIndexedDb?: () => Promise<null>
   clearFocusLocalState?: () => void
   onClearSuccess?: () => void
@@ -36,7 +36,7 @@ function renderBackupHook(overrides: {
 
   const { result } = renderHook(() => useStudyBackup({
     coordinator,
-    runWithFocusImportLock,
+    runWithFocusImportLock: <T,>(action: () => Promise<T>) => runWithFocusImportLock(action) as Promise<T>,
     reloadFocusFromIndexedDb,
     clearFocusLocalState,
     onClearSuccess,
@@ -135,7 +135,7 @@ describe('useStudyBackup', () => {
     Object.defineProperty(mockBlob, 'size', { value: MAX_STUDY_EXPORT_IMPORT_BYTES + 1 })
     vi.spyOn(globalThis, 'Blob').mockImplementation(function (this: Blob) {
       return mockBlob
-    } as unknown as typeof Blob)
+    })
 
     const { result, coordinator } = renderBackupHook()
 
@@ -176,7 +176,7 @@ describe('useStudyBackup', () => {
     Object.defineProperty(mockBlob, 'size', { value: MAX_STUDY_EXPORT_IMPORT_BYTES })
     vi.spyOn(globalThis, 'Blob').mockImplementation(function (this: Blob) {
       return mockBlob
-    } as unknown as typeof Blob)
+    })
 
     const { result, coordinator } = renderBackupHook()
 
@@ -412,6 +412,7 @@ describe('useStudyBackup', () => {
     const order: string[] = []
     vi.spyOn(studyDb, 'importStudyData').mockImplementation(async () => {
       order.push('import')
+      return {}
     })
     const reloadFocusFromIndexedDb = vi.fn(async () => {
       order.push('reload')
@@ -439,13 +440,13 @@ describe('useStudyBackup', () => {
 
   it('AC-5, AC-6: rejects with DataOperationBusyError when coordinator is busy', async () => {
     const coordinator = new DataOperationCoordinator()
-    const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue(undefined)
+    const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue({})
     const exportStudyData = vi.spyOn(studyDb, 'exportStudyData').mockResolvedValue({
       version: 4,
       exportedAt: '2026-07-28T00:00:00.000Z',
       tasks: [], subjects: [], notes: [], events: [], studySessions: [], goals: [], settings: [],
     })
-    const clearAllStudyData = vi.spyOn(studyDb, 'clearAllStudyData').mockResolvedValue(undefined)
+    const clearAllStudyData = vi.spyOn(studyDb, 'clearAllStudyData').mockResolvedValue(2)
 
     const { result, reloadFocusFromIndexedDb, clearFocusLocalState, onClearSuccess, runWithFocusImportLock } = renderBackupHook({ coordinator })
 
@@ -505,7 +506,7 @@ describe('useStudyBackup', () => {
 
   it('rejects an oversized file before reading text and releases both locks', async () => {
     const order: string[] = []
-    const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue(undefined)
+    const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue({})
     const textSpy = vi.spyOn(File.prototype, 'text')
     const parseSpy = vi.spyOn(JSON, 'parse')
     const reloadFocusFromIndexedDb = vi.fn(async () => null)
@@ -539,7 +540,7 @@ describe('useStudyBackup', () => {
   })
 
   it('rejects oversized text before JSON parse and database import', async () => {
-    const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue(undefined)
+    const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue({})
     const parseSpy = vi.spyOn(JSON, 'parse')
     const reloadFocusFromIndexedDb = vi.fn(async () => null)
     const clearFocusLocalState = vi.fn()
@@ -565,7 +566,7 @@ describe('useStudyBackup', () => {
   })
 
   it('allows a file at the byte-size boundary to reach the import path', async () => {
-    const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue(undefined)
+    const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue({})
     const reloadFocusFromIndexedDb = vi.fn(async () => null)
     const { result } = renderBackupHook({ reloadFocusFromIndexedDb })
 
@@ -581,7 +582,7 @@ describe('useStudyBackup', () => {
   })
 
   it('allows an ordinary under-limit file to reach the import path', async () => {
-    const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue(undefined)
+    const importStudyData = vi.spyOn(studyDb, 'importStudyData').mockResolvedValue({})
     const reloadFocusFromIndexedDb = vi.fn(async () => null)
     const { result } = renderBackupHook({ reloadFocusFromIndexedDb })
 

@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, type MouseEvent } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, type MouseEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 const FOCUSABLE_SELECTOR = [
@@ -20,6 +20,8 @@ export type ConfirmDialogProps = {
   destructive?: boolean
   /** Disables Escape, backdrop dismiss, and confirm while an operation is in flight. */
   pending?: boolean
+  confirmDisabled?: boolean
+  children?: ReactNode
   onConfirm: () => void
   onCancel: () => void
 }
@@ -36,6 +38,8 @@ export function ConfirmDialog({
   cancelLabel = 'Cancel',
   destructive = true,
   pending = false,
+  confirmDisabled = false,
+  children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -171,7 +175,7 @@ export function ConfirmDialog({
   if (!open) return null
 
   const handleConfirm = () => {
-    if (pending || confirmGuardRef.current) return
+    if (pending || confirmDisabled || confirmGuardRef.current) return
     confirmGuardRef.current = true
     onConfirm()
   }
@@ -193,9 +197,11 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
+        aria-busy={pending || undefined}
       >
         <h2 id={titleId} className="confirm-dialog-title">{title}</h2>
         <p id={descriptionId} className="confirm-dialog-description">{description}</p>
+        {children}
         <div className="confirm-dialog-actions">
           <button
             ref={cancelRef}
@@ -211,7 +217,7 @@ export function ConfirmDialog({
             className={destructive ? 'primary-command confirm-dialog-confirm is-destructive' : 'primary-command'}
             type="button"
             onClick={handleConfirm}
-            disabled={pending}
+            disabled={pending || confirmDisabled}
             aria-busy={pending || undefined}
           >
             {pending ? `${confirmLabel}...` : confirmLabel}

@@ -274,11 +274,14 @@ export async function importStudyBackupViaSettings(page: Page, payload: StudyExp
     buffer: Buffer.from(JSON.stringify(payload)),
   })
 
+  await page.getByRole('button', { name: 'Replace my study data' }).click()
+
   await expect(page.getByRole('status')).toContainText('Study data imported.', { timeout: 15_000 })
 }
 
 export type StudyExportDownload = {
   version: number
+  settings: Array<{ key: string; value: unknown }>
   goals: StudyGoalRow[]
   subjects: Array<{
     id: string

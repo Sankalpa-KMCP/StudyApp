@@ -4,6 +4,20 @@ import { describe, expect, it, vi } from 'vitest'
 import { DataOperationCoordinator } from '../db/dataCoordinator'
 import { THEME_CONFIGS } from '../styles/themeRegistry'
 import { SettingsView } from './SettingsView'
+import { makeEmptyExport } from '../test/backupTestHelpers'
+
+it('requires review and explicit confirmation before calling import', async () => {
+  const user = userEvent.setup()
+  const onImport = vi.fn().mockResolvedValue(undefined)
+  render(<TestSettingsViewWrapper coordinator={new DataOperationCoordinator()} onImport={onImport} />)
+  const file = new File([JSON.stringify(makeEmptyExport())], 'review.json', { type: 'application/json' })
+  Object.defineProperty(file, 'text', { value: async () => JSON.stringify(makeEmptyExport()) })
+  await user.upload(screen.getByLabelText('Import data'), file)
+  expect(onImport).not.toHaveBeenCalled()
+  expect(await screen.findByRole('dialog', { name: 'Review study backup' })).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Replace my study data' }))
+  expect(onImport).toHaveBeenCalledTimes(1)
+})
 
 function TestSettingsViewWrapper({
   coordinator,
@@ -91,16 +105,19 @@ describe('SettingsView concurrency and coordinator integration', () => {
 
     render(<TestSettingsViewWrapper coordinator={coordinator} onImport={onImport} />)
 
-    const file = new File(['{"version":3}'], 'test.json', { type: 'application/json' })
+    const file = new File([JSON.stringify(makeEmptyExport())], 'test.json', { type: 'application/json' })
     const input = screen.getByLabelText(/Import data/) as HTMLInputElement
 
     await user.upload(input, file)
-    expect(onImport).toHaveBeenCalledTimes(1)
+    expect(onImport).not.toHaveBeenCalled()
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }))
     expect(input.value).toBe('')
 
     // Upload same file again
     await user.upload(input, file)
-    expect(onImport).toHaveBeenCalledTimes(2)
+    expect(await screen.findByRole('dialog', { name: 'Review study backup' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Replace my study data' }))
+    expect(onImport).toHaveBeenCalledTimes(1)
   })
 
   it('prevents opening Delete All confirmation dialog when clear is unavailable', async () => {
@@ -194,7 +211,7 @@ describe('SettingsView concurrency and coordinator integration', () => {
 describe('SettingsView theme gallery and selection', () => {
   it('renders all 21 themes from THEME_CONFIGS with miniature previews and accessible radio semantics', () => {
     const coordinator = new DataOperationCoordinator()
-    render(<TestSettingsViewWrapper coordinator={coordinator} theme="monochrome" />)
+    render(<TestSettingsViewWrapper coordinator={coordinator} />)
 
     const radiogroup = screen.getByRole('radiogroup', { name: 'Theme' })
     expect(radiogroup).toBeInTheDocument()

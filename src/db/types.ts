@@ -105,6 +105,8 @@ export type ActiveFocusSession = {
   /** Set when `status === 'paused'`; otherwise `null`. Guaranteed >= startedAt. */
   pausedAt: string | null
   accumulatedPausedMs: number
+  /** Running-interval identity; legacy/initial intervals may omit it. Renewed on Resume. */
+  runToken?: string
   /**
    * Total confirmed logical active study milliseconds earned.
    * Optional for backwards compatibility (defaults to legacy calculation when absent).

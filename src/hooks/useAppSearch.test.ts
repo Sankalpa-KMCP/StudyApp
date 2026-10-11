@@ -113,7 +113,7 @@ describe('useAppSearch', () => {
     const subjectMap = new Map(subjects.map((subject) => [subject.id, subject]))
     const { result, rerender } = renderHook(
       ({ taskFilter }: { taskFilter: 'all' | 'open' | 'done' }) => useAppSearch({ subjects, notes, events, tasks, studySessions, subjectMap, taskFilter }),
-      { initialProps: { taskFilter: 'all' as const } },
+      { initialProps: { taskFilter: 'all' as 'all' | 'open' | 'done' } },
     )
 
     act(() => {

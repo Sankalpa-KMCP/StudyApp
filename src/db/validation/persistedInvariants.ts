@@ -119,6 +119,7 @@ export function isActiveFocusSession(value: unknown): value is ActiveFocusSessio
   if (typeof value.accumulatedPausedMs !== 'number' || !Number.isFinite(value.accumulatedPausedMs) || value.accumulatedPausedMs < 0) {
     return false
   }
+  if (value.runToken !== undefined && !isNonEmptyString(value.runToken)) return false
   if (
     value.checkpointElapsedMs !== undefined &&
     (typeof value.checkpointElapsedMs !== 'number' || !Number.isFinite(value.checkpointElapsedMs) || value.checkpointElapsedMs < 0)

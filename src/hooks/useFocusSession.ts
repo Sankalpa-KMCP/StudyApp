@@ -4,16 +4,18 @@ import {
   checkpointActiveFocusSession,
   createActiveFocusSession,
   type CreateActiveFocusSessionResult,
+  type FocusRunObservation,
   discardActiveFocusSession,
   finalizeActiveFocusSession,
   getActiveFocusElapsedMs,
   getActiveFocusSession,
   getActiveFocusSessionWithGeneration,
   isActiveFocusSessionStale,
+  matchesFocusRun,
   pauseActiveFocusSession,
   resumeActiveFocusSession,
   shouldAutoCompleteFocusSession,
-  updateActiveFocusSession,
+  updateActiveFocusSessionSubject,
 } from '../db/activeFocusSession'
 import { DataOperationCoordinator, type IDataOperationCoordinator } from '../db/dataCoordinator'
 import { StaleDatabaseGenerationError } from '../db/databaseGeneration'
@@ -66,6 +68,8 @@ export type UseFocusSessionResult = {
 
 type LiveAnchor = {
   sessionId: string
+  startedAt: string
+  observed: FocusRunObservation
   baseElapsedMs: number
   perfStartMs: number
 }
@@ -74,17 +78,36 @@ function getLiveAnchorNowMs(): number {
   return typeof performance !== 'undefined' && typeof performance.now === 'function' ? performance.now() : 0
 }
 
-function createLiveAnchor(sessionId: string, baseElapsedMs: number): LiveAnchor {
+function createLiveAnchor(session: ActiveFocusSession, baseElapsedMs: number): LiveAnchor | null {
+  if (session.status !== 'running') return null
   return {
-    sessionId,
+    sessionId: session.id,
+    startedAt: session.startedAt,
+    observed: {
+      status: session.status,
+      pausedAt: session.pausedAt,
+      accumulatedPausedMs: session.accumulatedPausedMs,
+      runToken: session.runToken,
+    },
     baseElapsedMs,
     perfStartMs: getLiveAnchorNowMs(),
   }
 }
 
+// Rekeying can change the session ID, but never the provenance of its clock.
+function matchesAnchorInterval(session: ActiveFocusSession, anchor: LiveAnchor | null): anchor is LiveAnchor {
+  return !!anchor && session.status === 'running' && session.startedAt === anchor.startedAt
+    && matchesFocusRun(session, anchor.observed)
+}
+
+function ownsLiveAnchor(session: ActiveFocusSession, anchor: LiveAnchor | null): anchor is LiveAnchor {
+  return matchesAnchorInterval(session, anchor) && session.id === anchor.sessionId
+}
+
 function calculateRunningElapsed(session: ActiveFocusSession, anchor: LiveAnchor | null): number {
-  if (!anchor || anchor.sessionId !== session.id) {
-    return getActiveFocusElapsedMs(session, Date.now())
+  if (session.status === 'paused') return getActiveFocusElapsedMs(session)
+  if (!ownsLiveAnchor(session, anchor)) {
+    return getActiveFocusElapsedMs(session)
   }
 
   const perfNow = getLiveAnchorNowMs()
@@ -125,9 +148,12 @@ export function useFocusSession({
   const focusImportPendingRef = useRef(false)
   const focusSubjectWriteSeqRef = useRef(0)
   const liveAnchorRef = useRef<LiveAnchor | null>(null)
+  const focusEpochRef = useRef(0)
 
   /** Clears both React focus slots, then applies at most one persisted session (never both). */
   const applyPersistedFocusSession = useCallback((restored: ActiveFocusSession | null) => {
+    focusEpochRef.current++
+    focusSubjectWriteSeqRef.current++
     deferredAutoCompleteSessionIdRef.current = null
     capacityBlockedSessionIdRef.current = null
     setActiveSession(null)
@@ -144,7 +170,7 @@ export function useFocusSession({
       return
     }
     const base = getActiveFocusElapsedMs(restored)
-    liveAnchorRef.current = createLiveAnchor(restored.id, base)
+    liveAnchorRef.current = createLiveAnchor(restored, base)
     setLiveElapsedMs(base)
     setActiveSession(restored)
     setFocusSubjectId(restored.subjectId)
@@ -205,9 +231,15 @@ export function useFocusSession({
     ? (subjectMap.get(staleFocusSession.subjectId)?.name ?? (staleFocusSession.subjectId ? 'Unknown subject' : 'General'))
     : ''
 
-  const hydrateActiveSession = useCallback((session: ActiveFocusSession, notice = '') => {
-    const base = getActiveFocusElapsedMs(session)
-    liveAnchorRef.current = createLiveAnchor(session.id, base)
+  const hydrateActiveSession = useCallback((session: ActiveFocusSession, notice = '', observed?: ActiveFocusSession) => {
+    focusEpochRef.current++
+    focusSubjectWriteSeqRef.current++
+    const durableElapsed = getActiveFocusElapsedMs(session)
+    const base = observed && observed.id === session.id && ownsLiveAnchor(observed, liveAnchorRef.current)
+      && matchesAnchorInterval(session, liveAnchorRef.current)
+      ? Math.max(durableElapsed, calculateRunningElapsed(observed, liveAnchorRef.current))
+      : durableElapsed
+    liveAnchorRef.current = createLiveAnchor(session, base)
     setLiveElapsedMs(base)
     setActiveSession(session)
     setFocusSubjectId(session.subjectId)
@@ -215,22 +247,39 @@ export function useFocusSession({
     setSessionNotice(notice)
   }, [])
 
+  const reconcileCheckpoint = useCallback((result: Awaited<ReturnType<typeof checkpointActiveFocusSession>>) => {
+    if (result.ok) {
+      setActiveSession(result.session)
+      return
+    }
+    if (result.reason === 'conflict' || result.reason === 'invalid_state') {
+      deferredAutoCompleteSessionIdRef.current = null
+      hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+    } else if (result.reason === 'missing') {
+      applyPersistedFocusSession(null)
+      setSessionNotice('Focus session no longer exists.')
+    } else {
+      setSessionNotice('Could not save focus progress. Try again.')
+    }
+  }, [applyPersistedFocusSession, hydrateActiveSession])
+
   // Authoritative live timer interval
   useEffect(() => {
     if (!activeSession || activeSession.status !== 'running') {
       return undefined
     }
 
-    if (!liveAnchorRef.current || liveAnchorRef.current.sessionId !== activeSession.id) {
+    if (!ownsLiveAnchor(activeSession, liveAnchorRef.current)) {
       const base = getActiveFocusElapsedMs(activeSession)
-      liveAnchorRef.current = createLiveAnchor(activeSession.id, base)
+      liveAnchorRef.current = createLiveAnchor(activeSession, base)
+      setLiveElapsedMs(base)
     } else if (
       typeof activeSession.checkpointElapsedMs === 'number' &&
       activeSession.checkpointElapsedMs > liveAnchorRef.current.baseElapsedMs
     ) {
       const currentLive = calculateRunningElapsed(activeSession, liveAnchorRef.current)
       if (activeSession.checkpointElapsedMs > currentLive) {
-        liveAnchorRef.current = createLiveAnchor(activeSession.id, activeSession.checkpointElapsedMs)
+        liveAnchorRef.current = createLiveAnchor(activeSession, activeSession.checkpointElapsedMs)
       }
     }
 
@@ -244,29 +293,52 @@ export function useFocusSession({
 
   // Periodic and visibility-based durable running checkpoint
   useEffect(() => {
-    if (!activeSession || activeSession.status !== 'running') return undefined
+    if (!activeSession) return undefined
+    let cancelled = false
+    let checkpointPending = false
 
     const performCheckpoint = async () => {
+      if (finalizingSessionIdRef.current !== null) return
       if (focusTransitionPendingRef.current || focusImportPendingRef.current || !coordinator.getSnapshot().canMutateFocus) {
         return
       }
-      if (!liveAnchorRef.current || liveAnchorRef.current.sessionId !== activeSession.id) return
-
+      if (activeSession.status === 'running' && !ownsLiveAnchor(activeSession, liveAnchorRef.current)) return
+      if (checkpointPending) return
+      checkpointPending = true
+      const epoch = focusEpochRef.current
       const currentElapsed = calculateRunningElapsed(activeSession, liveAnchorRef.current)
-      const currentDurable = activeSession.checkpointElapsedMs ?? 0
-      if (currentElapsed <= currentDurable) return
 
       try {
         await coordinator.runFocusWrite(async () => {
+          if (activeSession.status === 'paused') {
+            const durable = await getActiveFocusSessionWithGeneration()
+            if (cancelled || epoch !== focusEpochRef.current) return
+            if (durable.generation !== focusGenerationRef.current) {
+              applyPersistedFocusSession(null)
+              setSessionNotice('The database was updated elsewhere.')
+            } else if (!durable.session) {
+              applyPersistedFocusSession(null)
+              setSessionNotice('Focus session no longer exists.')
+            } else if (JSON.stringify(durable.session) !== JSON.stringify(activeSession)) {
+              hydrateActiveSession(durable.session, 'Focus session was updated elsewhere.')
+            }
+            return
+          }
           const result = await checkpointActiveFocusSession(activeSession.id, currentElapsed, {
             expectedGeneration: focusGenerationRef.current,
-          })
-          if (result.ok) {
-            setActiveSession(result.session)
-          }
+          }, activeSession)
+          if (!cancelled && epoch === focusEpochRef.current) reconcileCheckpoint(result)
         })
-      } catch {
-        // Best-effort checkpoint: failure must not reset live timer or throw unhandled rejection
+      } catch (err) {
+        if (cancelled || epoch !== focusEpochRef.current) return
+        if (err instanceof StaleDatabaseGenerationError) {
+          applyPersistedFocusSession(null)
+          setSessionNotice('The database was updated elsewhere.')
+        } else {
+          setSessionNotice('Could not save focus progress. Try again.')
+        }
+      } finally {
+        checkpointPending = false
       }
     }
 
@@ -287,11 +359,12 @@ export function useFocusSession({
     window.addEventListener('pagehide', onPageHide)
 
     return () => {
+      cancelled = true
       window.clearInterval(intervalTimer)
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener('pagehide', onPageHide)
     }
-  }, [activeSession, coordinator])
+  }, [activeSession, applyPersistedFocusSession, coordinator, hydrateActiveSession, reconcileCheckpoint])
 
   const startSession = useCallback(async () => {
     if (!focusRestoreReady || activeSession || staleFocusSession || focusActionsPending) return
@@ -327,9 +400,10 @@ export function useFocusSession({
         }
 
         if (result.ok) {
+          focusEpochRef.current++
           deferredAutoCompleteSessionIdRef.current = null
           focusGenerationRef.current = result.generation
-          liveAnchorRef.current = createLiveAnchor(result.session.id, 0)
+          liveAnchorRef.current = createLiveAnchor(result.session, 0)
           setLiveElapsedMs(0)
           setActiveSession(result.session)
           setSessionNotice('')
@@ -476,102 +550,136 @@ export function useFocusSession({
 
   const finalizeFocusSession = useCallback(async (sessionToFinalize: ActiveFocusSession, completed: boolean) => {
     let currentSession = sessionToFinalize
-    if (finalizingSessionIdRef.current === currentSession.id) return
+    if (finalizingSessionIdRef.current !== null) return
 
     if (deferredAutoCompleteSessionIdRef.current === currentSession.id) {
       deferredAutoCompleteSessionIdRef.current = null
     }
     finalizingSessionIdRef.current = currentSession.id
+    let epoch = focusEpochRef.current
+    const generation = focusGenerationRef.current
+    const isCurrent = () => epoch === focusEpochRef.current && generation === focusGenerationRef.current
 
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const currentElapsed = calculateRunningElapsed(currentSession, liveAnchorRef.current)
-      const actualMinutes = Math.round(currentElapsed / 60_000)
-      const minutes = Math.max(1, completed && currentSession.plannedMinutes > 0 ? currentSession.plannedMinutes : actualMinutes)
+    try {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const currentElapsed = calculateRunningElapsed(currentSession, liveAnchorRef.current)
+        const actualMinutes = Math.round(currentElapsed / 60_000)
+        const minutes = Math.max(1, completed && currentSession.plannedMinutes > 0 ? currentSession.plannedMinutes : actualMinutes)
 
-      const safeStartedAt = currentSession.startedAt
-      const safeEndedAt = new Date(Math.max(Date.parse(safeStartedAt), Date.now())).toISOString()
+        const safeStartedAt = currentSession.startedAt
+        const safeEndedAt = new Date(Math.max(Date.parse(safeStartedAt), Date.now())).toISOString()
 
-      try {
-        const result = await finalizeActiveFocusSession(currentSession.id, {
-          subjectId: currentSession.subjectId,
-          startedAt: safeStartedAt,
-          endedAt: safeEndedAt,
-          minutes,
-          note: completed ? 'Completed focus session' : currentSession.subjectId ? 'Focus session' : 'General focus session',
-        }, {
-          expectedGeneration: focusGenerationRef.current,
-        })
+        try {
+          const result = await finalizeActiveFocusSession(currentSession.id, {
+            subjectId: currentSession.subjectId,
+            startedAt: safeStartedAt,
+            endedAt: safeEndedAt,
+            minutes,
+            note: completed ? 'Completed focus session' : currentSession.subjectId ? 'Focus session' : 'General focus session',
+          }, {
+            expectedGeneration: generation,
+          }, { mode: completed ? 'automatic' : 'manual', observed: currentSession, requireMatchingRun: attempt > 0 })
+          if (!isCurrent()) return
 
-        if (!result.ok) {
-          deferredAutoCompleteSessionIdRef.current = null
-          if (result.reason === 'id_rekeyed') {
-            const rekeyedSession = result.session
-            setActiveSession(rekeyedSession)
-            if (liveAnchorRef.current && liveAnchorRef.current.sessionId === currentSession.id) {
-              liveAnchorRef.current = {
-                ...liveAnchorRef.current,
-                sessionId: rekeyedSession.id,
+          if (!result.ok) {
+            deferredAutoCompleteSessionIdRef.current = null
+            if (result.reason === 'id_rekeyed') {
+              // The collision transaction may have completed well before its
+              // response arrives. Validate ownership again before adopting its ID.
+              const durable = await getActiveFocusSessionWithGeneration()
+              if (!isCurrent()) return
+              if (durable.generation !== generation) {
+                applyPersistedFocusSession(null)
+                setSessionNotice('The database was updated elsewhere. Study time was not logged.')
+                return
               }
+              const rekeyedSession = durable.session
+              if (!rekeyedSession) {
+                applyPersistedFocusSession(null)
+                setSessionNotice('Focus session no longer exists.')
+                return
+              }
+              if (rekeyedSession.id !== result.session.id
+                || rekeyedSession.startedAt !== currentSession.startedAt
+                || !matchesFocusRun(rekeyedSession, currentSession)
+                || (rekeyedSession.status === 'running'
+                  && (!ownsLiveAnchor(currentSession, liveAnchorRef.current)
+                    || !matchesAnchorInterval(rekeyedSession, liveAnchorRef.current)))) {
+                // A new ID is not evidence that the old anchor belongs to the
+                // returned interval. Preserve durable time and require an explicit
+                // retry rather than guessing unobserved progress in another tab.
+                hydrateActiveSession(rekeyedSession, 'Focus session was updated elsewhere. Review it and stop again.')
+                return
+              }
+              epoch = ++focusEpochRef.current
+              focusSubjectWriteSeqRef.current++
+              setActiveSession(rekeyedSession)
+              setFocusSubjectId(rekeyedSession.subjectId)
+              setFocusDurationMinutes(rekeyedSession.plannedMinutes)
+              if (ownsLiveAnchor(currentSession, liveAnchorRef.current)) {
+                liveAnchorRef.current = {
+                  ...liveAnchorRef.current,
+                  sessionId: rekeyedSession.id,
+                }
+              }
+              finalizingSessionIdRef.current = rekeyedSession.id
+              currentSession = rekeyedSession
+              continue
             }
-            finalizingSessionIdRef.current = rekeyedSession.id
-            currentSession = rekeyedSession
-            continue
-          }
 
-          if (result.reason === 'conflict') {
-            hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+            if (result.reason === 'conflict' || result.reason === 'not_eligible') {
+              deferredAutoCompleteSessionIdRef.current = null
+              hydrateActiveSession(result.existing, 'Focus session was updated elsewhere.')
+              return
+            }
+
+            if (result.reason === 'missing_subject') {
+              setSessionNotice('The selected subject is no longer available. Study time was not logged.')
+              return
+            }
+
+            if (result.reason === 'capacity_limit') {
+              capacityBlockedSessionIdRef.current = currentSession.id
+              setSessionNotice('Study storage is at its backup-safe capacity. Remove or reduce some saved data before logging more study time.')
+              return
+            }
+
+            applyPersistedFocusSession(null)
+            setSessionNotice('That focus session is no longer saved. It was removed from the screen without logging study time.')
             return
           }
 
-          if (result.reason === 'missing_subject') {
-            setSessionNotice('The selected subject is no longer available. Study time was not logged.')
-            return
-          }
-
-          if (result.reason === 'capacity_limit') {
-            capacityBlockedSessionIdRef.current = currentSession.id
-            setSessionNotice('Study storage is at its backup-safe capacity. Remove or reduce some saved data before logging more study time.')
-            return
-          }
-
-          liveAnchorRef.current = null
-          setLiveElapsedMs(0)
-          setActiveSession(null)
-          setStaleFocusSession(null)
-          setSessionNotice('That focus session is no longer saved. It was removed from the screen without logging study time.')
-          return
-        }
-
-        deferredAutoCompleteSessionIdRef.current = null
-        liveAnchorRef.current = null
-        setLiveElapsedMs(0)
-        setActiveSession(null)
-        setSessionNotice(completed ? `Session complete: ${formatMinutes(result.history.minutes)} logged.` : `Session stopped: ${formatMinutes(result.history.minutes)} logged.`)
-        onSessionFinalizedRef.current?.({
-          sessionId: currentSession.id,
-          outcome: completed ? 'completed' : 'stopped',
-          history: result.history,
-        })
-        return
-      } catch (err) {
-        if (err instanceof StaleDatabaseGenerationError) {
           deferredAutoCompleteSessionIdRef.current = null
+          focusEpochRef.current++
+          focusSubjectWriteSeqRef.current++
           liveAnchorRef.current = null
           setLiveElapsedMs(0)
           setActiveSession(null)
-          setStaleFocusSession(null)
-          setSessionNotice('The database was updated elsewhere. Study time was not logged.')
+          setSessionNotice(completed ? `Session complete: ${formatMinutes(result.history.minutes)} logged.` : `Session stopped: ${formatMinutes(result.history.minutes)} logged.`)
+          onSessionFinalizedRef.current?.({
+            sessionId: currentSession.id,
+            outcome: completed ? 'completed' : 'stopped',
+            history: result.history,
+          })
           return
-        }
-        setSessionNotice('Could not stop the focus session. Try again.')
-        return
-      } finally {
-        if (finalizingSessionIdRef.current === currentSession.id) {
-          finalizingSessionIdRef.current = null
+        } catch (err) {
+          if (!isCurrent()) return
+          if (err instanceof StaleDatabaseGenerationError) {
+            applyPersistedFocusSession(null)
+            setSessionNotice('The database was updated elsewhere. Study time was not logged.')
+            return
+          }
+          setSessionNotice('Could not stop the focus session. Try again.')
+          return
         }
       }
+      setSessionNotice('Could not stop the focus session. Try again.')
+    } finally {
+      if (finalizingSessionIdRef.current === currentSession.id) {
+        finalizingSessionIdRef.current = null
+      }
     }
-  }, [hydrateActiveSession])
+  }, [applyPersistedFocusSession, hydrateActiveSession])
 
   const evaluateTimedCompletion = useCallback(async (expectedSessionId: string) => {
     const clearDeferredForExpected = () => {
@@ -584,6 +692,11 @@ export function useFocusSession({
       clearDeferredForExpected()
       return
     }
+    if (finalizingSessionIdRef.current !== null) {
+      clearDeferredForExpected()
+      return
+    }
+    const epoch = focusEpochRef.current
 
     if (focusTransitionPendingRef.current || focusImportPendingRef.current || !coordinator.getSnapshot().canMutateFocus) {
       deferredAutoCompleteSessionIdRef.current = expectedSessionId
@@ -593,34 +706,45 @@ export function useFocusSession({
     try {
       const res = await coordinator.runFocusWrite(async () => {
         // Attempt best-effort checkpoint of live progress before evaluating
-        if (liveAnchorRef.current && liveAnchorRef.current.sessionId === expectedSessionId) {
-          const currentElapsed = calculateRunningElapsed(activeSession ?? {
-            id: expectedSessionId,
-            subjectId: '',
-            startedAt: nowIso(),
-            plannedMinutes: 25,
-            status: 'running',
-            pausedAt: null,
-            accumulatedPausedMs: 0,
-          }, liveAnchorRef.current)
+        if (activeSession && activeSession.id === expectedSessionId && ownsLiveAnchor(activeSession, liveAnchorRef.current)) {
+          const currentElapsed = calculateRunningElapsed(activeSession, liveAnchorRef.current)
           try {
-            await checkpointActiveFocusSession(expectedSessionId, currentElapsed, {
+            const checkpoint = await checkpointActiveFocusSession(expectedSessionId, currentElapsed, {
               expectedGeneration: focusGenerationRef.current,
-            })
+            }, activeSession)
+            if (epoch !== focusEpochRef.current || finalizingSessionIdRef.current === expectedSessionId) return
+            if (!checkpoint.ok) {
+              reconcileCheckpoint(checkpoint)
+              return
+            }
           } catch {
             // best effort
           }
         }
 
         const durable = await getActiveFocusSession()
+        if (epoch !== focusEpochRef.current || finalizingSessionIdRef.current === expectedSessionId) return
         if (!durable || durable.id !== expectedSessionId) {
           clearDeferredForExpected()
+          if (durable) hydrateActiveSession(durable, 'Focus session was updated elsewhere.')
+          else {
+            applyPersistedFocusSession(null)
+            setSessionNotice('Focus session no longer exists.')
+          }
           return
         }
 
         if (durable.status !== 'running' || durable.plannedMinutes <= 0) {
           clearDeferredForExpected()
+          hydrateActiveSession(durable, 'Focus session was updated elsewhere.')
           return
+        }
+
+        // A fresh durable observation cannot authorize time from an older clock.
+        // Reconcile before finalization, including its capacity/storage failure
+        // paths, so later manual actions cannot inherit that obsolete anchor.
+        if (!ownsLiveAnchor(durable, liveAnchorRef.current)) {
+          hydrateActiveSession(durable, 'Focus session was updated elsewhere.')
         }
 
         if (!shouldAutoCompleteFocusSession(durable)) {
@@ -643,7 +767,7 @@ export function useFocusSession({
     } catch {
       deferredAutoCompleteSessionIdRef.current = expectedSessionId
     }
-  }, [activeSession, coordinator, finalizeFocusSession])
+  }, [activeSession, applyPersistedFocusSession, coordinator, finalizeFocusSession, hydrateActiveSession, reconcileCheckpoint])
 
   useEffect(() => {
     const unsubscribe = coordinator.subscribe(() => {
@@ -672,9 +796,11 @@ export function useFocusSession({
 
   const pauseSession = useCallback(async () => {
     if (!activeSession || activeSession.status !== 'running' || focusActionsPending) return
-    if (finalizingSessionIdRef.current === activeSession.id) return
+    if (finalizingSessionIdRef.current !== null) return
 
     focusTransitionPendingRef.current = true
+    focusEpochRef.current++
+    focusSubjectWriteSeqRef.current++
     setFocusTransitionPending(true)
     try {
       const currentElapsed = calculateRunningElapsed(activeSession, liveAnchorRef.current)
@@ -683,12 +809,13 @@ export function useFocusSession({
         const result = await pauseActiveFocusSession(activeSession.id, {
           pausedAt: nowIso(),
           logicalElapsedMs: currentElapsed,
+          observed: activeSession,
         }, {
           expectedGeneration: focusGenerationRef.current,
         })
         if (result.ok) {
           const finalElapsed = result.session.checkpointElapsedMs ?? currentElapsed
-          liveAnchorRef.current = createLiveAnchor(result.session.id, finalElapsed)
+          liveAnchorRef.current = createLiveAnchor(result.session, finalElapsed)
           setLiveElapsedMs(finalElapsed)
           setActiveSession(result.session)
           setSessionNotice('')
@@ -722,9 +849,11 @@ export function useFocusSession({
 
   const resumeSession = useCallback(async () => {
     if (!activeSession || activeSession.status !== 'paused' || focusActionsPending) return
-    if (finalizingSessionIdRef.current === activeSession.id) return
+    if (finalizingSessionIdRef.current !== null) return
 
     focusTransitionPendingRef.current = true
+    focusEpochRef.current++
+    focusSubjectWriteSeqRef.current++
     setFocusTransitionPending(true)
     try {
       const res = await coordinator.runFocusWrite(async () => {
@@ -733,7 +862,7 @@ export function useFocusSession({
         })
         if (result.ok) {
           const base = result.session.checkpointElapsedMs ?? getActiveFocusElapsedMs(result.session)
-          liveAnchorRef.current = createLiveAnchor(result.session.id, base)
+          liveAnchorRef.current = createLiveAnchor(result.session, base)
           setLiveElapsedMs(base)
           setActiveSession(result.session)
           setSessionNotice('')
@@ -767,9 +896,11 @@ export function useFocusSession({
 
   const stopSession = useCallback(async (completed = false) => {
     if (!activeSession) return
-    if (finalizingSessionIdRef.current === activeSession.id || focusActionsPending) return
+    if (finalizingSessionIdRef.current !== null || focusActionsPending) return
 
     capacityBlockedSessionIdRef.current = null
+    focusEpochRef.current++
+    focusSubjectWriteSeqRef.current++
     const res = await coordinator.runFocusWrite(async () => {
       await finalizeFocusSession(activeSession, completed)
     })
@@ -806,6 +937,10 @@ export function useFocusSession({
 
     const baseline = activeSession
     const writeSeq = ++focusSubjectWriteSeqRef.current
+    const epoch = focusEpochRef.current
+    const generation = focusGenerationRef.current
+    const isCurrentResponse = () => writeSeq === focusSubjectWriteSeqRef.current
+      && epoch === focusEpochRef.current && generation === focusGenerationRef.current
     const currentElapsed = calculateRunningElapsed(activeSession, liveAnchorRef.current)
 
     const nextSession: ActiveFocusSession = {
@@ -818,13 +953,30 @@ export function useFocusSession({
     void (async () => {
       const res = await coordinator.runFocusWrite(async () => {
         try {
-          const result = await updateActiveFocusSession(nextSession, {
-            expectedGeneration: focusGenerationRef.current,
+          const result = await updateActiveFocusSessionSubject({
+            id: baseline.id, subjectId,
+            progress: { elapsedMs: currentElapsed, observed: baseline },
+          }, {
+            expectedGeneration: generation,
           })
-          if (writeSeq !== focusSubjectWriteSeqRef.current) return
+          if (!isCurrentResponse()) return
 
           if (result.ok) {
-            setActiveSession(result.session)
+            if (result.session.id === baseline.id && matchesFocusRun(result.session, baseline)
+              && (baseline.status === 'paused' || ownsLiveAnchor(baseline, liveAnchorRef.current))) {
+              // This acknowledges the same interval, not a restore. Retain the
+              // monotonic anchor so time earned while awaiting storage survives.
+              const elapsed = Math.max(
+                calculateRunningElapsed(baseline, liveAnchorRef.current),
+                getActiveFocusElapsedMs(result.session),
+              )
+              setLiveElapsedMs(elapsed)
+              setActiveSession(result.session)
+              setFocusSubjectId(result.session.subjectId)
+              setSessionNotice('')
+            } else {
+              hydrateActiveSession(result.session, 'Focus session was updated elsewhere.')
+            }
             return
           }
 
@@ -836,15 +988,15 @@ export function useFocusSession({
           if (result.reason === 'missing_subject') {
             try {
               const durable = await getActiveFocusSession()
-              if (writeSeq !== focusSubjectWriteSeqRef.current) return
+              if (!isCurrentResponse()) return
               if (durable) {
-                hydrateActiveSession(durable, 'The selected subject is no longer available.')
+                hydrateActiveSession(durable, 'The selected subject is no longer available.', baseline)
                 return
               }
             } catch {
               // Durable re-read failed; fall through to cleared state below.
             }
-            if (writeSeq !== focusSubjectWriteSeqRef.current) return
+            if (!isCurrentResponse()) return
             // Durable session is gone: reinstalling `baseline` would create a
             // ghost that ticks (and can re-fire auto-completion) forever.
             if (deferredAutoCompleteSessionIdRef.current === baseline.id) {
@@ -858,15 +1010,15 @@ export function useFocusSession({
 
           try {
             const durable = await getActiveFocusSession()
-            if (writeSeq !== focusSubjectWriteSeqRef.current) return
+            if (!isCurrentResponse()) return
             if (durable) {
-              hydrateActiveSession(durable, 'Could not update the focus subject. Try again.')
+              hydrateActiveSession(durable, 'Could not update the focus subject. Try again.', baseline)
               return
             }
           } catch {
             // Durable re-read failed; fall through to cleared state below.
           }
-          if (writeSeq !== focusSubjectWriteSeqRef.current) return
+          if (!isCurrentResponse()) return
           // Durable session is gone (`missing` or deleted): do not reinstall
           // `baseline` as a ghost. Clear so no timer ticks or auto-completes.
           if (deferredAutoCompleteSessionIdRef.current === baseline.id) {
@@ -876,7 +1028,7 @@ export function useFocusSession({
           setFocusSubjectId(baseline.subjectId)
           setSessionNotice('Focus session no longer exists.')
         } catch (err) {
-          if (writeSeq !== focusSubjectWriteSeqRef.current) return
+          if (!isCurrentResponse()) return
           if (err instanceof StaleDatabaseGenerationError) {
             setActiveSession(null)
             setStaleFocusSession(null)
@@ -885,15 +1037,15 @@ export function useFocusSession({
           }
           try {
             const durable = await getActiveFocusSession()
-            if (writeSeq !== focusSubjectWriteSeqRef.current) return
+            if (!isCurrentResponse()) return
             if (durable) {
-              hydrateActiveSession(durable, 'Could not update the focus subject. Try again.')
+              hydrateActiveSession(durable, 'Could not update the focus subject. Try again.', baseline)
               return
             }
           } catch {
             // Durable re-read failed; fall through to cleared state below.
           }
-          if (writeSeq !== focusSubjectWriteSeqRef.current) return
+          if (!isCurrentResponse()) return
           // Durable session is gone: do not reinstall `baseline` as a ghost.
           if (deferredAutoCompleteSessionIdRef.current === baseline.id) {
             deferredAutoCompleteSessionIdRef.current = null
@@ -905,7 +1057,7 @@ export function useFocusSession({
       })
 
       if (!res.ok) {
-        if (writeSeq === focusSubjectWriteSeqRef.current) {
+        if (isCurrentResponse()) {
           setActiveSession(baseline)
           setFocusSubjectId(baseline.subjectId)
           setSessionNotice('A data operation is currently in progress. Please wait.')
@@ -926,6 +1078,8 @@ export function useFocusSession({
   }, [])
 
   const clearFocusLocalState = useCallback((newGeneration?: number) => {
+    focusEpochRef.current++
+    focusSubjectWriteSeqRef.current++
     focusGenerationRef.current = typeof newGeneration === 'number' && newGeneration >= 1 ? newGeneration : 1
     liveAnchorRef.current = null
     setLiveElapsedMs(0)

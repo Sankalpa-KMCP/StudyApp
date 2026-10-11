@@ -1,0 +1,9 @@
+{
+  "controller_model": null,
+  "executor_model": null,
+  "executor_toolsets": "terminal,file",
+  "max_retries": 3,
+  "auto_git_commit": true,
+  "workdir": "D:\\Study_App",
+  "state_dir": ".orchestrator"
+}

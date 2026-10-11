@@ -11,6 +11,8 @@ import {
   studyTables,
 } from './studyDb'
 import type { StudyData, StudyExport } from './types'
+import { isPortableStudySetting } from './portableSettings'
+import { utf8ByteLength } from './utf8ByteLength'
 
 export class DatabaseBackupabilityLimitError extends Error {
   readonly code = 'backupability_limit'
@@ -131,7 +133,7 @@ export function serializeCanonicalBackup(
     options?.appVersion
   )
   const serialized = JSON.stringify(payload, null, 2)
-  const byteLength = new TextEncoder().encode(serialized).byteLength
+  const byteLength = utf8ByteLength(serialized)
   return { payload, serialized, byteLength }
 }
 
@@ -155,7 +157,7 @@ export function assertProspectiveRecordCounts(
     events: prospective.events.length,
     studySessions: prospective.studySessions.length,
     goals: prospective.goals.length,
-    settings: prospective.settings.length,
+    settings: prospective.settings.filter(isPortableStudySetting).length,
   }
 
   const prospectiveTotal =
@@ -202,7 +204,7 @@ export function assertProspectiveRecordCounts(
     events: current.events.length,
     studySessions: current.studySessions.length,
     goals: current.goals.length,
-    settings: current.settings.length,
+    settings: current.settings.filter(isPortableStudySetting).length,
   }
 
   const currentTotal =

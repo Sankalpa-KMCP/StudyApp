@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { StudySession, StudySubject, StudyTask } from '../db/types'
@@ -140,7 +140,7 @@ describe('ProgressView Hierarchical Two-Dimensional Progressive Bounding (S6.2c)
     expect(articles).toHaveLength(700)
   })
 
-  it('bounds 15-day adversarial case (9,990 sessions on newest 14 days) to at most 700 initial rows', () => {
+  it('bounds 15-day adversarial case (9,996 sessions on newest 14 days) to at most 700 initial rows', () => {
     // 14 days with ~714 sessions each + 1 day with 10 sessions = 15 days total
     const sessions14 = createSampleMultiDaySessions(14, 714)
     const sessionsExtra = createSampleMultiDaySessions(1, 10).map((s) => ({
@@ -173,8 +173,12 @@ describe('ProgressView Hierarchical Two-Dimensional Progressive Bounding (S6.2c)
     expect(articles).toHaveLength(700)
 
     // Day-level footer indicates 14 of 15 days
-    expect(screen.getByText(/Showing 14 of 15 study days \(700 of 10006 sessions\)/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Show 14 more days' })).toBeInTheDocument()
+    const summary = screen.getByText(/Showing 14 of 15 study days \(700 of 10006 sessions\)/i)
+    expect(summary).toBeInTheDocument()
+    // The accessible control belongs to this footer. Searching its small
+    // boundary avoids name/visibility computation for 1,400 unrelated row buttons.
+    const footer = summary.closest('.list-disclosure-footer')!
+    expect(within(footer as HTMLElement).getByRole('button', { name: 'Show 14 more days' })).toBeInTheDocument()
   })
 
   it('reveals next intra-day batch (+50) on activation for only that day and reaches completion', async () => {

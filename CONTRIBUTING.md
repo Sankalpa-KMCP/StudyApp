@@ -30,8 +30,34 @@ For the recorded Phase 0 clean-install, validation, and preview baseline (includ
 | `npm run lint` | ESLint including jsx-a11y rules |
 | `npm run build` | TypeScript and production Vite build |
 | `npm run check:bundle` | Gzip budget on built JS chunks |
+| `npm run check:tests` | Strict no-emit TypeScript gate for tests, fixtures, E2E, configuration and local `.mjs` tooling |
+| `npm run test:production` | Built-artifact smoke across desktop/mobile Chromium, Firefox and WebKit; build first |
 
 ### App integration suites
+
+The production smoke uses `scripts/serve-production.mjs` on loopback port 4175,
+serving only `dist` below `/StudyApp/`. It deliberately returns the built 404
+document with HTTP 404 for deep links, exercising the real Pages redirect and
+query/hash restoration. It does not use Vite's development transforms or SPA
+fallback. Missing builds, scripts/assets, CSP violations, unexpected HTTP/network
+errors and axe violations fail the gate. Expected 404 document diagnostics are
+limited to the explicit fallback test. Each test uses disposable browser storage.
+
+Run `npm run build`, `npm run check:bundle`, then `npm run test:production`.
+The production gate also includes `startupEntrance.spec.ts`: ready-document
+shell/heading/panel choreography, repeated reloads, saved themes, normal/reduced
+motion, direct workspace entry, keyboard use, cancellation and controlled
+persisted `pageshow` handling. No storage marker suppresses repeat visits.
+CI reuses its already-built artifact and runs both browser gates before artifact
+upload. Deployment triggers, permissions and master-tip freshness checks remain
+unchanged. Local `STUDY_TEST_CHROMIUM_EXECUTABLE` can select an already installed
+Chromium executable; record that override as noncanonical validation. Do not use
+it to claim the repository's expected Playwright revisions passed.
+
+`tsconfig.tests.json` inherits production strictness without changing the production
+build configuration. It additionally checks test files and helpers, E2E, TypeScript
+configs, ESLint config and local `.mjs` tools. The installed jsx-a11y plugin's
+used configuration API is declared in `test-types/` because it ships no declarations.
 
 App integration tests under `src/` cover user journeys and subsystem interactions without re-mounting full browser sessions. They are organized into:
 

@@ -145,7 +145,18 @@ describe('App subjects live query isolation', () => {
       note: 'Join session',
     }, { expectedGeneration: 1 })
 
-    const subjectsSpy = vi.spyOn(subjectRead, 'listSubjects')
+    let releaseDelivery: () => void = () => {}
+    const deliveryGate = new Promise<void>(resolve => { releaseDelivery = resolve })
+    let delayNextDelivery = false
+    const readSubjects = subjectRead.listSubjects
+    const subjectsSpy = vi.spyOn(subjectRead, 'listSubjects').mockImplementation(async () => {
+      const rows = await readSubjects()
+      if (delayNextDelivery) {
+        delayNextDelivery = false
+        await deliveryGate
+      }
+      return rows
+    })
     const tasksSpy = vi.spyOn(taskRead, 'listTasks')
     const notesSpy = vi.spyOn(noteRead, 'listNotes')
     const eventsSpy = vi.spyOn(calendarEventRead, 'listCalendarEvents')
@@ -157,7 +168,9 @@ describe('App subjects live query isolation', () => {
 
     render(<App />)
     await screen.findByRole('heading', { name: /Good (morning|afternoon|evening)/ })
-    await waitFor(() => expect(subjectsSpy).toHaveBeenCalled())
+    await screen.findAllByText('Old name')
+    await screen.findAllByText('Join task')
+    await screen.findAllByText('Join event')
 
     const subjectsBefore = subjectsSpy.mock.calls.length
     const tasksBefore = tasksSpy.mock.calls.length
@@ -165,6 +178,7 @@ describe('App subjects live query isolation', () => {
     const eventsBefore = eventsSpy.mock.calls.length
     const sessionsBefore = sessionsSpy.mock.calls.length
 
+    delayNextDelivery = true
     await updateSubject('subject-join', {
       name: 'New name',
       color: '#2563eb',
@@ -174,6 +188,11 @@ describe('App subjects live query isolation', () => {
     }, { expectedGeneration: 1 })
 
     await waitFor(() => expect(subjectsSpy.mock.calls.length).toBeGreaterThan(subjectsBefore))
+    // Invocation alone is insufficient: the real read has not delivered to React.
+    expect(screen.queryByText('New name')).not.toBeInTheDocument()
+    expect(screen.getAllByText('Old name').length).toBeGreaterThan(0)
+    await act(async () => { releaseDelivery(); await deliveryGate })
+    await screen.findAllByText('New name')
     expect(tasksSpy.mock.calls.length).toBe(tasksBefore)
     expect(notesSpy.mock.calls.length).toBe(notesBefore)
     expect(eventsSpy.mock.calls.length).toBe(eventsBefore)
@@ -392,7 +411,9 @@ describe('App subjects live query isolation', () => {
     }, { expectedGeneration: 1 })
     await waitFor(() => expect(subjectsSpy.mock.calls.length).toBeGreaterThan(subjectsBefore))
     const afterRename = subjectsSpy.mock.calls.length
-    expect(await screen.findByLabelText('Focus subject')).toHaveDisplayValue('Renamed Focus')
+    await waitFor(() => {
+      expect(screen.getByLabelText('Focus subject')).toHaveDisplayValue('Renamed Focus')
+    })
 
     const running = await getActiveFocusSession()
     await finalizeActiveFocusSession(running!.id, {

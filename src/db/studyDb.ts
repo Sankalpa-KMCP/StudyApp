@@ -41,10 +41,10 @@ import type {
   StudyTask,
 } from './types'
 import { EXPORT_SCHEMA_VERSION, isGoalMetric, isSubjectProgressMode } from './types'
+import { isPortableStudySetting, LEGACY_MIGRATION_KEY } from './portableSettings'
 
 const STUDY_DB_NAME = 'study-dashboard-db'
 const LEGACY_STORAGE_KEY = 'study-dashboard-v2'
-const LEGACY_MIGRATION_KEY = 'legacy-localstorage-migrated-v1'
 const DEFAULT_SUBJECT_COLORS = ['#111827', '#2563eb', '#0f766e', '#b45309', '#7c3aed', '#be123c']
 
 const STUDY_DB_STORES = {
@@ -199,9 +199,7 @@ export function createStudyExportPayload(
   exportedAt = nowIso(),
   appVersion = getAppVersion()
 ): StudyExport {
-  const portableSettings = snapshot.settings.filter(
-    (setting) => setting.key !== LEGACY_MIGRATION_KEY && setting.key !== DATABASE_GENERATION_KEY
-  ).flatMap((setting) => {
+  const portableSettings = snapshot.settings.filter(isPortableStudySetting).flatMap((setting) => {
     const healed = healExportActiveFocusSetting(setting)
     return healed === null ? [] : [healed]
   })
@@ -238,9 +236,7 @@ export async function importStudyData(
 ): Promise<ImportStudyDataResult> {
   const normalized = parseAndNormalizeStudyExport(payload)
 
-  const portableSettings = normalized.settings.filter(
-    (setting) => setting.key !== LEGACY_MIGRATION_KEY && setting.key !== DATABASE_GENERATION_KEY
-  )
+  const portableSettings = normalized.settings.filter(isPortableStudySetting)
 
   try {
     await withExclusiveDatabaseLock(async () => {
@@ -621,9 +617,7 @@ export async function migrateLegacyLocalStorage(
           studyDb.goals.bulkAdd(goalsToAdd),
         ])
 
-        const settingsToPut = migrated.settings.filter(
-          (s) => s.key !== LEGACY_MIGRATION_KEY && s.key !== DATABASE_GENERATION_KEY
-        )
+        const settingsToPut = migrated.settings.filter(isPortableStudySetting)
         if (settingsToPut.length > 0) {
           await studyDb.settings.bulkPut(settingsToPut)
         }

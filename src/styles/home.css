@@ -820,8 +820,8 @@
 
 @keyframes heroContentSettle {
   from {
-    opacity: 0;
-    transform: translateY(8px);
+    opacity: 0.15;
+    transform: translateY(22px);
   }
   to {
     opacity: 1;
@@ -831,8 +831,8 @@
 
 @keyframes workspaceGroupSettle {
   from {
-    opacity: 0;
-    transform: translateY(10px);
+    opacity: 0.3;
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -842,17 +842,28 @@
 
 .content-grid.is-entry-playing .hero-row::before {
   transform-origin: top;
-  animation: heroLineSettle 220ms var(--ease-settle) 80ms both;
+  animation: heroLineSettle 800ms var(--ease-settle) 100ms both var(--entry-play-state, running);
 }
 
 .content-grid.is-entry-playing .hero-row {
-  animation: heroContentSettle 200ms var(--ease-settle) 110ms both;
+  animation: heroContentSettle 760ms var(--ease-settle) 100ms both var(--entry-play-state, running);
 }
 
-.content-grid.is-entry-playing .primary-column > :not(.hero-row):not(.settings-feedback) {
-  animation: workspaceGroupSettle 220ms var(--ease-settle) 170ms both;
+.content-grid:not(.is-workspace-view).is-entry-playing .primary-column > :not(.hero-row):not(.settings-feedback):not(.mutation-notice) {
+  animation: workspaceGroupSettle 780ms var(--ease-settle) 200ms both var(--entry-play-state, running);
 }
 
-.content-grid.is-entry-playing .right-column {
-  animation: workspaceGroupSettle 220ms var(--ease-settle) 210ms both;
+.content-grid.is-entry-playing .primary-column > .summary-grid {
+  animation-delay: 260ms;
 }
+
+.content-grid.is-entry-playing .primary-column > :is(.subject-section, .notes-card) {
+  animation-delay: 340ms;
+}
+
+.content-grid.is-entry-playing .right-column > * {
+  animation: workspaceGroupSettle 720ms var(--ease-settle) 280ms both var(--entry-play-state, running);
+}
+
+.content-grid.is-entry-playing .right-column > :nth-child(2) { animation-delay: 340ms; }
+.content-grid.is-entry-playing .right-column > :nth-child(3) { animation-delay: 400ms; }

@@ -131,7 +131,7 @@ for (const width of [390, 320] as const) {
 
     if (width === 390 && testInfo.project.name === 'chromium') {
       await navigateWorkspace(page, 'Home')
-      await expectNoAxeViolations(page, testInfo)
+      await expectNoAxeViolations(page, testInfo, 'workspace')
     }
   })
 }

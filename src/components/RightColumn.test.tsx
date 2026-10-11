@@ -106,7 +106,7 @@ describe('RightColumn Charts Accessibility (F-16)', () => {
           subjectId: '',
           startedAt: new Date().toISOString(),
           endedAt: new Date().toISOString(),
-          minutes: 45,
+          minutes: 45, note: '',
         },
       ]
       render(<StreakCard sessions={sessions} />)
@@ -115,9 +115,9 @@ describe('RightColumn Charts Accessibility (F-16)', () => {
     })
 
     it('renders SubjectDistribution with progressbars when study minutes exist', () => {
-      const subjects: StudySubject[] = [{ id: 'sub-1', name: 'Math', color: '#1556c0', progress: 50, targetHours: 10, progressMode: 'study_time' }]
+      const subjects: StudySubject[] = [{ id: 'sub-1', name: 'Math', color: '#1556c0', progress: 50, targetHours: 10, progressMode: 'study_time', createdAt: '2026-08-26T00:00:00.000Z', updatedAt: '2026-08-26T00:00:00.000Z' }]
       const sessions: StudySession[] = [
-        { id: 's1', subjectId: 'sub-1', startedAt: new Date().toISOString(), endedAt: new Date().toISOString(), minutes: 60 },
+        { id: 's1', subjectId: 'sub-1', startedAt: new Date().toISOString(), endedAt: new Date().toISOString(), minutes: 60, note: '' },
       ]
       const subjectMap = new Map([['sub-1', subjects[0]]])
       render(<SubjectDistribution subjects={subjects} sessions={sessions} subjectMap={subjectMap} />)
@@ -129,14 +129,14 @@ describe('RightColumn Charts Accessibility (F-16)', () => {
 
     it('renders SubjectDistribution with multiple subjects and calculates proportions accurately', () => {
       const subjects: StudySubject[] = [
-        { id: 'sub-1', name: 'Math', color: '#1556c0', progress: 0, targetHours: 10, progressMode: 'study_time' },
-        { id: 'sub-2', name: 'Physics', color: '#334155', progress: 0, targetHours: 10, progressMode: 'study_time' },
-        { id: 'sub-3', name: 'Biology', color: '#047857', progress: 0, targetHours: 10, progressMode: 'manual' },
+        { id: 'sub-1', name: 'Math', color: '#1556c0', progress: 0, targetHours: 10, progressMode: 'study_time', createdAt: '2026-08-26T00:00:00.000Z', updatedAt: '2026-08-26T00:00:00.000Z' },
+        { id: 'sub-2', name: 'Physics', color: '#334155', progress: 0, targetHours: 10, progressMode: 'study_time', createdAt: '2026-08-26T00:00:00.000Z', updatedAt: '2026-08-26T00:00:00.000Z' },
+        { id: 'sub-3', name: 'Biology', color: '#047857', progress: 0, targetHours: 10, progressMode: 'manual', createdAt: '2026-08-26T00:00:00.000Z', updatedAt: '2026-08-26T00:00:00.000Z' },
       ]
       const sessions: StudySession[] = [
-        { id: 's1', subjectId: 'sub-1', startedAt: '2026-08-26T10:00:00.000Z', endedAt: '2026-08-26T11:00:00.000Z', minutes: 60 },
-        { id: 's2', subjectId: 'sub-2', startedAt: '2026-08-26T11:00:00.000Z', endedAt: '2026-08-26T13:00:00.000Z', minutes: 120 },
-        { id: 's3', subjectId: 'orphaned', startedAt: '2026-08-26T14:00:00.000Z', endedAt: '2026-08-26T14:20:00.000Z', minutes: 20 },
+        { id: 's1', subjectId: 'sub-1', startedAt: '2026-08-26T10:00:00.000Z', endedAt: '2026-08-26T11:00:00.000Z', minutes: 60, note: '' },
+        { id: 's2', subjectId: 'sub-2', startedAt: '2026-08-26T11:00:00.000Z', endedAt: '2026-08-26T13:00:00.000Z', minutes: 120, note: '' },
+        { id: 's3', subjectId: 'orphaned', startedAt: '2026-08-26T14:00:00.000Z', endedAt: '2026-08-26T14:20:00.000Z', minutes: 20, note: '' },
       ]
       const subjectMap = new Map(subjects.map((s) => [s.id, s]))
       render(<SubjectDistribution subjects={subjects} sessions={sessions} subjectMap={subjectMap} />)
@@ -156,7 +156,7 @@ describe('RightColumn Charts Accessibility (F-16)', () => {
     })
 
     it('renders empty prompt when all sessions have zero logged minutes', () => {
-      const subjects: StudySubject[] = [{ id: 'sub-1', name: 'Math', color: '#1556c0', progress: 50, targetHours: 10, progressMode: 'study_time' }]
+      const subjects: StudySubject[] = [{ id: 'sub-1', name: 'Math', color: '#1556c0', progress: 50, targetHours: 10, progressMode: 'study_time', createdAt: '2026-08-26T00:00:00.000Z', updatedAt: '2026-08-26T00:00:00.000Z' }]
       const subjectMap = new Map([['sub-1', subjects[0]]])
       render(<SubjectDistribution subjects={subjects} sessions={[]} subjectMap={subjectMap} />)
 
@@ -166,13 +166,13 @@ describe('RightColumn Charts Accessibility (F-16)', () => {
 
     it('excludes future-ended sessions when now is passed to SubjectDistribution', () => {
       const subjects: StudySubject[] = [
-        { id: 'sub-1', name: 'Math', color: '#1556c0', progress: 0, targetHours: 10, progressMode: 'study_time' },
-        { id: 'sub-2', name: 'Physics', color: '#334155', progress: 0, targetHours: 10, progressMode: 'study_time' },
+        { id: 'sub-1', name: 'Math', color: '#1556c0', progress: 0, targetHours: 10, progressMode: 'study_time', createdAt: '2026-08-26T00:00:00.000Z', updatedAt: '2026-08-26T00:00:00.000Z' },
+        { id: 'sub-2', name: 'Physics', color: '#334155', progress: 0, targetHours: 10, progressMode: 'study_time', createdAt: '2026-08-26T00:00:00.000Z', updatedAt: '2026-08-26T00:00:00.000Z' },
       ]
       const now = new Date('2026-08-26T12:00:00.000Z')
       const sessions: StudySession[] = [
-        { id: 's1', subjectId: 'sub-1', startedAt: '2026-08-26T10:00:00.000Z', endedAt: '2026-08-26T11:00:00.000Z', minutes: 60 },
-        { id: 's2', subjectId: 'sub-2', startedAt: '2026-08-26T13:00:00.000Z', endedAt: '2026-08-26T14:00:00.000Z', minutes: 60 },
+        { id: 's1', subjectId: 'sub-1', startedAt: '2026-08-26T10:00:00.000Z', endedAt: '2026-08-26T11:00:00.000Z', minutes: 60, note: '' },
+        { id: 's2', subjectId: 'sub-2', startedAt: '2026-08-26T13:00:00.000Z', endedAt: '2026-08-26T14:00:00.000Z', minutes: 60, note: '' },
       ]
       const subjectMap = new Map(subjects.map((s) => [s.id, s]))
       render(<SubjectDistribution subjects={subjects} sessions={sessions} subjectMap={subjectMap} now={now} />)

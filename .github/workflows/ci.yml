@@ -35,6 +35,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Typecheck tests and tooling
+        run: npm run check:tests
+
       - name: Unit tests with coverage
         run: npm run test:coverage
 
@@ -55,6 +58,9 @@ jobs:
 
       - name: Playwright E2E
         run: npm run test:e2e
+
+      - name: Production artifact smoke
+        run: npm run test:production
 
       # Preserve the exact post-check dist for Pages; skip on pull requests and non-deploy branches.
       - name: Upload checked dist artifact

@@ -48,6 +48,17 @@ export type FinalizeActiveFocusSessionResult =
   | { ok: false; reason: 'missing_subject' }
   | { ok: false; reason: 'id_rekeyed'; session: ActiveFocusSession }
   | { ok: false; reason: 'capacity_limit' }
+  | { ok: false; reason: 'not_eligible'; existing: ActiveFocusSession }
+
+/** Identifies the running interval observed by a caller, without accepting lifecycle writes. */
+export type FocusRunObservation = Pick<ActiveFocusSession, 'status' | 'pausedAt' | 'accumulatedPausedMs' | 'runToken'>
+
+export function matchesFocusRun(session: ActiveFocusSession, observed: FocusRunObservation): boolean {
+  return session.status === observed.status
+    && session.pausedAt === observed.pausedAt
+    && session.accumulatedPausedMs === observed.accumulatedPausedMs
+    && session.runToken === observed.runToken
+}
 
 export type TransitionActiveFocusSessionResult =
   | { ok: true; session: ActiveFocusSession }
@@ -65,6 +76,7 @@ export type CheckpointActiveFocusSessionResult =
 export type PauseActiveFocusSessionOptions = {
   pausedAt?: string
   logicalElapsedMs?: number
+  observed?: FocusRunObservation
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -100,6 +112,7 @@ export function normalizeActiveFocusSession(value: unknown): ActiveFocusSession 
   if (typeof value.accumulatedPausedMs !== 'number' || !Number.isFinite(value.accumulatedPausedMs) || value.accumulatedPausedMs < 0) {
     return null
   }
+  if (value.runToken !== undefined && !isNonEmptyString(value.runToken)) return null
 
   const checkpointElapsedMs = (
     typeof value.checkpointElapsedMs === 'number' &&
@@ -121,6 +134,7 @@ export function normalizeActiveFocusSession(value: unknown): ActiveFocusSession 
       status: 'running',
       pausedAt: null,
       accumulatedPausedMs: value.accumulatedPausedMs,
+      ...(value.runToken !== undefined ? { runToken: value.runToken as string } : {}),
       ...(checkpointElapsedMs !== undefined ? { checkpointElapsedMs } : {}),
     }
   }
@@ -140,6 +154,7 @@ export function normalizeActiveFocusSession(value: unknown): ActiveFocusSession 
     status: 'paused',
     pausedAt: safePausedAt,
     accumulatedPausedMs: value.accumulatedPausedMs,
+    ...(value.runToken !== undefined ? { runToken: value.runToken as string } : {}),
     ...(checkpointElapsedMs !== undefined ? { checkpointElapsedMs } : {}),
   }
 }
@@ -265,6 +280,7 @@ export async function checkpointActiveFocusSession(
   sessionId: string,
   logicalElapsedMs: number,
   context: DatabaseMutationContext,
+  observed?: FocusRunObservation,
 ): Promise<CheckpointActiveFocusSessionResult> {
   if (
     !sessionId ||
@@ -290,7 +306,7 @@ export async function checkpointActiveFocusSession(
         return { ok: false, reason: 'conflict', existing }
       }
 
-      if (existing.status !== 'running') {
+      if (existing.status !== 'running' || (observed && !matchesFocusRun(existing, observed))) {
         return { ok: false, reason: 'invalid_state', existing }
       }
 
@@ -314,16 +330,17 @@ export async function checkpointActiveFocusSession(
 }
 
 /**
- * Replaces the singleton unfinished session when the id matches the existing record
- * and the database generation matches context.
- * Affects only the reserved settings key.
- * Enforces transactional subject referential integrity.
+ * Patches only the subject of the authoritative singleton inside the transaction.
+ * Lifecycle fields always come from the durable row; progress requires a matching running observation.
+ * Session identity, generation, and subject referential integrity remain enforced.
  */
-export async function updateActiveFocusSession(
-  session: ActiveFocusSession,
+export async function updateActiveFocusSessionSubject(
+  command: Pick<ActiveFocusSession, 'id' | 'subjectId'> & {
+    progress?: { elapsedMs: number; observed: FocusRunObservation }
+  },
   context: DatabaseMutationContext,
 ): Promise<UpdateActiveFocusSessionResult> {
-  if (!isActiveFocusSession(session)) return { ok: false, reason: 'invalid' }
+  if (!isNonEmptyString(command.id) || typeof command.subjectId !== 'string') return { ok: false, reason: 'invalid' }
 
   return withGuardedMutation(context, () =>
     studyDb.transaction('rw', studyDb.subjects, studyDb.settings, async () => {
@@ -336,12 +353,12 @@ export async function updateActiveFocusSession(
         return { ok: false, reason: 'missing' }
       }
 
-      if (existing.id !== session.id) {
+      if (existing.id !== command.id) {
         return { ok: false, reason: 'conflict', existing }
       }
 
       try {
-        await assertSubjectExists(session.subjectId)
+        await assertSubjectExists(command.subjectId)
       } catch (err) {
         if (isSubjectNotFoundError(err)) {
           return { ok: false, reason: 'missing_subject' }
@@ -349,15 +366,18 @@ export async function updateActiveFocusSession(
         throw err
       }
 
-      const durableCheckpoint = existing.checkpointElapsedMs
-      const incomingCheckpoint = session.checkpointElapsedMs
-      const mergedCheckpoint = (durableCheckpoint !== undefined || incomingCheckpoint !== undefined)
-        ? Math.max(durableCheckpoint ?? 0, incomingCheckpoint ?? 0)
-        : undefined
-
       const sessionToPersist: ActiveFocusSession = {
-        ...session,
-        ...(mergedCheckpoint !== undefined ? { checkpointElapsedMs: mergedCheckpoint } : {}),
+        ...existing,
+        subjectId: command.subjectId,
+      }
+      // A subject change may checkpoint earned progress only in the same
+      // running interval. Paused or superseded observations cannot earn time.
+      const progress = command.progress
+      if (progress && existing.status === 'running' && matchesFocusRun(existing, progress.observed)
+        && Number.isFinite(progress.elapsedMs) && progress.elapsedMs >= 0) {
+        sessionToPersist.checkpointElapsedMs = Math.max(
+          existing.checkpointElapsedMs ?? 0, Math.floor(progress.elapsedMs),
+        )
       }
 
       await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: sessionToPersist })
@@ -421,6 +441,7 @@ export async function pauseActiveFocusSession(
   let context: DatabaseMutationContext
   let requestedPausedAt: string | undefined
   let logicalElapsedMs: number | undefined
+  let observed: FocusRunObservation | undefined
 
   if (
     typeof pausedAtOrOptionsOrContext === 'object' &&
@@ -431,6 +452,7 @@ export async function pauseActiveFocusSession(
   } else if (typeof pausedAtOrOptionsOrContext === 'object' && pausedAtOrOptionsOrContext !== null) {
     requestedPausedAt = pausedAtOrOptionsOrContext.pausedAt
     logicalElapsedMs = pausedAtOrOptionsOrContext.logicalElapsedMs
+    observed = pausedAtOrOptionsOrContext.observed
     context = maybeContext!
   } else if (typeof pausedAtOrOptionsOrContext === 'string') {
     requestedPausedAt = pausedAtOrOptionsOrContext
@@ -457,7 +479,9 @@ export async function pauseActiveFocusSession(
       if (existing.id !== sessionId) {
         return { ok: false, reason: 'conflict', existing }
       }
-      if (existing.status !== 'running') {
+      if (existing.status !== 'running'
+        || (observed && !matchesFocusRun(existing, observed))
+        || (logicalElapsedMs !== undefined && !observed)) {
         return { ok: false, reason: 'invalid_state', existing }
       }
 
@@ -527,6 +551,7 @@ export async function resumeActiveFocusSession(
         status: 'running',
         pausedAt: null,
         accumulatedPausedMs: existing.accumulatedPausedMs + pauseIntervalMs,
+        runToken: createId('focus-run'),
         checkpointElapsedMs: existing.checkpointElapsedMs ?? getActiveFocusElapsedMs(existing, resumedAtMs),
       }
       await studyDb.settings.put({ key: ACTIVE_FOCUS_SESSION_KEY, value: session })
@@ -545,6 +570,7 @@ export async function finalizeActiveFocusSession(
   sessionId: string,
   history: Omit<StudySession, 'id'>,
   context: DatabaseMutationContext,
+  options: { mode?: 'manual' | 'automatic'; observed?: FocusRunObservation; requireMatchingRun?: boolean } = {},
 ): Promise<FinalizeActiveFocusSessionResult> {
   if (!sessionId) return { ok: false, reason: 'missing' }
 
@@ -560,6 +586,16 @@ export async function finalizeActiveFocusSession(
         }
 
         if (activeSession && activeSession.id === sessionId) {
+          // Collision retries must reconcile an intervening lifecycle change,
+          // rather than finalize progress from an interval they never observed.
+          if (options.requireMatchingRun && (!options.observed || !matchesFocusRun(activeSession, options.observed))) {
+            return { ok: false, reason: 'conflict' as const, existing: activeSession }
+          }
+          // Recheck at the atomic write boundary: a Pause committed after the
+          // UI eligibility read takes precedence over stale automatic completion.
+          if (options.mode === 'automatic' && !shouldAutoCompleteFocusSession(activeSession)) {
+            return { ok: false, reason: 'not_eligible' as const, existing: activeSession }
+          }
           // If sessionId already exists in studySessions, re-key the active singleton
           // to a fresh canonical ID rather than overwriting foreign history or losing active study time.
           if (existingHistory) {
@@ -593,20 +629,23 @@ export async function finalizeActiveFocusSession(
             throw err
           }
 
-          const safeStartedAt = isIsoTimestamp(history.startedAt) ? history.startedAt : activeSession.startedAt
+          const safeStartedAt = activeSession.startedAt
           const startedAtMs = Date.parse(safeStartedAt)
           const rawEndedAtMs = isIsoTimestamp(history.endedAt) ? Date.parse(history.endedAt) : Date.now()
           const safeEndedAtMs = Math.max(startedAtMs, rawEndedAtMs)
           const safeEndedAt = new Date(safeEndedAtMs).toISOString()
 
           const callerMinutes = Math.max(1, Math.floor(history.minutes))
-          const cappedCheckpointMs = (typeof activeSession.checkpointElapsedMs === 'number' && activeSession.plannedMinutes > 0)
-            ? Math.min(activeSession.checkpointElapsedMs, activeSession.plannedMinutes * 60_000)
-            : (activeSession.checkpointElapsedMs ?? 0)
           const durableCheckpointMinutes = typeof activeSession.checkpointElapsedMs === 'number'
-            ? Math.max(1, Math.round(cappedCheckpointMs / 60_000))
+            ? Math.max(1, Math.round(activeSession.checkpointElapsedMs / 60_000))
             : 1
-          const safeMinutes = Math.max(callerMinutes, durableCheckpointMinutes)
+          const safeMinutes = activeSession.status === 'paused'
+            ? Math.max(1, Math.round(getActiveFocusElapsedMs(activeSession) / 60_000))
+            : options.mode === 'automatic'
+              ? Math.max(1, activeSession.plannedMinutes)
+              : options.observed && !matchesFocusRun(activeSession, options.observed)
+                ? durableCheckpointMinutes
+                : Math.max(callerMinutes, durableCheckpointMinutes)
 
           const historyRow: StudySession = {
             id: sessionId,

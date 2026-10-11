@@ -339,14 +339,16 @@
   }
 
   .confirm-dialog-backdrop {
-    padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px));
+    --confirm-top-clearance: max(12px, env(safe-area-inset-top, 0px));
+    /* Keep the navigation clearance inside the available-height calculation. */
+    --confirm-bottom-clearance: calc(84px + env(safe-area-inset-bottom, 0px));
+    padding: var(--confirm-top-clearance) 12px var(--confirm-bottom-clearance);
     align-items: end;
   }
 
   .confirm-dialog {
     width: min(100%, 420px);
-    max-height: min(100%, calc(100dvh - 24px - env(safe-area-inset-bottom, 0px)));
-    margin-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    max-height: min(100%, calc(100dvh - var(--confirm-top-clearance) - var(--confirm-bottom-clearance)));
   }
 
   .confirm-dialog-actions {

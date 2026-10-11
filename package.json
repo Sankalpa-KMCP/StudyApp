@@ -11,11 +11,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "check:tests": "tsc -p tsconfig.tests.json --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage --fileParallelism=false",
     "check:bundle": "node scripts/check-bundle-size.mjs",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:production": "playwright test --config playwright.production.config.ts",
     "preview": "vite preview"
   },
   "dependencies": {

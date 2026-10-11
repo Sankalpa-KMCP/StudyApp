@@ -61,8 +61,10 @@ Normal local development does not require a `.env` file.
 | `npm run preview` | Serve the production build (`http://localhost:4173/StudyApp/`) |
 | `npm test` | Vitest unit and component tests |
 | `npm run lint` | ESLint |
+| `npm run check:tests` | Strict no-emit check of unit/component tests, E2E, fixtures and testing configuration |
 | `npm run check:bundle` | Built JS gzip budget check |
 | `npm run test:e2e` | Playwright end-to-end tests |
+| `npm run test:production` | Smoke-test existing `dist` using the production Pages fixture; run `npm run build` first |
 
 ## Structure
 
@@ -155,7 +157,7 @@ First launch starts empty with create-first actions. Existing customized data fr
 - **Imports validate fully before replacing local data.** Size, shape/version, uniqueness, subject references, semantic integrity, known settings values, and record-count limits are checked first. Only then does IndexedDB clear and rewrite. Invalid imports leave existing data and the visible focus session unchanged.
 - Integrity checks reject duplicate entity IDs and duplicate settings keys; orphan non-empty `subjectId` values (empty string remains General / unassigned); out-of-range subject progress or non-positive target hours; negative task minutes; non-positive session minutes; event or session end before start; and non-positive goal targets or negative goal progress.
 - Known settings are checked (`dailyGoalMinutes > 0`; `quickNotes` string array up to 8; migration flag exactly `true`; `activeFocusSession` must match its domain contract). Unknown settings keys stay accepted and preserved for forward compatibility.
-- Resource limits: **64 MiB** file bytes and text length (exports also gate canonical serialized bytes symmetrically on import); **25,000** total records; subjects **500**; tasks/notes/events **5,000** each; study sessions **10,000**; goals **500**; settings **64**.
+- Resource limits: **64 MiB** file bytes and text length (exports also gate canonical serialized bytes symmetrically on import); **25,000** portable records; subjects **500**; tasks/notes/events **5,000** each; study sessions **10,000**; goals **500**; portable settings **64**. Only `databaseGeneration` and `legacy-localstorage-migrated-v1` are internal and excluded from portable settings and total counts, consistently across import, export, and guarded mutations. Active focus and every unknown setting key count normally. Existing oversized workspaces may be edited or reduced without worsening their violated limits; internal metadata alone does not trigger that grandfathering path. Canonical byte enforcement remains unchanged.
 - Import integrity is structural (ranges, uniqueness, references, order). Stricter UI editor limits (for example task minutes 5–720, or Progress’s “session end not in the future” rule) are **not** re-enforced on import.
 
 ### Security and storage isolation

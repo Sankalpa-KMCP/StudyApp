@@ -1,3 +1,4 @@
+import type { StudySession } from './db/types'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   buildSearchResults,

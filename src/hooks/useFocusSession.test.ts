@@ -1,3 +1,4 @@
+import type { StudySession } from '../db/types'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as activeFocusSession from '../db/activeFocusSession'
@@ -69,6 +70,75 @@ describe('useFocusSession', () => {
     await studyDb.subjects.bulkAdd(Array.from(subjectMap.values()))
   })
 
+  it.each([
+    ['collision-capacity', false], ['collision-capacity', true], ['capacity', false], ['storage', false],
+  ] as const)('does not relabel an obsolete anchor after automatic completion recovery (%s, rollback=%s)', async (failure, rollback) => {
+    let mono = 0
+    const wall = Date.now()
+    vi.spyOn(performance, 'now').mockImplementation(() => mono)
+    vi.spyOn(Date, 'now').mockImplementation(() => wall + (rollback ? 0 : mono))
+    const session = makeSession({ startedAt: new Date(wall).toISOString(), checkpointElapsedMs: 600_000, plannedMinutes: 10, runToken: rollback ? 'initial-run' : undefined })
+    const foreign = { id: session.id, subjectId: 'subject-a', startedAt: session.startedAt, endedAt: session.startedAt, minutes: 1, note: 'Foreign history' }
+    if (failure === 'collision-capacity') await studyDb.studySessions.add(foreign)
+    await studyDb.settings.put({ key: activeFocusSession.ACTIVE_FOCUS_SESSION_KEY, value: session })
+    const realRead = activeFocusSession.getActiveFocusSession
+    vi.spyOn(activeFocusSession, 'getActiveFocusSession').mockImplementationOnce(async () => {
+      const paused = await activeFocusSession.pauseActiveFocusSession(session.id, { logicalElapsedMs: 600_000, observed: session }, { expectedGeneration: 1 })
+      expect(paused.ok).toBe(true)
+      mono = 300_000
+      const resumed = await activeFocusSession.resumeActiveFocusSession(session.id, wall + (rollback ? -60_000 : mono), { expectedGeneration: 1 })
+      expect(resumed.ok && resumed.session.runToken).toBeTruthy()
+      return realRead()
+    })
+    const fillCapacity = async () => {
+      const count = await studyDb.studySessions.count()
+      await studyDb.studySessions.bulkAdd(Array.from({ length: 10_000 - count }, (_, index) => ({ ...foreign, id: `capacity-${index}` })))
+    }
+    const realFinalize = activeFocusSession.finalizeActiveFocusSession
+    let storageBlocked = failure === 'storage'
+    let markAttemptSettled: () => void = () => {}
+    const attemptSettled = new Promise<void>(resolve => { markAttemptSettled = resolve })
+    const observeFinalize = async (...args: Parameters<typeof realFinalize>) => {
+      if (storageBlocked) { markAttemptSettled(); throw new Error('controlled storage failure') }
+      const response = await realFinalize(...args)
+      if (!response.ok && response.reason === 'capacity_limit') markAttemptSettled()
+      return response
+    }
+    const finalize = vi.spyOn(activeFocusSession, 'finalizeActiveFocusSession').mockImplementation(observeFinalize)
+    if (failure !== 'storage') finalize.mockImplementationOnce(async (...args) => {
+      if (failure === 'capacity') await fillCapacity()
+      const response = await observeFinalize(...args)
+      if (!response.ok && response.reason === 'id_rekeyed') await fillCapacity()
+      return response
+    })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    // Real 10,000-row capacity setup can outlast waitFor's default polling budget.
+    // Wait for the decisive transaction result, not an intermediate reconciliation notice.
+    await attemptSettled
+    await act(async () => {})
+    await waitFor(() => expect(result.current.sessionNotice).toContain(failure === 'storage' ? 'Could not stop' : 'backup-safe capacity'))
+    if (failure !== 'storage') expect(finalize).toHaveBeenCalledTimes(failure === 'collision-capacity' ? 2 : 1)
+    expect(await realRead()).not.toBeNull()
+    expect(result.current.activeSession?.runToken).toBe((await realRead())?.runToken)
+    expect(result.current.elapsedSeconds).toBe(600)
+    if (failure !== 'storage') {
+      expect(await studyDb.studySessions.count()).toBe(10_000)
+      await studyDb.studySessions.delete('capacity-0')
+    }
+    const retained = await studyDb.studySessions.toArray()
+    storageBlocked = false
+    await act(async () => { await result.current.stopSession() })
+    expect(await realRead()).toBeNull()
+    expect(result.current.activeSession).toBeNull()
+    expect(result.current.sessionNotice).toBe('Session stopped: 10m logged.')
+    const history = await studyDb.studySessions.toArray()
+    const retainedIds = new Set(retained.map((row) => row.id))
+    const added = history.filter((row) => !retainedIds.has(row.id))
+    expect(added).toHaveLength(1)
+    expect(added[0].minutes).toBe(10)
+    if (failure === 'collision-capacity') expect(await studyDb.studySessions.get(foreign.id)).toEqual(foreign)
+  })
+
   it('restores a running session and blocks Start until restore completes', async () => {
     await createActiveFocusSession(makeSession({ plannedMinutes: 40 }), { expectedGeneration: 1 })
 
@@ -80,6 +150,38 @@ describe('useFocusSession', () => {
     expect(result.current.focusDurationMinutes).toBe(40)
     expect(result.current.staleFocusSession).toBeNull()
     expect(result.current.canStartFocus).toBe(false)
+  })
+
+  it.each(['capacity', 'storage'] as const)('retains same-interval active time after automatic %s rejection', async (failure) => {
+    let mono = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => mono)
+    const session = makeSession({ checkpointElapsedMs: 600_000, plannedMinutes: 10, runToken: 'unchanged-run' })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+    if (failure === 'capacity') await studyDb.studySessions.bulkAdd(Array.from({ length: 10_000 }, (_, index) => ({
+      id: `retained-${index}`, subjectId: 'subject-a', startedAt: session.startedAt, endedAt: session.startedAt, minutes: 1, note: '',
+    })))
+    const realFinalize = activeFocusSession.finalizeActiveFocusSession
+    let storageBlocked = failure === 'storage'
+    let markAttemptSettled: () => void = () => {}
+    const attemptSettled = new Promise<void>(resolve => { markAttemptSettled = resolve })
+    vi.spyOn(activeFocusSession, 'finalizeActiveFocusSession').mockImplementation(async (...args) => {
+      if (storageBlocked) { markAttemptSettled(); throw new Error('controlled storage failure') }
+      const response = await realFinalize(...args)
+      if (!response.ok && response.reason === 'capacity_limit') markAttemptSettled()
+      return response
+    })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await attemptSettled
+    await act(async () => {})
+    await waitFor(() => expect(result.current.sessionNotice).toContain(failure === 'storage' ? 'Could not stop' : 'backup-safe capacity'))
+    mono = 300_000
+    storageBlocked = false
+    if (failure === 'capacity') await studyDb.studySessions.delete('retained-0')
+    await act(async () => { await result.current.stopSession() })
+    expect(await getActiveFocusSession()).toBeNull()
+    expect((await studyDb.studySessions.get(session.id))?.minutes).toBe(15)
+    expect(result.current.sessionNotice).toBe('Session stopped: 15m logged.')
+    expect(await studyDb.studySessions.count()).toBe(failure === 'capacity' ? 10_000 : 1)
   })
 
   it('restores a stale session into the stale slot only', async () => {
@@ -181,7 +283,7 @@ describe('useFocusSession', () => {
       subjectId: 'subject-c',
       plannedMinutes: 40,
     })
-    const updateSpy = vi.spyOn(activeFocusSession, 'updateActiveFocusSession').mockResolvedValue({
+    const updateSpy = vi.spyOn(activeFocusSession, 'updateActiveFocusSessionSubject').mockResolvedValue({
       ok: false,
       reason: 'conflict',
       existing: elsewhere,
@@ -225,7 +327,7 @@ describe('useFocusSession', () => {
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
 
-    vi.spyOn(activeFocusSession, 'updateActiveFocusSession').mockResolvedValue({
+    vi.spyOn(activeFocusSession, 'updateActiveFocusSessionSubject').mockResolvedValue({
       ok: false,
       reason: 'missing',
     })
@@ -246,7 +348,7 @@ describe('useFocusSession', () => {
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
 
-    vi.spyOn(activeFocusSession, 'updateActiveFocusSession').mockRejectedValue(new Error('subject write failed'))
+    vi.spyOn(activeFocusSession, 'updateActiveFocusSessionSubject').mockRejectedValue(new Error('subject write failed'))
     vi.spyOn(activeFocusSession, 'getActiveFocusSession').mockResolvedValue(null)
 
     act(() => {
@@ -261,7 +363,7 @@ describe('useFocusSession', () => {
   it('rehydrates durable state when subject persistence throws but IndexedDB still has the session', async () => {
     await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    vi.spyOn(activeFocusSession, 'updateActiveFocusSession').mockRejectedValue(new Error('subject write failed'))
+    vi.spyOn(activeFocusSession, 'updateActiveFocusSessionSubject').mockRejectedValue(new Error('subject write failed'))
 
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
@@ -278,7 +380,7 @@ describe('useFocusSession', () => {
 
   it('does not mutate the durable subject while focus actions are pending', async () => {
     await createActiveFocusSession(makeSession(), { expectedGeneration: 1 })
-    const updateSpy = vi.spyOn(activeFocusSession, 'updateActiveFocusSession')
+    const updateSpy = vi.spyOn(activeFocusSession, 'updateActiveFocusSessionSubject')
     const { result } = renderHook(() => useFocusSession({ subjectMap }))
     await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
 
@@ -312,8 +414,8 @@ describe('useFocusSession', () => {
     const firstGate = new Promise<activeFocusSession.UpdateActiveFocusSessionResult>((resolve) => {
       releaseFirst = resolve
     })
-    const realUpdate = activeFocusSession.updateActiveFocusSession
-    const updateSpy = vi.spyOn(activeFocusSession, 'updateActiveFocusSession')
+    const realUpdate = activeFocusSession.updateActiveFocusSessionSubject
+    const updateSpy = vi.spyOn(activeFocusSession, 'updateActiveFocusSessionSubject')
       .mockImplementationOnce(() => firstGate)
       .mockImplementation((session, context) => realUpdate(session, context))
 
@@ -570,6 +672,514 @@ describe('useFocusSession', () => {
     }, { timeout: 2000 })
 
     getSpy.mockRestore()
+  })
+
+  it('records ten active minutes when stopped after five minutes paused', async () => {
+    let monotonicNow = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => monotonicNow)
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.canStartFocus).toBe(true))
+    await act(async () => { await result.current.startSession() })
+    const id = result.current.activeSession!.id
+    monotonicNow = 10 * 60_000
+    await act(async () => { await result.current.pauseSession() })
+    monotonicNow += 5 * 60_000
+    await act(async () => { await result.current.stopSession() })
+    expect((await studyDb.studySessions.get(id))?.minutes).toBe(10)
+    await act(async () => { await result.current.stopSession() })
+    expect(await studyDb.studySessions.count()).toBe(1)
+  })
+
+  it('keeps a paused subject change at ten minutes and counts only resumed active intervals', async () => {
+    let monotonicNow = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => monotonicNow)
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.canStartFocus).toBe(true))
+    await act(async () => { await result.current.startSession() })
+    const id = result.current.activeSession!.id
+    monotonicNow = 600_000
+    await act(async () => { await result.current.pauseSession() })
+    monotonicNow += 300_000
+    act(() => result.current.updateFocusSubject('subject-b'))
+    await waitFor(async () => expect((await getActiveFocusSession())?.subjectId).toBe('subject-b'))
+    expect((await getActiveFocusSession())?.checkpointElapsedMs).toBe(600_000)
+    expect(result.current.elapsedSeconds).toBe(600)
+    await act(async () => { await result.current.resumeSession() })
+    monotonicNow += 120_000
+    await act(async () => { await result.current.pauseSession() })
+    monotonicNow += 300_000
+    await act(async () => { await result.current.resumeSession() })
+    monotonicNow += 60_000
+    await act(async () => { await result.current.stopSession() })
+    expect((await studyDb.studySessions.get(id))?.minutes).toBe(13)
+  })
+
+  it.each(['paused', 'running'] as const)('restores authoritative %s checkpoints without inventing inactive time', async (status) => {
+    let monotonicNow = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => monotonicNow)
+    const session = makeSession({
+      plannedMinutes: 0, status, checkpointElapsedMs: 600_000,
+      pausedAt: status === 'paused' ? new Date().toISOString() : null,
+    })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+    expect(result.current.elapsedSeconds).toBe(600)
+    monotonicNow += 300_000
+    await act(async () => { await result.current.stopSession() })
+    expect((await studyDb.studySessions.get(session.id))?.minutes).toBe(status === 'paused' ? 10 : 15)
+  })
+
+  it.each(['missing', 'conflict', 'invalid_state'] as const)('reconciles periodic checkpoint %s outcomes and freezes obsolete elapsed', async (reason) => {
+    const checkpointSpy = vi.spyOn(activeFocusSession, 'checkpointActiveFocusSession')
+    let monotonicNow = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => monotonicNow)
+    const session = makeSession({ plannedMinutes: 0, checkpointElapsedMs: 600_000 })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await vi.waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+    const durable = makeSession({
+      id: reason === 'conflict' ? 'focus-replacement' : session.id,
+      status: 'paused', pausedAt: new Date().toISOString(), checkpointElapsedMs: 600_000,
+    })
+    if (reason === 'missing') await studyDb.settings.delete(activeFocusSession.ACTIVE_FOCUS_SESSION_KEY)
+    else await studyDb.settings.put({ key: activeFocusSession.ACTIVE_FOCUS_SESSION_KEY, value: durable })
+    monotonicNow += 30_000
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000) })
+    expect(checkpointSpy).toHaveBeenCalledTimes(1)
+    await act(async () => { await checkpointSpy.mock.results[0].value })
+    expect(result.current.activeSession).toEqual(reason === 'missing' ? null : durable)
+    monotonicNow += 300_000
+    await act(async () => { await vi.advanceTimersByTimeAsync(300_000) })
+    expect(result.current.elapsedSeconds).toBe(reason === 'missing' ? 0 : 600)
+    vi.useRealTimers()
+  })
+
+  it('reconciles a Resume committed elsewhere while this tab is paused', async () => {
+    const paused = makeSession({ plannedMinutes: 0, status: 'paused', pausedAt: new Date().toISOString(), checkpointElapsedMs: 600_000 })
+    await createActiveFocusSession(paused, { expectedGeneration: 1 })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await vi.waitFor(() => expect(result.current.activeSession?.status).toBe('paused'))
+    const resumed = await activeFocusSession.resumeActiveFocusSession(paused.id, { expectedGeneration: 1 })
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000) })
+    expect(result.current.activeSession).toEqual(resumed.ok ? resumed.session : undefined)
+    expect(result.current.elapsedSeconds).toBe(600)
+    vi.useRealTimers()
+  })
+
+  it('reports checkpoint storage errors without discarding recoverable focus ownership', async () => {
+    await createActiveFocusSession(makeSession({ plannedMinutes: 0 }), { expectedGeneration: 1 })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await vi.waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
+    vi.spyOn(activeFocusSession, 'checkpointActiveFocusSession').mockRejectedValue(new Error('storage unavailable'))
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000) })
+    expect(result.current.sessionNotice).toBe('Could not save focus progress. Try again.')
+    expect(result.current.activeSession?.id).toBe('focus-hook')
+    vi.useRealTimers()
+  })
+
+  it('does not reinstall an old checkpoint response after a newer Pause settles', async () => {
+    const session = makeSession({ plannedMinutes: 0, checkpointElapsedMs: 600_000 })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await vi.waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+    let release!: (value: activeFocusSession.CheckpointActiveFocusSessionResult) => void
+    const gate = new Promise<activeFocusSession.CheckpointActiveFocusSessionResult>((resolve) => { release = resolve })
+    vi.spyOn(activeFocusSession, 'checkpointActiveFocusSession').mockReturnValueOnce(gate)
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000) })
+    await act(async () => { await result.current.pauseSession() })
+    const paused = await getActiveFocusSession()
+    await act(async () => { release({ ok: true, session }); await gate })
+    expect(result.current.activeSession).toEqual(paused)
+    expect(result.current.activeSession?.status).toBe('paused')
+    vi.useRealTimers()
+  })
+
+  it('does not reinstall an old subject response after a newer Pause settles', async () => {
+    const session = makeSession({ plannedMinutes: 0, checkpointElapsedMs: 600_000 })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const realUpdate = activeFocusSession.updateActiveFocusSessionSubject
+    const updateSpy = vi.spyOn(activeFocusSession, 'updateActiveFocusSessionSubject').mockImplementationOnce(async (...args) => {
+      const response = await realUpdate(...args)
+      await gate
+      return response
+    })
+    act(() => result.current.updateFocusSubject('subject-b'))
+    await waitFor(async () => expect((await getActiveFocusSession())?.subjectId).toBe('subject-b'))
+    await act(async () => { await result.current.pauseSession() })
+    const paused = await getActiveFocusSession()
+    await act(async () => { release(); await updateSpy.mock.results[0].value })
+    expect(result.current.activeSession).toEqual(paused)
+    expect(result.current.activeSession?.status).toBe('paused')
+  })
+
+  it('lets an external Pause committed after the UI eligibility read prevent automatic finalization', async () => {
+    const session = makeSession({ checkpointElapsedMs: 25 * 60_000 })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const realFinalize = activeFocusSession.finalizeActiveFocusSession
+    const finalizeSpy = vi.spyOn(activeFocusSession, 'finalizeActiveFocusSession').mockImplementationOnce(async (...args) => {
+      await gate
+      return realFinalize(...args)
+    })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(finalizeSpy).toHaveBeenCalledTimes(1))
+    const paused = await activeFocusSession.pauseActiveFocusSession(session.id, { expectedGeneration: 1 })
+    await act(async () => { release(); await finalizeSpy.mock.results[0].value })
+    expect(await studyDb.studySessions.count()).toBe(0)
+    expect(result.current.activeSession).toEqual(paused.ok ? paused.session : undefined)
+    expect(result.current.activeSession?.status).toBe('paused')
+  })
+
+  it('R-001 reconciles obsolete Pause after an external Pause/Resume without earning paused time', async () => {
+    let mono = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => mono)
+    const session = makeSession({ plannedMinutes: 0, checkpointElapsedMs: 0 })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+    mono = 600_000
+    await activeFocusSession.pauseActiveFocusSession(session.id, { logicalElapsedMs: mono, observed: session, pausedAt: new Date(Date.parse(session.startedAt) + mono).toISOString() }, { expectedGeneration: 1 })
+    mono = 900_000
+    await activeFocusSession.resumeActiveFocusSession(session.id, Date.parse(session.startedAt) + mono, { expectedGeneration: 1 })
+    await act(async () => { await result.current.pauseSession() })
+    expect(result.current.activeSession?.status).toBe('running')
+    expect(result.current.sessionNotice).toBe('Focus session was updated elsewhere.')
+    expect((await getActiveFocusSession())?.checkpointElapsedMs).toBe(600_000)
+    await act(async () => { await result.current.stopSession() })
+    expect((await studyDb.studySessions.get(session.id))?.minutes).toBe(10)
+  })
+
+  it('R-002 retains five further active minutes across a delayed subject acknowledgement', async () => {
+    let mono = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => mono)
+    await createActiveFocusSession(makeSession({ plannedMinutes: 0, checkpointElapsedMs: 0 }), { expectedGeneration: 1 })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const real = activeFocusSession.updateActiveFocusSessionSubject
+    const update = vi.spyOn(activeFocusSession, 'updateActiveFocusSessionSubject').mockImplementationOnce(async (...args) => {
+      const response = await real(...args)
+      await gate
+      return response
+    })
+    mono = 600_000
+    act(() => result.current.updateFocusSubject('subject-b'))
+    await waitFor(async () => expect((await getActiveFocusSession())?.subjectId).toBe('subject-b'))
+    mono = 900_000
+    await act(async () => { release(); await update.mock.results[0].value })
+    expect(result.current.elapsedSeconds).toBe(900)
+    await act(async () => { await result.current.stopSession() })
+    expect(await studyDb.studySessions.get('focus-hook')).toMatchObject({ minutes: 15, subjectId: 'subject-b' })
+  })
+
+  it('retains active time and failure feedback when a delayed subject write fails in the same interval', async () => {
+    let mono = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => mono)
+    await createActiveFocusSession(makeSession({ plannedMinutes: 0, checkpointElapsedMs: 0 }), { expectedGeneration: 1 })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.activeSession?.id).toBe('focus-hook'))
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const update = vi.spyOn(activeFocusSession, 'updateActiveFocusSessionSubject').mockImplementationOnce(async () => {
+      await gate
+      throw new Error('storage failure')
+    })
+    mono = 600_000
+    act(() => result.current.updateFocusSubject('subject-b'))
+    mono = 900_000
+    await act(async () => { release(); await update.mock.results[0].value.catch(() => undefined) })
+    await waitFor(() => expect(result.current.sessionNotice).toBe('Could not update the focus subject. Try again.'))
+    expect(result.current.elapsedSeconds).toBe(900)
+    expect(result.current.activeSession?.subjectId).toBe('subject-a')
+    expect(result.current.sessionNotice).toBe('Could not update the focus subject. Try again.')
+    await act(async () => { await result.current.stopSession() })
+    expect(await studyDb.studySessions.get('focus-hook')).toMatchObject({ minutes: 15, subjectId: 'subject-a' })
+  })
+
+  it('retains current elapsed and latest durable subject when acknowledgements settle out of order', async () => {
+    let mono = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => mono)
+    const session = makeSession({ plannedMinutes: 0, checkpointElapsedMs: 0 })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+    const releases: Array<() => void> = []
+    const real = activeFocusSession.updateActiveFocusSessionSubject
+    const update = vi.spyOn(activeFocusSession, 'updateActiveFocusSessionSubject').mockImplementation(async (...args) => {
+      const response = await real(...args)
+      await new Promise<void>((resolve) => { releases.push(resolve) })
+      return response
+    })
+    mono = 600_000
+    act(() => result.current.updateFocusSubject('subject-b'))
+    await waitFor(() => expect(releases).toHaveLength(1))
+    mono = 660_000
+    act(() => result.current.updateFocusSubject('subject-c'))
+    await waitFor(() => expect(releases).toHaveLength(2))
+    mono = 900_000
+    await act(async () => { releases[1](); await update.mock.results[1].value })
+    expect(result.current.elapsedSeconds).toBe(900)
+    await act(async () => { releases[0](); await update.mock.results[0].value })
+    expect(result.current.elapsedSeconds).toBe(900)
+    expect(result.current.activeSession?.subjectId).toBe('subject-c')
+    expect((await getActiveFocusSession())?.subjectId).toBe('subject-c')
+    await act(async () => { await result.current.stopSession() })
+    expect(await studyDb.studySessions.get(session.id)).toMatchObject({ minutes: 15, subjectId: 'subject-c' })
+  })
+
+  it.each(['pause', 'replacement', 'removal', 'finalization'] as const)('R-003 rejects delayed subject acknowledgement after checkpoint reconciles %s', async (change) => {
+    const session = makeSession({ plannedMinutes: 0, checkpointElapsedMs: 600_000 })
+    await createActiveFocusSession(session, { expectedGeneration: 1 })
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    const { result } = renderHook(() => useFocusSession({ subjectMap }))
+    await vi.waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const real = activeFocusSession.updateActiveFocusSessionSubject
+    const update = vi.spyOn(activeFocusSession, 'updateActiveFocusSessionSubject').mockImplementationOnce(async (...args) => {
+      const response = await real(...args)
+      await gate
+      return response
+    })
+    act(() => result.current.updateFocusSubject('subject-b'))
+    await act(async () => { await vi.waitFor(async () => expect((await getActiveFocusSession())?.subjectId).toBe('subject-b')) })
+    if (change === 'pause') await activeFocusSession.pauseActiveFocusSession(session.id, { expectedGeneration: 1 })
+    else if (change === 'finalization') {
+      expect(await activeFocusSession.finalizeActiveFocusSession(session.id, {
+        subjectId: 'subject-b', startedAt: session.startedAt, endedAt: new Date().toISOString(), minutes: 10, note: 'Focus session',
+      }, { expectedGeneration: 1 }, { mode: 'manual', observed: session })).toMatchObject({ ok: true })
+    } else {
+      await activeFocusSession.discardActiveFocusSession(session.id, { expectedGeneration: 1 })
+      if (change === 'replacement') await createActiveFocusSession(makeSession({ id: 'focus-new', plannedMinutes: 0, status: 'paused', pausedAt: new Date().toISOString(), checkpointElapsedMs: 120_000 }), { expectedGeneration: 1 })
+    }
+    const checkpoint = vi.spyOn(activeFocusSession, 'checkpointActiveFocusSession')
+    await act(async () => { await vi.advanceTimersByTimeAsync(30_000) })
+    expect(checkpoint).toHaveBeenCalledTimes(1)
+    await act(async () => { await checkpoint.mock.results[0].value })
+    const authoritative = await getActiveFocusSession()
+    const notice = result.current.sessionNotice
+    expect(result.current.activeSession).toEqual(authoritative)
+    await act(async () => { release(); await update.mock.results[0].value })
+    expect(result.current.activeSession).toEqual(authoritative)
+    expect(result.current.sessionNotice).toBe(notice)
+    const frozen = result.current.elapsedSeconds
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000) })
+    expect(result.current.elapsedSeconds).toBe(frozen)
+    vi.useRealTimers()
+  })
+
+  describe('IR-001 collision anchor provenance', () => {
+    async function seedCollision(overrides: Partial<ActiveFocusSession> = {}) {
+      const session = makeSession({ startedAt: new Date().toISOString(), plannedMinutes: 0, checkpointElapsedMs: 0, ...overrides })
+      const foreign = { id: session.id, subjectId: 'subject-a', startedAt: session.startedAt, endedAt: session.startedAt, minutes: 1, note: 'Foreign history' }
+      await studyDb.studySessions.add(foreign)
+      await studyDb.settings.put({ key: activeFocusSession.ACTIVE_FOCUS_SESSION_KEY, value: session })
+      return { session, foreign }
+    }
+
+    it.each([false, true])('reconciles stale elapsed after external Pause/Resume (rollback=%s)', async (rollback) => {
+      let mono = 0
+      const wall = Date.now()
+      vi.spyOn(performance, 'now').mockImplementation(() => mono)
+      vi.spyOn(Date, 'now').mockImplementation(() => wall + (rollback ? 0 : mono))
+      const { session, foreign } = await seedCollision()
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+      mono = 600_000
+      const paused = await activeFocusSession.pauseActiveFocusSession(session.id, { logicalElapsedMs: mono, observed: session, pausedAt: new Date(wall + (rollback ? 0 : mono)).toISOString() }, { expectedGeneration: 1 })
+      expect(paused.ok).toBe(true)
+      mono = 900_000
+      const resumed = await activeFocusSession.resumeActiveFocusSession(session.id, wall + (rollback ? -60_000 : mono), { expectedGeneration: 1 })
+      expect(resumed.ok && resumed.session.runToken).toBeTruthy()
+      await act(async () => { await result.current.stopSession() })
+      // A changed interval is a reconciliation boundary, not permission to
+      // finalize unobservable progress. The user's explicit retry uses a new anchor.
+      expect(result.current.activeSession?.id).not.toBe(session.id)
+      expect(result.current.elapsedSeconds).toBe(600)
+      expect(result.current.sessionNotice).toBe('Focus session was updated elsewhere. Review it and stop again.')
+      expect(await studyDb.studySessions.toArray()).toEqual([foreign])
+      await act(async () => { await result.current.stopSession() })
+      expect(await getActiveFocusSession()).toBeNull()
+      const history = await studyDb.studySessions.toArray()
+      expect(history).toHaveLength(2)
+      expect(history.find((row) => row.id === foreign.id)).toEqual(foreign)
+      expect(history.find((row) => row.id !== foreign.id)?.minutes).toBe(10)
+    })
+
+    it.each(['running', 'paused'] as const)('preserves earned duration across a same-interval %s rekey', async (status) => {
+      let mono = 0
+      vi.spyOn(performance, 'now').mockImplementation(() => mono)
+      const { session, foreign } = await seedCollision({ status, pausedAt: status === 'paused' ? new Date().toISOString() : null, checkpointElapsedMs: 600_000 })
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+      mono = 300_000
+      await act(async () => { await result.current.stopSession() })
+      expect(await getActiveFocusSession()).toBeNull()
+      expect(result.current.activeSession).toBeNull()
+      expect(await studyDb.studySessions.get(foreign.id)).toEqual(foreign)
+      const history = await studyDb.studySessions.toArray()
+      expect(history).toHaveLength(2)
+      expect(history.find((row) => row.id !== foreign.id)?.minutes).toBe(status === 'running' ? 15 : 10)
+    })
+
+    it('preserves thirty confirmed minutes despite a stale observation and a twenty-five minute plan', async () => {
+      vi.spyOn(performance, 'now').mockReturnValue(0)
+      const { session, foreign } = await seedCollision({ status: 'paused', pausedAt: new Date().toISOString(), plannedMinutes: 25, checkpointElapsedMs: 1_800_000 })
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await vi.waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+      await activeFocusSession.resumeActiveFocusSession(session.id, { expectedGeneration: 1 })
+      await act(async () => { await result.current.stopSession() })
+      expect(result.current.elapsedSeconds).toBe(1800)
+      // Pause the reconciled session to prevent scheduled planned completion;
+      // manual Stop must retain overtime rather than apply the automatic contract.
+      await act(async () => { await result.current.pauseSession() })
+      await act(async () => { await result.current.stopSession() })
+      const history = await studyDb.studySessions.toArray()
+      expect(history).toHaveLength(2)
+      expect(history.find((row) => row.id !== foreign.id)?.minutes).toBe(30)
+      expect(await studyDb.studySessions.get(foreign.id)).toEqual(foreign)
+      expect(await getActiveFocusSession()).toBeNull()
+      vi.useRealTimers()
+    })
+
+    it.each(['same', 'transition', 'replacement', 'clear', 'replacement-unseen', 'clear-unseen', 'removed', 'finalized'] as const)('handles a delayed collision response with %s ownership', async (change) => {
+      let mono = 0
+      vi.spyOn(performance, 'now').mockImplementation(() => mono)
+      const { session, foreign } = await seedCollision({ checkpointElapsedMs: 600_000 })
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+      let release!: () => void
+      const gate = new Promise<void>((resolve) => { release = resolve })
+      const realFinalize = activeFocusSession.finalizeActiveFocusSession
+      const finalize = vi.spyOn(activeFocusSession, 'finalizeActiveFocusSession').mockImplementationOnce(async (...args) => {
+        const response = await realFinalize(...args)
+        await gate
+        return response
+      })
+      let stop!: Promise<void>
+      act(() => { stop = result.current.stopSession() })
+      await waitFor(async () => expect((await getActiveFocusSession())?.id).not.toBe(session.id))
+      const rekeyed = (await getActiveFocusSession())!
+      mono = 300_000
+      if (change === 'transition') {
+        await activeFocusSession.pauseActiveFocusSession(rekeyed.id, { logicalElapsedMs: 600_000, observed: rekeyed }, { expectedGeneration: 1 })
+        await activeFocusSession.resumeActiveFocusSession(rekeyed.id, { expectedGeneration: 1 })
+      } else if (change.startsWith('replacement') || change.startsWith('clear')) {
+        await clearAllStudyData()
+        if (change.startsWith('replacement')) await createActiveFocusSession(makeSession({ id: 'replacement', subjectId: '', plannedMinutes: 0, checkpointElapsedMs: 120_000 }), { expectedGeneration: await getDatabaseGeneration(studyDb.settings) })
+        if (!change.endsWith('unseen')) await act(async () => { await result.current.reloadFocusFromIndexedDb() })
+      } else if (change === 'removed') {
+        await activeFocusSession.discardActiveFocusSession(rekeyed.id, { expectedGeneration: 1 })
+      } else if (change === 'finalized') {
+        expect(await realFinalize(rekeyed.id, { subjectId: rekeyed.subjectId, startedAt: rekeyed.startedAt, endedAt: rekeyed.startedAt, minutes: 10, note: 'Other tab' }, { expectedGeneration: 1 }, { mode: 'manual', observed: rekeyed })).toMatchObject({ ok: true })
+      }
+      await act(async () => { release(); await stop })
+      if (change === 'same') {
+        expect(await getActiveFocusSession()).toBeNull()
+        expect(await studyDb.studySessions.get(foreign.id)).toEqual(foreign)
+        const history = await studyDb.studySessions.toArray()
+        expect(history).toHaveLength(2)
+        expect(history.find((row) => row.id !== foreign.id)?.minutes).toBe(15)
+        expect(finalize).toHaveBeenCalledTimes(2)
+      } else if (change === 'transition') {
+        expect(result.current.activeSession).toEqual(await getActiveFocusSession())
+        expect(result.current.elapsedSeconds).toBe(600)
+        expect(await studyDb.studySessions.toArray()).toEqual([foreign])
+        expect(finalize).toHaveBeenCalledTimes(1)
+      } else if (change === 'replacement' || change === 'clear') {
+        expect(result.current.activeSession).toEqual(await getActiveFocusSession())
+        expect(result.current.activeSession?.id).toBe(change === 'replacement' ? 'replacement' : undefined)
+        expect(await studyDb.studySessions.count()).toBe(0)
+        expect(finalize).toHaveBeenCalledTimes(1)
+      } else {
+        expect(result.current.activeSession).toBeNull()
+        expect(finalize).toHaveBeenCalledTimes(1)
+        if (change === 'replacement-unseen' || change === 'clear-unseen') {
+          expect((await getActiveFocusSession())?.id).toBe(change === 'replacement-unseen' ? 'replacement' : undefined)
+          expect(result.current.sessionNotice).toBe('The database was updated elsewhere. Study time was not logged.')
+          expect(await studyDb.studySessions.count()).toBe(0)
+        } else {
+          expect(await getActiveFocusSession()).toBeNull()
+          expect(await studyDb.studySessions.get(foreign.id)).toEqual(foreign)
+          expect(await studyDb.studySessions.count()).toBe(change === 'finalized' ? 2 : 1)
+        }
+      }
+    })
+
+    it('holds the duplicate Stop guard through the rekey retry', async () => {
+      vi.spyOn(performance, 'now').mockReturnValue(0)
+      const { session, foreign } = await seedCollision({ checkpointElapsedMs: 600_000 })
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+      let release!: () => void
+      const gate = new Promise<void>((resolve) => { release = resolve })
+      const real = activeFocusSession.finalizeActiveFocusSession
+      const finalize = vi.spyOn(activeFocusSession, 'finalizeActiveFocusSession')
+        .mockImplementationOnce(real)
+        .mockImplementationOnce(async (...args) => { await gate; return real(...args) })
+      const staleStop = result.current.stopSession
+      let stop!: Promise<void>
+      act(() => { stop = result.current.stopSession() })
+      await waitFor(() => expect(finalize).toHaveBeenCalledTimes(2))
+      await waitFor(() => expect(result.current.activeSession?.id).not.toBe(session.id))
+      await act(async () => { await staleStop(); await result.current.stopSession(); await result.current.stopSession(true) })
+      expect(finalize).toHaveBeenCalledTimes(2)
+      await act(async () => { release(); await stop })
+      expect(result.current.activeSession).toBeNull()
+      expect(await getActiveFocusSession()).toBeNull()
+      const history = await studyDb.studySessions.toArray()
+      expect(history).toHaveLength(2)
+      expect(history.find((row) => row.id === foreign.id)).toEqual(foreign)
+      expect(history.find((row) => row.id !== foreign.id)?.minutes).toBe(10)
+    })
+
+    it.each(['transition', 'generation'] as const)('rejects %s changes at the final retry transaction boundary', async (change) => {
+      let mono = 0
+      vi.spyOn(performance, 'now').mockImplementation(() => mono)
+      const { session, foreign } = await seedCollision({ checkpointElapsedMs: 600_000 })
+      const { result } = renderHook(() => useFocusSession({ subjectMap }))
+      await waitFor(() => expect(result.current.activeSession?.id).toBe(session.id))
+      let release!: () => void
+      const gate = new Promise<void>((resolve) => { release = resolve })
+      const real = activeFocusSession.finalizeActiveFocusSession
+      const finalize = vi.spyOn(activeFocusSession, 'finalizeActiveFocusSession')
+        .mockImplementationOnce(real)
+        .mockImplementationOnce(async (...args) => { await gate; return real(...args) })
+      let stop!: Promise<void>
+      act(() => { stop = result.current.stopSession() })
+      await waitFor(() => expect(finalize).toHaveBeenCalledTimes(2))
+      const rekeyed = (await getActiveFocusSession())!
+      mono = 300_000
+      if (change === 'transition') {
+        await activeFocusSession.pauseActiveFocusSession(rekeyed.id, { logicalElapsedMs: 600_000, observed: rekeyed }, { expectedGeneration: 1 })
+        await activeFocusSession.resumeActiveFocusSession(rekeyed.id, { expectedGeneration: 1 })
+      } else {
+        await clearAllStudyData()
+        await createActiveFocusSession(makeSession({ id: 'replacement', subjectId: '', plannedMinutes: 0, checkpointElapsedMs: 120_000 }), { expectedGeneration: await getDatabaseGeneration(studyDb.settings) })
+      }
+      await act(async () => { release(); await stop })
+      if (change === 'transition') {
+        expect(result.current.activeSession).toEqual(await getActiveFocusSession())
+        expect(result.current.elapsedSeconds).toBe(600)
+        expect(await studyDb.studySessions.toArray()).toEqual([foreign])
+      } else {
+        expect(result.current.activeSession).toBeNull()
+        expect((await getActiveFocusSession())?.id).toBe('replacement')
+        expect(await studyDb.studySessions.count()).toBe(0)
+      }
+    })
   })
 
   describe('F-11 live monotonic clock and rollback safety in useFocusSession', () => {

@@ -55,3 +55,10 @@ Thumbs.db
 .agents/
 .gemini/
 /study_app.zip
+
+# Orchestrator local state and logs
+/.orchestrator/
+/.orchestrator_logs/
+/.orchestrator_state.json
+/ORCHESTRATOR_HANDOFF.md
+

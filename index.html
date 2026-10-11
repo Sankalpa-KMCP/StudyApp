@@ -13,12 +13,14 @@
           var restOfQuery = [];
           for (var i = 0; i < pairs.length; i++) {
             var pair = pairs[i].split('=');
-            var key = decodeURIComponent(pair[0]);
+            var key = pair[0];
             var val = pair.slice(1).join('=').replace(/~and~/g, '&');
             if (key === '_p') {
               params._p = val;
             } else {
-              restOfQuery.push(pair[0] + '=' + encodeURIComponent(val));
+              // 404.html transports the original encoded query, replacing only
+              // delimiters. Preserve escapes, flags, and repeated keys verbatim.
+              restOfQuery.push(pairs[i].replace(/~and~/g, '&'));
             }
           }
           if (params._p !== undefined) {

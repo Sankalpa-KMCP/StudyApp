@@ -294,6 +294,26 @@ describe('App home', () => {
     expect(screen.getByText('Saved locally')).toBeInTheDocument()
   })
 
+  it('keeps all nine draft lines and existing durable notes until corrected to eight', async () => {
+    await studyDb.settings.put({ key: 'quickNotes', value: ['Keep existing note'] })
+    render(<App />)
+    const textarea = await screen.findByPlaceholderText(/Capture fast ideas/i)
+    const save = vi.spyOn(quickNotesService, 'saveQuickNotes')
+    const nine = Array.from({ length: 9 }, (_, i) => `Important line ${i + 1}`).join('\n')
+    fireEvent.change(textarea, { target: { value: nine } })
+    fireEvent.blur(textarea)
+    expect(screen.getByRole('alert')).toHaveTextContent('8 nonblank lines')
+    expect(textarea).toHaveValue(nine)
+    expect(save).not.toHaveBeenCalled()
+    expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Keep existing note'])
+    const eight = nine.split('\n').slice(0, 8)
+    fireEvent.change(textarea, { target: { value: eight.join('\n') } })
+    fireEvent.blur(textarea)
+    await waitFor(() => expect(screen.getByText('Saved locally')).toBeInTheDocument())
+    expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(eight)
+    expect(textarea).toHaveValue(eight.join('\n'))
+  })
+
   it('preserves quick-note drafts on failure and keeps newest write last', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     render(<App />)
@@ -933,7 +953,6 @@ describe('App home', () => {
         targetHours: 10,
         progress: 0,
         progressMode: 'manual',
-        archived: false,
         createdAt: new Date(2026, 6, 26, 10, i).toISOString(),
         updatedAt: new Date(2026, 6, 26, 10, i).toISOString(),
       })
@@ -942,9 +961,9 @@ describe('App home', () => {
         subjectId: `subject-${i}`,
         title: `Task ${i}`,
         status: 'open',
-        estimatedMinutes: 30,
-        due: null,
-        priority: 'medium',
+        minutes: 30,
+        dueDate: '',
+        priority: 'normal',
         createdAt: new Date(2026, 6, 26, 10, i).toISOString(),
         updatedAt: new Date(2026, 6, 26, 10, i).toISOString(),
       })

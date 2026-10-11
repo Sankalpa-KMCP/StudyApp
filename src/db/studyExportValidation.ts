@@ -6,6 +6,7 @@ import {
   type StudyExportRecordLimits,
 } from './studyExportLimits'
 import type { StudyExport } from './types'
+import { isPortableStudySetting } from './portableSettings'
 import {
   ACTIVE_FOCUS_SESSION_KEY,
   isActiveFocusSession,
@@ -230,7 +231,7 @@ export function assertStudyExportRecordCounts(
     events: snapshot.events.length,
     studySessions: snapshot.studySessions.length,
     goals: snapshot.goals.length,
-    settings: snapshot.settings.length,
+    settings: snapshot.settings.filter(isPortableStudySetting).length,
   }, limits)
 }
 

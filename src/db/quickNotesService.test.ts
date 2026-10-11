@@ -17,9 +17,9 @@ describe('quickNotesService', () => {
     await studyDb.delete()
   })
 
-  it('normalizes multi-line text with trimming, blank removal, and an eight-line cap', async () => {
+  it('normalizes eight nonblank lines without discarding any line', async () => {
     await saveQuickNotes(
-      '  alpha  \n\nbeta\n  \ngamma\ndelta\nepsilon\nzeta\neta\ntheta\niota\nkappa\n',
+      '  alpha  \n\nbeta\n  \ngamma\ndelta\nepsilon\nzeta\neta\ntheta\n',
       { expectedGeneration: 1 },
     )
 
@@ -33,6 +33,15 @@ describe('quickNotesService', () => {
       'eta',
       'theta',
     ])
+  })
+
+  it('rejects nine nonblank lines before writing and preserves existing notes', async () => {
+    await studyDb.settings.put({ key: 'quickNotes', value: ['Keep me'] })
+    const put = vi.spyOn(studyDb.settings, 'put')
+    await expect(saveQuickNotes(Array.from({ length: 9 }, (_, i) => `Line ${i}`).join('\n'), { expectedGeneration: 1 }))
+      .rejects.toThrow(/8 nonblank lines/)
+    expect(put).not.toHaveBeenCalled()
+    expect((await studyDb.settings.get('quickNotes'))?.value).toEqual(['Keep me'])
   })
 
   it('preserves line order and duplicate non-empty lines', async () => {

@@ -110,5 +110,5 @@ test('mobile navigation landmark passes axe smoke without suppressions', async (
   await page.goto('/')
   await expect(page.getByRole('heading', { name: HOME_GREETING_HEADING })).toBeVisible()
   await openMore(page)
-  await expectNoAxeViolations(page, testInfo)
+  await expectNoAxeViolations(page, testInfo, 'workspace')
 })

@@ -8,7 +8,7 @@ import {
   getActiveFocusSessionWithGeneration,
   pauseActiveFocusSession,
   resumeActiveFocusSession,
-  updateActiveFocusSession,
+  updateActiveFocusSessionSubject,
 } from './activeFocusSession'
 import {
   createCalendarEvent,
@@ -58,7 +58,6 @@ describe('Stale writer protection across all domain entities', () => {
       {
         title: 'Initial task',
         subjectId: '',
-        status: 'open',
         priority: 'normal',
         minutes: 30,
         dueDate: '',
@@ -72,7 +71,7 @@ describe('Stale writer protection across all domain entities', () => {
 
     // Stale writer using older generation fails closed
     await expect(
-      updateTask(task.id, { title: 'Resurrected task' }, { expectedGeneration: gen }),
+      updateTask(task.id, { ...task, title: 'Resurrected task' }, { expectedGeneration: gen }),
     ).rejects.toThrow(StaleDatabaseGenerationError)
 
     await expect(
@@ -88,7 +87,6 @@ describe('Stale writer protection across all domain entities', () => {
         {
           title: 'Zombie task',
           subjectId: '',
-          status: 'open',
           priority: 'normal',
           minutes: 30,
           dueDate: '',
@@ -128,7 +126,7 @@ describe('Stale writer protection across all domain entities', () => {
     expect(await captureDatabaseGeneration()).toBeGreaterThan(gen)
 
     await expect(
-      updateNote(note.id, { title: 'Zombie note update' }, { expectedGeneration: gen }),
+      updateNote(note.id, { ...note, title: 'Zombie note update' }, { expectedGeneration: gen }),
     ).rejects.toThrow(StaleDatabaseGenerationError)
 
     await expect(
@@ -215,7 +213,7 @@ describe('Stale writer protection across all domain entities', () => {
     await clearAllStudyData()
 
     await expect(
-      updateCalendarEvent(event.id, { title: 'Zombie Exam' }, { expectedGeneration: gen }),
+      updateCalendarEvent(event.id, { ...event, title: 'Zombie Exam' }, { expectedGeneration: gen }),
     ).rejects.toThrow(StaleDatabaseGenerationError)
 
     await expect(
@@ -303,7 +301,7 @@ describe('Stale writer protection across all domain entities', () => {
     await clearAllStudyData()
 
     await expect(
-      updateGoal(goal.id, { title: 'Zombie Goal' }, { expectedGeneration: gen }),
+      updateGoal(goal.id, { ...goal, title: 'Zombie Goal' }, { expectedGeneration: gen }),
     ).rejects.toThrow(StaleDatabaseGenerationError)
 
     await expect(
@@ -367,7 +365,7 @@ describe('Stale writer protection across all domain entities', () => {
     ).rejects.toThrow(StaleDatabaseGenerationError)
 
     await expect(
-      updateActiveFocusSession(session, { expectedGeneration: gen }),
+      updateActiveFocusSessionSubject(session, { expectedGeneration: gen }),
     ).rejects.toThrow(StaleDatabaseGenerationError)
 
     await expect(
@@ -401,7 +399,7 @@ describe('Stale writer protection across all domain entities', () => {
         { expectedGeneration: initialGen },
       )
       const task = await createTask(
-        { title: 'Read ch1', subjectId: subject.id, status: 'open', priority: 'normal', minutes: 20, dueDate: '' },
+        { title: 'Read ch1', subjectId: subject.id, priority: 'normal', minutes: 20, dueDate: '' },
         { expectedGeneration: initialGen },
       )
       const note = await createNote(
@@ -576,7 +574,6 @@ describe('Stale writer protection across all domain entities', () => {
           {
             title: 'Stale task',
             subjectId: '',
-            status: 'open',
             priority: 'normal',
             minutes: 30,
             dueDate: '',
@@ -590,7 +587,6 @@ describe('Stale writer protection across all domain entities', () => {
         {
           title: 'Fresh post-clear task',
           subjectId: '',
-          status: 'open',
           priority: 'high',
           minutes: 40,
           dueDate: '',

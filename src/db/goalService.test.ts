@@ -1,3 +1,4 @@
+import Dexie from 'dexie'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createGoal, deleteGoal, updateGoal } from './goalService'
 import { DATABASE_GENERATION_KEY, StaleDatabaseGenerationError } from './databaseGeneration'
@@ -183,12 +184,12 @@ describe('goalService', () => {
 
   it('rolls back the goal when dailyGoalMinutes write fails', async () => {
     const originalPut = studyDb.settings.put.bind(studyDb.settings)
-    vi.spyOn(studyDb.settings, 'put').mockImplementation(async (entry) => {
+    vi.spyOn(studyDb.settings, 'put').mockImplementation((entry) => Dexie.Promise.resolve((async () => {
       if (entry.key === 'dailyGoalMinutes' && entry.value === 90) {
         throw new Error('settings write failed')
       }
       return originalPut(entry)
-    })
+    })()))
 
     await expect(createGoal({
       title: 'Atomic daily',

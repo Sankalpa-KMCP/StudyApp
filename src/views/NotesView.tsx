@@ -62,6 +62,16 @@ export function NotesView({
   const handledEditorRequest = useRef(0)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const editorGenerationRef = useRef(databaseGeneration)
+  // A completion owns the submitted draft revision, not just its note ID.
+  const editorRevisionRef = useRef(0)
+  const [editorRevision, setEditorRevision] = useState(0)
+  const [saveRevision, setSaveRevision] = useState<number | null>(null)
+  const savingRef = useRef(false)
+  const advanceEditorRevision = useCallback(() => {
+    editorRevisionRef.current += 1
+    setEditorRevision(editorRevisionRef.current)
+  }, [])
+  useEffect(() => () => { editorRevisionRef.current += 1 }, [])
   const saveMutation = useMutationState()
   const rowMutation = useMutationState()
   const { clearFeedback: clearSaveFeedback, isPending: isSaving, phase: savePhase, message: saveMessage, run: runSave } = saveMutation
@@ -91,17 +101,19 @@ export function NotesView({
     }
   }, [hasMore])
 
-  const noticePhase: MutationPhase = savePhase === 'success' || savePhase === 'error'
+  const currentSaveFeedback = saveRevision === editorRevision
+  const noticePhase: MutationPhase = currentSaveFeedback && (savePhase === 'success' || savePhase === 'error')
     ? savePhase
     : rowPhase === 'success' || rowPhase === 'error'
       ? rowPhase
       : 'idle'
-  const noticeMessage = (savePhase === 'success' || savePhase === 'error' ? saveMessage : null)
+  const noticeMessage = (currentSaveFeedback && (savePhase === 'success' || savePhase === 'error') ? saveMessage : null)
     ?? (rowPhase === 'success' || rowPhase === 'error' ? rowMessage : null)
   const noteTitleErrorId = 'note-title-error'
   const noteTitleInvalid = validationError.reason === 'empty_title'
 
   const openEditor = useCallback((note?: StudyNote) => {
+    advanceEditorRevision()
     setValidationError({ reason: null, message: null })
     clearSaveFeedback()
     editorGenerationRef.current = databaseGeneration
@@ -112,7 +124,7 @@ export function NotesView({
       subjectId: note?.subjectId ?? subjects[0]?.id ?? '',
       tags: note?.tags.join(', ') ?? '',
     })
-  }, [clearSaveFeedback, databaseGeneration, subjects])
+  }, [advanceEditorRevision, clearSaveFeedback, databaseGeneration, subjects])
 
   useEffect(() => {
     if (openEditorRequest > handledEditorRequest.current) {
@@ -122,11 +134,17 @@ export function NotesView({
   }, [openEditor, openEditorRequest])
 
   const closeEditor = useCallback(() => {
-    if (isSaving) return
+    if (savingRef.current) return
+    advanceEditorRevision()
     setEditingNoteId(null)
     setDraft(emptyDraft(subjects[0]?.id ?? ''))
     setValidationError({ reason: null, message: null })
-  }, [isSaving, subjects])
+  }, [advanceEditorRevision, subjects])
+
+  const changeDraft = (fields: Partial<NoteDraft>) => {
+    advanceEditorRevision()
+    setDraft((previous) => ({ ...previous, ...fields }))
+  }
 
   const dismissNotice = () => {
     setValidationError({ reason: null, message: null })
@@ -135,6 +153,7 @@ export function NotesView({
   }
 
   const saveNote = async () => {
+    if (savingRef.current) return
     setValidationError({ reason: null, message: null })
     clearSaveFeedback()
     clearRowFeedback()
@@ -150,27 +169,36 @@ export function NotesView({
 
     const isEdit = Boolean(editingNoteId && editingNoteId !== 'new')
     const fields = validated.fields
+    const revision = editorRevisionRef.current
+    const expectedGeneration = editorGenerationRef.current
+    setSaveRevision(revision)
 
-    await runSave(async () => {
-      if (isEdit && editingNoteId) {
-        await updateNote(editingNoteId, fields, {
-          expectedGeneration: editorGenerationRef.current,
+    savingRef.current = true
+    try {
+      await runSave(async () => {
+        if (isEdit && editingNoteId) {
+          await updateNote(editingNoteId, fields, {
+            expectedGeneration,
+          })
+          return
+        }
+
+        await createNote(fields, {
+          expectedGeneration,
         })
-        return
-      }
-
-      await createNote(fields, {
-        expectedGeneration: editorGenerationRef.current,
+      }, {
+        successMessage: isEdit ? 'Note updated.' : 'Note created.',
+        errorMessage: 'Note could not be saved. Your text is still available.',
+        onSuccess: () => {
+          if (editorRevisionRef.current !== revision) return
+          setEditingNoteId(null)
+          setDraft(emptyDraft(subjects[0]?.id ?? ''))
+          setValidationError({ reason: null, message: null })
+        },
       })
-    }, {
-      successMessage: isEdit ? 'Note updated.' : 'Note created.',
-      errorMessage: 'Note could not be saved. Your text is still available.',
-      onSuccess: () => {
-        setEditingNoteId(null)
-        setDraft(emptyDraft(subjects[0]?.id ?? ''))
-        setValidationError({ reason: null, message: null })
-      },
-    })
+    } finally {
+      savingRef.current = false
+    }
   }
 
   const deleteNote = async (note: StudyNote, context: DatabaseMutationContext) => {
@@ -180,6 +208,7 @@ export function NotesView({
     clearSaveFeedback()
     clearRowFeedback()
     setPendingDeleteId(note.id)
+    const revision = editorRevisionRef.current
 
     try {
       await runRow(async () => {
@@ -188,7 +217,8 @@ export function NotesView({
         successMessage: 'Note deleted.',
         errorMessage: 'Note could not be deleted.',
         onSuccess: () => {
-          if (editingNoteId === note.id) {
+          if (editingNoteId === note.id && editorRevisionRef.current === revision) {
+            advanceEditorRevision()
             setEditingNoteId(null)
             setDraft(emptyDraft(subjects[0]?.id ?? ''))
             setValidationError({ reason: null, message: null })
@@ -212,7 +242,7 @@ export function NotesView({
           <TextInput
             label="Note title"
             value={draft.title}
-            onChange={(title) => setDraft({ ...draft, title })}
+            onChange={(title) => changeDraft({ title })}
             inputRef={titleInputRef}
             invalid={noteTitleInvalid}
             describedBy={noteTitleInvalid ? noteTitleErrorId : undefined}
@@ -222,11 +252,11 @@ export function NotesView({
               {validationError.message}
             </p>
           ) : null}
-          <SubjectSelect subjects={subjects} value={draft.subjectId} onChange={(subjectId) => setDraft({ ...draft, subjectId })} />
-          <TextInput label="Tags" value={draft.tags} onChange={(tags) => setDraft({ ...draft, tags })} />
+          <SubjectSelect subjects={subjects} value={draft.subjectId} onChange={(subjectId) => changeDraft({ subjectId })} />
+          <TextInput label="Tags" value={draft.tags} onChange={(tags) => changeDraft({ tags })} />
           <label className="field field-full">
             <span>Body</span>
-            <textarea value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} rows={6} disabled={isSaving} />
+            <textarea value={draft.body} onChange={(event) => changeDraft({ body: event.target.value })} rows={6} disabled={isSaving} />
           </label>
           <EditorActions
             onSave={() => void saveNote()}

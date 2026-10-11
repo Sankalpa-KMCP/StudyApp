@@ -159,7 +159,7 @@ test('mobile workspace axe smoke without suppressions', async ({ page }, testInf
   await page.goto('/')
   await navigateWorkspace(page, 'Tasks')
   await page.getByRole('button', { name: 'New task' }).click()
-  await expectNoAxeViolations(page, testInfo)
+  await expectNoAxeViolations(page, testInfo, 'workspace')
 })
 
 test('compact density keeps the mobile hero rhythm at 390px and the dense hero at desktop width', async ({ page }) => {

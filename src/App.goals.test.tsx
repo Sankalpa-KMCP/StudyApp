@@ -1,3 +1,4 @@
+import Dexie from 'dexie'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -332,12 +333,12 @@ describe('App goals', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     await studyDb.settings.put({ key: 'dailyGoalMinutes', value: 120 })
     const originalPut = studyDb.settings.put.bind(studyDb.settings)
-    vi.spyOn(studyDb.settings, 'put').mockImplementation(async (entry) => {
+    vi.spyOn(studyDb.settings, 'put').mockImplementation((entry) => Dexie.Promise.resolve((async () => {
       if (entry.key === 'dailyGoalMinutes' && entry.value === 90) {
         throw new Error('settings write failed')
       }
       return originalPut(entry)
-    })
+    })()))
 
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Goals' }))
