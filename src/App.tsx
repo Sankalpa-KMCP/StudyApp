@@ -412,7 +412,8 @@ function App() {
       >
         <a className="skip-link" href="#dashboard-main">Skip to dashboard</a>
         {isMobileNav ? (
-          <MobileNavigation activeView={activeView} onNavigate={navigateToView} />
+          // WebKit can retain inherited label colors across theme changes.
+          <MobileNavigation key={theme} activeView={activeView} onNavigate={navigateToView} />
         ) : (
           <Sidebar
             activeView={activeView}
