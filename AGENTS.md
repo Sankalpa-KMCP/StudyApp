@@ -225,7 +225,7 @@ npm run check:bundle
 npm run test:e2e
 ```
 
-CI (`.github/workflows/ci.yml`): lint → unit tests with coverage (`npm run test:coverage`) → build → bundle check → dist path verification → Playwright E2E. Pushes to `master` and `V2` run the `check` job. Only a successful push or `workflow_dispatch` on `master` may upload `github-pages-dist` and deploy GitHub Pages. `V2` is validation-only and non-deploying. Pull requests run checks and never deploy. There is no separate deploy-only workflow.
+CI (`.github/workflows/ci.yml`): lint → unit tests with coverage (`npm run test:coverage`) → build → bundle check → dist path verification → Playwright E2E. Pushes to `master` run the `check` job. Only a successful push or `workflow_dispatch` on `master` may upload `github-pages-dist` and deploy GitHub Pages. Pull requests run checks and never deploy. There is no separate deploy-only workflow.
 
 ## Human-oriented docs
 

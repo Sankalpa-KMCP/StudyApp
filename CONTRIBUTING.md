@@ -67,7 +67,7 @@ App integration tests under `src/` cover user journeys and subsystem interaction
 
 Shared App suite reset lives in `src/test/appTestSetup.ts` (plus small focus/backup/home helpers). Prefer the matching feature, query-isolation, or error suite when adding App-level coverage.
 
-Coverage (`vitest.config.ts`) instruments all production `src/**/*.{ts,tsx}` files and excludes tests, `src/test/**`, and `*.d.ts`. Thresholds stay at 80% lines/functions/statements and 70% branches. Do not lower those thresholds to green a change. CI enforces this gate with `npm run test:coverage` (not a separate plain `npm test` step). GitHub Pages deploys only from that CI workflow after `check` succeeds on `master` (`push` or `workflow_dispatch`). `V2` continues to run CI checks but does not deploy. The hosted Pages site is currently a preview/testing deployment. Pull requests never deploy.
+Coverage (`vitest.config.ts`) instruments all production `src/**/*.{ts,tsx}` files and excludes tests, `src/test/**`, and `*.d.ts`. Thresholds stay at 80% lines/functions/statements and 70% branches. Do not lower those thresholds to green a change. CI enforces this gate with `npm run test:coverage` (not a separate plain `npm test` step). GitHub Pages deploys only from that CI workflow after `check` succeeds on `master` (`push` or `workflow_dispatch`). The hosted Pages site is currently a preview/testing deployment. Pull requests never deploy.
 
 ## Data Safety
 

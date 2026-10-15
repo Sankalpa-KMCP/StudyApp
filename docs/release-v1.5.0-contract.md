@@ -65,7 +65,7 @@ The following browser targets define the support scope for the v1.5.0 release:
 
 ## Governance & Release Tracking
 
-- **Deployment Scope:** GitHub Pages is the sole current deployment target and acts only as a preview/testing environment. Only `master` may deploy to GitHub Pages. `V2` builds and tests but does not deploy. No Netlify site, staging environment, token, or secondary hosting provider is required or planned.
+- **Deployment Scope:** GitHub Pages is the sole current deployment target and acts only as a preview/testing environment. Only `master` may deploy to GitHub Pages. No Netlify site, staging environment, token, or secondary hosting provider is required or planned.
 - **Deferred Requirements:** The requirement for separate staging and production paths is deferred, not satisfied. If public-release work resumes, deployment architecture and release gates must be reconsidered before production designation. Phase 0 must not be declared complete based solely on the GitHub Pages preview.
 - **Parent Tracking Issue:** Creation of the `Public Release v1.5.0` tracking issue is deferred until the owner resumes the public-release process.
 - **Validation Status:** Browser certification and public-release validation remain incomplete. GitHub Pages preview availability does not constitute General Availability or Public Beta release completion.
