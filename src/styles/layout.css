@@ -487,13 +487,14 @@
   --entry-play-state: paused;
 }
 
-/* Focused controls remain immediately usable, including during preparation. */
-.app-shell:has(.content-grid.is-entry-playing) :is(.brand-row, .sidebar nav, .sidebar-footer, .topbar-actions, .mobile-navigation > *):focus-within {
+/* Settle keyboard focus immediately. Pointer focus must not move a control
+   between pointerdown and pointerup by cancelling its entrance transform. */
+.app-shell:has(.content-grid.is-entry-playing) :is(.brand-row, .sidebar nav, .sidebar-footer, .topbar-actions, .mobile-navigation > *):has(:focus-visible) {
   animation: none;
 }
 
-.content-grid.is-entry-playing .primary-column > :focus-within,
-.content-grid.is-entry-playing .workspace-panel > :focus-within,
-.content-grid.is-entry-playing .right-column > :focus-within {
+.content-grid.is-entry-playing .primary-column > :has(:focus-visible),
+.content-grid.is-entry-playing .workspace-panel > :has(:focus-visible),
+.content-grid.is-entry-playing .right-column > :has(:focus-visible) {
   animation: none;
 }
