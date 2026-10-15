@@ -57,6 +57,10 @@ def save_state(state_dir, state):
     with open(state_file, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
 
+# Reversible safety interlock (PROMPT #032)
+# Set to True only with explicit operator authorization to re-enable legacy execution.
+LEGACY_EXECUTION_ENABLED: bool = False
+
 def run_cmd(cmd, cwd=REPO_ROOT, timeout=600):
     """Run a shell command and return stdout."""
     res = subprocess.run(
@@ -74,6 +78,11 @@ def run_cmd(cmd, cwd=REPO_ROOT, timeout=600):
 
 def run_hermes(query, model=None, toolsets=None, timeout=600):
     """Invoke Hermes non-interactively via hermes chat -q."""
+    if not LEGACY_EXECUTION_ENABLED:
+        raise RuntimeError(
+            "Legacy execution via 'orchestrator/runner.py' is disabled for safety. "
+            "Use certified supervised execution: 'python run_orchestrator.py supervised'."
+        )
     cmd_parts = ["hermes", "chat", "-q", query, "-Q", "--yolo"]
     if model:
         cmd_parts.extend(["-m", model])
@@ -299,6 +308,23 @@ If all work is finished, include 'PROJECT_COMPLETED: True'.
     return state["last_disposition"] != "BLOCKED" and not state.get("completed", False)
 
 def main():
+    if not LEGACY_EXECUTION_ENABLED:
+        print(
+            "[SECURITY ERROR] Direct execution via 'orchestrator/runner.py' is disabled for safety.\n"
+            "This legacy entrypoint bypasses Architecture B container isolation and can perform unmediated\n"
+            "host-local execution and unintended Git mutations.\n\n"
+            "Please use the certified supervised CLI instead:\n"
+            "    python run_orchestrator.py supervised --objective ... --allowed-paths ...\n",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    print(
+        "[WARNING] 'orchestrator/runner.py' is a legacy entrypoint that lacks V8.1 "
+        "evidence-gated verification and lifecycle locking. Prefer 'run_orchestrator.py' "
+        "(or 'python -m orchestrator').",
+        file=sys.stderr,
+    )
     parser = argparse.ArgumentParser(description="Hermes Dual-Agent Orchestrator V8.1")
     parser.add_argument("--init", type=str, help="Initialize project with master goal")
     parser.add_argument("--step", action="store_true", help="Run a single controller-executor cycle")

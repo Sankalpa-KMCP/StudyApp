@@ -1,8 +1,15 @@
 import os
+import sys
+from pathlib import Path
+
+# Ensure repository root is on sys.path for test discovery across all runners
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 import shutil
 import tempfile
 import unittest
-from pathlib import Path
 from orchestrator.schema import (
     ControllerDisposition,
     EvidenceLabel,
@@ -109,6 +116,13 @@ Thinking through the prompt...
 ACTUAL_RESULT_TEXT"""
         clean = client.strip_decorations(dirty)
         self.assertEqual(clean, "ACTUAL_RESULT_TEXT")
+
+    def test_strip_unclosed_reasoning_box(self):
+        client = HermesClient()
+        dirty = """┌─ Reasoning ────────────────────────────────────────────────────────┐
+Thinking through the prompt without closing..."""
+        clean = client.strip_decorations(dirty)
+        self.assertEqual(clean, "")
 
 if __name__ == "__main__":
     unittest.main()

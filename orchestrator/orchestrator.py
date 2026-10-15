@@ -25,6 +25,7 @@ if __name__ == "__main__":
         "--step": ["step"],
         "--loop": ["run"],
         "--run": ["run"],
+        "--supervised": ["supervised"],
         "--reset-breaker": ["reset-breaker"],
     }
 
