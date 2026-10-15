@@ -54,11 +54,18 @@ Thumbs.db
 # Local agent tooling (rules/workflows) and local archives
 .agents/
 .gemini/
+/.hermes/
+/.zcode/
 /study_app.zip
 
 # Orchestrator local state and logs
 /.orchestrator/
 /.orchestrator_logs/
+/.orchestrator_sync_tx/
 /.orchestrator_state.json
 /ORCHESTRATOR_HANDOFF.md
+
+# Python bytecode caches
+__pycache__/
+*.py[cod]
 
