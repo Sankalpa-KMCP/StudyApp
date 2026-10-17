@@ -19,7 +19,7 @@ export async function observeEntrance(page: Page, theme?: string, workspace = fa
       ? ['siteBrandSettle', 'siteNavigationSettle', 'workspaceHeadingSettle', 'workspaceGroupSettle']
       : ['heroContentSettle'])
     const tracked = new Map<Animation, { element: Element; evidence: Motion }>()
-    let observing = false
+    let frameScheduled = false
     const sample = (animation: Animation, element: Element): Sample => {
       const style = getComputedStyle(element)
       return { opacity: Number(style.opacity), transform: style.transform, top: (element as HTMLElement).offsetTop, time: typeof animation.currentTime === 'number' ? animation.currentTime : null }
@@ -27,12 +27,12 @@ export async function observeEntrance(page: Page, theme?: string, workspace = fa
     const frame = () => {
       for (const [animation, { element, evidence }] of tracked) evidence.samples.push(sample(animation, element))
       if (document.querySelector('.is-entry-playing')) requestAnimationFrame(frame)
+      else frameScheduled = false
     }
     const observer = new MutationObserver(() => {
-      if (observing) return
+      if (tracked.size >= names.size) return
       const root = document.querySelector('.content-grid.is-entry-playing')?.closest('.app-shell')
       if (!root) return
-      observing = true
       for (const animation of root.getAnimations({ subtree: true })) {
         const name = (animation as CSSAnimation).animationName
         const element = (animation.effect as KeyframeEffect | null)?.target
@@ -43,7 +43,10 @@ export async function observeEntrance(page: Page, theme?: string, workspace = fa
         motion.push(evidence)
         tracked.set(animation, { element, evidence })
       }
-      requestAnimationFrame(frame)
+      if (tracked.size > 0 && !frameScheduled) {
+        frameScheduled = true
+        requestAnimationFrame(frame)
+      }
     })
     observer.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] })
     for (const kind of ['animationend', 'animationcancel'] as const) document.addEventListener(kind, event => {
