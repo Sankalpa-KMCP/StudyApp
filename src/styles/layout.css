@@ -490,6 +490,11 @@
 
 /* One ready-document entrance. Animate surfaces, never shell geometry or
    the sticky/fixed containers that own popover positioning. */
+.content-grid.is-entry-playing {
+  /* Defer expensive glass filtering until native entrance playback settles. */
+  --entry-backdrop-filter: none;
+}
+
 @keyframes siteBrandSettle {
   from { opacity: 0.45; transform: translateY(-6px) scale(0.985); }
   to { opacity: 1; transform: none; }

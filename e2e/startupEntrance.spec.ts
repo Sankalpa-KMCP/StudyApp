@@ -172,6 +172,46 @@ test('entrance keeps the dashboard outside an animated opacity group', async ({ 
   expect(styles).toEqual({ dashboardAnimation: 'none', dashboardOpacity: '1', heroAnimation: 'heroContentSettle', summaryAnimation: 'none', cardAnimation: 'workspaceGroupSettle' })
 })
 
+test('glass backdrop blur is deferred during entrance and restored after settlement', async ({ page }) => {
+  await page.goto('./')
+  const results = await page.evaluate(() => {
+    const previousTheme = document.documentElement.dataset.theme
+    const probe = document.createElement('div')
+    probe.className = 'content-grid'
+    probe.inert = true
+    probe.setAttribute('aria-hidden', 'true')
+    probe.style.cssText = 'position:fixed;left:-10000px;top:0;width:300px'
+    const card = document.createElement('article')
+    card.className = 'card'
+    probe.append(card)
+    document.body.append(probe)
+    const backdrop = () => {
+      const style = getComputedStyle(card)
+      return style.getPropertyValue('backdrop-filter') || style.getPropertyValue('-webkit-backdrop-filter')
+    }
+    try {
+      return ['crystal-glass', 'wisteria', 'celestial', 'velvet-dusk', 'abyss'].map(theme => {
+        document.documentElement.dataset.theme = theme
+        probe.className = 'content-grid is-entry-playing is-entry-preparing'
+        const preparing = backdrop()
+        probe.className = 'content-grid is-entry-playing'
+        const playing = backdrop()
+        probe.className = 'content-grid'
+        return { theme, preparing, playing, settled: backdrop() }
+      })
+    } finally {
+      probe.remove()
+      if (previousTheme === undefined) delete document.documentElement.dataset.theme
+      else document.documentElement.dataset.theme = previousTheme
+    }
+  })
+  for (const result of results) {
+    expect(result.preparing, result.theme).toBe('none')
+    expect(result.playing, result.theme).toBe('none')
+    expect(result.settled, result.theme).toContain('blur(16px)')
+  }
+})
+
 test('navigation during startup cancels motion without replaying it on immediate Home return', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.goto('./')
