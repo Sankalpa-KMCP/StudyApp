@@ -18,7 +18,13 @@ test.beforeEach(async ({ page }) => {
     else state.errors.push(`HTTP ${response.status()}: ${response.url()}`)
   })
 })
-test.afterEach(async ({ page }) => {
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status !== testInfo.expectedStatus && !page.isClosed()) {
+    await testInfo.attach('entrance-diagnostics', {
+      body: JSON.stringify(await page.evaluate(() => ({ motion: window.siteMotion, timeline: window.siteMotionTimeline, classes: document.querySelector('.content-grid')?.className }))),
+      contentType: 'application/json',
+    })
+  }
   const state = runtimeErrors.get(page)!
   expect(state.errors.filter(error => !(state.expected404 && /^console: .*Failed to load resource:.*404/.test(error)))).toEqual([])
 })
