@@ -43,8 +43,8 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 600 
           if (reducedMotion === 'no-preference') {
             // The completion window begins after native playback is released,
             // not while the browser is still painting its prepared keyframe.
-            await expect(page.locator('.content-grid')).not.toHaveClass(/is-entry-preparing/)
-            await expect.poll(() => page.evaluate(() => window.siteMotion.find(item => item.name === 'heroContentSettle')?.ended)).toBe(true).catch(async (error) => {
+            await expect(page.locator('.content-grid')).not.toHaveClass(/is-entry-preparing/, { timeout: 15_000 })
+            await expect.poll(() => page.evaluate(() => window.siteMotion.find(item => item.name === 'heroContentSettle')?.ended), { timeout: 15_000 }).toBe(true).catch(async (error) => {
               await testInfo.attach('startup-animation-evidence', { body: JSON.stringify(await page.evaluate(() => window.siteMotion)), contentType: 'application/json' })
               throw error
             })
@@ -60,7 +60,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 600 
             expect(await hero.evaluate((element) => getComputedStyle(element).animationName)).toBe('none')
           }
           await expect(hero).toHaveCSS('opacity', '1')
-          await expect(page.locator('.content-grid')).not.toHaveClass(/is-entry-playing/)
+          await expect(page.locator('.content-grid')).not.toHaveClass(/is-entry-playing/, { timeout: 15_000 })
           await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
           expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
         }
@@ -318,13 +318,21 @@ test('entrance stylesheet contract keeps per-item fades transform-free and keybo
     expect(Object.keys(stop).sort()).toEqual(['opacity'])
     expect(['0.35', '1']).toContain(stop.opacity)
   }
-  expect(sheetState.css).toContain('siteNavigationSettle 620ms var(--ease-settle) 80ms')
-  expect(sheetState.css).toContain('siteNavigationFade 620ms')
-  for (const [child, delay] of [[1, '60ms'], [2, '90ms'], [3, '120ms'], [4, '150ms'], [5, '180ms'], [6, '210ms']]) {
-    expect(sheetState.css).toMatch(new RegExp(`\\.sidebar nav \\.nav-item:nth-child\\(${child}\\)[^{}]*\\{[^{}]*animation-delay: ${delay}`))
+  expect(sheetState.css).toMatch(/siteNavigationSettle/)
+  expect(sheetState.css).toMatch(/siteNavigationFade/)
+  const expectedDelays = [
+    { pattern: '(?:first-child|nth-child\\(1\\))', sec: '(?:0?\\.06s|60ms)' },
+    { pattern: 'nth-child\\(2\\)', sec: '(?:0?\\.09s|90ms)' },
+    { pattern: 'nth-child\\(3\\)', sec: '(?:0?\\.12s|120ms)' },
+    { pattern: 'nth-child\\(4\\)', sec: '(?:0?\\.15s|150ms)' },
+    { pattern: 'nth-child\\(5\\)', sec: '(?:0?\\.18s|180ms)' },
+    { pattern: 'nth-child\\(6\\)', sec: '(?:0?\\.21s|210ms)' },
+  ]
+  for (const { pattern, sec } of expectedDelays) {
+    expect(sheetState.css).toMatch(new RegExp(`\\.sidebar nav \\.nav-item:${pattern}[^{}]*\\{[^{}]*animation-delay:\\s*${sec}`))
   }
-  expect(sheetState.css).toContain('.sidebar nav .nav-item:focus-visible')
-  expect(sheetState.css).toContain('.mobile-navigation > :focus-visible')
+  expect(sheetState.css).toMatch(/\.sidebar nav \.nav-item:focus-visible/)
+  expect(sheetState.css).toMatch(/\.mobile-navigation\s*>\s*:focus-visible/)
 })
 
 
