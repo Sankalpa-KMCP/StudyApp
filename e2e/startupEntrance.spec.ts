@@ -147,15 +147,29 @@ test('entrance keeps the dashboard outside an animated opacity group', async ({ 
     content.className = 'content-grid is-entry-playing'
     const hero = document.createElement('section')
     hero.className = 'hero-row'
-    content.append(hero)
+    const primary = document.createElement('section')
+    primary.className = 'primary-column'
+    const summary = document.createElement('div')
+    summary.className = 'summary-grid'
+    const card = document.createElement('article')
+    card.className = 'card'
+    summary.append(card)
+    primary.append(hero, summary)
+    content.append(primary)
     dashboard.append(content)
     probe.append(dashboard)
     document.body.append(probe)
     try {
-      return { dashboardAnimation: getComputedStyle(dashboard).animationName, dashboardOpacity: getComputedStyle(dashboard).opacity, heroAnimation: getComputedStyle(hero).animationName }
+      return {
+        dashboardAnimation: getComputedStyle(dashboard).animationName,
+        dashboardOpacity: getComputedStyle(dashboard).opacity,
+        heroAnimation: getComputedStyle(hero).animationName,
+        summaryAnimation: getComputedStyle(summary).animationName,
+        cardAnimation: getComputedStyle(card).animationName,
+      }
     } finally { probe.remove() }
   })
-  expect(styles).toEqual({ dashboardAnimation: 'none', dashboardOpacity: '1', heroAnimation: 'heroContentSettle' })
+  expect(styles).toEqual({ dashboardAnimation: 'none', dashboardOpacity: '1', heroAnimation: 'heroContentSettle', summaryAnimation: 'none', cardAnimation: 'workspaceGroupSettle' })
 })
 
 test('navigation during startup cancels motion without replaying it on immediate Home return', async ({ page }) => {
