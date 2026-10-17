@@ -42,6 +42,12 @@ export async function observeEntrance(page: Page, theme?: string, workspace = fa
         const evidence: Motion = { name, delay: Number(timing.delay), duration: Number(timing.duration), samples: [sample(animation, element)], ended: false, cancelled: false }
         motion.push(evidence)
         tracked.set(animation, { element, evidence })
+        void animation.finished.then(() => {
+          evidence.ended = true
+          evidence.samples.push(sample(animation, element))
+        }).catch(() => {
+          evidence.cancelled = true
+        })
       }
       if (tracked.size > 0 && !frameScheduled) {
         frameScheduled = true
