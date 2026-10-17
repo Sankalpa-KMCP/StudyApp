@@ -3,7 +3,8 @@ import type { View } from '../navigation/viewRoutes'
 
 const ENTRANCE_ANIMATIONS = new Set([
   'siteBrandSettle', 'siteNavigationSettle', 'heroLineSettle',
-  'heroContentSettle', 'workspaceGroupSettle', 'workspaceHeadingSettle',
+  'heroContentSettle', 'heroElementSettle', 'siteNavigationFade',
+  'workspaceGroupSettle', 'workspaceHeadingSettle',
 ])
 
 /** One decorative sequence per ready document, independent of saved preferences. */
@@ -45,10 +46,10 @@ export function useSiteEntrance(isLoading: boolean, view: View) {
         frame = window.requestAnimationFrame(finish)
       })
     }
-    const beganAt = performance.now()
     let times = animations?.map(animation => animation.currentTime)
     let timer: number
-    const recover = () => {
+    let recoveryFrame = 0
+    const checkProgressAfterPaint = () => {
       if (cancelled) return
       const nextTimes = animations?.map(animation => animation.currentTime)
       const progressing = animations?.some((animation, index) =>
@@ -56,18 +57,28 @@ export function useSiteEntrance(isLoading: boolean, view: View) {
         && nextTimes[index] !== times?.[index],
       )
       times = nextTimes
-      // Browser animation timelines can advance more slowly than wall time.
-      // Allow progress, but bound stalled/missing signals and pathological runs.
-      if ((progressing || animations?.some(animation => animation.pending)) && performance.now() - beganAt < 10_000) {
-        timer = window.setTimeout(recover, Math.min(1600, 10_000 - (performance.now() - beganAt)))
+      if (progressing || animations?.some(animation => animation.pending)) {
+        timer = window.setTimeout(recover, 1600)
       } else finish()
     }
+    const recover = () => {
+      if (cancelled) return
+      // A wall-clock timer can run before WebKit refreshes its animation
+      // timeline. Give native playback a paint before declaring it stalled.
+      recoveryFrame = window.requestAnimationFrame(() => {
+        recoveryFrame = window.requestAnimationFrame(checkProgressAfterPaint)
+      })
+    }
     timer = window.setTimeout(recover, 1600)
+    // Keep recovery bounded even when the browser stops delivering frames.
+    const deadline = window.setTimeout(finish, 10_000)
     if (animations) void Promise.all(animations.map(animation => animation.finished.catch(() => undefined))).then(settleAfterPaint)
     return () => {
       cancelled = true
       window.clearTimeout(timer)
+      window.clearTimeout(deadline)
       window.cancelAnimationFrame(frame)
+      window.cancelAnimationFrame(recoveryFrame)
     }
   }, [playing, preparing])
 

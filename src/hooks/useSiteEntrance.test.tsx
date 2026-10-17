@@ -52,6 +52,53 @@ describe('ready-document entrance lifecycle', () => {
     expect(playing()).toBe('false')
   })
 
+  it('gives a stale wall-clock sample a paint before deciding that playback stalled', async () => {
+    render(<Harness />)
+    act(() => vi.advanceTimersByTime(40))
+    // A timer can run before WebKit updates its native animation timeline.
+    act(() => vi.advanceTimersByTime(1600))
+    expect(playing()).toBe('true')
+    animation.currentTime = 840
+    act(() => vi.advanceTimersByTime(40))
+    expect(playing()).toBe('true')
+    await act(async () => finish())
+    act(() => vi.advanceTimersByTime(40))
+    expect(playing()).toBe('false')
+  })
+
+  it('bounds recovery even when the browser stops delivering animation frames', () => {
+    render(<Harness />)
+    act(() => vi.advanceTimersByTime(40))
+    const requestFrame = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(0)
+    try {
+      act(() => vi.advanceTimersByTime(10_000))
+      expect(playing()).toBe('false')
+    } finally { requestFrame.mockRestore() }
+  })
+
+  it('cancels a queued recovery paint and its deadline on unmount', () => {
+    const { unmount } = render(<Harness />)
+    act(() => vi.advanceTimersByTime(40))
+    act(() => vi.advanceTimersByTime(1600))
+    unmount()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it.each(['heroElementSettle', 'siteNavigationFade'])('waits for the remaining %s animation', async (name) => {
+    const hero = nextAnimation()
+    const finishHero = finish
+    const child = { ...nextAnimation(), animationName: name }
+    vi.mocked(Element.prototype.getAnimations).mockReturnValue([hero, child] as unknown as Animation[])
+    render(<Harness />)
+    act(() => vi.advanceTimersByTime(40))
+    await act(async () => finishHero())
+    act(() => vi.advanceTimersByTime(40))
+    expect(playing()).toBe('true')
+    await act(async () => finish())
+    act(() => vi.advanceTimersByTime(40))
+    expect(playing()).toBe('false')
+  })
+
   it('waits for readiness, settles, and does not replay on rerenders or navigation', async () => {
     const { rerender } = render(<Harness loading />)
     expect(playing()).toBe('false')
@@ -94,7 +141,7 @@ describe('ready-document entrance lifecycle', () => {
     first.unmount()
     render(<Harness />)
     act(() => vi.advanceTimersByTime(40))
-    act(() => vi.advanceTimersByTime(1600))
+    act(() => vi.advanceTimersByTime(1640))
     expect(playing()).toBe('false')
   })
 
@@ -109,9 +156,9 @@ describe('ready-document entrance lifecycle', () => {
     render(<Harness />)
     act(() => vi.advanceTimersByTime(40))
     animation.currentTime = 400
-    act(() => vi.advanceTimersByTime(1600))
+    act(() => vi.advanceTimersByTime(1640))
     expect(playing()).toBe('true')
-    act(() => vi.advanceTimersByTime(1600))
+    act(() => vi.advanceTimersByTime(1640))
     expect(playing()).toBe('false')
   })
 
