@@ -130,6 +130,34 @@ test('isolated keyframe probe preserves the entrance easing without manipulating
   await expect(page.locator('.hero-row')).toHaveCSS('opacity', '1')
 })
 
+test('entrance keeps the dashboard outside an animated opacity group', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.goto('./')
+  const styles = await page.evaluate(() => {
+    // An independent probe checks the compositing boundary without changing
+    // native playback. Fading this ancestor groups every glass card's blur.
+    const probe = document.createElement('div')
+    probe.className = 'app-shell'
+    probe.inert = true
+    probe.setAttribute('aria-hidden', 'true')
+    probe.style.cssText = 'position:fixed;left:-10000px;top:0;width:300px'
+    const dashboard = document.createElement('main')
+    dashboard.className = 'dashboard'
+    const content = document.createElement('div')
+    content.className = 'content-grid is-entry-playing'
+    const hero = document.createElement('section')
+    hero.className = 'hero-row'
+    content.append(hero)
+    dashboard.append(content)
+    probe.append(dashboard)
+    document.body.append(probe)
+    try {
+      return { dashboardAnimation: getComputedStyle(dashboard).animationName, dashboardOpacity: getComputedStyle(dashboard).opacity, heroAnimation: getComputedStyle(hero).animationName }
+    } finally { probe.remove() }
+  })
+  expect(styles).toEqual({ dashboardAnimation: 'none', dashboardOpacity: '1', heroAnimation: 'heroContentSettle' })
+})
+
 test('navigation during startup cancels motion without replaying it on immediate Home return', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.goto('./')

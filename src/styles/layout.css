@@ -505,15 +505,8 @@
   to { opacity: 1; }
 }
 
-@keyframes siteBackdropSettle {
-  from { opacity: 0.82; }
-  to { opacity: 1; }
-}
-
-.app-shell:has(.content-grid.is-entry-playing) .dashboard {
-  animation: siteBackdropSettle 800ms var(--ease-settle) both var(--entry-play-state, running);
-}
-
+/* Keep the dashboard out of an opacity group: compositing every glass card's
+   backdrop blur together can starve WebKit's native entrance timeline. */
 .app-shell:has(.content-grid.is-entry-playing) :is(.brand-row, .topbar-title, .topbar-actions) {
   animation: siteBrandSettle 620ms var(--ease-settle) both var(--entry-play-state, running);
 }

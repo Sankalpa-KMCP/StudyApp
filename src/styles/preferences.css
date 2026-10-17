@@ -40,7 +40,6 @@
   .content-grid.is-entry-playing .summary-grid > *,
   .content-grid.is-entry-playing .primary-column > :not(.hero-row):not(.settings-feedback),
   .content-grid.is-entry-playing .right-column > *,
-  .app-shell:has(.content-grid.is-entry-playing) .dashboard,
   .app-shell:has(.content-grid.is-entry-playing) :is(.brand-row, .topbar-title, .sidebar nav, .sidebar nav .nav-item, .sidebar-footer, .topbar-actions, .mobile-navigation > *),
   .content-grid.is-workspace-view.is-entry-playing .workspace-heading,
   .content-grid.is-workspace-view.is-entry-playing .workspace-panel > :not(.workspace-heading):not(.settings-feedback) {
