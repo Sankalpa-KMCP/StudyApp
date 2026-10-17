@@ -831,6 +831,16 @@
   transition: color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
 }
 
+.quick-add-trigger-label {
+  /* Resolve theme colors on the text itself so WebKit refreshes on theme changes. */
+  color: var(--muted);
+}
+
+.quick-add-trigger:hover .quick-add-trigger-label,
+.quick-add-trigger.is-active .quick-add-trigger-label {
+  color: var(--ink);
+}
+
 .quick-add-trigger:active:not(:disabled) {
   transform: scale(0.97);
 }
