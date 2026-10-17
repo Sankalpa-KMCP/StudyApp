@@ -42,11 +42,11 @@
 @keyframes workspaceHeadingSettle {
   from {
     opacity: 0.15;
-    transform: translateY(18px) scale(0.99);
+    transform: translateY(18px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 

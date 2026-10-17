@@ -496,7 +496,7 @@
 }
 
 @keyframes siteNavigationSettle {
-  from { opacity: 0.35; transform: translateY(8px) scale(0.99); }
+  from { opacity: 0.5; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
 

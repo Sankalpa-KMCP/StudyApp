@@ -343,4 +343,5 @@
 
 .backup-review-file {
   overflow-wrap: anywhere;
+  color: var(--ink);
 }
