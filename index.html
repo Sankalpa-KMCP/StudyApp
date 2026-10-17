@@ -43,9 +43,41 @@
     <meta name="theme-color" content="#111111" />
     <meta name="description" content="Local-first focus and study tracking dashboard" />
     <title>Study Dashboard</title>
+    <style>
+      #app-preloader {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #0c0d0e;
+      }
+      .preloader-spinner {
+        width: 32px;
+        height: 32px;
+        box-sizing: border-box;
+        border: 2.5px solid rgba(255, 255, 255, 0.12);
+        border-top-color: #6366f1;
+        border-radius: 50%;
+        animation: preloaderSpin 0.75s linear infinite;
+      }
+      @keyframes preloaderSpin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .preloader-spinner {
+          animation: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="app-preloader" aria-hidden="true">
+        <div class="preloader-spinner"></div>
+      </div>
+    </div>
     <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>

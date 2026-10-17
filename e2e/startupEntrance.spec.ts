@@ -38,6 +38,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 600 
 
         const assertStartup = async () => {
           await expect(page.getByRole('heading', { name: HOME_GREETING_HEADING })).toBeVisible()
+          await expect(page.locator('#app-preloader')).toHaveCount(0)
           const hero = page.locator('.hero-row')
           if (reducedMotion === 'no-preference') {
             // The completion window begins after native playback is released,
@@ -181,6 +182,150 @@ for (const route of ['tasks', 'settings']) {
     })
   }
 }
+
+type MidEntryCapture = { playing: boolean; animation: string; index: number }
+
+function midEntryCapture(indexExpression: string) {
+  return `(() => {
+    const active = document.activeElement
+    if (!(active instanceof Element)) return { playing: false, animation: '', index: -1 }
+    const index = ${indexExpression}
+    return {
+      playing: document.querySelector('.content-grid')?.classList.contains('is-entry-playing') === true,
+      animation: getComputedStyle(active).animationName,
+      index,
+    }
+  })()`
+}
+
+test('sidebar keyboard focus settles mid-entry and navigates on Enter', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium', 'Sidebar keyboard navigation is a desktop shell path')
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  let duringEntry: MidEntryCapture | null = null
+  for (let attempt = 0; attempt < 2 && duringEntry?.playing !== true; attempt++) {
+    await page.goto('./')
+    await expect(page.locator('.content-grid')).toHaveClass(/is-entry-playing/)
+    let navIndex = -1
+    for (let i = 0; i < 10 && navIndex < 0; i++) {
+      await page.keyboard.press('Tab')
+      navIndex = (await page.evaluate(midEntryCapture(
+        'Array.prototype.indexOf.call(document.querySelectorAll(\'.sidebar nav .nav-item\'), active)',
+      ))).index
+    }
+    expect(navIndex).toBeGreaterThanOrEqual(0)
+    duringEntry = await page.evaluate(midEntryCapture(
+      'Array.prototype.indexOf.call(document.querySelectorAll(\'.sidebar nav .nav-item\'), active)',
+    ))
+  }
+  // Keyboard focus must settle its own entrance immediately; a `:has()`-only
+  // cancel rule cannot match the focused element itself.
+  expect(duringEntry).toEqual({ playing: true, animation: 'none', index: 0 })
+  for (let i = 0; i < 6 && duringEntry!.index < 1; i++) {
+    await page.keyboard.press('Tab')
+    duringEntry = await page.evaluate(midEntryCapture(
+      'Array.prototype.indexOf.call(document.querySelectorAll(\'.sidebar nav .nav-item\'), active)',
+    ))
+  }
+  expect(duringEntry!.index).toBe(1)
+  await expect(page.locator('.sidebar nav .nav-item').nth(1)).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(/\/tasks$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Tasks', exact: true })).toBeVisible()
+})
+
+test('early pointer navigation during entry playback reaches the sidebar target', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium', 'Sidebar pointer targeting is a desktop shell path')
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.goto('./')
+  await expect(page.locator('.content-grid')).toHaveClass(/is-entry-playing/)
+  const target = page.locator('.sidebar nav .nav-item').nth(1)
+  const box = await target.boundingBox()
+  expect(box).toBeTruthy()
+  // Per-item entrances are transform-free: the hit target between pointerdown
+  // and pointerup must not move even during the staggered fade window.
+  await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2)
+  await expect(page).toHaveURL(/\/tasks$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Tasks', exact: true })).toBeVisible()
+})
+
+test('mobile keyboard focus settles mid-entry and navigates on Enter', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.setViewportSize({ width: 390, height: 600 })
+  let duringEntry: MidEntryCapture | null = null
+  for (let attempt = 0; attempt < 2 && duringEntry?.playing !== true; attempt++) {
+    await page.goto('./')
+    await expect(page.locator('.content-grid')).toHaveClass(/is-entry-playing/)
+    let mobileIndex = -1
+    for (let i = 0; i < 10 && mobileIndex < 0; i++) {
+      await page.keyboard.press('Tab')
+      mobileIndex = (await page.evaluate(midEntryCapture(
+        'Array.prototype.indexOf.call(document.querySelector(\'.mobile-navigation\')?.children ?? [], active)',
+      ))).index
+    }
+    expect(mobileIndex).toBeGreaterThanOrEqual(0)
+    duringEntry = await page.evaluate(midEntryCapture(
+      'Array.prototype.indexOf.call(document.querySelector(\'.mobile-navigation\')?.children ?? [], active)',
+    ))
+  }
+  expect(duringEntry).toEqual({ playing: true, animation: 'none', index: 0 })
+  for (let i = 0; i < 6 && duringEntry!.index < 2; i++) {
+    await page.keyboard.press('Tab')
+    duringEntry = await page.evaluate(midEntryCapture(
+      'Array.prototype.indexOf.call(document.querySelector(\'.mobile-navigation\')?.children ?? [], active)',
+    ))
+  }
+  expect(duringEntry!.index).toBe(2)
+  await expect(page.locator('.mobile-navigation > *').nth(2)).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(/\/notes$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Notes', exact: true })).toBeVisible()
+})
+
+test('entrance stylesheet contract keeps per-item fades transform-free and keyboard-cancellable', async ({ page }) => {
+  await page.goto('./')
+  const sheetState = await page.evaluate(() => {
+    const keyframes: { name: string; stops: Record<string, string>[] }[] = []
+    const texts: string[] = []
+    const walk = (rules: CSSRuleList) => {
+      for (const rule of Array.from(rules)) {
+        if (rule instanceof CSSKeyframesRule) {
+          keyframes.push({
+            name: rule.name,
+            stops: Array.from(rule.cssRules).map(stop => {
+              const style = (stop as CSSKeyframeRule).style
+              const properties: Record<string, string> = {}
+              for (let i = 0; i < style.length; i++) {
+                const property = style.item(i)
+                properties[property] = style.getPropertyValue(property)
+              }
+              return properties
+            }),
+          })
+          continue
+        }
+        if (rule instanceof CSSStyleRule) { texts.push(rule.cssText); continue }
+        if ('cssRules' in rule) { walk((rule as CSSGroupingRule).cssRules); continue }
+      }
+    }
+    for (const sheet of Array.from(document.styleSheets)) {
+      try { walk(sheet.cssRules) } catch { /* cross-origin sheet */ }
+    }
+    return { keyframes, css: texts.join('\n') }
+  })
+  const fade = sheetState.keyframes.find(item => item.name === 'siteNavigationFade')
+  expect(fade).toBeTruthy()
+  for (const stop of fade!.stops) {
+    expect(Object.keys(stop).sort()).toEqual(['opacity'])
+    expect(['0.35', '1']).toContain(stop.opacity)
+  }
+  expect(sheetState.css).toContain('siteNavigationSettle 620ms var(--ease-settle) 80ms')
+  expect(sheetState.css).toContain('siteNavigationFade 620ms')
+  for (const [child, delay] of [[1, '60ms'], [2, '90ms'], [3, '120ms'], [4, '150ms'], [5, '180ms'], [6, '210ms']]) {
+    expect(sheetState.css).toMatch(new RegExp(`\\.sidebar nav \\.nav-item:nth-child\\(${child}\\)[^{}]*\\{[^{}]*animation-delay: ${delay}`))
+  }
+  expect(sheetState.css).toContain('.sidebar nav .nav-item:focus-visible')
+  expect(sheetState.css).toContain('.mobile-navigation > :focus-visible')
+})
 
 
 test('persisted pageshow replays once; ordinary pageshow and live updates do not', async ({ page }) => {

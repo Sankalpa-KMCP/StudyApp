@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { prepareStudyBackup, type StudyBackupReview } from '../db/prepareStudyBackup'
 import { isDataOperationBusyError } from '../hooks/useStudyBackup'
-import { BookOpen, Check, Download, Layers3, RotateCcw, Upload } from '../components/icons'
+import { BookOpen, Check, CircleUserRound, Download, Layers3, RotateCcw, Upload, X } from '../components/icons'
 import { MutationNotice, PanelHeader } from '../components/ui'
 import { DashboardModeControl } from '../components/DashboardModeControl'
 import type { DataCoordinatorSnapshot } from '../db/dataCoordinator'
@@ -24,6 +24,7 @@ export function SettingsView({
   onShowOnboardingChecklist,
   importPending = false,
   profileNotice,
+  onDismissProfileNotice,
   preferenceNotice = null,
   onDismissPreferenceNotice,
   theme,
@@ -41,6 +42,7 @@ export function SettingsView({
   onShowOnboardingChecklist: () => Promise<void>
   importPending?: boolean
   profileNotice: string
+  onDismissProfileNotice?: () => void
   preferenceNotice?: string | null
   onDismissPreferenceNotice?: () => void
   theme: ThemeMode
@@ -251,7 +253,24 @@ export function SettingsView({
   return (
     <section className="workspace-panel" aria-labelledby="settings-workspace-title">
       <PanelHeader title="Settings" description="Manage appearance, backups, and local data." />
-      {profileNotice ? <p className="settings-feedback" role="status">{profileNotice}</p> : null}
+      {profileNotice ? (
+        <div className="settings-feedback info profile-notice-banner" role="status">
+          <div className="profile-notice-content">
+            <CircleUserRound size={18} aria-hidden="true" />
+            <span>{profileNotice}</span>
+          </div>
+          {onDismissProfileNotice ? (
+            <button
+              type="button"
+              className="profile-notice-dismiss"
+              aria-label="Dismiss profile notice"
+              onClick={onDismissProfileNotice}
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {coordinatorState?.statusLabel ? (
         <div className="settings-active-operation-status" aria-live="polite">
           {coordinatorState.statusLabel}
@@ -296,6 +315,18 @@ export function SettingsView({
         Download an unencrypted JSON backup containing one consistent snapshot of your subjects, tasks, notes, calendar events, study sessions, goals, and supported settings. Active focus-session data is included when present. Changes committed after the snapshot begins may not appear. Device-local appearance and sidebar preferences are excluded.
       </p>
       <div className="card-grid">
+        <div className="action-card profile-card" id="local-profile-card">
+          <CircleUserRound size={24} aria-hidden="true" />
+          <strong>Local Study Profile</strong>
+          <span>
+            Your study workspace is local-first. All subjects, notes, focus history, and goals are stored privately in your browser&apos;s IndexedDB without cloud accounts or external tracking.
+          </span>
+          <div className="profile-badges" aria-label="Profile attributes">
+            <span className="profile-badge">Storage: Offline &amp; Private</span>
+            <span className="profile-badge">Theme: {THEME_CONFIGS.find((c) => c.id === theme)?.label ?? theme}</span>
+            <span className="profile-badge">Layout: {density === 'comfortable' ? 'Comfortable' : 'Compact'}</span>
+          </div>
+        </div>
         <button
           className="action-card"
           type="button"

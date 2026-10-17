@@ -287,12 +287,38 @@
 
 .loading-panel {
   min-height: 220px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   color: var(--muted);
   background: var(--surface);
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.loading-panel::before {
+  content: '';
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  border: 2.5px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: loadingSpin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.loading-panel.live-read-error-panel::before {
+  display: none;
+}
+
+@keyframes loadingSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .live-read-error-panel {
@@ -470,8 +496,22 @@
 }
 
 @keyframes siteNavigationSettle {
-  from { opacity: 0.5; transform: translateY(8px); }
+  from { opacity: 0.35; transform: translateY(8px) scale(0.99); }
   to { opacity: 1; transform: none; }
+}
+
+@keyframes siteNavigationFade {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+@keyframes siteBackdropSettle {
+  from { opacity: 0.82; }
+  to { opacity: 1; }
+}
+
+.app-shell:has(.content-grid.is-entry-playing) .dashboard {
+  animation: siteBackdropSettle 800ms var(--ease-settle) both var(--entry-play-state, running);
 }
 
 .app-shell:has(.content-grid.is-entry-playing) :is(.brand-row, .topbar-title, .topbar-actions) {
@@ -482,14 +522,29 @@
   animation: siteNavigationSettle 620ms var(--ease-settle) 80ms both var(--entry-play-state, running);
 }
 
+/* Per-item entrances fade only: transforms would move hit targets between
+   pointerdown and pointerup during the staggered window. */
+.app-shell:has(.content-grid.is-entry-playing) .sidebar nav .nav-item {
+  animation: siteNavigationFade 620ms var(--ease-settle) both var(--entry-play-state, running);
+}
+.app-shell:has(.content-grid.is-entry-playing) .sidebar nav .nav-item:nth-child(1) { animation-delay: 60ms; }
+.app-shell:has(.content-grid.is-entry-playing) .sidebar nav .nav-item:nth-child(2) { animation-delay: 90ms; }
+.app-shell:has(.content-grid.is-entry-playing) .sidebar nav .nav-item:nth-child(3) { animation-delay: 120ms; }
+.app-shell:has(.content-grid.is-entry-playing) .sidebar nav .nav-item:nth-child(4) { animation-delay: 150ms; }
+.app-shell:has(.content-grid.is-entry-playing) .sidebar nav .nav-item:nth-child(5) { animation-delay: 180ms; }
+.app-shell:has(.content-grid.is-entry-playing) .sidebar nav .nav-item:nth-child(6) { animation-delay: 210ms; }
+
 /* Hold only entrance keyframes through the first ready paint. */
 .app-shell:has(.content-grid.is-entry-preparing) {
   --entry-play-state: paused;
 }
 
-/* Settle keyboard focus immediately. Pointer focus must not move a control
-   between pointerdown and pointerup by cancelling its entrance transform. */
-.app-shell:has(.content-grid.is-entry-playing) :is(.brand-row, .sidebar nav, .sidebar-footer, .topbar-actions, .mobile-navigation > *):has(:focus-visible) {
+/* Settle keyboard focus immediately, including the focused element itself.
+   Pointer focus must not move a control between pointerdown and pointerup by
+   cancelling its entrance transform. */
+.app-shell:has(.content-grid.is-entry-playing) :is(.brand-row, .sidebar nav, .sidebar nav .nav-item, .sidebar-footer, .topbar-actions, .mobile-navigation > *):has(:focus-visible),
+.app-shell:has(.content-grid.is-entry-playing) .sidebar nav .nav-item:focus-visible,
+.app-shell:has(.content-grid.is-entry-playing) .mobile-navigation > :focus-visible {
   animation: none;
 }
 
