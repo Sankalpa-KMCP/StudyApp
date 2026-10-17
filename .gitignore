@@ -23,6 +23,7 @@ dist-ssr
 !.env.example
 *.local
 /screenshot-*.png
+/study-dashboard-*.json
 
 # Editor / IDE
 .vscode/*
@@ -41,6 +42,7 @@ dist-ssr
 
 # OS
 Thumbs.db
+desktop.ini
 .DS_Store
 *.suo
 *.ntvs*
@@ -52,11 +54,14 @@ Thumbs.db
 /.cursor/rules/
 
 # Local agent tooling (rules/workflows) and local archives
+/.claude/
 .agents/
 .gemini/
 /.hermes/
 /.zcode/
 /study_app.zip
+*.zip
+*.tar.gz
 
 # Orchestrator local state and logs
 /.orchestrator/
