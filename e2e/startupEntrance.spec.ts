@@ -45,7 +45,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 600 
             // The completion window begins after native playback is released,
             // not while the browser is still painting its prepared keyframe.
             await expect(page.locator('.content-grid')).not.toHaveClass(/is-entry-preparing/, { timeout: 15_000 })
-            await expect.poll(() => page.evaluate(() => window.siteMotion.find(item => item.name === 'heroContentSettle')?.ended), { timeout: 15_000 }).toBe(true).catch(async (error) => {
+            await expect.poll(() => page.evaluate(() => window.siteMotion.find(item => item.name === 'heroContentSettle')?.ended), { timeout: 20_000 }).toBe(true).catch(async (error) => {
               await testInfo.attach('startup-animation-evidence', { body: JSON.stringify(await page.evaluate(() => window.siteMotion)), contentType: 'application/json' })
               throw error
             })
@@ -61,7 +61,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 600 
             expect(await hero.evaluate((element) => getComputedStyle(element).animationName)).toBe('none')
           }
           await expect(hero).toHaveCSS('opacity', '1')
-          await expect(page.locator('.content-grid')).not.toHaveClass(/is-entry-playing/, { timeout: 15_000 })
+          await expect(page.locator('.content-grid')).not.toHaveClass(/is-entry-playing/, { timeout: 20_000 })
           await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
           expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
         }

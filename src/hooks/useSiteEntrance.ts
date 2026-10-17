@@ -34,7 +34,7 @@ export function useSiteEntrance(isLoading: boolean, view: View) {
           if (!cancelled) setEntry(current => current ? { ...current, ready: true } : current)
         })
       })
-      const timer = window.setTimeout(finish, 10_000)
+      const timer = window.setTimeout(finish, 20_000)
       return () => { cancelled = true; window.cancelAnimationFrame(frame); window.clearTimeout(timer) }
     }
     // Let native end events dispatch before removing their CSS animations.
@@ -58,8 +58,8 @@ export function useSiteEntrance(isLoading: boolean, view: View) {
       times = nextTimes
       // Browser animation timelines can advance more slowly than wall time.
       // Allow progress, but bound stalled/missing signals and pathological runs.
-      if ((progressing || animations?.some(animation => animation.pending)) && performance.now() - beganAt < 10_000) {
-        timer = window.setTimeout(recover, Math.min(1600, 10_000 - (performance.now() - beganAt)))
+      if ((progressing || animations?.some(animation => animation.pending)) && performance.now() - beganAt < 20_000) {
+        timer = window.setTimeout(recover, Math.min(1600, 20_000 - (performance.now() - beganAt)))
       } else finish()
     }
     timer = window.setTimeout(recover, 1600)
