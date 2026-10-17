@@ -918,7 +918,7 @@
 
 /* Fade each glass surface once; nested summary fades and animated scaling
    make high-DPI WebKit repaint large backdrop-filter layers. */
-.content-grid:not(.is-workspace-view).is-entry-playing .primary-column > :not(.hero-row):not(.settings-feedback):not(.mutation-notice):not(.summary-grid) {
+.content-grid:not(.is-workspace-view).is-entry-playing .primary-column > :not(.hero-row):not(.settings-feedback):not(.mutation-notice):not(:where(.summary-grid)) {
   animation: workspaceGroupSettle 780ms var(--ease-settle) 200ms both var(--entry-play-state, running);
 }
 
