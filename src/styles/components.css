@@ -583,6 +583,52 @@
   background: var(--danger-bg);
 }
 
+.settings-feedback.info {
+  border-color: var(--line-strong);
+  color: var(--text);
+  background: var(--surface-subtle);
+}
+
+.profile-notice-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-notice-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.profile-notice-content svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.profile-notice-dismiss {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -4px -4px 0;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease);
+}
+
+.profile-notice-dismiss:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
 .mutation-notice {
   display: flex;
   align-items: flex-start;
@@ -783,6 +829,16 @@
   line-height: 1;
   cursor: pointer;
   transition: color var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
+}
+
+.quick-add-trigger-label {
+  /* Resolve theme colors on the text itself so WebKit refreshes on theme changes. */
+  color: var(--muted);
+}
+
+.quick-add-trigger:hover .quick-add-trigger-label,
+.quick-add-trigger.is-active .quick-add-trigger-label {
+  color: var(--ink);
 }
 
 .quick-add-trigger:active:not(:disabled) {

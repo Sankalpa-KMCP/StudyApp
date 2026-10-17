@@ -142,8 +142,8 @@
     0 8px 32px rgba(58, 44, 96, 0.10),
     0 2px 8px rgba(58, 44, 96, 0.08),
     var(--shadow);
-  -webkit-backdrop-filter: blur(16px) saturate(138%);
-  backdrop-filter: blur(16px) saturate(138%);
+  -webkit-backdrop-filter: var(--entry-backdrop-filter, blur(16px) saturate(138%));
+  backdrop-filter: var(--entry-backdrop-filter, blur(16px) saturate(138%));
 }
 
 :root[data-theme='crystal-glass'] :is(
@@ -238,8 +238,8 @@
     0 8px 32px rgba(84, 52, 96, 0.10),
     0 2px 8px rgba(84, 52, 96, 0.08),
     var(--shadow);
-  -webkit-backdrop-filter: blur(16px) saturate(138%);
-  backdrop-filter: blur(16px) saturate(138%);
+  -webkit-backdrop-filter: var(--entry-backdrop-filter, blur(16px) saturate(138%));
+  backdrop-filter: var(--entry-backdrop-filter, blur(16px) saturate(138%));
 }
 
 :root[data-theme='wisteria'] :is(
@@ -464,8 +464,8 @@
     0 8px 32px rgba(2, 4, 18, 0.38),
     0 2px 8px rgba(2, 4, 18, 0.32),
     var(--shadow);
-  -webkit-backdrop-filter: blur(16px) saturate(134%);
-  backdrop-filter: blur(16px) saturate(134%);
+  -webkit-backdrop-filter: var(--entry-backdrop-filter, blur(16px) saturate(134%));
+  backdrop-filter: var(--entry-backdrop-filter, blur(16px) saturate(134%));
 }
 
 :root[data-theme='celestial'] :is(
@@ -643,8 +643,8 @@
     0 8px 32px rgba(10, 5, 14, 0.4),
     0 2px 8px rgba(10, 5, 14, 0.34),
     var(--shadow);
-  -webkit-backdrop-filter: blur(16px) saturate(134%);
-  backdrop-filter: blur(16px) saturate(134%);
+  -webkit-backdrop-filter: var(--entry-backdrop-filter, blur(16px) saturate(134%));
+  backdrop-filter: var(--entry-backdrop-filter, blur(16px) saturate(134%));
 }
 
 :root[data-theme='velvet-dusk'] :is(
@@ -811,8 +811,8 @@
     0 8px 32px rgba(0, 8, 10, 0.42),
     0 2px 8px rgba(0, 8, 10, 0.36),
     var(--shadow);
-  -webkit-backdrop-filter: blur(16px) saturate(134%);
-  backdrop-filter: blur(16px) saturate(134%);
+  -webkit-backdrop-filter: var(--entry-backdrop-filter, blur(16px) saturate(134%));
+  backdrop-filter: var(--entry-backdrop-filter, blur(16px) saturate(134%));
 }
 
 :root[data-theme='abyss'] :is(

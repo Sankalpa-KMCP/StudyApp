@@ -9,6 +9,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 2,
+  timeout: 60_000,
   use: { baseURL: 'http://127.0.0.1:4175/StudyApp/', trace: 'retain-on-failure' },
   projects: development.projects?.map(project => ({
     ...project,

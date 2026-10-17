@@ -13,11 +13,36 @@
 
 
 
+.profile-card,
 .density-card,
 .dashboard-mode-card,
 .theme-card {
   grid-column: 1 / -1;
   cursor: default;
+}
+
+.profile-card {
+  gap: 12px;
+}
+
+.profile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.profile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
 }
 
 .density-card,
@@ -318,4 +343,5 @@
 
 .backup-review-file {
   overflow-wrap: anywhere;
+  color: var(--ink);
 }
