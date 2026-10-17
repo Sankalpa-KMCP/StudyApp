@@ -208,12 +208,12 @@ test('sidebar keyboard focus settles mid-entry and navigates on Enter', async ({
     let navIndex = -1
     for (let i = 0; i < 10 && navIndex < 0; i++) {
       await page.keyboard.press('Tab')
-      navIndex = (await page.evaluate(midEntryCapture(
+      navIndex = (await page.evaluate<MidEntryCapture>(midEntryCapture(
         'Array.prototype.indexOf.call(document.querySelectorAll(\'.sidebar nav .nav-item\'), active)',
       ))).index
     }
     expect(navIndex).toBeGreaterThanOrEqual(0)
-    duringEntry = await page.evaluate(midEntryCapture(
+    duringEntry = await page.evaluate<MidEntryCapture>(midEntryCapture(
       'Array.prototype.indexOf.call(document.querySelectorAll(\'.sidebar nav .nav-item\'), active)',
     ))
   }
@@ -222,7 +222,7 @@ test('sidebar keyboard focus settles mid-entry and navigates on Enter', async ({
   expect(duringEntry).toEqual({ playing: true, animation: 'none', index: 0 })
   for (let i = 0; i < 6 && duringEntry!.index < 1; i++) {
     await page.keyboard.press('Tab')
-    duringEntry = await page.evaluate(midEntryCapture(
+    duringEntry = await page.evaluate<MidEntryCapture>(midEntryCapture(
       'Array.prototype.indexOf.call(document.querySelectorAll(\'.sidebar nav .nav-item\'), active)',
     ))
   }
@@ -258,19 +258,19 @@ test('mobile keyboard focus settles mid-entry and navigates on Enter', async ({ 
     let mobileIndex = -1
     for (let i = 0; i < 10 && mobileIndex < 0; i++) {
       await page.keyboard.press('Tab')
-      mobileIndex = (await page.evaluate(midEntryCapture(
+      mobileIndex = (await page.evaluate<MidEntryCapture>(midEntryCapture(
         'Array.prototype.indexOf.call(document.querySelector(\'.mobile-navigation\')?.children ?? [], active)',
       ))).index
     }
     expect(mobileIndex).toBeGreaterThanOrEqual(0)
-    duringEntry = await page.evaluate(midEntryCapture(
+    duringEntry = await page.evaluate<MidEntryCapture>(midEntryCapture(
       'Array.prototype.indexOf.call(document.querySelector(\'.mobile-navigation\')?.children ?? [], active)',
     ))
   }
   expect(duringEntry).toEqual({ playing: true, animation: 'none', index: 0 })
   for (let i = 0; i < 6 && duringEntry!.index < 2; i++) {
     await page.keyboard.press('Tab')
-    duringEntry = await page.evaluate(midEntryCapture(
+    duringEntry = await page.evaluate<MidEntryCapture>(midEntryCapture(
       'Array.prototype.indexOf.call(document.querySelector(\'.mobile-navigation\')?.children ?? [], active)',
     ))
   }
