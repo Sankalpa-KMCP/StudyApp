@@ -46,15 +46,24 @@ export function useSiteEntrance(isLoading: boolean, view: View) {
         frame = window.requestAnimationFrame(finish)
       })
     }
+    for (const animation of animations ?? []) {
+      if (animation.playState === 'paused') animation.play?.()
+    }
+    let painted = false
+    let paintFrame = window.requestAnimationFrame(() => {
+      paintFrame = window.requestAnimationFrame(() => {
+        painted = true
+      })
+    })
     let times = animations?.map(animation => animation.currentTime)
     let timer: number
     let recoveryFrame = 0
     const checkProgressAfterPaint = () => {
       if (cancelled) return
       const nextTimes = animations?.map(animation => animation.currentTime)
-      const progressing = animations?.some((animation, index) =>
-        animation.playState === 'running' && typeof nextTimes?.[index] === 'number'
-        && nextTimes[index] !== times?.[index],
+      const running = animations?.some(animation => animation.playState === 'running')
+      const progressing = running && animations?.some((_, index) =>
+        typeof nextTimes?.[index] === 'number' && nextTimes[index] !== times?.[index],
       )
       times = nextTimes
       if (progressing || animations?.some(animation => animation.pending)) {
@@ -63,6 +72,10 @@ export function useSiteEntrance(isLoading: boolean, view: View) {
     }
     const recover = () => {
       if (cancelled) return
+      if (!painted) {
+        timer = window.setTimeout(recover, 1600)
+        return
+      }
       // A wall-clock timer can run before WebKit refreshes its animation
       // timeline. Give native playback a paint before declaring it stalled.
       recoveryFrame = window.requestAnimationFrame(() => {
@@ -78,6 +91,7 @@ export function useSiteEntrance(isLoading: boolean, view: View) {
       window.clearTimeout(timer)
       window.clearTimeout(deadline)
       window.cancelAnimationFrame(frame)
+      window.cancelAnimationFrame(paintFrame)
       window.cancelAnimationFrame(recoveryFrame)
     }
   }, [playing, preparing])

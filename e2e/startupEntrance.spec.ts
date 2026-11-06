@@ -176,31 +176,38 @@ test('glass backdrop blur is deferred during entrance and restored after settlem
   await page.goto('./')
   const results = await page.evaluate(() => {
     const previousTheme = document.documentElement.dataset.theme
+    const shell = document.createElement('div')
+    shell.className = 'app-shell'
+    shell.inert = true
+    shell.setAttribute('aria-hidden', 'true')
+    shell.style.cssText = 'position:fixed;left:-10000px;top:0;width:300px'
+    const sidebar = document.createElement('aside')
+    sidebar.className = 'sidebar'
     const probe = document.createElement('div')
     probe.className = 'content-grid'
-    probe.inert = true
-    probe.setAttribute('aria-hidden', 'true')
-    probe.style.cssText = 'position:fixed;left:-10000px;top:0;width:300px'
     const card = document.createElement('article')
     card.className = 'card'
     probe.append(card)
-    document.body.append(probe)
-    const backdrop = () => {
-      const style = getComputedStyle(card)
+    shell.append(sidebar, probe)
+    document.body.append(shell)
+    const backdrop = (element: Element) => {
+      const style = getComputedStyle(element)
       return style.getPropertyValue('backdrop-filter') || style.getPropertyValue('-webkit-backdrop-filter')
     }
     try {
       return ['crystal-glass', 'wisteria', 'celestial', 'velvet-dusk', 'abyss'].map(theme => {
         document.documentElement.dataset.theme = theme
         probe.className = 'content-grid is-entry-playing is-entry-preparing'
-        const preparing = backdrop()
+        const preparing = backdrop(card)
+        const sidebarPreparing = backdrop(sidebar)
         probe.className = 'content-grid is-entry-playing'
-        const playing = backdrop()
+        const playing = backdrop(card)
+        const sidebarPlaying = backdrop(sidebar)
         probe.className = 'content-grid'
-        return { theme, preparing, playing, settled: backdrop() }
+        return { theme, preparing, playing, settled: backdrop(card), sidebarPreparing, sidebarPlaying, sidebarSettled: backdrop(sidebar) }
       })
     } finally {
-      probe.remove()
+      shell.remove()
       if (previousTheme === undefined) delete document.documentElement.dataset.theme
       else document.documentElement.dataset.theme = previousTheme
     }
@@ -209,6 +216,9 @@ test('glass backdrop blur is deferred during entrance and restored after settlem
     expect(result.preparing, result.theme).toBe('none')
     expect(result.playing, result.theme).toBe('none')
     expect(result.settled, result.theme).toContain('blur(16px)')
+    expect(result.sidebarPreparing, result.theme).toBe('none')
+    expect(result.sidebarPlaying, result.theme).toBe('none')
+    expect(result.sidebarSettled, result.theme).toContain('blur(20px)')
   }
 })
 

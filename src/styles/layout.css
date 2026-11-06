@@ -490,6 +490,7 @@
 
 /* One ready-document entrance. Animate surfaces, never shell geometry or
    the sticky/fixed containers that own popover positioning. */
+.app-shell:has(.content-grid.is-entry-playing),
 .content-grid.is-entry-playing {
   /* Defer expensive glass filtering until native entrance playback settles. */
   --entry-backdrop-filter: none;
@@ -533,7 +534,8 @@
 .app-shell:has(.content-grid.is-entry-playing) .sidebar nav .nav-item:nth-child(6) { animation-delay: 210ms; }
 
 /* Hold only entrance keyframes through the first ready paint. */
-.app-shell:has(.content-grid.is-entry-preparing) {
+.app-shell:has(.content-grid.is-entry-preparing),
+.content-grid.is-entry-preparing {
   --entry-play-state: paused;
 }
 

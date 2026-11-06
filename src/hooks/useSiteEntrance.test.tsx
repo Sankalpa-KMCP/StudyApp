@@ -76,6 +76,28 @@ describe('ready-document entrance lifecycle', () => {
     } finally { requestFrame.mockRestore() }
   })
 
+  it('explicitly unpauses animations and defers recovery until the unpaused frame paints', () => {
+    const play = vi.fn()
+    vi.mocked(Element.prototype.getAnimations).mockImplementation(() => [{ ...nextAnimation(), playState: 'paused', play }] as unknown as Animation[])
+    render(<Harness />)
+    let calls = 0
+    const realRaf = window.requestAnimationFrame.bind(window)
+    const requestFrame = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      calls += 1
+      return calls <= 2 ? realRaf(cb) : 0
+    })
+    try {
+      act(() => vi.advanceTimersByTime(40))
+      expect(play).toHaveBeenCalledTimes(1)
+      act(() => vi.advanceTimersByTime(1600))
+      expect(playing()).toBe('true')
+      act(() => vi.advanceTimersByTime(8400))
+      expect(playing()).toBe('false')
+    } finally {
+      requestFrame.mockRestore()
+    }
+  })
+
   it('cancels a queued recovery paint and its deadline on unmount', () => {
     const { unmount } = render(<Harness />)
     act(() => vi.advanceTimersByTime(40))
