@@ -37,35 +37,29 @@ export async function observeEntrance(page: Page, theme?: string, workspace = fa
     }
     const observer = new MutationObserver((mutations) => {
       if (mutations.some(mutation => mutation.target instanceof Element && mutation.target.matches('.content-grid'))) record('class mutation')
-      const grid = document.querySelector('.content-grid.is-entry-playing')
-      const root = grid?.closest('.app-shell')
-      if (!grid || !root) return
+      if (tracked.size >= names.size) return
+      const root = document.querySelector('.content-grid.is-entry-playing')?.closest('.app-shell')
+      if (!root) return
       for (const animation of root.getAnimations({ subtree: true })) {
         const name = (animation as CSSAnimation).animationName
         const element = (animation.effect as KeyframeEffect | null)?.target
         if (!names.has(name) || !(element instanceof Element)) continue
-        if (tracked.has(animation) || Array.from(tracked).some(([prev, item]) => item.evidence.name === name && prev.playState !== 'idle')) continue
-        const existing = motion.find(item => item.name === name)
+        if (motion.some(item => item.name === name)) continue
         const timing = animation.effect!.getTiming()
-        const evidence: Motion = existing ?? { id: motion.length + 1, name, delay: Number(timing.delay), duration: Number(timing.duration), samples: [], ended: false, cancelled: false }
-        evidence.cancelled = false
-        evidence.samples.push(sample(animation, element))
-        if (!existing) motion.push(evidence)
-        for (const [prev, item] of tracked) if (item.evidence === evidence) tracked.delete(prev)
+        const evidence: Motion = { id: tracked.size + 1, name, delay: Number(timing.delay), duration: Number(timing.duration), samples: [sample(animation, element)], ended: false, cancelled: false }
+        motion.push(evidence)
         tracked.set(animation, { element, evidence })
         record('discovered')
         void animation.finished.then(() => {
-          if (tracked.get(animation)?.evidence !== evidence) return
           evidence.ended = true
           evidence.samples.push(sample(animation, element))
           record('finished promise')
         }).catch(() => {
-          if (tracked.get(animation)?.evidence !== evidence) return
           evidence.cancelled = true
           record('cancelled promise')
         })
       }
-      if (tracked.size > 0 && !frameScheduled && !grid.classList.contains('is-entry-preparing')) {
+      if (tracked.size > 0 && !frameScheduled) {
         frameScheduled = true
         requestAnimationFrame(frame)
       }

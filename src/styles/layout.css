@@ -194,7 +194,8 @@
   padding: 10px clamp(18px, 3vw, 42px);
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--bg) 94%, transparent);
-  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: var(--entry-backdrop-filter, blur(14px));
+  backdrop-filter: var(--entry-backdrop-filter, blur(14px));
 }
 
 .topbar .topbar-title {
@@ -534,8 +535,7 @@
 .app-shell:has(.content-grid.is-entry-playing) .sidebar nav .nav-item:nth-child(6) { animation-delay: 210ms; }
 
 /* Hold only entrance keyframes through the first ready paint. */
-.app-shell:has(.content-grid.is-entry-preparing),
-.content-grid.is-entry-preparing {
+.app-shell:has(.content-grid.is-entry-preparing) {
   --entry-play-state: paused;
 }
 

@@ -28,19 +28,6 @@
   will-change: transform, opacity;
 }
 
-:root:has(.content-grid.is-entry-playing) body {
-  background-attachment: scroll;
-}
-
-:root:has(.content-grid.is-entry-playing) body::before,
-:root:has(.content-grid.is-entry-playing) body::after {
-  content: none;
-}
-
-:root:has(.content-grid.is-entry-playing) :is(.nav-item.is-active::before, .progress-track span::after, .focus-ring::before) {
-  animation: none !important;
-}
-
 :root[data-theme='crystal-glass'] #root,
 :root[data-theme='wisteria'] #root,
 :root[data-theme='celestial'] #root,
