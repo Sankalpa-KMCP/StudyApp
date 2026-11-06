@@ -12,6 +12,9 @@ concurrency:
 
 permissions:
   contents: read
+  # Read-only access to the pull request changed-file list used by the
+  # documentation-only change detection below.
+  pull-requests: read
 
 jobs:
   check:
@@ -20,47 +23,156 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Conservative change detection. RUN_FULL defaults to true and is only
+      # cleared when every changed file of a pull request is verified to be a
+      # documentation-only path. Listing failures, API truncation, and unknown
+      # or ambiguous paths all fail closed to full validation. Master pushes
+      # and manual dispatch always run full validation.
+      - name: Decide validation scope
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          RUN_FULL=true
+          DOCS_ONLY=false
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            if ! FILES="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files?per_page=100" --paginate --jq '.[].filename')"; then
+              echo '::warning::Changed-file listing failed; failing closed to full validation.'
+              FILES=''
+            fi
+            if [ -n "$FILES" ]; then
+              COUNT="$(printf '%s\n' "$FILES" | wc -l | tr -d ' ')"
+              # The changed-files API truncates at 3000 files; never skip
+              # validation anywhere near that limit.
+              if [ "$COUNT" -lt 3000 ]; then
+                DOCS_ONLY=true
+                while IFS= read -r f; do
+                  if [ -z "$f" ]; then continue; fi
+                  case "$f" in
+                    *.md|docs/*|orchestrator/*|LICENSE|.gitignore) ;;
+                    *) DOCS_ONLY=false; break ;;
+                  esac
+                done <<< "$FILES"
+              else
+                echo '::notice::Pull request reports 3000 or more changed files; running full validation.'
+              fi
+            fi
+          fi
+          if [ "$DOCS_ONLY" = "true" ]; then
+            RUN_FULL=false
+          fi
+          echo "RUN_FULL=$RUN_FULL" >> "$GITHUB_ENV"
+          echo "DOCS_ONLY=$DOCS_ONLY" >> "$GITHUB_ENV"
+          echo "Validation scope: RUN_FULL=$RUN_FULL (docs-only=$DOCS_ONLY)"
+
       - name: Setup Node
+        if: env.RUN_FULL == 'true'
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
           cache: npm
 
       - name: Pin npm
+        if: env.RUN_FULL == 'true'
         run: npm install -g npm@10.9.2
 
       - name: Install dependencies
+        if: env.RUN_FULL == 'true'
         run: npm ci
 
       - name: Lint
+        if: env.RUN_FULL == 'true'
         run: npm run lint
 
       - name: Typecheck tests and tooling
+        if: env.RUN_FULL == 'true'
         run: npm run check:tests
 
       - name: Unit tests with coverage
+        if: env.RUN_FULL == 'true'
         run: npm run test:coverage
 
       - name: Production build
+        if: env.RUN_FULL == 'true'
         run: npm run build
 
       - name: Bundle size budget
+        if: env.RUN_FULL == 'true'
         run: npm run check:bundle
 
       - name: Verify dist output
+        if: env.RUN_FULL == 'true'
         run: |
           test -f dist/index.html
           grep -q '/StudyApp/assets/' dist/index.html
           ! grep -q 'main.tsx' dist/index.html
 
       - name: Install Playwright browsers
-        run: npx playwright install chromium firefox webkit --with-deps
+        if: env.RUN_FULL == 'true'
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            npx playwright install chromium webkit --with-deps
+          else
+            npx playwright install chromium firefox webkit --with-deps
+          fi
 
-      - name: Playwright E2E
+      # Pull requests with code changes: focused but comprehensive validation.
+      - name: Playwright E2E (Chromium full)
+        if: env.RUN_FULL == 'true' && github.event_name == 'pull_request'
+        run: npm run test:e2e -- --project=chromium
+
+      - name: Playwright E2E (mobile-WebKit smoke)
+        if: env.RUN_FULL == 'true' && github.event_name == 'pull_request'
+        run: npm run test:e2e -- --project=mobile-webkit
+
+      - name: Playwright E2E (mobile-Chrome navigation and responsive smoke)
+        if: env.RUN_FULL == 'true' && github.event_name == 'pull_request'
+        run: npm run test:e2e -- --project=mobile-chrome e2e/mobile-navigation.spec.ts e2e/responsive-workspaces.spec.ts
+
+      - name: Production artifact smoke (Chromium and mobile-WebKit, includes startup entrance)
+        if: env.RUN_FULL == 'true' && github.event_name == 'pull_request'
+        run: npm run test:production -- --project=chromium --project=mobile-webkit
+
+      # Master pushes and manual dispatch: complete five-project validation.
+      - name: Playwright E2E (all projects)
+        if: env.RUN_FULL == 'true' && github.event_name != 'pull_request'
         run: npm run test:e2e
 
-      - name: Production artifact smoke
+      - name: Production artifact smoke (all projects)
+        if: env.RUN_FULL == 'true' && github.event_name != 'pull_request'
         run: npm run test:production
+
+      - name: CI scope summary
+        if: always()
+        run: |
+          {
+            echo '## CI validation scope'
+            echo ''
+            if [ "${RUN_FULL:-unset}" = 'false' ]; then
+              echo '**Documentation-only change detected.** This required check passed without executing application validation.'
+              echo ''
+              echo 'All changed files matched the documentation-only set: `*.md`, `docs/**`, `orchestrator/**`, `LICENSE`, `.gitignore`.'
+              echo ''
+              echo 'Skipped validations:'
+              echo ''
+              echo '- ESLint (`npm run lint`)'
+              echo '- TypeScript check of tests and tooling (`npm run check:tests`)'
+              echo '- Unit tests with coverage thresholds (`npm run test:coverage`)'
+              echo '- Production build (`npm run build`)'
+              echo '- Bundle size budget (`npm run check:bundle`)'
+              echo '- `dist` output verification'
+              echo '- Playwright browser installation'
+              echo '- Playwright E2E suite (all projects)'
+              echo '- Production artifact smoke suite (all projects)'
+              echo ''
+              echo 'Master pushes and manual dispatches always run full validation.'
+            elif [ "${RUN_FULL:-unset}" = 'true' ]; then
+              echo '**Full validation executed.** Every quality gate ran for this ref.'
+            else
+              echo '**Validation scope could not be determined** because the scope decision step failed. Treat this run as failed.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Preserve the exact post-check dist for Pages; skip on pull requests and non-deploy branches.
       - name: Upload checked dist artifact
