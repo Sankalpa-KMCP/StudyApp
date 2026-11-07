@@ -7,6 +7,13 @@ const ENTRANCE_ANIMATIONS = new Set([
   'workspaceGroupSettle', 'workspaceHeadingSettle',
 ])
 
+// The force-finish failsafes only bound a stalled entrance; they must stay well
+// clear of natural completion. Headless software rendering delivers frames
+// several seconds apart while the first window is painted, and native playback
+// stays pending at its start time until a frame commit resolves it — observed
+// entrances still complete natively between 11s and 20s in that environment.
+const ENTRANCE_DEADLINE_MS = 25_000
+
 /** One decorative sequence per ready document, independent of saved preferences. */
 export function useSiteEntrance(isLoading: boolean, view: View) {
   const [entry, setEntry] = useState<{ view: View; playing: boolean; ready: boolean } | null>(null)
@@ -35,7 +42,7 @@ export function useSiteEntrance(isLoading: boolean, view: View) {
           if (!cancelled) setEntry(current => current ? { ...current, ready: true } : current)
         })
       })
-      const timer = window.setTimeout(finish, 10_000)
+      const timer = window.setTimeout(finish, ENTRANCE_DEADLINE_MS)
       return () => { cancelled = true; window.cancelAnimationFrame(frame); window.clearTimeout(timer) }
     }
     // Let native end events dispatch before removing their CSS animations.
@@ -71,7 +78,7 @@ export function useSiteEntrance(isLoading: boolean, view: View) {
     }
     timer = window.setTimeout(recover, 1600)
     // Keep recovery bounded even when the browser stops delivering frames.
-    const deadline = window.setTimeout(finish, 10_000)
+    const deadline = window.setTimeout(finish, ENTRANCE_DEADLINE_MS)
     if (animations) void Promise.all(animations.map(animation => animation.finished.catch(() => undefined))).then(settleAfterPaint)
     return () => {
       cancelled = true

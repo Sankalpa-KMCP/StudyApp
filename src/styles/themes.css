@@ -28,16 +28,6 @@
   will-change: transform, opacity;
 }
 
-/* WebKit cannot start the native entrance timeline while the continuously
-   animated wallpaper layers repaint: the preparing-release frame loop starves
-   and heroContentSettle stays pending at its held keyframe. Suspend the
-   ambience layers only while the entrance plays; they resume automatically
-   when the entrance classes clear. */
-body:has(.app-shell .content-grid.is-entry-playing)::before,
-body:has(.app-shell .content-grid.is-entry-playing)::after {
-  animation-play-state: paused;
-}
-
 :root[data-theme='crystal-glass'] #root,
 :root[data-theme='wisteria'] #root,
 :root[data-theme='celestial'] #root,

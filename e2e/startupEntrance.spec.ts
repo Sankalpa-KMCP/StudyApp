@@ -50,8 +50,12 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 600 
           if (reducedMotion === 'no-preference') {
             // The completion window begins after native playback is released,
             // not while the browser is still painting its prepared keyframe.
-            await expect(page.locator('.content-grid')).not.toHaveClass(/is-entry-preparing/, { timeout: 15_000 })
-            await expect.poll(() => page.evaluate(() => window.siteMotion.find(item => item.name === 'heroContentSettle')?.ended), { timeout: 20_000 }).toBe(true).catch(async (error) => {
+            // Headless WebKit software rendering delivers frames seconds apart
+            // during the first window paint, so the release double-rAF and the
+            // pending animation start can each wait several seconds; traced
+            // entrances still finish natively between 11s and 20s.
+            await expect(page.locator('.content-grid')).not.toHaveClass(/is-entry-preparing/, { timeout: 30_000 })
+            await expect.poll(() => page.evaluate(() => window.siteMotion.find(item => item.name === 'heroContentSettle')?.ended), { timeout: 30_000 }).toBe(true).catch(async (error) => {
               await testInfo.attach('startup-animation-evidence', { body: JSON.stringify(await page.evaluate(() => window.siteMotion)), contentType: 'application/json' })
               throw error
             })

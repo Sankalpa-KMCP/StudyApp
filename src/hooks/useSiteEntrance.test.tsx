@@ -71,7 +71,7 @@ describe('ready-document entrance lifecycle', () => {
     act(() => vi.advanceTimersByTime(40))
     const requestFrame = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(0)
     try {
-      act(() => vi.advanceTimersByTime(10_000))
+      act(() => vi.advanceTimersByTime(25_000))
       expect(playing()).toBe('false')
     } finally { requestFrame.mockRestore() }
   })
