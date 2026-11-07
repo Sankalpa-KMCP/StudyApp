@@ -177,13 +177,15 @@ describe('ready-document entrance lifecycle', () => {
   it('retains a hard recovery bound even if a broken timeline keeps advancing', () => {
     render(<Harness />)
     act(() => vi.advanceTimersByTime(40))
-    for (let tick = 1; tick <= 6; tick++) {
+    // 15 ticks stay inside the force-finish bound; the next recovery window
+    // crosses it even though the broken timeline keeps reporting progress.
+    for (let tick = 1; tick <= 15; tick++) {
       animation.currentTime = tick * 100
       act(() => vi.advanceTimersByTime(1600))
       expect(playing()).toBe('true')
     }
     animation.currentTime = 700
-    act(() => vi.advanceTimersByTime(400))
+    act(() => vi.advanceTimersByTime(1600))
     expect(playing()).toBe('false')
   })
 
