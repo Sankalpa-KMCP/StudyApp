@@ -38,9 +38,21 @@ describe('App navigation', () => {
     const notices = await screen.findAllByText(/Profile settings live in this local/i)
     expect(notices.length).toBeGreaterThan(0)
     expect(window.location.pathname).toBe('/settings')
+    expect(screen.getByText('Local Study Profile')).toBeInTheDocument()
+    const dismissButton = screen.getByRole('button', { name: 'Dismiss profile notice' })
+    expect(dismissButton).toBeInTheDocument()
+
+    // Verify manual dismissal works
+    await user.click(dismissButton)
+    expect(screen.queryByText(/Profile settings live in this local/i)).not.toBeInTheDocument()
+
+    // Reopen profile from topbar and verify navigating away clears it
+    await user.click(screen.getByRole('button', { name: 'Profile' }))
+    expect(await screen.findByText(/Profile settings live in this local/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Progress' }))
     expect(window.location.pathname).toBe('/progress')
+    expect(screen.queryByText(/Profile settings live in this local/i)).not.toBeInTheDocument()
     const logSessionButton = screen.getByRole('button', { name: 'Log session' })
     await user.click(logSessionButton)
     expect(await screen.findByRole('heading', { name: 'Log study session' })).toBeInTheDocument()
