@@ -25,6 +25,9 @@ dist-ssr
 /screenshot-*.png
 /study-dashboard-*.json
 
+# Local review documents and evidence
+/reviews/
+
 # Editor / IDE
 .vscode/*
 !.vscode/extensions.json
