@@ -30,6 +30,14 @@ export function formatAxeViolations(violations: Result[]): string {
 export async function expectNoAxeViolations(page: Page, testInfo: TestInfo, label: string): Promise<void> {
   await page.evaluate(() => document.fonts?.ready)
   await page.waitForFunction(() => !document.querySelector('.is-entry-playing'))
+  // Scan final-state rendering: finite entrance animations (dialogs, panels)
+  // must finish first, or a mid-fade element reports blended contrast colors.
+  // Infinite ambience animations (live wallpapers) must not block the scan.
+  await page.waitForFunction(() => document.getAnimations().every(animation => {
+    if (animation.playState === 'finished' || animation.playState === 'idle') return true
+    const timing = animation.effect?.getTiming()
+    return !timing || timing.iterations === Infinity
+  }))
   const results = await new AxeBuilder({ page })
     .withTags([...WCAG_A_AA_TAGS])
     .analyze()

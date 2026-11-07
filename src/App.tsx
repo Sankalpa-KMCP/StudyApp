@@ -175,6 +175,9 @@ function App() {
     zenTriggerElementRef.current = null
     zenEntryViewRef.current = null
     setZenState({ phase: 'closed' })
+    if (view !== 'Settings') {
+      setProfileNotice((prev) => (prev === 'Profile settings live in this local Settings workspace for now.' ? '' : prev))
+    }
     if (view === activeView) return
     setActiveView(view)
     syncUrlToView(view, 'push')
@@ -295,6 +298,26 @@ function App() {
       clearTimeout(profileNoticeTimerRef.current)
     }
   }, [])
+
+  const clearProfileNotice = useCallback(() => {
+    if (profileNoticeTimerRef.current !== undefined) {
+      clearTimeout(profileNoticeTimerRef.current)
+      profileNoticeTimerRef.current = undefined
+    }
+    setProfileNotice('')
+  }, [])
+
+  const onOpenProfile = useCallback(() => {
+    if (profileNoticeTimerRef.current !== undefined) {
+      clearTimeout(profileNoticeTimerRef.current)
+    }
+    navigateToView('Settings')
+    setProfileNotice('Profile settings live in this local Settings workspace for now.')
+    profileNoticeTimerRef.current = setTimeout(() => {
+      profileNoticeTimerRef.current = undefined
+      setProfileNotice((prev) => (prev === 'Profile settings live in this local Settings workspace for now.' ? '' : prev))
+    }, 6000)
+  }, [navigateToView])
 
   const onBackupClearSuccess = useCallback(() => {
     // Reset the dismissal timer so a stale timeout cannot clobber a newer notice.
@@ -434,12 +457,10 @@ function App() {
                 onToggleNotices={toggleNotices}
                 onCloseNotices={closeNotices}
                 onQuickAdd={onQuickAdd}
-                onOpenProfile={() => {
-                  navigateToView('Settings')
-                  setProfileNotice('Profile settings live in this local Settings workspace for now.')
-                }}
+                onOpenProfile={onOpenProfile}
                 onRetry={retryLiveReads}
                 profileNotice={profileNotice}
+                onDismissProfileNotice={clearProfileNotice}
                 preferenceNotice={preferenceNotice}
                 onDismissPreferenceNotice={clearPreferenceNotice}
                 theme={theme}
@@ -473,6 +494,7 @@ function App() {
               onToggleNotices={toggleNotices}
               onCloseNotices={closeNotices}
               profileNotice={profileNotice}
+              onDismissProfileNotice={clearProfileNotice}
               preferenceNotice={preferenceNotice}
               onDismissPreferenceNotice={clearPreferenceNotice}
               theme={theme}
@@ -483,10 +505,7 @@ function App() {
               canEnterZenReason={canEnterZenReason}
               onEnterZen={enterZen}
               onNavigate={navigateToView}
-              onOpenProfile={() => {
-                navigateToView('Settings')
-                setProfileNotice('Profile settings live in this local Settings workspace for now.')
-              }}
+              onOpenProfile={onOpenProfile}
               onQuickAdd={onQuickAdd}
               onCreateTask={openNewTask}
               onCreateSubject={openNewSubject}

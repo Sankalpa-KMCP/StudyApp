@@ -60,6 +60,7 @@ export type AppLiveDataProps = {
   onToggleNotices: () => void
   onCloseNotices: () => void
   profileNotice: string
+  onDismissProfileNotice?: () => void
   preferenceNotice: string | null
   onDismissPreferenceNotice: () => void
   theme: ThemeMode
@@ -124,6 +125,7 @@ export function AppLiveData({
   onToggleNotices,
   onCloseNotices,
   profileNotice,
+  onDismissProfileNotice,
   preferenceNotice,
   onDismissPreferenceNotice,
   theme,
@@ -271,7 +273,9 @@ export function AppLiveData({
             entryPreparing ? 'is-entry-preparing' : '',
           ].filter(Boolean).join(' ')} ref={entryContainerRef}>
             <section className="primary-column" aria-label="Primary study summary">
-              {profileNotice ? <div className="settings-feedback" role="status">{profileNotice}</div> : null}
+              {profileNotice && activeView !== 'Settings' && profileNotice !== 'Profile settings live in this local Settings workspace for now.' ? (
+                <div className="settings-feedback" role="status">{profileNotice}</div>
+              ) : null}
               {preferenceNotice && activeView !== 'Settings' ? (
                 <div className="settings-feedback error" role="alert">{preferenceNotice}</div>
               ) : null}
@@ -411,6 +415,7 @@ export function AppLiveData({
                   onClear={onClear}
                   importPending={focusImportPending}
                   profileNotice={profileNotice}
+                  onDismissProfileNotice={onDismissProfileNotice}
                   preferenceNotice={preferenceNotice}
                   onDismissPreferenceNotice={onDismissPreferenceNotice}
                   theme={theme}

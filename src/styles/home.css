@@ -564,24 +564,58 @@
 .note-paper {
   min-height: 220px;
   display: block;
-  padding: 20px;
+  padding: 16px 18px 18px 52px;
   border: 1px solid var(--line);
+  border-top: 3px solid var(--accent);
   border-radius: var(--radius-sm);
   background:
-    linear-gradient(var(--line) 1px, transparent 1px) 0 39px / 100% 31px,
+    linear-gradient(90deg, transparent 42px, var(--line-strong) 42px, var(--line-strong) 43px, transparent 43px),
+    linear-gradient(var(--line) 1px, transparent 1px) 0 47px / 100% 32px,
     var(--surface-subtle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: border-color var(--motion-fast) var(--ease), box-shadow var(--motion-fast) var(--ease);
+}
+
+.note-paper:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-sm);
 }
 
 .editable-paper textarea {
   width: 100%;
-  min-height: 170px;
+  min-height: 192px;
   padding: 0;
+  margin: 0;
   border: 0;
   outline: 0;
   resize: vertical;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 32px;
   color: var(--ink);
+  caret-color: var(--accent);
   background: transparent;
-  line-height: 1.95;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.editable-paper textarea::placeholder {
+  color: var(--muted);
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.editable-paper textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.editable-paper textarea::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+}
+
+.editable-paper textarea::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* Quick Notes Compact disclosure styling */
@@ -831,12 +865,23 @@
 
 @keyframes workspaceGroupSettle {
   from {
-    opacity: 0.3;
+    opacity: 0.25;
     transform: translateY(16px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes heroElementSettle {
+  from {
+    opacity: 0.45;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -849,21 +894,60 @@
   animation: heroContentSettle 760ms var(--ease-settle) 100ms both var(--entry-play-state, running);
 }
 
-.content-grid:not(.is-workspace-view).is-entry-playing .primary-column > :not(.hero-row):not(.settings-feedback):not(.mutation-notice) {
+.content-grid.is-entry-playing .hero-copy .eyebrow {
+  animation: heroElementSettle 600ms var(--ease-settle) 120ms both var(--entry-play-state, running);
+}
+
+.content-grid.is-entry-playing .hero-copy h1 {
+  animation: heroElementSettle 660ms var(--ease-settle) 160ms both var(--entry-play-state, running);
+}
+
+.content-grid.is-entry-playing .hero-copy p {
+  animation: heroElementSettle 680ms var(--ease-settle) 200ms both var(--entry-play-state, running);
+}
+
+.content-grid.is-entry-playing .hero-metrics {
+  animation: heroElementSettle 700ms var(--ease-settle) 230ms both var(--entry-play-state, running);
+}
+
+.content-grid.is-entry-playing .hero-actions button {
+  animation: heroElementSettle 620ms var(--ease-settle) both var(--entry-play-state, running);
+}
+.content-grid.is-entry-playing .hero-actions button:nth-child(1) { animation-delay: 250ms; }
+.content-grid.is-entry-playing .hero-actions button:nth-child(2) { animation-delay: 280ms; }
+
+/* Fade each glass surface once; nested summary fades and animated scaling
+   make high-DPI WebKit repaint large backdrop-filter layers. */
+.content-grid:not(.is-workspace-view).is-entry-playing .primary-column > :not(.hero-row):not(.settings-feedback):not(.mutation-notice):not(:where(.summary-grid)) {
   animation: workspaceGroupSettle 780ms var(--ease-settle) 200ms both var(--entry-play-state, running);
 }
 
-.content-grid.is-entry-playing .primary-column > .summary-grid {
-  animation-delay: 260ms;
+.content-grid.is-entry-playing .primary-column > .first-study-checklist {
+  animation-delay: 180ms;
 }
 
-.content-grid.is-entry-playing .primary-column > :is(.subject-section, .notes-card) {
-  animation-delay: 340ms;
+.content-grid.is-entry-playing .summary-grid > * {
+  animation: workspaceGroupSettle 720ms var(--ease-settle) both var(--entry-play-state, running);
+}
+.content-grid.is-entry-playing .summary-grid > :nth-child(1) { animation-delay: 240ms; }
+.content-grid.is-entry-playing .summary-grid > :nth-child(2) { animation-delay: 270ms; }
+.content-grid.is-entry-playing .summary-grid > :nth-child(3) { animation-delay: 300ms; }
+
+.content-grid.is-entry-playing .primary-column > .focus-card {
+  animation-delay: 300ms;
+}
+
+.content-grid.is-entry-playing .primary-column > :is(.subject-section) {
+  animation-delay: 420ms;
+}
+
+.content-grid.is-entry-playing .primary-column > :is(.notes-card) {
+  animation-delay: 460ms;
 }
 
 .content-grid.is-entry-playing .right-column > * {
   animation: workspaceGroupSettle 720ms var(--ease-settle) 280ms both var(--entry-play-state, running);
 }
 
-.content-grid.is-entry-playing .right-column > :nth-child(2) { animation-delay: 340ms; }
-.content-grid.is-entry-playing .right-column > :nth-child(3) { animation-delay: 400ms; }
+.content-grid.is-entry-playing .right-column > :nth-child(2) { animation-delay: 350ms; }
+.content-grid.is-entry-playing .right-column > :nth-child(3) { animation-delay: 420ms; }

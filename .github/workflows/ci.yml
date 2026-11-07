@@ -62,6 +62,15 @@ jobs:
       - name: Production artifact smoke
         run: npm run test:production
 
+      - name: Upload failed Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-diagnostics
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
       # Preserve the exact post-check dist for Pages; skip on pull requests and non-deploy branches.
       - name: Upload checked dist artifact
         if: >-

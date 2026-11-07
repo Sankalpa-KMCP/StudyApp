@@ -21,6 +21,7 @@ export type AppLiveReadFallbackProps = {
   onOpenProfile: () => void
   onRetry: () => void
   profileNotice: string
+  onDismissProfileNotice?: () => void
   preferenceNotice: string | null
   onDismissPreferenceNotice: () => void
   theme: ThemeMode
@@ -52,6 +53,7 @@ export function AppLiveReadFallback({
   onOpenProfile,
   onRetry,
   profileNotice,
+  onDismissProfileNotice,
   preferenceNotice,
   onDismissPreferenceNotice,
   theme,
@@ -98,6 +100,7 @@ export function AppLiveReadFallback({
                 onClear={onClear}
                 importPending={importPending}
                 profileNotice={profileNotice}
+                onDismissProfileNotice={onDismissProfileNotice}
                 preferenceNotice={preferenceNotice}
                 onDismissPreferenceNotice={onDismissPreferenceNotice}
                 theme={theme}

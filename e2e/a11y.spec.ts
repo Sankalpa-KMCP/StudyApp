@@ -104,17 +104,16 @@ test.describe('Playwright axe accessibility smoke', () => {
     await expectNoAxeViolations(page, testInfo, 'progress-study-time-chart')
   })
 
-  test('all five premium themes pass unsuppressed WCAG A/AA Settings scans', async ({ page }, testInfo) => {
-    test.setTimeout(90_000)
-    await waitForSettledHome(page)
-    await navigateWorkspace(page, 'Settings')
+  const premiumIds = ['crystal-glass', 'wisteria', 'celestial', 'velvet-dusk', 'abyss'] as const
+  for (const themeId of premiumIds) {
+    test(`${themeId} passes an unsuppressed WCAG A/AA Settings scan`, async ({ page }, testInfo) => {
+      test.setTimeout(90_000)
+      const config = THEME_CONFIGS.find(theme => theme.id === themeId)!
+      expect(config, `Missing premium theme: ${themeId}`).toBeDefined()
+      await waitForSettledHome(page)
+      await navigateWorkspace(page, 'Settings')
 
-    const premiumIds = new Set(['crystal-glass', 'wisteria', 'celestial', 'velvet-dusk', 'abyss'])
-    const premiumThemes = THEME_CONFIGS.filter((config) => premiumIds.has(config.id))
-    expect(premiumThemes).toHaveLength(5)
-
-    const themeGroup = page.getByRole('radiogroup', { name: 'Theme' })
-    for (const config of premiumThemes) {
+      const themeGroup = page.getByRole('radiogroup', { name: 'Theme' })
       const option = themeGroup.getByRole('radio', { name: new RegExp(config.label) })
       await option.click()
       await expect(option).toHaveAttribute('aria-checked', 'true')
@@ -123,6 +122,6 @@ test.describe('Playwright axe accessibility smoke', () => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
       }))
       await expectNoAxeViolations(page, testInfo, `settings-${config.id}`)
-    }
-  })
+    })
+  }
 })
