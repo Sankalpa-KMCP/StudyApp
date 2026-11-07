@@ -1,6 +1,6 @@
 # Agent instructions — Study Dashboard
 
-Entry point for **any** AI coding agent (Cursor, Codex, Claude Code, Copilot, etc.) working in this repository.
+Entry point for **any** AI coding agent working in this repository.
 
 ## Read first (local, if present)
 
