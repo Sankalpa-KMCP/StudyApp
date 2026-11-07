@@ -29,16 +29,6 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea/
-.cursor/*.log
-
-# Local AI documentation at repo root (not published to GitHub)
-/ai/
-
-# Local graphify knowledge graph (generated, machine-specific interpreter path)
-/graphify-out/
-
-# Local MCP configuration (untracked)
-/.mcp.json
 
 # OS
 Thumbs.db
@@ -50,32 +40,11 @@ desktop.ini
 *.sln
 *.sw?
 
-# Cursor rules local only
-/.cursor/rules/
-
-# Local agent tooling (rules/workflows) and local archives
-/.claude/
-.agents/
-.gemini/
-/.hermes/
-/.zcode/
 /study_app.zip
 *.zip
 *.tar.gz
 
-# Orchestrator local state and logs
-/.orchestrator/
-/.orchestrator_logs/
-/.orchestrator_sync_tx/
-/.orchestrator_state.json
-/ORCHESTRATOR_HANDOFF.md
-
 # Python bytecode caches
 __pycache__/
 *.py[cod]
-
-# Local AI-orchestration tooling preserved out-of-repo (removed from tracking 2026-11)
-/orchestrator/
-/run_orchestrator.py
-/scripts/hermes_orchestrator.py
 

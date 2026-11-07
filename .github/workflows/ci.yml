@@ -50,7 +50,7 @@ jobs:
                 while IFS= read -r f; do
                   if [ -z "$f" ]; then continue; fi
                   case "$f" in
-                    *.md|docs/*|orchestrator/*|LICENSE|.gitignore) ;;
+                    *.md|docs/*|LICENSE|.gitignore) ;;
                     *) DOCS_ONLY=false; break ;;
                   esac
                 done <<< "$FILES"
@@ -152,7 +152,7 @@ jobs:
             if [ "${RUN_FULL:-unset}" = 'false' ]; then
               echo '**Documentation-only change detected.** This required check passed without executing application validation.'
               echo ''
-              echo 'All changed files matched the documentation-only set: `*.md`, `docs/**`, `orchestrator/**`, `LICENSE`, `.gitignore`.'
+              echo 'All changed files matched the documentation-only set: `*.md`, `docs/**`, `LICENSE`, `.gitignore`.'
               echo ''
               echo 'Skipped validations:'
               echo ''

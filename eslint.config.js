@@ -29,7 +29,7 @@ export default defineConfig([
   {
     files: ['src/components/**/*.{ts,tsx}', 'src/hooks/**/*.{ts,tsx}', 'src/lib/**/*.{ts,tsx}'],
     rules: {
-      // No repository layer exists by design (AGENTS.md hard rules): domain
+      // No repository layer exists by design (see CONTRIBUTING): domain
       // persistence lives in `src/db/studyDb.ts`, `src/db/activeFocusSession.ts`,
       // and `src/db/*Service.ts`. This block intentionally defines no
       // `no-restricted-imports` patterns; it is kept as the home for future

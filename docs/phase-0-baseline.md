@@ -9,7 +9,7 @@ This document records a reproducible Phase 0 baseline for installation, validati
 
 **Repository baseline vs hosted deployment:** Evidence below is for the local repository at the baseline commit. GitHub Pages may lag until that commit (or a later tip) is pushed and the CI `deploy` job publishes a verified `dist`. Do not treat the live demo URL as proof that this exact commit is hosted.
 
-Related tracked docs: [README.md](../README.md), [CONTRIBUTING.md](../CONTRIBUTING.md), [docs/technical-debt.md](technical-debt.md), [AGENTS.md](../AGENTS.md), [CHANGELOG.md](../CHANGELOG.md).
+Related tracked docs: [README.md](../README.md), [CONTRIBUTING.md](../CONTRIBUTING.md), [docs/technical-debt.md](technical-debt.md), [CHANGELOG.md](../CHANGELOG.md).
 
 ---
 
@@ -195,7 +195,7 @@ Lighthouse 13 default category set did **not** include the historic PWA category
 - Tooling: `@axe-core/playwright` via [`e2e/a11yHelpers.ts`](../e2e/a11yHelpers.ts)
 - Tags (unsuppressed): `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`
 - Surfaces include Home (+ Notifications open), Settings (+ clear confirmation UI without deleting), Progress (+ Study Time chart), plus mobile navigation / responsive workspace axe smokes
-- Policy: do not disable rules, exclude app selectors, or add known-violation baselines merely to obtain green tests - see [AGENTS.md](../AGENTS.md)
+- Policy: do not disable rules, exclude app selectors, or add known-violation baselines merely to obtain green tests - see [CONTRIBUTING.md](../CONTRIBUTING.md)
 
 ### Focused production Home smoke (baseline lab)
 
@@ -276,4 +276,4 @@ Durable sources of truth:
 - LHCI config reference: [`.lighthouserc.json`](../.lighthouserc.json)
 - Production base / PWA plugin: [`vite.config.ts`](../vite.config.ts)
 
-Audit provenance (optional): Phase 0 execution prompts **207-212** produced the measurements in this report. The document is intended to stand alone from those chats.
+Audit provenance (optional): the Phase 0 execution sessions produced the measurements in this report. The document is intended to stand alone from those sessions.
