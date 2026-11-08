@@ -197,7 +197,6 @@ Study Dashboard delivers a strict Content Security Policy (`default-src 'self'`,
 - [docs/phase-0-baseline.md](docs/phase-0-baseline.md) — Phase 0 install/validation/performance baseline
 - [docs/technical-debt.md](docs/technical-debt.md) — active technical debt, accepted constraints, evidence gaps
 - [CHANGELOG.md](CHANGELOG.md) — release notes
-- [AGENTS.md](AGENTS.md) — AI agent entry point (full docs live in local gitignored `ai/`)
 
 ## Live demo
 

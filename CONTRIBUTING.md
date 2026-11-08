@@ -73,7 +73,7 @@ Coverage (`vitest.config.ts`) instruments all production `src/**/*.{ts,tsx}` fil
 
 Study data is local-first and stored in IndexedDB through Dexie. Keep destructive flows confirmed by the user and covered by tests.
 
-Backup import validates size, shape/version, uniqueness, subject references, semantic integrity, known settings, and record-count limits **before** any IndexedDB clear/write. Reject invalid payloads entirely; do not silently repair duplicates, orphans, or out-of-range values. Failed imports must leave existing data and visible focus ownership intact. When changing import rules, inspect `useStudyBackup.ts`, `studyExportLimits.ts`, `studyExportValidation.ts`, and `studyDb.ts` together (see `AGENTS.md` Backups).
+Backup import validates size, shape/version, uniqueness, subject references, semantic integrity, known settings, and record-count limits **before** any IndexedDB clear/write. Reject invalid payloads entirely; do not silently repair duplicates, orphans, or out-of-range values. Failed imports must leave existing data and visible focus ownership intact. When changing import rules, inspect `useStudyBackup.ts`, `studyExportLimits.ts`, `studyExportValidation.ts`, and `studyDb.ts` together (see `README.md` → Backups).
 
 Settings import and clear-all operations are strictly serialized via `DataOperationCoordinator`. Any changes to this flow must preserve the mutual exclusion invariant and ensure the focused regression tests in `src/db/dataCoordinator.test.ts` and `e2e/dataCoordinator.spec.ts` continue to pass. A dedicated Playwright scenario that rejects an invalid import through Settings remains optional; unit and App suites already cover rejection and focus preservation.
 
@@ -95,10 +95,28 @@ Cover shared primitives with Vitest/Testing Library tests beside the components 
 
 ## Release Archive Hygiene
 
-Do not create a release package by compressing the working directory. A generic filesystem ZIP could accidentally include ignored logs, `.mcp.json`, and other local files.
+Do not create a release package by compressing the working directory. A generic filesystem ZIP could accidentally include ignored logs, local configuration files, and other private local files.
 
 Use a committed-tree archive instead:
 ```bash
 git archive HEAD --format=zip -o StudyApp-release.zip
 ```
-This ensures the archive contains tracked committed files only. Ignored and untracked local files such as `.mcp.json`, development logs, generated output, and local AI/tooling configuration are not release inputs. Note that GitHub Pages deployment remains separately generated from `dist`.
+This ensures the archive contains tracked committed files only. Ignored and untracked local files such as local configuration, development logs, generated output, and local tooling configuration are not release inputs. Note that GitHub Pages deployment remains separately generated from `dist`.
+
+## Project Invariants
+
+Architecture and data rules that apply to every change:
+
+- **Local-first only.** No backend servers, cloud databases, auth, or telemetry. IndexedDB via Dexie is the source of truth; there is no HTTP API.
+- **Composition root.** `src/App.tsx` owns live Dexie data, the sole `useCurrentDate()` local-midnight signal, derived Home metrics, URL-synced navigation, and view wiring. Feature orchestration stays in `src/hooks/` (`useFocusSession`, `useStudyBackup`, `useAppSearch`, preference hooks); pure helpers stay in `src/appUtils.ts`; domain persistence stays in `src/db/` (`studyDb.ts`, `activeFocusSession.ts`).
+- **Goals and subjects carry explicit fields.** Every goal has a stored `metric` (`manual` points or `study_time`) and period (daily minutes; weekly/monthly rounded hours). Every subject has a `progressMode` (`manual` percentage, or `study_time` from all finalized sessions ÷ target hours). Titles never determine calculation.
+- **Backups are validate-before-replace.** New exports are JSON version 4 with required `metric`/`progressMode`. Versions 1–3 remain importable with legacy normalization. Every rejection path (size, parse, duplicates, references, semantics, counts) must leave IndexedDB and visible focus ownership unchanged.
+- **Local calendar dates.** Day keys use local `YYYY-MM-DD` (`localDateKey`); `App.tsx` owns the single `useCurrentDate()` timer; Playwright Home readiness accepts morning/afternoon/evening greeting variants.
+- **Mutations use the shared pattern.** Prefer `useMutationState` (`src/hooks/useMutationState.ts`): validate before running, never reset forms inside the hook, preserve fields on failure, block duplicate submissions, and surface friendly fixed messages. Specialized flows (focus session, backup import/clear-all, quick-note autosave, preferences) keep their dedicated contracts.
+- **Focus timed completion.** Never finalize while persistence is pending (synchronous pending ref); defer with the exact expected session ID; re-read the durable singleton and verify eligibility before auto-completing; paused and open-ended sessions never auto-complete; resume honors `accumulatedPausedMs`.
+- **Dexie migrations.** Schema changes need `version(N)` in `src/db/studyDb.ts` plus tests in `studyDb.test.ts`.
+- **Protected files.** `src/db/studyDb.ts`, `src/App.tsx`, and the `vite.config.ts` base paths change only with care and explicit review.
+- **Do not recreate removed architecture** (hash routing, repository layer, folder sync, encrypted backups, desktop shell) unless explicitly requested.
+- **CSS is plain global CSS.** `src/index.css` is an import barrel with fixed module order (fonts → tokens → base → layout → components → home → workspaces → settings → progress → mixed → themes → responsive → preferences). Keep `responsive` and `preferences` last; avoid selector renaming, specificity increases, CSS Modules, or CSS-in-JS.
+- **Accessibility contracts.** One primary `h1` per page (topbar context stays outside the heading outline); axe scans stay unsuppressed (no disabled rules, selector exclusions, or violation baselines); theme-token contrast thresholds in `src/styles/themeTokenContrast.ts` keep passing across all themes; named charts need `role="img"` with a single accessible name; popovers stay keyboard-dismissible with focus restored to the trigger; rapidly updating timer text is not live-announced every tick.
+- **Toolchain and hygiene.** npm only (`npm ci` / `npm install`; Node 22, npm 10.9.2); no secrets in the repository; minimal diffs; destructive flows keep confirmation and user feedback; after broad mutation, CSS, or accessibility changes run `npm test`, `npm run lint`, `npm run build`, `npm run check:bundle`, and the E2E suite.
