@@ -1,203 +1,125 @@
 # Study Dashboard
 
-React + Vite web application for a local-first study workspace. Tasks, subjects, notes, calendar events, focus sessions, goals, quick notes, and settings persist offline in the browser with Dexie + IndexedDB.
+A free, local-first study workspace that runs entirely in your browser. Tasks, subjects, notes,
+a calendar, focus sessions, and progress views — all in one place, with your data stored only
+on your own device.
 
-There is **no backend**, authentication, or cloud synchronization. The browser IndexedDB database is the source of truth.
+**Status: limited public beta** (`v1.5.0-beta.1`). Core features are stable and covered by a
+large automated test suite, but wider browser/device coverage and manual screen-reader
+certification are still in progress. See [Known limitations](#known-limitations).
 
-## Product surface
+| | |
+|---|---|
+| **Try it** | [sankalpa-kmcp.github.io/StudyApp](https://sankalpa-kmcp.github.io/StudyApp/) — installable as a web app |
+| **Feedback** | [GitHub Issues](https://github.com/sankalpa-kmcp/StudyApp/issues) |
 
-- Home dashboard with cross-entity search results
-- Data-derived first-study checklist for creating a subject, planning work, and recording the first session
-- Tasks, notes, subjects, calendar, progress, goals, and settings workspaces (bookmarkable paths such as `/tasks`; production URLs sit under `/StudyApp/`)
-- Focus timer with subject selection, Pomodoro-style duration, open-ended mode, and local session logging
-- Running and paused focus sessions survive reload and browser reopen; stale sessions offer Resume or Discard
-- Successful Settings backup import resynchronizes focus UI from IndexedDB without a page reload
-- Progress includes a local-date study journal with manual session logging, correction, and deletion
-- Progress, Home totals, and study-time goals update from finalized logged study sessions
-- Subjects support explicit **Manual progress** (stored percentage) and **Study time** (automatic from matching recorded sessions toward target hours); cards and search use the same calculated value
-- Calendar strip days and Home date summaries use the local calendar day and refresh after local midnight without a reload
-- Goals support explicit **Manual progress** (stored points) and **Study time** (automatic from recorded sessions); metric and period are separate choices
-- Settings include JSON import/export, clear-all confirmation, and 21 accessible local theme palettes (11 Light, 10 Dark), including five CSS-only live wallpapers; Monochrome is the default
+![CI](https://github.com/sankalpa-kmcp/StudyApp/actions/workflows/ci.yml/badge.svg)
+[![Release](https://img.shields.io/github/v/release/sankalpa-kmcp/StudyApp?include_prereleases&label=release&sort=semver)](https://github.com/sankalpa-kmcp/StudyApp/releases)
+[![Status](https://img.shields.io/badge/status-limited%20beta-orange)](#known-limitations)
 
-## Data reliability
+## Screenshots
 
-Workspace create, edit, delete, and status/review actions use a shared local mutation pattern:
+Screenshots show synthetic sample data, not real study records.
 
-- Pending controls block repeated submissions while a write is in flight
-- Forms stay populated and open after a failed save so you can retry
-- Forms reset or close only after a successful write
-- Failed deletes leave the record visible
-- Status and review failures preserve the original visible state
-- Success and error feedback use accessible status and alert announcements (no raw database errors)
+**Home dashboard (desktop)** — greeting, today's focus summary, weekly study chart, and the
+getting-started checklist:
+
+![Home dashboard on desktop](docs/screenshots/home-desktop.png)
+
+**Home dashboard (mobile)** — the same dashboard adapts to small screens with bottom
+navigation:
+
+![Home dashboard on mobile](docs/screenshots/home-mobile.png)
+
+## Features
+
+- **Tasks** with due dates, priorities, and time estimates.
+- **Subjects** with colors, target hours, and progress tracking — manual percentage or
+  automatically calculated from logged study time.
+- **Notes** with tags, and a **calendar** with upcoming events.
+- **Focus timer** (Pomodoro-style, open-ended mode, subject linking) with pause/resume;
+  running and paused sessions survive reloads and browser restarts, and stale sessions offer
+  Resume or Discard.
+- **Goals** with manual points or automatic study-time progress (daily / weekly / monthly).
+- **Progress views**: weekly study-time chart, streaks, and a study journal with manual
+  session logging, correction, and deletion.
+- **21 accessible themes** (11 light, 10 dark — Monochrome is the default), including five
+  with live wallpapers, plus Comfortable/Compact/Zen density modes.
+- **Backup export/import**: download all data as a JSON file and restore it any time; imports
+  are fully validated before anything is replaced.
+- Bookmarkable workspace paths (such as `/StudyApp/tasks`) and a local-date calendar that
+  refreshes after midnight without a reload.
+
+## Privacy and data ownership
+
+- **Everything is stored locally in your browser** (IndexedDB). There is no account, no
+  server, no cloud sync, and no telemetry — your data never leaves your device.
+- The flip side of local-only storage: clearing browser data (or using private/incognito
+  mode) deletes your study data. Export backups regularly from **Settings → Export** and keep
+  the file somewhere safe.
+- Details: [docs/data-management.md](docs/data-management.md) and
+  [docs/storage-isolation.md](docs/storage-isolation.md).
 
 ## Accessibility
 
-Study Dashboard includes keyboard-accessible navigation and core study workflows, a skip link, and visible focus indicators. The notification popover is non-modal: Escape closes it and returns focus to the Notifications control. Tasks and Goals associate field-level validation errors with the responsible inputs. All 21 themes include verified text and control-boundary contrast. The app respects `prefers-reduced-motion` and `prefers-reduced-transparency`, and keeps focused controls clear of the fixed mobile bottom navigation at common zoom/reflow widths. Focus timer values remain readable on screen without second-by-second live announcements. Automated accessibility smoke checks (axe) cover representative Home, Settings, and Progress states in Playwright.
+Keyboard-accessible navigation and core study workflows, a skip link, and visible focus
+indicators. Tasks and Goals associate field-level validation errors with the responsible
+inputs. All 21 themes include verified text and control-boundary contrast. The app respects
+`prefers-reduced-motion` and `prefers-reduced-transparency`, and keeps focused controls clear
+of the fixed mobile bottom navigation. Automated accessibility smoke checks (axe) cover
+representative Home, Settings, and Progress states in Playwright.
 
-These are accessibility improvements and checks—not a claim of universal WCAG certification across every browser or assistive technology.
+These are accessibility improvements and checks — not a claim of universal WCAG certification
+across every browser or assistive technology.
 
-## Quick start
+## Known limitations
 
-Supported toolchain (compatibility guidance — `.npmrc` keeps `engine-strict=false`, so other versions are not rejected automatically):
+- **Fully tested:** Chrome and Edge on Windows.
+- **Not yet fully verified:** Firefox, Safari, and mobile browsers. No manual screen-reader
+  session has been done yet.
+- Refreshing a bookmarked page (e.g. `/StudyApp/tasks`) works correctly, but browsers may
+  briefly show a "404" in the network log before the page recovers — harmless and expected on
+  GitHub Pages.
+- An export is a snapshot of the moment you clicked; anything you do after exporting is only
+  in the next export.
 
-- **Node.js** 22 (`^22.0.0`; see `.nvmrc` / `.node-version`)
-- **npm** 10.9.2 (`packageManager` in `package.json`; matches CI)
+## Run locally
+
+Requires Node.js 22 and npm 10 (`.npmrc` keeps `engine-strict=false`, so other versions are
+not rejected automatically, but the supported toolchain is Node `^22.0.0` and npm 10.9.2 —
+matching CI).
 
 ```bash
-node --version   # expect v22.x
-npm --version    # expect 10.9.2
-npm ci
-npm run dev         # http://localhost:5173
+npm ci          # install dependencies
+npm run dev     # dev server at http://localhost:5173
 ```
 
-Normal local development does not require a `.env` file.
-
-## Commands
+Other commands:
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start Vite dev server (`http://localhost:5173`) |
-| `npm run build` | Production build |
-| `npm run preview` | Serve the production build (`http://localhost:4173/StudyApp/`) |
-| `npm test` | Vitest unit and component tests |
+| `npm test` | Unit tests |
 | `npm run lint` | ESLint |
-| `npm run check:tests` | Strict no-emit check of unit/component tests, E2E, fixtures and testing configuration |
-| `npm run check:bundle` | Built JS gzip budget check |
+| `npm run build` | Production build |
+| `npm run check:bundle` | Bundle size budget |
 | `npm run test:e2e` | Playwright end-to-end tests |
-| `npm run test:production` | Smoke-test existing `dist` using the production Pages fixture; run `npm run build` first |
 
-## Structure
-
-| Path | Purpose |
-|------|---------|
-| `src/App.tsx` | Composition root: live data, navigation, derived metrics, sole `useCurrentDate`, view wiring |
-| `src/appUtils.ts` | Shared date, progress, and search builders |
-| `src/hooks/useCurrentDate.ts` | App-owned local-midnight Date signal for date-derived Home metrics |
-| `src/hooks/useMutationState.ts` | Shared pending/success/error helper for ordinary local mutations |
-| `src/hooks/useThemePreference.ts` | Theme `localStorage` + DOM `data-theme` / theme-color |
-| `src/hooks/useSidebarPreference.ts` | Sidebar collapse preference in `localStorage` |
-| `src/hooks/useAppSearch.ts` | Search state, deferred filters, Home cross-entity results |
-| `src/hooks/useFocusSession.ts` | Focus restore/actions/timed completion + import lock APIs |
-| `src/hooks/useStudyBackup.ts` | Export download, import under focus lock, clear-all coordination |
-| `src/db/` | Dexie schema, import/export validation, clear-all, and legacy migration helpers |
-| `src/views/` | Workspace views (tasks, notes, subjects, calendar, progress, goals, settings) |
-| `src/App.test.tsx` | App-shell integration tests (theme/sidebar/notices/search keyboard) |
-| `src/App.*.test.tsx` | Feature App suites (focus, backup, goals, home, navigation, workspaces, progress) |
-| `src/index.css` | Ordered global CSS entry (imports only) |
-| `src/styles/` | Modular plain CSS (tokens, layout, components, Home, workspaces, responsive, preferences) |
-| `e2e/` | Playwright desktop/mobile persistence and focus/import smoke tests |
-
-## CSS architecture
-
-Styling uses **plain global CSS** (no CSS Modules, CSS-in-JS, or per-component stylesheet imports).
-
-- `src/index.css` is the **single ordered entry** imported by the app (`src/main.tsx`).
-- Modules live under `src/styles/` and load in a fixed cascade: fonts → tokens → base → layout → components → home → workspaces → settings → progress → mixed → premium themes → responsive → preferences.
-- 21 themes share CSS variables in `tokens.css` (Monochrome uses base `:root` defaults); `themes.css` owns the five lightweight ambient wallpapers and Crystal Glass rendering.
-- Width breakpoints and reduced-motion / reduced-transparency rules load **last** so they continue to override earlier declarations.
-
-```
-src/styles/
-  fonts.css          # @font-face
-  tokens.css         # :root tokens + theme overrides
-  base.css           # reset, focus-visible, sr-only, skip-link
-  layout.css         # app shell, sidebar, topbar, page grids
-  components.css     # shared cards, fields, buttons, notices, charts
-  home.css           # hero, first-study, focus, quick notes, Home search
-  workspaces.css     # Tasks/Notes/Subjects-owned extras
-  settings.css       # theme studio, import, danger zone
-  progress.css       # session editor and journal
-  mixed.css          # intentionally cross-owned selector groups
-  themes.css         # premium ambience, Crystal glass, Zen and preview treatments
-  responsive.css     # width breakpoints (1220 → 420)
-  preferences.css    # reduced-motion, reduced-transparency
-```
-
-## Data storage
-
-Study data is local-first. Everything is saved in the browser with Dexie + IndexedDB. There is no HTTP API server and no cloud database.
-
-First launch starts empty with create-first actions. Existing customized data from the older `study-dashboard-v2` browser storage key is migrated once when it is safe to do so.
-
-### Goals
-
-- **Manual progress** — you set and edit progress yourself; values are stored in **points**.
-- **Study time** — progress is calculated automatically from **finalized recorded study sessions** (unfinished focus sessions do not count until they are saved to history).
-- **Period** is separate from metric: daily, weekly, or monthly.
-- **Units:** daily study-time goals use **minutes**; weekly and monthly study-time goals use **rounded hours**.
-- **Weekly study-time** totals use the existing **rolling seven local calendar days ending today** (not an ISO or fixed calendar week).
-- **Monthly study-time** totals use the **current local calendar month**.
-- **Renaming a goal does not change** how it is calculated; only the stored metric and period matter.
-
-### Subjects
-
-- **Manual progress** — you set a percentage (0–100); the value stays stored even if you switch modes.
-- **Study time** — progress is **matching finalized study-session minutes ÷ (target hours × 60)**, clamped to 0–100. It uses all matching recorded sessions (not limited to a day/week/month). Unfinished focus sessions do not count until they are saved to history.
-- New subjects default to **Manual progress**. The Subjects editor lets you choose the mode; Progress % appears only in manual mode.
-- Subject cards and Home search use one shared calculator for the displayed percentage.
-- **Subject Distribution** on Progress is separate: it shows each subject’s share of total logged study time, not progress toward a subject’s target hours.
-
-### Focus sessions
-
-- Running and paused unfinished sessions are restored after reload or browser reopen.
-- Timed focus sessions safely handle Pause and Resume at the completion boundary by re-checking the saved session before completing.
-- Sessions at least 12 hours old show Resume / Discard instead of the normal timer.
-- A successful backup import replaces local data and immediately resynchronizes the visible focus state from IndexedDB.
-
-### Backups
-
-- New exports use plain, unencrypted JSON format **version 4** (`version: 4`) with an explicit `metric` on every goal and an explicit `progressMode` on every subject (`manual` or `study_time`).
-- **Snapshot boundaries:** Snapshot acquisition occurs inside one readonly Dexie transaction covering all seven active database tables (`subjects`, `tasks`, `notes`, `events`, `studySessions`, `goals`, `settings`). Version and timestamp metadata, JSON stringification, Blob creation, object URL generation, and browser download initiation occur after transaction settlement.
-- **Data included:** Export captures one point-in-time snapshot of all subjects, tasks, notes, calendar events, study sessions, goals, and supported settings (including `activeFocusSession` when present).
-- **Data excluded:** Device-local appearance (`localStorage` theme selection) and sidebar collapse state are excluded from backups.
-- **Snapshot timing:** Writes committed after snapshot acquisition begins may not appear in that export.
-- **Security guidance:** Backup files are unencrypted JSON and should be stored and shared according to the sensitivity of the user's study data.
-- **Import validation:** Valid **version 1**, **version 2**, and **version 3** backups remain importable. Goals without metrics (v1) and subjects without modes (v1/v2) are normalized from the **complete imported study-session set** **before** any local data is replaced. Legacy flashcards in v1–v3 backups are cleanly discarded on import. Current exports are always version 4.
-- Version 3 and version 4 backups that omit or use an invalid subject `progressMode` (or goal `metric`) fail validation **before** table replacement; existing data stays intact.
-- **Imports validate fully before replacing local data.** Size, shape/version, uniqueness, subject references, semantic integrity, known settings values, and record-count limits are checked first. Only then does IndexedDB clear and rewrite. Invalid imports leave existing data and the visible focus session unchanged.
-- Integrity checks reject duplicate entity IDs and duplicate settings keys; orphan non-empty `subjectId` values (empty string remains General / unassigned); out-of-range subject progress or non-positive target hours; negative task minutes; non-positive session minutes; event or session end before start; and non-positive goal targets or negative goal progress.
-- Known settings are checked (`dailyGoalMinutes > 0`; `quickNotes` string array up to 8; migration flag exactly `true`; `activeFocusSession` must match its domain contract). Unknown settings keys stay accepted and preserved for forward compatibility.
-- Resource limits: **64 MiB** file bytes and text length (exports also gate canonical serialized bytes symmetrically on import); **25,000** portable records; subjects **500**; tasks/notes/events **5,000** each; study sessions **10,000**; goals **500**; portable settings **64**. Only `databaseGeneration` and `legacy-localstorage-migrated-v1` are internal and excluded from portable settings and total counts, consistently across import, export, and guarded mutations. Active focus and every unknown setting key count normally. Existing oversized workspaces may be edited or reduced without worsening their violated limits; internal metadata alone does not trigger that grandfathering path. Canonical byte enforcement remains unchanged.
-- Import integrity is structural (ranges, uniqueness, references, order). Stricter UI editor limits (for example task minutes 5–720, or Progress’s “session end not in the future” rule) are **not** re-enforced on import.
-
-### Security and storage isolation
-
-Study Dashboard is a local-first application that stores study data, settings, and journal entries entirely in browser-local storage (IndexedDB and `localStorage`). There are no user accounts, passwords, or server-side databases.
-
-#### Browser origin boundary on GitHub Pages
-
-When deployed as a standard GitHub Pages project site:
-- URLs such as `https://<account>.github.io/StudyApp/` and `https://<account>.github.io/AnotherProject/` share the same browser origin: `https://<account>.github.io`.
-- Browser security boundaries (the Same-Origin Policy) scope IndexedDB and `localStorage` to the full origin `(scheme, host, port)`, **not** to URL pathname prefixes.
-- Consequently, any script executing within another project hosted on the **same GitHub Pages account host** shares access to the origin's IndexedDB databases and `localStorage` keys.
-- **Attack prerequisite:** Storage access requires script execution on a page served from that specific same account host. Unrelated websites across the internet and other GitHub Pages account hosts (for example, `https://other-user.github.io`) are separate origins and cannot access your data.
-
-#### True origin isolation
-
-If you host other projects under your personal GitHub Pages account that contain experimental, untrusted, or multi-tenant code, you can achieve complete storage isolation by deploying Study Dashboard on a dedicated origin:
-
-- **Dedicated custom domain or subdomain:** Deploying to a custom domain (e.g., `https://study.example.com` or `https://studyapp.dev`) gives the application its own isolated origin.
-- **Dedicated GitHub account or organization:** Hosting the repository under a dedicated GitHub account/organization whose Pages host is used exclusively for Study Dashboard isolates its storage (provided no untrusted projects are subsequently added to that same account).
-
-*Note:* Simply renaming the repository or altering the URL path does not change the browser origin and provides no storage isolation.
-
-#### Content Security Policy (CSP)
-
-Study Dashboard delivers a strict Content Security Policy (`default-src 'self'`, `script-src 'self' 'sha256-...'`, `style-src 'self' 'unsafe-inline'`, `img-src 'self' data:`, `font-src 'self'`, `connect-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`) as defense-in-depth against unauthorized network tracking, cross-site scripting, and external resource injection within the application itself. However, CSP enforces boundaries only within its own document context; it does not alter browser-level origin scoping and cannot prevent separate pages on the same origin from opening same-origin IndexedDB databases.
-
-#### Deployment guidance
-
-- **Default GitHub Pages deployment** is safe and appropriate for users who control and trust all code hosted under their `<account>.github.io` domain.
-- **Dedicated origin deployment** (custom subdomain or dedicated host) is recommended for users who host untrusted, public-submission, or third-party web projects on the same GitHub Pages account.
+Normal local development does not require a `.env` file.
 
 ## Documentation
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) — migrations, E2E, coverage gates
-- [docs/release-v1.5.0-contract.md](docs/release-v1.5.0-contract.md) — v1.5.0 Public Beta release contract and feature freeze
-- [docs/phase-0-baseline.md](docs/phase-0-baseline.md) — Phase 0 install/validation/performance baseline
-- [docs/technical-debt.md](docs/technical-debt.md) — active technical debt, accepted constraints, evidence gaps
+- [CONTRIBUTING.md](CONTRIBUTING.md) — project invariants, testing, and data-safety rules
+- [docs/data-management.md](docs/data-management.md) — goals, subjects, focus sessions, and
+  backup format details
+- [docs/storage-isolation.md](docs/storage-isolation.md) — storage isolation and security notes
+- [docs/architecture.md](docs/architecture.md) — app structure and CSS architecture
+- [docs/release-v1.5.0-contract.md](docs/release-v1.5.0-contract.md) — v1.5.0 release contract
 - [CHANGELOG.md](CHANGELOG.md) — release notes
+- [SECURITY.md](SECURITY.md) — how to report security concerns
 
-## Live demo
+## Feedback
 
-[Study Dashboard on GitHub Pages](https://sankalpa-kmcp.github.io/StudyApp/) — local-first; all data stays in your browser's IndexedDB.
+Found something broken, confusing, or odd? Please open a
+[GitHub Issue](https://github.com/sankalpa-kmcp/StudyApp/issues) with what you did, what
+happened, and your browser and version (e.g. "Edge 157 on Windows 11"). Reports about data
+loss get priority — mention it in the title.

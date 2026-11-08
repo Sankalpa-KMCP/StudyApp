@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest an idea or improvement for Study Dashboard
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Study Dashboard is deliberately local-first: no accounts, no
+        servers, no cloud sync. Suggestions that keep that model are the easiest to accept.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the study workflow or situation where something is missing.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: Describe the change as you would expect to use it.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you have considered
+      description: Other apps, workarounds, or simpler changes that would also help.

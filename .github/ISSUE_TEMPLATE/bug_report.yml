@@ -1,0 +1,61 @@
+name: Bug report
+description: Report something broken, confusing, or unexpected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing Study Dashboard! Please fill in the details below.
+        Reports about possible data loss get priority — mention it in the title.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps starting from a freshly loaded app, if possible.
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. See error
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      description: |
+        Which browser were you using? Firefox, Safari, and mobile browsers are not fully
+        verified yet (see the README's known limitations) — reports from them are still
+        very welcome.
+      options:
+        - Chrome (desktop)
+        - Edge (desktop)
+        - Firefox
+        - Safari
+        - Mobile browser (Chrome or Safari)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: browser-version
+    attributes:
+      label: Browser version and operating system
+      placeholder: e.g. Edge 157 on Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If the problem is visual, attach a screenshot. Do not include personal study data you do not want to publish.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Error text, whether a page reload fixed it, whether you use private/incognito mode, etc.
