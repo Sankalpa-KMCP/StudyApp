@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.5.0-beta.1] — 2026-11-08
+
+First **limited public beta** build of the v1.5.0 line, published as a labeled pre-release for preview and feedback. Feature content in this build is listed under [Unreleased] below.
+
+**Limited beta scope:** Firefox, Safari/in-app-browser, and mobile-device coverage plus manual screen-reader certification are incomplete; the full v1.5.0 Public Beta acceptance contract remains paused. Study data is stored locally in your browser — export a backup from Settings regularly.
+
 ## [Unreleased]
 
 ### Added
