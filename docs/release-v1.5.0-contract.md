@@ -7,7 +7,7 @@ This document defines the authoritative product contract, browser support target
 ## Release Classification & Status
 
 - **Classification:** PUBLIC BETA (Paused)
-- **Current Version:** `1.4.0` (Targeting `1.5.0`)
+- **Current Version:** `1.5.0-beta.1` (published as a limited public beta on 2026-11-08; the full Public Beta acceptance below remains paused, targeting `1.5.0`)
 - **Status:** Production Release Paused
 
 ---

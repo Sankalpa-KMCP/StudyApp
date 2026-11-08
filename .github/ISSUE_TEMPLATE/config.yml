@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Live app
+    url: https://sankalpa-kmcp.github.io/StudyApp/
+    about: Try the current beta build on GitHub Pages (all data stays in your browser).
+  - name: Documentation
+    url: https://github.com/sankalpa-kmcp/StudyApp#readme
+    about: Features, privacy notes, compatibility, and known limitations are described in the README.

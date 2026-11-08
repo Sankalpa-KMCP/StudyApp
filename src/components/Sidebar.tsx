@@ -29,7 +29,7 @@ export function Sidebar({
           <img src={`${import.meta.env.BASE_URL}brand-mark.svg`} alt="" />
         </button>
         <div className="brand-copy">
-          <strong>Study room</strong>
+          <strong>Study Dashboard</strong>
           <span>Local · private · yours</span>
         </div>
         <button className="sidebar-toggle" type="button" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-pressed={collapsed} onClick={onToggleCollapsed}>
