@@ -136,7 +136,7 @@ Every active entry includes:
 | User impact | Automated axe coverage is strong, but real screen-reader or equivalent AT usability issues may still exist without being represented in current evidence. |
 | Verification evidence | [docs/phase-0-baseline.md](phase-0-baseline.md) records unsuppressed axe coverage and a zero-violation production Home smoke, but explicitly states an evidence gap: no NVDA, JAWS, VoiceOver, or equivalent assistive-technology testing has been performed. |
 | Resolution / acceptance condition | Run and document manual AT verification for key workflows (Home, navigation, focus, tasks/goals/forms, Settings import/export/danger flows), then update the register with concrete findings or closure evidence. |
-| Notes / constraints | This entry tracks a verification gap, not a claim that the app currently fails AT usage. |
+| Notes / constraints | This entry tracks a verification gap, not a claim that the app currently fails AT usage. For v1.5.0 General Availability, the repository owner authorized release with TD-006 remaining OPEN and unverified, deferring manual screen-reader walkthrough (NVDA/VoiceOver) to post-v1.5.0 maintenance with documented accessibility risk. |
 
 ### TD-007 - Settings import and clear-all remain unsafely concurrent
 

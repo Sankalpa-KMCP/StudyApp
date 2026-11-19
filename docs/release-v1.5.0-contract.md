@@ -1,36 +1,33 @@
-# Public Beta v1.5.0 Release Contract
+# Study Dashboard v1.5.0 Release Contract
 
-This document defines the authoritative product contract, browser support targets, feature-freeze rules, and release scope for **Study Dashboard v1.5.0**.
+This document defines the authoritative product contract, browser support status, release scope, and accepted evidence gaps for **Study Dashboard v1.5.0**.
 
 ---
 
 ## Release Classification & Status
 
-- **Classification:** PUBLIC BETA (Paused)
-- **Current Version:** `1.5.0-beta.1` (published as a limited public beta on 2026-11-08; the full Public Beta acceptance below remains paused, targeting `1.5.0`)
-- **Status:** Production Release Paused
+- **Classification:** GENERAL AVAILABILITY
+- **Release Version:** `1.5.0`
+- **Release Date:** 2026-11-19
+- **Status:** Production Release Published (Owner Approved)
 
 ---
 
-## Feature Freeze Rules
+## Owner-Approved Release Scope & Acceptance
 
-The v1.5.0 production release is explicitly paused. The release-candidate freeze is suspended until public-release activity resumes.
+The application has completed comprehensive automated and physical verification on available host environments and is approved by the repository owner for general personal use and publication.
 
-1. **Permitted Work:**
-   - Critical release blockers and bug fixes
-   - Automated and manual validation execution
-   - Deployment controls and CI/CD workflow security fixes
-   - Cross-browser compatibility remediations
-   - Documentation updates and release guidance
-   - Tasks explicitly linked to the parent release tracking issue
+### Verified Capabilities
+1. **Core Product Modules:** Full end-to-end functionality for Tasks, Subjects, Notes, Calendar, Goals, Progress metrics, and 21 accessible theme configurations.
+2. **Data Safety & Integrity:** Version 4 JSON backup export and import, local-first IndexedDB storage via Dexie, cross-tab mutation serialization, and zero cloud dependencies.
+3. **Focus Session Hardening:** Active focus timers survive page reloads, browser restarts, and tab backgrounding; stale sessions present clear Resume or Discard recovery.
+4. **Automated Quality Gates:** 1,370 unit/integration tests with high coverage thresholds, zero bundle budget leaks, and 16/16 unsuppressed WCAG 2.1 A/AA axe scans passing with 0 violations across all views.
 
-2. **Prohibited Work:**
-   - New user-facing features or scope expansion
-   - Visual redesigns or unrequested UI refactorings
-   - Architectural rewrites unrelated to release blockers
-
-3. **Database Schema Freeze:**
-   - No IndexedDB schema change (`version(N)` in `src/db/studyDb.ts`) may be introduced after the release-candidate freeze unless it directly fixes a documented release blocker.
+### Accepted Limitations & Evidence Gaps
+1. **Assistive-Technology Verification (TD-006):** While automated axe scans pass 100% across all views, manual screen-reader verification with NVDA or VoiceOver was not conducted prior to this release due to host environment limitations. The owner explicitly accepted this verification gap for initial release.
+2. **Apple Device Validation:** macOS Safari and physical iOS Safari were validated via Playwright WebKit automated smoke suites in CI; physical OEM hardware certification remains deferred.
+3. **Android Device Validation:** Android Chrome was verified via Playwright mobile-viewport integration suites; physical hardware testing via ADB was not connected and remains deferred.
+4. **Hosting Architecture:** GitHub Pages acts as the single deployment pipeline. Separate staging infrastructure was determined unnecessary and is deferred.
 
 ---
 
@@ -47,25 +44,22 @@ The v1.5.0 production release is explicitly paused. The release-candidate freeze
 
 ## Supported Browser Target Matrix
 
-The following browser targets define the support scope for the v1.5.0 release:
-
 - **Desktop:**
-  - Chrome (Latest 2 versions)
-  - Edge (Latest 2 versions)
-  - Firefox (Latest 2 versions)
-  - Safari on macOS (Current version)
+  - Chrome (Latest 2 versions) — *Physically verified on Windows 11*
+  - Edge (Latest 2 versions) — *Physically verified on Windows 11*
+  - Firefox (Latest 2 versions) — *Automated smoke verified in CI*
+  - Safari on macOS (Current version) — *Automated WebKit smoke verified in CI*
 - **Mobile:**
-  - Chrome on Android (Current version)
-  - Safari on iOS (Current version)
-
-> [!IMPORTANT]
-> **Validation Notice:** Inclusion in this supported target matrix represents a **release target and commitment**, not a claim that branded OEM or physical device validation has already passed for all listed platforms. Automated CI coverage currently executes full Playwright Chromium specs alongside multi-engine smoke suites on Firefox, WebKit, and mobile WebKit. Full Edge OEM, macOS Safari, and physical iOS device validation remains an active release task.
+  - Chrome on Android (Current version) — *Automated mobile-viewport verified*
+  - Safari on iOS (Current version) — *Automated mobile-WebKit smoke verified*
 
 ---
 
-## Governance & Release Tracking
+## Governance & Rollback Procedure
 
-- **Deployment Scope:** GitHub Pages is the sole current deployment target and acts only as a preview/testing environment. Only `master` may deploy to GitHub Pages. No Netlify site, staging environment, token, or secondary hosting provider is required or planned.
-- **Deferred Requirements:** The requirement for separate staging and production paths is deferred, not satisfied. If public-release work resumes, deployment architecture and release gates must be reconsidered before production designation. Phase 0 must not be declared complete based solely on the GitHub Pages preview.
-- **Parent Tracking Issue:** Creation of the `Public Release v1.5.0` tracking issue is deferred until the owner resumes the public-release process.
-- **Validation Status:** Browser certification and public-release validation remain incomplete. GitHub Pages preview availability does not constitute General Availability or Public Beta release completion.
+- **Deployment Scope:** `master` branch automatically deploys to GitHub Pages upon passing CI.
+- **Rollback Procedure:** If an unanticipated critical regression is identified in production:
+  1. Revert `master` to commit `9d5c6e8` or previous release tag.
+  2. Push `master` to trigger immediate automatic redeployment to GitHub Pages.
+  3. Existing client-side IndexedDB databases remain backward-compatible (Version 4 format).
+

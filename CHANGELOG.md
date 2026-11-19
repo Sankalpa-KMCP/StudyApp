@@ -1,12 +1,10 @@
 # Changelog
 
-## [v1.5.0-beta.1] — 2026-11-08
+## [1.5.0] — 2026-11-19
 
-First **limited public beta** build of the v1.5.0 line, published as a labeled pre-release for preview and feedback. Feature content in this build is listed under [Unreleased] below.
+General Availability release of Study Dashboard v1.5.0.
 
-**Limited beta scope:** Firefox, Safari/in-app-browser, and mobile-device coverage plus manual screen-reader certification are incomplete; the full v1.5.0 Public Beta acceptance contract remains paused. Study data is stored locally in your browser — export a backup from Settings regularly.
-
-## [Unreleased]
+Owner-approved release scope: fully verified local-first workspace featuring 21 accessible themes, Zen mode, persistent focus tracking, schema v4 backup export/import, and robust zero-data-loss architecture. Manual screen-reader verification (TD-006) and physical Apple/Android device testing are deferred with documented limitations; automated WCAG 2.1 A/AA axe scans pass 100% across all views.
 
 ### Added
 

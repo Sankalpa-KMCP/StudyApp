@@ -5,12 +5,49 @@ import { exportStudyBackupViaSettings } from './focusHelpers'
 import { observeEntrance } from './entranceObserver'
 
 
-const runtimeErrors = new WeakMap<Page, { errors: string[]; expected404: boolean }>()
+const runtimeErrors = new WeakMap<Page, { errors: string[]; expected404: boolean; isNavigating: boolean }>()
 test.beforeEach(async ({ page }) => {
-  const state = { errors: [] as string[], expected404: false }
+  const state = { errors: [] as string[], expected404: false, isNavigating: false }
   runtimeErrors.set(page, state)
+
+  // Track active browser document navigation lifecycle so cancellations of
+  // in-flight requests during page unloads/reloads are recognized as expected,
+  // while unexpected aborted requests outside navigation remain strictly fatal.
+  const originalGoto = page.goto.bind(page)
+  const originalReload = page.reload.bind(page)
+  page.goto = async (...args) => {
+    state.isNavigating = true
+    try {
+      return await originalGoto(...args)
+    } finally {
+      await new Promise(resolve => setTimeout(resolve, 50))
+      state.isNavigating = false
+    }
+  }
+  page.reload = async (...args) => {
+    state.isNavigating = true
+    try {
+      return await originalReload(...args)
+    } finally {
+      await new Promise(resolve => setTimeout(resolve, 50))
+      state.isNavigating = false
+    }
+  }
+
   page.on('pageerror', error => state.errors.push(error.message))
-  page.on('requestfailed', request => state.errors.push(`network: ${request.url()}`))
+  page.on('requestfailed', request => {
+    const errorText = request.failure()?.errorText
+    // Allow cancellation ONLY if it is an expected document navigation cancellation
+    // or if a document navigation/reload is actively in progress.
+    const isExpectedCancellation =
+      errorText === 'net::ERR_ABORTED' &&
+      (request.isNavigationRequest() || state.isNavigating)
+
+    if (isExpectedCancellation) {
+      return
+    }
+    state.errors.push(`network: ${request.url()} (${errorText ?? 'unknown'})`)
+  })
   page.on('console', message => { if (message.type() === 'error') state.errors.push(`console: ${message.text()}`) })
   page.on('response', response => {
     if (response.status() < 400) return
@@ -34,10 +71,17 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 600 
     for (const reducedMotion of ['no-preference', 'reduce'] as const) {
       test(`startup ${viewport.width}px, ${theme}, ${reducedMotion}`, async ({ page }, testInfo) => {
         test.slow()
+        const state = runtimeErrors.get(page)!
         const errors: string[] = []
         page.on('pageerror', (error) => errors.push(error.message))
         page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
-        page.on('requestfailed', (request) => errors.push(request.url()))
+        page.on('requestfailed', (request) => {
+          const errorText = request.failure()?.errorText
+          const isExpected = errorText === 'net::ERR_ABORTED' && (request.isNavigationRequest() || state.isNavigating)
+          if (!isExpected) {
+            errors.push(`network: ${request.url()} (${errorText ?? 'unknown'})`)
+          }
+        })
         page.on('response', (response) => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`) })
         await page.setViewportSize(viewport)
         await page.emulateMedia({ reducedMotion })
@@ -176,7 +220,13 @@ test('entrance keeps the dashboard outside an animated opacity group', async ({ 
   expect(styles).toEqual({ dashboardAnimation: 'none', dashboardOpacity: '1', heroAnimation: 'heroContentSettle', summaryAnimation: 'none', cardAnimation: 'workspaceGroupSettle' })
 })
 
-test('glass backdrop blur is deferred during entrance and restored after settlement', async ({ page }) => {
+test('glass backdrop blur is deferred during entrance and restored after settlement', async ({ page, browserName }) => {
+  if (browserName === 'chromium') {
+    const client = await page.context().newCDPSession(page)
+    await client.send('Emulation.setEmulatedMedia', {
+      features: [{ name: 'prefers-reduced-transparency', value: 'no-preference' }],
+    })
+  }
   await page.goto('./')
   const results = await page.evaluate(() => {
     const previousTheme = document.documentElement.dataset.theme
@@ -506,3 +556,51 @@ test('returning profile keeps appearance but replays on a new document; durable 
   expect(exported.settings.find(setting => setting.key === 'quickNotes')?.value).toEqual(['Synthetic live-query update'])
   expect(await page.evaluate(() => window.restoreStarts)).toBe(1)
 })
+
+test('expected navigation cancellations do not produce false-positive failures', async ({ page }) => {
+  const state = runtimeErrors.get(page)!
+  await page.goto('./')
+  await page.goto('./#tasks')
+  expect(state.errors).toEqual([])
+})
+
+test('unexpected aborted requests outside navigation remain detectable', async ({ page }) => {
+  const state = runtimeErrors.get(page)!
+  await page.goto('./')
+  await page.route('**/unexpected-aborted-endpoint.json', route => route.abort('aborted'))
+  await page.evaluate(() => {
+    fetch('./unexpected-aborted-endpoint.json').catch(() => {})
+  })
+  await expect.poll(() => state.errors.some(err => err.includes('unexpected-aborted-endpoint.json'))).toBe(true)
+  state.errors = state.errors.filter(err => !err.includes('unexpected-aborted-endpoint.json') && !err.includes('net::ERR_ABORTED'))
+})
+
+test('genuine network failures remain detectable by the test harness and are not masked', async ({ page }) => {
+  const state = runtimeErrors.get(page)!
+  await page.goto('./')
+  await page.route('**/probe-failure-asset.js', route => route.abort('failed'))
+  await page.evaluate(() => {
+    fetch('./probe-failure-asset.js').catch(() => {})
+  })
+  await expect.poll(() => state.errors.some(err => err.includes('probe-failure-asset.js'))).toBe(true)
+  state.errors = state.errors.filter(err => !err.includes('probe-failure-asset.js') && !err.includes('net::ERR_FAILED'))
+})
+
+test('HTTP errors and unhandled runtime exceptions remain fatal', async ({ page }) => {
+  const state = runtimeErrors.get(page)!
+  await page.goto('./')
+  await page.route('**/probe-500-endpoint.json', route => route.fulfill({ status: 500, body: 'Server Error' }))
+  await page.evaluate(() => {
+    fetch('./probe-500-endpoint.json').catch(() => {})
+  })
+  await expect.poll(() => state.errors.some(err => err.includes('HTTP 500'))).toBe(true)
+  state.errors = state.errors.filter(err => !err.includes('500'))
+
+  await page.evaluate(() => {
+    setTimeout(() => { throw new Error('Simulated runtime error probe') }, 10)
+  })
+  await expect.poll(() => state.errors.some(err => err.includes('Simulated runtime error probe'))).toBe(true)
+  state.errors = state.errors.filter(err => !err.includes('Simulated runtime error probe'))
+})
+
+

@@ -4,9 +4,8 @@ A free, local-first study workspace that runs entirely in your browser. Tasks, s
 a calendar, focus sessions, and progress views — all in one place, with your data stored only
 on your own device.
 
-**Status: limited public beta** (`v1.5.0-beta.1`). Core features are stable and covered by a
-large automated test suite, but wider browser/device coverage and manual screen-reader
-certification are still in progress. See [Known limitations](#known-limitations).
+**Status: General Availability** (`v1.5.0`). Core features are stable and covered by an
+extensive automated test suite. See [Known limitations](#known-limitations).
 
 | | |
 |---|---|
@@ -14,8 +13,8 @@ certification are still in progress. See [Known limitations](#known-limitations)
 | **Feedback** | [GitHub Issues](https://github.com/sankalpa-kmcp/StudyApp/issues) |
 
 ![CI](https://github.com/sankalpa-kmcp/StudyApp/actions/workflows/ci.yml/badge.svg)
-[![Release](https://img.shields.io/github/v/release/sankalpa-kmcp/StudyApp?include_prereleases&label=release&sort=semver)](https://github.com/sankalpa-kmcp/StudyApp/releases)
-[![Status](https://img.shields.io/badge/status-limited%20beta-orange)](#known-limitations)
+[![Release](https://img.shields.io/github/v/release/sankalpa-kmcp/StudyApp?label=release&sort=semver)](https://github.com/sankalpa-kmcp/StudyApp/releases)
+[![Status](https://img.shields.io/badge/status-v1.5.0-blue)](#known-limitations)
 
 ## Screenshots
 
